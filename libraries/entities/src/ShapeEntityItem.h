@@ -84,7 +84,6 @@ public:
     QColor getQColor() const;
     void setColor(const QColor& value);
 
-    ShapeType getShapeType() const override;
     bool shouldBePhysical() const override { return !isDead(); }
     
     bool supportsDetailedRayIntersection() const override;

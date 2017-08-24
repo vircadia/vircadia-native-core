@@ -262,7 +262,7 @@ public:
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
 
     /// registration point as ratio of entity
-    void setRegistrationPoint(const glm::vec3& value);
+    virtual void setRegistrationPoint(const glm::vec3& value);
 
     bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
@@ -315,6 +315,9 @@ public:
 
     QString getMarketplaceID() const;
     void setMarketplaceID(const QString& value);
+
+    bool getShouldHighlight() const;
+    void setShouldHighlight(const bool value);
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -532,6 +535,7 @@ protected:
     QString _userData;
     SimulationOwner _simulationOwner;
     QString _marketplaceID;
+    bool _shouldHighlight { false };
     QString _name;
     QString _href; //Hyperlink href
     QString _description; //Hyperlink description

@@ -115,7 +115,8 @@ public:
     bool getThisNodeCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
     bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
     bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
-
+    bool getThisNodeCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
+    
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
 
@@ -285,7 +286,9 @@ public:
 
     void setPacketFilterOperator(udt::PacketFilterOperator filterOperator) { _nodeSocket.setPacketFilterOperator(filterOperator); }
     bool packetVersionMatch(const udt::Packet& packet);
-    bool isPacketVerified(const udt::Packet& packet);
+
+    bool isPacketVerifiedWithSource(const udt::Packet& packet, Node* sourceNode = nullptr);
+    bool isPacketVerified(const udt::Packet& packet) { return isPacketVerifiedWithSource(packet); }
 
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
@@ -329,6 +332,7 @@ signals:
     void canRezTmpChanged(bool canRezTmp);
     void canWriteAssetsChanged(bool canWriteAssets);
     void canKickChanged(bool canKick);
+    void canReplaceContentChanged(bool canReplaceContent);
 
 protected slots:
     void connectedForLocalSocketTest();
@@ -350,7 +354,7 @@ protected:
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
 
-    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet);
+    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet, Node* sourceNode = nullptr);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);

@@ -45,6 +45,7 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
     permissions |= perms["id_can_connect_past_max_capacity"].toBool() ?
         Permission::canConnectPastMaxCapacity : Permission::none;
     permissions |= perms["id_can_kick"].toBool() ? Permission::canKick : Permission::none;
+    permissions |= perms["id_can_replace_content"].toBool() ? Permission::canReplaceDomainContent : Permission::none;
 }
 
 QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
@@ -52,8 +53,12 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["permissions_id"] = _id;
     if (_groupIDSet) {
         values["group_id"] = _groupID;
-        if (groupRanks.contains(_rankID)) {
+
+        if (!_rankID.isNull()) {
             values["rank_id"] = _rankID;
+        }
+
+        if (groupRanks.contains(_rankID)) {
             values["rank_name"] = groupRanks[_rankID].name;
             values["rank_order"] = groupRanks[_rankID].order;
         }
@@ -65,6 +70,7 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["id_can_write_to_asset_server"] = can(Permission::canWriteToAssetServer);
     values["id_can_connect_past_max_capacity"] = can(Permission::canConnectPastMaxCapacity);
     values["id_can_kick"] = can(Permission::canKick);
+    values["id_can_replace_content"] = can(Permission::canReplaceDomainContent);
     return QVariant(values);
 }
 
@@ -127,6 +133,9 @@ QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     }
     if (perms.can(NodePermissions::Permission::canKick)) {
         debug << " kick";
+    }
+    if (perms.can(NodePermissions::Permission::canReplaceDomainContent)) {
+        debug << " can_replace_content";
     }
     debug.nospace() << "]";
     return debug.nospace();

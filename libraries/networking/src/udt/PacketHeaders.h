@@ -121,20 +121,60 @@ public:
         ReplicatedAvatarIdentity,
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
+        OctreeFileReplacementFromUrl,
         NUM_PACKET_TYPE
     };
+
+    const static QHash<PacketTypeEnum::Value, PacketTypeEnum::Value> getReplicatedPacketMapping() {
+        const static QHash<PacketTypeEnum::Value, PacketTypeEnum::Value> REPLICATED_PACKET_MAPPING {
+            { PacketTypeEnum::Value::MicrophoneAudioNoEcho, PacketTypeEnum::Value::ReplicatedMicrophoneAudioNoEcho },
+            { PacketTypeEnum::Value::MicrophoneAudioWithEcho, PacketTypeEnum::Value::ReplicatedMicrophoneAudioWithEcho },
+            { PacketTypeEnum::Value::InjectAudio, PacketTypeEnum::Value::ReplicatedInjectAudio },
+            { PacketTypeEnum::Value::SilentAudioFrame, PacketTypeEnum::Value::ReplicatedSilentAudioFrame },
+            { PacketTypeEnum::Value::AvatarIdentity, PacketTypeEnum::Value::ReplicatedAvatarIdentity },
+            { PacketTypeEnum::Value::KillAvatar, PacketTypeEnum::Value::ReplicatedKillAvatar },
+            { PacketTypeEnum::Value::BulkAvatarData, PacketTypeEnum::Value::ReplicatedBulkAvatarData }
+        };
+        return REPLICATED_PACKET_MAPPING;
+    }
+
+    const static QSet<PacketTypeEnum::Value> getNonVerifiedPackets() {
+        const static QSet<PacketTypeEnum::Value> NON_VERIFIED_PACKETS = QSet<PacketTypeEnum::Value>()
+            << PacketTypeEnum::Value::NodeJsonStats << PacketTypeEnum::Value::EntityQuery
+            << PacketTypeEnum::Value::OctreeDataNack << PacketTypeEnum::Value::EntityEditNack
+            << PacketTypeEnum::Value::DomainListRequest << PacketTypeEnum::Value::StopNode
+            << PacketTypeEnum::Value::DomainDisconnectRequest << PacketTypeEnum::Value::UsernameFromIDRequest
+            << PacketTypeEnum::Value::NodeKickRequest << PacketTypeEnum::Value::NodeMuteRequest;
+        return NON_VERIFIED_PACKETS;
+    }
+
+    const static QSet<PacketTypeEnum::Value> getNonSourcedPackets() {
+        const static QSet<PacketTypeEnum::Value> NON_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
+            << PacketTypeEnum::Value::StunResponse << PacketTypeEnum::Value::CreateAssignment
+            << PacketTypeEnum::Value::RequestAssignment << PacketTypeEnum::Value::DomainServerRequireDTLS
+            << PacketTypeEnum::Value::DomainConnectRequest << PacketTypeEnum::Value::DomainList
+            << PacketTypeEnum::Value::DomainConnectionDenied << PacketTypeEnum::Value::DomainServerPathQuery
+            << PacketTypeEnum::Value::DomainServerPathResponse << PacketTypeEnum::Value::DomainServerAddedNode
+            << PacketTypeEnum::Value::DomainServerConnectionToken << PacketTypeEnum::Value::DomainSettingsRequest
+            << PacketTypeEnum::Value::DomainSettings << PacketTypeEnum::Value::ICEServerPeerInformation
+            << PacketTypeEnum::Value::ICEServerQuery << PacketTypeEnum::Value::ICEServerHeartbeat
+            << PacketTypeEnum::Value::ICEServerHeartbeatACK << PacketTypeEnum::Value::ICEPing
+            << PacketTypeEnum::Value::ICEPingReply << PacketTypeEnum::Value::ICEServerHeartbeatDenied
+            << PacketTypeEnum::Value::AssignmentClientStatus << PacketTypeEnum::Value::StopNode
+            << PacketTypeEnum::Value::DomainServerRemovedNode << PacketTypeEnum::Value::UsernameFromIDReply
+            << PacketTypeEnum::Value::OctreeFileReplacement << PacketTypeEnum::Value::ReplicatedMicrophoneAudioNoEcho
+            << PacketTypeEnum::Value::ReplicatedMicrophoneAudioWithEcho << PacketTypeEnum::Value::ReplicatedInjectAudio
+            << PacketTypeEnum::Value::ReplicatedSilentAudioFrame << PacketTypeEnum::Value::ReplicatedAvatarIdentity
+            << PacketTypeEnum::Value::ReplicatedKillAvatar << PacketTypeEnum::Value::ReplicatedBulkAvatarData;
+        return NON_SOURCED_PACKETS;
+    }
 };
 
 using PacketType = PacketTypeEnum::Value;
 
-extern const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING;
-
 const int NUM_BYTES_MD5_HASH = 16;
 
 typedef char PacketVersion;
-
-extern const QSet<PacketType> NON_VERIFIED_PACKETS;
-extern const QSet<PacketType> NON_SOURCED_PACKETS;
 
 PacketVersion versionForPacketType(PacketType packetType);
 QByteArray protocolVersionsSignature(); /// returns a unqiue signature for all the current protocols
@@ -218,6 +258,7 @@ const PacketVersion VERSION_ENTITIES_PHYSICS_PACKET = 67;
 const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 const PacketVersion VERSION_ENTITIES_HINGE_CONSTRAINT = 69;
 const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
+const PacketVersion VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT = 71;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,

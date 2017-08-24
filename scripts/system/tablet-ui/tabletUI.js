@@ -104,7 +104,6 @@
 
     function showTabletUI() {
         checkTablet()
-        gTablet.tabletShown = true;
 
         if (!tabletRezzed || !tabletIsValid()) {
             closeTabletUI();
@@ -123,6 +122,7 @@
             Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
         }
+        gTablet.tabletShown = true;
     }
 
     function hideTabletUI() {

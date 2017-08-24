@@ -42,7 +42,7 @@ var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
-function calcSpawnInfo(hand, tabletHeight) {
+function calcSpawnInfo(hand, tabletHeight, landscape) {
     var finalPosition;
 
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
@@ -81,7 +81,7 @@ function calcSpawnInfo(hand, tabletHeight) {
 
         return {
             position: position,
-            rotation: rotation
+            rotation: landscape ? Quat.multiply(rotation, { x: 0.0, y: 0.0, z: 0.707, w: 0.707 }) : rotation
         };
     } else {
         var forward = Quat.getForward(headRot);
@@ -89,7 +89,7 @@ function calcSpawnInfo(hand, tabletHeight) {
         var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, {x: 0, y: 1, z: 0});
         return {
             position: finalPosition,
-            rotation: Quat.multiply(orientation, {x: 0, y: 1, z: 0, w: 0})
+            rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
         };
     }
 }
@@ -424,7 +424,7 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
         tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
 
         // compute the appropriate position of the tablet, near the hand controller that was used to spawn it.
-        var spawnInfo = calcSpawnInfo(hand, this.height);
+        var spawnInfo = calcSpawnInfo(hand, this.height, this.landscape);
         tabletProperties.position = spawnInfo.position;
         tabletProperties.rotation = spawnInfo.rotation;
     } else {

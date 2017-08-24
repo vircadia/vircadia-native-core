@@ -15,7 +15,7 @@
         { "comment" : "Mouse turn need to be small continuous increments",
           "from": { "makeAxis" : [
                 [ "Keyboard.MouseMoveLeft" ],
-                [ "Keyboard.MouseMoveRight" ] 
+                [ "Keyboard.MouseMoveRight" ]
             ]
           },
           "when": [ "Application.InHMD", "Application.SnapTurn", "Keyboard.RightMouseButton" ],
@@ -31,8 +31,8 @@
         { "comment" : "Touchpad turn need to be small continuous increments, but without the RMB constraint",
           "from": { "makeAxis" : [
                 [ "Keyboard.TouchpadLeft" ],
-                [ "Keyboard.TouchpadRight" ] 
-            ] 
+                [ "Keyboard.TouchpadRight" ]
+            ]
           },
           "when": [ "Application.InHMD", "Application.SnapTurn" ],
           "to": "Actions.StepYaw",
@@ -131,6 +131,6 @@
         { "from": "Keyboard.Space", "to": "Actions.SHIFT" },
         { "from": "Keyboard.R", "to": "Actions.ACTION1" },
         { "from": "Keyboard.T", "to": "Actions.ACTION2" },
-        { "from": "Keyboard.RightMouseClicked", "to": "Actions.ContextMenu" }
+        { "from": "Keyboard.Tab", "to": "Actions.ContextMenu" }
     ]
 }

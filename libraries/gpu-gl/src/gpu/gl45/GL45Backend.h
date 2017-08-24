@@ -39,6 +39,11 @@ public:
 
     explicit GL45Backend(bool syncCache) : Parent(syncCache) {}
     GL45Backend() : Parent() {}
+    virtual ~GL45Backend() {
+        // call resetStages here rather than in ~GLBackend dtor because it will call releaseResourceBuffer
+        // which is pure virtual from GLBackend's dtor.
+        resetStages();
+    }
 
     static const std::string GL45_VERSION;
     const std::string& getVersion() const override { return GL45_VERSION; }

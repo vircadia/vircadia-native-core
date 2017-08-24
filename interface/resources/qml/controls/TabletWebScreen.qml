@@ -31,7 +31,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFTabletWebEngineProfile;
+        profile: HFWebEngineProfile;
 
         property string userScriptUrl: ""
 

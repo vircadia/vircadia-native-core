@@ -351,7 +351,7 @@ public:
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
-    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
@@ -359,7 +359,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
 
-    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientationViaScript)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
     Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
@@ -442,13 +442,10 @@ public:
     float getBodyRoll() const;
     void setBodyRoll(float bodyRoll);
 
-    using SpatiallyNestable::setPosition;
-    virtual void setPosition(const glm::vec3& position) override;
-    using SpatiallyNestable::setOrientation;
-    virtual void setOrientation(const glm::quat& orientation) override;
+    virtual void setPositionViaScript(const glm::vec3& position);
+    virtual void setOrientationViaScript(const glm::quat& orientation);
 
-    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
-    virtual void updateAttitude() {} // Tell skeleton mesh about changes
+    virtual void updateAttitude(const glm::quat& orientation) {}
 
     glm::quat getHeadOrientation() const {
         lazyInitHeadData();
@@ -549,7 +546,7 @@ public:
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
     Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
 
-    void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
+    Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }

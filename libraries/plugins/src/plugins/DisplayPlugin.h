@@ -17,6 +17,8 @@
 #include <QtCore/QPoint>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QJsonObject>
+#include <QtCore/QMutex>
+#include <QtCore/QWaitCondition>
 
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -107,24 +109,6 @@ public:
         RightHand = 0x02,
     };
 
-    enum class HandLaserMode {
-        None, // Render no hand lasers
-        Overlay, // Render hand lasers only if they intersect with the UI layer, and stop at the UI layer
-    };
-
-    virtual bool setHandLaser(
-        uint32_t hands, // Bits from the Hand enum
-        HandLaserMode mode, // Mode in which to render
-        const vec4& color = vec4(1), // The color of the rendered laser
-        const vec3& direction = vec3(0, 0, -1) // The direction in which to render the hand lasers
-        ) {
-        return false;
-    }
-
-    virtual bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) {
-        return false;
-    }
-
     virtual bool suppressKeyboard() { return false;  }
     virtual void unsuppressKeyboard() {};
     virtual bool isKeyboardVisible() { return false; }
@@ -134,10 +118,6 @@ class DisplayPlugin : public Plugin, public HmdDisplay {
     Q_OBJECT
     using Parent = Plugin;
 public:
-    enum Event {
-        Present = QEvent::User + 1
-    };
-
     virtual int getRequiredThreadCount() const { return 0; }
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
@@ -185,6 +165,7 @@ public:
 
     // Fetch the most recently displayed image as a QImage
     virtual QImage getScreenshot(float aspectRatio = 0.0f) const = 0;
+    virtual QImage getSecondaryCameraScreenshot() const = 0;
 
     // will query the underlying hmd api to compute the most recent head pose
     virtual bool beginFrameRender(uint32_t frameIndex) { return true; }
@@ -221,12 +202,15 @@ public:
 
     virtual void cycleDebugOutput() {}
 
+    void waitForPresent();
+
     static const QString& MENU_PATH();
 
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);
     void resetSensorsRequested();
+    void presented(quint32 frame);
 
 protected:
     void incrementPresentCount();
@@ -234,6 +218,8 @@ protected:
     gpu::ContextPointer _gpuContext;
 
 private:
+    QMutex _presentMutex;
+    QWaitCondition _presentCondition;
     std::atomic<uint32_t> _presentedFrameIndex;
     mutable std::mutex _paintDelayMutex;
     QElapsedTimer _paintDelayTimer;

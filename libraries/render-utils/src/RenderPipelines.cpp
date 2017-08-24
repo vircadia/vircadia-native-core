@@ -29,11 +29,24 @@
 #include "skin_model_shadow_vert.h"
 #include "skin_model_normal_map_vert.h"
 
+#include "model_shadow_fade_vert.h"
+#include "model_lightmap_fade_vert.h"
+#include "model_lightmap_normal_map_fade_vert.h"
+#include "skin_model_fade_vert.h"
+#include "skin_model_shadow_fade_vert.h"
+#include "skin_model_normal_map_fade_vert.h"
+
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
 #include "simple_textured_unlit_frag.h"
 #include "simple_transparent_textured_frag.h"
 #include "simple_transparent_textured_unlit_frag.h"
+
+#include "simple_fade_vert.h"
+#include "simple_textured_fade_frag.h"
+#include "simple_textured_unlit_fade_frag.h"
+#include "simple_transparent_textured_fade_frag.h"
+#include "simple_transparent_textured_unlit_fade_frag.h"
 
 #include "model_frag.h"
 #include "model_unlit_frag.h"
@@ -41,6 +54,16 @@
 #include "model_normal_map_frag.h"
 #include "model_normal_specular_map_frag.h"
 #include "model_specular_map_frag.h"
+
+#include "model_fade_vert.h"
+#include "model_normal_map_fade_vert.h"
+
+#include "model_fade_frag.h"
+#include "model_shadow_fade_frag.h"
+#include "model_unlit_fade_frag.h"
+#include "model_normal_map_fade_frag.h"
+#include "model_normal_specular_map_fade_frag.h"
+#include "model_specular_map_fade_frag.h"
 
 #include "forward_model_frag.h"
 #include "forward_model_unlit_frag.h"
@@ -54,6 +77,13 @@
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
 #include "model_translucent_unlit_frag.h"
+
+#include "model_lightmap_fade_frag.h"
+#include "model_lightmap_normal_map_fade_frag.h"
+#include "model_lightmap_normal_specular_map_fade_frag.h"
+#include "model_lightmap_specular_map_fade_frag.h"
+#include "model_translucent_fade_frag.h"
+#include "model_translucent_unlit_fade_frag.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
@@ -69,17 +99,18 @@
 using namespace render;
 using namespace std::placeholders;
 
-void initOverlay3DPipelines(ShapePlumber& plumber);
-void initDeferredPipelines(ShapePlumber& plumber);
+void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest = false);
+void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber);
 
 void addPlumberPipeline(ShapePlumber& plumber,
-        const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel);
+        const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel,
+        const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 
-void initOverlay3DPipelines(ShapePlumber& plumber) {
+void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
     auto vertexModel = gpu::Shader::createVertex(std::string(model_vert));
     auto pixel = gpu::Shader::createPixel(std::string(overlay3D_frag));
@@ -106,7 +137,11 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
         bool isOpaque = (i & 4);
 
         auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(false);
+        if (depthTest) {
+            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        } else {
+            state->setDepthTest(false);
+        }
         state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
         if (isBiased) {
             state->setDepthBias(1.0f);
@@ -140,7 +175,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     }
 }
 
-void initDeferredPipelines(render::ShapePlumber& plumber) {
+void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // Vertex shaders
     auto simpleVertex = gpu::Shader::createVertex(std::string(simple_vert));
     auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
@@ -151,6 +186,16 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
     auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
     auto skinModelShadowVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
+    auto modelLightmapFadeVertex = gpu::Shader::createVertex(std::string(model_lightmap_fade_vert));
+    auto modelLightmapNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_lightmap_normal_map_fade_vert));
+    auto skinModelFadeVertex = gpu::Shader::createVertex(std::string(skin_model_fade_vert));
+    auto skinModelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_fade_vert));
+
+    auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_fade_vert));
+    auto modelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_normal_map_fade_vert));
+    auto simpleFadeVertex = gpu::Shader::createVertex(std::string(simple_fade_vert));
+    auto modelShadowFadeVertex = gpu::Shader::createVertex(std::string(model_shadow_fade_vert));
+    auto skinModelShadowFadeVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_fade_vert));
 
     // Pixel shaders
     auto simplePixel = gpu::Shader::createPixel(std::string(simple_textured_frag));
@@ -169,104 +214,220 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto modelLightmapNormalMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag));
     auto modelLightmapSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag));
     auto modelLightmapNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag));
+    auto modelLightmapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_fade_frag));
+    auto modelLightmapNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_fade_frag));
+    auto modelLightmapSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_fade_frag));
+    auto modelLightmapNormalSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_fade_frag));
+
+    auto modelFadePixel = gpu::Shader::createPixel(std::string(model_fade_frag));
+    auto modelUnlitFadePixel = gpu::Shader::createPixel(std::string(model_unlit_fade_frag));
+    auto modelNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_map_fade_frag));
+    auto modelSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_specular_map_fade_frag));
+    auto modelNormalSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_fade_frag));
+    auto modelShadowFadePixel = gpu::Shader::createPixel(std::string(model_shadow_fade_frag));
+    auto modelTranslucentFadePixel = gpu::Shader::createPixel(std::string(model_translucent_fade_frag));
+    auto modelTranslucentUnlitFadePixel = gpu::Shader::createPixel(std::string(model_translucent_unlit_fade_frag));
+    auto simpleFadePixel = gpu::Shader::createPixel(std::string(simple_textured_fade_frag));
+    auto simpleUnlitFadePixel = gpu::Shader::createPixel(std::string(simple_textured_unlit_fade_frag));
+    auto simpleTranslucentFadePixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_fade_frag));
+    auto simpleTranslucentUnlitFadePixel = gpu::Shader::createPixel(std::string(simple_transparent_textured_unlit_fade_frag));
 
     using Key = render::ShapeKey;
-    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, _4, _5);
     // TODO: Refactor this to use a filter
     // Opaques
     addPipeline(
         Key::Builder().withMaterial(),
-        modelVertex, modelPixel);
+        modelVertex, modelPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder(),
-        simpleVertex, simplePixel);
+        simpleVertex, simplePixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withUnlit(),
-        modelVertex, modelUnlitPixel);
+        modelVertex, modelUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withUnlit(),
-        simpleVertex, simpleUnlitPixel);
+        simpleVertex, simpleUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents(),
-        modelNormalMapVertex, modelNormalMapPixel);
+        modelNormalMapVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSpecular(),
-        modelVertex, modelSpecularMapPixel);
+        modelVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTangents().withSpecular(),
-        modelNormalMapVertex, modelNormalSpecularMapPixel);
+        modelNormalMapVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withFade(),
+        modelFadeVertex, modelFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withFade(),
+        simpleFadeVertex, simpleFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withUnlit().withFade(),
+        modelFadeVertex, modelUnlitFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withUnlit().withFade(),
+        simpleFadeVertex, simpleUnlitFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withTangents().withFade(),
+        modelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSpecular().withFade(),
+        modelFadeVertex, modelSpecularMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withTangents().withSpecular().withFade(),
+        modelNormalMapFadeVertex, modelNormalSpecularMapFadePixel, batchSetter, itemSetter);
+
     // Translucents
     addPipeline(
         Key::Builder().withMaterial().withTranslucent(),
-        modelVertex, modelTranslucentPixel);
+        modelVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withTranslucent(),
-        simpleVertex, simpleTranslucentPixel);
+        simpleVertex, simpleTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withUnlit(),
-        modelVertex, modelTranslucentUnlitPixel);
+        modelVertex, modelTranslucentUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withTranslucent().withUnlit(),
-        simpleVertex, simpleTranslucentUnlitPixel);
+        simpleVertex, simpleTranslucentUnlitPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents(),
-        modelNormalMapVertex, modelTranslucentPixel);
+        modelNormalMapVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withSpecular(),
-        modelVertex, modelTranslucentPixel);
+        modelVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withTranslucent().withTangents().withSpecular(),
-        modelNormalMapVertex, modelTranslucentPixel);
+        modelNormalMapVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withMaterial().withTranslucent().withLightmap(),
-        modelVertex, modelTranslucentPixel);
+        modelVertex, modelTranslucentPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withTranslucent().withFade(),
+        modelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withTranslucent().withFade(),
+        simpleFadeVertex, simpleTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withTranslucent().withUnlit().withFade(),
+        modelFadeVertex, modelTranslucentUnlitFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withTranslucent().withUnlit().withFade(),
+        simpleFadeVertex, simpleTranslucentUnlitFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withTranslucent().withTangents().withFade(),
+        modelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withTranslucent().withSpecular().withFade(),
+        modelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withTranslucent().withTangents().withSpecular().withFade(),
+        modelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        // FIXME: Ignore lightmap for translucents meshpart
+        Key::Builder().withMaterial().withTranslucent().withLightmap().withFade(),
+        modelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+
     // Lightmapped
     addPipeline(
         Key::Builder().withMaterial().withLightmap(),
-        modelLightmapVertex, modelLightmapPixel);
+        modelLightmapVertex, modelLightmapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withLightmap().withTangents(),
-        modelLightmapNormalMapVertex, modelLightmapNormalMapPixel);
+        modelLightmapNormalMapVertex, modelLightmapNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withLightmap().withSpecular(),
-        modelLightmapVertex, modelLightmapSpecularMapPixel);
+        modelLightmapVertex, modelLightmapSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withLightmap().withTangents().withSpecular(),
-        modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
+        modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withLightmap().withFade(),
+        modelLightmapFadeVertex, modelLightmapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withLightmap().withTangents().withFade(),
+        modelLightmapNormalMapFadeVertex, modelLightmapNormalMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withLightmap().withSpecular().withFade(),
+        modelLightmapFadeVertex, modelLightmapSpecularMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withLightmap().withTangents().withSpecular().withFade(),
+        modelLightmapNormalMapFadeVertex, modelLightmapNormalSpecularMapFadePixel, batchSetter, itemSetter);
+
     // Skinned
     addPipeline(
         Key::Builder().withMaterial().withSkinned(),
-        skinModelVertex, modelPixel);
+        skinModelVertex, modelPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTangents(),
-        skinModelNormalMapVertex, modelNormalMapPixel);
+        skinModelNormalMapVertex, modelNormalMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withSpecular(),
-        skinModelVertex, modelSpecularMapPixel);
+        skinModelVertex, modelSpecularMapPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTangents().withSpecular(),
-        skinModelNormalMapVertex, modelNormalSpecularMapPixel);
+        skinModelNormalMapVertex, modelNormalSpecularMapPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withFade(),
+        skinModelFadeVertex, modelFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents().withFade(),
+        skinModelNormalMapFadeVertex, modelNormalMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withSpecular().withFade(),
+        skinModelFadeVertex, modelSpecularMapFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTangents().withSpecular().withFade(),
+        skinModelNormalMapFadeVertex, modelNormalSpecularMapFadePixel, batchSetter, itemSetter);
+
     // Skinned and Translucent
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent(),
-        skinModelVertex, modelTranslucentPixel);
+        skinModelVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents(),
-        skinModelNormalMapVertex, modelTranslucentPixel);
+        skinModelNormalMapVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withSpecular(),
-        skinModelVertex, modelTranslucentPixel);
+        skinModelVertex, modelTranslucentPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withSpecular(),
-        skinModelNormalMapVertex, modelTranslucentPixel);
+        skinModelNormalMapVertex, modelTranslucentPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTranslucent().withFade(),
+        skinModelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withFade(),
+        skinModelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTranslucent().withSpecular().withFade(),
+        skinModelFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withMaterial().withSkinned().withTranslucent().withTangents().withSpecular().withFade(),
+        skinModelNormalMapFadeVertex, modelTranslucentFadePixel, batchSetter, itemSetter);
+
     // Depth-only
     addPipeline(
         Key::Builder().withDepthOnly(),
-        modelShadowVertex, modelShadowPixel);
+        modelShadowVertex, modelShadowPixel, nullptr, nullptr);
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly(),
-        skinModelShadowVertex, modelShadowPixel);
+        skinModelShadowVertex, modelShadowPixel, nullptr, nullptr);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withDepthOnly().withFade(),
+        modelShadowFadeVertex, modelShadowFadePixel, batchSetter, itemSetter);
+    addPipeline(
+        Key::Builder().withSkinned().withDepthOnly().withFade(),
+        skinModelShadowFadeVertex, modelShadowFadePixel, batchSetter, itemSetter);
 }
 
 void initForwardPipelines(render::ShapePlumber& plumber) {
@@ -284,7 +445,7 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
     auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(forward_model_normal_specular_map_frag));
 
     using Key = render::ShapeKey;
-    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
+    auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3, nullptr, nullptr);
     // Opaques
     addPipeline(
         Key::Builder().withMaterial(),
@@ -317,7 +478,8 @@ void initForwardPipelines(render::ShapePlumber& plumber) {
 }
 
 void addPlumberPipeline(ShapePlumber& plumber,
-        const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel) {
+        const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel,
+        const render::ShapePipeline::BatchSetter& extraBatchSetter, const render::ShapePipeline::ItemSetter& itemSetter) {
     // These key-values' pipelines are added by this functor in addition to the key passed
     assert(!key.isWireframe());
     assert(!key.isDepthBiased());
@@ -354,8 +516,18 @@ void addPlumberPipeline(ShapePlumber& plumber,
             state->setDepthBiasSlopeScale(1.0f);
         }
 
-        plumber.addPipeline(builder.build(), program, state,
-                key.isTranslucent() ? &lightBatchSetter : &batchSetter);
+        auto baseBatchSetter = key.isTranslucent() ? &lightBatchSetter : &batchSetter;
+        render::ShapePipeline::BatchSetter finalBatchSetter;
+        if (extraBatchSetter) {
+            finalBatchSetter = [baseBatchSetter, extraBatchSetter](const ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
+                baseBatchSetter(pipeline, batch, args);
+                extraBatchSetter(pipeline, batch, args);
+            };
+        }
+        else {
+            finalBatchSetter = baseBatchSetter;
+        }
+        plumber.addPipeline(builder.build(), program, state, finalBatchSetter, itemSetter);
     }
 }
 

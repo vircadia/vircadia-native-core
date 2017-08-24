@@ -443,6 +443,7 @@ public:
 
     void updateMotors();
     void prepareForPhysicsSimulation();
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
@@ -477,49 +478,12 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
-    void setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftHandControllerPoseInSensorFrame() const;
-    controller::Pose getRightHandControllerPoseInSensorFrame() const;
-    controller::Pose getLeftHandControllerPoseInWorldFrame() const;
-    controller::Pose getRightHandControllerPoseInWorldFrame() const;
-    controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
-    controller::Pose getRightHandControllerPoseInAvatarFrame() const;
-
-    typedef std::map<int, std::pair<controller::Pose, QString>> FingerPosesMap;
-    void setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right);
-    FingerPosesMap getLeftHandFingerControllerPosesInSensorFrame() const;
-    FingerPosesMap getRightHandFingerControllerPosesInSensorFrame() const;
-
-    void setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftFootControllerPoseInSensorFrame() const;
-    controller::Pose getRightFootControllerPoseInSensorFrame() const;
-    controller::Pose getLeftFootControllerPoseInWorldFrame() const;
-    controller::Pose getRightFootControllerPoseInWorldFrame() const;
-    controller::Pose getLeftFootControllerPoseInAvatarFrame() const;
-    controller::Pose getRightFootControllerPoseInAvatarFrame() const;
-
-    void setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2);
-    controller::Pose getHipsControllerPoseInSensorFrame() const;
-    controller::Pose getSpine2ControllerPoseInSensorFrame() const;
-    controller::Pose getHipsControllerPoseInWorldFrame() const;
-    controller::Pose getSpine2ControllerPoseInWorldFrame() const;
-    controller::Pose getHipsControllerPoseInAvatarFrame() const;
-    controller::Pose getSpine2ControllerPoseInAvatarFrame() const;
-
-    void setHeadControllerPoseInSensorFrame(const controller::Pose& head);
-    controller::Pose getHeadControllerPoseInSensorFrame() const;
-    controller::Pose getHeadControllerPoseInWorldFrame() const;
-    controller::Pose getHeadControllerPoseInAvatarFrame() const;
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
 
-
-    void setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftArmControllerPoseInSensorFrame() const;
-    controller::Pose getRightArmControllerPoseInSensorFrame() const;
-    controller::Pose getLeftArmControllerPoseInWorldFrame() const;
-    controller::Pose getRightArmControllerPoseInWorldFrame() const;
-    controller::Pose getLeftArmControllerPoseInAvatarFrame() const;
-    controller::Pose getRightArmControllerPoseInAvatarFrame() const;
+    void setControllerPoseInSensorFrame(controller::Action action, const controller::Pose& pose);
+    controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
+    controller::Pose getControllerPoseInWorldFrame(controller::Action action) const;
+    controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
 
     bool hasDriveInput() const;
 
@@ -562,7 +526,6 @@ public:
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
 
-
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -595,6 +558,7 @@ public slots:
     void setEnableDebugDrawIKTargets(bool isEnabled);
     void setEnableDebugDrawIKConstraints(bool isEnabled);
     void setEnableDebugDrawIKChains(bool isEnabled);
+    void setEnableDebugDrawDetailedCollision(bool isEnabled);
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
@@ -799,6 +763,7 @@ private:
     bool _enableDebugDrawIKTargets { false };
     bool _enableDebugDrawIKConstraints { false };
     bool _enableDebugDrawIKChains { false };
+    bool _enableDebugDrawDetailedCollision { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
@@ -809,18 +774,9 @@ private:
     bool _hoverReferenceCameraFacingIsCaptured { false };
     glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
-    // These are stored in SENSOR frame
-    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<FingerPosesMap> _leftHandFingerPosesInSensorFramceCache { };
-    ThreadSafeValueCache<FingerPosesMap> _rightHandFingerPosesInSensorFramceCache { };
-    ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _leftArmControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache { controller::Pose() };
+    // all poses are in sensor-frame
+    std::map<controller::Action, controller::Pose> _controllerPoseMap;
+    mutable std::mutex _controllerPoseMapMutex;
 
     bool _hmdLeanRecenterEnabled = true;
     AnimPose _prePhysicsRoomPose;

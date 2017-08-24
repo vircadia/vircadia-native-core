@@ -160,6 +160,7 @@ AudioClient::AudioClient() :
     AbstractAudioInterface(),
     _gate(this),
     _audioInput(NULL),
+    _dummyAudioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
     _numInputCallbackBytes(0),
@@ -617,12 +618,11 @@ void AudioClient::start() {
 
 void AudioClient::stop() {
 
-    // "switch" to invalid devices in order to shut down the state
-    qCDebug(audioclient) << "AudioClient::stop(), about to call switchInputToAudioDevice(null)";
-    switchInputToAudioDevice(QAudioDeviceInfo());
+    qCDebug(audioclient) << "AudioClient::stop(), requesting switchInputToAudioDevice() to shut down";
+    switchInputToAudioDevice(QAudioDeviceInfo(), true);
 
-    qCDebug(audioclient) << "AudioClient::stop(), about to call switchOutputToAudioDevice(null)";
-    switchOutputToAudioDevice(QAudioDeviceInfo());
+    qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
+    switchOutputToAudioDevice(QAudioDeviceInfo(), true);
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
@@ -1125,6 +1125,15 @@ void AudioClient::handleMicAudioInput() {
     }
 }
 
+void AudioClient::handleDummyAudioInput() {
+    const int numNetworkBytes = _isStereoInput
+        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
+        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+
+    QByteArray audioBuffer(numNetworkBytes, 0); // silent
+    handleAudioInput(audioBuffer);
+}
+
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     QByteArray audioBuffer(audio);
     handleAudioInput(audioBuffer);
@@ -1401,7 +1410,7 @@ void AudioClient::outputFormatChanged() {
     _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
 }
 
-bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
+bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -1423,14 +1432,27 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         _inputDeviceInfo = QAudioDeviceInfo();
     }
 
+    if (_dummyAudioInput) {
+        _dummyAudioInput->stop();
+
+        _dummyAudioInput->deleteLater();
+        _dummyAudioInput = NULL;
+    }
+
     if (_inputToNetworkResampler) {
         // if we were using an input to network resampler, delete it here
         delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
     }
+
     if (_audioGate) {
         delete _audioGate;
         _audioGate = nullptr;
+    }
+
+    if (isShutdownRequest) {
+        qCDebug(audioclient) << "The audio input device has shut down.";
+        return true;
     }
 
     if (!inputDeviceInfo.isNull()) {
@@ -1480,9 +1502,32 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                     supportedFormat = true;
                 } else {
                     qCDebug(audioclient) << "Error starting audio input -" <<  _audioInput->error();
+                    _audioInput->deleteLater();
+                    _audioInput = NULL;
                 }
             }
         }
+    }
+
+    // If there is no working input device, use the dummy input device.
+    // It generates audio callbacks on a timer to simulate a mic stream of silent packets.
+    // This enables clients without a mic to still receive an audio stream from the mixer.
+    if (!_audioInput) {
+        qCDebug(audioclient) << "Audio input device is not available, using dummy input.";
+        _inputDeviceInfo = QAudioDeviceInfo();
+        emit deviceChanged(QAudio::AudioInput, _inputDeviceInfo);
+
+        _inputFormat = _desiredInputFormat;
+        qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
+        qCDebug(audioclient) << "No resampling required for audio input to match desired network format.";
+
+        _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
+        qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
+
+        // generate audio callbacks at the network sample rate
+        _dummyAudioInput = new QTimer(this);
+        connect(_dummyAudioInput, SIGNAL(timeout()), this, SLOT(handleDummyAudioInput()));
+        _dummyAudioInput->start((int)(AudioConstants::NETWORK_FRAME_MSECS + 0.5f));
     }
 
     return supportedFormat;
@@ -1518,9 +1563,8 @@ void AudioClient::outputNotify() {
     }
 }
 
-bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
+bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
-
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
@@ -1562,6 +1606,11 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
         delete _localToOutputResampler;
         _localToOutputResampler = NULL;
+    }
+
+    if (isShutdownRequest) {
+        qCDebug(audioclient) << "The audio output device has shut down.";
+        return true;
     }
 
     if (!outputDeviceInfo.isNull()) {

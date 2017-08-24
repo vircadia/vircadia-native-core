@@ -30,6 +30,7 @@
 #include <DebugDraw.h>
 #include <shared/Camera.h>
 #include <SoftAttachmentModel.h>
+#include <render/TransitionStage.h>
 
 #include "Logging.h"
 
@@ -61,7 +62,7 @@ namespace render {
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->getSkeletonModel()) {
-            auto metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+            auto& metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
             return (uint32_t) metaSubItems.size();
         }
@@ -149,11 +150,6 @@ glm::vec3 Avatar::getChestPosition() const {
 glm::vec3 Avatar::getNeckPosition() const {
     glm::vec3 neckPosition;
     return _skeletonModel->getNeckPosition(neckPosition) ? neckPosition : getPosition();
-}
-
-
-glm::quat Avatar::getWorldAlignedOrientation () const {
-    return computeRotationFromBodyToWorldUp() * getOrientation();
 }
 
 AABox Avatar::getBounds() const {
@@ -436,6 +432,11 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
     _lastVelocity = glm::vec3(0.0f);
 }
 
+void Avatar::updateAttitude(const glm::quat& orientation) {
+    _skeletonModel->updateAttitude(orientation);
+	_worldUpDirection = orientation * Vectors::UNIT_Y;
+}
+
 void Avatar::applyPositionDelta(const glm::vec3& delta) {
     setPosition(getPosition() + delta);
     _positionDeltaAccumulator += delta;
@@ -493,6 +494,48 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
+
+    _mustFadeIn = true;
+}
+
+void Avatar::fadeIn(render::ScenePointer scene) {
+    render::Transaction transaction;
+    fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
+    render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
+    render::Transaction transaction;
+
+    if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
+        transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
+    }
+    else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+        transitionType = render::Transition::BUBBLE_ISECT_OWNER;
+    }
+    fade(transaction, transitionType);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
+    transaction.addTransitionToItem(_renderItemID, type);
+    for (auto& attachmentModel : _attachmentModels) {
+        for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
+            transaction.addTransitionToItem(itemId, type, _renderItemID);
+        }
+    }
+    _isFading = true;
+}
+
+void Avatar::updateFadingStatus(render::ScenePointer scene) {
+    render::Transaction transaction;
+    transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
+        if (transition == nullptr || transition->isFinished) {
+            _isFading = false;
+        }
+    });
+    scene->enqueueTransaction(transaction);
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -628,23 +671,9 @@ void Avatar::render(RenderArgs* renderArgs) {
     }
 }
 
-glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
-    glm::quat orientation = getOrientation();
-    glm::vec3 currentUp = orientation * IDENTITY_UP;
-    float angle = acosf(glm::clamp(glm::dot(currentUp, _worldUpDirection), -1.0f, 1.0f));
-    if (angle < EPSILON) {
-        return glm::quat();
-    }
-    glm::vec3 axis;
-    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
-        axis = orientation * IDENTITY_RIGHT;
-    } else {
-        axis = glm::normalize(glm::cross(currentUp, _worldUpDirection));
-    }
-    return glm::angleAxis(angle * proportion, axis);
-}
-
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
+    bool canTryFade{ false };
+
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -653,12 +682,19 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+        canTryFade = true;
     }
     for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
         }
+    }
+
+    if (_mustFadeIn && canTryFade) {
+        // Do it now to be sure all the sub items are ready and the fade is sent to them too
+        fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+        _mustFadeIn = false;
     }
 
     for (auto attachmentModelToRemove : _attachmentsToRemove) {
@@ -915,17 +951,34 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteDefaultJointRotationInObjectFrame(int index) const {
-    glm::quat rotation;
-    glm::quat rot = _skeletonModel->getRig().getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
-    return Quaternions::Y_180 * rot;
+    // To make this thread safe, we hold onto the model by smart ptr, which prevents it from being deleted while we are accessing it.
+    auto model = getSkeletonModel();
+    if (model) {
+        auto skeleton = model->getRig().getAnimSkeleton();
+        if (skeleton && index >= 0 && index < skeleton->getNumJoints()) {
+            // The rotation part of the geometry-to-rig transform is always identity so we can skip it.
+            // Y_180 is to convert from rig-frame into avatar-frame
+            return Quaternions::Y_180 * skeleton->getAbsoluteDefaultPose(index).rot();
+        }
+    }
+    return Quaternions::Y_180;
 }
 
 glm::vec3 Avatar::getAbsoluteDefaultJointTranslationInObjectFrame(int index) const {
-    glm::vec3 translation;
-    const Rig& rig = _skeletonModel->getRig();
-    glm::vec3 trans = rig.getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
-    glm::mat4 y180Mat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
-    return transformPoint(y180Mat * rig.getGeometryToRigTransform(), trans);
+    // To make this thread safe, we hold onto the model by smart ptr, which prevents it from being deleted while we are accessing it.
+    auto model = getSkeletonModel();
+    if (model) {
+        const Rig& rig = model->getRig();
+        auto skeleton = rig.getAnimSkeleton();
+        if (skeleton && index >= 0 && index < skeleton->getNumJoints()) {
+            // trans is in geometry frame.
+            glm::vec3 trans = skeleton->getAbsoluteDefaultPose(index).trans();
+            // Y_180 is to convert from rig-frame into avatar-frame
+            glm::mat4 geomToAvatarMat = Matrices::Y_180 * rig.getGeometryToRigTransform();
+            return transformPoint(geomToAvatarMat, trans);
+        }
+    }
+    return Vectors::ZERO;
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
@@ -1401,14 +1454,14 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
     return rightPalmRotation;
 }
 
-void Avatar::setPosition(const glm::vec3& position) {
-    AvatarData::setPosition(position);
-    updateAttitude();
+void Avatar::setPositionViaScript(const glm::vec3& position) {
+    setPosition(position);
+    updateAttitude(getOrientation());
 }
 
-void Avatar::setOrientation(const glm::quat& orientation) {
-    AvatarData::setOrientation(orientation);
-    updateAttitude();
+void Avatar::setOrientationViaScript(const glm::quat& orientation) {
+    setOrientation(orientation);
+    updateAttitude(orientation);
 }
 
 void Avatar::updatePalms() {

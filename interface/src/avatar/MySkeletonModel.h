@@ -24,7 +24,7 @@ public:
     void updateRig(float deltaTime, glm::mat4 parentTransform) override;
 
 private:
-    void updateFingers(const MyAvatar::FingerPosesMap& fingerPoses);
+    void updateFingers();
 };
 
 #endif // hifi_MySkeletonModel_h

@@ -64,8 +64,6 @@ var HAPTIC_STYLUS_DURATION = 20.0;
 var HAPTIC_LASER_UI_STRENGTH = 1.0;
 var HAPTIC_LASER_UI_DURATION = 20.0;
 
-var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
-
 var PICK_WITH_HAND_RAY = true;
 
 var EQUIP_SPHERE_SCALE_FACTOR = 0.65;
@@ -157,7 +155,6 @@ var INCHES_TO_METERS = 1.0 / 39.3701;
 // these control how long an abandoned pointer line or action will hang around
 var ACTION_TTL = 15; // seconds
 var ACTION_TTL_REFRESH = 5;
-var PICKS_PER_SECOND_PER_HAND = 60;
 var MSECS_PER_SEC = 1000.0;
 var GRABBABLE_PROPERTIES = [
     "position",
@@ -187,7 +184,10 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
-var entitiesWithHoverOverlays = [];
+var hoveredEntityID = false;
+var contextOverlayTimer = false;
+var entityWithContextOverlay = false;
+var contextualHand = -1;
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
@@ -224,6 +224,7 @@ CONTROLLER_STATE_MACHINE[STATE_OFF] = {
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
     name: "searching",
     enterMethod: "searchEnter",
+    exitMethod: "searchExit",
     updateMethod: "search"
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
@@ -351,7 +352,9 @@ function projectOntoXYPlane(worldPos, position, rotation, dimensions, registrati
 
 function projectOntoEntityXYPlane(entityID, worldPos) {
     var props = entityPropertiesCache.getProps(entityID);
-    return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+    if (props && props.position && props.rotation && props.dimensions && props.registrationPoint) {
+        return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+    }
 }
 
 function projectOntoOverlayXYPlane(overlayID, worldPos) {
@@ -365,14 +368,20 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         var resolution = Overlays.getProperty(overlayID, "resolution");
         resolution.z = 1;  // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
-        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
-        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+        if (scale) {
+            scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+            dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+        }
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
-        dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        if (dimensions && dimensions.z) {
+            dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        }
     }
 
-    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+    if (position && rotation && dimensions) {
+        return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+    }
 }
 
 function handLaserIntersectItem(position, rotation, start) {
@@ -448,15 +457,6 @@ function colorPow(color, power) {
 
 function entityHasActions(entityID) {
     return Entities.getActionIDs(entityID).length > 0;
-}
-
-function findRayIntersection(pickRay, precise, include, exclude) {
-    var entities = Entities.findRayIntersection(pickRay, precise, include, exclude, true);
-    var overlays = Overlays.findRayIntersection(pickRay, precise, [], [HMD.tabletID]);
-    if (!overlays.intersects || (entities.intersects && (entities.distance <= overlays.distance))) {
-        return entities;
-    }
-    return overlays;
 }
 
 function entityIsGrabbedByOther(entityID) {
@@ -1054,6 +1054,74 @@ function getControllerJointIndex(hand) {
 // global EquipHotspotBuddy instance
 var equipHotspotBuddy = new EquipHotspotBuddy();
 
+var halfPath = {
+    type: "line3d",
+    color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
+    visible: true,
+    alpha: 1,
+    solid: true,
+    glow: 1.0,
+    lineWidth: 5,
+    ignoreRayIntersection: true, // always ignore this
+    drawInFront: true, // Even when burried inside of something, show it.
+    parentID: AVATAR_SELF_ID
+}
+var halfEnd = {
+    type: "sphere",
+    solid: true,
+    color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
+    alpha: 0.9,
+    ignoreRayIntersection: true,
+    drawInFront: true, // Even when burried inside of something, show it.
+    visible: true
+}
+var fullPath = {
+    type: "line3d",
+    color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
+    visible: true,
+    alpha: 1,
+    solid: true,
+    glow: 1.0,
+    lineWidth: 5,
+    ignoreRayIntersection: true, // always ignore this
+    drawInFront: true, // Even when burried inside of something, show it.
+    parentID: AVATAR_SELF_ID
+}
+var fullEnd = {
+    type: "sphere",
+    solid: true,
+    color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
+    alpha: 0.9,
+    ignoreRayIntersection: true,
+    drawInFront: true, // Even when burried inside of something, show it.
+    visible: true
+}
+var holdPath = {
+    type: "line3d",
+    color: COLORS_GRAB_DISTANCE_HOLD,
+    visible: true,
+    alpha: 1,
+    solid: true,
+    glow: 1.0,
+    lineWidth: 5,
+    ignoreRayIntersection: true, // always ignore this
+    drawInFront: true, // Even when burried inside of something, show it.
+    parentID: AVATAR_SELF_ID
+}
+
+var renderStates = [{name: "half", path: halfPath, end: halfEnd},
+                    {name: "full", path: fullPath, end: fullEnd},
+                    {name: "hold", path: holdPath}];
+var headRenderStates = [{name: "half", end: halfEnd},
+                        {name: "full", end: fullEnd},
+                        {name: "hold", path: holdPath}];
+
+// how far from camera to search intersection?
+var DEFAULT_SEARCH_SPHERE_DISTANCE = 1000;
+var defaultRenderStates = [{name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
+                           {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
+                           {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}];
+
 function MyController(hand) {
     this.hand = hand;
     this.autoUnequipCounter = 0;
@@ -1102,7 +1170,6 @@ function MyController(hand) {
     this.grabbedThingID = null; // on this entity.
     this.grabbedOverlay = null;
     this.state = STATE_OFF;
-    this.pointer = null; // entity-id of line object
 
     this.triggerValue = 0; // rolling average of trigger value
     this.triggerClicked = false;
@@ -1111,18 +1178,33 @@ function MyController(hand) {
     this.rawThumbValue = 0;
 
     // for visualizations
-    this.overlayLine = null;
-    this.searchSphere = null;
-    this.otherGrabbingLine = null;
+    this.halfEnd = halfEnd;
+    this.fullEnd = fullEnd;
+    this.laserPointer = LaserPointers.createLaserPointer({
+        joint: (hand == RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS | RayPick.PICK_INCLUDE_NONCOLLIDABLE,
+        maxDistance: PICK_MAX_DISTANCE,
+        posOffset: getGrabPointSphereOffset(this.handToController()),
+        renderStates: renderStates,
+        faceAvatar: true,
+        defaultRenderStates: defaultRenderStates
+    });
+    this.headLaserPointer = LaserPointers.createLaserPointer({
+        joint: "Avatar",
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS | RayPick.PICK_INCLUDE_NONCOLLIDABLE,
+        maxDistance: PICK_MAX_DISTANCE,
+        renderStates: headRenderStates,
+        faceAvatar: true,
+        defaultRenderStates: defaultRenderStates
+    });
+    LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID]);
+    LaserPointers.setIgnoreOverlays(this.headLaserPointer, [HMD.tabletID]);
 
     this.otherGrabbingUUID = null;
 
     this.waitForTriggerRelease = false;
 
-    // how far from camera to search intersection?
-    var DEFAULT_SEARCH_SPHERE_DISTANCE = 1000;
     this.intersectionDistance = 0.0;
-    this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
 
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
@@ -1303,41 +1385,6 @@ function MyController(hand) {
         }
     };
 
-    this.searchSphereOn = function(location, size, color) {
-
-        var rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
-        var brightColor = colorPow(color, 0.06);
-        if (this.searchSphere === null) {
-            var sphereProperties = {
-                name: "searchSphere",
-                position: location,
-                rotation: rotation,
-                outerRadius: size * 1.2,
-                innerColor: brightColor,
-                outerColor: color,
-                innerAlpha: 0.9,
-                outerAlpha: 0.0,
-                solid: true,
-                ignoreRayIntersection: true,
-                drawInFront: true, // Even when burried inside of something, show it.
-                visible: true
-            };
-            this.searchSphere = Overlays.addOverlay("circle3d", sphereProperties);
-        } else {
-            Overlays.editOverlay(this.searchSphere, {
-                position: location,
-                rotation: rotation,
-                innerColor: brightColor,
-                outerColor: color,
-                innerAlpha: 1.0,
-                outerAlpha: 0.0,
-                outerRadius: size * 1.2,
-                visible: true,
-                ignoreRayIntersection: true
-            });
-        }
-    };
-
     this.showStylus = function() {
         if (this.stylus) {
             return;
@@ -1373,97 +1420,38 @@ function MyController(hand) {
         this.stylus = null;
     };
 
-    this.overlayLineOn = function(closePoint, farPoint, color, farParentID) {
-        if (this.overlayLine === null) {
-            var lineProperties = {
-                name: "line",
-                glow: 1.0,
-                lineWidth: 5,
-                start: closePoint,
-                end: farPoint,
-                color: color,
-                ignoreRayIntersection: true, // always ignore this
-                drawInFront: true, // Even when burried inside of something, show it.
-                visible: true,
-                alpha: 1,
-                parentID: AVATAR_SELF_ID,
-                parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                         "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                         "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"),
-                endParentID: farParentID
-            };
-            this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
-
-        } else {
-            if (farParentID && farParentID != NULL_UUID) {
-                Overlays.editOverlay(this.overlayLine, {
-                    color: color,
-                        endParentID: farParentID
-                });
-            } else {
-                Overlays.editOverlay(this.overlayLine, {
-                    length: Vec3.distance(farPoint, closePoint),
-                    color: color,
-                    endParentID: farParentID
-                });
-            }
-        }
-    };
-
-    this.searchIndicatorOn = function(distantPickRay) {
-        var handPosition = distantPickRay.origin;
+    this.updateLaserPointer = function() {
         var SEARCH_SPHERE_SIZE = 0.011;
-        var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
-
-        if (this.intersectionDistance > 0) {
-            //  If we hit something with our pick ray, move the search sphere toward that distance
-            this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE +
-                this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
+        var MIN_SPHERE_SIZE = 0.0005;
+        var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE);
+        var dim = {x: radius, y: radius, z: radius};
+        var mode = "hold";
+        if (this.state !== STATE_DISTANCE_HOLDING && this.state !== STATE_DISTANCE_ROTATING) {
+            mode = (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? "full" : "half";
         }
 
-        var searchSphereLocation = Vec3.sum(distantPickRay.origin,
-                                            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
-        this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
-                            (this.triggerSmoothedGrab() || this.secondarySqueezed()) ?
-                            COLORS_GRAB_SEARCHING_FULL_SQUEEZE :
-                            COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
-        if (PICK_WITH_HAND_RAY) {
-            this.overlayLineOn(handPosition, searchSphereLocation,
-                               (this.triggerSmoothedGrab() || this.secondarySqueezed()) ?
-                               COLORS_GRAB_SEARCHING_FULL_SQUEEZE :
-                               COLORS_GRAB_SEARCHING_HALF_SQUEEZE);
+        var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
+        if (mode === "full") {
+            var fullEndToEdit = PICK_WITH_HAND_RAY ? this.fullEnd : fullEnd;
+            fullEndToEdit.dimensions = dim;
+            LaserPointers.editRenderState(laserPointerID, mode, {path: fullPath, end: fullEndToEdit});
+        } else if (mode === "half") {
+            var halfEndToEdit = PICK_WITH_HAND_RAY ? this.halfEnd : halfEnd;
+            halfEndToEdit.dimensions = dim;
+            LaserPointers.editRenderState(laserPointerID, mode, {path: halfPath, end: halfEndToEdit});
         }
-    };
-
-    // Turns off indicators used for searching. Overlay line and sphere.
-    this.searchIndicatorOff = function() {
-        this.searchSphereOff();
-        if (PICK_WITH_HAND_RAY) {
-            this.overlayLineOff();
-        }
-    };
-
-    this.otherGrabbingLineOn = function(avatarPosition, entityPosition, color) {
-        if (this.otherGrabbingLine === null) {
-            var lineProperties = {
-                lineWidth: 5,
-                start: avatarPosition,
-                end: entityPosition,
-                color: color,
-                glow: 1.0,
-                ignoreRayIntersection: true,
-                drawInFront: true,
-                visible: true,
-                alpha: 1
-            };
-            this.otherGrabbingLine = Overlays.addOverlay("line3d", lineProperties);
+        LaserPointers.enableLaserPointer(laserPointerID);
+        LaserPointers.setRenderState(laserPointerID, mode);
+        if (this.state === STATE_DISTANCE_HOLDING || this.state === STATE_DISTANCE_ROTATING) {
+            LaserPointers.setLockEndUUID(laserPointerID, this.grabbedThingID, this.grabbedIsOverlay);
         } else {
-            Overlays.editOverlay(this.otherGrabbingLine, {
-                start: avatarPosition,
-                end: entityPosition,
-                color: color
-            });
+            LaserPointers.setLockEndUUID(laserPointerID, null, false);
         }
+    };
+
+    this.laserPointerOff = function() {
+        var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
+        LaserPointers.disableLaserPointer(laserPointerID);
     };
 
     this.evalLightWorldTransform = function(modelPos, modelRot) {
@@ -1486,42 +1474,9 @@ function MyController(hand) {
         };
     };
 
-    this.lineOff = function() {
-        if (this.pointer !== null) {
-            Entities.deleteEntity(this.pointer);
-        }
-        this.pointer = null;
-    };
-
-    this.overlayLineOff = function() {
-        if (this.overlayLine !== null) {
-            Overlays.deleteOverlay(this.overlayLine);
-        }
-        this.overlayLine = null;
-    };
-
-    this.searchSphereOff = function() {
-        if (this.searchSphere !== null) {
-            Overlays.deleteOverlay(this.searchSphere);
-            this.searchSphere = null;
-            this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
-            this.intersectionDistance = 0.0;
-        }
-    };
-
-    this.otherGrabbingLineOff = function() {
-        if (this.otherGrabbingLine !== null) {
-            Overlays.deleteOverlay(this.otherGrabbingLine);
-        }
-        this.otherGrabbingLine = null;
-    };
-
     this.turnOffVisualizations = function() {
-        this.overlayLineOff();
         this.grabPointSphereOff();
-        this.lineOff();
-        this.searchSphereOff();
-        this.otherGrabbingLineOff();
+        this.laserPointerOff();
         restore2DMode();
     };
 
@@ -1816,12 +1771,12 @@ function MyController(hand) {
             var rayPickInfo = this.calcRayPickInfo(this.hand);
             if (rayPickInfo.isValid) {
                 this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
-                this.searchIndicatorOn(rayPickInfo.searchRay);
+                this.updateLaserPointer();
             } else {
-                this.searchIndicatorOff();
+                this.laserPointerOff();
             }
         } else {
-            this.searchIndicatorOff();
+            this.laserPointerOff();
         }
     };
 
@@ -1862,29 +1817,26 @@ function MyController(hand) {
 
     // Performs ray pick test from the hand controller into the world
     // @param {number} which hand to use, RIGHT_HAND or LEFT_HAND
-    // @param {object} if set, use this as as the pick ray, expects origin, direction, and length fields.
     // @returns {object} returns object with two keys entityID and distance
     //
-    this.calcRayPickInfo = function(hand, pickRayOverride) {
+    this.calcRayPickInfo = function(hand) {
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var worldHandPosition = controllerLocation.position;
+        var worldHandRotation = controllerLocation.orientation;
 
         var pickRay;
         var valid = true
-        if (pickRayOverride) {
-            pickRay = pickRayOverride;
-        } else {
-            var controllerLocation = getControllerWorldLocation(this.handToController(), true);
-            var worldHandPosition = controllerLocation.position;
-            var worldHandRotation = controllerLocation.orientation;
-            valid = !(worldHandPosition === undefined);
 
-            pickRay = {
-                origin: PICK_WITH_HAND_RAY ? worldHandPosition : Camera.position,
-                direction: PICK_WITH_HAND_RAY ? Quat.getUp(worldHandRotation) : Vec3.mix(Quat.getUp(worldHandRotation),
-                                                                                         Quat.getFront(Camera.orientation),
-                                                                                         HAND_HEAD_MIX_RATIO),
-                length: PICK_MAX_DISTANCE
-            };
-        }
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var worldHandPosition = controllerLocation.position;
+        var worldHandRotation = controllerLocation.orientation;
+        valid = !(worldHandPosition === undefined);
+
+        pickRay = {
+            origin: PICK_WITH_HAND_RAY ? worldHandPosition : MyAvatar.getHeadPosition(),
+            direction: PICK_WITH_HAND_RAY ? Quat.getUp(worldHandRotation) : Quat.getFront(Camera.orientation),
+            length: PICK_MAX_DISTANCE
+        };
 
         var result = {
             entityID: null,
@@ -1894,28 +1846,17 @@ function MyController(hand) {
             isValid: valid
         };
 
-        var now = Date.now();
-        if (now - this.lastPickTime < MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            return result;
-        }
-        this.lastPickTime = now;
+        var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
+        var intersection = LaserPointers.getPrevRayPickResult(laserPointerID);
 
-        var intersection;
-        if (USE_BLACKLIST === true && blacklist.length !== 0) {
-            intersection = findRayIntersection(pickRay, true, [], blacklist, true);
-        } else {
-            intersection = findRayIntersection(pickRay, true, [], [], true);
-        }
-
-        if (intersection.intersects) {
+        if (intersection.type != RayPick.INTERSECTED_NONE) {
             return {
-                entityID: intersection.entityID,
-                overlayID: intersection.overlayID,
+                entityID: intersection.type == RayPick.INTERSECTED_ENTITY ? intersection.objectID : null,
+                overlayID: intersection.type == RayPick.INTERSECTED_OVERLAY ? intersection.objectID : null,
                 searchRay: pickRay,
-                distance: Vec3.distance(pickRay.origin, intersection.intersection),
+                distance: intersection.distance,
                 intersection: intersection.intersection,
-                normal: intersection.surfaceNormal,
-                properties: intersection.properties
+                normal: intersection.surfaceNormal
             };
         } else {
             return result;
@@ -2187,8 +2128,15 @@ function MyController(hand) {
         var rayPickInfo = this.calcRayPickInfo(this.hand);
         if (rayPickInfo.entityID || rayPickInfo.overlayID) {
             this.intersectionDistance = rayPickInfo.distance;
-            this.searchSphereDistance = this.intersectionDistance;
         }
+    };
+
+    this.searchExit = function () {
+        contextualHand = -1;
+        if (hoveredEntityID) {
+            Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+        }
+        hoveredEntityID = false;
     };
 
     this.search = function(deltaTime, timestamp) {
@@ -2220,13 +2168,63 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        if (rayPickInfo.entityID && entitiesWithHoverOverlays.indexOf(rayPickInfo.entityID) == -1) {
-            entitiesWithHoverOverlays.forEach(function (element) {
-                HoverOverlay.destroyHoverOverlay(element);
-            });
-            entitiesWithHoverOverlays = [];
-            HoverOverlay.createHoverOverlay(rayPickInfo.entityID);
-            entitiesWithHoverOverlays.push(rayPickInfo.entityID);
+        pointerEvent = {
+            type: "Move",
+            id: this.hand + 1, // 0 is reserved for hardware mouse
+            pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
+            pos3D: rayPickInfo.intersection,
+            normal: rayPickInfo.normal,
+            direction: rayPickInfo.searchRay.direction,
+            button: "None"
+        };
+        if (rayPickInfo.entityID) {
+            if (hoveredEntityID !== rayPickInfo.entityID) {
+                if (contextOverlayTimer) {
+                    Script.clearTimeout(contextOverlayTimer);
+                    contextOverlayTimer = false;
+                }
+                if (hoveredEntityID) {
+                    Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+                }
+                hoveredEntityID = rayPickInfo.entityID;
+                Entities.sendHoverEnterEntity(hoveredEntityID, pointerEvent);
+            }
+
+            // If we already have a context overlay, we don't want to move it to
+            // another entity while we're searching.
+            if (!entityWithContextOverlay && !contextOverlayTimer) {
+                contextOverlayTimer = Script.setTimeout(function () {
+                    if (rayPickInfo.entityID === hoveredEntityID &&
+                        !entityWithContextOverlay &&
+                        contextualHand !== -1 &&
+                        contextOverlayTimer) {
+                        var pointerEvent = {
+                            type: "Move",
+                            id: contextualHand + 1, // 0 is reserved for hardware mouse
+                            pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
+                            pos3D: rayPickInfo.intersection,
+                            normal: rayPickInfo.normal,
+                            direction: rayPickInfo.searchRay.direction,
+                            button: "Secondary"
+                        };
+                        if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent)) {
+                            entityWithContextOverlay = rayPickInfo.entityID;
+                            hoveredEntityID = false;
+                        }
+                    }
+                    contextOverlayTimer = false;
+                }, 500);
+                contextualHand = this.hand;
+            }
+        } else {
+            if (hoveredEntityID) {
+                Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+                hoveredEntityID = false;
+            }
+            if (contextOverlayTimer) {
+                Script.clearTimeout(contextOverlayTimer);
+                contextOverlayTimer = false;
+            }
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -2321,7 +2319,7 @@ function MyController(hand) {
         }
 
         if (isInEditMode()) {
-            this.searchIndicatorOn(rayPickInfo.searchRay);
+            this.updateLaserPointer();
             if (this.triggerSmoothedGrab()) {
                 if (!this.editTriggered){
                     if (rayPickInfo.entityID) {
@@ -2354,7 +2352,7 @@ function MyController(hand) {
                 } else {
                     // potentialFarTriggerEntity = entity;
                 }
-                this.otherGrabbingLineOff();
+                this.laserPointerOff();
             } else if (this.entityIsDistanceGrabbable(rayPickInfo.entityID, handPosition)) {
                 if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
                     this.grabbedThingID = entity;
@@ -2369,26 +2367,18 @@ function MyController(hand) {
                 } else {
                     // potentialFarGrabEntity = entity;
                 }
-                this.otherGrabbingLineOff();
+                this.laserPointerOff();
             } else if (this.otherGrabbingUUID !== null) {
                 if (this.triggerSmoothedGrab() && !isEditing() && farGrabEnabled && farSearching) {
-                    var avatar = AvatarList.getAvatar(this.otherGrabbingUUID);
-                    var IN_FRONT_OF_AVATAR = { x: 0, y: 0.2, z: 0.4 };  // Up from hips and in front of avatar.
-                    var startPosition = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.rotation, IN_FRONT_OF_AVATAR));
-                    var rayHitProps = entityPropertiesCache.getProps(rayPickInfo.entityID);
-                    var finishPisition = Vec3.sum(rayHitProps.position,  // Entity's centroid.
-                        Vec3.multiplyQbyV(rayHitProps.rotation,
-                        Vec3.multiplyVbyV(rayHitProps.dimensions,
-                        Vec3.subtract(DEFAULT_REGISTRATION_POINT, rayHitProps.registrationPoint))));
-                    this.otherGrabbingLineOn(startPosition, finishPisition, COLORS_GRAB_DISTANCE_HOLD);
+                    this.updateLaserPointer();
                 } else {
-                    this.otherGrabbingLineOff();
+                    this.laserPointerOff();
                 }
             } else {
-                this.otherGrabbingLineOff();
+                this.laserPointerOff();
             }
         } else {
-            this.otherGrabbingLineOff();
+            this.laserPointerOff();
         }
 
         this.updateEquipHaptics(potentialEquipHotspot, handPosition);
@@ -2400,7 +2390,7 @@ function MyController(hand) {
         }
 
         if (farGrabEnabled && farSearching) {
-            this.searchIndicatorOn(rayPickInfo.searchRay);
+            this.updateLaserPointer();
         }
         Reticle.setVisible(false);
     };
@@ -2433,8 +2423,11 @@ function MyController(hand) {
                     button: "None"
                 };
 
-                this.hoverEntity = entity;
-                Entities.sendHoverEnterEntity(entity, pointerEvent);
+                if (this.hoverEntity !== entity) {
+                    Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
+                    this.hoverEntity = entity;
+                    Entities.sendHoverEnterEntity(this.hoverEntity, pointerEvent);
+                }
             }
 
             // send mouse events for button highlights and tooltips.
@@ -2483,25 +2476,25 @@ function MyController(hand) {
         var pointerEvent;
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
-            if (Overlays.getProperty(overlay, "type") != "web3d") {
-                return false;
-            }
-            if (Overlays.keyboardFocusOverlay != overlay) {
+            if ((Overlays.getProperty(overlay, "type") === "web3d") && Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
+            }
 
-                pointerEvent = {
-                    type: "Move",
-                    id: HARDWARE_MOUSE_ID,
-                    pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                    normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
+            pointerEvent = {
+                type: "Move",
+                id: HARDWARE_MOUSE_ID,
+                pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
+                pos3D: rayPickInfo.intersection,
+                normal: rayPickInfo.normal,
+                direction: rayPickInfo.searchRay.direction,
+                button: "None"
+            };
 
+            if (this.hoverOverlay !== overlay) {
+                Overlays.sendHoverLeaveOverlay(this.hoverOverlay, pointerEvent);
                 this.hoverOverlay = overlay;
-                Overlays.sendHoverEnterOverlay(overlay, pointerEvent);
+                Overlays.sendHoverEnterOverlay(this.hoverOverlay, pointerEvent);
             }
 
             // Send mouse events for button highlights and tooltips.
@@ -2730,7 +2723,7 @@ function MyController(hand) {
                     y: 0.0,
                     z: objDistance
                 });
-                var change = Vec3.multiply(Vec3.subtract(before, after), HAND_HEAD_MIX_RATIO);
+                var change = Vec3.subtract(before, after) * (PICK_WITH_HAND_RAY ? 0.0 : 1.0);
                 this.currentCameraOrientation = Camera.orientation;
                 this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
             }
@@ -2739,11 +2732,7 @@ function MyController(hand) {
         this.maybeScale(grabbedProperties);
 
         // visualizations
-        var rayPickInfo = this.calcRayPickInfo(this.hand);
-        this.overlayLineOn(rayPickInfo.searchRay.origin,
-                           Vec3.subtract(grabbedProperties.position, this.offsetPosition),
-                           COLORS_GRAB_DISTANCE_HOLD,
-                           this.grabbedThingID);
+        this.updateLaserPointer();
 
         var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
 
@@ -2850,9 +2839,7 @@ function MyController(hand) {
         this.getOtherHandController().offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta,
             this.getOtherHandController().offsetPosition);
 
-        var rayPickInfo = this.calcRayPickInfo(this.hand);
-        this.overlayLineOn(rayPickInfo.searchRay.origin, Vec3.subtract(grabbedProperties.position, this.offsetPosition),
-            COLORS_GRAB_DISTANCE_HOLD, this.grabbedThingID);
+        this.updateLaserPointer();
 
         this.previousWorldControllerRotation = worldControllerRotation;
     };
@@ -2936,10 +2923,7 @@ function MyController(hand) {
 
     this.nearGrabbingEnter = function() {
         this.grabPointSphereOff();
-        this.lineOff();
-        this.overlayLineOff();
-        this.searchSphereOff();
-        this.otherGrabbingLineOff();
+        this.laserPointerOff();
 
         this.dropGestureReset();
         this.clearEquipHaptics();
@@ -3443,28 +3427,18 @@ function MyController(hand) {
             return;
         }
 
-        var pickRay = {
-            origin: getControllerWorldLocation(this.handToController(), false).position,
-            direction: Quat.getUp(getControllerWorldLocation(this.handToController(), false).orientation)
-        };
-
-        var now = Date.now();
-        if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
-            var intersection = findRayIntersection(pickRay, true, [], [], true);
-            if (intersection.accurate || intersection.overlayID) {
-                this.lastPickTime = now;
-                if (intersection.entityID != this.grabbedThingID) {
-                    this.callEntityMethodOnGrabbed("stopFarTrigger");
-                    this.grabbedThingID = null;
-                    this.setState(STATE_OFF, "laser moved off of entity");
-                    return;
-                }
-                if (intersection.intersects) {
-                    this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
-                }
-                if (farGrabEnabled) {
-                    this.searchIndicatorOn(pickRay);
-                }
+        var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
+        var intersection = LaserPointers.getPrevRayPickResult(laserPointerID);
+        if (intersection.type != RayPick.INTERSECTED_NONE) {
+            if (intersection.objectID != this.grabbedThingID) {
+                this.callEntityMethodOnGrabbed("stopFarTrigger");
+                this.grabbedThingID = null;
+                this.setState(STATE_OFF, "laser moved off of entity");
+                return;
+            }
+            this.intersectionDistance = intersection.distance;
+            if (farGrabEnabled) {
+                this.updateLaserPointer();
             }
         }
 
@@ -3472,10 +3446,17 @@ function MyController(hand) {
     };
 
     this.offEnter = function() {
-        // Reuse the existing search distance if lasers were active since
-        // they will be shown in OFF state while in edit mode.
         var existingSearchDistance = this.searchSphereDistance;
         this.release();
+
+        if (hoveredEntityID) {
+            Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+            hoveredEntityID = false;
+        }
+        if (entityWithContextOverlay) {
+            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+            entityWithContextOverlay = false;
+        }
 
         if (isInEditMode()) {
             this.searchSphereDistance = existingSearchDistance;
@@ -3586,7 +3567,7 @@ function MyController(hand) {
 
             this.intersectionDistance = intersectInfo.distance;
             if (this.state == STATE_ENTITY_LASER_TOUCHING) {
-                this.searchIndicatorOn(intersectInfo.searchRay);
+                this.updateLaserPointer();
             }
             Reticle.setVisible(false);
         } else {
@@ -3597,7 +3578,7 @@ function MyController(hand) {
     };
 
     this.overlayLaserTouchingEnter = function () {
-        // Test for intersection between controller laser and Web overlay plane.
+        // Test for intersection between controller laser and overlay plane.
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectOverlay(this.grabbedOverlay, controllerLocation);
         if (intersectInfo) {
@@ -3714,7 +3695,7 @@ function MyController(hand) {
 
             this.intersectionDistance = intersectInfo.distance;
             if (this.state == STATE_OVERLAY_LASER_TOUCHING) {
-                this.searchIndicatorOn(intersectInfo.searchRay);
+                this.updateLaserPointer();
             }
             Reticle.setVisible(false);
         } else {
@@ -3791,11 +3772,6 @@ function MyController(hand) {
     this.release = function() {
         this.turnOffVisualizations();
 
-        entitiesWithHoverOverlays.forEach(function (element) {
-            HoverOverlay.destroyHoverOverlay(element);
-        });
-        entitiesWithHoverOverlays = [];
-
         if (this.grabbedThingID !== null) {
 
             Messages.sendMessage('Hifi-Teleport-Ignore-Remove', this.grabbedThingID);
@@ -3862,7 +3838,8 @@ function MyController(hand) {
         this.release();
         this.grabPointSphereOff();
         this.hideStylus();
-        this.overlayLineOff();
+        LaserPointers.removeLaserPointer(this.laserPointer);
+        LaserPointers.removeLaserPointer(this.headLaserPointer);
     };
 
     this.thisHandIsParent = function(props) {
@@ -3913,8 +3890,7 @@ function MyController(hand) {
         children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, controllerCRJointIndex));
 
         children.forEach(function(childID) {
-            if (childID !== _this.stylus &&
-                childID !== _this.overlayLine) {
+            if (childID !== _this.stylus) {
                 // we appear to be holding something and this script isn't in a state that would be holding something.
                 // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
                 // works around some problems that happen when more than one hand or avatar is passing something around.
@@ -4028,6 +4004,15 @@ Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
 Messages.subscribe('Hifi-Object-Manipulation');
 Messages.subscribe('Hifi-Hand-Drop');
 
+var setBlacklist = function() {
+    if (USE_BLACKLIST) {
+        LaserPointers.setIgnoreEntities(leftController.laserPointer, blacklist);
+        LaserPointers.setIgnoreEntities(leftController.headLaserPointer, blacklist);
+        LaserPointers.setIgnoreEntities(rightController.laserPointer, blacklist);
+        LaserPointers.setIgnoreEntities(rightController.headLaserPointer, blacklist);
+    }
+}
+
 var handleHandMessages = function(channel, message, sender) {
     var data;
     if (sender === MyAvatar.sessionUUID) {
@@ -4102,10 +4087,12 @@ var handleHandMessages = function(channel, message, sender) {
 
                 if (action === 'add' && index === -1) {
                     blacklist.push(id);
+                    setBlacklist();
                 }
                 if (action === 'remove') {
                     if (index > -1) {
                         blacklist.splice(index, 1);
+                        setBlacklist();
                     }
                 }
 

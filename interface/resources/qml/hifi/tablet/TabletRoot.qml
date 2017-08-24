@@ -93,6 +93,11 @@ Item {
         loader.source = "";
         loader.source = "TabletWebView.qml";
     }
+
+    function loadTabletWebBase() {
+        loader.source = "";
+        loader.source = "../../controls/TabletWebView.qml";
+    }
         
     function returnToPreviousApp() {
         tabletApps.remove(currentApp);
@@ -121,6 +126,9 @@ Item {
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
         tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});
+        if (loader.item.hasOwnProperty("closeButtonVisible")) {
+            loader.item.closeButtonVisible = false;
+        }
     }
 
     // used to send a message from qml to interface script.
@@ -202,5 +210,11 @@ Item {
     width: 480
     height: 706
 
-    function setShown(value) {}
+    function setShown(value) {
+        if (value === true) {
+            HMD.openTablet()
+        } else {
+            HMD.closeTablet()
+        }
+    }
 }

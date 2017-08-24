@@ -710,6 +710,7 @@ function off() {
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         isWired = false;
+        ContextOverlay.enabled = true
     }
     if (audioTimer) {
         Script.clearInterval(audioTimer);
@@ -722,6 +723,7 @@ function off() {
 
 function tabletVisibilityChanged() {
     if (!tablet.tabletShown) {
+        ContextOverlay.enabled = true;
         tablet.gotoHomeScreen();
     }
 }
@@ -732,7 +734,9 @@ function onTabletButtonClicked() {
     if (onPalScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
+        ContextOverlay.enabled = true;
     } else {
+        ContextOverlay.enabled = false;
         tablet.loadQMLSource(PAL_QML_SOURCE);
         tablet.tabletShownChanged.connect(tabletVisibilityChanged);
         Users.requestsDomainListData = true;
@@ -863,6 +867,7 @@ function avatarDisconnected(nodeID) {
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
     if (onPalScreen) {
+        ContextOverlay.enabled = true;
         tablet.gotoHomeScreen();
     }
 }

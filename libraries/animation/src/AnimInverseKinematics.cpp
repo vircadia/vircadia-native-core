@@ -23,12 +23,13 @@
 #include "CubicHermiteSpline.h"
 #include "AnimUtil.h"
 
+static const int MAX_TARGET_MARKERS = 30;
 static const float JOINT_CHAIN_INTERP_TIME = 0.25f;
 
 static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
-                                 int indexA, int indexB,
-                                 const AnimInverseKinematics::JointInfo** jointInfoA,
-                                 const AnimInverseKinematics::JointInfo** jointInfoB) {
+                            int indexA, int indexB,
+                            const AnimInverseKinematics::JointInfo** jointInfoA,
+                            const AnimInverseKinematics::JointInfo** jointInfoB) {
     *jointInfoA = nullptr;
     *jointInfoB = nullptr;
     for (size_t i = 0; i < jointChainInfo.jointInfoVec.size(); i++) {
@@ -97,6 +98,12 @@ AnimInverseKinematics::~AnimInverseKinematics() {
     _rotationAccumulators.clear();
     _translationAccumulators.clear();
     _targetVarVec.clear();
+
+    // remove markers
+    for (int i = 0; i < MAX_TARGET_MARKERS; i++) {
+        QString name = QString("ikTarget%1").arg(i);
+        DebugDraw::getInstance().removeMyAvatarMarker(name);
+    }
 }
 
 void AnimInverseKinematics::loadDefaultPoses(const AnimPoseVec& poses) {
@@ -1015,19 +1022,30 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // debug render ik targets
                 if (context.getEnableDebugDrawIKTargets()) {
                     const vec4 WHITE(1.0f);
+                    const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
                     glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+                    int targetNum = 0;
 
                     for (auto& target : targets) {
                         glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
                         glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
 
-                        QString name = QString("ikTarget%1").arg(target.getIndex());
+                        QString name = QString("ikTarget%1").arg(targetNum);
                         DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
+                        targetNum++;
+                    }
+
+                    // draw secondary ik targets
+                    for (auto& iter : _secondaryTargetsInRigFrame) {
+                        glm::mat4 avatarTargetMat = rigToAvatarMat * (glm::mat4)iter.second;
+                        QString name = QString("ikTarget%1").arg(targetNum);
+                        DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), GREEN);
+                        targetNum++;
                     }
                 } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
                     // remove markers if they were added last frame.
-                    for (auto& target : targets) {
-                        QString name = QString("ikTarget%1").arg(target.getIndex());
+                    for (int i = 0; i < MAX_TARGET_MARKERS; i++) {
+                        QString name = QString("ikTarget%1").arg(i);
                         DebugDraw::getInstance().removeMyAvatarMarker(name);
                     }
                 }
@@ -1038,7 +1056,9 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
 
+                setSecondaryTargets(context);
                 preconditionRelativePosesToAvoidLimbLock(context, targets);
+
                 solve(context, targets, dt, jointChainInfoVec);
             }
 
@@ -1122,6 +1142,22 @@ void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
 void AnimInverseKinematics::clearIKJointLimitHistory() {
     for (auto& pair : _constraints) {
         pair.second->clearHistory();
+    }
+}
+
+void AnimInverseKinematics::setSecondaryTargetInRigFrame(int jointIndex, const AnimPose& pose) {
+    auto iter = _secondaryTargetsInRigFrame.find(jointIndex);
+    if (iter != _secondaryTargetsInRigFrame.end()) {
+        iter->second = pose;
+    } else {
+        _secondaryTargetsInRigFrame.insert({ jointIndex, pose });
+    }
+}
+
+void AnimInverseKinematics::clearSecondaryTarget(int jointIndex) {
+    auto iter = _secondaryTargetsInRigFrame.find(jointIndex);
+    if (iter != _secondaryTargetsInRigFrame.end()) {
+        _secondaryTargetsInRigFrame.erase(iter);
     }
 }
 
@@ -1575,7 +1611,7 @@ void AnimInverseKinematics::debugDrawRelativePoses(const AnimContext& context) c
     const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
     const vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
     const vec4 GRAY(0.2f, 0.2f, 0.2f, 1.0f);
-    const float AXIS_LENGTH = 2.0f; // cm
+    const float AXIS_LENGTH = 10.0f; // cm
 
     // draw each pose
     for (int i = 0; i < (int)poses.size(); i++) {
@@ -1605,8 +1641,10 @@ void AnimInverseKinematics::debugDrawIKChain(const JointChainInfo& jointChainInf
     // copy debug joint rotations into the relative poses
     for (size_t i = 0; i < jointChainInfo.jointInfoVec.size(); i++) {
         const JointInfo& info = jointChainInfo.jointInfoVec[i];
-        poses[info.jointIndex].rot() = info.rot;
-        poses[info.jointIndex].trans() = info.trans;
+        if (info.jointIndex != _hipsIndex) {
+            poses[info.jointIndex].rot() = info.rot;
+            poses[info.jointIndex].trans() = info.trans;
+        }
     }
 
     // convert relative poses to absolute
@@ -1822,6 +1860,59 @@ void AnimInverseKinematics::preconditionRelativePosesToAvoidLimbLock(const AnimC
                 }
             }
         }
+    }
+}
+
+// overwrites _relativePoses with secondary poses.
+void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
+
+    if (_secondaryTargetsInRigFrame.empty()) {
+        return;
+    }
+
+    // special case for arm secondary poses.
+    // determine if shoulder joint should look-at position of arm joint.
+    bool shoulderShouldLookAtArm = false;
+    const int leftArmIndex = _skeleton->nameToJointIndex("LeftArm");
+    const int rightArmIndex = _skeleton->nameToJointIndex("RightArm");
+    const int leftShoulderIndex = _skeleton->nameToJointIndex("LeftShoulder");
+    const int rightShoulderIndex = _skeleton->nameToJointIndex("RightShoulder");
+    for (auto& iter : _secondaryTargetsInRigFrame) {
+        if (iter.first == leftShoulderIndex || iter.first == rightShoulderIndex) {
+            shoulderShouldLookAtArm = true;
+            break;
+        }
+    }
+
+    AnimPose rigToGeometryPose = AnimPose(glm::inverse(context.getGeometryToRigMatrix()));
+    for (auto& iter : _secondaryTargetsInRigFrame) {
+        AnimPose absPose = rigToGeometryPose * iter.second;
+        absPose.scale() = glm::vec3(1.0f);
+
+        AnimPose parentAbsPose;
+        int parentIndex = _skeleton->getParentIndex(iter.first);
+        if (parentIndex >= 0) {
+            parentAbsPose = _skeleton->getAbsolutePose(parentIndex, _relativePoses);
+        }
+
+        // if parent should "look-at" child joint position.
+        if (shoulderShouldLookAtArm && (iter.first == leftArmIndex || iter.first == rightArmIndex)) {
+
+            AnimPose grandParentAbsPose;
+            int grandParentIndex = _skeleton->getParentIndex(parentIndex);
+            if (parentIndex >= 0) {
+                grandParentAbsPose = _skeleton->getAbsolutePose(grandParentIndex, _relativePoses);
+            }
+
+            // the shoulder should rotate toward the arm joint via "look-at" constraint
+            parentAbsPose = boneLookAt(absPose.trans(), parentAbsPose);
+            _relativePoses[parentIndex] = grandParentAbsPose.inverse() * parentAbsPose;
+        }
+
+        // Ignore translation on secondary poses, to prevent them from distorting the skeleton.
+        glm::vec3 origTrans = _relativePoses[iter.first].trans();
+        _relativePoses[iter.first] = parentAbsPose.inverse() * absPose;
+        _relativePoses[iter.first].trans() = origTrans;
     }
 }
 
