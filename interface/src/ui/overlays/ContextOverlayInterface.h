@@ -83,6 +83,8 @@ private:
     void disableEntityHighlight(const EntityItemID& entityItemID);
 
     void deletingEntity(const EntityItemID& entityItemID);
+
+    SelectionToSceneHandler _selectionToSceneHandler;
 };
 
 #endif // hifi_ContextOverlayInterface_h

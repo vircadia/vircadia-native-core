@@ -53,23 +53,33 @@ public:
     Q_INVOKABLE void printList(const QString& listName);
     Q_INVOKABLE bool removeListFromMap(const QString& listName);
 
-    Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const QUuid& avatarSessionID);
-    Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QUuid& avatarSessionID);
+    Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
 
-    Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const EntityItemID& entityID);
-    Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const EntityItemID& entityID);
-    
-    Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const OverlayID& overlayID);
-    Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const OverlayID& overlayID);
+signals:
+    void addedToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    void removedFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
 
 private:
-    AbstractViewStateInterface* _viewState;
     QMap<QString, GameplayObjects> _selectedItemsListMap;
 
     template <class T> bool addToGameplayObjects(const QString& listName, T idToAdd);
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
+};
 
-    void updateRendererSelectedList(const QString& listName);
+
+class SelectionToSceneHandler {
+public:
+    SelectionToSceneHandler();
+    void initialize(render::ScenePointer mainScene, const QString& listName);
+
+public slots:
+    void addedToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    void removedFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+
+private:
+    render::ScenePointer _mainScene;
+    QString _listName { "" };
 };
 
 #endif // hifi_SelectionScriptingInterface_h

@@ -47,48 +47,27 @@ SelectionScriptingInterface::SelectionScriptingInterface(AbstractViewStateInterf
     _viewState = viewState;
 }
 
-//
-// START HANDLING AVATARS
-//
-bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const QUuid& avatarSessionID) {
-    return addToGameplayObjects(listName, avatarSessionID);
+bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id) {
+    if (itemType == "avatar") {
+        return addToGameplayObjects(listName, (QUuid)id);
+    } else if (itemType == "entity") {
+        return addToGameplayObjects(listName, (EntityItemID)id);
+    } else if (itemType == "overlay") {
+        return addToGameplayObjects(listName, (OverlayID)id);
+    }
+    return false;
 }
-bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& listName, const QUuid& avatarSessionID) {
-    return addToGameplayObjects(listName, avatarSessionID);
+bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id) {
+    if (itemType == "avatar") {
+        return removeFromGameplayObjects(listName, (QUuid)id);
+    } else if (itemType == "entity") {
+        return removeFromGameplayObjects(listName, (EntityItemID)id);
+    } else if (itemType == "overlay") {
+        return removeFromGameplayObjects(listName, (OverlayID)id);
+    }
+    return false;
 }
-//
-// END HANDLING AVATARS
-//
 
-//
-// START HANDLING ENTITIES
-//
-bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const EntityItemID& entityID) {
-    return addToGameplayObjects(listName, entityID);
-}
-bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& listName, const EntityItemID& entityID) {
-    return addToGameplayObjects(listName, entityID);
-}
-//
-// END HANDLING ENTITIES
-//
-
-//
-// START HANDLING OVERLAYS
-//
-bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const OverlayID& overlayID) {
-    return addToGameplayObjects(listName, overlayID);
-}
-bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& listName, const OverlayID& overlayID) {
-    return addToGameplayObjects(listName, overlayID);
-}
-//
-// END HANDLING OVERLAYS
-//
-
-//
-// START HANDLING GENERIC ITEMS
-//
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
     if (_selectedItemsListMap.contains(listName)) {
         auto currentList = _selectedItemsListMap.take(listName);
@@ -153,17 +132,25 @@ bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
     }
 }
 
-void SelectionScriptingInterface::updateRendererSelectedList(const QString& listName) {
-    auto scene = _viewState->getMain3DScene();
-    if (scene) {
+
+SelectionToSceneHandler::SelectionToSceneHandler() {
+}
+
+void SelectionToSceneHandler::initialize(render::ScenePointer mainScene, const QString& listName) {
+    _mainScene = mainScene;
+    _listName = listName;
+}
+
+void SelectionToSceneHandler::updateRendererSelectedList() {
+    if (_mainScene) {
         render::Transaction transaction;
 
-        if (_selectedItemsListMap.contains(listName)) {
+        if (_selectedItemsListMap.contains(_listName)) {
             render::ItemIDs finalList;
             render::ItemID currentID;
             auto entityTree = qApp->getEntities()->getTree();
             auto& overlays = qApp->getOverlays();
-            auto currentList = _selectedItemsListMap.value(listName);
+            auto currentList = _selectedItemsListMap.value(_listName);
 
             for (QUuid& currentAvatarID : currentList.getAvatarIDs()) {
                 auto avatar = std::static_pointer_cast<Avatar>(DependencyManager::get<AvatarManager>()->getAvatarBySessionID(currentAvatarID));
@@ -200,10 +187,10 @@ void SelectionScriptingInterface::updateRendererSelectedList(const QString& list
                 }
             }
 
-            render::Selection selection(listName.toStdString(), finalList);
+            render::Selection selection(_listName.toStdString(), finalList);
             transaction.resetSelection(selection);
 
-            scene->enqueueTransaction(transaction);
+            _mainScene->enqueueTransaction(transaction);
         } else {
             qWarning() << "List of GameplayObjects doesn't exist in _selectedItemsListMap";
         }

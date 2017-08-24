@@ -29,6 +29,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
 
+    _selectionToSceneHandler.initialize(qApp->getMain3DScene(), "contextOverlayHighlightList");
+
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
@@ -261,11 +263,11 @@ void ContextOverlayInterface::openMarketplace() {
 }
 
 void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", entityItemID);
+    //_selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
 }
 
 void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", entityItemID);
+    //_selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
 }
 
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
