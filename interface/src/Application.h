@@ -707,8 +707,8 @@ private:
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
 
-    LaserPointerManager _laserPointerManager;
     RayPickManager _rayPickManager;
+    LaserPointerManager _laserPointerManager;
 
 };
 #endif // hifi_Application_h
