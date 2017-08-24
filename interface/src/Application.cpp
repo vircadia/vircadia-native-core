@@ -183,6 +183,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
+#include "ui/ImageProvider.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -2165,6 +2166,9 @@ void Application::initializeUi() {
         qApp->quit();
     });
 
+    // register the pixmap image provider (used only for security image, for now)
+    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
+
     setupPreferences();
 
     // For some reason there is already an "Application" object in the QML context,
@@ -3757,7 +3761,7 @@ bool Application::shouldPaint() {
             (float)paintDelaySamples / paintDelayUsecs << "us";
     }
 #endif
-    
+
     // Throttle if requested
     if (displayPlugin->isThrottled() && (_lastTimeUpdated.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return false;
@@ -6284,7 +6288,11 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                     octreeFilePacket->write(urlData);
                     limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
                 });
-                DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_SPAWNING_POINT);
+                auto addressManager = DependencyManager::get<AddressManager>();
+                addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+                QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+                qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
+                DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
                 methodDetails = "SuccessfulRequestToReplaceContent";
             } else {
                 methodDetails = "UserDeclinedToReplaceContent";
@@ -6297,7 +6305,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content",
                                  QMessageBox::Ok, QMessageBox::Ok);
     }
-    QJsonObject messageProperties = { 
+    QJsonObject messageProperties = {
         { "status", methodDetails },
         { "content_set_url", url }
     };
@@ -6380,7 +6388,7 @@ void Application::showAssetServerWidget(QString filePath) {
 
 void Application::addAssetToWorldFromURL(QString url) {
     qInfo(interfaceapp) << "Download model and add to world from" << url;
-    
+
     QString filename;
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
