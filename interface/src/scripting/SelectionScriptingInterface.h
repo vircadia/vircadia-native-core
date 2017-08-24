@@ -68,8 +68,6 @@ signals:
 private:
     QMap<QString, GameplayObjects> _selectedItemsListMap;
 
-    QReadWriteLock _mapLock;
-
     template <class T> bool addToGameplayObjects(const QString& listName, T idToAdd);
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
 };

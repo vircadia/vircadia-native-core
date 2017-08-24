@@ -609,10 +609,10 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
+    DependencyManager::set<SelectionScriptingInterface>();
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
-    DependencyManager::set<SelectionScriptingInterface>();
 
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();
@@ -2218,8 +2218,8 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-    surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
+    surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -6020,8 +6020,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
-    scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
     scriptEngine->registerGlobalObject("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

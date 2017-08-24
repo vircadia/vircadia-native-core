@@ -72,22 +72,15 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
-    QWriteLocker writeLock(&_mapLock);
-    auto currentList = _selectedItemsListMap.value(listName);
-    if (currentList.getContainsData()) {
-        currentList.addToGameplayObjects(idToAdd);
-        _selectedItemsListMap.insert(listName, currentList);
+    GameplayObjects currentList = _selectedItemsListMap.value(listName);
+    currentList.addToGameplayObjects(idToAdd);
+    _selectedItemsListMap.insert(listName, currentList);
 
-        emit selectedItemsListChanged(listName);
-        return true;
-    } else {
-        _selectedItemsListMap.insert(listName, GameplayObjects());
-        return addToGameplayObjects(listName, idToAdd);
-    }
+    emit selectedItemsListChanged(listName);
+    return true;
 }
 template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const QString& listName, T idToRemove) {
-    QWriteLocker writeLock(&_mapLock);
-    auto currentList = _selectedItemsListMap.value(listName);
+    GameplayObjects currentList = _selectedItemsListMap.value(listName);
     if (currentList.getContainsData()) {
         currentList.removeFromGameplayObjects(idToRemove);
         _selectedItemsListMap.insert(listName, currentList);
@@ -103,13 +96,11 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 //
 
 GameplayObjects SelectionScriptingInterface::getList(const QString& listName) {
-    QReadLocker readLock(&_mapLock);
     return _selectedItemsListMap.value(listName);
 }
 
 void SelectionScriptingInterface::printList(const QString& listName) {
-    QReadLocker readLock(&_mapLock);
-    auto currentList = _selectedItemsListMap.value(listName);
+    GameplayObjects currentList = _selectedItemsListMap.value(listName);
     if (currentList.getContainsData()) {
 
         qDebug() << "Avatar IDs:";
@@ -135,7 +126,6 @@ void SelectionScriptingInterface::printList(const QString& listName) {
 }
 
 bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
-    QWriteLocker writeLock(&_mapLock);
     if (_selectedItemsListMap.remove(listName)) {
         emit selectedItemsListChanged(listName);
         return true;
