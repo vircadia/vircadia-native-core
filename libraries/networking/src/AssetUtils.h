@@ -48,14 +48,17 @@ enum AssetMappingOperationType : uint8_t {
     GetAll,
     Set,
     Delete,
-    Rename
+    Rename,
+    SetBakingEnabled
 };
 
 enum BakingStatus {
+    Unrelevant,
     NotBaked,
     Pending,
     Baking,
-    Baked
+    Baked,
+    Error
 };
 
 struct MappingInfo {

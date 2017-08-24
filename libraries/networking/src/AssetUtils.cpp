@@ -87,6 +87,8 @@ bool isValidHash(const AssetHash& hash) {
 
 QString bakingStatusToString(BakingStatus status) {
     switch (status) {
+        case Unrelevant:
+            return "--";
         case NotBaked:
             return "Not Baked";
         case Pending:
@@ -95,5 +97,7 @@ QString bakingStatusToString(BakingStatus status) {
             return "Baking";
         case Baked:
             return "Baked";
+        case Error:
+            return "Error";
     }
 }

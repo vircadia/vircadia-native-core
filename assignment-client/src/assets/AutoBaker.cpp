@@ -20,8 +20,8 @@ void AutoBaker::addPendingBake(AssetHash hash) {
     // Maybe start baking it right away
 }
 
-bool AutoBaker::assetNeedsBaking(AssetHash hash) {
-    return true;
+bool AutoBaker::assetNeedsBaking(AssetPath path, AssetHash hash) {
+    return path.endsWith(".fbx");
 }
 
 BakingStatus AutoBaker::getAssetStatus(AssetHash hash) {
@@ -33,9 +33,5 @@ BakingStatus AutoBaker::getAssetStatus(AssetHash hash) {
         return Baking;
     }
 
-    if (assetNeedsBaking(hash)) {
-        return NotBaked;
-    } else {
-        return Baked;
-    }
+    return NotBaked;
 }

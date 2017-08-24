@@ -67,7 +67,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
             return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
-
+        case PacketType::AssetMappingOperation:
+        case PacketType::AssetMappingOperationReply:
+            return static_cast<PacketVersion>(AssetMappingOperationVersion::SetBakingEnabledOperation);
         default:
             return 17;
     }

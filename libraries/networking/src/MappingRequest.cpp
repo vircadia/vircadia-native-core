@@ -273,3 +273,46 @@ void RenameMappingRequest::doStart() {
         emit finished(this);
     });
 }
+
+SetBakingEnabledRequest::SetBakingEnabledRequest(const AssetPathList& paths, bool enabled) : _paths(paths), _enabled(enabled) {
+    for (auto& path : _paths) {
+        path = path.trimmed();
+    }
+};
+
+void SetBakingEnabledRequest::doStart() {
+
+    // short circuit the request if any of the paths are invalid
+    for (auto& path : _paths) {
+        if (!isValidPath(path)) {
+            _error = MappingRequest::InvalidPath;
+            emit finished(this);
+            return;
+        }
+    }
+
+    auto assetClient = DependencyManager::get<AssetClient>();
+
+    _mappingRequestID = assetClient->setBakingEnabled(_paths, _enabled,
+        [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+
+        _mappingRequestID = INVALID_MESSAGE_ID;
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+            case AssetServerError::NoError:
+                _error = NoError;
+                break;
+            case AssetServerError::PermissionDenied:
+                _error = PermissionDenied;
+                break;
+            default:
+                _error = UnknownError;
+                break;
+            }
+        }
+
+        emit finished(this);
+    });
+};

@@ -20,7 +20,7 @@ class AutoBaker {
 public:
     void addPendingBake(AssetHash hash);
 
-    bool assetNeedsBaking(AssetHash hash);
+    bool assetNeedsBaking(AssetPath path, AssetHash hash);
 
     BakingStatus getAssetStatus(AssetHash hash);
 

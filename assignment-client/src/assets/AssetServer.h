@@ -64,6 +64,7 @@ private:
     void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
     void handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
     void handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleSetBakingEnabledOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
     bool loadMappingsFromFile();
@@ -77,6 +78,8 @@ private:
 
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);
+
+    bool setBakingEnabled(AssetPathList& paths, bool enabled);
 
     /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();

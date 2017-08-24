@@ -212,17 +212,33 @@ TreeView {
             if (treeView.canEdit && styleData.selected) {
                 return textFieldComponent;
             } else {
-                return labelComponent;
+                if (styleData.value.startsWith("HifiGlyphs#")) {
+                    return glyphComponent;
+                } else {
+                    return labelComponent;
+                }
             }
 
         }
         sourceComponent: getComponent()
-
+        
         Component {
             id: labelComponent
             FiraSansSemiBold {
 
                 text: styleData.value
+                size: hifi.fontSizes.tableText
+                color: colorScheme == hifi.colorSchemes.light
+                       ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                       
+                elide: Text.ElideRight
+            }
+        }
+        Component {
+            id: glyphComponent
+            HiFiGlyphs {
+                text: styleData.value.replace("HifiGlyphs#", "")
                 size: hifi.fontSizes.tableText
                 color: colorScheme == hifi.colorSchemes.light
                        ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)

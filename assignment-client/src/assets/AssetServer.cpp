@@ -334,11 +334,10 @@ void AssetServer::completeSetup() {
 
     QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}" };
     auto files = _filesDirectory.entryInfoList(QDir::Files);
-    auto mappedHashes = _fileMappings.values();
-    for (const auto& fileInfo : files) {
-        AssetHash hash = fileInfo.fileName();
-        bool isAsset = hashFileRegex.exactMatch(hash);
-        if (isAsset && _baker.assetNeedsBaking(hash)) {
+    for (auto& it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++it) {
+        AssetPath path = it.key();
+        AssetHash hash = it.value().toString();
+        if (_baker.assetNeedsBaking(path, hash)) {
             _baker.addPendingBake(hash);
         }
     }
@@ -381,26 +380,24 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     replyPacket->writePrimitive(messageID);
 
     switch (operationType) {
-        case AssetMappingOperationType::Get: {
+        case AssetMappingOperationType::Get:
             handleGetMappingOperation(*message, senderNode, *replyPacket);
             break;
-        }
-        case AssetMappingOperationType::GetAll: {
+        case AssetMappingOperationType::GetAll:
             handleGetAllMappingOperation(*message, senderNode, *replyPacket);
             break;
-        }
-        case AssetMappingOperationType::Set: {
+        case AssetMappingOperationType::Set:
             handleSetMappingOperation(*message, senderNode, *replyPacket);
             break;
-        }
-        case AssetMappingOperationType::Delete: {
+        case AssetMappingOperationType::Delete:
             handleDeleteMappingsOperation(*message, senderNode, *replyPacket);
             break;
-        }
-        case AssetMappingOperationType::Rename: {
+        case AssetMappingOperationType::Rename:
             handleRenameMappingOperation(*message, senderNode, *replyPacket);
             break;
-        }
+        case AssetMappingOperationType::SetBakingEnabled:
+            handleSetBakingEnabledOperation(*message, senderNode, *replyPacket);
+            break;
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -536,6 +533,30 @@ void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedN
         QString newPath = message.readString();
 
         if (renameMapping(oldPath, newPath)) {
+            replyPacket.writePrimitive(AssetServerError::NoError);
+        } else {
+            replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
+        }
+    } else {
+        replyPacket.writePrimitive(AssetServerError::PermissionDenied);
+    }
+}
+
+void AssetServer::handleSetBakingEnabledOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+    if (senderNode->getCanWriteToAssetServer()) {
+        bool enabled { true };
+        message.readPrimitive(&enabled);
+
+        int numberOfMappings{ 0 };
+        message.readPrimitive(&numberOfMappings);
+
+        QStringList mappings;
+
+        for (int i = 0; i < numberOfMappings; ++i) {
+            mappings << message.readString();
+        }
+
+        if (setBakingEnabled(mappings, enabled)) {
             replyPacket.writePrimitive(AssetServerError::NoError);
         } else {
             replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
@@ -1100,4 +1121,7 @@ bool AssetServer::createMetaFile(AssetHash originalAssetHash) {
     } else {
         return false;
     }
+
+bool AssetServer::setBakingEnabled(AssetPathList& paths, bool enabled) {
+    return "test";
 }

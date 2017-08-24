@@ -542,7 +542,7 @@ ScrollingWindow {
                 id: bakedColumn
                 title: "Use Baked?"
                 role: "baked"
-                width: 120
+                width: 140
             }
             
             MouseArea {
@@ -596,14 +596,17 @@ ScrollingWindow {
             anchors.bottomMargin: hifi.dimensions.contentSpacing.y
             spacing: hifi.dimensions.contentSpacing.x
             
-            HifiControls.Label {
-                text: treeView.selection.selectedIndexes.length + " ITEMS SELECTED"
-                colorScheme: root.colorScheme
+            RalewayRegular {
+                size: hifi.fontSizes.sectionName
+                font.capitalization: Font.AllUppercase
+                text: selectedItems + " items selected"
+                color: hifi.colors.lightGrayText
             }
 
             HifiControls.CheckBox {
                 text: "Use baked (optimized) versions"
                 colorScheme: root.colorScheme
+                enabled: selectedItems > 0
             }
         }
 
