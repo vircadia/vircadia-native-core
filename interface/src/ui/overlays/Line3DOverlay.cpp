@@ -13,6 +13,7 @@
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
+#include "AbstractViewStateInterface.h"
 
 QString const Line3DOverlay::TYPE = "line3d";
 
@@ -149,7 +150,7 @@ void Line3DOverlay::render(RenderArgs* args) {
 
 const render::ShapeKey Line3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withOwnPipeline();
-    if (getAlpha() != 1.0f || _glow > 0.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     return builder.build();
@@ -222,9 +223,17 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     auto glow = properties["glow"];
     if (glow.isValid()) {
+        float prevGlow = _glow;
         setGlow(glow.toFloat());
-        if (_glow > 0.0f) {
-            _alpha = 0.5f;
+        // Update our payload key if necessary to handle transparency
+        if ((prevGlow <= 0.0f && _glow > 0.0f) || (prevGlow > 0.0f && _glow <= 0.0f)) {
+            auto itemID = getRenderItemID();
+            if (render::Item::isValidID(itemID)) {
+                render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+                render::Transaction transaction;
+                transaction.updateItem(itemID);
+                scene->enqueueTransaction(transaction);
+            }
         }
     }
 

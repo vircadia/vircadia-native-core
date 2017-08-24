@@ -110,7 +110,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
 
 const render::ShapeKey Rectangle3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withOwnPipeline();
-    if (getAlpha() != 1.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     return builder.build();

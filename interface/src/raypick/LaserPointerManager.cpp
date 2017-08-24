@@ -97,6 +97,14 @@ void LaserPointerManager::update() {
     }
 }
 
+void LaserPointerManager::setPrecisionPicking(QUuid uid, const bool precisionPicking) {
+    QReadLocker lock(&_containsLock);
+    if (_laserPointers.contains(uid)) {
+        QWriteLocker laserLock(_laserPointerLocks[uid].get());
+        _laserPointers[uid]->setPrecisionPicking(precisionPicking);
+    }
+}
+
 void LaserPointerManager::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) {
     QReadLocker lock(&_containsLock);
     if (_laserPointers.contains(uid)) {

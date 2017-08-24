@@ -300,7 +300,12 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 }
 
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
-    if (QThread::currentThread() != thread()) {
+    auto thisOverlay = getOverlay(id);
+    if (!thisOverlay) {
+        return false;
+    }
+
+    if (!thisOverlay->is3D() && QThread::currentThread() != thread()) {
         // NOTE editOverlay can be called very frequently in scripts and can't afford to
         // block waiting on the main thread.  Additionally, no script actually
         // examines the return value and does something useful with it, so use a non-blocking
@@ -309,22 +314,15 @@ bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
         return true;
     }
 
-    Overlay::Pointer thisOverlay = getOverlay(id);
-    if (thisOverlay) {
-        thisOverlay->setProperties(properties.toMap());
-        return true;
-    }
-    return false;
+    thisOverlay->setProperties(properties.toMap());
+    return true;
 }
 
 bool Overlays::editOverlays(const QVariant& propertiesById) {
-    if (QThread::currentThread() != thread()) {
-        // NOTE see comment on editOverlay for why this is not a blocking call
-        QMetaObject::invokeMethod(this, "editOverlays", Q_ARG(QVariant, propertiesById));
-        return true;
-    }
+    bool defer2DOverlays = QThread::currentThread() != thread();
 
-    QVariantMap map = propertiesById.toMap();
+    QVariantMap deferrred;
+    const QVariantMap map = propertiesById.toMap();
     bool success = true;
     for (const auto& key : map.keys()) {
         OverlayID id = OverlayID(key);
@@ -333,9 +331,21 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
             success = false;
             continue;
         }
-        QVariant properties = map[key];
+
+        const QVariant& properties = map[key];
+        if (defer2DOverlays && !thisOverlay->is3D()) {
+            deferrred[key] = properties;
+            continue;
+        }
         thisOverlay->setProperties(properties.toMap());
     }
+
+    // For 2D/QML overlays, we need to perform the edit on the main thread
+    if (defer2DOverlays && !deferrred.empty()) {
+        // NOTE see comment on editOverlay for why this is not a blocking call
+        QMetaObject::invokeMethod(this, "editOverlays", Q_ARG(QVariant, deferrred));
+    }
+
     return success;
 }
 

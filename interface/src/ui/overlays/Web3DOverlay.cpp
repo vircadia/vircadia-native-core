@@ -318,8 +318,8 @@ void Web3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Web3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
-    if (getAlpha() != 1.0f) {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias().withOwnPipeline();
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     return builder.build();
