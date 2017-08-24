@@ -25,7 +25,7 @@ public:
     void setSecurityImage(QPixmap* pixmap) { _securityImage = pixmap; }
 
 protected:
-    QPixmap* _securityImage;
+    QPixmap* _securityImage { nullptr };
 
 };
 
