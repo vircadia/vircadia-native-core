@@ -30,7 +30,7 @@ Rectangle {
     property bool balanceReceived: false;
     property string itemId: "";
     property string itemHref: "";
-    property int balanceAfterPurchase: 0;
+    property double balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
     property int itemPriceFull: 0;
     // Style
@@ -69,7 +69,7 @@ Rectangle {
             } else {
                 root.balanceReceived = true;
                 hfcBalanceText.text = (parseFloat(result.data.balance/100).toFixed(2)) + " HFC";
-                balanceAfterPurchase = parseFloat(result.data.balance/100) - parseFloat(root.itemPriceFull/100);
+                balanceAfterPurchase = parseFloat(result.data.balance/100) - root.itemPriceFull/100;
                 root.setBuyText();
             }
         }
