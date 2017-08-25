@@ -1979,17 +1979,17 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
         float motorSpeed = glm::length(_actionMotorVelocity);
-        float finalMaxMotorSpeed = getUniformScale() * MAX_ACTION_MOTOR_SPEED;
+        float finalMaxMotorSpeed = getSensorToWorldScale() * MAX_ACTION_MOTOR_SPEED;
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
-        const float maxBoostSpeed = getUniformScale() * MAX_BOOST_SPEED;
+        const float maxBoostSpeed = getSensorToWorldScale() * MAX_BOOST_SPEED;
 
         if (_isPushing) {
             if (motorSpeed < maxBoostSpeed) {
                 // an active action motor should never be slower than this
                 float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
-                motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
+                motorSpeed += getSensorToWorldScale() * MIN_AVATAR_SPEED * boostCoefficient;
             } else if (motorSpeed > finalMaxMotorSpeed) {
                 motorSpeed = finalMaxMotorSpeed;
             }
@@ -1997,7 +1997,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = MAX_WALKING_SPEED * direction;
+        _actionMotorVelocity = getSensorToWorldScale() * MAX_WALKING_SPEED * direction;
     }
 
     float boomChange = getDriveKey(ZOOM);
@@ -2011,22 +2011,24 @@ void MyAvatar::updatePosition(float deltaTime) {
     }
 
     vec3 velocity = getVelocity();
+    float sensorToWorldScale = getSensorToWorldScale();
+    float sensorToWorldScale2 = sensorToWorldScale * sensorToWorldScale;
     const float MOVING_SPEED_THRESHOLD_SQUARED = 0.0001f; // 0.01 m/s
     if (!_characterController.isEnabledAndReady()) {
         // _characterController is not in physics simulation but it can still compute its target velocity
         updateMotors();
         _characterController.computeNewVelocity(deltaTime, velocity);
 
-        float speed2 = glm::length2(velocity);
-        if (speed2 > MIN_AVATAR_SPEED_SQUARED) {
+        float speed2 = glm::length(velocity);
+        if (speed2 > sensorToWorldScale2 * MIN_AVATAR_SPEED_SQUARED) {
             // update position ourselves
             applyPositionDelta(deltaTime * velocity);
         }
         measureMotionDerivatives(deltaTime);
-        _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
+        _moving = speed2 > sensorToWorldScale2 * MOVING_SPEED_THRESHOLD_SQUARED;
     } else {
         float speed2 = glm::length2(velocity);
-        _moving = speed2 > MOVING_SPEED_THRESHOLD_SQUARED;
+        _moving = speed2 > sensorToWorldScale2 * MOVING_SPEED_THRESHOLD_SQUARED;
 
         if (_moving) {
             // scan for walkability
