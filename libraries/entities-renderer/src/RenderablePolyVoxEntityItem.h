@@ -19,79 +19,46 @@
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Raycast.h>
 
+#include <gpu/Forward.h>
 #include <gpu/Context.h>
 #include <model/Forward.h>
+#include <model/Geometry.h>
 #include <TextureCache.h>
 #include <PolyVoxEntityItem.h>
 
 #include "RenderableEntityItem.h"
 
-//#define POLYVOX_ENTITY_USE_FADE_EFFECT
+namespace render { namespace entities {
+class PolyVoxEntityRenderer;
+} } 
 
-class PolyVoxPayload {
-public:
+class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
+    friend class render::entities::PolyVoxEntityRenderer;
 
-    static uint8_t CUSTOM_PIPELINE_NUMBER;
-    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
-    static void registerShapePipeline() {
-        if (!CUSTOM_PIPELINE_NUMBER) {
-            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
-        }
-    }
-    
-    static const int MATERIAL_GPU_SLOT = 3;
-    static gpu::PipelinePointer _pipelines[2];
-    static gpu::PipelinePointer _wireframePipelines[2];
-
-    PolyVoxPayload(EntityItemPointer owner) : _owner(owner), _bounds(AABox()) { }
-    typedef render::Payload<PolyVoxPayload> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    EntityItemPointer _owner;
-    AABox _bounds;
-};
-
-namespace render {
-   template <> const ItemKey payloadGetKey(const PolyVoxPayload::Pointer& payload);
-   template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
-   template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
-   template <> const ShapeKey shapeGetShapeKey(const PolyVoxPayload::Pointer& payload);
-}
-
-
-class RenderablePolyVoxEntityItem : public PolyVoxEntityItem, public RenderableEntityInterface {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderablePolyVoxEntityItem(const EntityItemID& entityItemID);
 
     virtual ~RenderablePolyVoxEntityItem();
 
-    RenderableEntityInterface* getRenderableInterface() override { return this; }
-
     void initializePolyVox();
 
-    virtual void somethingChangedNotification() override {
-        // This gets called from EnityItem::readEntityDataFromBuffer every time a packet describing
-        // this entity comes from the entity-server.  It gets called even if nothing has actually changed
-        // (see the comment in EntityItem.cpp).  If that gets fixed, this could be used to know if we
-        // need to redo the voxel data.
-        // _needsModelReload = true;
-    }
+    using PolyVoxEntityItem::getVoxel;
+    virtual uint8_t getVoxel(const ivec3& v) const override;
 
-    virtual uint8_t getVoxel(int x, int y, int z) override;
-    virtual bool setVoxel(int x, int y, int z, uint8_t toValue) override;
+    using PolyVoxEntityItem::setVoxel;
+    virtual bool setVoxel(const ivec3& v, uint8_t toValue) override;
 
     int getOnCount() const override { return _onCount; }
 
-    void render(RenderArgs* args) override;
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
 
-    virtual void setVoxelData(QByteArray voxelData) override;
-    virtual void setVoxelVolumeSize(glm::vec3 voxelVolumeSize) override;
+    virtual void setVoxelData(const QByteArray& voxelData) override;
+    virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) override;
     virtual void setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxelSurfaceStyle) override;
 
     glm::vec3 getSurfacePositionAdjustment() const;
@@ -102,35 +69,19 @@ public:
 
     virtual ShapeType getShapeType() const override;
     virtual bool shouldBePhysical() const override { return !isDead(); }
-    virtual bool isReadyToComputeShape() override;
+    virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& info) override;
 
-    virtual glm::vec3 voxelCoordsToWorldCoords(glm::vec3& voxelCoords) const override;
-    virtual glm::vec3 worldCoordsToVoxelCoords(glm::vec3& worldCoords) const override;
-    virtual glm::vec3 voxelCoordsToLocalCoords(glm::vec3& voxelCoords) const override;
-    virtual glm::vec3 localCoordsToVoxelCoords(glm::vec3& localCoords) const override;
-
     // coords are in voxel-volume space
-    virtual bool setSphereInVolume(glm::vec3 center, float radius, uint8_t toValue) override;
-    virtual bool setVoxelInVolume(glm::vec3 position, uint8_t toValue) override;
+    virtual bool setSphereInVolume(const vec3& center, float radius, uint8_t toValue) override;
+    virtual bool setVoxelInVolume(const vec3& position, uint8_t toValue) override;
 
     // coords are in world-space
-    virtual bool setSphere(glm::vec3 center, float radius, uint8_t toValue) override;
-    virtual bool setCapsule(glm::vec3 startWorldCoords, glm::vec3 endWorldCoords,
+    virtual bool setSphere(const vec3& center, float radius, uint8_t toValue) override;
+    virtual bool setCapsule(const vec3& startWorldCoords, const vec3& endWorldCoords,
                             float radiusWorldCoords, uint8_t toValue) override;
     virtual bool setAll(uint8_t toValue) override;
-    virtual bool setCuboid(const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int toValue) override;
-
-    virtual void setXTextureURL(const QString& xTextureURL) override;
-    virtual void setYTextureURL(const QString& yTextureURL) override;
-    virtual void setZTextureURL(const QString& zTextureURL) override;
-
-    virtual bool addToScene(const EntityItemPointer& self,
-                            const render::ScenePointer& scene,
-                            render::Transaction& transaction) override;
-    virtual void removeFromScene(const EntityItemPointer& self,
-                                 const render::ScenePointer& scene,
-                                 render::Transaction& transaction) override;
+    virtual bool setCuboid(const vec3& lowPosition, const vec3& cuboidSize, int toValue) override;
 
     virtual void setXNNeighborID(const EntityItemID& xNNeighborID) override;
     virtual void setYNNeighborID(const EntityItemID& yNNeighborID) override;
@@ -150,60 +101,49 @@ public:
     virtual void updateRegistrationPoint(const glm::vec3& value) override;
 
     void setVoxelsFromData(QByteArray uncompressedData, quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize);
-    void forEachVoxelValue(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize,
-                           std::function<void(int, int, int, uint8_t)> thunk);
+    void forEachVoxelValue(const ivec3& voxelSize, std::function<void(const ivec3&, uint8_t)> thunk);
     QByteArray volDataToArray(quint16 voxelXSize, quint16 voxelYSize, quint16 voxelZSize) const;
 
     void setMesh(model::MeshPointer mesh);
     void setCollisionPoints(ShapeInfo::PointCollection points, AABox box);
-    PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData; }
+    PolyVox::SimpleVolume<uint8_t>* getVolData() { return _volData.get(); }
 
-    uint8_t getVoxelInternal(int x, int y, int z) const;
-    bool setVoxelInternal(int x, int y, int z, uint8_t toValue);
+    uint8_t getVoxelInternal(const ivec3& v) const;
+    bool setVoxelInternal(const ivec3& v, uint8_t toValue);
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
-    // Transparent polyvox didn't seem to be working so disable for now.
-    bool isTransparent() override { return false; }
-
     bool getMeshes(MeshProxyList& result) override;
 
-protected:
-    virtual void locationChanged(bool tellPhysics = true) override;
-
 private:
-    // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
-    // may not match _voxelVolumeSize.
-
-    model::MeshPointer _mesh;
-    gpu::Stream::FormatPointer _vertexFormat;
-    bool _meshDirty { true }; // does collision-shape need to be recomputed?
-    bool _meshReady { false };
-#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
-    bool _hasTransitioned{ false };
-#endif
-    NetworkTexturePointer _xTexture;
-    NetworkTexturePointer _yTexture;
-    NetworkTexturePointer _zTexture;
-
-    render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
-
-    ShapeInfo _shapeInfo;
-
-    PolyVox::SimpleVolume<uint8_t>* _volData = nullptr;
-    bool _volDataDirty = false; // does recomputeMesh need to be called?
-    int _onCount; // how many non-zero voxels are in _volData
-
-    bool _neighborsNeedUpdate { false };
-
-    bool updateOnCount(int x, int y, int z, uint8_t toValue);
+    bool updateOnCount(const ivec3& v, uint8_t toValue);
     PolyVox::RaycastResult doRayCast(glm::vec4 originInVoxel, glm::vec4 farInVoxel, glm::vec4& result) const;
+
+    void recomputeMesh();
+    void cacheNeighbors();
+    void copyUpperEdgesFromNeighbors();
+    void bonkNeighbors();
+    bool updateDependents();
 
     // these are run off the main thread
     void decompressVolumeData();
     void compressVolumeDataAndSendEditPacket();
-    virtual void recomputeMesh() override; // recompute mesh
     void computeShapeInfoWorker();
+
+    // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
+    // may not match _voxelVolumeSize.
+    bool _meshDirty { true }; // does collision-shape need to be recomputed?
+    bool _meshReady{ false };
+    model::MeshPointer _mesh;
+
+    ShapeInfo _shapeInfo;
+
+    std::shared_ptr<PolyVox::SimpleVolume<uint8_t>> _volData;
+    bool _voxelDataDirty{ true };
+    bool _volDataDirty { false }; // does recomputeMesh need to be called?
+    int _onCount; // how many non-zero voxels are in _volData
+
+    bool _neighborsNeedUpdate { false };
 
     // these are cached lookups of _xNNeighborID, _yNNeighborID, _zNNeighborID, _xPNeighborID, _yPNeighborID, _zPNeighborID
     EntityItemWeakPointer _xNNeighbor; // neighbor found by going along negative X axis
@@ -212,14 +152,42 @@ private:
     EntityItemWeakPointer _xPNeighbor; // neighbor found by going along positive X axis
     EntityItemWeakPointer _yPNeighbor;
     EntityItemWeakPointer _zPNeighbor;
-    void cacheNeighbors();
-    void copyUpperEdgesFromNeighbors();
-    void bonkNeighbors();
-    bool updateDependents();
+
 };
 
-bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
-                  int x, int y, int z);
+namespace render { namespace entities {
+
+class PolyVoxEntityRenderer : public TypedEntityRenderer<RenderablePolyVoxEntityItem> {
+    using Parent = TypedEntityRenderer<RenderablePolyVoxEntityItem>;
+    friend class EntityRenderer;
+
+public:
+    PolyVoxEntityRenderer(const EntityItemPointer& entity);
+    
+protected:
+    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape(); }
+    virtual ShapeKey getShapeKey() override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
+    virtual bool isTransparent() const override { return false; }
+
+private:
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+    bool _hasTransitioned{ false };
+#endif
+
+    model::MeshPointer _mesh;
+    std::array<NetworkTexturePointer, 3> _xyzTextures;
+    glm::vec3 _lastVoxelVolumeSize;
+    glm::mat4 _lastVoxelToWorldMatrix;
+    PolyVoxEntityItem::PolyVoxSurfaceStyle _lastSurfaceStyle { PolyVoxEntityItem::SURFACE_MARCHING_CUBES };
+    std::array<QString, 3> _xyzTextureUrls;
+    bool _neighborsNeedUpdate{ false };
+};
+
+} }
 
 
 #endif // hifi_RenderablePolyVoxEntityItem_h

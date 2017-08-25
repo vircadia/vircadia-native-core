@@ -54,6 +54,20 @@ void LightEntityItem::setDimensions(const glm::vec3& value) {
     }
 }
 
+void LightEntityItem::locationChanged(bool tellPhysics) {
+    EntityItem::locationChanged(tellPhysics);
+    withWriteLock([&] {
+        _lightPropertiesChanged = true;
+    });
+}
+
+void LightEntityItem::dimensionsChanged() {
+    EntityItem::dimensionsChanged();
+    withWriteLock([&] {
+        _lightPropertiesChanged = true;
+    });
+}
+
 
 EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
@@ -224,13 +238,6 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, getFalloffRadius());
 }
 
-void LightEntityItem::somethingChangedNotification() {
-    EntityItem::somethingChangedNotification();
-    withWriteLock([&] {
-        _lightPropertiesChanged = false;
-    });
-}
-
 const rgbColor& LightEntityItem::getColor() const { 
     return _color; 
 }
@@ -307,5 +314,22 @@ float LightEntityItem::getCutoff() const {
         result = _cutoff;
     });
     return result;
+}
+
+void LightEntityItem::resetLightPropertiesChanged() {
+    withWriteLock([&] { _lightPropertiesChanged = false; });
+}
+
+bool LightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                        bool& keepSearching, OctreeElementPointer& element, float& distance,
+                        BoxFace& face, glm::vec3& surfaceNormal,
+                        void** intersectedObject, bool precisionPicking) const {
+
+    // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state
+    // this is probably reasonable since there's typically only one tree you'd be picking on at a time. Technically we could
+    // be on the clipboard and someone might be trying to use the ray intersection API there. Anyway... if you ever try to
+    // do ray intersection testing off of trees other than the main tree of the main entity renderer, then we'll need to
+    // fix this mechanism.
+    return _lightsArePickable;
 }
 

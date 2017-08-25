@@ -23,6 +23,9 @@
 
 #include "Logging.h"
 
+Q_LOGGING_CATEGORY(procedural, "hifi.gpu.procedural")
+
+
 // Userdata parsing constants
 static const QString PROCEDURAL_USER_DATA_KEY = "ProceduralEntity";
 static const QString URL_KEY = "shaderUrl";
@@ -45,13 +48,16 @@ static const std::string STANDARD_UNIFORM_NAMES[Procedural::NUM_STANDARD_UNIFORM
     "iChannelResolution"
 };
 
-// Example
-//{
-//    "ProceduralEntity": {
-//        "shaderUrl": "file:///C:/Users/bdavis/Git/hifi/examples/shaders/test.fs",
-//    }
-//}
-QJsonValue Procedural::getProceduralData(const QString& proceduralJson) {
+bool operator ==(const ProceduralData& a, const ProceduralData& b) {
+    return (
+        (a.version == b.version) &&
+        (a.shaderUrl == b.shaderUrl) &&
+        (a.uniforms == b.uniforms) &&
+        (a.channels == b.channels));
+}
+
+
+QJsonValue ProceduralData::getProceduralData(const QString& proceduralJson) {
     if (proceduralJson.isEmpty()) {
         return QJsonValue();
     }
@@ -65,6 +71,50 @@ QJsonValue Procedural::getProceduralData(const QString& proceduralJson) {
     return doc.object()[PROCEDURAL_USER_DATA_KEY];
 }
 
+ProceduralData ProceduralData::parse(const QString& userDataJson) {
+    ProceduralData result;
+    result.parse(getProceduralData(userDataJson).toObject());
+    return result;
+}
+
+void ProceduralData::parse(const QJsonObject& proceduralData) {
+    if (proceduralData.isEmpty()) {
+        return;
+    }
+
+    {
+        auto versionJson = proceduralData[VERSION_KEY];
+        if (versionJson.isDouble()) {
+            version = (uint8_t)(floor(versionJson.toDouble()));
+            // invalid version
+            if (!(version == 1 || version == 2)) {
+                return;
+            }
+        } else {
+            // All unversioned shaders default to V1
+            version = 1;
+        }
+    }
+
+    auto rawShaderUrl = proceduralData[URL_KEY].toString();
+    shaderUrl = DependencyManager::get<ResourceManager>()->normalizeURL(rawShaderUrl);
+    
+    // Empty shader URL isn't valid
+    if (shaderUrl.isEmpty()) {
+        return;
+    }
+
+    uniforms = proceduralData[UNIFORMS_KEY].toObject();
+    channels = proceduralData[CHANNELS_KEY].toArray();
+}
+
+// Example
+//{
+//    "ProceduralEntity": {
+//        "shaderUrl": "file:///C:/Users/bdavis/Git/hifi/examples/shaders/test.fs",
+//    }
+//}
+
 Procedural::Procedural() {
     _transparentState->setCullMode(gpu::State::CULL_NONE);
     _transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
@@ -72,144 +122,76 @@ Procedural::Procedural() {
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-    _proceduralDataDirty = false;
 }
 
-Procedural::Procedural(const QString& userDataJson) : Procedural() {
-    parse(userDataJson);
-    _proceduralDataDirty = true;
-}
-
-void Procedural::parse(const QString& userDataJson) {
-    auto proceduralData = getProceduralData(userDataJson);
-    // Instead of parsing, prep for a parse on the rendering thread
-    // This will be called by Procedural::ready
-    std::lock_guard<std::mutex> lock(_proceduralDataMutex);
-    _proceduralData = proceduralData.toObject();
-
-    // Mark as dirty after modifying _proceduralData, but before releasing lock
-    // to avoid setting it after parsing has begun
-    _proceduralDataDirty = true;
-}
-
-bool Procedural::parseVersion(const QJsonValue& version) {
-    if (version.isDouble()) {
-        _version = (uint8_t)(floor(version.toDouble()));
-    } else {
-        // All unversioned shaders default to V1
-        _version = 1;
-    }
-    return (_version == 1 || _version == 2);
-}
-
-bool Procedural::parseShader(const QUrl& shaderPath) {
-    auto shaderUrl = DependencyManager::get<ResourceManager>()->normalizeURL(shaderPath);
-
-    if (!shaderUrl.isValid()) {
-        if (!shaderUrl.isEmpty()) {
-            qWarning() << "Invalid shader URL: " << shaderUrl;
-        }
-        _networkShader.reset();
-        return false;
+void Procedural::setProceduralData(const ProceduralData& proceduralData) {
+    if (proceduralData == _data) {
+        return;
     }
 
-    // If the URL hasn't changed, don't mark the shader as dirty
-    if (_shaderUrl == shaderUrl) {
-        return true;
-    }
+    _dirty = true;
+    _enabled = false;
 
-    _shaderUrl = shaderUrl;
-    _shaderDirty = true;
-
-    if (_shaderUrl.isLocalFile()) {
-        _shaderPath = _shaderUrl.toLocalFile();
-#if WANT_DEBUG
-        qCDebug(procedural) << "Shader path: " << _shaderPath;
-#endif
-        if (!QFile(_shaderPath).exists()) {
-            _networkShader.reset();
-            return false;;
-        }
-    } else {
-#if WANT_DEBUG
-        qCDebug(procedural) << "Shader url: " << _shaderUrl;
-#endif
-        _networkShader = ShaderCache::instance().getShader(_shaderUrl);
-    }
-
-    return true;
-}
-
-bool Procedural::parseUniforms(const QJsonObject& uniforms) {
-    if (_parsedUniforms != uniforms) {
-        _parsedUniforms = uniforms;
+    if (proceduralData.uniforms != _data.uniforms) {
+        _data.uniforms = proceduralData.uniforms;
         _uniformsDirty = true;
     }
 
-    return true;
-}
-
-bool Procedural::parseTextures(const QJsonArray& channels) {
-    if (_parsedChannels != channels) {
-        _parsedChannels = channels;
-
+    if (proceduralData.channels != _data.channels) {
+        _data.channels = proceduralData.channels;
+        // Must happen on the main thread
         auto textureCache = DependencyManager::get<TextureCache>();
-        size_t channelCount = std::min(MAX_PROCEDURAL_TEXTURE_CHANNELS, (size_t)_parsedChannels.size());
-        size_t channel = 0;
-        for (; channel < channelCount; ++channel) {
-            QString url = _parsedChannels.at((int)channel).toString();
-            _channels[channel] = textureCache->getTexture(QUrl(url));
+        size_t channelCount = std::min(MAX_PROCEDURAL_TEXTURE_CHANNELS, (size_t)proceduralData.channels.size());
+        size_t channel;
+        for (channel = 0; channel < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++channel) {
+            if (channel < channelCount) {
+                QString url = proceduralData.channels.at((int)channel).toString();
+                _channels[channel] = textureCache->getTexture(QUrl(url));
+            } else {
+                // Release those textures no longer in use
+                _channels[channel] = textureCache->getTexture(QUrl());
+            }
         }
-        for (; channel < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++channel) {
-            // Release those textures no longer in use
-            _channels[channel] = textureCache->getTexture(QUrl());
-        }
-
         _channelsDirty = true;
     }
 
-    return true;
+    if (proceduralData.shaderUrl != _data.shaderUrl) {
+        _data.shaderUrl = proceduralData.shaderUrl;
+        _shaderDirty = true;
+        const auto& shaderUrl = _data.shaderUrl;
+        _networkShader.reset();
+        _shaderPath.clear();
+
+        if (shaderUrl.isEmpty()) {
+            return;
+        }
+
+        if (!shaderUrl.isValid()) {
+            qCWarning(procedural) << "Invalid shader URL: " << shaderUrl;
+            return;
+        }
+
+        if (shaderUrl.isLocalFile()) {
+            if (!QFileInfo(shaderUrl.toLocalFile()).exists()) {
+                qCWarning(procedural) << "Invalid shader URL, missing local file: " << shaderUrl;
+                return;
+            }
+            _shaderPath = shaderUrl.toLocalFile();
+        } else {
+            _networkShader = ShaderCache::instance().getShader(shaderUrl);
+        }
+    }
+
+    _enabled = true;
 }
 
-void Procedural::parse(const QJsonObject& proceduralData) {
-    _enabled = false;
-
-    auto version = proceduralData[VERSION_KEY];
-    auto shaderUrl = proceduralData[URL_KEY].toString();
-    auto uniforms = proceduralData[UNIFORMS_KEY].toObject();
-    auto channels = proceduralData[CHANNELS_KEY].toArray();
-
-    bool isValid = true;
-
-    // Run through parsing regardless of validity to clear old cached resources
-    isValid = parseVersion(version) && isValid;
-    isValid = parseShader(shaderUrl) && isValid;
-    isValid = parseUniforms(uniforms) && isValid;
-    isValid = parseTextures(channels) && isValid;
-
-    if (!proceduralData.isEmpty() && isValid) {
-        _enabled = true;
-    }
-}
-
-bool Procedural::ready() {
-    if (!_hasStartedFade) {
-        _fadeStartTime = usecTimestampNow();
-    }
-
-    // Load any changes to the procedural
-    // Check for changes atomically, in case they are currently being made
-    if (_proceduralDataDirty) {
-        std::lock_guard<std::mutex> lock(_proceduralDataMutex);
-        parse(_proceduralData);
-
-        // Reset dirty flag after reading _proceduralData, but before releasing lock
-        // to avoid resetting it after more data is set
-        _proceduralDataDirty = false;
-    }
-
+bool Procedural::isReady() const {
     if (!_enabled) {
         return false;
+    }
+
+    if (!_hasStartedFade) {
+        _fadeStartTime = usecTimestampNow();
     }
 
     // Do we have a network or local shader, and if so, is it loaded?
@@ -236,7 +218,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
     _entityDimensions = size;
     _entityPosition = position;
     _entityOrientation = glm::mat3_cast(orientation);
-    if (_shaderUrl.isLocalFile()) {
+    if (!_shaderPath.isEmpty()) {
         auto lastModified = (quint64)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
             QFile file(_shaderPath);
@@ -263,9 +245,9 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
 
         replaceIndex = fragmentShaderSource.find(PROCEDURAL_VERSION);
         if (replaceIndex != std::string::npos) {
-            if (_version == 1) {
+            if (_data.version == 1) {
                 fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V1 1");
-            } else if (_version == 2) {
+            } else if (_data.version == 2) {
                 fragmentShaderSource.replace(replaceIndex, PROCEDURAL_VERSION.size(), "#define PROCEDURAL_V2 1");
             }
         }
@@ -319,7 +301,7 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
         gpu::Sampler::Desc desc;
         desc._filter = gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR;
     });
-    
+
     for (size_t i = 0; i < MAX_PROCEDURAL_TEXTURE_CHANNELS; ++i) {
         if (_channels[i] && _channels[i]->isLoaded()) {
             auto gpuTexture = _channels[i]->getGPUTexture();
@@ -335,13 +317,13 @@ void Procedural::prepare(gpu::Batch& batch, const glm::vec3& position, const glm
 void Procedural::setupUniforms() {
     _uniforms.clear();
     // Set any userdata specified uniforms 
-    foreach(QString key, _parsedUniforms.keys()) {
+    foreach(QString key, _data.uniforms.keys()) {
         std::string uniformName = key.toLocal8Bit().data();
         int32_t slot = _shader->getUniforms().findLocation(uniformName);
         if (gpu::Shader::INVALID_LOCATION == slot) {
             continue;
         }
-        QJsonValue value = _parsedUniforms[key];
+        QJsonValue value = _data.uniforms[key];
         if (value.isDouble()) {
             float v = value.toDouble();
             _uniforms.push_back([=](gpu::Batch& batch) {
@@ -470,7 +452,7 @@ void Procedural::setupChannels(bool shouldCreate) {
 }
 
 glm::vec4 Procedural::getColor(const glm::vec4& entityColor) {
-    if (_version == 1) {
+    if (_data.version == 1) {
         return glm::vec4(1);
     }
     return entityColor;

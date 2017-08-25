@@ -19,6 +19,7 @@
 
 #include "GeometryUtil.h"
 
+#include "AbstractViewStateInterface.h"
 
 QString const Image3DOverlay::TYPE = "image3d";
 
@@ -45,6 +46,11 @@ Image3DOverlay::~Image3DOverlay() {
 }
 
 void Image3DOverlay::update(float deltatime) {
+    if (!_isLoaded) {
+        _isLoaded = true;
+        _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
+        _textureIsLoaded = false;
+    }
 #if OVERLAY_PANELS
     if (usecTimestampNow() > _transformExpiry) {
         Transform transform = getTransform();
@@ -55,13 +61,24 @@ void Image3DOverlay::update(float deltatime) {
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
-    if (!_isLoaded) {
-        _isLoaded = true;
-        _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
-    }
-
     if (!_visible || !getParentVisible() || !_texture || !_texture->isLoaded()) {
         return;
+    }
+
+    // Once the texture has loaded, check if we need to update the render item because of transparency
+    if (!_textureIsLoaded && _texture && _texture->getGPUTexture()) {
+        _textureIsLoaded = true;
+        bool prevAlphaTexture = _alphaTexture;
+        _alphaTexture = _texture->getGPUTexture()->getUsage().isAlpha();
+        if (_alphaTexture != prevAlphaTexture) {
+            auto itemID = getRenderItemID();
+            if (render::Item::isValidID(itemID)) {
+                render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+                render::Transaction transaction;
+                transaction.updateItem(itemID);
+                scene->enqueueTransaction(transaction);
+            }
+        }
     }
 
     Q_ASSERT(args->_batch);
@@ -92,9 +109,9 @@ void Image3DOverlay::render(RenderArgs* args) {
 
     glm::vec2 topLeft(-x, -y);
     glm::vec2 bottomRight(x, y);
-    glm::vec2 texCoordTopLeft(fromImage.x() / imageWidth, fromImage.y() / imageHeight);
-    glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width()) / imageWidth,
-                                  (fromImage.y() + fromImage.height()) / imageHeight);
+    glm::vec2 texCoordTopLeft((fromImage.x() + 0.5f) / imageWidth, (fromImage.y() + 0.5f) / imageHeight);
+    glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth,
+                                  (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
 
     const float MAX_COLOR = 255.0f;
     xColor color = getColor();
@@ -126,7 +143,7 @@ const render::ShapeKey Image3DOverlay::getShapeKey() {
     if (_emissive || shouldDrawHUDLayer()) {
         builder.withUnlit();
     }
-    if (getAlpha() != 1.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     return builder.build();

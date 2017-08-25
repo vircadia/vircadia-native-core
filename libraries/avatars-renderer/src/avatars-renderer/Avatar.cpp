@@ -434,7 +434,7 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
 
 void Avatar::updateAttitude(const glm::quat& orientation) {
     _skeletonModel->updateAttitude(orientation);
-	_worldUpDirection = orientation * Vectors::UNIT_Y;
+    _worldUpDirection = orientation * Vectors::UNIT_Y;
 }
 
 void Avatar::applyPositionDelta(const glm::vec3& delta) {

@@ -37,7 +37,7 @@ namespace render {
             if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
                 builder.withLayered();
             }
-            if (overlay->getAlphaPulse() != 0.0f || overlay->getAlpha() != 1.0f) {
+            if (overlay->isTransparent()) {
                 builder.withTransparent();
             }
         } else {
