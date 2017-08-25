@@ -101,7 +101,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             if (!_sendQueue.empty()) {
                 EntityPriorityQueue prevSendQueue;
                 _sendQueue.swap(prevSendQueue);
-                _entitiesToSend.clear();
+                _entitiesInQueue.clear();
                 // Re-add elements from previous traversal if they still need to be sent
                 while (!prevSendQueue.empty()) {
                     EntityItemPointer entity = prevSendQueue.top().getEntity();
@@ -122,14 +122,14 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                                     // Only send entities if they are large enough to see
                                     if (renderAccuracy > 0.0f) {
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
-                                        _entitiesToSend.insert(entity.get());
+                                        _entitiesInQueue.insert(entity.get());
                                     }
                                 }
                             }
                         } else {
                             const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
                             _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
-                            _entitiesToSend.insert(entity.get());
+                            _entitiesInQueue.insert(entity.get());
                         }
                     }
                 }
@@ -161,7 +161,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                 std::cout << "adebug    send '" << entity->getName().toStdString() << "'" << "  :  " << entry.getPriority() << std::endl;  // adebug
             }
             _sendQueue.pop();
-            _entitiesToSend.erase(entry.getRawEntityPointer());
+            _entitiesInQueue.erase(entry.getRawEntityPointer());
         }
     }
 #endif // SEND_SORTED_ENTITIES
@@ -239,7 +239,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
         _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
             next.element->forEachEntity([&](EntityItemPointer entity) {
                 // Bail early if we've already checked this entity this frame
-                if (_entitiesToSend.find(entity.get()) != _entitiesToSend.end()) {
+                if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                     return;
                 }
                 bool success = false;
@@ -259,13 +259,13 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         if (renderAccuracy > 0.0f) {
                             float priority = _conicalView.computePriority(cube);
                             _sendQueue.push(PrioritizedEntity(entity, priority));
-                            _entitiesToSend.insert(entity.get());
+                            _entitiesInQueue.insert(entity.get());
                         }
                     }
                 } else {
                     const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
                     _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
-                    _entitiesToSend.insert(entity.get());
+                    _entitiesInQueue.insert(entity.get());
                 }
             });
         });
@@ -276,7 +276,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                 uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
-                    if (_entitiesToSend.find(entity.get()) != _entitiesToSend.end()) {
+                    if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                         return;
                     }
                     if (entity->getLastEdited() > timestamp) {
@@ -294,13 +294,13 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 if (renderAccuracy > 0.0f) {
                                     float priority = _conicalView.computePriority(cube);
                                     _sendQueue.push(PrioritizedEntity(entity, priority));
-                                    _entitiesToSend.insert(entity.get());
+                                    _entitiesInQueue.insert(entity.get());
                                 }
                             }
                         } else {
                             const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
                             _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
-                            _entitiesToSend.insert(entity.get());
+                            _entitiesInQueue.insert(entity.get());
                         }
                     }
                 });
@@ -314,7 +314,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
             if (next.element->getLastChangedContent() > timestamp || next.intersection != ViewFrustum::INSIDE) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
-                    if (_entitiesToSend.find(entity.get()) != _entitiesToSend.end()) {
+                    if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                         return;
                     }
                     bool success = false;
@@ -332,7 +332,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 if (entity->getLastEdited() > timestamp || !_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
                                     float priority = _conicalView.computePriority(cube);
                                     _sendQueue.push(PrioritizedEntity(entity, priority));
-                                    _entitiesToSend.insert(entity.get());
+                                    _entitiesInQueue.insert(entity.get());
                                 } else {
                                     // If this entity was skipped last time because it was too small, we still need to send it
                                     float lastRenderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
@@ -343,7 +343,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                     if (lastRenderAccuracy <= 0.0f) {
                                         float priority = _conicalView.computePriority(cube);
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
-                                        _entitiesToSend.insert(entity.get());
+                                        _entitiesInQueue.insert(entity.get());
                                     }
                                 }
                             }
@@ -351,7 +351,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                     } else {
                         const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
                         _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
-                        _entitiesToSend.insert(entity.get());
+                        _entitiesInQueue.insert(entity.get());
                     }
                 });
             }
