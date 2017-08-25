@@ -32,7 +32,7 @@ public:
     void run() override;
 
 signals:
-    void bakeComplete(AssetHash assetHash, AssetPath assetPath, QVector<QString> outputFiles);
+    void bakeComplete(QString assetHash, QString assetPath, QVector<QString> outputFiles);
 
 private:
     std::atomic<bool> _isBaking { false };
@@ -99,7 +99,7 @@ private:
     void bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath);
 
     /// Move baked content for asset to baked directory and update baked status
-    void handleCompletedBake(AssetPath assetPath, AssetHash originalAssetHash, QVector<QString> bakedFilePaths);
+    void handleCompletedBake(QString assetPath, QString originalAssetHash, QVector<QString> bakedFilePaths);
 
     /// Create meta file to describe baked content for original asset
     bool createMetaFile(AssetHash originalAssetHash);
