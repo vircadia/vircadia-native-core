@@ -16,18 +16,51 @@
 
 #include <DependencyManager.h>
 
+#include <QPixmap>
+
 class Wallet : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
+    // These are currently blocking calls, although they might take a moment.
     bool createIfNeeded();
     bool generateKeyPair();
     QStringList listPublicKeys();
-    QString signWithKey(const QString& text, const QString& key);
+    QString signWithKey(const QByteArray& text, const QString& key);
+    void chooseSecurityImage(const QString& imageFile);
+    void getSecurityImage();
+    void sendKeyFilePathIfExists();
+
+    void setSalt(const QByteArray& salt) { _salt = salt; }
+    QByteArray getSalt() { return _salt; }
+
+    void setPassphrase(const QString& passphrase);
+    QString* getPassphrase() { return _passphrase; }
+
+signals:
+    void securityImageResult(bool exists) ;
+    void keyFilePathIfExistsResult(const QString& path);
+
+protected:
+    enum SecurityImage {
+        NONE = 0,
+        Cat,
+        Car,
+        Dog,
+        Stars,
+        Plane,
+        Gingerbread
+    };
 
 private:
     QStringList _publicKeys{};
+    QPixmap* _securityImage { nullptr };
+    QByteArray _salt {"iamsalt!"};
+    QString* _passphrase { new QString("pwd") };
+
+    bool encryptFile(const QString& inputFilePath, const QString& outputFilePath);
+    bool decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
 };
 
 #endif // hifi_Wallet_h

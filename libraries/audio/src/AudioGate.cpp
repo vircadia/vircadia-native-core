@@ -25,10 +25,10 @@ static inline int32_t saturateQ30(int32_t x) {
 }
 
 //
-// First-order DC-blocking filter, with zero at 1.0 and pole at 0.99994
+// First-order DC-blocking filter, with zero at 1.0 and pole at 0.9999
 //
-// -3dB @ 0.5 Hz (48KHz)
-// -3dB @ 0.2 Hz (24KHz)
+// -3dB @ 1.0 Hz (48KHz)
+// -3dB @ 0.5 Hz (24KHz)
 //
 // input in Q15, output in Q30
 //
@@ -41,7 +41,7 @@ public:
 
         x <<= 15;               // scale to Q30
         x -= _dcOffset;         // remove DC
-        _dcOffset += x >> 14;   // pole = (1.0 - 2^-14) = 0.99994
+        _dcOffset += x >> 13;   // pole = (1.0 - 2^-13) = 0.9999
     }
 };
 
@@ -147,10 +147,10 @@ GateImpl::GateImpl(int sampleRate) {
     _sampleRate = sampleRate;
 
     // defaults
-    setThreshold(-36.0);
-    setHold(20.0);
-    setHysteresis(6.0);
-    setRelease(1000.0);
+    setThreshold(-30.0f);
+    setHold(20.0f);
+    setHysteresis(6.0f);
+    setRelease(1000.0f);
 }
 
 //

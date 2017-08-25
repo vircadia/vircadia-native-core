@@ -37,9 +37,6 @@ public:
 
     virtual glm::mat4 getHeadPose() const override;
 
-    bool setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) override;
-    bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) override;
-
     bool wantVsync() const override {
         return false;
     }
@@ -63,33 +60,6 @@ protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
-    void compositeExtra() override;
-
-    struct HandLaserInfo {
-        HandLaserMode mode { HandLaserMode::None };
-        vec4 color { 1.0f };
-        vec3 direction { 0, 0, -1 };
-
-        // Is this hand laser info suitable for drawing?
-        bool valid() const {
-            return (mode != HandLaserMode::None && color.a > 0.0f && direction != vec3());
-        }
-    };
-
-    Transform _uiModelTransform;
-    std::array<HandLaserInfo, 2> _handLasers;
-    std::array<mat4, 2> _handPoses;
-
-    Transform _presentUiModelTransform;
-    std::array<HandLaserInfo, 2> _presentHandLasers;
-    std::array<mat4, 2> _presentHandPoses;
-    std::array<std::pair<vec3, vec3>, 2> _presentHandLaserPoints;
-
-    HandLaserInfo _extraLaser;
-    HandLaserInfo _presentExtraLaser;
-    vec3 _extraLaserStart;
-    vec3 _presentExtraLaserStart;
-    std::pair<vec3, vec3> _presentExtraLaserPoints;
 
     std::array<mat4, 2> _eyeOffsets;
     std::array<mat4, 2> _eyeProjections;
@@ -120,9 +90,6 @@ private:
     bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
-    std::array<gpu::BufferPointer, 2> _handLaserUniforms;
-    gpu::BufferPointer _extraLaserUniforms;
-    gpu::PipelinePointer _glowLinePipeline;
     gpu::TexturePointer _previewTexture;
     glm::vec2 _lastWindowSize;
 
@@ -140,14 +107,7 @@ private:
 
         struct Uniforms {
             mat4 mvp;
-            vec4 glowPoints { -1 };
-            vec4 glowColors[2];
-            vec2 resolution { CompositorHelper::VIRTUAL_SCREEN_SIZE };
-            float radius { 0.005f };
             float alpha { 1.0f };
-
-            vec4 extraGlowColor;
-            vec2 extraGlowPoint { -1 };
         } uniforms;
         
         struct Vertex {

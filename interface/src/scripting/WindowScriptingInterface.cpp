@@ -264,6 +264,10 @@ void WindowScriptingInterface::showAssetServer(const QString& upload) {
     QMetaObject::invokeMethod(qApp, "showAssetServerWidget", Qt::QueuedConnection, Q_ARG(QString, upload));
 }
 
+QString WindowScriptingInterface::checkVersion() {
+    return QCoreApplication::applicationVersion();
+}
+
 int WindowScriptingInterface::getInnerWidth() {
     return qApp->getWindow()->geometry().width();
 }
@@ -292,6 +296,10 @@ bool WindowScriptingInterface::setDisplayTexture(const QString& name) {
 
 void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
     qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
+}
+
+void WindowScriptingInterface::takeSecondaryCameraSnapshot() {
+    qApp->takeSecondaryCameraSnapshot();
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {

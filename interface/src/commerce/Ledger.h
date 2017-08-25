@@ -14,15 +14,43 @@
 #ifndef hifi_Ledger_h
 #define hifi_Ledger_h
 
+#include <QJsonObject>
 #include <DependencyManager.h>
+#include <QtNetwork/QNetworkReply>
+
 
 class Ledger : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
-    bool buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
-    bool receiveAt(const QString& hfc_key);
+    void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
+    bool receiveAt(const QString& hfc_key, const QString& old_key);
+    void balance(const QStringList& keys);
+    void inventory(const QStringList& keys);
+
+signals:
+    void buyResult(QJsonObject result);
+    void receiveAtResult(QJsonObject result);
+    void balanceResult(QJsonObject result);
+    void inventoryResult(QJsonObject result);
+
+public slots:
+    void buySuccess(QNetworkReply& reply);
+    void buyFailure(QNetworkReply& reply);
+    void receiveAtSuccess(QNetworkReply& reply);
+    void receiveAtFailure(QNetworkReply& reply);
+    void balanceSuccess(QNetworkReply& reply);
+    void balanceFailure(QNetworkReply& reply);
+    void inventorySuccess(QNetworkReply& reply);
+    void inventoryFailure(QNetworkReply& reply);
+
+private:
+    QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
+    QJsonObject failResponse(const QString& label, QNetworkReply& reply);
+    void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, QJsonObject request);
+    void keysQuery(const QString& endpoint, const QString& success, const QString& fail);
+    void signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail);
 };
 
 #endif // hifi_Ledger_h

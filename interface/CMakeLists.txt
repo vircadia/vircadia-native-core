@@ -18,6 +18,7 @@ find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
 
 if (WIN32)
+  set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -bigobj")
   add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
   add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 endif()
@@ -182,6 +183,12 @@ if (WIN32)
   add_dependency_external_projects(wasapi)
   add_dependency_external_projects(steamworks)
 endif()
+
+# include OPENSSL
+include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
+
+# append OpenSSL to our list of libraries to link
+target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings

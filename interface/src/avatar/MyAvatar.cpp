@@ -573,6 +573,7 @@ void MyAvatar::simulate(float deltaTime) {
         PerformanceTimer perfTimer("joints");
         // copy out the skeleton joints from the model
         if (_rigEnabled) {
+            QWriteLocker writeLock(&_jointDataLock);
             _skeletonModel->getRig().copyJointsIntoJointData(_jointData);
         }
     }
@@ -1060,6 +1061,10 @@ void MyAvatar::setEnableDebugDrawIKConstraints(bool isEnabled) {
     _enableDebugDrawIKConstraints = isEnabled;
 }
 
+void MyAvatar::setEnableDebugDrawDetailedCollision(bool isEnabled) {
+    _enableDebugDrawDetailedCollision = isEnabled;
+}
+
 void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
     _enableDebugDrawIKChains = isEnabled;
 }
@@ -1305,7 +1310,7 @@ glm::vec3 MyAvatar::getDefaultEyePosition() const {
 const float SCRIPT_PRIORITY = 1.0f + 1.0f;
 const float RECORDER_PRIORITY = 1.0f + 1.0f;
 
-void MyAvatar::setJointRotations(QVector<glm::quat> jointRotations) {
+void MyAvatar::setJointRotations(const QVector<glm::quat>& jointRotations) {
     int numStates = glm::min(_skeletonModel->getJointStateCount(), jointRotations.size());
     for (int i = 0; i < numStates; ++i) {
         // HACK: ATM only Recorder calls setJointRotations() so we hardcode its priority here
@@ -1347,6 +1352,50 @@ void MyAvatar::clearJointData(int index) {
         return;
     }
     _skeletonModel->getRig().clearJointAnimationPriority(index);
+}
+
+void MyAvatar::setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(QString, name), Q_ARG(const glm::quat&, rotation),
+            Q_ARG(const glm::vec3&, translation));
+        return;
+    }
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel->getRig().setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
+    });
+}
+
+void MyAvatar::setJointRotation(const QString& name, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(QString, name), Q_ARG(const glm::quat&, rotation));
+        return;
+    }
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel->getRig().setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
+    });
+}
+
+void MyAvatar::setJointTranslation(const QString& name, const glm::vec3& translation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(QString, name), Q_ARG(const glm::vec3&, translation));
+        return;
+    }
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+        _skeletonModel->getRig().setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
+    });
+}
+
+void MyAvatar::clearJointData(const QString& name) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(QString, name));
+        return;
+    }
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        _skeletonModel->getRig().clearJointAnimationPriority(index);
+    });
 }
 
 void MyAvatar::clearJointsData() {
@@ -1805,6 +1854,37 @@ void MyAvatar::postUpdate(float deltaTime) {
     AnimPose postUpdateRoomPose(_sensorToWorldMatrix);
 
     updateHoldActions(_prePhysicsRoomPose, postUpdateRoomPose);
+
+    if (_enableDebugDrawDetailedCollision) {
+        AnimPose rigToWorldPose(glm::vec3(1.0f), getRotation() * Quaternions::Y_180, getPosition());
+        const int NUM_DEBUG_COLORS = 8;
+        const glm::vec4 DEBUG_COLORS[NUM_DEBUG_COLORS] = {
+            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+            glm::vec4(0.25f, 0.25f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
+            glm::vec4(0.25f, 1.0f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 0.25f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 0.65f, 0.0f, 1.0f)  // Orange you glad I added this color?
+        };
+
+        if (_skeletonModel && _skeletonModel->isLoaded()) {
+            const Rig& rig = _skeletonModel->getRig();
+            const FBXGeometry& geometry = _skeletonModel->getFBXGeometry();
+            for (int i = 0; i < rig.getJointStateCount(); i++) {
+                AnimPose jointPose;
+                rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
+                const FBXJointShapeInfo& shapeInfo = geometry.joints[i].shapeInfo;
+                const AnimPose pose = rigToWorldPose * jointPose;
+                for (size_t j = 0; j < shapeInfo.debugLines.size() / 2; j++) {
+                    glm::vec3 pointA = pose.xformPoint(shapeInfo.debugLines[2 * j]);
+                    glm::vec3 pointB = pose.xformPoint(shapeInfo.debugLines[2 * j + 1]);
+                    DebugDraw::getInstance().drawRay(pointA, pointB, DEBUG_COLORS[i % NUM_DEBUG_COLORS]);
+                }
+            }
+        }
+    }
 }
 
 void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
