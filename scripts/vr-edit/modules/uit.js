@@ -19,6 +19,7 @@ UIT = (function () {
             faintGray: { red: 0xe3, green: 0xe3, blue: 0xe3 },
             lightGrayText: { red: 0xaf, green: 0xaf, blue: 0xaf },
             baseGray: { red: 0x40, green: 0x40, blue: 0x40 },
+            baseGrayShadow: { red: 0x25, green: 0x25, blue: 0x25 },
             darkGray: { red: 0x12, green: 0x12, blue: 0x12 },
             greenHighlight: { red: 0x1f, green: 0xc6, blue: 0xa6 },
             blueHighlight: { red: 0x00, green: 0xbf, blue: 0xef }
@@ -32,12 +33,17 @@ UIT = (function () {
             handOffset: 0.085,  // Distance from hand (wrist) joint to center of canvas.
             handLateralOffset: 0.01,  // Offset of UI in direction of palm normal.
 
+            topMargin: 0.010,
+            leftMargin: 0.0118,
+
             header: { x: 0.24, y: 0.048, z: 0.012 },
             headerHeading: { x: 0.24, y: 0.044, z: 0.012 },
             headerBar: { x: 0.24, y: 0.004, z: 0.012 },
             panel: { x: 0.24, y: 0.18, z: 0.008 },
 
             itemCollisionZone: { x: 0.0481, y: 0.0480, z: 0.0040 },  // Cursor intersection zone for Tools and Create items.
+
+            buttonDimensions: { x: 0.2164, y: 0.0840, z: 0.0040 },  // Default size of large single options button.
 
             menuButtonDimensions: { x: 0.0267, y: 0.0267, z: 0.0040 },
             menuButtonIconOffset: { x: 0, y: 0.00935, z: -0.0040 },  // Non-hovered position relative to itemCollisionZone.
@@ -49,6 +55,8 @@ UIT = (function () {
             paletteItemButtonHoveredOffset: { x: 0, y: 0, z: -0.0010 },
             paletteItemIconDimensions: { x: 0.024, y: 0.024, z: 0.024 },
             paletteItemIconOffset: { x: 0, y: 0, z: 0.015 },  // Non-hovered position relative to palette button.
+
+            horizontalRuleHeight : 0.0004,
 
             imageOverlayOffset: 0.001  // Raise image above surface.
         }

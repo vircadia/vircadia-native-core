@@ -179,7 +179,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         UI_HIGHLIGHT_COLOR = { red: 100, green: 240, blue: 100 },
 
         UI_ELEMENTS = {
-            "button": {
+            "button": {  // TODO: Delete.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.03, y: 0.03, z: 0.01 },
@@ -259,6 +259,27 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 }
             },
+            "newButton": {  // TODO: Rename to "button".
+                overlay: "cube",
+                properties: {
+                    dimensions: UIT.dimensions.buttonDimensions,
+                    localRotation: Quat.ZERO,
+                    color: UIT.colors.baseGrayShadow,
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true
+                },
+                newLabel: {  // TODO: Rename to "label".
+                    // Relative to newButton.
+                    localPosition: {
+                        x: 0,
+                        y: 0,
+                        z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                    },
+                    color: UIT.colors.white
+                }
+            },
             "toggleButton": {
                 overlay: "cube",
                 properties: {
@@ -320,9 +341,22 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     localPosition: { x: 0, y: 0, z: 0 },
                     localRotation: Quat.ZERO,
-                    color: { red: 255, green: 255, blue: 255 },
                     alpha: 1.0,
                     emissive: true,
+                    ignoreRayIntersection: true,
+                    isFacingAvatar: false,
+                    visible: true
+                }
+            },
+            "horizontalRule": {
+                overlay: "image3d",
+                properties: {
+                    url: "../assets/horizontal-rule.svg",
+                    dimensions: { x: UIT.dimensions.panel.x - 2 * UIT.dimensions.leftMargin, y: 0.001 },
+                    localRotation: Quat.ZERO,
+                    color: UIT.colors.baseGrayShadow,
+                    alpha: 1.0,
+                    solid: true,
                     ignoreRayIntersection: true,
                     isFacingAvatar: false,
                     visible: true
@@ -461,7 +495,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         },
 
-        BUTTON_UI_ELEMENTS = ["button", "menuButton", "toggleButton", "swatch"],
+        BUTTON_UI_ELEMENTS = ["button", "newButton", "menuButton", "toggleButton", "swatch"],
         BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.004 },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
@@ -488,21 +522,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         OPTONS_PANELS = {
-            scaleOptions: [
-                {
-                    id: "scaleFinishButton",
-                    type: "button",
-                    properties: {
-                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0, z: 0.005 },
-                        color: { red: 200, green: 200, blue: 200 }
-                    },
-                    label: "FINISH",
-                    command: {
-                        method: "clearTool"
-                    }
-                }
-            ],
             cloneOptions: [
                 {
                     id: "cloneFinishButton",
@@ -674,6 +693,86 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     label: "    PICK",
                     callback: {
                         method: "pickColorTool"
+                    }
+                }
+            ],
+            scaleOptions: [
+                {
+                    id: "stretchActionsLabel",
+                    type: "image",
+                    properties: {
+                        color: UIT.colors.white,
+                        url: "../assets/tools/common/actions-label.svg",
+                        scale: 0.0276,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0276 / 2,
+                            y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "stretchRule1",
+                    type: "horizontalRule",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0199,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "stretchFinishButton",
+                    type: "newButton",
+                    properties: {
+                        localPosition: { x: 0, y: 0.02, z: 0.005 }
+                    },
+                    newLabel: {
+                        url: "../assets/tools/common/finish-label.svg",
+                        scale: 0.0318
+                    },
+                    command: {
+                        method: "clearTool"
+                    }
+                },
+                {
+                    id: "stretchRule2",
+                    type: "horizontalRule",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.1197,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "stretchInfoIcon",
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/common/info-icon.svg",
+                        dimensions: { x: 0.0321, y: 0.0320 },
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0321 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        color: UIT.colors.white  // Icon SVG is already lightGray color.
+                    }
+                },
+                {
+                    id: "stretchInfo",
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/stretch/info-text.svg",
+                        scale: 0.1340,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,  // Center on info icon.
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        color: UIT.colors.white
                     }
                 }
             ],
@@ -961,7 +1060,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 icon: {
-                    type: "image",
+                    type: "image",  // TODO: Can delete this and similar occurrences?
                     properties: {
                         url: "../assets/tools/color-icon.svg",
                         dimensions: { x: 0.0165, y: 0.0187 }
@@ -969,7 +1068,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     headerOffset: { x: -0.00825, y: 0.0020, z: 0 }
                 },
                 label: {
-                    type: "image",
+                    type: "image",  // TODO: Can delete this and similar occurrences?
                     properties: {
                         url: "../assets/tools/color-label.svg",
                         scale: 0.0241
@@ -1188,6 +1287,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItems,
         highlightedSource,
         isHighlightingButton,
+        isHighlightingNewButton,  // TODO: Delete when no longer needed.
         isHighlightingMenuButton,
         isHighlightingSlider,
         isHighlightingColorCircle,
@@ -1431,6 +1531,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties.visible = optionsItems[i].type !== "picklistItem";
                 id = Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
                 optionsOverlaysLabels[i] = id;
+            }
+            if (optionsItems[i].newLabel) {
+                properties = Object.clone(UI_ELEMENTS.image.properties);
+                properties = Object.merge(properties, UI_ELEMENTS[optionsItems[i].type].newLabel);
+                properties = Object.merge(properties, optionsItems[i].newLabel);
+                properties.url = Script.resolvePath(properties.url);
+                properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                Overlays.addOverlay(UI_ELEMENTS.image.overlay, properties);
             }
 
             if (optionsItems[i].type === "barSlider") {
@@ -2092,6 +2200,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 highlightedItem = intersectedItem;
                 highlightedItems = intersectionItems;
                 isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                isHighlightingNewButton = intersectionItems[highlightedItem].type === "newButton";
                 isHighlightingMenuButton = intersectionItems[highlightedItem].type === "menuButton";
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
@@ -2131,6 +2240,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: HIGHLIGHT_PROPERTIES.properties.color,
                         visible: true
                     });
+                } else if (isHighlightingNewButton) {
+                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        color: UIT.colors.greenHighlight
+                    });
                 } else if (!isHighlightingMenuButton) {
                     Overlays.editOverlay(highlightOverlay, {
                         parentID: intersectionOverlays[intersectedItem],
@@ -2156,8 +2269,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
                     });
-                    // Lower slider or color circle.
+                } else if (isHighlightingNewButton) {
+                    Overlays.editOverlay(highlightedSource[highlightedItem], {
+                        color: UIT.colors.baseGrayShadow
+                    });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
+                    // Lower slider or color circle.
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
                         localPosition: highlightedItems[highlightedItem].properties.localPosition
                     });
@@ -2165,6 +2282,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Update status variables.
                 highlightedItem = NONE;
                 isHighlightingButton = false;
+                isHighlightingNewButton = false;
                 isHighlightingMenuButton = false;
                 isHighlightingSlider = false;
                 isHighlightingColorCircle = false;
