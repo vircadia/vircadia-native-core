@@ -464,6 +464,7 @@ void Wallet::getSecurityImage() {
         auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
         imageProvider->setSecurityImage(_securityImage);
 
+        delete[] data;
         emit securityImageResult(true);
     } else {
         qCDebug(commerce) << "failed to decrypt security image (maybe none saved yet?)";
