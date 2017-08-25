@@ -702,8 +702,8 @@ private:
     bool _saveAvatarOverrideUrl { false };
     QObject* _renderEventHandler{ nullptr };
 
-    LaserPointerManager _laserPointerManager;
     RayPickManager _rayPickManager;
+    LaserPointerManager _laserPointerManager;
 
     friend class RenderEventHandler;
 };

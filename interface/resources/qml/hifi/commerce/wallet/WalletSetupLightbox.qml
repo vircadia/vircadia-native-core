@@ -56,10 +56,8 @@ Rectangle {
             }
         }
 
-        onKeyFilePathResult: {
-            if (path !== "") {
-                keyFilePath.text = path;
-            }
+        onKeyFilePathIfExistsResult: {
+            keyFilePath.text = path;
         }
     }
 
@@ -455,10 +453,10 @@ Rectangle {
                 text: "Next";
                 onClicked: {
                     if (passphraseSelection.validateAndSubmitPassphrase()) {
-                        root.lastPage = "passphrase";
+                        root.lastPage = "choosePassphrase";
+                        commerce.balance(); // Do this here so that keys are generated. Order might change as backend changes?
                         choosePassphraseContainer.visible = false;
                         privateKeysReadyContainer.visible = true;
-                        commerce.balance(); // Do this here so that keys are generated. Order might change as backend changes?
                     }
                 }
             }
@@ -562,7 +560,7 @@ Rectangle {
 
             onVisibleChanged: {
                 if (visible) {
-                    commerce.getKeyFilePath();
+                    commerce.getKeyFilePathIfExists();
                 }
             }
         }

@@ -25,7 +25,9 @@ Rectangle {
 
     id: root;
 
-    property string activeView: "walletHome";
+    property string activeView: "initialize";
+    property bool securityImageResultReceived: false;
+    property bool keyFilePathIfExistsResultReceived: false;
 
     // Style
     color: hifi.colors.baseGray;
@@ -33,16 +35,20 @@ Rectangle {
         id: commerce;
 
         onSecurityImageResult: {
-            if (!exists) { // "If security image is not set up"
-                if (root.activeView !== "notSetUp") {
-                    root.activeView = "notSetUp";
-                }
+            securityImageResultReceived = true;
+            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
+                root.activeView = "notSetUp";
+            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
+                root.activeView = "walletHome";
             }
         }
 
-        onKeyFilePathResult: {
+        onKeyFilePathIfExistsResult: {
+            keyFilePathIfExistsResultReceived = true;
             if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
+            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
+                root.activeView = "walletHome";
             }
         }
     }
@@ -151,6 +157,22 @@ Rectangle {
     //
     // TAB CONTENTS START
     //
+
+    Rectangle {
+        id: initialize;
+        visible: root.activeView === "initialize";
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: parent.top;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        color: hifi.colors.baseGray;
+
+        Component.onCompleted: {
+            commerce.getSecurityImage();
+            commerce.getKeyFilePathIfExists();
+        }
+    }
+
     NotSetUp {
         id: notSetUp;
         visible: root.activeView === "notSetUp";
@@ -283,13 +305,6 @@ Rectangle {
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             }
-
-            onVisibleChanged: {
-                if (visible) {
-                    commerce.getSecurityImage();
-                    commerce.balance();
-                }
-            }
         }
 
         // "SEND MONEY" tab button
@@ -381,13 +396,6 @@ Rectangle {
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
-            }
-
-            onVisibleChanged: {
-                if (visible) {
-                    commerce.getSecurityImage();
-                    commerce.getKeyFilePath();
-                }
             }
         }
 
