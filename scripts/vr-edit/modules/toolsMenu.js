@@ -1156,6 +1156,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             }
         ],
+        COLOR_TOOL = 0,  // Indexes of corresponding MENU_ITEMS item.
+        SCALE_TOOL = 1,
+        CLONE_TOOL = 2,
+        GROUP_TOOL = 3,
+        PHYSICS_TOOL = 4,
+        DELETE_TOOL = 5,
 
         HIGHLIGHT_PROPERTIES = {
             xDelta: 0.004,
@@ -1247,6 +1253,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function getEntityIDs() {
         return [menuPanelOverlay, menuHeaderOverlay].concat(menuOverlays).concat(optionsOverlays);
+    }
+
+    function getIconInfo(tool) {
+        // Provides details of tool icon, label, and sublabel images for the specified tool.
+        return {
+            icon: MENU_ITEMS[tool].icon,
+            label: MENU_ITEMS[tool].label,
+            sublabel: UI_ELEMENTS.menuButton.sublabel
+        };
     }
 
     function openMenu() {
@@ -2132,7 +2147,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             } else if (highlightedItem !== NONE) {
                 // Un-highlight previous button.
-                print("$$$$$$$ unhighlight clickable item");
                 Overlays.editOverlay(highlightOverlay, {
                     visible: false
                 });
@@ -2447,6 +2461,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     return {
+        COLOR_TOOL: COLOR_TOOL,
+        SCALE_TOOL: SCALE_TOOL,
+        CLONE_TOOL: CLONE_TOOL,
+        GROUP_TOOL: GROUP_TOOL,
+        PHYSICS_TOOL: PHYSICS_TOOL,
+        DELETE_TOOL: DELETE_TOOL,
+        iconInfo: getIconInfo,
         setHand: setHand,
         entityIDs: getEntityIDs,
         clearTool: clearTool,

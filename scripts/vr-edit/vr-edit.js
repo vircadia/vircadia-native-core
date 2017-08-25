@@ -224,7 +224,7 @@
         }
 
         function setToolIcon(icon) {
-            toolIcon.display(icon);
+            toolIcon.display(toolsMenu.iconInfo(icon));
         }
 
         function clearTool() {
@@ -289,13 +289,12 @@
             setHand: setHand,
             setToolIcon: setToolIcon,
             clearTool: clearTool,
-            SCALE_TOOL: toolIcon.SCALE_TOOL,
-            CLONE_TOOL: toolIcon.CLONE_TOOL,
-            GROUP_TOOL: toolIcon.GROUP_TOOL,
-            COLOR_TOOL: toolIcon.COLOR_TOOL,
-            PICK_COLOR_TOOL: toolIcon.PICK_COLOR_TOOL,
-            PHYSICS_TOOL: toolIcon.PHYSICS_TOOL,
-            DELETE_TOOL: toolIcon.DELETE_TOOL,
+            COLOR_TOOL: toolsMenu.COLOR_TOOL,
+            SCALE_TOOL: toolsMenu.SCALE_TOOL,
+            CLONE_TOOL: toolsMenu.CLONE_TOOL,
+            GROUP_TOOL: toolsMenu.GROUP_TOOL,
+            PHYSICS_TOOL: toolsMenu.PHYSICS_TOOL,
+            DELETE_TOOL: toolsMenu.DELETE_TOOL,
             display: display,
             updateUIEntities: setUIEntities,
             doPickColor: doPickColor,
@@ -1355,7 +1354,7 @@
         case "pickColorTool":
             grouping.clear();
             toolSelected = TOOL_PICK_COLOR;
-            ui.setToolIcon(ui.PICK_COLOR_TOOL);
+            ui.setToolIcon(ui.COLOR_TOOL);
             ui.updateUIEntities();
             break;
         case "physicsTool":

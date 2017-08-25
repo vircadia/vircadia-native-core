@@ -15,15 +15,7 @@ ToolIcon = function (side) {
 
     "use strict";
 
-    var SCALE_TOOL = 0,
-        CLONE_TOOL = 1,
-        GROUP_TOOL = 2,
-        COLOR_TOOL = 3,
-        PICK_COLOR_TOOL = 4,
-        PHYSICS_TOOL = 5,
-        DELETE_TOOL = 6,
-
-        LEFT_HAND = 0,
+    var LEFT_HAND = 0,
 
         MODEL_DIMENSIONS = { x: 0.1944, y: 0.1928, z: 0.1928 },  // Raw FBX dimensions.
         MODEL_SCALE = 0.7,  // Adjust icon dimensions so that the green bar matches that of the Tools header.
@@ -54,20 +46,14 @@ ToolIcon = function (side) {
         },
 
         ICON_PROPERTIES = {
-            url: "../assets/tools/stretch-icon.svg",
-            dimensions: { x: 0.0167, y: 0.0167 },
             localPosition: { x: 0.020, y: 0.069, z: 0 },  // Relative to model overlay.
             color: UIT.colors.lightGrayText               // x is in fingers direction; y is in thumb direction.
         },
         LABEL_PROPERTIES = {
-            url: "../assets/tools/stretch-label.svg",
-            scale: 0.0311,
             localPosition: { x: -0.040, y: 0.067, z: 0 },
             color: UIT.colors.white
         },
         SUBLABEL_PROPERTIES = {
-            url: "../assets/tools/tool-label.svg",
-            scale: 0.0152,
             localPosition: { x: -0.055, y: 0.067, z: 0 },
             color: UIT.colors.lightGrayText
         },
@@ -113,7 +99,7 @@ ToolIcon = function (side) {
         }
     }
 
-    function display(icon) {
+    function display(iconInfo) {
         // Displays icon on hand.
         var handJointIndex,
             properties;
@@ -143,27 +129,28 @@ ToolIcon = function (side) {
         properties = Object.clone(IMAGE_PROPERTIES);
         properties = Object.merge(properties, ICON_PROPERTIES);
         properties.parentID = modelOverlay;
-        properties.url = Script.resolvePath(properties.url);
+        properties.url = Script.resolvePath(iconInfo.icon.properties.url);
         properties.dimensions = {
-            x: ICON_SCALE_FACTOR * properties.dimensions.x,
-            y: ICON_SCALE_FACTOR * properties.dimensions.y
+            x: ICON_SCALE_FACTOR * iconInfo.icon.properties.dimensions.x,
+            y: ICON_SCALE_FACTOR * iconInfo.icon.properties.dimensions.y
         };
+        properties.localPosition.y += ICON_SCALE_FACTOR * iconInfo.icon.headerOffset.y;
         Overlays.addOverlay(IMAGE_TYPE, properties);
 
         // Label.
         properties = Object.clone(IMAGE_PROPERTIES);
         properties = Object.merge(properties, LABEL_PROPERTIES);
         properties.parentID = modelOverlay;
-        properties.url = Script.resolvePath(properties.url);
-        properties.scale = LABEL_SCALE_FACTOR * properties.scale;
+        properties.url = Script.resolvePath(iconInfo.label.properties.url);
+        properties.scale = LABEL_SCALE_FACTOR * iconInfo.label.properties.scale;
         Overlays.addOverlay(IMAGE_TYPE, properties);
 
         // Sublabel.
         properties = Object.clone(IMAGE_PROPERTIES);
         properties = Object.merge(properties, SUBLABEL_PROPERTIES);
         properties.parentID = modelOverlay;
-        properties.url = Script.resolvePath(properties.url);
-        properties.scale = LABEL_SCALE_FACTOR * properties.scale;
+        properties.url = Script.resolvePath(iconInfo.sublabel.properties.url);
+        properties.scale = LABEL_SCALE_FACTOR * iconInfo.sublabel.properties.scale;
         Overlays.addOverlay(IMAGE_TYPE, properties);
     }
 
@@ -172,13 +159,6 @@ ToolIcon = function (side) {
     }
 
     return {
-        SCALE_TOOL: SCALE_TOOL,
-        CLONE_TOOL: CLONE_TOOL,
-        GROUP_TOOL: GROUP_TOOL,
-        COLOR_TOOL: COLOR_TOOL,
-        PICK_COLOR_TOOL: PICK_COLOR_TOOL,
-        PHYSICS_TOOL: PHYSICS_TOOL,
-        DELETE_TOOL: DELETE_TOOL,
         setHand: setHand,
         update: update,
         display: display,
