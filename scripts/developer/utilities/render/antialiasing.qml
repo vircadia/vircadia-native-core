@@ -7,15 +7,23 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 import QtQuick 2.5
-import QtQuick.Layouts 1.3
 import QtQuick.Controls 1.4
+import QtQuick.Layouts 1.3
+
+import "../lib/styles-uit"
+//import "../../controls-uit" as HifiControls
+
+    
 import "configSlider"
 import "../lib/plotperf"
 
-Column {
+Rectangle {
     id: root;
-   // color: hifi.colors.baseGray;
+
+    HifiConstants { id: hifi; }
+    color: hifi.colors.baseGray;
 
     Column {
         id: antialiasing

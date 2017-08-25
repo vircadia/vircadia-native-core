@@ -20,22 +20,16 @@ layout(location = 0) out vec4 outFragColor;
 
 void main() {
 
-    vec3 fragUV = taa_findClosestFragment3x3(varTexCoord0);
-   // vec3 fragUV = vec3(varTexCoord0, taa_fetchDepth(varTexCoord0));
-    vec2 fragVel = taa_fetchVelocityMap(fragUV.xy);
-    vec3 sourceColor;
+    vec3 nearFragUV = taa_findClosestFragment3x3(varTexCoord0);
+    vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);
+    vec2 fragUV = varTexCoord0;
+
+    /*vec3 sourceColor;
     vec3 historyColor;
-    //vec3 nextColor = taa_temporalReprojection(fragUV.xy, fragVel, fragUV.z);
-    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV.xy, fragVel, sourceColor, historyColor);
-  /*  vec3 sourceColor = taa_fetchSourceMap(fragUV.xy).xyz;
-    vec2 prevFragUV = fragUV.xy - fragVel;
-    vec3 historyColor = sourceColor;
-    if (!(any(lessThan(prevFragUV, vec2(0.0))) || any(greaterThan(prevFragUV, vec2(1.0))))) {
-        historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
-    }*/
-
+    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVel, sourceColor, historyColor);
     vec3 nextColor = mix(historyColor, sourceColor, params.blend);
-
+    */
+    vec3 nextColor = taa_temporalReprojection(fragUV, fragVel, nearFragUV.z);
 
     outFragColor = vec4(nextColor, 1.0);
 }
