@@ -13,6 +13,8 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
+<@include gpu/Color.slh@>
+
 uniform sampler2D depthMap;
 uniform sampler2D sourceMap;
 uniform sampler2D historyMap;
@@ -41,9 +43,58 @@ float taa_getDebugOrbZoom() {
     return params.pixelInfo_orbZoom.z;
 }
 
+vec4 taa_fetchColor(sampler2D map, vec2 uv) {
+#if USE_YCOCG
+		vec4 c = texture(map, uv);
+		return vec4(color_LinearToYCoCg(c.rgb), c.a);
+#else
+		return texture(map, uv);
+#endif
+}
+
+vec3 taa_resolveColor(vec3 color) {
+#if USE_YCOCG
+		return color_YCoCgToLinear(color);
+#else
+		return color;
+#endif
+}
+
+vec4 taa_fetchSourceMap(vec2 uv) {
+#if USE_YCOCG
+		vec4 c = texture(sourceMap, uv);
+		return vec4(color_LinearToYCoCg(c.rgb), c.a);
+#else
+		return texture(sourceMap, uv);
+#endif
+}
+
+vec4 taa_fetchHistoryMap(vec2 uv) {
+#if USE_YCOCG
+		vec4 c = texture(historyMap, uv);
+		return vec4(color_LinearToYCoCg(c.rgb), c.a);
+#else
+		return texture(historyMap, uv);
+#endif
+}
+
+vec4 taa_fetchNextMap(vec2 uv) {
+#if USE_YCOCG
+		vec4 c = texture(nextMap, uv);
+		return vec4(color_LinearToYCoCg(c.rgb), c.a);
+#else
+		return texture(nextMap, uv);
+#endif
+}
+
+vec2 taa_fetchVelocityMap(vec2 uv) {
+	return params.motionScale * texture(velocityMap, uv).xy;
+}
+
 float taa_fetchDepth(vec2 uv) {
 	return texture(depthMap, vec2(uv), 0).x;
 }
+
 
 #define ZCMP_GT(a, b) (a < b)
 
@@ -80,8 +131,88 @@ vec3 taa_findClosestFragment3x3(vec2 uv)
 	return vec3(uv + dd.xy * dmin.xy, dmin.z);
 }
 
+vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
+    sourceColor = taa_fetchSourceMap(fragUV).xyz;
+    vec2 prevFragUV = fragUV - fragVelocity;
+    historyColor = sourceColor;
+    if (!(any(lessThan(prevFragUV, vec2(0.0))) || any(greaterThan(prevFragUV, vec2(1.0))))) {
+        historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
+    }
+    return prevFragUV;
+}
 
-<@include gpu/Color.slh@>
+vec3 taa_temporalReprojection(vec2 fragUV, vec2 fragVelocity, float fragZe)
+{
+    vec3 sourceColor;
+    vec3 historyColor;
+    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVelocity, sourceColor, historyColor);
+
+    vec3 nextColor = mix(historyColor, sourceColor, params.blend);
+
+    return taa_resolveColor(nextColor);
+
+/*
+		const float _SubpixelThreshold = 0.5;
+		const float _GatherBase = 0.5;
+		const float _GatherSubpixelMotion = 0.1666;
+
+		float2 texel_vel = ss_vel / _MainTex_TexelSize.xy;
+		float texel_vel_mag = length(texel_vel) * fragZe;
+		float k_subpixel_motion = saturate(_SubpixelThreshold / (FLT_EPS + texel_vel_mag));
+		float k_min_max_support = _GatherBase + _GatherSubpixelMotion * k_subpixel_motion;
+
+		float2 ss_offset01 = k_min_max_support * float2(-_MainTex_TexelSize.x, _MainTex_TexelSize.y);
+		float2 ss_offset11 = k_min_max_support * float2(_MainTex_TexelSize.x, _MainTex_TexelSize.y);
+		float4 c00 = taa_fetchSourceMap(uv - ss_offset11);
+		float4 c10 = taa_fetchSourceMap(uv - ss_offset01);
+		float4 c01 = taa_fetchSourceMap(uv + ss_offset01);
+		float4 c11 = taa_fetchSourceMap(uv + ss_offset11);
+
+		float4 cmin = min(c00, min(c10, min(c01, c11)));
+		float4 cmax = max(c00, max(c10, max(c01, c11)));
+
+		#if USE_YCOCG || USE_CLIPPING
+			float4 cavg = (c00 + c10 + c01 + c11) / 4.0;
+		#endif
+
+	#else
+		#error "missing keyword MINMAX_..."
+	#endif
+
+		// shrink chroma min-max
+	#if USE_YCOCG
+		float2 chroma_extent = 0.25 * 0.5 * (cmax.r - cmin.r);
+		float2 chroma_center = texel0.gb;
+		cmin.yz = chroma_center - chroma_extent;
+		cmax.yz = chroma_center + chroma_extent;
+		cavg.yz = chroma_center;
+	#endif
+
+		// clamp to neighbourhood of current sample
+	#if USE_CLIPPING
+		texel1 = clip_aabb(cmin.xyz, cmax.xyz, clamp(cavg, cmin, cmax), texel1);
+	#else
+		texel1 = clamp(texel1, cmin, cmax);
+	#endif
+
+		// feedback weight from unbiased luminance diff (t.lottes)
+	#if USE_YCOCG
+		float lum0 = texel0.r;
+		float lum1 = texel1.r;
+	#else
+		float lum0 = Luminance(texel0.rgb);
+		float lum1 = Luminance(texel1.rgb);
+	#endif
+		float unbiased_diff = abs(lum0 - lum1) / max(lum0, max(lum1, 0.2));
+		float unbiased_weight = 1.0 - unbiased_diff;
+		float unbiased_weight_sqr = unbiased_weight * unbiased_weight;
+		float k_feedback = lerp(_FeedbackMin, _FeedbackMax, unbiased_weight_sqr);
+
+		// output
+		return lerp(texel0, texel1, k_feedback);
+        */
+}
+
 <$declareColorWheel()$>
 
 vec3 taa_getVelocityColorRelative(float velocityPixLength) {

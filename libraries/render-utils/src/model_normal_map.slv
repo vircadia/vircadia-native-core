@@ -30,7 +30,7 @@ out float _alpha;
 
 void main(void) {
     // pass along the color
-    _color = colorToLinearRGB(inColor.rgb);
+    _color = color_sRGBToLinear(inColor.rgb);
     _alpha = inColor.a;
 
     TexMapArray texMapArray = getTexMapArray();

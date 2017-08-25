@@ -12,6 +12,7 @@ import QtQuick.Controls 1.4
 import "configSlider"
 
 Column {
+    id: root
     spacing: 8
     property var mainViewTask: Render.getConfig("RenderMainView")
     
