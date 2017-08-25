@@ -11,7 +11,7 @@
 
 #include "EntityPriorityQueue.h"
 
-const float DO_NOT_SEND = -1.0e-6f;
+const float PrioritizedEntity::DO_NOT_SEND = -1.0e-6f;
 
 void ConicalView::set(const ViewFrustum& viewFrustum) {
     // The ConicalView has two parts: a central sphere (same as ViewFrustum) and a circular cone that bounds the frustum part.
@@ -47,7 +47,7 @@ float ConicalView::computePriority(const AACube& cube) const {
         const float AVOID_DIVIDE_BY_ZERO = 0.001f;
         return r / (d + AVOID_DIVIDE_BY_ZERO);
     }
-    return DO_NOT_SEND;
+    return PrioritizedEntity::DO_NOT_SEND;
 }
 
 // static
@@ -68,7 +68,7 @@ float PrioritizedEntity::updatePriority(const ConicalView& conicalView) {
     if (entity) {
         _priority = conicalView.computePriority(entity);
     } else {
-        _priority = DO_NOT_SEND;
+        _priority = PrioritizedEntity::DO_NOT_SEND;
     }
     return _priority;
 }

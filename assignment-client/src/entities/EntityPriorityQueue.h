@@ -39,6 +39,8 @@ private:
 // PrioritizedEntity is a placeholder in a sorted queue.
 class PrioritizedEntity {
 public:
+    static const float DO_NOT_SEND;
+
     PrioritizedEntity(EntityItemPointer entity, float priority) : _weakEntity(entity), _rawEntityPointer(entity.get()), _priority(priority) {}
     float updatePriority(const ConicalView& view);
     EntityItemPointer getEntity() const { return _weakEntity.lock(); }

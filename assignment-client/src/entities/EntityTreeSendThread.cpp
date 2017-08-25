@@ -85,20 +85,17 @@ void EntityTreeSendThread::preDistributionProcessing() {
 
 void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
-    // BEGIN EXPERIMENTAL DIFFERENTIAL TRAVERSAL
     if (nodeData->getUsesFrustum()) {
-        // DEBUG HACK: trigger traversal (Repeat) every so often
-        const uint64_t TRAVERSE_AGAIN_PERIOD = 4 * USECS_PER_SECOND;
-        bool repeatTraversal = _traversal.finished() && usecTimestampNow() > _traversal.getStartOfCompletedTraversal() + TRAVERSE_AGAIN_PERIOD;
-        if (viewFrustumChanged || repeatTraversal) {
+        if (viewFrustumChanged || _traversal.finished()) {
             ViewFrustum viewFrustum;
             nodeData->copyCurrentViewFrustum(viewFrustum);
             EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
             int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
             startNewTraversal(viewFrustum, root, lodLevelOffset);
 
-            // If the previous traversal didn't finish, we'll need to resort the entities still in _sendQueue after calling traverse
-            if (!_sendQueue.empty()) {
+            // When the viewFrustum changed the sort order may be incorrect, so we re-sort
+            // and also use the opportunity to cull anything no longer in view
+            if (viewFrustumChanged && !_sendQueue.empty()) {
                 EntityPriorityQueue prevSendQueue;
                 _sendQueue.swap(prevSendQueue);
                 _entitiesInQueue.clear();
@@ -111,9 +108,8 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
                             if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
-                                const float DO_NOT_SEND = -1.0e-6f;
                                 float priority = _conicalView.computePriority(cube);
-                                if (priority != DO_NOT_SEND) {
+                                if (priority != PrioritizedEntity::DO_NOT_SEND) {
                                     float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                                    cube,
                                                                                    _traversal.getCurrentRootSizeScale(),
@@ -165,7 +161,6 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         }
     }
 #endif // SEND_SORTED_ENTITIES
-    // END EXPERIMENTAL DIFFERENTIAL TRAVERSAL
 
     OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
 }
@@ -250,6 +245,10 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         // larger octree cell because of its position (for example if it crosses the boundary of a cell it
                         // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
                         // before we consider including it.
+                        //
+                        // TODO: compare priority against a threshold rather than bother with
+                        // calculateRenderAccuracy().  Would need to replace all calculateRenderAccuracy()
+                        // stuff everywhere with threshold in one sweep.
                         float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                        cube,
                                                                        _traversal.getCurrentRootSizeScale(),
@@ -272,14 +271,14 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
         break;
     case DiffTraversal::Repeat:
         _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
-            uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
-            if (next.element->getLastChangedContent() > timestamp) {
+            uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
+            if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                         return;
                     }
-                    if (entity->getLastEdited() > timestamp) {
+                    if (entity->getLastEdited() > startOfCompletedTraversal) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
@@ -310,8 +309,9 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
     case DiffTraversal::Differential:
         _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
             // NOTE: for Differential case: next.intersection is against completedView not currentView
-            uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
-            if (next.element->getLastChangedContent() > timestamp || next.intersection != ViewFrustum::INSIDE) {
+            uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
+            if (next.element->getLastChangedContent() > startOfCompletedTraversal ||
+                    next.intersection != ViewFrustum::INSIDE) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
@@ -329,7 +329,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
 
                             // Only send entities if they are large enough to see
                             if (renderAccuracy > 0.0f) {
-                                if (entity->getLastEdited() > timestamp || !_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
+                                if (entity->getLastEdited() > startOfCompletedTraversal ||
+                                        !_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
                                     float priority = _conicalView.computePriority(cube);
                                     _sendQueue.push(PrioritizedEntity(entity, priority));
                                     _entitiesInQueue.insert(entity.get());
