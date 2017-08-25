@@ -25,16 +25,19 @@
 class BakeAssetTask : public QObject, public QRunnable {
     Q_OBJECT
 public:
-    BakeAssetTask(const QString& assetHash, const QString& assetPath, const QString& filePath);
+    BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath);
+
+    bool isBaking() { return _isBaking.load(); }
 
     void run() override;
 
 signals:
-    void bakeComplete(QString assetHash, QString assetPath, QVector<QString> outputFiles);
+    void bakeComplete(AssetHash assetHash, AssetPath assetPath, QVector<QString> outputFiles);
 
 private:
-    QString _assetHash;
-    QString _assetPath;
+    std::atomic<bool> _isBaking { false };
+    AssetHash _assetHash;
+    AssetPath _assetPath;
     QString _filePath;
 };
 
@@ -79,19 +82,21 @@ private:
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);
 
-    bool setBakingEnabled(AssetPathList& paths, bool enabled);
+    void setBakingEnabled(const AssetPathList& paths, bool enabled);
 
     /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();
 
     QString getPathToAssetHash(const AssetHash& assetHash);
 
+    BakingStatus getAssetStatus(const AssetPath& path, const AssetHash& hash);
+
     void bakeAssets();
     void maybeBake(const AssetPath& path, const AssetHash& hash);
     void createEmptyMetaFile(const AssetHash& hash);
     bool hasMetaFile(const AssetHash& hash);
     bool needsToBeBaked(const AssetPath& path, const AssetHash& assetHash);
-    void bakeAsset(const QString& assetHash, const QString& assetPath, const QString& filePath);
+    void bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath);
 
     /// Move baked content for asset to baked directory and update baked status
     void handleCompletedBake(AssetPath assetPath, AssetHash originalAssetHash, QVector<QString> bakedFilePaths);
@@ -107,10 +112,8 @@ private:
     /// Task pool for handling uploads and downloads of assets
     QThreadPool _transferTaskPool;
 
-    QHash<QString, std::shared_ptr<BakeAssetTask>> _pendingBakes;
+    QHash<AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
-
-    AutoBaker _baker;
 };
 
 #endif
