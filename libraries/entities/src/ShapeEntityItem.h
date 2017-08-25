@@ -94,11 +94,19 @@ public:
 
     void debugDump() const override;
 
+    virtual void computeShapeInfo(ShapeInfo& info) override;
+    virtual ShapeType getShapeType() const override;
+
 protected:
 
     float _alpha { 1 };
     rgbColor _color;
     entity::Shape _shape { entity::Shape::Sphere };
+
+    //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain
+    //! prior functionality where new or unsupported shapes are treated as
+    //! ellipsoids.
+    ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
 };
 
 #endif // hifi_ShapeEntityItem_h

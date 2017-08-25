@@ -12,80 +12,52 @@
 #ifndef hifi_RenderablePolyLineEntityItem_h
 #define hifi_RenderablePolyLineEntityItem_h
 
-
-#include <gpu/Batch.h>
-#include <GeometryCache.h>
-#include <PolyLineEntityItem.h>
 #include "RenderableEntityItem.h"
+#include <PolyLineEntityItem.h>
 #include <TextureCache.h>
 
-#include <QReadWriteLock>
+namespace render { namespace entities {
 
+class PolyLineEntityRenderer : public TypedEntityRenderer<PolyLineEntityItem> {
+    using Parent = TypedEntityRenderer<PolyLineEntityItem>;
+    friend class EntityRenderer;
 
-class PolyLinePayload : public RenderableEntityItemProxy {
 public:
-
-    static uint8_t CUSTOM_PIPELINE_NUMBER;
-    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
-    static void registerShapePipeline() {
-        if (!CUSTOM_PIPELINE_NUMBER) {
-            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
-        }
-    }
-    static gpu::PipelinePointer _pipeline;
-    static gpu::PipelinePointer _fadePipeline;
-
-    static const int32_t PAINTSTROKE_TEXTURE_SLOT{ 0 };
-    static const int32_t PAINTSTROKE_UNIFORM_SLOT{ 0 };
-
-    PolyLinePayload(const EntityItemPointer& entity, render::ItemID metaID)
-        : RenderableEntityItemProxy(entity, metaID) {}
-    typedef render::Payload<PolyLinePayload> Payload;
-    typedef Payload::DataPointer Pointer;
-
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const PolyLinePayload::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const PolyLinePayload::Pointer& payload);
-    template <> void payloadRender(const PolyLinePayload::Pointer& payload, RenderArgs* args);
-    template <> uint32_t metaFetchMetaSubItems(const PolyLinePayload::Pointer& payload, ItemIDs& subItems);
-    template <> const ShapeKey shapeGetShapeKey(const PolyLinePayload::Pointer& payload);
-}
-
-class RenderablePolyLineEntityItem : public PolyLineEntityItem, public SimplerRenderableEntitySupport {
-public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderablePolyLineEntityItem(const EntityItemID& entityItemID);
-
-    virtual void render(RenderArgs* args) override;
-    virtual void update(const quint64& now) override;
-    virtual bool needsToCallUpdate() const override { return true; }
-    virtual bool addToScene(const EntityItemPointer& self,
-        const render::ScenePointer& scene,
-        render::Transaction& transaction) override;
-
-    bool isTransparent() override { return true; }
-
-    SIMPLE_RENDERABLE();
-
-    NetworkTexturePointer _texture;
-
-    static gpu::Stream::FormatPointer _format;
+    PolyLineEntityRenderer(const EntityItemPointer& entity);
 
 protected:
-    void updateGeometry();
-    void updateVertices();
-    void updateMesh();
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
-    static void createStreamFormat();
+    virtual ItemKey getKey() override;
+    virtual ShapeKey getShapeKey() override;
+    virtual void doRender(RenderArgs* args) override;
 
+    virtual bool isTransparent() const override { return true; }
+
+    struct Vertex {
+        Vertex() {}
+        Vertex(const vec3& position, const vec3& normal, const vec2& uv) : position(position), normal(normal), uv(uv) {}
+        vec3 position;
+        vec3 normal;
+        vec2 uv;
+    };
+
+    void updateGeometry(const std::vector<Vertex>& vertices);
+    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, const QVector<glm::vec3>& normals, const QVector<float>& strokeWidths);
+
+    QVector<glm::vec3> _lastPoints;
+    QVector<glm::vec3> _lastNormals;
+    QVector<float> _lastStrokeWidths;
     gpu::BufferPointer _verticesBuffer;
     gpu::BufferView _uniformBuffer;
-    unsigned int _numVertices;
-    bool _empty { true };
-    QVector<glm::vec3> _vertices;
+    uint32_t _numVertices { 0 };
+    bool _empty{ true };
+    QString _lastTextures;
+    NetworkTexturePointer _texture;
 };
 
+} } // namespace 
 
 #endif // hifi_RenderablePolyLineEntityItem_h

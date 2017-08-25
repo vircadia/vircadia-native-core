@@ -109,7 +109,9 @@ public:
     virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const override
                     { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
 
-    virtual void update() override;
+    virtual void update() override { update(true); }
+
+    void update(bool simulate);
 
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);
@@ -258,9 +260,6 @@ public:
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
-
-public slots:
-    void callLoader(EntityItemID entityID);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
