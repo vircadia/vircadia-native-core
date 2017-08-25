@@ -44,7 +44,7 @@ Rectangle {
             }
         }
 
-        onKeyFilePathResult: {
+        onKeyFilePathIfExistsResult: {
             if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
             }
@@ -52,7 +52,6 @@ Rectangle {
 
         onBuyResult: {
             if (result.status !== 'success') {
-                console.log("ZRF " + JSON.stringify(result));
                 failureErrorText.text = "Here's some more info about the error:<br><br>" + (result.message);
                 root.activeView = "checkoutFailure";
             } else {
@@ -522,6 +521,54 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter;
                 }
             }
+
+            // "Balance After Purchase" container
+            Item {
+                id: balanceAfterPurchaseContainer;
+                // Anchors
+                anchors.top: totalCostContainer.bottom;
+                anchors.topMargin: 16;
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
+                anchors.right: parent.right;
+                anchors.rightMargin: 16;
+                height: childrenRect.height;
+
+                RalewaySemiBold {
+                    id: balanceAfterPurchaseTextLabel;
+                    text: "Balance After Purchase:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    width: paintedWidth;
+                    height: paintedHeight;
+                    // Text size
+                    size: 20;
+                    // Style
+                    color: hifi.colors.lightGrayText;
+                    // Alignment
+                    horizontalAlignment: Text.AlignLeft;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+                RalewayRegular {
+                    id: balanceAfterPurchaseText;
+                    text: balanceAfterPurchase + " HFC";
+                    // Text size
+                    size: balanceAfterPurchaseTextLabel.size;
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: totalCostTextLabel.right;
+                    anchors.leftMargin: 16;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 16;
+                    height: paintedHeight;
+                    // Style
+                    color: (balanceAfterPurchase >= 0) ? hifi.colors.lightGrayText : hifi.colors.redHighlight;
+                    // Alignment
+                    horizontalAlignment: Text.AlignRight;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+            }
         }
         //
         // ITEM DESCRIPTION END
@@ -535,7 +582,7 @@ Rectangle {
             id: checkoutActionButtonsContainer;
             // Size
             width: root.width;
-            height: root.alreadyOwned ? 180 : 130;
+            height: root.alreadyOwned ? 200 : 130;
             // Anchors
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
@@ -566,8 +613,8 @@ Rectangle {
                 id: cancelPurchaseButton;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
+                anchors.top: goToInventoryButton.visible ? goToInventoryButton.bottom : parent.top;
+                anchors.topMargin: goToInventoryButton.visible ? 20 : 3;
                 height: 40;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
@@ -584,8 +631,8 @@ Rectangle {
                 enabled: balanceAfterPurchase >= 0 && inventoryReceived && balanceReceived;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
+                anchors.top: goToInventoryButton.visible ? goToInventoryButton.bottom : parent.top;
+                anchors.topMargin: goToInventoryButton.visible ? 20 : 3;
                 height: 40;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
@@ -641,7 +688,7 @@ Rectangle {
         
         RalewayRegular {
             id: completeText;
-            text: "<b>Purchase Complete.</b><br>You bought " + (itemNameText.text) + " by " (itemAuthorText.text);
+            text: "<b>Purchase Complete.</b><br>You bought " + (itemNameText.text) + " by " + (itemAuthorText.text);
             // Text size
             size: 24;
             // Anchors
