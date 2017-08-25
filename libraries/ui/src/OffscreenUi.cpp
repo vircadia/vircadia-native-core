@@ -91,8 +91,8 @@ QObject* OffscreenUi::getFlags() {
     return offscreenFlags;
 }
 
-void OffscreenUi::create(QOpenGLContext* context) {
-    OffscreenQmlSurface::create(context);
+void OffscreenUi::create() {
+    OffscreenQmlSurface::create();
     auto myContext = getSurfaceContext();
 
     myContext->setContextProperty("OffscreenUi", this);

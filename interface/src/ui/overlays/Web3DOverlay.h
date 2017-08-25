@@ -62,12 +62,19 @@ public:
         Mouse
     };
 
+    void buildWebSurface();
+    void destroyWebSurface();
+    void onResizeWebSurface();
+
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
 
 signals:
     void scriptEventReceived(const QVariant& message);
     void webEventReceived(const QVariant& message);
+    void resizeWebSurface();
+    void requestWebSurface();
+    void releaseWebSurface();
 
 private:
     InputMode _inputMode { Touch };
