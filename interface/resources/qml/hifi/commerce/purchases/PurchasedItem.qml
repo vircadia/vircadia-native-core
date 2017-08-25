@@ -136,7 +136,7 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-    signal sendToPurchases(var message);
+    signal sendToPurchases(var msg);
     //
     // FUNCTION DEFINITIONS END
     //

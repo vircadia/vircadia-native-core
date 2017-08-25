@@ -198,7 +198,6 @@ Rectangle {
                 anchors.bottomMargin: 12;
                 
                 Connections {
-                    target: parent;
                     onSendToPurchases: {
                         if (msg.method === 'purchases_itemInfoClicked') {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
