@@ -39,6 +39,12 @@ Item {
         onBalanceResult : {
             balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
         }
+
+        onHistoryResult : {
+            if (result.status == 'success') {
+                transactionHistory.text = result.data.history;
+            }
+        }
     }
 
     SecurityImageModel {
@@ -105,6 +111,7 @@ Item {
                 onVisibleChanged: {
                     if (visible) {
                         commerce.balance();
+                        commerce.history();
                     }
                 }
             }
@@ -228,6 +235,7 @@ Item {
 
             // some placeholder stuff
             RalewayRegular {
+                id: transactionHistoryText;
                 text: homeMessage.visible ? "you <b>CANNOT</b> scroll through this." : "you <b>CAN</b> scroll through this";
                 // Text size
                 size: 16;
