@@ -37,11 +37,6 @@ public:
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
 
-    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
-    /// has changed. This will be called with properties change or when new data is loaded from a stream
-    /// Overriding this function to capture the information that a light properties has changed
-    virtual void somethingChangedNotification() override;
-
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
@@ -83,9 +78,19 @@ public:
     static bool getLightsArePickable() { return _lightsArePickable; }
     static void setLightsArePickable(bool value) { _lightsArePickable = value; }
     
+    virtual void locationChanged(bool tellPhysics) override;
+    virtual void dimensionsChanged() override;
+
+    bool lightPropertiesChanged() const { return _lightPropertiesChanged; }
+    void resetLightPropertiesChanged();
+
+    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                            bool& keepSearching, OctreeElementPointer& element, float& distance,
+                            BoxFace& face, glm::vec3& surfaceNormal,
+                            void** intersectedObject, bool precisionPicking) const override;
+
 private:
-
-
     // properties of a light
     rgbColor _color;
     bool _isSpotlight { DEFAULT_IS_SPOTLIGHT };
@@ -93,11 +98,7 @@ private:
     float _falloffRadius { DEFAULT_FALLOFF_RADIUS };
     float _exponent { DEFAULT_EXPONENT };
     float _cutoff { DEFAULT_CUTOFF };
-
-protected:
     // Dirty flag turn true when either light properties is changing values.
-    // This gets back to false in the somethingChangedNotification() call
-    // Which is called after a setProperties() or a readEntitySubClassFromBUfferCall on the entity.
     bool _lightPropertiesChanged { false };
 
     static bool _lightsArePickable;

@@ -1692,16 +1692,6 @@ void EntityScriptingInterface::setCostMultiplier(float value) {
     costMultiplier = value;
 }
 
-QObject* EntityScriptingInterface::getWebViewRoot(const QUuid& entityID) {
-    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Web)) {
-        auto webEntity = std::dynamic_pointer_cast<WebEntityItem>(entity);
-        QObject* root = webEntity->getRootItem();
-        return root;
-    } else {
-        return nullptr;
-    }
-}
-
 // TODO move this someplace that makes more sense...
 bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, const glm::vec3& dimensions,
                                                       const glm::vec3& start, const glm::vec3& end, float radius) {

@@ -226,3 +226,81 @@ void ShapeEntityItem::debugDump() const {
 	qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
 }
 
+void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
+
+    // This will be called whenever DIRTY_SHAPE flag (set by dimension change, etc)
+    // is set.
+
+    const glm::vec3 entityDimensions = getDimensions();
+
+    switch (_shape) {
+        case entity::Shape::Quad:
+        case entity::Shape::Cube:
+            {
+                _collisionShapeType = SHAPE_TYPE_BOX;
+            }
+            break;
+        case entity::Shape::Sphere:
+            {
+
+                float diameter = entityDimensions.x;
+                const float MIN_DIAMETER = 0.001f;
+                const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
+                if (diameter > MIN_DIAMETER
+                    && fabsf(diameter - entityDimensions.y) / diameter < MIN_RELATIVE_SPHERICAL_ERROR
+                    && fabsf(diameter - entityDimensions.z) / diameter < MIN_RELATIVE_SPHERICAL_ERROR) {
+
+                    _collisionShapeType = SHAPE_TYPE_SPHERE;
+                } else {
+                    _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+                }
+            }
+            break;
+        case entity::Shape::Cylinder:
+            {
+                _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
+                // TODO WL21389: determine if rotation is axis-aligned
+                //const Transform::Quat & rot = _transform.getRotation();
+
+                // TODO WL21389: some way to tell apart SHAPE_TYPE_CYLINDER_Y, _X, _Z based on rotation and
+                //       hull ( or dimensions, need circular cross section)
+                // Should allow for minor variance along axes?
+
+            }
+            break;
+        case entity::Shape::Triangle:
+        case entity::Shape::Hexagon:
+        case entity::Shape::Octagon:
+        case entity::Shape::Circle:
+        case entity::Shape::Tetrahedron:
+        case entity::Shape::Octahedron:
+        case entity::Shape::Dodecahedron:
+        case entity::Shape::Icosahedron:
+        case entity::Shape::Cone:
+            {
+                //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later)
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
+            break;
+        case entity::Shape::Torus:
+            {
+                // Not in GeometryCache::buildShapes, unsupported.
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+                //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later if desired support)
+            }
+            break;
+        default:
+            {
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
+            break;
+    }
+
+    EntityItem::computeShapeInfo(info);
+}
+
+// This value specifes how the shape should be treated by physics calculations.
+ShapeType ShapeEntityItem::getShapeType() const {
+    return _collisionShapeType;
+}
+

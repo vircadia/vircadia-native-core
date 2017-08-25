@@ -8,163 +8,30 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/gtx/quaternion.hpp>
-
-#include <DependencyManager.h>
-#include <PerfStat.h>
-#include <GeometryCache.h>
-#include <render/ShapePipeline.h>
-#include <StencilMaskPass.h>
-#include <AbstractViewStateInterface.h>
-#include "EntitiesRendererLogging.h"
-
 #include "RenderableParticleEffectEntityItem.h"
+
+#include <StencilMaskPass.h>
+
+#include <GeometryCache.h>
 
 #include "textured_particle_vert.h"
 #include "textured_particle_frag.h"
 
+using namespace render;
+using namespace render::entities;
 
-class ParticlePayloadData {
-public:
-    static const size_t VERTEX_PER_PARTICLE = 4;
+static uint8_t CUSTOM_PIPELINE_NUMBER = 0;
+static gpu::Stream::FormatPointer _vertexFormat;
+static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
 
-    static uint8_t CUSTOM_PIPELINE_NUMBER;
-    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
-    static void registerShapePipeline() {
-        if (!CUSTOM_PIPELINE_NUMBER) {
-            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
-        }
-    }
-
-    static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
-
-    template<typename T>
-    struct InterpolationData {
-        T start;
-        T middle;
-        T finish;
-        T spread;
-    };
-    struct ParticleUniforms {
-        InterpolationData<float> radius;
-        InterpolationData<glm::vec4> color; // rgba
-        float lifespan;
-        glm::vec3 spare;
-    };
-    
-    struct ParticlePrimitive {
-        ParticlePrimitive(glm::vec3 xyzIn, glm::vec2 uvIn) : xyz(xyzIn), uv(uvIn) {}
-        glm::vec3 xyz; // Position
-        glm::vec2 uv; // Lifetime + seed
-    };
-    
-    using Payload = render::Payload<ParticlePayloadData>;
-    using Pointer = Payload::DataPointer;
-    using PipelinePointer = gpu::PipelinePointer;
-    using FormatPointer = gpu::Stream::FormatPointer;
-    using BufferPointer = gpu::BufferPointer;
-    using TexturePointer = gpu::TexturePointer;
-    using Format = gpu::Stream::Format;
-    using Buffer = gpu::Buffer;
-    using BufferView = gpu::BufferView;
-    using ParticlePrimitives = std::vector<ParticlePrimitive>;
-    
-    ParticlePayloadData() {
-        ParticleUniforms uniforms;
-        _uniformBuffer = std::make_shared<Buffer>(sizeof(ParticleUniforms), (const gpu::Byte*) &uniforms);
-        
-        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC3F_XYZ,
-                                    offsetof(ParticlePrimitive, xyz), gpu::Stream::PER_INSTANCE);
-        _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::VEC2F_UV,
-                                    offsetof(ParticlePrimitive, uv), gpu::Stream::PER_INSTANCE);
-    }
-
-    const Transform& getModelTransform() const { return _modelTransform; }
-    void setModelTransform(const Transform& modelTransform) { _modelTransform = modelTransform; }
-
-    const AABox& getBound() const { return _bound; }
-    void setBound(const AABox& bound) { _bound = bound; }
-
-    BufferPointer getParticleBuffer() { return _particleBuffer; }
-    const BufferPointer& getParticleBuffer() const { return _particleBuffer; }
-    
-    const ParticleUniforms& getParticleUniforms() const { return _uniformBuffer.get<ParticleUniforms>(); }
-    ParticleUniforms& editParticleUniforms() { return _uniformBuffer.edit<ParticleUniforms>(); }
-
-    void setTexture(TexturePointer texture) { _texture = texture; }
-    const TexturePointer& getTexture() const { return _texture; }
-
-    bool getVisibleFlag() const { return _visibleFlag; }
-    void setVisibleFlag(bool visibleFlag) { _visibleFlag = visibleFlag; }
-
-    void render(RenderArgs* args) const {
-
-        gpu::Batch& batch = *args->_batch;
-
-        if (_texture) {
-            batch.setResourceTexture(0, _texture);
-        } else {
-            batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
-        }
-
-        batch.setModelTransform(_modelTransform);
-        batch.setUniformBuffer(0, _uniformBuffer);
-        batch.setInputFormat(_vertexFormat);
-        batch.setInputBuffer(0, _particleBuffer, 0, sizeof(ParticlePrimitive));
-
-        auto numParticles = _particleBuffer->getSize() / sizeof(ParticlePrimitive);
-        batch.drawInstanced((gpu::uint32)numParticles, gpu::TRIANGLE_STRIP, (gpu::uint32)VERTEX_PER_PARTICLE);
-    }
-
-protected:
-    Transform _modelTransform;
-    AABox _bound;
-    FormatPointer _vertexFormat { std::make_shared<Format>() };
-    BufferPointer _particleBuffer { std::make_shared<Buffer>() };
-    BufferView _uniformBuffer;
-    TexturePointer _texture;
-    bool _visibleFlag = true;
-};
-
-namespace render {
-    template <>
-    const ItemKey payloadGetKey(const ParticlePayloadData::Pointer& payload) {
-        if (payload->getVisibleFlag()) {
-            return ItemKey::Builder::transparentShape();
-        } else {
-            return ItemKey::Builder().withInvisible().build();
-        }
-    }
-
-    template <>
-    const Item::Bound payloadGetBound(const ParticlePayloadData::Pointer& payload) {
-        return payload->getBound();
-    }
-
-    template <>
-    void payloadRender(const ParticlePayloadData::Pointer& payload, RenderArgs* args) {
-        if (payload->getVisibleFlag()) {
-            payload->render(args);
-        }
-    }
-    template <>
-    const ShapeKey shapeGetShapeKey(const ParticlePayloadData::Pointer& payload) {
-        return render::ShapeKey::Builder().withCustom(ParticlePayloadData::CUSTOM_PIPELINE_NUMBER).withTranslucent().build();
-    }
-}
-
-uint8_t ParticlePayloadData::CUSTOM_PIPELINE_NUMBER = 0;
-
-std::weak_ptr<gpu::Pipeline> ParticlePayloadData::_texturedPipeline;
-
-render::ShapePipelinePointer ParticlePayloadData::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key) {
     auto texturedPipeline = _texturedPipeline.lock();
     if (!texturedPipeline) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
-                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         PrepareStencil::testMask(*state);
 
         auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
@@ -173,154 +40,286 @@ render::ShapePipelinePointer ParticlePayloadData::shapePipelineFactory(const ren
         auto program = gpu::Shader::createProgram(vertShader, fragShader);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
     }
-    
+
     return std::make_shared<render::ShapePipeline>(texturedPipeline, nullptr, nullptr, nullptr);
 }
 
-EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID,
-                                                              const EntityItemProperties& properties) {
-    auto entity = std::make_shared<RenderableParticleEffectEntityItem>(entityID);
-    entity->setProperties(properties);
-
-    // As we create the first ParticuleSystem entity, let s register its special shapePIpeline factory:
-    ParticlePayloadData::registerShapePipeline();
-
-    return entity;
-}
-
-RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID) :
-    ParticleEffectEntityItem(entityItemID) {
-}
-
-bool RenderableParticleEffectEntityItem::addToScene(const EntityItemPointer& self,
-                                                    const render::ScenePointer& scene,
-                                                    render::Transaction& transaction) {
-    _scene = scene;
-    _renderItemId = _scene->allocateID();
-    auto particlePayloadData = std::make_shared<ParticlePayloadData>();
-    auto renderPayload = std::make_shared<ParticlePayloadData::Payload>(particlePayloadData);
-    render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
-    renderPayload->addStatusGetters(statusGetters);
-    transaction.resetItem(_renderItemId, renderPayload);
-    return true;
-}
-
-void RenderableParticleEffectEntityItem::removeFromScene(const EntityItemPointer& self,
-                                                         const render::ScenePointer& scene,
-                                                         render::Transaction& transaction) {
-    transaction.removeItem(_renderItemId);
-    _scene = nullptr;
-    render::Item::clearID(_renderItemId);
+struct GpuParticle {
+    GpuParticle(const glm::vec3& xyzIn, const glm::vec2& uvIn) : xyz(xyzIn), uv(uvIn) {}
+    glm::vec3 xyz; // Position
+    glm::vec2 uv; // Lifetime + seed
 };
 
-void RenderableParticleEffectEntityItem::update(const quint64& now) {
-    ParticleEffectEntityItem::update(now);
+using GpuParticles = std::vector<GpuParticle>;
 
-    if (_texturesChangedFlag) {
-        if (_textures.isEmpty()) {
-            _texture.clear();
-        } else {
-            // for now use the textures string directly.
-            // Eventually we'll want multiple textures in a map or array.
-            _texture = DependencyManager::get<TextureCache>()->getTexture(_textures);
-        }
-        _texturesChangedFlag = false;
-    }
+ParticleEffectEntityRenderer::ParticleEffectEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
+    ParticleUniforms uniforms;
+    _uniformBuffer = std::make_shared<Buffer>(sizeof(ParticleUniforms), (const gpu::Byte*) &uniforms);
 
-    updateRenderItem();
+    static std::once_flag once;
+    std::call_once(once, [] {
+        // As we create the first ParticuleSystem entity, let s register its special shapePIpeline factory:
+        CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
+        _vertexFormat = std::make_shared<Format>();
+        _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element::VEC3F_XYZ,
+            offsetof(GpuParticle, xyz), gpu::Stream::PER_INSTANCE);
+        _vertexFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element::VEC2F_UV,
+            offsetof(GpuParticle, uv), gpu::Stream::PER_INSTANCE);
+    });
 }
 
-void RenderableParticleEffectEntityItem::updateRenderItem() {
-    // this 2 tests are synonyms for this class, but we would like to get rid of the _scene pointer ultimately
-    if (!_scene || !render::Item::isValidID(_renderItemId)) { 
-        return;
-    }
-    if (!getVisible()) {
-        render::Transaction transaction;
-        transaction.updateItem<ParticlePayloadData>(_renderItemId, [](ParticlePayloadData& payload) {
-            payload.setVisibleFlag(false);
-        });
+bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+    entity->checkAndMaybeUpdateQueryAACube();
         
-        _scene->enqueueTransaction(transaction);
-        return;
+    if (_emitting != entity->getIsEmitting()) {
+        return true;
     }
-    
-    using ParticleUniforms = ParticlePayloadData::ParticleUniforms;
-    using ParticlePrimitive = ParticlePayloadData::ParticlePrimitive;
-    using ParticlePrimitives = ParticlePayloadData::ParticlePrimitives;
 
+    auto particleProperties = entity->getParticleProperties();
+    if (particleProperties != _particleProperties) {
+        return true;
+    }
+
+    return false;
+}
+
+void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    auto newParticleProperties = entity->getParticleProperties();
+    if (!newParticleProperties.valid()) {
+        qCWarning(entitiesrenderer) << "Bad particle properties";
+        if (!entity->getParticleProperties().valid()) {
+            qCWarning(entitiesrenderer) << "Bad particle properties";
+        }
+    }
+    if (_particleProperties != newParticleProperties) {
+        _timeUntilNextEmit = 0;
+        _particleProperties = newParticleProperties;
+    }
+    _emitting = entity->getIsEmitting();
+
+    if (_particleProperties.textures.isEmpty()) {
+        if (_networkTexture) {
+            withWriteLock([&] { 
+                _networkTexture.reset();
+            });
+        }
+    } else {
+        if (!_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures)) {
+            withWriteLock([&] { 
+                _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
+            });
+        }
+    }
+}
+
+void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     // Fill in Uniforms structure
     ParticleUniforms particleUniforms;
-    particleUniforms.radius.start = getRadiusStart();
-    particleUniforms.radius.middle = getParticleRadius();
-    particleUniforms.radius.finish = getRadiusFinish();
-    particleUniforms.radius.spread = getRadiusSpread();
-    particleUniforms.color.start = glm::vec4(getColorStartRGB(), getAlphaStart());
-    particleUniforms.color.middle = glm::vec4(getColorRGB(), getAlpha());
-    particleUniforms.color.finish = glm::vec4(getColorFinishRGB(), getAlphaFinish());
-    particleUniforms.color.spread = glm::vec4(getColorSpreadRGB(), getAlphaSpread());
-    particleUniforms.lifespan = getLifespan();
-    
-    // Build particle primitives
-    auto particlePrimitives = std::make_shared<ParticlePrimitives>();
-    particlePrimitives->reserve(_particles.size()); // Reserve space
-    for (auto& particle : _particles) {
-        particlePrimitives->emplace_back(particle.position, glm::vec2(particle.lifetime, particle.seed));
+    particleUniforms.radius.start = _particleProperties.radius.range.start;
+    particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
+    particleUniforms.radius.finish = _particleProperties.radius.range.finish;
+    particleUniforms.radius.spread = _particleProperties.radius.gradient.spread;
+    particleUniforms.color.start = _particleProperties.getColorStart();
+    particleUniforms.color.middle = _particleProperties.getColorMiddle();
+    particleUniforms.color.finish = _particleProperties.getColorFinish();
+    particleUniforms.color.spread = _particleProperties.getColorSpread();
+    particleUniforms.lifespan = _particleProperties.lifespan;
+    // Update particle uniforms
+    memcpy(&_uniformBuffer.edit<ParticleUniforms>(), &particleUniforms, sizeof(ParticleUniforms));
+}
+
+ItemKey ParticleEffectEntityRenderer::getKey() {
+    if (_visible) {
+        return ItemKey::Builder::transparentShape();
+    } else {
+        return ItemKey::Builder().withInvisible().build();
+    }
+}
+
+ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
+    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent().build();
+}
+
+Item::Bound ParticleEffectEntityRenderer::getBound() {
+    return _bound;
+}
+
+static const size_t VERTEX_PER_PARTICLE = 4;
+
+bool ParticleEffectEntityRenderer::emitting() const {
+    return (
+        _emitting &&
+        _particleProperties.emission.rate > 0.0f &&
+        _particleProperties.lifespan > 0.0f &&
+        _particleProperties.polar.start <= _particleProperties.polar.finish
+    );
+}
+
+void ParticleEffectEntityRenderer::createParticle(uint64_t now) {
+    CpuParticle particle;
+
+    const auto& accelerationSpread = _particleProperties.emission.acceleration.spread;
+    const auto& azimuthStart = _particleProperties.azimuth.start;
+    const auto& azimuthFinish = _particleProperties.azimuth.finish;
+    const auto& emitDimensions = _particleProperties.emission.dimensions;
+    const auto& emitAcceleration = _particleProperties.emission.acceleration.target;
+    auto emitOrientation = _particleProperties.emission.orientation;
+    const auto& emitRadiusStart = glm::max(_particleProperties.radiusStart, EPSILON); // Avoid math complications at center
+    const auto& emitSpeed = _particleProperties.emission.speed.target;
+    const auto& speedSpread = _particleProperties.emission.speed.spread;
+    const auto& polarStart = _particleProperties.polar.start;
+    const auto& polarFinish = _particleProperties.polar.finish;
+
+    particle.seed = randFloatInRange(-1.0f, 1.0f);
+    particle.expiration = now + (uint64_t)(_particleProperties.lifespan * USECS_PER_SECOND);
+    if (_particleProperties.emission.shouldTrail) {
+        particle.position = _modelTransform.getTranslation();
+        emitOrientation = _modelTransform.getRotation() * emitOrientation;
     }
 
-    bool successb, successp, successr;
-    auto bounds = getAABox(successb);
-    auto position = getPosition(successp);
-    auto rotation = getOrientation(successr);
-    bool success = successb && successp && successr;
-    if (!success) {
-        return;
-    }
-    Transform transform;
-    if (!getEmitterShouldTrail()) {
-        transform.setTranslation(position);
-        transform.setRotation(rotation);
-    }
+    // Position, velocity, and acceleration
+    if (polarStart == 0.0f && polarFinish == 0.0f && emitDimensions.z == 0.0f) {
+        // Emit along z-axis from position
 
+        particle.velocity = (emitSpeed + 0.2f * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
+        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
 
-    render::Transaction transaction;
-    transaction.updateItem<ParticlePayloadData>(_renderItemId, [=](ParticlePayloadData& payload) {
-        payload.setVisibleFlag(true);
-        
-        // Update particle uniforms
-        memcpy(&payload.editParticleUniforms(), &particleUniforms, sizeof(ParticleUniforms));
-        
-        // Update particle buffer
-        auto particleBuffer = payload.getParticleBuffer();
-        size_t numBytes = sizeof(ParticlePrimitive) * particlePrimitives->size();
-        particleBuffer->resize(numBytes);
-        if (numBytes == 0) {
-            return;
-        }
-        particleBuffer->setData(numBytes, (const gpu::Byte*)particlePrimitives->data());
+    } else {
+        // Emit around point or from ellipsoid
+        // - Distribute directions evenly around point
+        // - Distribute points relatively evenly over ellipsoid surface
+        // - Distribute points relatively evenly within ellipsoid volume
 
-        // Update transform and bounds
-        payload.setModelTransform(transform);
-        payload.setBound(bounds);
+        float elevationMinZ = sin(PI_OVER_TWO - polarFinish);
+        float elevationMaxZ = sin(PI_OVER_TWO - polarStart);
+        //  float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) *randFloat());
 
-        if (_texture && _texture->isLoaded()) {
-            payload.setTexture(_texture->getGPUTexture());
+        float azimuth;
+        if (azimuthFinish >= azimuthStart) {
+            azimuth = azimuthStart + (azimuthFinish - azimuthStart) *  randFloat();
         } else {
-            payload.setTexture(nullptr);
+            azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
-    });
 
-    _scene->enqueueTransaction(transaction);
+        glm::vec3 emitDirection;
+        if (emitDimensions == Vectors::ZERO) {
+            // Point
+            emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
+        } else {
+            // Ellipsoid
+            float radiusScale = 1.0f;
+            if (emitRadiusStart < 1.0f) {
+                float randRadius =
+                    emitRadiusStart + randFloatInRange(0.0f, particle::MAXIMUM_EMIT_RADIUS_START - emitRadiusStart);
+                radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
+            }
+
+            glm::vec3 radii = radiusScale * 0.5f * emitDimensions;
+            float x = radii.x * glm::cos(elevation) * glm::cos(azimuth);
+            float y = radii.y * glm::cos(elevation) * glm::sin(azimuth);
+            float z = radii.z * glm::sin(elevation);
+            glm::vec3 emitPosition = glm::vec3(x, y, z);
+            emitDirection = glm::normalize(glm::vec3(
+                radii.x > 0.0f ? x / (radii.x * radii.x) : 0.0f,
+                radii.y > 0.0f ? y / (radii.y * radii.y) : 0.0f,
+                radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f
+            ));
+            particle.position += emitOrientation * emitPosition;
+        }
+
+        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
+        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
+    }
+
+    _cpuParticles.push_back(particle);
 }
 
-void RenderableParticleEffectEntityItem::notifyBoundChanged() {
-    if (!render::Item::isValidID(_renderItemId)) {
+void ParticleEffectEntityRenderer::stepSimulation() {
+    if (_lastSimulated == 0) {
+        _lastSimulated = usecTimestampNow();
         return;
     }
-    render::Transaction transaction;
-    transaction.updateItem<ParticlePayloadData>(_renderItemId, [](ParticlePayloadData& payload) {
+
+    const auto now = usecTimestampNow();
+    const auto interval = std::min<uint64_t>(USECS_PER_SECOND / 60, now - _lastSimulated);
+    _lastSimulated = now;
+
+    if (emitting()) {
+        uint64_t emitInterval = (uint64_t)(USECS_PER_SECOND / _particleProperties.emission.rate);
+        if (interval >= _timeUntilNextEmit) {
+            auto timeRemaining = interval;
+            while (timeRemaining > _timeUntilNextEmit) {
+                // emit particle
+                createParticle(now);
+                _timeUntilNextEmit = emitInterval;
+                if (emitInterval < timeRemaining) {
+                    timeRemaining -= emitInterval;
+                }
+            }
+        } else {
+            _timeUntilNextEmit -= interval;
+        }
+    }
+
+    // Kill any particles that have expired or are over the max size
+    while (_cpuParticles.size() > _particleProperties.maxParticles || (!_cpuParticles.empty() && _cpuParticles.front().expiration <= now)) {
+        _cpuParticles.pop_front();
+    }
+
+    const float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+    // update the particles 
+    for (auto& particle : _cpuParticles) {
+        particle.integrate(deltaTime);
+    }
+
+    // Build particle primitives
+    static GpuParticles gpuParticles;
+    gpuParticles.clear();
+    gpuParticles.reserve(_cpuParticles.size()); // Reserve space
+    std::transform(_cpuParticles.begin(), _cpuParticles.end(), std::back_inserter(gpuParticles), [](const CpuParticle& particle) {
+        return GpuParticle(particle.position, glm::vec2(particle.lifetime, particle.seed));
     });
 
-    _scene->enqueueTransaction(transaction);
+    // Update particle buffer
+    auto& particleBuffer = _particleBuffer;
+    size_t numBytes = sizeof(GpuParticle) * gpuParticles.size();
+    particleBuffer->resize(numBytes);
+    if (numBytes != 0) {
+        particleBuffer->setData(numBytes, (const gpu::Byte*)gpuParticles.data());
+    }
 }
+
+void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
+    if (!_visible) {
+        return;
+    }
+
+
+    // FIXME migrate simulation to a compute stage
+    stepSimulation();
+
+    gpu::Batch& batch = *args->_batch;
+    if (_networkTexture && _networkTexture->isLoaded()) {
+        batch.setResourceTexture(0, _networkTexture->getGPUTexture());
+    } else {
+        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    }
+
+    Transform transform; 
+    // In trail mode, the particles are created in world space.
+    // so we only set a transform if they're not in trail mode
+    if (!_particleProperties.emission.shouldTrail) {
+        transform = _modelTransform;
+        transform.setScale(vec3(1));
+    }
+    batch.setModelTransform(transform);
+    batch.setUniformBuffer(0, _uniformBuffer);
+    batch.setInputFormat(_vertexFormat);
+    batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));
+
+    auto numParticles = _particleBuffer->getSize() / sizeof(GpuParticle);
+    batch.drawInstanced((gpu::uint32)numParticles, gpu::TRIANGLE_STRIP, (gpu::uint32)VERTEX_PER_PARTICLE);
+}
+
+
