@@ -2,6 +2,10 @@ import QtQuick 2.7
 import QtWebEngine 1.5
 import QtWebChannel 1.0
 
+import QtQuick.Controls 2.2
+
+import "../styles-uit" as StylesUIt
+
 Flickable {
     id: flick
 
@@ -15,6 +19,21 @@ Flickable {
 
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
+
+    StylesUIt.HifiConstants {
+        id: hifi
+    }
+
+    ScrollBar.vertical: ScrollBar {
+        id: scrollBar
+
+        contentItem: Rectangle {
+            opacity: 0.75
+            implicitWidth: hifi.dimensions.scrollbarHandleWidth
+            radius: height / 2
+            color: hifi.colors.tableScrollHandleDark
+        }
+    }
 
     function onLoadingChanged(loadRequest) {
         // Required to support clicking on "hifi://" links
