@@ -1056,16 +1056,81 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             ],
             deleteOptions: [
                 {
-                    id: "deleteFinishButton",
-                    type: "button",
+                    id: "deleteActionsLabel",
+                    type: "image",
                     properties: {
-                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0, z: 0.005 },
-                        color: { red: 200, green: 200, blue: 200 }
+                        color: UIT.colors.white,
+                        url: "../assets/tools/common/actions-label.svg",
+                        scale: 0.0276,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0276 / 2,
+                            y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "deleeteRule1",
+                    type: "horizontalRule",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0199,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "deleteFinishButton",
+                    type: "newButton",
+                    properties: {
+                        localPosition: { x: 0, y: 0.02, z: 0.005 }
                     },
-                    label: "FINISH",
+                    newLabel: {
+                        url: "../assets/tools/common/finish-label.svg",
+                        scale: 0.0318
+                    },
                     command: {
                         method: "clearTool"
+                    }
+                },
+                {
+                    id: "deleteRule2",
+                    type: "horizontalRule",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.1197,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "deleteInfoIcon",
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/common/info-icon.svg",
+                        dimensions: { x: 0.0321, y: 0.0320 },
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0321 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        color: UIT.colors.white  // Icon SVG is already lightGray color.
+                    }
+                },
+                {
+                    id: "deleteInfo",
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/delete/info-text.svg",
+                        scale: 0.1416,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0240 / 2 + 0.0063 / 2,  // Off-center w.r.t. info icon.
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        color: UIT.colors.white
                     }
                 }
             ]
