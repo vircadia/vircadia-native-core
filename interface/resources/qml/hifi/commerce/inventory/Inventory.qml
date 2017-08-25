@@ -1,10 +1,10 @@
 //
 //  Inventory.qml
-//  qml/hifi/commerce
+//  qml/hifi/commerce/inventory
 //
 //  Inventory
 //
-//  Created by Zach Fox on 2017-08-10
+//  Created by Zach Fox on 2017-08-25
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -14,29 +14,40 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
-import "../../controls" as HifiControls
-import "./wallet" as HifiWallet
+import "../../../styles-uit"
+import "../../../controls-uit" as HifiControlsUit
+import "../../../controls" as HifiControls
+import "../wallet" as HifiWallet
 
 // references XXX from root context
 
 Rectangle {
     HifiConstants { id: hifi; }
 
-    id: inventoryRoot;
+    id: root;
+    property string activeView: "initialize";
     property string referrerURL: "";
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
-        onBalanceResult: {
-            if (result.status !== 'success') {
-                console.log("Failed to get balance", result.message);
-            } else {
-                hfcBalanceText.text = parseFloat(result.data.balance/100).toFixed(2);
+
+        onSecurityImageResult: {
+            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
+                root.activeView = "notSetUp";
+            } else if (exists && root.activeView !== "inventoryMain") {
+                root.activeView = "inventoryMain";
             }
         }
+
+        onKeyFilePathIfExistsResult: {
+            if (path === "" && root.activeView !== "notSetUp") {
+                root.activeView = "notSetUp";
+            } else if (path !== "" && root.activeView !== "inventoryMain") {
+                root.activeView = "inventoryMain";
+            }
+        }
+
         onInventoryResult: {
             if (result.status !== 'success') {
                 console.log("Failed to get inventory", result.message);
@@ -52,16 +63,16 @@ Rectangle {
     Item {
         id: titleBarContainer;
         // Size
-        width: parent.width;
         height: 50;
         // Anchors
         anchors.left: parent.left;
+        anchors.right: parent.right;
         anchors.top: parent.top;
 
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
-            text: "Inventory";
+            text: "INVENTORY";
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
@@ -71,7 +82,7 @@ Rectangle {
             anchors.bottom: parent.bottom;
             width: paintedWidth;
             // Style
-            color: hifi.colors.lightGrayText;
+            color: hifi.colors.faintGray;
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
@@ -88,121 +99,74 @@ Rectangle {
     // TITLE BAR END
     //
 
-    //
-    // HFC BALANCE START
-    //
-    Item {
-        id: hfcBalanceContainer;
-        // Size
-        width: inventoryRoot.width;
-        height: childrenRect.height + 20;
-        // Anchors
-        anchors.left: parent.left;
-        anchors.leftMargin: 16;
+    Rectangle {
+        id: initialize;
+        visible: root.activeView === "initialize";
         anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: 4;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        color: hifi.colors.baseGray;
 
-        RalewaySemiBold {
-            id: hfcBalanceTextLabel;
-            text: "HFC Balance:";
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            width: paintedWidth;
-            // Text size
-            size: 20;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-        RalewayRegular {
-            id: hfcBalanceText;
-            text: "--";
-            // Text size
-            size: hfcBalanceTextLabel.size;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: hfcBalanceTextLabel.right;
-            anchors.leftMargin: 16;
-            width: paintedWidth;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
+        Component.onCompleted: {
+            commerce.getSecurityImage();
+            commerce.getKeyFilePathIfExists();
         }
     }
-    //
-    // HFC BALANCE END
-    //
 
     //
     // INVENTORY CONTENTS START
     //
     Item {
         id: inventoryContentsContainer;
+        visible: root.activeView === "inventoryMain";
         // Anchors
         anchors.left: parent.left;
         anchors.leftMargin: 16;
         anchors.right: parent.right;
         anchors.rightMargin: 16;
-        anchors.top: hfcBalanceContainer.bottom;
+        anchors.top: titleBarContainer.bottom;
         anchors.topMargin: 8;
         anchors.bottom: actionButtonsContainer.top;
         anchors.bottomMargin: 8;
-
-        RalewaySemiBold {
-            id: inventoryContentsLabel;
-            text: "Inventory:";
+        
+        //
+        // FILTER BAR START
+        //
+        Item {
+            id: filterBarContainer;
+            // Size
+            height: 40;
             // Anchors
-            anchors.top: parent.top;
             anchors.left: parent.left;
-            width: paintedWidth;
-            // Text size
-            size: 24;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
+            anchors.right: parent.right;
+            anchors.top: parent.top;
+            anchors.topMargin: 4;
+
+            HifiControlsUit.TextField {
+                id: filterBar;
+                anchors.fill: parent;
+                placeholderText: "Filter";
+            }
         }
+        //
+        // FILTER BAR END
+        //
+
         ListView {
             id: inventoryContentsList;
             clip: true;
             // Anchors
-            anchors.top: inventoryContentsLabel.bottom;
-            anchors.topMargin: 8;
+            anchors.top: filterBarContainer.bottom;
+            anchors.topMargin: 12;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width;
-            delegate: Item {
+            delegate: InventoryItem {
                 width: parent.width;
                 height: 30;
-                RalewayRegular {
-                    id: thisItemId;
-                    // Text size
-                    size: 20;
-                    // Style
-                    color: hifi.colors.blueAccent;
-                    text: modelData.title;
-                    // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
-                }
-                MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: enabled;
-                    onClicked: {
-                        sendToScript({method: 'inventory_itemClicked', itemId: modelData.id});
-                    }
-                    onEntered: {
-                        thisItemId.color = hifi.colors.blueHighlight;
-                    }
-                    onExited: {
-                        thisItemId.color = hifi.colors.blueAccent;
-                    }
-                }
+                itemName: modelData.title;
+                itemId: modelData.id;
             }
         }
     }
@@ -216,7 +180,7 @@ Rectangle {
     Item {
         id: actionButtonsContainer;
         // Size
-        width: inventoryRoot.width;
+        width: parent.width;
         height: 40;
         // Anchors
         anchors.left: parent.left;

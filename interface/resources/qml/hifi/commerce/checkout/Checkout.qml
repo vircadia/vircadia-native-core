@@ -1,10 +1,10 @@
 //
 //  Checkout.qml
-//  qml/hifi/commerce
+//  qml/hifi/commerce/checkout
 //
 //  Checkout
 //
-//  Created by Zach Fox on 2017-08-07
+//  Created by Zach Fox on 2017-08-25
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -88,7 +88,6 @@ Rectangle {
             }
         }
     }
-
 
     //
     // TITLE BAR START
