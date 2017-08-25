@@ -64,18 +64,13 @@ using namespace std;
 
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
-const float MAX_WALKING_SPEED = 2.6f; // human walking speed
-const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // action motor gets additive boost below this speed
-const float MIN_AVATAR_SPEED = 0.05f;
-const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
-
 const float YAW_SPEED_DEFAULT = 100.0f;   // degrees/sec
 const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
 
-// TODO: normalize avatar speed for standard avatar size, then scale all motion logic
-// to properly follow avatar size.
-float MAX_AVATAR_SPEED = 30.0f;
-float MAX_ACTION_MOTOR_SPEED = MAX_AVATAR_SPEED;
+const float MAX_BOOST_SPEED = 0.5f * DEFAULT_AVATAR_MAX_WALKING_SPEED; // action motor gets additive boost below this speed
+const float MIN_AVATAR_SPEED = 0.05f;
+const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
+
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
@@ -1979,7 +1974,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
         float motorSpeed = glm::length(_actionMotorVelocity);
-        float finalMaxMotorSpeed = getSensorToWorldScale() * MAX_ACTION_MOTOR_SPEED;
+        float finalMaxMotorSpeed = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_FLYING_SPEED;
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
@@ -1997,7 +1992,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * MAX_WALKING_SPEED * direction;
+        _actionMotorVelocity = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_WALKING_SPEED * direction;
     }
 
     float boomChange = getDriveKey(ZOOM);
