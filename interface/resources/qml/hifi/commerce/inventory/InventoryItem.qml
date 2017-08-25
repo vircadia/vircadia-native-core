@@ -29,11 +29,17 @@ Rectangle {
     property string itemId: "";
     property string itemPreviewImageUrl: "";
     property string itemHref: "";
+    property string filterText: "";
     // Style
     color: hifi.colors.white;
     // Size
     width: parent.width;
     height: 120;
+
+    visible: passesFilter();
+    onFilterTextChanged: {
+        root.visible = passesFilter();
+    }
 
     Image {
         id: itemPreviewImage;
@@ -137,6 +143,10 @@ Rectangle {
     // FUNCTION DEFINITIONS START
     //
     signal sendToInventory(var message);
+    
+    function passesFilter() {
+        return root.itemName.toLowerCase().indexOf(root.filterText.toLowerCase()) !== -1;
+    }
     //
     // FUNCTION DEFINITIONS END
     //

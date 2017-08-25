@@ -53,7 +53,6 @@ Rectangle {
                 console.log("Failed to get inventory", result.message);
             } else {
                 inventoryModel.append(result.data.assets);
-                filteredInventoryModel.append(result.data.assets);
             }
         }
     }
@@ -149,24 +148,6 @@ Rectangle {
                 property int previousLength: 0;
                 anchors.fill: parent;
                 placeholderText: "Filter";
-
-                onTextChanged: {
-                    if (filterBar.text.length < previousLength) {
-                        filteredInventoryModel.clear();
-
-                        for (var i = 0; i < inventoryModel.count; i++) {
-                            filteredInventoryModel.append(inventoryModel.get(i));
-                        }
-                    }
-
-                    for (var i = 0; i < filteredInventoryModel.count; i++) {
-                        if (filteredInventoryModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) === -1) {
-                            filteredInventoryModel.remove(i);
-                            i--;
-                        }
-                    }
-                    previousLength = filterBar.text.length;
-                }
             }
         }
         //
@@ -176,14 +157,11 @@ Rectangle {
         ListModel {
             id: inventoryModel;
         }
-        ListModel {
-            id: filteredInventoryModel;
-        }
 
         ListView {
             id: inventoryContentsList;
             clip: true;
-            model: filteredInventoryModel;
+            model: inventoryModel;
             // Anchors
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
@@ -194,6 +172,7 @@ Rectangle {
                 itemName: title;
                 itemId: id;
                 itemPreviewImageUrl: preview;
+                filterText: filterBar.text;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
                 
