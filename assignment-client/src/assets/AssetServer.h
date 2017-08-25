@@ -82,7 +82,7 @@ private:
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);
 
-    void setBakingEnabled(const AssetPathList& paths, bool enabled);
+    bool setBakingEnabled(const AssetPathList& paths, bool enabled);
 
     /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();

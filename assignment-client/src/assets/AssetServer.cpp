@@ -516,7 +516,7 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
     for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
         replyPacket.writeString(it.key());
         replyPacket.write(QByteArray::fromHex(it.value().toString().toUtf8()));
-        replyPacket.writePrimitive(getAssetStatus(it.value().toString()));
+        replyPacket.writePrimitive(getAssetStatus(it.key(), it.value().toString()));
     }
 }
 
@@ -1157,7 +1157,7 @@ bool AssetServer::createMetaFile(AssetHash originalAssetHash) {
     }
 }
 
-void AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
+bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
     for (const auto& path : paths) {
         auto it = _fileMappings.find(path);
         if (it != _fileMappings.end()) {
@@ -1189,4 +1189,5 @@ void AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
             }
         }
     }
+    return true;
 }

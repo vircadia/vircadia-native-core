@@ -337,8 +337,4 @@ enum class MessageDataVersion : PacketVersion {
     TextOrBinaryData = 18
 };
 
-enum class AssetMappingOperationVersion : PacketVersion {
-    SetBakingEnabledOperation = 18
-};
-
 #endif // hifi_PacketHeaders_h
