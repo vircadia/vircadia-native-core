@@ -31,6 +31,11 @@ bool AccountScriptingInterface::checkAndSignalForAccessToken() {
     return accountManager->checkAndSignalForAccessToken();
 }
 
+void AccountScriptingInterface::logOut() {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return accountManager->logout();
+}
+
 QString AccountScriptingInterface::getUsername() {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (accountManager->isLoggedIn()) {

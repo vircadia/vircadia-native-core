@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+import QtQuick.Layouts 1.3
 
 import "../../styles-uit"
 import "../audio" as HifiAudio
@@ -116,20 +117,36 @@ Item {
             anchors.rightMargin: 30
             anchors.verticalCenter: parent.verticalCenter
 
-            RalewaySemiBold {
-                id: usernameText
-                text: Account.isLoggedIn() ? tabletRoot.username : qsTr("Log in")
-                anchors.verticalCenter: parent.verticalCenter
-                horizontalAlignment: Text.AlignRight
-                anchors.right: parent.right
-                font.pixelSize: 20
-                color: "#afafaf"
+            ColumnLayout {
+                anchors.fill: parent
+
+                RalewaySemiBold {
+                    text: Account.isLoggedIn() ? qsTr("Log out") : qsTr("Log in")
+                    horizontalAlignment: Text.AlignRight
+                    anchors.right: parent.right
+                    font.pixelSize: 20
+                    color: "#afafaf"
+                }
+
+                RalewaySemiBold {
+                    visible: Account.isLoggedIn()
+                    height: Account.isLoggedIn() ? parent.height/2 - parent.spacing/2 : 0
+                    text: Account.isLoggedIn() ? "[" + tabletRoot.usernameShort + "]" : ""
+                    horizontalAlignment: Text.AlignRight
+                    anchors.right: parent.right
+                    font.pixelSize: 20
+                    color: "#afafaf"
+                }
             }
+
             MouseArea {
                 anchors.fill: parent
-                enabled: !Account.isLoggedIn()
                 onClicked: {
-                    DialogsManager.showLoginDialog()
+                    if (!Account.isLoggedIn()) {
+                        DialogsManager.showLoginDialog()
+                    } else {
+                        Account.logOut()
+                    }
                 }
             }
         }

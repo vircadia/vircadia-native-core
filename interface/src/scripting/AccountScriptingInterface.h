@@ -50,6 +50,7 @@ public slots:
      */
     bool isLoggedIn();
     bool checkAndSignalForAccessToken();
+    void logOut();
 };
 
 #endif // hifi_AccountScriptingInterface_h
