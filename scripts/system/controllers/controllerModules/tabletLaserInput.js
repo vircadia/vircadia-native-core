@@ -71,7 +71,7 @@ Script.include("/~/system/libraries/controllers.js");
         drawInFront: true, // Even when burried inside of something, show it.
         parentID: AVATAR_SELF_ID
     };
-    
+
     var renderStates = [{name: "half", path: halfPath, end: halfEnd},
                         {name: "full", path: fullPath, end: fullEnd},
                         {name: "hold", path: holdPath}];
@@ -79,26 +79,26 @@ Script.include("/~/system/libraries/controllers.js");
     var defaultRenderStates = [{name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
                                {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
                                {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}];
-    
+
 
     // triggered when stylus presses a web overlay/entity
     var HAPTIC_STYLUS_STRENGTH = 1.0;
     var HAPTIC_STYLUS_DURATION = 20.0;
 
-    function stylusTargetHasKeyboardFocus(laserTarget) {
+    function laserTargetHasKeyboardFocus(laserTarget) {
         if (laserTarget && laserTarget !== NULL_UUID) {
             return Overlays.keyboardFocusOverlay === laserTarget;
         }
     }
 
-    function setKeyboardFocusOnStylusTarget(laserTarget) {
+    function setKeyboardFocusOnLaserTarget(laserTarget) {
         if (laserTarget && laserTarget !== NULL_UUID) {
             Overlays.keyboardFocusOverlay = laserTarget;
             Entities.keyboardFocusEntity = NULL_UUID;
         }
     }
 
-    function sendHoverEnterEventToStylusTarget(hand, laserTarget) {
+    function sendHoverEnterEventToLaserTarget(hand, laserTarget) {
         if (!laserTarget) {
             return;
         }
@@ -117,8 +117,8 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
-    function sendHoverOverEventToStylusTarget(hand, laserTarget) {
-        
+    function sendHoverOverEventToLaserTarget(hand, laserTarget) {
+
         if (!laserTarget) {
             return;
         }
@@ -138,11 +138,11 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
-    function sendTouchStartEventToStylusTarget(hand, laserTarget) {
+    function sendTouchStartEventToLaserTarget(hand, laserTarget) {
         if (!laserTarget) {
             return;
         }
-        
+
         var pointerEvent = {
             type: "Press",
             id: hand + 1, // 0 is reserved for hardware mouse
@@ -159,7 +159,7 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
-    function sendTouchEndEventToStylusTarget(hand, laserTarget) {
+    function sendTouchEndEventToLaserTarget(hand, laserTarget) {
         if (!laserTarget) {
             return;
         }
@@ -175,10 +175,11 @@ Script.include("/~/system/libraries/controllers.js");
 
         if (laserTarget.overlayID && laserTarget.overlayID !== NULL_UUID) {
             Overlays.sendMouseReleaseOnOverlay(laserTarget.overlayID, pointerEvent);
+            Overlays.sendMouseReleaseOnOverlay(laserTarget.overlayID, pointerEvent);
         }
     }
 
-    function sendTouchMoveEventToStylusTarget(hand, laserTarget) {
+    function sendTouchMoveEventToLaserTarget(hand, laserTarget) {
         if (!laserTarget) {
             return;
         }
@@ -192,7 +193,7 @@ Script.include("/~/system/libraries/controllers.js");
             button: "Primary",
             isPrimaryHeld: true
         };
-        
+
         if (laserTarget.overlayID && laserTarget.overlayID !== NULL_UUID) {
             Overlays.sendMouseReleaseOnOverlay(laserTarget.overlayID, pointerEvent);
         }
@@ -202,13 +203,13 @@ Script.include("/~/system/libraries/controllers.js");
     function calculateLaserTargetFromOverlay(laserTip, overlayID) {
         var overlayPosition = Overlays.getProperty(overlayID, "position");
         if (overlayPosition === undefined) {
-            return;
+            return null;
         }
 
         // project stylusTip onto overlay plane.
         var overlayRotation = Overlays.getProperty(overlayID, "rotation");
         if (overlayRotation === undefined) {
-            return;
+            return null;
         }
         var normal = Vec3.multiplyQbyV(overlayRotation, {x: 0, y: 0, z: 1});
         var distance = Vec3.dot(Vec3.subtract(laserTip, overlayPosition), normal);
@@ -225,19 +226,19 @@ Script.include("/~/system/libraries/controllers.js");
             // is used as a scale.
             var resolution = Overlays.getProperty(overlayID, "resolution");
             if (resolution === undefined) {
-                return;
+                return null;
             }
             resolution.z = 1;  // Circumvent divide-by-zero.
             var scale = Overlays.getProperty(overlayID, "dimensions");
             if (scale === undefined) {
-                return;
+                return null;
             }
             scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
             dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
         } else {
             dimensions = Overlays.getProperty(overlayID, "dimensions");
             if (dimensions === undefined) {
-                return;
+                return null;
             }
             if (!dimensions.z) {
                 dimensions.z = 0.01;    // sometimes overlay dimensions are 2D, not 3D.
@@ -271,6 +272,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     function TabletLaserInput(hand) {
         this.hand = hand;
+        this.active = false;
         this.previousLaserClikcedTarget = false;
         this.laserPressingTarget = false;
         this.tabletScreenID = HMD.tabletScreenID;
@@ -279,6 +281,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.laserTarget = null;
         this.pressEnterLaserTarget = null;
         this.hover = false;
+        this.lastValidTargetID = this.tabletTargetID;
 
 
         this.parameters = makeDispatcherModuleParameters(
@@ -291,6 +294,10 @@ Script.include("/~/system/libraries/controllers.js");
             return (this.hand === RIGHT_HAND) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
         };
 
+        this.getOtherModule = function() {
+            return (this.hand === RIGHT_HAND) ? leftTabletLaserInput : rightTabletLaserInput;
+        };
+
         this.handToController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
@@ -300,7 +307,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.requestTouchFocus = function(laserTarget) {
-            sendHoverEnterEventToStylusTarget(this.hand, this.laserTarget);
+            if (laserTarget !== null || laserTarget !== undefined) {
+                sendHoverEnterEventToLaserTarget(this.hand, this.laserTarget);
+                this.lastValidTargetID = laserTarget;
+            }
         };
 
         this.hasTouchFocus = function(laserTarget) {
@@ -310,15 +320,15 @@ Script.include("/~/system/libraries/controllers.js");
         this.relinquishTouchFocus = function() {
             // send hover leave event.
             var pointerEvent = { type: "Move", id: this.hand + 1 };
-            Overlays.sendMouseMoveOnOverlay(this.tabletScreenID, pointerEvent);
-            Overlays.sendHoverOverOverlay(this.tabletScreenID, pointerEvent);
-            Overlays.sendHoverLeaveOverlay(this.tabletScreenID, pointerEvent);
+            Overlays.sendMouseMoveOnOverlay(this.lastValidTargetID, pointerEvent);
+            Overlays.sendHoverOverOverlay(this.lastValidTargetID, pointerEvent);
+            Overlays.sendHoverLeaveOverlay(this.lastValidID, pointerEvent);
         };
 
         this.updateLaserPointer = function(controllerData) {
             var RADIUS = 0.005;
             var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
-            
+
             if (this.mode === "full") {
                 this.fullEnd.dimensions = dim;
                 LaserPointers.editRenderState(this.laserPointer, this.mode, {path: fullPath, end: this.fullEnd});
@@ -332,8 +342,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.processControllerTriggers = function(controllerData) {
-            var rayPickIntersection = controllerData.rayPicks[this.hand].intersection;
-            this.laserTarget = calculateLaserTargetFromOverlay(rayPickIntersection, HMD.tabletScreenID);
             if (controllerData.triggerClicks[this.hand]) {
                 this.mode = "full";
                 this.laserPressingTarget = true;
@@ -342,39 +350,36 @@ Script.include("/~/system/libraries/controllers.js");
                 this.mode = "half";
                 this.laserPressingTarget = false;
                 this.hover = true;
-                this.requestTouchFocus(HMD.tabletScreenID);
+                this.requestTouchFocus(this.laserTargetID);
             } else {
                 this.mode = "none";
                 this.laserPressingTarget = false;
                 this.hover = false;
                 this.relinquishTouchFocus();
-                
+
             }
-            this.homeButtonTouched = false;
         };
 
         this.hovering = function() {
             if (this.hasTouchFocus(this.laserTargetID)) {
-                sendHoverOverEventToStylusTarget(this.hand, this.laserTarget);
+                sendHoverOverEventToLaserTarget(this.hand, this.laserTarget);
             }
         };
 
         this.laserPressEnter = function () {
-            this.stealTouchFocus(this.laserTarget.overlayID);
-            sendTouchStartEventToStylusTarget(this.hand, this.laserTarget);
+            sendTouchStartEventToLaserTarget(this.hand, this.laserTarget);
             Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
 
             this.touchingEnterTimer = 0;
             this.pressEnterLaserTarget = this.laserTarget;
             this.deadspotExpired = false;
 
-            var TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.0381;
-            this.deadspotRadius = TOUCH_PRESS_TO_MOVE_DEADSPOT;
+            var LASER_PRESS_TO_MOVE_DEADSPOT = 0.026;
+            this.deadspotRadius = Math.tan(LASER_PRESS_TO_MOVE_DEADSPOT) * this.laserTarget.distance;
         };
 
         this.laserPressExit = function () {
-
-            if (this.laserTarget === undefined) {
+            if (this.laserTarget === null) {
                 return;
             }
 
@@ -385,27 +390,23 @@ Script.include("/~/system/libraries/controllers.js");
 
             // send press event
             if (this.deadspotExpired) {
-                sendTouchEndEventToStylusTarget(this.hand, this.laserTarget);
+                sendTouchEndEventToLaserTarget(this.hand, this.laserTarget);
             } else {
-                print(this.pressEnterLaserTarget);
-                sendTouchEndEventToStylusTarget(this.hand, this.pressEnterLaserTarget);
+                sendTouchEndEventToLaserTarget(this.hand, this.pressEnterLaserTarget);
             }
         };
 
         this.laserPressing = function (controllerData, dt) {
-
             this.touchingEnterTimer += dt;
 
             if (this.laserTarget) {
-               
                 var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
                 if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
                     distance2D(this.laserTarget.position2D,
                                this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
-                    sendTouchMoveEventToStylusTarget(this.hand, this.laserTarget);
+                    sendTouchMoveEventToLaserTarget(this.hand, this.laserTarget);
                     this.deadspotExpired = true;
                 }
-                
             } else {
                 this.laserPressingTarget = false;
             }
@@ -423,19 +424,32 @@ Script.include("/~/system/libraries/controllers.js");
             return (target === HMD.homeButtonID);
         }
 
-        this.isReady = function (controllerData) {
-            var target = controllerData.rayPicks[this.hand].objectID;
-            if (this.pointingAtTabletScreen(target) || this.pointingAtHomeButton(target) || this.pointingAtTablet(target)) {
-                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                    this.tabletScrenID = HMD.tabletScreenID;
-                    return makeRunningValues(true, [], []);
-                }
-            }
-            return makeRunningValues(false, [], []);
+        this.releaseTouchEvent = function() {
+            sendTouchEndEventToLaserTarget(this.hand, this.pressEnterLaserTarget);
+        }
+
+
+        this.updateLaserTargets = function() {
+            var intersection = LaserPointers.getPrevRayPickResult(this.laserPointer);
+            this.laserTargetID = intersection.objectID;
+            this.laserTarget = calculateLaserTargetFromOverlay(intersection.intersection, intersection.objectID);
         };
 
+        this.shouldExit = function(controllerData) {
+            var target = controllerData.rayPicks[this.hand].objectID;
+            var isLaserOffTablet = (!this.pointingAtTabletScreen(target) && !this.pointingAtHomeButton(target) && !this.pointingAtTablet(target));
+            return isLaserOffTablet;
+        }
+
+        this.exitModule = function() {
+            this.releaseTouchEvent();
+            this.relinquishTouchFocus();
+            this.reset();
+            this.updateLaserPointer();
+            LaserPointers.disableLaserPointer(this.laserPointer);
+        }
+
         this.reset = function() {
-            this.laserPressExit();
             this.hover = false;
             this.pressEnterLaserTarget = null;
             this.laserTarget = null;
@@ -443,29 +457,32 @@ Script.include("/~/system/libraries/controllers.js");
             this.laserPressingTarget = false;
             this.previousLaserClickedTarget = null;
             this.mode = "none";
+            this.active = false;
+        };
+
+        this.isReady = function (controllerData) {
+            var target = controllerData.rayPicks[this.hand].objectID;
+            if (this.pointingAtTabletScreen(target) || this.pointingAtHomeButton(target) || this.pointingAtTablet(target)) {
+                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE && !this.getOtherModule().active) {
+                    this.tabletScrenID = HMD.tabletScreenID;
+                    this.active = true;
+                    return makeRunningValues(true, [], []);
+                }
+            }
+            this.reset();
+            return makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData, deltaTime) {
-            var target = controllerData.rayPicks[this.hand].objectID;
 
-            
-            if (!this.pointingAtTabletScreen(target) && !this.pointingAtHomeButton(target) && !this.pointingAtTablet(target)) {
-                LaserPointers.disableLaserPointer(this.laserPointer);
-                this.laserPressExit();
-                this.relinquishTouchFocus();
-                this.reset();
-                this.updateLaserPointer();
+            if (this.shouldExit(controllerData)) {
+                this.exitModule();
                 return makeRunningValues(false, [], []);
             }
 
+            this.updateLaserTargets();
             this.processControllerTriggers(controllerData);
             this.updateLaserPointer(controllerData);
-            var intersection = LaserPointers.getPrevRayPickResult(this.laserPointer);
-            this.laserTargetID = intersection.objectID;
-            this.laserTarget = calculateLaserTargetFromOverlay(intersection.intersection, intersection.objectID);
-            if (this.laserTarget === undefined) {
-                return makeRunningValues(true, [], []);
-            }
 
             if (!this.previousLaserClickedTarget && this.laserPressingTarget) {
                 this.laserPressEnter();
@@ -478,7 +495,7 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.laserPressingTarget) {
                 this.laserPressing(controllerData, deltaTime);
             }
-            
+
             if (this.hover) {
                 this.hovering();
             }
@@ -505,7 +522,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID]);
     };
-    
+
     var leftTabletLaserInput = new TabletLaserInput(LEFT_HAND);
     var rightTabletLaserInput = new TabletLaserInput(RIGHT_HAND);
 
@@ -513,8 +530,8 @@ Script.include("/~/system/libraries/controllers.js");
     enableDispatcherModule("RightTabletLaserInput", rightTabletLaserInput);
 
     this.cleanup = function () {
-        leftTabletStylusInput.cleanup();
-        rightTabletStylusInput.cleanup();
+        leftTabletLaserInput.cleanup();
+        rightTabletLaserInput.cleanup();
         disableDispatcherModule("LeftTabletLaserInput");
         disableDispatcherModule("RightTabletLaserInput");
     };
