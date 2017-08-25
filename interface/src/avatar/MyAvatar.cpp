@@ -2768,9 +2768,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     glm::vec4 desiredColor = glm::dot(Vectors::UNIT_Y, transformVectorFast(desiredBodyMatrix, Vectors::UNIT_Y)) < 0.9912f ? RED : GREEN;
     glm::vec4 currentColor = glm::dot(Vectors::UNIT_Y, transformVectorFast(currentBodyMatrix, Vectors::UNIT_Y)) < 0.9912f ? BLUE : WHITE;
 
-    DebugDraw::getInstance().addMarker("desiredBody", glmExtractRotation(desiredWorldMatrix), extractTranslation(desiredWorldMatrix), desiredColor);
-    DebugDraw::getInstance().addMarker("currentBody", glmExtractRotation(currentWorldMatrix), extractTranslation(currentWorldMatrix), currentColor);
-
     AnimPose followWorldPose(currentWorldMatrix);
 
     // remove scale present from sensorToWorldMatrix
