@@ -17,7 +17,7 @@
 
 #include "EntityServer.h"
 
-//#define SEND_SORTED_ENTITIES
+#define SEND_SORTED_ENTITIES
 
 void EntityTreeSendThread::preDistributionProcessing() {
     auto node = _node.toStrongRef();
@@ -89,7 +89,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     if (nodeData->getUsesFrustum()) {
         // DEBUG HACK: trigger traversal (Repeat) every so often
         const uint64_t TRAVERSE_AGAIN_PERIOD = 4 * USECS_PER_SECOND;
-        bool repeatTraversal = usecTimestampNow() > _traversal.getStartOfCompletedTraversal() + TRAVERSE_AGAIN_PERIOD;
+        bool repeatTraversal = _traversal.finished() && usecTimestampNow() > _traversal.getStartOfCompletedTraversal() + TRAVERSE_AGAIN_PERIOD;
         if (viewFrustumChanged || repeatTraversal) {
             ViewFrustum viewFrustum;
             nodeData->copyCurrentViewFrustum(viewFrustum);
@@ -272,8 +272,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
         break;
     case DiffTraversal::Repeat:
         _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
-            if (next.element->getLastChangedContent() > _traversal.getStartOfCompletedTraversal()) {
-                uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
+            uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
+            if (next.element->getLastChangedContent() > timestamp) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
