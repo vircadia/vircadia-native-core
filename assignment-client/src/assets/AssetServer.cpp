@@ -110,7 +110,7 @@ QString AssetServer::getPathToAssetHash(const AssetHash& assetHash) {
 
 BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash& hash) {
     auto it = _pendingBakes.find(hash);
-    if (it == _pendingBakes.end()) {
+    if (it != _pendingBakes.end()) {
         return (*it)->isBaking() ? Baking : Pending;
     }
 
