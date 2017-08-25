@@ -24,6 +24,8 @@ public:
     bool hasWarnings() const { return !_warningList.isEmpty(); }
     QStringList getWarnings() const { return _warningList; }
 
+    std::vector<QString> getOutputFiles() const { return _outputFiles; }
+
 public slots:
     virtual void bake() = 0;
 
@@ -35,6 +37,10 @@ protected:
     void handleWarning(const QString& warning);
 
     void handleErrors(const QStringList& errors);
+
+    // List of baked output files. For instance, for an FBX this would
+    // include the .fbx and all of its texture files.
+    std::vector<QString> _outputFiles;
 
     QStringList _errorList;
     QStringList _warningList;

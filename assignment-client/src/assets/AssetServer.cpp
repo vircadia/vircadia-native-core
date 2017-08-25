@@ -63,28 +63,24 @@ void BakeAssetTask::run() {
     qRegisterMetaType<QVector<QString> >("QVector<QString>");
     TextureBakerThreadGetter fn = []() -> QThread* { return QThread::currentThread();  };
 
-    if (_filePath.endsWith(".fbx")) {
-        FBXBaker baker(QUrl("file:///" + _filePath), fn, PathUtils::generateTemporaryDir());
+    std::unique_ptr<Baker> baker;
 
-        QEventLoop loop;
-        connect(&baker, &Baker::finished, &loop, &QEventLoop::quit);
-        QMetaObject::invokeMethod(&baker, "bake", Qt::QueuedConnection);
-        qDebug() << "Running the bake!";
-        loop.exec();
-
-        qDebug() << "Finished baking: " << _assetHash << _assetPath << baker.getOutputFiles();
-        emit bakeComplete(_assetHash, _assetPath, QVector<QString>::fromStdVector(baker.getOutputFiles()));
+    if (_assetPath.endsWith(".fbx")) {
+        baker = std::make_unique<FBXBaker>(QUrl("file:///" + _filePath), fn, PathUtils::generateTemporaryDir());
     } else {
-        TextureBaker baker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE, PathUtils::generateTemporaryDir());
+        baker = std::make_unique<TextureBaker>(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE, PathUtils::generateTemporaryDir());
+    }
 
-        QEventLoop loop;
-        connect(&baker, &Baker::finished, &loop, &QEventLoop::quit);
-        QMetaObject::invokeMethod(&baker, "bake", Qt::QueuedConnection);
-        qDebug() << "Running the bake!";
-        loop.exec();
+    QEventLoop loop;
+    connect(baker.get(), &Baker::finished, &loop, &QEventLoop::quit);
+    QMetaObject::invokeMethod(baker.get(), "bake", Qt::QueuedConnection);
+    loop.exec();
 
-        qDebug() << "Finished baking: " << _assetHash << _assetPath << baker.getBakedTextureFileName();
-        emit bakeComplete(_assetHash, _assetPath, { baker.getDestinationFilePath() });
+    if (baker->hasErrors()) {
+        qDebug() << "Failed to bake: " << _assetHash << _assetPath;
+    } else {
+        qDebug() << "Finished baking: " << _assetHash << _assetPath << baker->getOutputFiles();
+        emit bakeComplete(_assetHash, _assetPath, QVector<QString>::fromStdVector(baker->getOutputFiles()));
     }
 }
 
@@ -491,7 +487,6 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         } else {
             replyPacket.write(QByteArray::fromHex(originalAssetHash.toUtf8()));
             replyPacket.writePrimitive(wasRedirected);
-
 
             auto query = QUrlQuery(url.query());
             bool isSkybox = query.hasQueryItem("skybox");
