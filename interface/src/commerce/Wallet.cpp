@@ -220,8 +220,8 @@ static const unsigned char IVEC[16] = "IAmAnIVecYay123";
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
     // first ivec
     memcpy(ivec, IVEC, 16);
-    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Md5);
-    memcpy(ckey, hash.data(), 16);
+    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Sha256);
+    memcpy(ckey, hash.data(), 32);
 }
 
 void Wallet::setPassphrase(const QString& passphrase) {
@@ -238,7 +238,7 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     // a constant.  We can review this later - there are ways to generate keys
     // from a password that may be better.
     unsigned char ivec[16];
-    unsigned char ckey[16];
+    unsigned char ckey[32];
 
     initializeAESKeys(ivec, ckey, _salt);
 
@@ -292,7 +292,7 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
 
 bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
     unsigned char ivec[16];
-    unsigned char ckey[16];
+    unsigned char ckey[32];
     initializeAESKeys(ivec, ckey, _salt);
 
     // read encrypted file
@@ -331,7 +331,6 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
     *outputBufferSize += tempSize;
     *outputBufferPtr = outputBuffer;
     qCDebug(commerce) << "decrypted buffer size" << *outputBufferSize;
-    delete[] outputBuffer;
     return true;
 }
 
@@ -466,6 +465,7 @@ void Wallet::getSecurityImage() {
         auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
         imageProvider->setSecurityImage(_securityImage);
 
+        delete[] data;
         emit securityImageResult(true);
     } else {
         qCDebug(commerce) << "failed to decrypt security image (maybe none saved yet?)";
