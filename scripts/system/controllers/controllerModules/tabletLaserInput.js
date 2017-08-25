@@ -85,125 +85,121 @@ Script.include("/~/system/libraries/controllers.js");
     var HAPTIC_STYLUS_STRENGTH = 1.0;
     var HAPTIC_STYLUS_DURATION = 20.0;
 
-    function stylusTargetHasKeyboardFocus(stylusTarget) {
-        if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
-            return Entities.keyboardFocusEntity === stylusTarget.entityID;
-        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
-            return Overlays.keyboardFocusOverlay === stylusTarget.overlayID;
+    function stylusTargetHasKeyboardFocus(laserTarget) {
+        if (laserTarget && laserTarget !== NULL_UUID) {
+            return Overlays.keyboardFocusOverlay === laserTarget;
         }
     }
 
-    function setKeyboardFocusOnStylusTarget(stylusTarget) {
-        if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID &&
-            Entities.wantsHandControllerPointerEvents(stylusTarget.entityID)) {
-            Overlays.keyboardFocusOverlay = NULL_UUID;
-            Entities.keyboardFocusEntity = stylusTarget.entityID;
-        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
-            Overlays.keyboardFocusOverlay = stylusTarget.overlayID;
+    function setKeyboardFocusOnStylusTarget(laserTarget) {
+        if (laserTarget && laserTarget !== NULL_UUID) {
+            Overlays.keyboardFocusOverlay = laserTarget;
             Entities.keyboardFocusEntity = NULL_UUID;
         }
     }
 
-    function sendHoverEnterEventToStylusTarget(hand, stylusTarget) {
+    function sendHoverEnterEventToStylusTarget(hand, laserTarget) {
+        if (!laserTarget) {
+            return;
+        }
         var pointerEvent = {
             type: "Move",
             id: hand + 1, // 0 is reserved for hardware mouse
-            pos2D: stylusTarget.position2D,
-            pos3D: stylusTarget.position,
-            normal: stylusTarget.normal,
-            direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+            pos2D: laserTarget.position2D,
+            pos3D: laserTarget.position,
+            normal: laserTarget.normal,
+            direction: Vec3.subtract(ZERO_VEC, laserTarget.normal),
             button: "None"
         };
 
-        if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
-            Entities.sendHoverEnterEntity(stylusTarget.entityID, pointerEvent);
-        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
-            Overlays.sendHoverEnterOverlay(stylusTarget.overlayID, pointerEvent);
+        if (laserTarget.overlayID && laserTarget.overlayID !== NULL_UUID) {
+            Overlays.sendHoverEnterOverlay(laserTarget.overlayID, pointerEvent);
         }
     }
 
-    function sendHoverOverEventToStylusTarget(hand, stylusTarget) {
+    function sendHoverOverEventToStylusTarget(hand, laserTarget) {
+        
+        if (!laserTarget) {
+            return;
+        }
         var pointerEvent = {
             type: "Move",
             id: hand + 1, // 0 is reserved for hardware mouse
-            pos2D: stylusTarget.position2D,
-            pos3D: stylusTarget.position,
-            normal: stylusTarget.normal,
-            direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+            pos2D: laserTarget.position2D,
+            pos3D: laserTarget.position,
+            normal: laserTarget.normal,
+            direction: Vec3.subtract(ZERO_VEC, laserTarget.normal),
             button: "None"
         };
 
-        if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
-            Entities.sendMouseMoveOnEntity(stylusTarget.entityID, pointerEvent);
-            Entities.sendHoverOverEntity(stylusTarget.entityID, pointerEvent);
-        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
-            Overlays.sendMouseMoveOnOverlay(stylusTarget.overlayID, pointerEvent);
-            Overlays.sendHoverOverOverlay(stylusTarget.overlayID, pointerEvent);
+        if (laserTarget.overlayID && laserTarget.overlayID !== NULL_UUID) {
+            Overlays.sendMouseMoveOnOverlay(laserTarget.overlayID, pointerEvent);
+            Overlays.sendHoverOverOverlay(laserTarget.overlayID, pointerEvent);
         }
     }
 
-    function sendTouchStartEventToStylusTarget(hand, stylusTarget) {
+    function sendTouchStartEventToStylusTarget(hand, laserTarget) {
+        if (!laserTarget) {
+            return;
+        }
+        
         var pointerEvent = {
             type: "Press",
             id: hand + 1, // 0 is reserved for hardware mouse
-            pos2D: stylusTarget.position2D,
-            pos3D: stylusTarget.position,
-            normal: stylusTarget.normal,
-            direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+            pos2D: laserTarget.position2D,
+            pos3D: laserTarget.position,
+            normal: laserTarget.normal,
+            direction: Vec3.subtract(ZERO_VEC, laserTarget.normal),
             button: "Primary",
             isPrimaryHeld: true
         };
 
-        if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
-            Entities.sendMousePressOnEntity(stylusTarget.entityID, pointerEvent);
-            Entities.sendClickDownOnEntity(stylusTarget.entityID, pointerEvent);
-        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
-            Overlays.sendMousePressOnOverlay(stylusTarget.overlayID, pointerEvent);
+        if (laserTarget.overlayID && laserTarget.overlayID !== NULL_UUID) {
+            Overlays.sendMousePressOnOverlay(laserTarget.overlayID, pointerEvent);
         }
     }
 
-    function sendTouchEndEventToStylusTarget(hand, stylusTarget) {
+    function sendTouchEndEventToStylusTarget(hand, laserTarget) {
+        if (!laserTarget) {
+            return;
+        }
         var pointerEvent = {
             type: "Release",
             id: hand + 1, // 0 is reserved for hardware mouse
-            pos2D: stylusTarget.position2D,
-            pos3D: stylusTarget.position,
-            normal: stylusTarget.normal,
-            direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+            pos2D: laserTarget.position2D,
+            pos3D: laserTarget.position,
+            normal: laserTarget.normal,
+            direction: Vec3.subtract(ZERO_VEC, laserTarget.normal),
             button: "Primary"
         };
 
-        if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
-            Entities.sendMouseReleaseOnEntity(stylusTarget.entityID, pointerEvent);
-            Entities.sendClickReleaseOnEntity(stylusTarget.entityID, pointerEvent);
-            Entities.sendHoverLeaveEntity(stylusTarget.entityID, pointerEvent);
-        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
-            Overlays.sendMouseReleaseOnOverlay(stylusTarget.overlayID, pointerEvent);
+        if (laserTarget.overlayID && laserTarget.overlayID !== NULL_UUID) {
+            Overlays.sendMouseReleaseOnOverlay(laserTarget.overlayID, pointerEvent);
         }
     }
 
-    function sendTouchMoveEventToStylusTarget(hand, stylusTarget) {
+    function sendTouchMoveEventToStylusTarget(hand, laserTarget) {
+        if (!laserTarget) {
+            return;
+        }
         var pointerEvent = {
             type: "Move",
             id: hand + 1, // 0 is reserved for hardware mouse
-            pos2D: stylusTarget.position2D,
-            pos3D: stylusTarget.position,
-            normal: stylusTarget.normal,
-            direction: Vec3.subtract(ZERO_VEC, stylusTarget.normal),
+            pos2D: laserTarget.position2D,
+            pos3D: laserTarget.position,
+            normal: laserTarget.normal,
+            direction: Vec3.subtract(ZERO_VEC, laserTarget.normal),
             button: "Primary",
             isPrimaryHeld: true
         };
-
-        if (stylusTarget.entityID && stylusTarget.entityID !== NULL_UUID) {
-            Entities.sendMouseMoveOnEntity(stylusTarget.entityID, pointerEvent);
-            Entities.sendHoldingClickOnEntity(stylusTarget.entityID, pointerEvent);
-        } else if (stylusTarget.overlayID && stylusTarget.overlayID !== NULL_UUID) {
-            Overlays.sendMouseMoveOnOverlay(stylusTarget.overlayID, pointerEvent);
+        
+        if (laserTarget.overlayID && laserTarget.overlayID !== NULL_UUID) {
+            Overlays.sendMouseReleaseOnOverlay(laserTarget.overlayID, pointerEvent);
         }
     }
 
     // will return undefined if overlayID does not exist.
-    function calculateStylusTargetFromOverlay(stylusTip, overlayID) {
+    function calculateLaserTargetFromOverlay(laserTip, overlayID) {
         var overlayPosition = Overlays.getProperty(overlayID, "position");
         if (overlayPosition === undefined) {
             return;
@@ -215,8 +211,8 @@ Script.include("/~/system/libraries/controllers.js");
             return;
         }
         var normal = Vec3.multiplyQbyV(overlayRotation, {x: 0, y: 0, z: 1});
-        var distance = Vec3.dot(Vec3.subtract(stylusTip.position, overlayPosition), normal);
-        var position = Vec3.subtract(stylusTip.position, Vec3.multiply(normal, distance));
+        var distance = Vec3.dot(Vec3.subtract(laserTip, overlayPosition), normal);
+        var position = Vec3.subtract(laserTip, Vec3.multiply(normal, distance));
 
         // calclulate normalized position
         var invRot = Quat.inverse(overlayRotation);
@@ -267,92 +263,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-    // will return undefined if entity does not exist.
-    function calculateStylusTargetFromEntity(stylusTip, props) {
-        if (props.rotation === undefined) {
-            // if rotation is missing from props object, then this entity has probably been deleted.
-            return;
-        }
-
-        // project stylus tip onto entity plane.
-        var normal = Vec3.multiplyQbyV(props.rotation, {x: 0, y: 0, z: 1});
-        Vec3.multiplyQbyV(props.rotation, {x: 0, y: 1, z: 0});
-        var distance = Vec3.dot(Vec3.subtract(stylusTip.position, props.position), normal);
-        var position = Vec3.subtract(stylusTip.position, Vec3.multiply(normal, distance));
-
-        // generate normalized coordinates
-        var invRot = Quat.inverse(props.rotation);
-        var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, props.position));
-        var invDimensions = { x: 1 / props.dimensions.x, y: 1 / props.dimensions.y, z: 1 / props.dimensions.z };
-        var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
-
-        // 2D position on entity plane in meters, relative to the bounding box upper-left hand corner.
-        var position2D = { x: normalizedPosition.x * props.dimensions.x,
-                           y: (1 - normalizedPosition.y) * props.dimensions.y }; // flip y-axis
-
-        return {
-            entityID: props.id,
-            entityProps: props,
-            overlayID: null,
-            distance: distance,
-            position: position,
-            position2D: position2D,
-            normal: normal,
-            normalizedPosition: normalizedPosition,
-            dimensions: props.dimensions,
-            valid: true
-        };
-    }
-
-    function isNearStylusTarget(stylusTargets, edgeBorder, minNormalDistance, maxNormalDistance) {
-        for (var i = 0; i < stylusTargets.length; i++) {
-            var stylusTarget = stylusTargets[i];
-
-            // check to see if the projected stylusTip is within within the 2d border
-            var borderMin = {x: -edgeBorder, y: -edgeBorder};
-            var borderMax = {x: stylusTarget.dimensions.x + edgeBorder, y: stylusTarget.dimensions.y + edgeBorder};
-            if (stylusTarget.distance >= minNormalDistance && stylusTarget.distance <= maxNormalDistance &&
-                stylusTarget.position2D.x >= borderMin.x && stylusTarget.position2D.y >= borderMin.y &&
-                stylusTarget.position2D.x <= borderMax.x && stylusTarget.position2D.y <= borderMax.y) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function calculateNearestStylusTarget(stylusTargets) {
-        var nearestStylusTarget;
-
-        for (var i = 0; i < stylusTargets.length; i++) {
-            var stylusTarget = stylusTargets[i];
-
-            if ((!nearestStylusTarget || stylusTarget.distance < nearestStylusTarget.distance) &&
-                stylusTarget.normalizedPosition.x >= 0 && stylusTarget.normalizedPosition.y >= 0 &&
-                stylusTarget.normalizedPosition.x <= 1 && stylusTarget.normalizedPosition.y <= 1) {
-                nearestStylusTarget = stylusTarget;
-            }
-        }
-
-        return nearestStylusTarget;
-    }
-
-    function getFingerWorldLocation(hand) {
-        var fingerJointName = (hand === RIGHT_HAND) ? "RightHandIndex4" : "LeftHandIndex4";
-
-        var fingerJointIndex = MyAvatar.getJointIndex(fingerJointName);
-        var fingerPosition = MyAvatar.getAbsoluteJointTranslationInObjectFrame(fingerJointIndex);
-        var fingerRotation = MyAvatar.getAbsoluteJointRotationInObjectFrame(fingerJointIndex);
-        var worldFingerRotation = Quat.multiply(MyAvatar.orientation, fingerRotation);
-        var worldFingerPosition = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, fingerPosition));
-
-        return {
-            position: worldFingerPosition,
-            orientation: worldFingerRotation,
-            rotation: worldFingerRotation,
-            valid: true
-        };
-    }
-
     function distance2D(a, b) {
         var dx = (a.x - b.x);
         var dy = (a.y - b.y);
@@ -361,12 +271,14 @@ Script.include("/~/system/libraries/controllers.js");
 
     function TabletLaserInput(hand) {
         this.hand = hand;
-        this.previousStylusTouchingTarget = false;
-        this.stylusTouchingTarget = false;
+        this.previousLaserClikcedTarget = false;
+        this.laserPressingTarget = false;
         this.tabletScreenID = HMD.tabletScreenID;
-
-        this.useFingerInsteadOfStylus = false;
-        this.fingerPointing = false;
+        this.mode = "none";
+        this.laserTargetID = null;
+        this.laserTarget = null;
+        this.pressEnterLaserTarget = null;
+        this.hover = false;
 
 
         this.parameters = makeDispatcherModuleParameters(
@@ -384,159 +296,118 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.stealTouchFocus = function(laserTarget) {
-            // send hover events to target
-            // record the entity or overlay we are hovering over.
-            if ((stylusTarget.entityID === this.getOtherHandController().hoverEntity) ||
-                (stylusTarget.overlayID === this.getOtherHandController().hoverOverlay)) {
-                this.getOtherHandController().relinquishTouchFocus();
-            }
-            this.requestTouchFocus(stylusTarget);
+            this.requestTouchFocus(laserTarget);
         };
 
         this.requestTouchFocus = function(laserTarget) {
-
-            // send hover events to target if we can.
-            // record the entity or overlay we are hovering over.
-            if (stylusTarget.entityID &&
-                stylusTarget.entityID !== this.hoverEntity &&
-                stylusTarget.entityID !== this.getOtherHandController().hoverEntity) {
-                this.hoverEntity = stylusTarget.entityID;
-                sendHoverEnterEventToStylusTarget(this.hand, stylusTarget);
-            } else if (stylusTarget.overlayID &&
-                       stylusTarget.overlayID !== this.hoverOverlay &&
-                       stylusTarget.overlayID !== this.getOtherHandController().hoverOverlay) {
-                this.hoverOverlay = stylusTarget.overlayID;
-                sendHoverEnterEventToStylusTarget(this.hand, stylusTarget);
-            }
+            sendHoverEnterEventToStylusTarget(this.hand, this.laserTarget);
         };
 
         this.hasTouchFocus = function(laserTarget) {
-            return ((stylusTarget.entityID && stylusTarget.entityID === this.hoverEntity) ||
-                    (stylusTarget.overlayID && stylusTarget.overlayID === this.hoverOverlay));
+            return (this.laserTargetID === HMD.tabletScreenID);
         };
 
         this.relinquishTouchFocus = function() {
             // send hover leave event.
             var pointerEvent = { type: "Move", id: this.hand + 1 };
-            if (this.hoverEntity) {
-                Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
-                this.hoverEntity = null;
-            } else if (this.hoverOverlay) {
-                Overlays.sendMouseMoveOnOverlay(HMD.tabletScreenID, pointerEvent);
-                Overlays.sendHoverOverOverlay(this.hoverOverlay, pointerEvent);
-                Overlays.sendHoverLeaveOverlay(this.hoverOverlay, pointerEvent);
-                this.hoverOverlay = null;
-            }
+            Overlays.sendMouseMoveOnOverlay(this.tabletScreenID, pointerEvent);
+            Overlays.sendHoverOverOverlay(this.tabletScreenID, pointerEvent);
+            Overlays.sendHoverLeaveOverlay(this.tabletScreenID, pointerEvent);
         };
 
         this.updateLaserPointer = function(controllerData) {
             var RADIUS = 0.005;
             var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
-
-            var mode = "none";
             
-            if (controllerData.triggerClicks[this.hand]) {
-                mode = "full";
-            } else if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                mode = "half";
-            } else {
-                LaserPointers.disableLaserPointer(this.laserPointer);
-                return;
-            }
-
-            if (mode === "full") {
+            if (this.mode === "full") {
                 this.fullEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, mode, {path: fullPath, end: this.fullEnd});
-            } else if (mode === "half") {
+                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: fullPath, end: this.fullEnd});
+            } else if (this.mode === "half") {
                 this.halfEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, mode, {path: halfPath, end: this.halfEnd});
+                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: halfPath, end: this.halfEnd});
             }
 
             LaserPointers.enableLaserPointer(this.laserPointer);
-            LaserPointers.setRenderState(this.laserPointer, mode);
+            LaserPointers.setRenderState(this.laserPointer, this.mode);
         };
 
-        this.pointFinger = function(value) {
-            var HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index";
-            if (this.fingerPointing !== value) {
-                var message;
-                if (this.hand === RIGHT_HAND) {
-                    message = { pointRightIndex: value };
-                } else {
-                    message = { pointLeftIndex: value };
-                }
-                Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify(message), true);
-                this.fingerPointing = value;
-            }
-        };
-
-        this.processLaser = function(controllerData) {
-            if (controllerData.rayPicks[this.hand].objectID === HMD.tabletScreenID) {
+        this.processControllerTriggers = function(controllerData) {
+            var rayPickIntersection = controllerData.rayPicks[this.hand].intersection;
+            this.laserTarget = calculateLaserTargetFromOverlay(rayPickIntersection, HMD.tabletScreenID);
+            if (controllerData.triggerClicks[this.hand]) {
+                this.mode = "full";
+                this.laserPressingTarget = true;
+                this.hover = false;
+            } else if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                this.mode = "half";
+                this.laserPressingTarget = false;
+                this.hover = true;
+                this.requestTouchFocus(HMD.tabletScreenID);
+            } else {
+                this.mode = "none";
+                this.laserPressingTarget = false;
+                this.hover = false;
+                this.relinquishTouchFocus();
                 
-            }            
+            }
             this.homeButtonTouched = false;
         };
 
-        this.laserTouchingEnter = function () {
-            this.stealTouchFocus(this.stylusTarget);
-            sendTouchStartEventToStylusTarget(this.hand, this.stylusTarget);
+        this.hovering = function() {
+            if (this.hasTouchFocus(this.laserTargetID)) {
+                sendHoverOverEventToStylusTarget(this.hand, this.laserTarget);
+            }
+        };
+
+        this.laserPressEnter = function () {
+            this.stealTouchFocus(this.laserTarget.overlayID);
+            sendTouchStartEventToStylusTarget(this.hand, this.laserTarget);
             Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
 
             this.touchingEnterTimer = 0;
-            this.touchingEnterStylusTarget = this.stylusTarget;
+            this.pressEnterLaserTarget = this.laserTarget;
             this.deadspotExpired = false;
 
             var TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.0381;
             this.deadspotRadius = TOUCH_PRESS_TO_MOVE_DEADSPOT;
         };
 
-        this.laserTouchingExit = function () {
+        this.laserPressExit = function () {
 
-            if (this.stylusTarget === undefined) {
+            if (this.laserTarget === undefined) {
                 return;
             }
 
             // special case to handle home button.
-            if (this.stylusTarget.overlayID === HMD.homeButtonID) {
-                Messages.sendLocalMessage("home", this.stylusTarget.overlayID);
+            if (this.laserTargetID === HMD.homeButtonID) {
+                Messages.sendLocalMessage("home", this.laserTargetID);
             }
 
             // send press event
             if (this.deadspotExpired) {
-                sendTouchEndEventToStylusTarget(this.hand, this.stylusTarget);
+                sendTouchEndEventToStylusTarget(this.hand, this.laserTarget);
             } else {
-                sendTouchEndEventToStylusTarget(this.hand, this.touchingEnterStylusTarget);
+                print(this.pressEnterLaserTarget);
+                sendTouchEndEventToStylusTarget(this.hand, this.pressEnterLaserTarget);
             }
         };
 
-        this.laserTouching = function (controllerData, dt) {
+        this.laserPressing = function (controllerData, dt) {
 
             this.touchingEnterTimer += dt;
 
-            if (this.stylusTarget.entityID) {
-                this.stylusTarget = calculateStylusTargetFromEntity(this.stylusTip, this.stylusTarget.entityProps);
-            } else if (this.stylusTarget.overlayID) {
-                this.stylusTarget = calculateStylusTargetFromOverlay(this.stylusTip, this.stylusTarget.overlayID);
-            }
-
-            var TABLET_MIN_TOUCH_DISTANCE = -0.1;
-            var TABLET_MAX_TOUCH_DISTANCE = 0.01;
-
-            if (this.stylusTarget) {
-                if (this.stylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
-                    this.stylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE) {
-                    var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
-                    if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
-                        distance2D(this.stylusTarget.position2D,
-                                   this.touchingEnterStylusTarget.position2D) > this.deadspotRadius) {
-                        sendTouchMoveEventToStylusTarget(this.hand, this.stylusTarget);
-                        this.deadspotExpired = true;
-                    }
-                } else {
-                    this.stylusTouchingTarget = false;
+            if (this.laserTarget) {
+               
+                var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
+                if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
+                    distance2D(this.laserTarget.position2D,
+                               this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
+                    sendTouchMoveEventToStylusTarget(this.hand, this.laserTarget);
+                    this.deadspotExpired = true;
                 }
+                
             } else {
-                this.stylusTouchingTarget = false;
+                this.laserPressingTarget = false;
             }
         };
 
@@ -556,38 +427,61 @@ Script.include("/~/system/libraries/controllers.js");
             var target = controllerData.rayPicks[this.hand].objectID;
             if (this.pointingAtTabletScreen(target) || this.pointingAtHomeButton(target) || this.pointingAtTablet(target)) {
                 if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                    this.tabletScrenID = HMD.tabletScreenID;
                     return makeRunningValues(true, [], []);
                 }
             }
-            //this.processLaser(controllerData);
             return makeRunningValues(false, [], []);
+        };
+
+        this.reset = function() {
+            this.laserPressExit();
+            this.hover = false;
+            this.pressEnterLaserTarget = null;
+            this.laserTarget = null;
+            this.laserTargetID = null;
+            this.laserPressingTarget = false;
+            this.previousLaserClickedTarget = null;
+            this.mode = "none";
         };
 
         this.run = function (controllerData, deltaTime) {
             var target = controllerData.rayPicks[this.hand].objectID;
+
+            
             if (!this.pointingAtTabletScreen(target) && !this.pointingAtHomeButton(target) && !this.pointingAtTablet(target)) {
                 LaserPointers.disableLaserPointer(this.laserPointer);
+                this.laserPressExit();
+                this.relinquishTouchFocus();
+                this.reset();
+                this.updateLaserPointer();
                 return makeRunningValues(false, [], []);
             }
+
+            this.processControllerTriggers(controllerData);
             this.updateLaserPointer(controllerData);
-            //this.updateFingerAsStylusSetting();
-
-/*            if (!this.previousStylusTouchingTarget && this.stylusTouchingTarget) {
-                this.stylusTouchingEnter();
-            }
-            if (this.previousStylusTouchingTarget && !this.stylusTouchingTarget) {
-                this.stylusTouchingExit();
-            }
-            this.previousStylusTouchingTarget = this.stylusTouchingTarget;
-
-            if (this.stylusTouchingTarget) {
-                this.stylusTouching(controllerData, deltaTime);
-            }*/
-            /*if (this.processLaser(controllerData)) {
+            var intersection = LaserPointers.getPrevRayPickResult(this.laserPointer);
+            this.laserTargetID = intersection.objectID;
+            this.laserTarget = calculateLaserTargetFromOverlay(intersection.intersection, intersection.objectID);
+            if (this.laserTarget === undefined) {
                 return makeRunningValues(true, [], []);
-            } else {
-                return makeRunningValues(false, [], []);
-                }*/
+            }
+
+            if (!this.previousLaserClickedTarget && this.laserPressingTarget) {
+                this.laserPressEnter();
+            }
+            if (this.previousLaserClickedTarget && !this.laserPressingTarget) {
+                this.laserPressExit();
+            }
+            this.previousLaserClickedTarget = this.laserPressingTarget;
+
+            if (this.laserPressingTarget) {
+                this.laserPressing(controllerData, deltaTime);
+            }
+            
+            if (this.hover) {
+                this.hovering();
+            }
 
             return makeRunningValues(true, [], []);
         };
@@ -608,6 +502,8 @@ Script.include("/~/system/libraries/controllers.js");
             faceAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
+
+        LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID]);
     };
     
     var leftTabletLaserInput = new TabletLaserInput(LEFT_HAND);
