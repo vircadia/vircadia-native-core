@@ -1173,10 +1173,6 @@ void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::v
     if (index == -1) {
         return;
     }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
-        return;
-    }
     QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
@@ -1192,27 +1188,19 @@ void AvatarData::clearJointData(int index) {
     if (index == -1) {
         return;
     }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
-        return;
-    }
     QWriteLocker writeLock(&_jointDataLock);
     // FIXME: I don't understand how this "clears" the joint data at index
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
     }
+    _jointData[index] = {};
 }
 
 bool AvatarData::isJointDataValid(int index) const {
     if (index == -1) {
         return false;
     }
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "isJointDataValid", 
-            Q_RETURN_ARG(bool, result), Q_ARG(int, index));
-        return result;
-    }
+    QReadLocker readLock(&_jointDataLock);
     return index < _jointData.size();
 }
 
@@ -1220,73 +1208,61 @@ glm::quat AvatarData::getJointRotation(int index) const {
     if (index == -1) {
         return glm::quat();
     }
-    if (QThread::currentThread() != thread()) {
-        glm::quat result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotation", 
-            Q_RETURN_ARG(glm::quat, result), Q_ARG(int, index));
-        return result;
-    }
     QReadLocker readLock(&_jointDataLock);
     return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
 }
 
-
 glm::vec3 AvatarData::getJointTranslation(int index) const {
     if (index == -1) {
         return glm::vec3();
-    }
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslation", 
-            Q_RETURN_ARG(glm::vec3, result), Q_ARG(int, index));
-        return result;
     }
     QReadLocker readLock(&_jointDataLock);
     return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
 }
 
 glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslation", 
-            Q_RETURN_ARG(glm::vec3, result), Q_ARG(const QString&, name));
-        return result;
-    }
-    return getJointTranslation(getJointIndex(name));
+    // Can't do this, because the lock needs to cover the entire set of logic.  In theory, the joints could change 
+    // on another thread in between the call to getJointIndex and getJointTranslation
+    // return getJointTranslation(getJointIndex(name));
+    return readLockWithNamedJointIndex<glm::vec3>(name, [this](int index) {
+        return _jointData.at(index).translation;
+    });
 }
 
 void AvatarData::setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(const QString&, name), Q_ARG(const glm::quat&, rotation),
-            Q_ARG(const glm::vec3&, translation));
-        return;
-    }
-    setJointData(getJointIndex(name), rotation, translation);
+    // Can't do this, not thread safe
+    // setJointData(getJointIndex(name), rotation, translation);
+
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        auto& jointData = _jointData[index];
+        jointData.rotation = rotation;
+        jointData.translation = translation;
+        jointData.rotationSet = jointData.translationSet = true;
+    });
 }
 
 void AvatarData::setJointRotation(const QString& name, const glm::quat& rotation) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(const QString&, name), Q_ARG(const glm::quat&, rotation));
-        return;
-    }
-    setJointRotation(getJointIndex(name), rotation);
+    // Can't do this, not thread safe
+    // setJointRotation(getJointIndex(name), rotation);
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        auto& data = _jointData[index];
+        data.rotation = rotation;
+        data.rotationSet = true;
+    });
 }
 
 void AvatarData::setJointTranslation(const QString& name, const glm::vec3& translation) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(const QString&, name),
-            Q_ARG(const glm::vec3&, translation));
-        return;
-    }
-    setJointTranslation(getJointIndex(name), translation);
+    // Can't do this, not thread safe
+    // setJointTranslation(getJointIndex(name), translation);
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        auto& data = _jointData[index];
+        data.translation = translation;
+        data.translationSet = true;
+    });
 }
 
 void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
     if (index == -1) {
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1302,10 +1278,6 @@ void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
     if (index == -1) {
         return;
     }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
-        return;
-    }
     QWriteLocker writeLock(&_jointDataLock);
     if (_jointData.size() <= index) {
         _jointData.resize(index + 1);
@@ -1316,31 +1288,32 @@ void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
 }
 
 void AvatarData::clearJointData(const QString& name) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(const QString&, name));
-        return;
-    }
-    clearJointData(getJointIndex(name));
+    // Can't do this, not thread safe
+    // clearJointData(getJointIndex(name));
+    writeLockWithNamedJointIndex(name, [&](int index) {
+        _jointData[index] = {};
+    });
 }
 
 bool AvatarData::isJointDataValid(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "isJointDataValid", 
-            Q_RETURN_ARG(bool, result), Q_ARG(const QString&, name));
-        return result;
-    }
-    return isJointDataValid(getJointIndex(name));
+    // Can't do this, not thread safe
+    // return isJointDataValid(getJointIndex(name));
+
+    return readLockWithNamedJointIndex<bool>(name, false, [&](int index) {
+        // This is technically superfluous....  the lambda is only called if index is a valid 
+        // offset for _jointData.  Nevertheless, it would be confusing to leave the lamdba as
+        // `return true`
+        return index < _jointData.size();
+    });
 }
 
 glm::quat AvatarData::getJointRotation(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        glm::quat result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotation", 
-            Q_RETURN_ARG(glm::quat, result), Q_ARG(const QString&, name));
-        return result;
-    }
-    return getJointRotation(getJointIndex(name));
+    // Can't do this, not thread safe
+    // return getJointRotation(getJointIndex(name));
+
+    return readLockWithNamedJointIndex<glm::quat>(name, [&](int index) {
+        return _jointData.at(index).rotation;
+    });
 }
 
 QVector<glm::quat> AvatarData::getJointRotations() const {
@@ -1358,30 +1331,20 @@ QVector<glm::quat> AvatarData::getJointRotations() const {
     return jointRotations;
 }
 
-void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
-    if (QThread::currentThread() != thread()) {
-        QVector<glm::quat> result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "setJointRotations",
-                                  Q_ARG(QVector<glm::quat>, jointRotations));
-    }
+void AvatarData::setJointRotations(const QVector<glm::quat>& jointRotations) {
     QWriteLocker writeLock(&_jointDataLock);
-    if (_jointData.size() < jointRotations.size()) {
-        _jointData.resize(jointRotations.size());
+    auto size = jointRotations.size();
+    if (_jointData.size() < size) {
+        _jointData.resize(size);
     }
-    for (int i = 0; i < jointRotations.size(); ++i) {
-        if (i < _jointData.size()) {
-            setJointRotation(i, jointRotations[i]);
-        }
+    for (int i = 0; i < size; ++i) {
+        auto& data = _jointData[i];
+        data.rotation = jointRotations[i];
+        data.rotationSet = true;
     }
 }
 
 QVector<glm::vec3> AvatarData::getJointTranslations() const {
-    if (QThread::currentThread() != thread()) {
-        QVector<glm::vec3> result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslations",
-                                  Q_RETURN_ARG(QVector<glm::vec3>, result));
-        return result;
-    }
     QReadLocker readLock(&_jointDataLock);
     QVector<glm::vec3> jointTranslations(_jointData.size());
     for (int i = 0; i < _jointData.size(); ++i) {
@@ -1390,29 +1353,24 @@ QVector<glm::vec3> AvatarData::getJointTranslations() const {
     return jointTranslations;
 }
 
-void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
-    if (QThread::currentThread() != thread()) {
-        QVector<glm::quat> result;
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "setJointTranslations",
-                                  Q_ARG(QVector<glm::vec3>, jointTranslations));
-    }
+void AvatarData::setJointTranslations(const QVector<glm::vec3>& jointTranslations) {
     QWriteLocker writeLock(&_jointDataLock);
-    if (_jointData.size() < jointTranslations.size()) {
-        _jointData.resize(jointTranslations.size());
+    auto size = jointTranslations.size();
+    if (_jointData.size() < size) {
+        _jointData.resize(size);
     }
-    for (int i = 0; i < jointTranslations.size(); ++i) {
-        if (i < _jointData.size()) {
-            setJointTranslation(i, jointTranslations[i]);
-        }
+    for (int i = 0; i < size; ++i) {
+        auto& data = _jointData[i];
+        data.translation = jointTranslations[i];
+        data.translationSet = true;
     }
 }
 
 void AvatarData::clearJointsData() {
-    // FIXME: this method is terribly inefficient and probably doesn't even work
-    // (see implementation of clearJointData(index))
-    for (int i = 0; i < _jointData.size(); ++i) {
-        clearJointData(i);
-    }
+    QWriteLocker writeLock(&_jointDataLock);
+    QVector<JointData> newJointData;
+    newJointData.resize(_jointData.size());
+    _jointData.swap(newJointData);
 }
 
 int AvatarData::getFauxJointIndex(const QString& name) const {
@@ -2302,10 +2260,6 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
 const int MAX_NUM_AVATAR_ENTITIES = 42;
 
 void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "updateAvatarEntity", Q_ARG(const QUuid&, entityID), Q_ARG(QByteArray, entityData));
-        return;
-    }
     _avatarEntitiesLock.withWriteLock([&] {
         AvatarEntityMap::iterator itr = _avatarEntityData.find(entityID);
         if (itr == _avatarEntityData.end()) {
@@ -2323,11 +2277,6 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "clearAvatarEntity", Q_ARG(const QUuid&, entityID));
-        return;
-    }
-
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityData.remove(entityID);
         _avatarEntityDataLocallyEdited = true;
@@ -2337,12 +2286,6 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID) {
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
     AvatarEntityMap result;
-    if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAvatarEntityData",
-                                  Q_RETURN_ARG(AvatarEntityMap, result));
-        return result;
-    }
-
     _avatarEntitiesLock.withReadLock([&] {
         result = _avatarEntityData;
     });
@@ -2359,10 +2302,6 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
     if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
         // the data is suspect
         qCDebug(avatars) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
-        return;
-    }
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAvatarEntityData", Q_ARG(const AvatarEntityMap&, avatarEntityData));
         return;
     }
     _avatarEntitiesLock.withWriteLock([&] {
@@ -2384,11 +2323,6 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
     AvatarEntityIDs result;
-    if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs",
-                                  Q_RETURN_ARG(AvatarEntityIDs, result));
-        return result;
-    }
     _avatarEntitiesLock.withWriteLock([&] {
         result = _avatarEntityDetached;
         _avatarEntityDetached.clear();
