@@ -1,8 +1,8 @@
 //
-//  InventoryItem.qml
-//  qml/hifi/commerce/inventory
+//  PurchasedItem.qml
+//  qml/hifi/commerce/purchases
 //
-//  InventoryItem
+//  PurchasedItem
 //
 //  Created by Zach Fox on 2017-08-25
 //  Copyright 2017 High Fidelity, Inc.
@@ -50,7 +50,7 @@ Rectangle {
         MouseArea {
             anchors.fill: parent;
             onClicked: {
-                sendToInventory({method: 'inventory_itemInfoClicked', itemId: root.itemId});
+                sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
             }
         }
     }
@@ -78,7 +78,7 @@ Rectangle {
             anchors.fill: parent;
             hoverEnabled: enabled;
             onClicked: {
-                sendToInventory({method: 'inventory_itemInfoClicked', itemId: root.itemId});
+                sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
             }
             onEntered: {
                 itemName.color = hifi.colors.blueHighlight;
@@ -128,7 +128,7 @@ Rectangle {
             height: parent.height/2 - 4;
             text: "More Info"
             onClicked: {
-                sendToInventory({method: 'inventory_itemInfoClicked', itemId: root.itemId});
+                sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
             }
         }
     }
@@ -136,7 +136,7 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-    signal sendToInventory(var message);
+    signal sendToPurchases(var message);
     //
     // FUNCTION DEFINITIONS END
     //

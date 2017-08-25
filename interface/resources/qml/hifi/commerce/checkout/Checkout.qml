@@ -26,7 +26,7 @@ Rectangle {
 
     id: root;
     property string activeView: "initialize";
-    property bool inventoryReceived: false;
+    property bool purchasesReceived: false;
     property bool balanceReceived: false;
     property string itemId: "";
     property string itemHref: "";
@@ -76,10 +76,10 @@ Rectangle {
 
         onInventoryResult: {
             if (result.status !== 'success') {
-                console.log("Failed to get inventory", result.data.message);
+                console.log("Failed to get purchases", result.data.message);
             } else {
-                root.inventoryReceived = true;
-                if (inventoryContains(result.data.assets, itemId)) {
+                root.purchasesReceived = true;
+                if (purchasesContains(result.data.assets, itemId)) {
                     root.alreadyOwned = true;
                 } else {
                     root.alreadyOwned = false;
@@ -638,7 +638,7 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                enabled: balanceAfterPurchase >= 0 && inventoryReceived && balanceReceived;
+                enabled: balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived;
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
@@ -647,16 +647,16 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
                 width: parent.width/2 - anchors.rightMargin*2;
-                text: (inventoryReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Again" : "Buy"): "--";
+                text: (purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Again" : "Buy"): "--";
                 onClicked: {
                     buyButton.enabled = false;
                     commerce.buy(itemId, itemPriceFull);
                 }
             }            
 
-            // "Inventory" button
+            // "Purchases" button
             HifiControlsUit.Button {
-                id: goToInventoryButton;
+                id: goToPurchasesButton;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: buyButton.bottom;
@@ -666,9 +666,9 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
                 width: parent.width - anchors.leftMargin*2;
-                text: "View Inventory"
+                text: "View Purchases"
                 onClicked: {
-                    sendToScript({method: 'checkout_goToInventory'});
+                    sendToScript({method: 'checkout_goToPurchases'});
                 }
             }
         
@@ -741,9 +741,9 @@ Rectangle {
             anchors.left: parent.left;
             anchors.right: parent.right;
 
-            // "Inventory" button
+            // "Purchases" button
             HifiControlsUit.Button {
-                id: inventoryButton;
+                id: purchasesButton;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
@@ -753,9 +753,9 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
                 width: parent.width/2 - anchors.leftMargin*2;
-                text: "View Inventory";
+                text: "View Purchases";
                 onClicked: {
-                    sendToScript({method: 'checkout_goToInventory'});
+                    sendToScript({method: 'checkout_goToPurchases'});
                 }
             }
 
@@ -825,7 +825,7 @@ Rectangle {
         
         RalewayRegular {
             id: failureHeaderText;
-            text: "<b>Purchase Failed.</b><br>Your Inventory and HFC balance haven't changed.";
+            text: "<b>Purchase Failed.</b><br>Your Purchases and HFC balance haven't changed.";
             // Text size
             size: 24;
             // Anchors
@@ -925,9 +925,9 @@ Rectangle {
     }
     signal sendToScript(var message);
 
-    function inventoryContains(inventoryJson, id) {
-        for (var idx = 0; idx < inventoryJson.length; idx++) {
-            if(inventoryJson[idx].id === id) {
+    function purchasesContains(purchasesJson, id) {
+        for (var idx = 0; idx < purchasesJson.length; idx++) {
+            if(purchasesJson[idx].id === id) {
                 return true;
             }
         }
@@ -935,10 +935,10 @@ Rectangle {
     }
 
     function setBuyText() {
-        if (root.inventoryReceived && root.balanceReceived) {
+        if (root.purchasesReceived && root.balanceReceived) {
             if (root.balanceAfterPurchase < 0) {
                 if (root.alreadyOwned) {
-                    buyText.text = "You do not have enough HFC to purchase this item again. Go to your Inventory to view the copy you own.";
+                    buyText.text = "You do not have enough HFC to purchase this item again. Go to your Purchases to view the copy you own.";
                 } else {
                     buyText.text = "You do not have enough HFC to purchase this item.";
                 }
@@ -946,7 +946,7 @@ Rectangle {
                 if (root.alreadyOwned) {
                     buyText.text = "<b>You already own this item.</b> If you buy it again, you'll be able to use multiple copies of it at once.";
                 } else {
-                    buyText.text = "This item will be added to your <b>Inventory</b>, which can be accessed from <b>Marketplace</b>.";
+                    buyText.text = "This item will be added to your <b>Purchases</b>, which can be accessed from <b>Marketplace</b>.";
                 }
             }
         } else {

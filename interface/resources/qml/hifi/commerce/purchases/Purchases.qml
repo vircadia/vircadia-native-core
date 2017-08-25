@@ -1,8 +1,8 @@
 //
-//  Inventory.qml
-//  qml/hifi/commerce/inventory
+//  Purchases.qml
+//  qml/hifi/commerce/purchases
 //
-//  Inventory
+//  Purchases
 //
 //  Created by Zach Fox on 2017-08-25
 //  Copyright 2017 High Fidelity, Inc.
@@ -35,25 +35,25 @@ Rectangle {
         onSecurityImageResult: {
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
-            } else if (exists && root.activeView !== "inventoryMain") {
-                root.activeView = "inventoryMain";
+            } else if (exists && root.activeView !== "purchasesMain") {
+                root.activeView = "purchasesMain";
             }
         }
 
         onKeyFilePathIfExistsResult: {
             if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
-            } else if (path !== "" && root.activeView !== "inventoryMain") {
-                root.activeView = "inventoryMain";
+            } else if (path !== "" && root.activeView !== "purchasesMain") {
+                root.activeView = "purchasesMain";
             }
         }
 
         onInventoryResult: {
             if (result.status !== 'success') {
-                console.log("Failed to get inventory", result.message);
+                console.log("Failed to get purchases", result.message);
             } else {
-                inventoryModel.append(result.data.assets);
-                filteredInventoryModel.append(result.data.assets);
+                purchasesModel.append(result.data.assets);
+                filteredPurchasesModel.append(result.data.assets);
             }
         }
     }
@@ -73,7 +73,7 @@ Rectangle {
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
-            text: "INVENTORY";
+            text: "PURCHASES";
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
@@ -116,11 +116,11 @@ Rectangle {
     }
 
     //
-    // INVENTORY CONTENTS START
+    // PURCHASES CONTENTS START
     //
     Item {
-        id: inventoryContentsContainer;
-        visible: root.activeView === "inventoryMain";
+        id: purchasesContentsContainer;
+        visible: root.activeView === "purchasesMain";
         // Anchors
         anchors.left: parent.left;
         anchors.leftMargin: 4;
@@ -152,16 +152,16 @@ Rectangle {
 
                 onTextChanged: {
                     if (filterBar.text.length < previousLength) {
-                        filteredInventoryModel.clear();
+                        filteredPurchasesModel.clear();
 
-                        for (var i = 0; i < inventoryModel.count; i++) {
-                            filteredInventoryModel.append(inventoryModel.get(i));
+                        for (var i = 0; i < purchasesModel.count; i++) {
+                            filteredPurchasesModel.append(purchasesModel.get(i));
                         }
                     }
 
-                    for (var i = 0; i < filteredInventoryModel.count; i++) {
-                        if (filteredInventoryModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) === -1) {
-                            filteredInventoryModel.remove(i);
+                    for (var i = 0; i < filteredPurchasesModel.count; i++) {
+                        if (filteredPurchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) === -1) {
+                            filteredPurchasesModel.remove(i);
                             i--;
                         }
                     }
@@ -174,23 +174,23 @@ Rectangle {
         //
 
         ListModel {
-            id: inventoryModel;
+            id: purchasesModel;
         }
         ListModel {
-            id: filteredInventoryModel;
+            id: filteredPurchasesModel;
         }
 
         ListView {
-            id: inventoryContentsList;
+            id: purchasesContentsList;
             clip: true;
-            model: filteredInventoryModel;
+            model: filteredPurchasesModel;
             // Anchors
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width;
-            delegate: InventoryItem {
+            delegate: PurchasedItem {
                 itemName: title;
                 itemId: id;
                 itemPreviewImageUrl: preview;
@@ -199,9 +199,9 @@ Rectangle {
                 
                 Connections {
                     target: parent;
-                    onSendToInventory: {
-                        if (msg.method === 'inventory_itemInfoClicked') {
-                            sendToScript({method: 'inventory_itemInfoClicked', itemId: itemId});
+                    onSendToPurchases: {
+                        if (msg.method === 'purchases_itemInfoClicked') {
+                            sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
                         }
                     }
                 }
@@ -209,7 +209,7 @@ Rectangle {
         }
     }
     //
-    // INVENTORY CONTENTS END
+    // PURCHASES CONTENTS END
     //
 
     //
@@ -239,7 +239,7 @@ Rectangle {
             width: parent.width/2 - anchors.leftMargin*2;
             text: "Back"
             onClicked: {
-                sendToScript({method: 'inventory_backClicked', referrerURL: referrerURL});
+                sendToScript({method: 'purchases_backClicked', referrerURL: referrerURL});
             }
         }
     }
@@ -265,7 +265,7 @@ Rectangle {
     //
     function fromScript(message) {
         switch (message.method) {
-            case 'updateInventory':
+            case 'updatePurchases':
                 referrerURL = message.referrerURL;
                 commerce.balance();
                 commerce.inventory();

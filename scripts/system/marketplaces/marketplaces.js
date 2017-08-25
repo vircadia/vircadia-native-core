@@ -20,7 +20,7 @@
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
     var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/checkout/Checkout.qml";
-    var MARKETPLACE_INVENTORY_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/inventory/Inventory.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
     var MARKETPLACE_WALLET_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -88,7 +88,7 @@
 
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
-        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_INVENTORY_QML_PATH));
+        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_PURCHASES_QML_PATH));
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
@@ -141,10 +141,10 @@
                     action: "inspectionModeSetting",
                     data: Settings.getValue("inspectionMode", false)
                 }));
-            } else if (parsedJsonMessage.type === "INVENTORY") {
-                tablet.pushOntoStack(MARKETPLACE_INVENTORY_QML_PATH);
+            } else if (parsedJsonMessage.type === "PURCHASES") {
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 tablet.sendToQml({
-                    method: 'updateInventory',
+                    method: 'updatePurchases',
                     referrerURL: parsedJsonMessage.referrerURL
                 });
             }
@@ -208,10 +208,10 @@
                 // I don't think this is trivial to do since we also want to inject some JS into the DOM.
                 //tablet.popFromStack();
                 break;
-            case 'checkout_goToInventory':
-                tablet.pushOntoStack(MARKETPLACE_INVENTORY_QML_PATH);
+            case 'checkout_goToPurchases':
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 tablet.sendToQml({
-                    method: 'updateInventory',
+                    method: 'updatePurchases',
                     referrerURL: MARKETPLACE_URL_INITIAL
                 });
                 break;
@@ -219,17 +219,17 @@
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 //tablet.popFromStack();
                 break;
-            case 'inventory_itemInfoClicked':
+            case 'purchases_itemInfoClicked':
                 var itemId = message.itemId;
                 if (itemId && itemId !== "") {
                     tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 }
                 break;
-            case 'inventory_backClicked':
+            case 'purchases_backClicked':
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             default:
-                print('Unrecognized message from Checkout.qml or Inventory.qml: ' + JSON.stringify(message));
+                print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));
         }
     }
 
