@@ -120,10 +120,13 @@ void TextureBaker::processTexture() {
     const size_t length = memKTX->_storage->size();
 
     // attempt to write the baked texture to the destination file path
-    QFile bakedTextureFile { _outputDirectory.absoluteFilePath(_bakedTextureFileName) };
+    auto filePath = _outputDirectory.absoluteFilePath(_bakedTextureFileName);
+    QFile bakedTextureFile { filePath };
 
     if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {
         handleError("Could not write baked texture for " + _textureURL.toString());
+    } else {
+        _outputFiles.push_back(filePath);
     }
 
     qCDebug(model_baking) << "Baked texture" << _textureURL;

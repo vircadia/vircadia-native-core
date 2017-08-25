@@ -44,7 +44,6 @@ public:
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
-    std::vector<QString> getOutputFiles() const { return _outputFiles; }
 
 public slots:
     // all calls to FBXBaker::bake for FBXBaker instances must be from the same thread
@@ -87,9 +86,6 @@ private:
 
     QDir _tempDir;
     QString _originalFBXFilePath;
-
-    // List of baked output files, includes the FBX and textures
-    std::vector<QString> _outputFiles;
 
     static FBXSDKManagerUniquePointer _sdkManager;
     fbxsdk::FbxScene* _scene { nullptr };
