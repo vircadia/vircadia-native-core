@@ -143,8 +143,10 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 #endif
         _traversal.traverse(TIME_BUDGET);
 
-        uint64_t dt = usecTimestampNow() - startTime;
-        std::cout << "adebug  traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
+        if (_sendQueue.size() > 0) {
+            uint64_t dt = usecTimestampNow() - startTime;
+            std::cout << "adebug  traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
+        }
     }
 
 #ifndef SEND_SORTED_ENTITIES
@@ -416,8 +418,10 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
             ++_numEntities;
         }
         _sendQueue.pop();
+        _entitiesInQueue.erase(entity.get());
     }
     if (_sendQueue.empty()) {
+        assert(_entitiesInQueue.empty());
         params.stopReason = EncodeBitstreamParams::FINISHED;
         _extraEncodeData->entities.clear();
     }
