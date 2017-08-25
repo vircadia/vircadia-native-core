@@ -88,15 +88,15 @@ vec4 taa_fetchNextMap(vec2 uv) {
 }
 
 vec2 taa_fetchVelocityMap(vec2 uv) {
-	return params.motionScale * texture(velocityMap, uv).xy;
+	return texture(velocityMap, uv).xy;
 }
 
 float taa_fetchDepth(vec2 uv) {
-	return texture(depthMap, vec2(uv), 0).x;
+	return -texture(depthMap, vec2(uv), 0).x;
 }
 
 
-#define ZCMP_GT(a, b) (a < b)
+#define ZCMP_GT(a, b) (a > b)
 
 vec3 taa_findClosestFragment3x3(vec2 uv)
 {

@@ -182,8 +182,9 @@ const int AntialiasingPass_FrameTransformSlot = 1;
 const int AntialiasingPass_HistoryMapSlot = 0;
 const int AntialiasingPass_SourceMapSlot = 1;
 const int AntialiasingPass_VelocityMapSlot = 2;
-const int AntialiasingPass_NextMapSlot = 3;
 const int AntialiasingPass_DepthMapSlot = 3;
+
+const int AntialiasingPass_NextMapSlot = 4;
 
 
 Antialiasing::Antialiasing() {
@@ -298,7 +299,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
     auto& deferredFrameTransform = inputs.get0();
     auto& sourceBuffer = inputs.get1();
-    auto& velocityBuffer = inputs.get2();
+    auto& linearDepthBuffer = inputs.get2();
+    auto& velocityBuffer = inputs.get3();
     
     int width = sourceBuffer->getWidth();
     int height = sourceBuffer->getHeight();
@@ -334,7 +336,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(AntialiasingPass_HistoryMapSlot, _antialiasingTexture[prevFrame]);
         batch.setResourceTexture(AntialiasingPass_SourceMapSlot, sourceBuffer->getRenderBuffer(0));
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
-        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, sourceBuffer->getDepthStencilBuffer());
+        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, linearDepthBuffer->getLinearDepthTexture());
 
         batch.setUniformBuffer(AntialiasingPass_ParamsSlot, _params._buffer);
         batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, deferredFrameTransform->getFrameTransformBuffer());
