@@ -1370,6 +1370,8 @@
             ui.updateUIEntities();
             break;
         case "clearTool":
+            grouping.clear();
+            toolSelected = TOOL_NONE;
             ui.clearTool();
             ui.updateUIEntities();
             break;
