@@ -52,7 +52,7 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get inventory", result.message);
             } else {
-                inventoryContentsList.model = result.data.assets;
+                inventoryModel.append(result.data.assets);
             }
         }
     }
@@ -122,9 +122,9 @@ Rectangle {
         visible: root.activeView === "inventoryMain";
         // Anchors
         anchors.left: parent.left;
-        anchors.leftMargin: 16;
+        anchors.leftMargin: 4;
         anchors.right: parent.right;
-        anchors.rightMargin: 16;
+        anchors.rightMargin: 4;
         anchors.top: titleBarContainer.bottom;
         anchors.topMargin: 8;
         anchors.bottom: actionButtonsContainer.top;
@@ -153,9 +153,14 @@ Rectangle {
         // FILTER BAR END
         //
 
+        ListModel {
+            id: inventoryModel;
+        }
+
         ListView {
             id: inventoryContentsList;
             clip: true;
+            model: inventoryModel;
             // Anchors
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
@@ -163,10 +168,20 @@ Rectangle {
             anchors.bottom: parent.bottom;
             width: parent.width;
             delegate: InventoryItem {
-                width: parent.width;
-                height: 30;
-                itemName: modelData.title;
-                itemId: modelData.id;
+                itemName: title;
+                itemId: id;
+                itemPreviewImageUrl: preview;
+                anchors.topMargin: 12;
+                anchors.bottomMargin: 12;
+                
+                Connections {
+                    target: parent;
+                    onSendToInventory: {
+                        if (msg.method === 'inventory_itemInfoClicked') {
+                            sendToScript({method: 'inventory_itemInfoClicked', itemId: itemId});
+                        }
+                    }
+                }
             }
         }
     }

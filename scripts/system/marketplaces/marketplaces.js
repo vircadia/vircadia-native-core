@@ -219,7 +219,7 @@
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 //tablet.popFromStack();
                 break;
-            case 'inventory_itemClicked':
+            case 'inventory_itemInfoClicked':
                 var itemId = message.itemId;
                 if (itemId && itemId !== "") {
                     tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);

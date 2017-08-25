@@ -27,58 +27,116 @@ Rectangle {
     id: root;
     property string itemName: "";
     property string itemId: "";
+    property string itemPreviewImageUrl: "";
+    property string itemHref: "";
     // Style
-    color: hifi.colors.baseGray;
+    color: hifi.colors.white;
+    // Size
+    width: parent.width;
+    height: 120;
+
+    Image {
+        id: itemPreviewImage;
+        source: root.itemPreviewImageUrl;
+        anchors.left: parent.left;
+        anchors.leftMargin: 8;
+        anchors.top: parent.top;
+        anchors.topMargin: 8;
+        anchors.bottom: parent.bottom;
+        anchors.bottomMargin: 8;
+        width: 180;
+        fillMode: Image.PreserveAspectFit;
+
+        MouseArea {
+            anchors.fill: parent;
+            onClicked: {
+                sendToInventory({method: 'inventory_itemInfoClicked', itemId: root.itemId});
+            }
+        }
+    }
 
     
     RalewayRegular {
-        id: thisItemId;
+        id: itemName;
+        anchors.top: itemPreviewImage.top;
+        anchors.left: itemPreviewImage.right;
+        anchors.leftMargin: 8;
+        anchors.right: parent.right;
+        anchors.rightMargin: 8;
+        height: 30;
         // Text size
         size: 20;
         // Style
         color: hifi.colors.blueAccent;
-        text: itemName;
+        text: root.itemName;
+        elide: Text.ElideRight;
         // Alignment
         horizontalAlignment: Text.AlignLeft;
+        verticalAlignment: Text.AlignVCenter;
+
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: enabled;
+            onClicked: {
+                sendToInventory({method: 'inventory_itemInfoClicked', itemId: root.itemId});
+            }
+            onEntered: {
+                itemName.color = hifi.colors.blueHighlight;
+            }
+            onExited: {
+                itemName.color = hifi.colors.blueAccent;
+            }
+        }
     }
-    MouseArea {
-        anchors.fill: parent;
-        hoverEnabled: enabled;
-        onClicked: {
-            sendToScript({method: 'inventory_itemClicked', itemId: itemId});
+
+    Item {
+        id: buttonContainer;
+        anchors.top: itemName.bottom;
+        anchors.topMargin: 8;
+        anchors.bottom: parent.bottom;
+        anchors.bottomMargin: 8;
+        anchors.left: itemPreviewImage.right;
+        anchors.leftMargin: 8;
+        anchors.right: parent.right;
+        anchors.rightMargin: 8;
+
+        // "Rez" button
+        HifiControlsUit.Button {
+            id: rezButton;
+            color: hifi.buttons.blue;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            height: parent.height/2 - 4;
+            text: "Rez Item"
+            onClicked: {
+                if (urlHandler.canHandleUrl(root.itemHref)) {
+                    urlHandler.handleUrl(root.itemHref);
+                }
+            }
         }
-        onEntered: {
-            thisItemId.color = hifi.colors.blueHighlight;
-        }
-        onExited: {
-            thisItemId.color = hifi.colors.blueAccent;
+
+        // "More Info" button
+        HifiControlsUit.Button {
+            id: moreInfoButton;
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.bottom: parent.bottom;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            height: parent.height/2 - 4;
+            text: "More Info"
+            onClicked: {
+                sendToInventory({method: 'inventory_itemInfoClicked', itemId: root.itemId});
+            }
         }
     }
 
     //
     // FUNCTION DEFINITIONS START
     //
-    //
-    // Function Name: fromScript()
-    //
-    // Relevant Variables:
-    // None
-    //
-    // Arguments:
-    // message: The message sent from the JavaScript, in this case the Marketplaces JavaScript.
-    //     Messages are in format "{method, params}", like json-rpc.
-    //
-    // Description:
-    // Called when a message is received from a script.
-    //
-    function fromScript(message) {
-        switch (message.method) {
-            default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
-        }
-    }
-    signal sendToScript(var message);
-
+    signal sendToInventory(var message);
     //
     // FUNCTION DEFINITIONS END
     //
