@@ -12,27 +12,34 @@
 #ifndef hifi_RenderableTextEntityItem_h
 #define hifi_RenderableTextEntityItem_h
 
-#include <TextEntityItem.h>
-#include <TextRenderer3D.h>
-
 #include "RenderableEntityItem.h"
 
-const int FIXED_FONT_POINT_SIZE = 40;
+class TextEntityItem;
+class TextRenderer3D;
 
-class RenderableTextEntityItem : public TextEntityItem, public SimplerRenderableEntitySupport {
+namespace render { namespace entities {
+
+class TextEntityRenderer : public TypedEntityRenderer<TextEntityItem> {
+    using Parent = TypedEntityRenderer<TextEntityItem>;
+    using Pointer = std::shared_ptr<TextEntityRenderer>;
 public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableTextEntityItem(const EntityItemID& entityItemID) : TextEntityItem(entityItemID) { }
-    ~RenderableTextEntityItem();
+    TextEntityRenderer(const EntityItemPointer& entity);
 
-    virtual void render(RenderArgs* args) override;
-
-    SIMPLE_RENDERABLE();
-    
 private:
-    int _geometryID { 0 };
-    TextRenderer3D* _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f);
+    virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
+    int _geometryID{ 0 };
+    TextRenderer3D* _textRenderer;
+    bool _faceCamera;
+    glm::vec3 _dimensions;
+    glm::vec3 _textColor;
+    glm::vec3 _backgroundColor;
+    QString _text;
+    float _lineHeight;
 };
 
+} } 
 
 #endif // hifi_RenderableTextEntityItem_h

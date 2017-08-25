@@ -9,76 +9,65 @@
 #ifndef hifi_RenderableWebEntityItem_h
 #define hifi_RenderableWebEntityItem_h
 
-#include <QSharedPointer>
-#include <QMouseEvent>
-#include <QTouchEvent>
-#include <PointerEvent.h>
-#include <ui/OffscreenQmlSurface.h>
-
 #include <WebEntityItem.h>
-
 #include "RenderableEntityItem.h"
 
+class OffscreenQmlSurface;
+class PointerEvent;
 
-class QWindow;
-class QObject;
-class EntityTreeRenderer;
-class RenderableWebEntityItem;
+namespace render { namespace entities {
 
+class WebEntityRenderer : public TypedEntityRenderer<WebEntityItem> {
+    using Parent = TypedEntityRenderer<WebEntityItem>;
+    friend class EntityRenderer;
 
-class RenderableWebEntityItem : public WebEntityItem, SimplerRenderableEntitySupport {
 public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableWebEntityItem(const EntityItemID& entityItemID);
-    ~RenderableWebEntityItem();
+    WebEntityRenderer(const EntityItemPointer& entity);
 
-    virtual void render(RenderArgs* args) override;
-    void loadSourceURL();
-    virtual void setSourceUrl(const QString& value) override;
+protected:
+    virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
+    virtual bool needsRenderUpdate() const override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
+    virtual bool isTransparent() const override;
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
     virtual bool wantsKeyboardFocus() const override { return true; }
     virtual void setProxyWindow(QWindow* proxyWindow) override;
     virtual QObject* getEventHandler() override;
 
-    void handlePointerEvent(const PointerEvent& event);
-
-    void update(const quint64& now) override;
-    bool needsToCallUpdate() const override { return _webSurface != nullptr; }
-
-    virtual void emitScriptEvent(const QVariant& message) override;
-
-    SIMPLE_RENDERABLE();
-
-    virtual bool isTransparent() override;
-
- public:
-
-    virtual QObject* getRootItem() override;
+private:
+    void onTimeout();
+    bool buildWebSurface(const TypedEntityPointer& entity);
+    void destroyWebSurface();
+    bool hasWebSurface();
+    void loadSourceURL();
+    glm::vec2 getWindowSize(const TypedEntityPointer& entity) const;
+    void handlePointerEvent(const TypedEntityPointer& entity, const PointerEvent& event);
 
 private:
-    bool buildWebSurface();
-    void destroyWebSurface();
-    glm::vec2 getWindowSize() const;
 
-    QSharedPointer<OffscreenQmlSurface> _webSurface;
-    QMetaObject::Connection _connection;
-    gpu::TexturePointer _texture;
-    bool _pressed{ false };
-    uint64_t _lastRenderTime{ 0 };
-    QTouchDevice _touchDevice;
-
-    QMetaObject::Connection _mousePressConnection;
-    QMetaObject::Connection _mouseReleaseConnection;
-    QMetaObject::Connection _mouseMoveConnection;
-    QMetaObject::Connection _hoverLeaveConnection;
-
+    int _geometryId{ 0 };
     enum contentType {
         htmlContent,
         qmlContent
     };
     contentType _contentType;
-    int _geometryId { 0 };
+    QSharedPointer<OffscreenQmlSurface> _webSurface;
+    glm::vec3 _contextPosition;
+    gpu::TexturePointer _texture;
+    bool _pressed{ false };
+    QString _lastSourceUrl;
+    uint16_t _lastDPI;
+    QTimer _timer;
+    uint64_t _lastRenderTime { 0 };
 };
+
+} } // namespace 
+
+#if 0
+    virtual void emitScriptEvent(const QVariant& message) override;
+#endif
 
 #endif // hifi_RenderableWebEntityItem_h
