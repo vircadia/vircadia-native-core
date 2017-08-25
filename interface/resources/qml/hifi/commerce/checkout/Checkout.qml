@@ -25,7 +25,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string activeView: "checkoutMain";
+    property string activeView: "initialize";
     property bool inventoryReceived: false;
     property bool balanceReceived: false;
     property string itemId: "";
@@ -41,12 +41,16 @@ Rectangle {
         onSecurityImageResult: {
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
+            } else if (exists && root.activeView !== "checkoutMain") {
+                root.activeView = "checkoutMain";
             }
         }
 
         onKeyFilePathIfExistsResult: {
             if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
+            } else if (path !== "" && root.activeView !== "checkoutMain") {
+                root.activeView = "checkoutMain";
             }
         }
 
@@ -63,9 +67,10 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get balance", result.data.message);
             } else {
-                balanceReceived = true;
+                root.balanceReceived = true;
                 hfcBalanceText.text = (parseFloat(result.data.balance/100).toFixed(2)) + " HFC";
-                balanceAfterPurchase = parseFloat(result.data.balance/100) - parseFloat(root.itemPriceFull/100).toFixed(2);
+                balanceAfterPurchase = parseFloat(result.data.balance/100) - parseFloat(root.itemPriceFull/100);
+                root.setBuyText();
             }
         }
 
@@ -73,12 +78,13 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get inventory", result.data.message);
             } else {
-                inventoryReceived = true;
+                root.inventoryReceived = true;
                 if (inventoryContains(result.data.assets, itemId)) {
-                    alreadyOwned = true;
+                    root.alreadyOwned = true;
                 } else {
-                    alreadyOwned = false;
+                    root.alreadyOwned = false;
                 }
+                root.setBuyText();
             }
         }
     }
@@ -125,6 +131,21 @@ Rectangle {
     //
     // TITLE BAR END
     //
+
+    Rectangle {
+        id: initialize;
+        visible: root.activeView === "initialize";
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: parent.top;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        color: hifi.colors.baseGray;
+
+        Component.onCompleted: {
+            commerce.getSecurityImage();
+            commerce.getKeyFilePathIfExists();
+        }
+    }
     
     //
     // "WALLET NOT SET UP" START
@@ -133,20 +154,23 @@ Rectangle {
         id: notSetUp;
         visible: root.activeView === "notSetUp";
         anchors.top: titleBarContainer.bottom;
-        anchors.bottom: root.bottom;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
         
         RalewayRegular {
             id: notSetUpText;
-            text: "Set up your Wallet (no credit card necessary) to claim your <b>free HFC</b> " +
+            text: "<b>Your wallet isn't set up.</b><br><br>Set up your Wallet (no credit card necessary) to claim your <b>free HFC</b> " +
             "and get items from the Marketplace.";
             // Text size
-            size: 18;
+            size: 24;
             // Anchors
             anchors.top: parent.top;
-            anchors.topMargin: 50;
             anchors.bottom: notSetUpActionButtonsContainer.top;
             anchors.left: parent.left;
+            anchors.leftMargin: 16;
             anchors.right: parent.right;
+            anchors.rightMargin: 16;
             // Style
             color: hifi.colors.faintGray;
             wrapMode: Text.WordWrap;
@@ -159,11 +183,11 @@ Rectangle {
             id: notSetUpActionButtonsContainer;
             // Size
             width: root.width;
-            height: 40;
+            height: 70;
             // Anchors
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 8;
+            anchors.bottomMargin: 24;
         
             // "Cancel" button
             HifiControlsUit.Button {
@@ -186,7 +210,7 @@ Rectangle {
             // "Set Up" button
             HifiControlsUit.Button {
                 id: setUpButton;
-                color: hifi.buttons.black;
+                color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
                 anchors.topMargin: 3;
@@ -197,7 +221,7 @@ Rectangle {
                 width: parent.width/2 - anchors.rightMargin*2;
                 text: "Set Up Wallet"
                 onClicked: {
-                    sendToScript({method: 'checkout_setupClicked'});
+                    sendToScript({method: 'checkout_setUpClicked'});
                 }
             }
         }
@@ -216,6 +240,13 @@ Rectangle {
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
+
+        onVisibleChanged: {
+            if (visible) {
+                commerce.balance();
+                commerce.inventory();
+            }
+        }
 
         //
         // ITEM DESCRIPTION START
@@ -488,7 +519,7 @@ Rectangle {
 
                 RalewaySemiBold {
                     id: totalCostTextLabel;
-                    text: "Total Cost:";
+                    text: "<b>Total Cost:</b>";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
@@ -504,7 +535,7 @@ Rectangle {
                 }
                 RalewayRegular {
                     id:totalCostText;
-                    text: "-- HFC";
+                    text: "<b>-- HFC</b>";
                     // Text size
                     size: totalCostTextLabel.size;
                     // Anchors
@@ -552,7 +583,7 @@ Rectangle {
                 }
                 RalewayRegular {
                     id: balanceAfterPurchaseText;
-                    text: balanceAfterPurchase + " HFC";
+                    text: balanceAfterPurchase.toFixed(2) + " HFC";
                     // Text size
                     size: balanceAfterPurchaseTextLabel.size;
                     // Anchors
@@ -582,39 +613,19 @@ Rectangle {
             id: checkoutActionButtonsContainer;
             // Size
             width: root.width;
-            height: root.alreadyOwned ? 200 : 130;
+            height: 200;
             // Anchors
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: 8;
-            
-
-            // "Inventory" button
-            HifiControlsUit.Button {
-                id: goToInventoryButton;
-                visible: root.alreadyOwned;
-                color: hifi.buttons.black;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
-                anchors.bottomMargin: 7;
-                height: 40;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
-                width: parent.width - anchors.leftMargin*2;
-                text: "View Inventory"
-                onClicked: {
-                    sendToScript({method: 'checkout_goToInventory'});
-                }
-            }
 
             // "Cancel" button
             HifiControlsUit.Button {
                 id: cancelPurchaseButton;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
-                anchors.top: goToInventoryButton.visible ? goToInventoryButton.bottom : parent.top;
-                anchors.topMargin: goToInventoryButton.visible ? 20 : 3;
+                anchors.top: parent.top;
+                anchors.topMargin: 3;
                 height: 40;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
@@ -629,10 +640,10 @@ Rectangle {
             HifiControlsUit.Button {
                 id: buyButton;
                 enabled: balanceAfterPurchase >= 0 && inventoryReceived && balanceReceived;
-                color: hifi.buttons.black;
+                color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
-                anchors.top: goToInventoryButton.visible ? goToInventoryButton.bottom : parent.top;
-                anchors.topMargin: goToInventoryButton.visible ? 20 : 3;
+                anchors.top: parent.top;
+                anchors.topMargin: 3;
                 height: 40;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
@@ -642,13 +653,28 @@ Rectangle {
                     buyButton.enabled = false;
                     commerce.buy(itemId, itemPriceFull);
                 }
+            }            
+
+            // "Inventory" button
+            HifiControlsUit.Button {
+                id: goToInventoryButton;
+                color: hifi.buttons.black;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.top: buyButton.bottom;
+                anchors.topMargin: 20;
+                anchors.bottomMargin: 7;
+                height: 40;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: parent.width - anchors.leftMargin*2;
+                text: "View Inventory"
+                onClicked: {
+                    sendToScript({method: 'checkout_goToInventory'});
+                }
             }
         
             RalewayRegular {
                 id: buyText;
-                text: (inventoryReceived && balanceReceived) ? ((balanceAfterPurchase < 0) ? "You do not have enough HFC to purchase this item." :
-                (root.alreadyOwned ? "<b>You already own this item.</b> If you buy it again, you'll be able to use multiple copies of it at once." :
-                "This item will be added to your <b>Inventory</b>, which can be accessed from <b>Marketplace</b>.")) : "";
                 // Text size
                 size: 20;
                 // Anchors
@@ -688,12 +714,12 @@ Rectangle {
         
         RalewayRegular {
             id: completeText;
-            text: "<b>Purchase Complete.</b><br>You bought " + (itemNameText.text) + " by " + (itemAuthorText.text);
+            text: "<b>Purchase Complete!</b><br><br>You bought <b>" + (itemNameText.text) + "</b> by <b>" + (itemAuthorText.text) + "</b>";
             // Text size
             size: 24;
             // Anchors
             anchors.top: parent.top;
-            anchors.topMargin: 10;
+            anchors.topMargin: 40;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -709,32 +735,12 @@ Rectangle {
             id: checkoutSuccessActionButtonsContainer;
             // Size
             width: root.width;
-            height: 130;
+            height: 70;
             // Anchors
             anchors.top: completeText.bottom;
-            anchors.topMargin: 10;
+            anchors.topMargin: 30;
             anchors.left: parent.left;
             anchors.right: parent.right;
-
-            // "Rez Now!" button
-            HifiControlsUit.Button {
-                id: rezNowButton;
-                color: hifi.buttons.black;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
-                width: parent.width/2 - anchors.leftMargin*2;
-                text: "Rez Now!"
-                onClicked: {
-                    if (urlHandler.canHandleUrl(itemHref)) {
-                        urlHandler.handleUrl(itemHref);
-                    }
-                }
-            }
 
             // "Inventory" button
             HifiControlsUit.Button {
@@ -745,12 +751,32 @@ Rectangle {
                 anchors.topMargin: 3;
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 3;
-                anchors.right: parent.right;
-                anchors.rightMargin: 20;
-                width: parent.width/2 - anchors.rightMargin*2;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: parent.width/2 - anchors.leftMargin*2;
                 text: "View Inventory";
                 onClicked: {
                     sendToScript({method: 'checkout_goToInventory'});
+                }
+            }
+
+            // "Rez Now!" button
+            HifiControlsUit.Button {
+                id: rezNowButton;
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.top: parent.top;
+                anchors.topMargin: 3;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 3;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                width: parent.width/2 - anchors.rightMargin*2;
+                text: "Rez Now!"
+                onClicked: {
+                    if (urlHandler.canHandleUrl(itemHref)) {
+                        urlHandler.handleUrl(itemHref);
+                    }
                 }
             }
         }
@@ -759,7 +785,7 @@ Rectangle {
             id: continueShoppingButtonContainer;
             // Size
             width: root.width;
-            height: 130;
+            height: 70;
             // Anchors
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
@@ -773,8 +799,8 @@ Rectangle {
                 anchors.topMargin: 3;
                 anchors.bottom: parent.bottom;
                 anchors.bottomMargin: 3;
-                anchors.right: parent.right;
-                anchors.rightMargin: 20;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
                 width: parent.width/2 - anchors.rightMargin*2;
                 text: "Continue Shopping";
                 onClicked: {
@@ -891,10 +917,8 @@ Rectangle {
                 itemAuthorText.text = message.params.itemAuthor;
                 root.itemPriceFull = message.params.itemPrice;
                 itemPriceText.text = (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC";
-                totalCostText.text = (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC";
+                totalCostText.text = "<b>" + (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC</b>";
                 itemHref = message.params.itemHref;
-                commerce.balance();
-                commerce.inventory();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
@@ -909,6 +933,26 @@ Rectangle {
             }
         }
         return false;
+    }
+
+    function setBuyText() {
+        if (root.inventoryReceived && root.balanceReceived) {
+            if (root.balanceAfterPurchase < 0) {
+                if (root.alreadyOwned) {
+                    buyText.text = "You do not have enough HFC to purchase this item again. Go to your Inventory to view the copy you own.";
+                } else {
+                    buyText.text = "You do not have enough HFC to purchase this item.";
+                }
+            } else {
+                if (root.alreadyOwned) {
+                    buyText.text = "<b>You already own this item.</b> If you buy it again, you'll be able to use multiple copies of it at once.";
+                } else {
+                    buyText.text = "This item will be added to your <b>Inventory</b>, which can be accessed from <b>Marketplace</b>.";
+                }
+            }
+        } else {
+            buyText.text = "";
+        }
     }
 
     //
