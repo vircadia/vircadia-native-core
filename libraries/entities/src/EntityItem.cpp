@@ -35,48 +35,9 @@
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
-std::function<bool()> EntityItem::_entitiesShouldFadeFunction = [](){ return true; };
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
-    SpatiallyNestable(NestableType::Entity, entityItemID),
-    _type(EntityTypes::Unknown),
-    _lastSimulated(0),
-    _lastUpdated(0),
-    _lastEdited(0),
-    _lastEditedBy(ENTITY_ITEM_DEFAULT_LAST_EDITED_BY),
-    _lastEditedFromRemote(0),
-    _lastEditedFromRemoteInRemoteTime(0),
-    _created(UNKNOWN_CREATED_TIME),
-    _changedOnServer(0),
-    _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
-    _density(ENTITY_ITEM_DEFAULT_DENSITY),
-    _volumeMultiplier(1.0f),
-    _gravity(ENTITY_ITEM_DEFAULT_GRAVITY),
-    _acceleration(ENTITY_ITEM_DEFAULT_ACCELERATION),
-    _damping(ENTITY_ITEM_DEFAULT_DAMPING),
-    _restitution(ENTITY_ITEM_DEFAULT_RESTITUTION),
-    _friction(ENTITY_ITEM_DEFAULT_FRICTION),
-    _lifetime(ENTITY_ITEM_DEFAULT_LIFETIME),
-    _script(ENTITY_ITEM_DEFAULT_SCRIPT),
-    _scriptTimestamp(ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
-    _collisionSoundURL(ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
-    _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
-    _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
-    _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
-    _collisionless(ENTITY_ITEM_DEFAULT_COLLISIONLESS),
-    _collisionMask(ENTITY_COLLISION_MASK_DEFAULT),
-    _dynamic(ENTITY_ITEM_DEFAULT_DYNAMIC),
-    _locked(ENTITY_ITEM_DEFAULT_LOCKED),
-    _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
-    _simulationOwner(),
-    _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
-    _name(ENTITY_ITEM_DEFAULT_NAME),
-    _href(""),
-    _description(""),
-    _dirtyFlags(0),
-    _element(nullptr),
-    _physicsInfo(nullptr),
-    _simulated(false)
+    SpatiallyNestable(NestableType::Entity, entityItemID) 
 {
     setLocalVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
     setLocalAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
@@ -2331,11 +2292,13 @@ void EntityItem::locationChanged(bool tellPhysics) {
         }
     }
     SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
+    somethingChangedNotification();
 }
 
 void EntityItem::dimensionsChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::dimensionsChanged(); // Do what you have to do
+    somethingChangedNotification();
 }
 
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
@@ -2852,3 +2815,25 @@ float EntityItem::getDensity() const {
     return result;
 }
 
+EntityItem::ChangeHandlerId EntityItem::registerChangeHandler(const ChangeHandlerCallback& handler) {
+    ChangeHandlerId result = QUuid::createUuid();
+    withWriteLock([&] {
+        _changeHandlers[result] = handler;
+    });
+    return result;
+}
+
+void EntityItem::deregisterChangeHandler(const ChangeHandlerId& changeHandlerId) {
+    withWriteLock([&] {
+        _changeHandlers.remove(changeHandlerId);
+    });
+}
+
+void EntityItem::somethingChangedNotification() {
+    auto id = getEntityItemID();
+    withReadLock([&] {
+        for (const auto& handler : _changeHandlers.values()) {
+            handler(id);
+        }
+    });
+}

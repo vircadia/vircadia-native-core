@@ -4,7 +4,7 @@
 //
 //  SecurityImageModel
 //
-//  Created by Zach Fox on 2017-08-15
+//  Created by Zach Fox on 2017-08-17
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -38,5 +38,9 @@ ListModel {
     ListElement{
         sourcePath: "images/06gingerbread.jpg"
         securityImageEnumValue: 6;
+    }
+
+    function getImagePathFromImageID(imageID) {
+        return (imageID ? root.get(imageID - 1).sourcePath : "");
     }
 }

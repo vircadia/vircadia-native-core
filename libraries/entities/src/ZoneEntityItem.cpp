@@ -194,16 +194,6 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, getFilterURL());
 }
 
-void ZoneEntityItem::somethingChangedNotification() {
-    EntityItem::somethingChangedNotification();
-    withWriteLock([&] {
-        _keyLightPropertiesChanged = false;
-        _backgroundPropertiesChanged = false;
-        _stagePropertiesChanged = false;
-        _skyboxPropertiesChanged = false;
-    });
-}
-
 void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
@@ -272,4 +262,13 @@ QString ZoneEntityItem::getCompoundShapeURL() const {
         result = _compoundShapeURL;
     });
     return result;
+}
+
+void ZoneEntityItem::resetRenderingPropertiesChanged() {
+    withWriteLock([&] {
+        _keyLightPropertiesChanged = false;
+        _backgroundPropertiesChanged = false;
+        _stagePropertiesChanged = false;
+        _skyboxPropertiesChanged = false;
+    });
 }
