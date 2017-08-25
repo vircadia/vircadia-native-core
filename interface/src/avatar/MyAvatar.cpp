@@ -1507,6 +1507,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
     }
     _characterController.handleChangedCollisionGroup();
     _characterController.setParentVelocity(parentVelocity);
+    _characterController.setScaleFactor(getSensorToWorldScale());
 
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);

@@ -42,7 +42,15 @@ const glm::quat DEFAULT_AVATAR_LEFTFOOT_ROT { -0.40167322754859924f, 0.915459036
 const glm::vec3 DEFAULT_AVATAR_RIGHTFOOT_POS { 0.08f, -0.96f, 0.029f };
 const glm::quat DEFAULT_AVATAR_RIGHTFOOT_ROT { -0.4016716778278351f, 0.9154615998268127f, 0.0053307069465518f, 0.023696165531873703f };
 
-const float DEFAULT_AVATAR_MAX_WALKING_SPEED = 2.6f; // m/s
-const float DEFAULT_AVATAR_MAX_FLYING_SPEED = 30.0f; // m/s
+const float DEFAULT_AVATAR_MAX_WALKING_SPEED = 2.6f; // meters / second
+const float DEFAULT_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
+
+const float DEFAULT_AVATAR_GRAVITY = -5.0f; // meters / second^2
+const float DEFAULT_AVATAR_JUMP_SPEED = 3.5f; // meters / second
+const float DEFAULT_AVATAR_JUMP_HEIGHT = (DEFAULT_AVATAR_JUMP_SPEED * DEFAULT_AVATAR_JUMP_SPEED) / (2.0f * DEFAULT_AVATAR_GRAVITY); // meters
+
+const float DEFAULT_AVATAR_FALL_HEIGHT = 20.0f; // meters
+const float DEFAULT_AVATAR_MIN_HOVER_HEIGHT = 2.5f; // meters
+
 
 #endif // hifi_AvatarConstants_h
