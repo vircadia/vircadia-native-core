@@ -453,6 +453,7 @@ Var ExpressInstallRadioButton
 Var CustomInstallRadioButton
 Var InstallTypeDialog
 Var Express
+Var CustomInstallTemporaryState
 
 !macro SetInstallOption Checkbox OptionName Default
   ; reads the value for the given install option to the registry
@@ -493,8 +494,16 @@ Function InstallTypesPage
   pop $CustomInstallRadioButton
   ${NSD_OnClick} $CustomInstallRadioButton ChangeCustomLabel
 
-  ; read the install type from the registry, select express install by default
-  !insertmacro SetInstallOption $ExpressInstallRadioButton @CUSTOM_INSTALL_REG_KEY@ ${BST_CHECKED}
+  ; check install type from the registry, express install by default
+  !insertmacro SetInstallOption $CustomInstallRadioButton @CUSTOM_INSTALL_REG_KEY@ ${BST_UNCHECKED}
+
+  ; set the express install value based on the custom install value from registry
+  ${NSD_GetState} $CustomInstallRadioButton $CustomInstallTemporaryState
+
+  ${If} $CustomInstallTemporaryState == ${BST_UNCHECKED}
+    ${NSD_Check} $ExpressInstallRadioButton
+  ${EndIf}
+
   Call ChangeExpressLabel
 
   nsDialogs::Show
