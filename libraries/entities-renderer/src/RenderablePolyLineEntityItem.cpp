@@ -9,7 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/gtx/quaternion.hpp>
+#include "RenderablePolyLineEntityItem.h"
+#include <ParticleEffectEntityItem.h>
 
 #include <GeometryCache.h>
 #include <StencilMaskPass.h>
@@ -22,24 +23,30 @@
 #   include <FadeEffect.h>
 #endif
 
-#include "RenderablePolyLineEntityItem.h"
-
 #include "paintStroke_vert.h"
 #include "paintStroke_frag.h"
 
 #include "paintStroke_fade_vert.h"
 #include "paintStroke_fade_frag.h"
 
-uint8_t PolyLinePayload::CUSTOM_PIPELINE_NUMBER = 0;
+using namespace render;
+using namespace render::entities;
 
-gpu::PipelinePointer PolyLinePayload::_pipeline;
-gpu::PipelinePointer PolyLinePayload::_fadePipeline;
+static uint8_t CUSTOM_PIPELINE_NUMBER { 0 };
+static const int32_t PAINTSTROKE_TEXTURE_SLOT{ 0 };
+static const int32_t PAINTSTROKE_UNIFORM_SLOT{ 0 };
+static gpu::Stream::FormatPointer polylineFormat;
+static gpu::PipelinePointer polylinePipeline;
+#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
+static gpu::PipelinePointer polylineFadePipeline;
+#endif
 
-const int32_t PolyLinePayload::PAINTSTROKE_TEXTURE_SLOT;
-const int32_t PolyLinePayload::PAINTSTROKE_UNIFORM_SLOT;
+struct PolyLineUniforms {
+    glm::vec3 color;
+};
 
-render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
-    if (!_pipeline) {
+static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+    if (!polylinePipeline) {
         auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
         auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
@@ -54,7 +61,7 @@ render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render:
         gpu::Shader::makeProgram(*program, slotBindings);
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), PAINTSTROKE_TEXTURE_SLOT + 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), PAINTSTROKE_UNIFORM_SLOT+1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), PAINTSTROKE_UNIFORM_SLOT + 1));
         gpu::Shader::makeProgram(*fadeProgram, slotBindings);
 #endif
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -63,7 +70,7 @@ render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render:
         state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        _pipeline = gpu::Pipeline::create(program, state);
+        polylinePipeline = gpu::Pipeline::create(program, state);
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
         _fadePipeline = gpu::Pipeline::create(fadeProgram, state);
 #endif
@@ -75,231 +82,157 @@ render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render:
         return std::make_shared<render::ShapePipeline>(_fadePipeline, nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     } else {
 #endif
-        return std::make_shared<render::ShapePipeline>(_pipeline, nullptr, nullptr, nullptr);
+        return std::make_shared<render::ShapePipeline>(polylinePipeline, nullptr, nullptr, nullptr);
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
     }
 #endif
 }
 
-namespace render {
-    template <> const ItemKey payloadGetKey(const PolyLinePayload::Pointer& payload) {
-        return payloadGetKey(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
-    }
-    template <> const Item::Bound payloadGetBound(const PolyLinePayload::Pointer& payload) {
-        return payloadGetBound(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
-    }
-    template <> void payloadRender(const PolyLinePayload::Pointer& payload, RenderArgs* args) {
-        payloadRender(std::static_pointer_cast<RenderableEntityItemProxy>(payload), args);
-    }
-    template <> uint32_t metaFetchMetaSubItems(const PolyLinePayload::Pointer& payload, ItemIDs& subItems) {
-        return metaFetchMetaSubItems(std::static_pointer_cast<RenderableEntityItemProxy>(payload), subItems);
-    }
+PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
+        polylineFormat.reset(new gpu::Stream::Format());
+        polylineFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), offsetof(Vertex, position));
+        polylineFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), offsetof(Vertex, normal));
+        polylineFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), offsetof(Vertex, uv));
+    });
 
-    template <> const ShapeKey shapeGetShapeKey(const PolyLinePayload::Pointer& payload) {
-        auto shapeKey = ShapeKey::Builder().withCustom(PolyLinePayload::CUSTOM_PIPELINE_NUMBER);
-        return shapeKey.build();
-    }
-}
-
-struct PolyLineUniforms {
-    glm::vec3 color;
-};
-
-EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity{ new RenderablePolyLineEntityItem(entityID) };
-    entity->setProperties(properties);
-
-    // As we create the first PolyLine entity, let's register its special shapePipeline factory:
-    PolyLinePayload::registerShapePipeline();
-
-    return entity;
-}
-
-RenderablePolyLineEntityItem::RenderablePolyLineEntityItem(const EntityItemID& entityItemID) :
-PolyLineEntityItem(entityItemID),
-_numVertices(0)
-{
-    _vertices = QVector<glm::vec3>(0.0f);
     PolyLineUniforms uniforms;
     _uniformBuffer = std::make_shared<gpu::Buffer>(sizeof(PolyLineUniforms), (const gpu::Byte*) &uniforms);
+    _verticesBuffer = std::make_shared<gpu::Buffer>();
 }
 
-gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
-
-void RenderablePolyLineEntityItem::createStreamFormat() {
-    static const int NORMAL_OFFSET = 12;
-    static const int TEXTURE_OFFSET = 24;
-
-    _format.reset(new gpu::Stream::Format());
-    _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
-    _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEXTURE_OFFSET);
+ItemKey PolyLineEntityRenderer::getKey() {
+    return ItemKey::Builder::transparentShape().withTypeMeta();
 }
 
-void RenderablePolyLineEntityItem::updateGeometry() {
-    _numVertices = 0;
-    _verticesBuffer.reset(new gpu::Buffer());
-    int vertexIndex = 0;
-    vec2 uv;
-    float uCoord, vCoord;
-    uCoord = 0.0f;
-    float uCoordInc = 1.0 / (_vertices.size() / 2);
-    for (int i = 0; i < _vertices.size() / 2; i++) {
-        vCoord = 0.0f;
-  
+ShapeKey PolyLineEntityRenderer::getShapeKey() {
+    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).build();
+}
 
-        uv = vec2(uCoord, vCoord);
+bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+    return (
+        entity->pointsChanged() ||
+        entity->strokeWidthsChanged() ||
+        entity->normalsChanged() ||
+        entity->texturesChanged()
+    );
+}
 
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-        _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
-        vertexIndex++;
-
-        uv.y = 1.0f;
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-        _verticesBuffer->append(sizeof(glm::vec2), (const gpu::Byte*)&uv);
-        vertexIndex++;
-
-        _numVertices += 2;
-        uCoord += uCoordInc;
+void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    if (entity->texturesChanged()) {
+        entity->resetTexturesChanged();
+        auto textures = entity->getTextures();
+        QString path = textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : textures;
+        if (!_texture || _lastTextures != path) {
+            _texture = DependencyManager::get<TextureCache>()->getTexture(QUrl(path));
+        }
     }
-    _pointsChanged = false;
-    _normalsChanged = false;
-    _strokeWidthsChanged = false;
 }
 
-void RenderablePolyLineEntityItem::updateVertices() {
+void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    PolyLineUniforms uniforms;
+    uniforms.color = toGlm(entity->getXColor());
+    memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
+    auto pointsChanged = entity->pointsChanged();
+    auto strokeWidthsChanged = entity->strokeWidthsChanged();
+    auto normalsChanged = entity->normalsChanged();
+    entity->resetPolyLineChanged();
+
+    if (pointsChanged) {
+        _lastPoints = entity->getLinePoints();
+    }
+    if (strokeWidthsChanged) {
+        _lastStrokeWidths = entity->getStrokeWidths();
+    }
+    if (normalsChanged) {
+        _lastNormals = entity->getNormals();
+    }
+    if (pointsChanged || strokeWidthsChanged || normalsChanged) {
+        _empty = std::min(_lastPoints.size(), std::min(_lastNormals.size(), _lastStrokeWidths.size())) < 2;
+        if (!_empty) {
+            updateGeometry(updateVertices(_lastPoints, _lastNormals, _lastStrokeWidths));
+        }
+    }
+}
+
+void PolyLineEntityRenderer::updateGeometry(const std::vector<Vertex>& vertices) {
+    _numVertices = (uint32_t)vertices.size();
+    auto bufferSize = _numVertices * sizeof(Vertex);
+    if (bufferSize > _verticesBuffer->getSize()) {
+        _verticesBuffer->resize(bufferSize);
+    }
+    _verticesBuffer->setSubData(0, vertices);
+}
+
+std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertices(const QVector<glm::vec3>& points, const QVector<glm::vec3>& normals, const QVector<float>& strokeWidths) {
     // Calculate the minimum vector size out of normals, points, and stroke widths
-    int minVectorSize = _normals.size();
-    if (_points.size() < minVectorSize) {
-        minVectorSize = _points.size();
-    }
-    if (_strokeWidths.size() < minVectorSize) {
-        minVectorSize = _strokeWidths.size();
-    }
+    int size = std::min(points.size(), std::min(normals.size(), strokeWidths.size()));
 
-    _vertices.clear();
-    glm::vec3 v1, v2, tangent, binormal, point;
-
-    int finalIndex = minVectorSize - 1;
+    std::vector<Vertex> vertices;
 
     // Guard against an empty polyline
-    if (finalIndex < 0) {
-        return;
+    if (size <= 0) {
+        return vertices;
     }
 
-    for (int i = 0; i < finalIndex; i++) {
-        float width = _strokeWidths.at(i);
-        point = _points.at(i);
+    float uCoordInc = 1.0f / size;
+    float uCoord = 0.0f;
+    int finalIndex = size - 1;
+    glm::vec3 binormal;
+    for (int i = 0; i <= finalIndex; i++) {
+        const float& width = strokeWidths.at(i);
+        const auto& point = points.at(i);
+        const auto& normal = normals.at(i);
 
-        tangent = _points.at(i);
+        // For last point we can assume binormals are the same since it represents the last two vertices of quad
+        if (i < finalIndex) {
+            const auto tangent = points.at(i + 1) - point;
+            binormal = glm::normalize(glm::cross(tangent, normal)) * width;
 
-        tangent = _points.at(i + 1) - point;
-        glm::vec3 normal = _normals.at(i);
-        binormal = glm::normalize(glm::cross(tangent, normal)) * width;
-
-        // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
-        if (binormal.x != binormal.x) {
-            continue;
+            // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
+            if (binormal.x != binormal.x) {
+                continue;
+            }
         }
-        v1 = point + binormal;
-        v2 = point - binormal;
-        _vertices << v1 << v2;
+
+        const auto v1 = point + binormal;
+        const auto v2 = point - binormal;
+        vertices.emplace_back(v1, normal, vec2(uCoord, 0.0f));
+        vertices.emplace_back(v2, normal, vec2(uCoord, 1.0f));
+        uCoord += uCoordInc;
     }
 
-    // For last point we can assume binormals are the same since it represents the last two vertices of quad
-    point = _points.at(finalIndex);
-    v1 = point + binormal;
-    v2 = point - binormal;
-    _vertices << v1 << v2;
-
-
+    return vertices;
 }
 
-void RenderablePolyLineEntityItem::updateMesh() {
-    if (_pointsChanged || _strokeWidthsChanged || _normalsChanged) {
-        QWriteLocker lock(&_quadReadWriteLock);
-        _empty = (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2);
-        if (!_empty) {
-            updateVertices();
-            updateGeometry();
-        }
-    }
-}
 
-void RenderablePolyLineEntityItem::update(const quint64& now) {
-    PolyLineUniforms uniforms;
-    uniforms.color = toGlm(getXColor());
-    memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
-    updateMesh();
-}
-
-bool RenderablePolyLineEntityItem::addToScene(const EntityItemPointer& self,
-    const render::ScenePointer& scene,
-    render::Transaction& transaction) {
-    _myItem = scene->allocateID();
-
-    auto renderData = std::make_shared<PolyLinePayload>(self, _myItem);
-    auto renderPayload = std::make_shared<PolyLinePayload::Payload>(renderData);
-
-    render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(self, statusGetters);
-    renderPayload->addStatusGetters(statusGetters);
-
-    transaction.resetItem(_myItem, renderPayload);
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-    transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
-#endif
-    updateMesh();
-
-    return true;
-}
-
-void RenderablePolyLineEntityItem::render(RenderArgs* args) {
-#ifndef POLYLINE_ENTITY_USE_FADE_EFFECT
-    checkFading();
-#endif
+void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     if (_empty) {
         return;
     }
 
-    if (!_format) {
-        createStreamFormat();
-    }
-
-    if (!_texture || _texturesChangedFlag) {
-        auto textureCache = DependencyManager::get<TextureCache>();
-        QString path = _textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : _textures;
-        _texture = textureCache->getTexture(QUrl(path));
-        _texturesChangedFlag = false;
-    }
-
     PerformanceTimer perfTimer("RenderablePolyLineEntityItem::render");
-    Q_ASSERT(getType() == EntityTypes::PolyLine);
     Q_ASSERT(args->_batch);
 
     gpu::Batch& batch = *args->_batch;
-    Transform transform = Transform();
-    transform.setTranslation(getPosition());
-    transform.setRotation(getRotation());
-    batch.setUniformBuffer(PolyLinePayload::PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
-    batch.setModelTransform(transform);
+    batch.setModelTransform(Transform{ _modelTransform }.setScale(vec3(1)));
+    batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
 
     if (_texture->isLoaded()) {
-        batch.setResourceTexture(PolyLinePayload::PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
-        batch.setResourceTexture(PolyLinePayload::PAINTSTROKE_TEXTURE_SLOT, nullptr);
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
     }
-   
-    batch.setInputFormat(_format);
-    batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
+
+    batch.setInputFormat(polylineFormat);
+    batch.setInputBuffer(0, _verticesBuffer, 0, sizeof(Vertex));
 
 #ifndef POLYLINE_ENTITY_USE_FADE_EFFECT
     if (_isFading) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
-    }
-    else {
+    } else {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 #endif

@@ -62,6 +62,8 @@
 #include <GeometryCache.h>
 #include <DeferredLightingEffect.h>
 #include <render/RenderFetchCullSortTask.h>
+#include <UpdateSceneTask.h>
+#include <RenderViewTask.h>
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
@@ -537,16 +539,12 @@ public:
         QThread::msleep(1000);
         _renderThread.submitFrame(gpu::FramePointer());
         _initContext.makeCurrent();
+        DependencyManager::get<GeometryCache>()->initializeShapePipelines();
         // Render engine init
-        _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", _cullFunctor);
-        const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", _cullFunctor);
-        assert(items.canCast<RenderFetchCullSortTask::Output>());
         static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-        if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-            _renderEngine->addJob<RenderForwardTask>("RenderForwardTask", items);
-        } else {
-            _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items);
-        }
+        bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+        _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
+        _renderEngine->addJob<RenderViewTask>("RenderMainView", _cullFunctor, isDeferred);
         _renderEngine->load();
         _renderEngine->registerScene(_main3DScene);
 
@@ -721,6 +719,7 @@ private:
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, windowSize.width(), windowSize.height());
         renderArgs.setViewFrustum(_viewFrustum);
+        renderArgs._scene = _main3DScene;
 
         // Final framebuffer that will be handled to the display-plugin
         render(&renderArgs);
@@ -876,7 +875,7 @@ private:
 
         last = now;
 
-        getEntities()->update();
+        getEntities()->update(false);
 
         // The pending changes collecting the changes here
         render::Transaction transaction;
