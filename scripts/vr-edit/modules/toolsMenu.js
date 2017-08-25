@@ -17,6 +17,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     var attachmentJointName,
 
+        menuOriginLocalPosition,
+        menuOriginLocalRotation,
+
         menuOriginOverlay,
         menuHeaderOverlay,
         menuHeaderHeadingOverlay,
@@ -40,18 +43,22 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightOverlay,
 
         LEFT_HAND = 0,
-        PANEL_ORIGIN_POSITION = {
+        PANEL_ORIGIN_POSITION_LEFT_HAND = {
             x: -UIT.dimensions.canvasSeparation - UIT.dimensions.canvas.x / 2,
             y: UIT.dimensions.handOffset,
             z: 0
         },
-        PANEL_ORIGIN_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 }),
+        PANEL_ORIGIN_POSITION_RIGHT_HAND = {
+            x: UIT.dimensions.canvasSeparation + UIT.dimensions.canvas.x / 2,
+            y: UIT.dimensions.handOffset,
+            z: 0
+        },
+        PANEL_ORIGIN_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 }),
+        PANEL_ORIGIN_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 90, z: 0 }),
         panelLateralOffset,
 
         MENU_ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
-            localPosition: PANEL_ORIGIN_POSITION,
-            localRotation: PANEL_ORIGIN_ROTATION,
             color: { red: 255, blue: 0, green: 0 },
             alpha: 1.0,
             parentID: Uuid.SELF,
@@ -1221,9 +1228,19 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     function setHand(hand) {
         // Assumes UI is not displaying.
         side = hand;
-        controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
-        attachmentJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
-        panelLateralOffset = side === LEFT_HAND ? -UIT.dimensions.handLateralOffset : UIT.dimensions.handLateralOffset;
+        if (side === LEFT_HAND) {
+            controlHand = rightInputs.hand();
+            attachmentJointName = "LeftHand";
+            panelLateralOffset = -UIT.dimensions.handLateralOffset;
+            menuOriginLocalPosition = PANEL_ORIGIN_POSITION_LEFT_HAND;
+            menuOriginLocalRotation = PANEL_ORIGIN_ROTATION_LEFT_HAND;
+        } else {
+            controlHand = leftInputs.hand();
+            attachmentJointName = "RightHand";
+            panelLateralOffset = UIT.dimensions.handLateralOffset;
+            menuOriginLocalPosition = PANEL_ORIGIN_POSITION_RIGHT_HAND;
+            menuOriginLocalRotation = PANEL_ORIGIN_ROTATION_RIGHT_HAND;
+        }
     }
 
     setHand(side);
@@ -2335,7 +2352,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Menu origin.
         properties = Object.clone(MENU_ORIGIN_PROPERTIES);
         properties.parentJointIndex = handJointIndex;
-        properties.localPosition = Vec3.sum(properties.localPosition, { x: panelLateralOffset, y: 0, z: 0 });
+        properties.localPosition = Vec3.sum(menuOriginLocalPosition, { x: panelLateralOffset, y: 0, z: 0 });
+        properties.localRotation = menuOriginLocalRotation;
         menuOriginOverlay = Overlays.addOverlay("sphere", properties);
 
         // Header.
