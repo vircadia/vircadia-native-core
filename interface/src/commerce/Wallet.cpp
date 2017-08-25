@@ -359,6 +359,7 @@ bool Wallet::createIfNeeded() {
 bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateRSAKeypair();
+    sendKeyFilePathIfExists();
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
@@ -471,6 +472,12 @@ void Wallet::getSecurityImage() {
         emit securityImageResult(false);
     }
 }
-void Wallet::getKeyFilePath() {
-    emit keyFilePathResult(keyFilePath());
+void Wallet::sendKeyFilePathIfExists() {
+    QString filePath(keyFilePath());
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists()) {
+        emit keyFilePathIfExistsResult(filePath);
+    } else {
+        emit keyFilePathIfExistsResult("");
+    }
 }
