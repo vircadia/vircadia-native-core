@@ -522,21 +522,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         OPTONS_PANELS = {
-            cloneOptions: [
-                {
-                    id: "cloneFinishButton",
-                    type: "button",
-                    properties: {
-                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0, z: 0.005 },
-                        color: { red: 200, green: 200, blue: 200 }
-                    },
-                    label: "FINISH",
-                    command: {
-                        method: "clearTool"
-                    }
-                }
-            ],
             groupOptions: [
                 {
                     id: "groupButton",
@@ -773,6 +758,47 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white
+                    }
+                }
+            ],
+            cloneOptions: [
+                {
+                    id: "cloneActionsLabel",
+                    type: "image",
+                    properties: {
+                        color: UIT.colors.white,
+                        url: "../assets/tools/common/actions-label.svg",
+                        scale: 0.0276,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0276 / 2,
+                            y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "cloneRule1",
+                    type: "horizontalRule",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0199,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "cloneFinishButton",
+                    type: "newButton",
+                    properties: {
+                        localPosition: { x: 0, y: 0.02, z: 0.005 }
+                    },
+                    newLabel: {
+                        url: "../assets/tools/common/finish-label.svg",
+                        scale: 0.0318
+                    },
+                    command: {
+                        method: "clearTool"
                     }
                 }
             ],
