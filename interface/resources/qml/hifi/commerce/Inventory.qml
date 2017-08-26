@@ -17,6 +17,7 @@ import QtQuick.Controls 1.4
 import "../../styles-uit"
 import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
+import "./wallet" as HifiWallet
 
 // references XXX from root context
 
@@ -33,7 +34,7 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get balance", result.message);
             } else {
-                hfcBalanceText.text = result.data.balance;
+                hfcBalanceText.text = parseFloat(result.data.balance/100).toFixed(2);
             }
         }
         onInventoryResult: {
@@ -43,14 +44,6 @@ Rectangle {
                 inventoryContentsList.model = result.data.assets;
             }
         }
-        onSecurityImageResult: {
-            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
-        }
-    }
-
-    SecurityImageSelection {
-        id: securityImageSelection;
-        referrerURL: inventoryRoot.referrerURL;
     }
 
     //
@@ -65,20 +58,6 @@ Rectangle {
         anchors.left: parent.left;
         anchors.top: parent.top;
 
-        // Security Image
-        Image {
-            id: securityImage;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            height: parent.height - 5;
-            width: height;
-            anchors.verticalCenter: parent.verticalCenter;
-            fillMode: Image.PreserveAspectFit;
-            mipmap: true;
-        }
-
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
@@ -87,7 +66,7 @@ Rectangle {
             size: hifi.fontSizes.overlayTitle;
             // Anchors
             anchors.top: parent.top;
-            anchors.left: securityImage.right;
+            anchors.left: parent.left;
             anchors.leftMargin: 16;
             anchors.bottom: parent.bottom;
             width: paintedWidth;
@@ -96,25 +75,6 @@ Rectangle {
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
-        }
-
-        // "Change Security Image" button
-        HifiControlsUit.Button {
-            id: changeSecurityImageButton;
-            color: hifi.buttons.black;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.top: parent.top;
-            anchors.topMargin: 3;
-            anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 3;
-            anchors.right: parent.right;
-            anchors.rightMargin: 20;
-            width: 200;
-            text: "Change Security Image"
-            onClicked: {
-                securityImageSelection.isManuallyChangingSecurityImage = true;
-                securityImageSelection.visible = true;
-            }
         }
 
         // Separator
@@ -132,7 +92,7 @@ Rectangle {
     // HFC BALANCE START
     //
     Item {
-        id: hfcBalanceContainer; 
+        id: hfcBalanceContainer;
         // Size
         width: inventoryRoot.width;
         height: childrenRect.height + 20;
@@ -177,7 +137,7 @@ Rectangle {
     //
     // HFC BALANCE END
     //
-    
+
     //
     // INVENTORY CONTENTS START
     //
@@ -192,7 +152,7 @@ Rectangle {
         anchors.topMargin: 8;
         anchors.bottom: actionButtonsContainer.top;
         anchors.bottomMargin: 8;
-        
+
         RalewaySemiBold {
             id: inventoryContentsLabel;
             text: "Inventory:";
@@ -249,7 +209,7 @@ Rectangle {
     //
     // INVENTORY CONTENTS END
     //
-    
+
     //
     // ACTION BUTTONS START
     //
@@ -307,7 +267,6 @@ Rectangle {
                 referrerURL = message.referrerURL;
                 commerce.balance();
                 commerce.inventory();
-                commerce.getSecurityImage();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

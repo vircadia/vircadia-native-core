@@ -247,6 +247,9 @@ endif()
 
 set_packaging_parameters()
 
+option(BUILD_TESTS "Build tests" ON)
+MESSAGE(STATUS "Build tests: " ${BUILD_TESTS})
+
 # add subdirectories for all targets
 if (NOT ANDROID)
   add_subdirectory(assignment-client)
@@ -259,7 +262,9 @@ if (NOT ANDROID)
   if (NOT SERVER_ONLY)
     add_subdirectory(interface)
     set_target_properties(interface PROPERTIES FOLDER "Apps")
-    add_subdirectory(tests)
+    if (BUILD_TESTS)
+      add_subdirectory(tests)
+    endif()
   endif()
   add_subdirectory(plugins)
   add_subdirectory(tools)

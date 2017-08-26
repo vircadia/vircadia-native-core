@@ -31,6 +31,7 @@ public:
     void editRenderState(QUuid uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
     const RayPickResult getPrevRayPickResult(const QUuid uid);
 
+    void setPrecisionPicking(QUuid uid, const bool precisionPicking);
     void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
     void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
     void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);

@@ -97,8 +97,8 @@ public:
         Hover
     };
 
-    Rig() {}
-    virtual ~Rig() {}
+    Rig();
+    virtual ~Rig();
 
     void destroyAnimGraph();
 
@@ -372,6 +372,8 @@ protected:
 
     glm::vec3 _prevLeftHandPoleVector { -Vectors::UNIT_Z };
     bool _prevLeftHandPoleVectorValid { false };
+
+    int _rigId;
 };
 
 #endif /* defined(__hifi__Rig__) */

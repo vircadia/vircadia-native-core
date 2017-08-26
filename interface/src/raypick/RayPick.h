@@ -41,11 +41,13 @@ public:
     // The key is the Flags
     Flags _flags;
 
-    RayPickFilter() : _flags(PICK_NOTHING) {}
+    RayPickFilter() : _flags(getBitMask(PICK_NOTHING)) {}
     RayPickFilter(const Flags& flags) : _flags(flags) {}
 
     bool operator== (const RayPickFilter& rhs) const { return _flags == rhs._flags; }
     bool operator!= (const RayPickFilter& rhs) const { return _flags != rhs._flags; }
+
+    void setFlag(FlagBit flag, bool value) { _flags[flag] = value; }
 
     bool doesPickNothing() const { return _flags[PICK_NOTHING]; }
     bool doesPickEntities() const { return _flags[PICK_ENTITIES]; }
@@ -61,27 +63,27 @@ public:
 
     // Helpers for RayPickManager
     Flags getEntityFlags() const {
-        Flags toReturn(PICK_ENTITIES);
+        unsigned int toReturn = getBitMask(PICK_ENTITIES);
         if (doesPickInvisible()) {
-            toReturn |= Flags(PICK_INCLUDE_INVISIBLE);
+            toReturn |= getBitMask(PICK_INCLUDE_INVISIBLE);
         }
         if (doesPickNonCollidable()) {
-            toReturn |= Flags(PICK_INCLUDE_NONCOLLIDABLE);
+            toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
         }
-        return toReturn;
+        return Flags(toReturn);
     }
     Flags getOverlayFlags() const {
-        Flags toReturn(PICK_OVERLAYS);
+        unsigned int toReturn = getBitMask(PICK_OVERLAYS);
         if (doesPickInvisible()) {
-            toReturn |= Flags(PICK_INCLUDE_INVISIBLE);
+            toReturn |= getBitMask(PICK_INCLUDE_INVISIBLE);
         }
         if (doesPickNonCollidable()) {
-            toReturn |= Flags(PICK_INCLUDE_NONCOLLIDABLE);
+            toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
         }
-        return toReturn;
+        return Flags(toReturn);
     }
-    Flags getAvatarFlags() const { return Flags(PICK_AVATARS); }
-    Flags getHUDFlags() const { return Flags(PICK_HUD); }
+    Flags getAvatarFlags() const { return Flags(getBitMask(PICK_AVATARS)); }
+    Flags getHUDFlags() const { return Flags(getBitMask(PICK_HUD)); }
 
     static unsigned int getBitMask(FlagBit bit) { return 1 << bit; }
 
@@ -98,9 +100,11 @@ public:
     void disable() { _enabled = false; }
 
     const RayPickFilter& getFilter() { return _filter; }
-    const float& getMaxDistance() { return _maxDistance; }
-    const bool& isEnabled() { return _enabled; }
+    float getMaxDistance() { return _maxDistance; }
+    bool isEnabled() { return _enabled; }
     const RayPickResult& getPrevRayPickResult() { return _prevResult; }
+
+    void setPrecisionPicking(bool precisionPicking) { _filter.setFlag(RayPickFilter::PICK_COURSE, !precisionPicking); }
 
     void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
 
