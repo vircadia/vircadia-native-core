@@ -496,7 +496,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         BUTTON_UI_ELEMENTS = ["button", "newButton", "menuButton", "toggleButton", "swatch"],
-        BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.004 },
+        BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.8 * UIT.dimensions.buttonDimensions.z },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
@@ -2281,6 +2281,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
                     });
+                } else if (isHighlightingNewButton) {
+                    // Unhighlight button.
+                    Overlays.editOverlay(highlightedSource[highlightedItem], {
+                        color: UIT.colors.baseGrayShadow
+                    });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     // Lower old slider or color circle.
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
@@ -2361,6 +2366,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         visible: false
                     });
                 } else if (isHighlightingNewButton) {
+                    // Unhighlight button.
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
                         color: UIT.colors.baseGrayShadow
                     });
@@ -2387,7 +2393,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 || isTriggerClicked !== (pressedItem !== null)) {
             if (pressedItem) {
                 // Unpress previous button.
-                Overlays.editOverlay(intersectionOverlays[pressedItem.index], {
+                Overlays.editOverlay(pressedSource[pressedItem.index], {
                     localPosition: pressedItem.localPosition
                 });
                 pressedItem = null;
