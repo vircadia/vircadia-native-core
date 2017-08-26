@@ -33,6 +33,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     var totalVariance = 0;
     var highVarianceCount = 0;
     var veryhighVarianceCount = 0;
+    this.tabletID = null;
 
     // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
     // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -126,8 +127,17 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         return deltaTime;
     };
 
+    this.setIgnoreTablet = function() {
+        if (HMD.tabletID !== _this.tabletID) {
+            RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
+            RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
+            tabletIgnored = true
+        }
+    }
+
     this.update = function () {
         var deltaTime =  this.updateTimings();
+        this.setIgnoreTablet()
 
         if (controllerDispatcherPluginsNeedSort) {
             this.orderedPluginNames = [];
@@ -334,6 +344,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         enabled: true,
         maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
     });
+
+
 
 
     this.cleanup = function () {

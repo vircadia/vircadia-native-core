@@ -26,7 +26,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
     "controllerModules/cloneEntity.js",
-    "controllerModules/tabletLaserInput.js",
+    "controllerModules/web3DOverlayLaserInput.js",
     "teleport.js"
 ];
 

@@ -317,17 +317,18 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbedThingID = null;
         };
 
-        this.pointingOnTablet = function(controllerData) {
-            var target = controllerData.rayPicks[this.hand].objectID;
-
-            if (target === HMD.homeButtonID || target === HMD.tabletScreenID) {
+        this.pointingAtWebOverlay = function(controllerData) {
+            var intersection = controllerData.rayPicks[this.hand];
+            var overlayType = Overlays.getOverlayType(intersection.objectID);
+            print(JSON.stringify(Entities.getEntityProperties(intersection.objectID)));
+            if ((intersection.type === RayPick.INTERSECTED_OVERLAY && overlayType === "web3d")  || intersection.objectID === HMD.tabletButtonID) {
                 return true;
             }
             return false
         };
 
         this.isReady = function (controllerData) {
-            if (this.pointingOnTablet(controllerData)) {
+            if (this.pointingAtWebOverlay(controllerData)) {
                 return makeRunningValues(false, [], []);
             }
             
@@ -343,7 +344,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.pointingOnTablet(controllerData)) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.pointingAtWebOverlay(controllerData)) {
                 this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);

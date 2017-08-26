@@ -275,7 +275,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.active = false;
         this.previousLaserClikcedTarget = false;
         this.laserPressingTarget = false;
-        this.tabletScreenID = HMD.tabletScreenID;
+        this.tabletScreenID = null;
         this.mode = "none";
         this.laserTargetID = null;
         this.laserTarget = null;
@@ -361,9 +361,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.hovering = function() {
-            if (this.hasTouchFocus(this.laserTargetID)) {
-                sendHoverOverEventToLaserTarget(this.hand, this.laserTarget);
+            if (!laserTargetHasKeyboardFocus(this.laserTagetID)) {
+                setKeyboardFocusOnLaserTarget(this.laserTargetID);
             }
+            sendHoverOverEventToLaserTarget(this.hand, this.laserTarget);
         };
 
         this.laserPressEnter = function () {
@@ -412,33 +413,21 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.pointingAtTablet = function(target) {
-            return (target === HMD.tabletID);
-        };
-
-        this.pointingAtTabletScreen = function(target) {
-            return (target === HMD.tabletScreenID);
-        }
-
-        this.pointingAtHomeButton = function(target) {
-            return (target === HMD.homeButtonID);
-        }
-
         this.releaseTouchEvent = function() {
             sendTouchEndEventToLaserTarget(this.hand, this.pressEnterLaserTarget);
         }
 
 
-        this.updateLaserTargets = function() {
-            var intersection = LaserPointers.getPrevRayPickResult(this.laserPointer);
+        this.updateLaserTargets = function(controllerData) {
+            var intersection = controllerData.rayPicks[this.hand];
             this.laserTargetID = intersection.objectID;
             this.laserTarget = calculateLaserTargetFromOverlay(intersection.intersection, intersection.objectID);
         };
 
         this.shouldExit = function(controllerData) {
-            var target = controllerData.rayPicks[this.hand].objectID;
-            var isLaserOffTablet = (!this.pointingAtTabletScreen(target) && !this.pointingAtHomeButton(target) && !this.pointingAtTablet(target));
-            return isLaserOffTablet;
+            var intersection = controllerData.rayPicks[this.hand];
+            var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY)
+            return offOverlay;
         }
 
         this.exitModule = function() {
@@ -461,10 +450,9 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            var target = controllerData.rayPicks[this.hand].objectID;
-            if (this.pointingAtTabletScreen(target) || this.pointingAtHomeButton(target) || this.pointingAtTablet(target)) {
+            var intersection = controllerData.rayPicks[this.hand];
+            if (intersection.type === RayPick.INTERSECTED_OVERLAY) {
                 if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE && !this.getOtherModule().active) {
-                    this.tabletScrenID = HMD.tabletScreenID;
                     this.active = true;
                     return makeRunningValues(true, [], []);
                 }
@@ -480,7 +468,7 @@ Script.include("/~/system/libraries/controllers.js");
                 return makeRunningValues(false, [], []);
             }
 
-            this.updateLaserTargets();
+            this.updateLaserTargets(controllerData);
             this.processControllerTriggers(controllerData);
             this.updateLaserPointer(controllerData);
 
@@ -511,7 +499,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.halfEnd = halfEnd;
         this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand == RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+            joint: (this.hand == RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController()),
