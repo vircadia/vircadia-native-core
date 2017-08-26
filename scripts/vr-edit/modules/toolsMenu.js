@@ -297,11 +297,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "swatch": {
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.03, y: 0.03, z: 0.01 },
+                    dimensions: { x: 0.0294, y: 0.0294, z: UIT.dimensions.buttonDimensions.z },
                     localRotation: Quat.ZERO,
                     color: NO_SWATCH_COLOR,
                     alpha: 1.0,
-                    solid: false,  // False indicates "no swatch color assigned"
+                    solid: false,  // False indicates "no swatch color assigned"  // TODO
                     ignoreRayIntersection: false,
                     visible: true
                 }
@@ -327,7 +327,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "circle": {
                 overlay: "circle3d",
                 properties: {
-                    size: 0.01,
+                    size: 0.0147,
                     localPosition: { x: 0.0, y: 0.0, z: 0.01 },
                     localRotation: Quat.ZERO,
                     color: { red: 128, green: 128, blue: 128 },
@@ -525,41 +525,41 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         OPTONS_PANELS = {
             colorOptions: [
                 {
-                    id: "colorCircle",
-                    type: "colorCircle",
+                    id: "colorActionsLabel",
+                    type: "image",
                     properties: {
-                        localPosition: { x: -0.0125, y: 0.025, z: 0.005 }
-                    },
-                    imageURL: "../assets/color-circle.png",
-                    imageOverlayURL: "../assets/color-circle-black.png",
-                    command: {
-                        method: "setColorPerCircle"
+                        color: UIT.colors.white,
+                        url: "../assets/tools/common/actions-label.svg",
+                        scale: 0.0276,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0276 / 2,
+                            y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
                     }
                 },
                 {
-                    id: "colorSlider",
-                    type: "imageSlider",
+                    id: "colorRule1",
+                    type: "horizontalRule",
                     properties: {
-                        localPosition: { x: 0.035, y: 0.025, z: 0.005 }
-                    },
-                    useBaseColor: true,
-                    imageURL: "../assets/slider-white.png",
-                    imageOverlayURL: "../assets/slider-v-alpha.png",
-                    command: {
-                        method: "setColorPerSlider"
+                        dimensions: { x: 0.0668, y: 0.001 },
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0668 / 2,
+                            y: UIT.dimensions.panel.y / 2 - 0.0199,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
                     }
                 },
                 {
                     id: "colorSwatch1",
                     type: "swatch",
                     properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: -0.02, z: 0.005 }
+                        localPosition: { x: -0.0935, y: 0.0513, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch1Color",
-                        property: "color",
-                        defaultValue: { red: 0, green: 255, blue: 0 }
+                        property: "color"
+                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -572,13 +572,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch2",
                     type: "swatch",
                     properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: -0.02, z: 0.005 }
+                        localPosition: { x: -0.0561, y: 0.0513, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch2Color",
-                        property: "color",
-                        defaultValue: { red: 0, green: 0, blue: 255 }
+                        property: "color"
+                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -591,13 +590,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch3",
                     type: "swatch",
                     properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: -0.045, z: 0.005 }
+                        localPosition: { x: -0.0935, y: 0.0153, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch3Color",
                         property: "color"
-                        // Default to empty swatch.
+                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -610,13 +608,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch4",
                     type: "swatch",
                     properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: -0.045, z: 0.005 }
+                        localPosition: { x: -0.0561, y: 0.0153, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch4Color",
                         property: "color"
-                        // Default to empty swatch.
+                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -626,29 +623,116 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "currentColor",
-                    type: "circle",
+                    id: "colorSwatch5",
+                    type: "swatch",
                     properties: {
-                        localPosition: { x: 0.025, y: -0.02, z: 0.007 }
+                        localPosition: { x: -0.0935, y: -0.0207, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
-                        key: "VREdit.colorTool.currentColor",
-                        property: "color",
-                        defaultValue: { red: 128, green: 128, blue: 128 },
-                        command: "setPickColor"
+                        key: "VREdit.colorTool.swatch5Color",
+                        property: "color"
+                        // defaultValue: { red: ?, green: ?, blue: ? },  // Default to empty swatch.
+                    },
+                    command: {
+                        method: "setColorPerSwatch"
+                    },
+                    clear: {
+                        method: "clearSwatch"
+                    }
+                },
+                {
+                    id: "colorSwatch6",
+                    type: "swatch",
+                    properties: {
+                        localPosition: { x: -0.0561, y: -0.0207, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.swatch6Color",
+                        property: "color"
+                        // defaultValue: { red: ?, green: ?, blue: ? },  // Default to empty swatch.
+                    },
+                    command: {
+                        method: "setColorPerSwatch"
+                    },
+                    clear: {
+                        method: "clearSwatch"
+                    }
+                },
+                {
+                    id: "colorRule2",
+                    type: "horizontalRule",
+                    properties: {
+                        dimensions: { x: 0.0668, y: 0.001 },
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0668 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0481,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "colorCircle",
+                    type: "colorCircle",
+                    properties: {
+                        localPosition: { x: 0.04675, y: 0.01655, z: 0.005 }
+                    },
+                    imageURL: "../assets/color-circle.png",
+                    imageOverlayURL: "../assets/color-circle-black.png",
+                    command: {
+                        method: "setColorPerCircle"
+                    }
+                },
+                {
+                    id: "colorSlider",
+                    type: "imageSlider",
+                    properties: {
+                        localPosition: { x: 0.04675, y: -0.0620, z: 0.005 },
+                        localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 })
+                    },
+                    useBaseColor: true,
+                    imageURL: "../assets/slider-white.png",
+                    imageOverlayURL: "../assets/slider-v-alpha.png",
+                    command: {
+                        method: "setColorPerSlider"
+                    }
+                },
+                {
+                    id: "colorRule3",
+                    type: "horizontalRule",
+                    properties: {
+                        dimensions: { x: 0.1229, y: 0.001 },
+                        localPosition: {
+                            x: 0.04675,
+                            y: -0.0781,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
                     }
                 },
                 {
                     id: "pickColor",
                     type: "button",
                     properties: {
-                        dimensions: { x: 0.04, y: 0.02, z: 0.01 },
-                        localPosition: { x: 0.025, y: -0.045, z: 0.005 },
+                        dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: -0.0935, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
                         color: { red: 255, green: 255, blue: 255 }
                     },
                     label: "    PICK",
                     callback: {
                         method: "pickColorTool"
+                    }
+                },
+                {
+                    id: "currentColor",
+                    type: "circle",
+                    properties: {
+                        //dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: -0.0561, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.currentColor",
+                        property: "color",
+                        defaultValue: { red: 128, green: 128, blue: 128 },
+                        command: "setPickColor"
                     }
                 }
             ],
