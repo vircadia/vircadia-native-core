@@ -78,7 +78,7 @@ Rectangle {
         Separator { }
 
         RalewayRegular {
-            x: margins.paddings + margins.sizeCheckBox;
+            x: margins.paddings + muteMic.boxSize + muteMic.spacing;
             size: 16;
             color: "white";
             text: qsTr("Input Device Settings")
@@ -92,7 +92,9 @@ Rectangle {
             // mute is in its own row
             RowLayout {
                 AudioControls.CheckBox {
+                    id: muteMic
                     text: qsTr("Mute microphone");
+                    spacing: 8
                     isRedCheck: true;
                     checked: Audio.muted;
                     onClicked: {
@@ -105,6 +107,7 @@ Rectangle {
             RowLayout {
                 spacing: 16;
                 AudioControls.CheckBox {
+                    spacing: muteMic.spacing
                     text: qsTr("Enable noise reduction");
                     checked: Audio.noiseReduction;
                     onClicked: {
@@ -113,6 +116,7 @@ Rectangle {
                     }
                 }
                 AudioControls.CheckBox {
+                    spacing: muteMic.spacing
                     text: qsTr("Show audio level meter");
                     checked: AvatarInputs.showAudioTools;
                     onClicked: {
@@ -126,20 +130,25 @@ Rectangle {
 
         Separator {}
 
-        Row {
+        Item {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
-            height: 28
-            spacing: 0
+            height: 36
+
             HiFiGlyphs {
                 width: margins.sizeCheckBox
                 text: hifi.glyphs.mic;
                 color: hifi.colors.primaryHighlight;
+                anchors.left: parent.left
+                anchors.leftMargin: -size/4 //the glyph has empty space at left about 25%
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 30;
             }
+
             RalewayRegular {
                 width: margins.sizeText + margins.sizeLevel
+                anchors.left: parent.left
+                anchors.leftMargin: margins.sizeCheckBox
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 16;
                 color: hifi.colors.lightGrayText;
@@ -151,7 +160,7 @@ Rectangle {
             id: inputView
             width: parent.width - margins.paddings*2
             x: margins.paddings
-            height: 150
+            height: Math.min(150, contentHeight);
             spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
@@ -162,6 +171,7 @@ Rectangle {
 
                 AudioControls.CheckBox {
                     anchors.left: parent.left
+                    spacing: margins.sizeCheckBox - boxSize
                     width: parent.width - inputLevel.width
                     clip: true
                     checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
@@ -186,20 +196,25 @@ Rectangle {
 
         Separator {}
 
-        Row {
+        Item {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: 36
-            spacing: 0
+
             HiFiGlyphs {
+                anchors.left: parent.left
+                anchors.leftMargin: -size/4 //the glyph has empty space at left about 25%
+                anchors.verticalCenter: parent.verticalCenter;
                 width: margins.sizeCheckBox
                 text: hifi.glyphs.unmuted;
                 color: hifi.colors.primaryHighlight;
-                anchors.verticalCenter: parent.verticalCenter;
                 size: 36;
             }
+
             RalewayRegular {
                 width: margins.sizeText + margins.sizeLevel
+                anchors.left: parent.left
+                anchors.leftMargin: margins.sizeCheckBox
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 16;
                 color: hifi.colors.lightGrayText;
@@ -211,7 +226,7 @@ Rectangle {
             id: outputView
             width: parent.width - margins.paddings*2
             x: margins.paddings
-            height: Math.min(210, contentHeight);
+            height: Math.min(360 - inputView.height, contentHeight);
             spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
@@ -222,6 +237,7 @@ Rectangle {
 
                 AudioControls.CheckBox {
                     width: parent.width
+                    spacing: margins.sizeCheckBox - boxSize
                     boxSize: margins.sizeCheckBox / 2
                     isRound: true
                     checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;

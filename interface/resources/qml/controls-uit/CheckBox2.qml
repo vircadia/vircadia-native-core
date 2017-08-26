@@ -19,6 +19,8 @@ CheckBox {
 
     HifiConstants { id: hifi; }
 
+    padding: 0
+    leftPadding: 0
     property int colorScheme: hifi.colorSchemes.light
     property string color: hifi.colors.lightGrayText
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
