@@ -1579,6 +1579,8 @@ float Avatar::getEyeHeight() const {
     }
 
     // TODO: if performance becomes a concern we can cache this value rather then computing it everytime.
+    // Makes assumption that the y = 0 plane in geometry is the ground plane.
+    // We also make that assumption in Rig::computeAvatarBoundingCapsule()
     float avatarScale = getUniformScale();
     if (_skeletonModel) {
         auto& rig = _skeletonModel->getRig();
@@ -1592,7 +1594,8 @@ float Avatar::getEyeHeight() const {
             return eyeHeight;
         } else if (eyeJoint >= 0) {
             // measure eyes to y = 0 plane.
-            float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y;
+            float groundHeight = transformPoint(rig.getGeometryToRigTransform(), glm::vec3(0.0f)).y;
+            float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y - groundHeight;
             return eyeHeight;
         } else if (headTopJoint >= 0 && toeJoint >= 0) {
             // measure toe to top of head.  Note: default poses already include avatar scale factor
@@ -1601,12 +1604,14 @@ float Avatar::getEyeHeight() const {
             return height - height * ratio;
         } else if (headTopJoint >= 0) {
             const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
-            float height = rig.getAbsoluteDefaultPose(headTopJoint).trans().y;
-            return height - height * ratio;
+            float groundHeight = transformPoint(rig.getGeometryToRigTransform(), glm::vec3(0.0f)).y;
+            float headHeight = rig.getAbsoluteDefaultPose(headTopJoint).trans().y - groundHeight;
+            return headHeight - headHeight * ratio;
         } else if (headJoint >= 0) {
+            float groundHeight = transformPoint(rig.getGeometryToRigTransform(), glm::vec3(0.0f)).y;
             const float DEFAULT_AVATAR_NECK_TO_EYE = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD - DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
             const float ratio = DEFAULT_AVATAR_NECK_TO_EYE / DEFAULT_AVATAR_NECK_HEIGHT;
-            float neckHeight = rig.getAbsoluteDefaultPose(headJoint).trans().y;
+            float neckHeight = rig.getAbsoluteDefaultPose(headJoint).trans().y - groundHeight;
             return neckHeight + neckHeight * ratio;
         } else {
             return avatarScale * DEFAULT_AVATAR_EYE_HEIGHT;

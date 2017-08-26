@@ -103,6 +103,7 @@ class MyAvatar : public Avatar {
      * @property useAdvancedMovementControls {bool} Stores the user preference only, does not change user mappings, this is done in the defaultScript
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
      * @property userHeight {number} The height of the user in sensor space. (meters).
+     * @property userEyeHeight {number} Estimated height of the users eyes in sensor space. (meters)
      */
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
@@ -145,6 +146,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
 
     Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
+    Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -525,8 +527,8 @@ public:
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
 
-    float getUserHeight() const;
     void setUserHeight(float value);
+    float getUserHeight() const;
     float getUserEyeHeight() const;
 
 public slots:
