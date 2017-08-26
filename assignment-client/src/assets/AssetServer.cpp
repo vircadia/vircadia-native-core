@@ -66,9 +66,13 @@ void BakeAssetTask::run() {
     std::unique_ptr<Baker> baker;
 
     if (_assetPath.endsWith(".fbx")) {
-        baker = std::make_unique<FBXBaker>(QUrl("file:///" + _filePath), fn, PathUtils::generateTemporaryDir());
+        baker = std::unique_ptr<FBXBaker> {
+            new FBXBaker(QUrl("file:///" + _filePath), fn, PathUtils::generateTemporaryDir())
+        };
     } else {
-        baker = std::make_unique<TextureBaker>(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE, PathUtils::generateTemporaryDir());
+        baker = std::unique_ptr<TextureBaker> {
+            new TextureBaker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE, PathUtils::generateTemporaryDir())
+        };
     }
 
     QEventLoop loop;
