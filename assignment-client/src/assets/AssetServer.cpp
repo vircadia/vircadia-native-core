@@ -1049,7 +1049,7 @@ QString getBakeMapping(const AssetHash& hash, const QString& relativeFilePath) {
     return HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
 }
 
-void AssetServer::handleCompletedBake(QString originalAssetPath, QString originalAssetHash, QVector<QString> bakedFilePaths) {
+void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath, QVector<QString> bakedFilePaths) {
     bool errorCompletingBake { false };
 
     qDebug() << "Completing bake for " << originalAssetHash;

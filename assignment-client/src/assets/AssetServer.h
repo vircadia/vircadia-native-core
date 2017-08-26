@@ -99,7 +99,7 @@ private:
     void bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath);
 
     /// Move baked content for asset to baked directory and update baked status
-    void handleCompletedBake(QString assetPath, QString originalAssetHash, QVector<QString> bakedFilePaths);
+    void handleCompletedBake(QString originalAssetHash, QString assetPath, QVector<QString> bakedFilePaths);
 
     /// Create meta file to describe baked content for original asset
     bool createMetaFile(AssetHash originalAssetHash);
