@@ -21,6 +21,9 @@ UIT = (function () {
             baseGray: { red: 0x40, green: 0x40, blue: 0x40 },
             baseGrayShadow: { red: 0x25, green: 0x25, blue: 0x25 },
             darkGray: { red: 0x12, green: 0x12, blue: 0x12 },
+            redAccent: { red: 0xc6, green: 0x21, blue: 0x47 },
+            redHighlight: { red: 0xea, green: 0x4c, blue: 0x5f },
+            greenShadow: { red: 0x35, green: 0x9d, blue: 0x85 },
             greenHighlight: { red: 0x1f, green: 0xc6, blue: 0xa6 },
             blueHighlight: { red: 0x00, green: 0xbf, blue: 0xef }
         },

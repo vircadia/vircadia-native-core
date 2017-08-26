@@ -31,6 +31,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         menuOverlays = [],
         menuHoverOverlays = [],
+        menuEnabled = [],
 
         optionsOverlays = [],
         optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
@@ -522,36 +523,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         OPTONS_PANELS = {
-            groupOptions: [
-                {
-                    id: "groupButton",
-                    type: "button",
-                    properties: {
-                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0.025, z: 0.005 },
-                        color: { red: 200, green: 200, blue: 200 }
-                    },
-                    label: " GROUP",
-                    enabledColor: { red: 64, green: 240, blue: 64 },
-                    callback: {
-                        method: "groupButton"
-                    }
-                },
-                {
-                    id: "ungroupButton",
-                    type: "button",
-                    properties: {
-                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: -0.025, z: 0.005 },
-                        color: { red: 200, green: 200, blue: 200 }
-                    },
-                    label: "UNGROUP",
-                    enabledColor: { red: 240, green: 64, blue: 64 },
-                    callback: {
-                        method: "ungroupButton"
-                    }
-                }
-            ],
             colorOptions: [
                 {
                     id: "colorCircle",
@@ -711,7 +682,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "stretchFinishButton",
                     type: "newButton",
                     properties: {
-                        localPosition: { x: 0, y: 0.02, z: 0.005 }
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - UIT.dimensions.buttonDimensions.y / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     newLabel: {
                         url: "../assets/tools/common/finish-label.svg",
@@ -791,7 +766,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "cloneFinishButton",
                     type: "newButton",
                     properties: {
-                        localPosition: { x: 0, y: 0.02, z: 0.005 }
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - UIT.dimensions.buttonDimensions.y / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     newLabel: {
                         url: "../assets/tools/common/finish-label.svg",
@@ -799,6 +778,90 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     command: {
                         method: "clearTool"
+                    }
+                }
+            ],
+            groupOptions: [
+                {
+                    id: "groupActionsLabel",
+                    type: "image",
+                    properties: {
+                        color: UIT.colors.white,
+                        url: "../assets/tools/common/actions-label.svg",
+                        scale: 0.0276,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0276 / 2,
+                            y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "groupRule1",
+                    type: "horizontalRule",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0199,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "groupButton",
+                    type: "newButton",
+                    properties: {
+                        dimensions: {
+                            x: UIT.dimensions.buttonDimensions.x,
+                            y: 0.0680,
+                            z: UIT.dimensions.buttonDimensions.z
+                        },
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - 0.0680 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        },
+                        color: UIT.colors.baseGrayShadow
+                    },
+                    enabledColor: UIT.colors.greenShadow,
+                    highlightColor: UIT.colors.greenHighlight,
+                    newLabel: {
+                        url: "../assets/tools/group/group-label.svg",
+                        scale: 0.0351,
+                        color: UIT.colors.baseGray
+                    },
+                    labelEnabledColor: UIT.colors.white,
+                    callback: {
+                        method: "groupButton"
+                    }
+                },
+                {
+                    id: "ungroupButton",
+                    type: "newButton",
+                    properties: {
+                        dimensions: {
+                            x: UIT.dimensions.buttonDimensions.x,
+                            y: 0.0680,
+                            z: UIT.dimensions.buttonDimensions.z
+                        },
+                        localPosition: {
+                            x: 0,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0120 + 0.0680 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        },
+                        color: UIT.colors.baseGrayShadow
+
+                    },
+                    enabledColor: UIT.colors.redAccent,
+                    highlightColor: UIT.colors.redHighlight,
+                    newLabel: {
+                        url: "../assets/tools/group/ungroup-label.svg",
+                        scale: 0.0496,
+                        color: UIT.colors.baseGray
+                    },
+                    labelEnabledColor: UIT.colors.white,
+                    callback: {
+                        method: "ungroupButton"
                     }
                 }
             ],
@@ -1084,7 +1147,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "deleteFinishButton",
                     type: "newButton",
                     properties: {
-                        localPosition: { x: 0, y: 0.02, z: 0.005 }
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - UIT.dimensions.buttonDimensions.y / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     newLabel: {
                         url: "../assets/tools/common/finish-label.svg",
@@ -1376,7 +1443,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         intersectionEnabled,
         highlightedItem,
         highlightedItems,
-        highlightedSource,
+        highlightedSourceOverlays,
+        highlightedSourceItems,
         isHighlightingButton,
         isHighlightingNewButton,  // TODO: Delete when no longer needed.
         isHighlightingMenuButton,
@@ -1477,6 +1545,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties.parentID = menuPanelOverlay;
             itemID = Overlays.addOverlay(UI_ELEMENTS[MENU_ITEMS[i].type].overlay, properties);
             menuOverlays[i] = itemID;
+            menuEnabled[i] = true;
 
             if (MENU_ITEMS[i].label) {
                 properties = Object.clone(UI_ELEMENTS.label.properties);
@@ -1629,7 +1698,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties = Object.merge(properties, optionsItems[i].newLabel);
                 properties.url = Script.resolvePath(properties.url);
                 properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                Overlays.addOverlay(UI_ELEMENTS.image.overlay, properties);
+                id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, properties);
+                optionsOverlaysLabels[i] = id;
             }
 
             if (optionsItems[i].type === "barSlider") {
@@ -2187,6 +2257,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     function update(intersection, groupsCount, entitiesCount) {
         var intersectedItem = NONE,
             intersectionItems,
+            color,
             parentProperties,
             localPosition,
             parameter,
@@ -2260,6 +2331,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (intersectedItem !== NONE) {
                 intersectionItems = MENU_ITEMS;
                 intersectionOverlays = menuOverlays;
+                intersectionEnabled = menuEnabled;
             } else {
                 intersectedItem = optionsOverlays.indexOf(intersection.overlayID);
                 if (intersectedItem !== NONE) {
@@ -2271,7 +2343,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Highlight clickable item.
-        if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
+        if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSourceOverlays) {
             if (intersectedItem !== NONE && intersectionItems[intersectedItem] &&
                     (intersectionItems[intersectedItem].command !== undefined
                     || intersectionItems[intersectedItem].callback !== undefined)) {
@@ -2283,13 +2355,20 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     });
                 } else if (isHighlightingNewButton) {
                     // Unhighlight button.
-                    Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        color: UIT.colors.baseGrayShadow
+                    if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
+                        color = highlightedSourceItems[highlightedItem].enabledColor;
+                    } else {
+                        color = highlightedSourceItems[highlightedItem].properties.color !== undefined
+                            ? highlightedSourceItems[highlightedItem].properties.color
+                            : UI_ELEMENTS.newButton.properties.color;
+                    }
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        color: color
                     });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     // Lower old slider or color circle.
-                    Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        localPosition: highlightedItems[highlightedItem].properties.localPosition
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
                 }
                 // Update status variables.
@@ -2337,9 +2416,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         visible: true
                     });
                 } else if (isHighlightingNewButton) {
-                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
-                        color: UIT.colors.greenHighlight
-                    });
+                    if (intersectionEnabled[highlightedItem]) {
+                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                            color: intersectionItems[highlightedItem].highlightColor !== undefined
+                                ? intersectionItems[highlightedItem].highlightColor
+                                : UIT.colors.greenHighlight
+                        });
+                    }
                 } else if (!isHighlightingMenuButton) {
                     Overlays.editOverlay(highlightOverlay, {
                         parentID: intersectionOverlays[intersectedItem],
@@ -2367,13 +2450,20 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     });
                 } else if (isHighlightingNewButton) {
                     // Unhighlight button.
-                    Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        color: UIT.colors.baseGrayShadow
+                    if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
+                        color = highlightedSourceItems[highlightedItem].enabledColor;
+                    } else {
+                        color = highlightedSourceItems[highlightedItem].properties.color !== undefined
+                            ? highlightedSourceItems[highlightedItem].properties.color
+                            : UI_ELEMENTS.newButton.properties.color;
+                    }
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        color: color
                     });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     // Lower slider or color circle.
-                    Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        localPosition: highlightedItems[highlightedItem].properties.localPosition
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
                 }
                 // Update status variables.
@@ -2385,7 +2475,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isHighlightingColorCircle = false;
                 isHighlightingPicklist = false;
             }
-            highlightedSource = intersectionOverlays;
+            highlightedSourceOverlays = intersectionOverlays;
+            highlightedSourceItems = intersectionItems;
         }
 
         // Press/unpress button.
@@ -2536,8 +2627,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isGroupButtonEnabled = enableGroupButton;
                 Overlays.editOverlay(optionsOverlays[groupButtonIndex], {
                     color: isGroupButtonEnabled
-                        ? OPTONS_PANELS.groupOptions[groupButtonIndex].enabledColor
+                        ? (highlightedItem === groupButtonIndex
+                            ? OPTONS_PANELS.groupOptions[groupButtonIndex].highlightColor
+                            : OPTONS_PANELS.groupOptions[groupButtonIndex].enabledColor)
                         : OPTONS_PANELS.groupOptions[groupButtonIndex].properties.color
+                });
+                Overlays.editOverlay(optionsOverlaysLabels[groupButtonIndex], {
+                    color: isGroupButtonEnabled
+                        ? OPTONS_PANELS.groupOptions[groupButtonIndex].labelEnabledColor
+                        : OPTONS_PANELS.groupOptions[groupButtonIndex].newLabel.color
                 });
                 optionsEnabled[groupButtonIndex] = enableGroupButton;
             }
@@ -2547,8 +2645,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isUngroupButtonEnabled = enableUngroupButton;
                 Overlays.editOverlay(optionsOverlays[ungroupButtonIndex], {
                     color: isUngroupButtonEnabled
-                        ? OPTONS_PANELS.groupOptions[ungroupButtonIndex].enabledColor
+                        ? (highlightedItem === ungroupButtonIndex
+                            ? OPTONS_PANELS.groupOptions[ungroupButtonIndex].highlightColor
+                            : OPTONS_PANELS.groupOptions[ungroupButtonIndex].enabledColor)
                         : OPTONS_PANELS.groupOptions[ungroupButtonIndex].properties.color
+                });
+                Overlays.editOverlay(optionsOverlaysLabels[ungroupButtonIndex], {
+                    color: isUngroupButtonEnabled
+                        ? OPTONS_PANELS.groupOptions[ungroupButtonIndex].labelEnabledColor
+                        : OPTONS_PANELS.groupOptions[ungroupButtonIndex].newLabel.color
                 });
                 optionsEnabled[ungroupButtonIndex] = enableUngroupButton;
             }
@@ -2628,7 +2733,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         intersectionOverlays = null;
         intersectionEnabled = null;
         highlightedItem = NONE;
-        highlightedSource = null;
+        highlightedSourceOverlays = null;
         isHighlightingButton = false;
         isHighlightingMenuButton = false;
         isHighlightingSlider = false;
