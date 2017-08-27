@@ -38,6 +38,7 @@ class AudioDeviceList : public QAbstractListModel {
 
 public:
     AudioDeviceList(QAudio::Mode mode);
+    virtual ~AudioDeviceList();
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override { Q_UNUSED(parent); return _devices.size(); }
     QHash<int, QByteArray> roleNames() const override { return _roles; }
@@ -78,6 +79,8 @@ class AudioDevices : public QObject {
 
 public:
     AudioDevices(bool& contextIsHMD);
+    virtual ~AudioDevices();
+
     void chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD);
     void chooseOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
 

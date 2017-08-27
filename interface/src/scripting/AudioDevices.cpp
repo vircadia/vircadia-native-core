@@ -61,7 +61,52 @@ QHash<int, QByteArray> AudioDeviceList::_roles {
 
 Qt::ItemFlags AudioDeviceList::_flags { Qt::ItemIsSelectable | Qt::ItemIsEnabled };
 
-AudioDeviceList::AudioDeviceList(QAudio::Mode mode) : _mode(mode) {}
+AudioDeviceList::AudioDeviceList(QAudio::Mode mode) : _mode(mode) {
+    auto& setting1 = getSetting(true, QAudio::AudioInput);
+    if (setting1.isSet()) {
+        qDebug() << "Device name in settings for HMD, Input" << setting1.get();
+    } else {
+        qDebug() << "Device name in settings for HMD, Input not set";
+    }
+
+    auto& setting2 = getSetting(true, QAudio::AudioOutput);
+    if (setting2.isSet()) {
+        qDebug() << "Device name in settings for HMD, Output" << setting2.get();
+    } else {
+        qDebug() << "Device name in settings for HMD, Output not set";
+    }
+
+    auto& setting3 = getSetting(false, QAudio::AudioInput);
+    if (setting3.isSet()) {
+        qDebug() << "Device name in settings for Desktop, Input" << setting3.get();
+    } else {
+        qDebug() << "Device name in settings for Desktop, Input not set";
+    }
+
+    auto& setting4 = getSetting(false, QAudio::AudioOutput);
+    if (setting4.isSet()) {
+        qDebug() << "Device name in settings for Desktop, Output" << setting4.get();
+    } else {
+        qDebug() << "Device name in settings for Desktop, Output not set";
+    }
+}
+
+AudioDeviceList::~AudioDeviceList() {
+    //save all selected devices
+    auto& settingHMD = getSetting(true, _mode);
+    auto& settingDesktop = getSetting(false, _mode);
+    // store the selected device
+    foreach(AudioDevice adevice, _devices) {
+        if (adevice.selectedDesktop) {
+            qDebug() << "Saving Desktop for" << _mode << "name" << adevice.info.deviceName();
+            settingDesktop.set(adevice.info.deviceName());
+        }
+        if (adevice.selectedHMD) {
+            qDebug() << "Saving HMD for" << _mode << "name" << adevice.info.deviceName();
+            settingHMD.set(adevice.info.deviceName());
+        }
+    }
+}
 
 QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
     if (!index.isValid() || index.row() >= _devices.size()) {
@@ -156,6 +201,7 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices, b
             //no selected device for context. fallback to saved
             isSelected = (device.info.deviceName() == savedDeviceName);
         }
+        qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
         _devices.push_back(device);
     }
 
@@ -181,6 +227,8 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
     _inputs.onDevicesChanged(devicesInput, false);
     _outputs.onDevicesChanged(devicesOutput, false);
 }
+
+AudioDevices::~AudioDevices() {}
 
 void AudioDevices::onContextChanged(const QString& context) {
     _inputs.resetDevice(_contextIsHMD);

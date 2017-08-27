@@ -2052,6 +2052,7 @@ void Application::cleanupBeforeQuit() {
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
+    DependencyManager::destroy<AudioScriptingInterface>();
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
