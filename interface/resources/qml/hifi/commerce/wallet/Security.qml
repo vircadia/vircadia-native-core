@@ -40,10 +40,8 @@ Item {
             }
         }
 
-        onKeyFilePathResult: {
-            if (path !== "") {
-                keyFilePath.text = path;
-            }
+        onKeyFilePathIfExistsResult: {
+            keyFilePath.text = path;
         }
     }
 
@@ -264,7 +262,7 @@ Item {
 
             onVisibleChanged: {
                 if (visible) {
-                    commerce.getKeyFilePath();
+                    commerce.getKeyFilePathIfExists();
                 }
             }
         }

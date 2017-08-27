@@ -36,7 +36,7 @@ signals:
     void securityImageResult(bool exists);
     void loginStatusResult(bool isLoggedIn);
     void passphraseSetupStatusResult(bool passphraseIsSetup);
-    void keyFilePathResult(const QString& path);
+    void keyFilePathIfExistsResult(const QString& path);
 
 protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
@@ -47,7 +47,7 @@ protected:
     Q_INVOKABLE void getLoginStatus();
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
     Q_INVOKABLE void getPassphraseSetupStatus();
-    Q_INVOKABLE void getKeyFilePath();
+    Q_INVOKABLE void getKeyFilePathIfExists();
 };
 
 #endif // hifi_QmlCommerce_h
