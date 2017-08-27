@@ -324,13 +324,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "circle": {
-                overlay: "circle3d",
+            "square": {
+                overlay: "cube",  // Emulate a 2D square with a cube.
                 properties: {
-                    size: 0.0147,
-                    localPosition: { x: 0.0, y: 0.0, z: 0.01 },
                     localRotation: Quat.ZERO,
-                    color: { red: 128, green: 128, blue: 128 },
+                    color: UIT.colors.baseGrayShadow,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: true,
@@ -723,10 +721,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "currentColor",
-                    type: "circle",
+                    type: "square",
                     properties: {
-                        //dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0561, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.imageOverlayOffset },
+                        localPosition: {
+                            x: -0.0561,
+                            y: -0.064,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     setting: {
                         key: "VREdit.colorTool.currentColor",
