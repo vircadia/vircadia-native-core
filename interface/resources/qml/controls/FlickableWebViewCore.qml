@@ -53,6 +53,9 @@ Flickable {
         }
 
         if (WebEngineView.LoadSucceededStatus === loadRequest.status) {
+            //disable Chromium's scroll bars
+            _webview.runJavaScript("document.body.style.overflow = 'hidden';");
+            //calculate page height
             _webview.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
                 flick.contentHeight = Math.max(i_actualPageHeight, flick.height);
             })
