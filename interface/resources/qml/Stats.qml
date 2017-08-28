@@ -208,6 +208,10 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
+                        text: "Entity Mixer In: " + root.entityPacketsInKbps + " kbps";
+                    }
+                    StatText {
+                        visible: root.expanded;
                         text: "Downloads: " + root.downloads + "/" + root.downloadLimit +
                               ", Pending: " + root.downloadsPending;
                     }

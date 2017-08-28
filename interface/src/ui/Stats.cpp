@@ -180,10 +180,12 @@ void Stats::updateStats(bool force) {
     int totalPingOctree = 0;
     int octreeServerCount = 0;
     int pingOctreeMax = 0;
+    int totalEntityKbps = 0;
     nodeList->eachNode([&](const SharedNodePointer& node) {
         // TODO: this should also support entities
         if (node->getType() == NodeType::EntityServer) {
             totalPingOctree += node->getPingMs();
+            totalEntityKbps += node->getInboundBandwidth();
             octreeServerCount++;
             if (pingOctreeMax < node->getPingMs()) {
                 pingOctreeMax = node->getPingMs();
@@ -248,6 +250,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(audioCodec, audioClient->getSelectedAudioFormat());
         STAT_UPDATE(audioNoiseGate, audioClient->getNoiseGateOpen() ? "Open" : "Closed");
 
+        STAT_UPDATE(entityPacketsInKbps, octreeServerCount ? totalEntityKbps / octreeServerCount : -1);
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
         STAT_UPDATE(downloads, loadingRequests.size());
