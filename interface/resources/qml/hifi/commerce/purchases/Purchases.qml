@@ -316,6 +316,7 @@ Rectangle {
                 itemName: title;
                 itemId: id;
                 itemPreviewImageUrl: preview;
+                itemHref: root_file_url;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
                 
