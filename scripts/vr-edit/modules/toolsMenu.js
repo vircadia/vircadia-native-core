@@ -175,7 +175,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: true
         },
 
-        NO_SWATCH_COLOR = { red: 128, green: 128, blue: 128 },
+        EMPTY_SWATCH_COLOR = UIT.colors.baseGrayShadow,
 
         UI_BASE_COLOR = { red: 64, green: 64, blue: 64 },
         UI_HIGHLIGHT_COLOR = { red: 100, green: 240, blue: 100 },
@@ -323,12 +323,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     dimensions: { x: 0.0294, y: 0.0294, z: UIT.dimensions.buttonDimensions.z },
                     localRotation: Quat.ZERO,
-                    color: NO_SWATCH_COLOR,
+                    color: EMPTY_SWATCH_COLOR,
                     alpha: 1.0,
-                    solid: false,  // False indicates "no swatch color assigned"  // TODO
+                    solid: true,
                     ignoreRayIntersection: false,
                     visible: true
                 }
+                // Must have a setting property in order to function property.
+                // Setting property may optionally include a defaultValue.
+                // A setting value of "" means that the swatch is unpopulated.
             },
             "label": {
                 overlay: "text3d",
@@ -581,7 +584,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.swatch1Color",
                         property: "color"
-                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -599,7 +601,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.swatch2Color",
                         property: "color"
-                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -617,7 +618,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.swatch3Color",
                         property: "color"
-                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -635,7 +635,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.swatch4Color",
                         property: "color"
-                        // defaultValue: { red: ?, green: ?, blue: ? } - Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -653,7 +652,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.swatch5Color",
                         property: "color"
-                        // defaultValue: { red: ?, green: ?, blue: ? },  // Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -671,7 +669,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.swatch6Color",
                         property: "color"
-                        // defaultValue: { red: ?, green: ?, blue: ? },  // Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -1768,10 +1765,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
                 if (value !== "") {
                     properties[optionsItems[i].setting.property] = value;
-                    if (optionsItems[i].type === "swatch") {
-                        // Special case for when swatch color is defined.
-                        properties.solid = true;
-                    }
                     if (optionsItems[i].type === "toggleButton") {
                         // Store value in optionsSettings rather than using overlay property.
                         optionsSettings[optionsItems[i].id].value = value;
@@ -2161,7 +2154,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     doCommand = function (command, parameter) {
         var index,
-            hasColor,
             value,
             items,
             parentID,
@@ -2195,22 +2187,19 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         case "setColorPerSwatch":
             index = optionsOverlaysIDs.indexOf(parameter);
-            hasColor = Overlays.getProperty(optionsOverlays[index], "solid");
-            if (hasColor) {
-                value = Overlays.getProperty(optionsOverlays[index], "color");
+            value = Settings.getValue(optionsSettings[parameter].key);
+            if (value !== "") {
+                // Set current color to swatch color.
                 setCurrentColor(value);
                 setColorPicker(value);
                 uiCommandCallback("setColor", value);
             } else {
-                // Swatch has no color; set swatch color to current fill color.
+                // Swatch has no color; set swatch color to current color.
                 value = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], "color");
                 Overlays.editOverlay(optionsOverlays[index], {
-                    color: value,
-                    solid: true
+                    color: value
                 });
-                if (optionsSettings[parameter]) {
-                    Settings.setValue(optionsSettings[parameter].key, value);
-                }
+                Settings.setValue(optionsSettings[parameter].key, value);
             }
             break;
 
@@ -2369,11 +2358,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         case "clearSwatch":
             overlayID = optionsOverlaysIDs.indexOf(parameter);
             Overlays.editOverlay(optionsOverlays[overlayID], {
-                color: NO_SWATCH_COLOR,
-                solid: false
+                color: EMPTY_SWATCH_COLOR
             });
             if (optionsSettings[parameter]) {
-                Settings.setValue(optionsSettings[parameter].key, null);  // Deleted settings value.
+                Settings.setValue(optionsSettings[parameter].key, null);  // Delete settings value.
             }
             break;
         default:
