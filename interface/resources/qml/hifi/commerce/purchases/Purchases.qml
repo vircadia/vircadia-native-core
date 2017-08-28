@@ -27,6 +27,7 @@ Rectangle {
     id: root;
     property string activeView: "initialize";
     property string referrerURL: "";
+    property bool punctuationMode: false;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
@@ -190,6 +191,10 @@ Rectangle {
                     }
                     previousLength = filterBar.text.length;
                 }
+
+                onAccepted: {
+                    focus = false;
+                }
             }
         }
         //
@@ -244,7 +249,7 @@ Rectangle {
         height: 40;
         // Anchors
         anchors.left: parent.left;
-        anchors.bottom: parent.bottom;
+        anchors.bottom: keyboard.top;
         anchors.bottomMargin: 8;
 
         // "Back" button
@@ -268,6 +273,17 @@ Rectangle {
     //
     // ACTION BUTTONS END
     //
+
+    HifiControlsUit.Keyboard {
+        id: keyboard;
+        raised: HMD.mounted && filterBar.focus;
+        numeric: parent.punctuationMode;
+        anchors {
+            bottom: parent.bottom;
+            left: parent.left;
+            right: parent.right;
+        }
+    }
 
     //
     // FUNCTION DEFINITIONS START
