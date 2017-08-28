@@ -104,6 +104,9 @@ private:
     /// Create meta file to describe baked content for original asset
     bool createMetaFile(AssetHash originalAssetHash);
 
+    /// Remove baked paths when the original asset is deleteds
+    void removeBakedPathsForDeletedAsset(AssetHash originalAssetHash);
+
     Mappings _fileMappings;
 
     QDir _resourcesDirectory;
