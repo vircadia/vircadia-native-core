@@ -126,7 +126,8 @@
             button = tablet.addButton({
                 text: buttonName,
                 icon: "icons/tablet-icons/wallet-i.svg",
-                activeIcon: "icons/tablet-icons/wallet-a.svg"
+                activeIcon: "icons/tablet-icons/wallet-a.svg",
+                sortOrder: 10
             });
             button.clicked.connect(onButtonClicked);
             tablet.screenChanged.connect(onTabletScreenChanged);

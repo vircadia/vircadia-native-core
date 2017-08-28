@@ -30,7 +30,7 @@ public:
     QString signWithKey(const QByteArray& text, const QString& key);
     void chooseSecurityImage(const QString& imageFile);
     void getSecurityImage();
-    void getKeyFilePath();
+    void sendKeyFilePathIfExists();
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }
@@ -40,7 +40,7 @@ public:
 
 signals:
     void securityImageResult(bool exists) ;
-    void keyFilePathResult(const QString& path);
+    void keyFilePathIfExistsResult(const QString& path);
 
 protected:
     enum SecurityImage {
