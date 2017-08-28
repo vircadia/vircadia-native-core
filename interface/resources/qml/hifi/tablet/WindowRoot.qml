@@ -44,7 +44,7 @@ Windows.ScrollingWindow {
 
     function loadTabletWebBase() {
         loader.source = "";
-        loader.source = "../../controls/TabletWebView.qml";
+        loader.source = "./BlocksWebView.qml";
     }
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
