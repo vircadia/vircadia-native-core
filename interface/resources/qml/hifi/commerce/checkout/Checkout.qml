@@ -431,108 +431,11 @@ Rectangle {
                 }
             }
 
-            // Item Price text
+            // "Item Price" container
             Item {
                 id: itemPriceContainer;
                 // Anchors
                 anchors.top: itemAuthorContainer.bottom;
-                anchors.topMargin: 4;
-                anchors.left: parent.left;
-                anchors.leftMargin: 16;
-                anchors.right: parent.right;
-                anchors.rightMargin: 16;
-                height: childrenRect.height;
-
-                RalewaySemiBold {
-                    id: itemPriceTextLabel;
-                    text: "Price:";
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: parent.left;
-                    width: paintedWidth;
-                    height: paintedHeight;
-                    // Text size
-                    size: 20;
-                    // Style
-                    color: hifi.colors.lightGrayText;
-                    // Alignment
-                    horizontalAlignment: Text.AlignLeft;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-                RalewayRegular {
-                    id: itemPriceText;
-                    text: "-- HFC";
-                    // Text size
-                    size: itemPriceTextLabel.size;
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: itemPriceTextLabel.right;
-                    anchors.leftMargin: 16;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 16;
-                    height: paintedHeight;
-                    // Style
-                    color: hifi.colors.lightGrayText;
-                    // Alignment
-                    horizontalAlignment: Text.AlignRight;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-            }
-
-            // "Quantity" container
-            Item {
-                id: quantityContainer;
-                // Anchors
-                anchors.top: itemPriceContainer.bottom;
-                anchors.topMargin: 4;
-                anchors.left: parent.left;
-                anchors.leftMargin: 16;
-                anchors.right: parent.right;
-                anchors.rightMargin: 16;
-                height: childrenRect.height;
-
-                RalewaySemiBold {
-                    id: quantityTextLabel;
-                    text: "Quantity:";
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: parent.left;
-                    width: paintedWidth;
-                    height: paintedHeight;
-                    // Text size
-                    size: 20;
-                    // Style
-                    color: hifi.colors.lightGrayText;
-                    // Alignment
-                    horizontalAlignment: Text.AlignLeft;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-                // ZRF FIXME: MAKE DROPDOWN???
-                RalewayRegular {
-                    id: quantityText;
-                    text: "1";
-                    // Text size
-                    size: quantityTextLabel.size;
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: quantityTextLabel.right;
-                    anchors.leftMargin: 16;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 16;
-                    height: paintedHeight;
-                    // Style
-                    color: hifi.colors.lightGrayText;
-                    // Alignment
-                    horizontalAlignment: Text.AlignRight;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-            }
-
-            // "Total Cost" container
-            Item {
-                id: totalCostContainer;
-                // Anchors
-                anchors.top: quantityContainer.bottom;
                 anchors.topMargin: 32;
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
@@ -541,8 +444,8 @@ Rectangle {
                 height: childrenRect.height;
 
                 RalewaySemiBold {
-                    id: totalCostTextLabel;
-                    text: "<b>Total Cost:</b>";
+                    id: itemPriceTextLabel;
+                    text: "<b>Item Price:</b>";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
@@ -557,13 +460,13 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter;
                 }
                 RalewayRegular {
-                    id: totalCostText;
+                    id: itemPriceText;
                     text: "<b>-- HFC</b>";
                     // Text size
-                    size: totalCostTextLabel.size;
+                    size: itemPriceTextLabel.size;
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.left: totalCostTextLabel.right;
+                    anchors.left: itemPriceTextLabel.right;
                     anchors.leftMargin: 16;
                     anchors.right: parent.right;
                     anchors.rightMargin: 16;
@@ -580,7 +483,7 @@ Rectangle {
             Item {
                 id: balanceAfterPurchaseContainer;
                 // Anchors
-                anchors.top: totalCostContainer.bottom;
+                anchors.top: itemPriceContainer.bottom;
                 anchors.topMargin: 16;
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
@@ -611,7 +514,7 @@ Rectangle {
                     size: balanceAfterPurchaseTextLabel.size;
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.left: totalCostTextLabel.right;
+                    anchors.left: balanceAfterPurchaseTextLabel.right;
                     anchors.leftMargin: 16;
                     anchors.right: parent.right;
                     anchors.rightMargin: 16;
@@ -945,8 +848,7 @@ Rectangle {
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 root.itemPriceFull = message.params.itemPrice;
-                itemPriceText.text = (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC";
-                totalCostText.text = root.itemPriceFull === 0 ? "Free" : "<b>" + (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC</b>";
+                itemPriceText.text = root.itemPriceFull === 0 ? "Free" : "<b>" + (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC</b>";
                 itemHref = message.params.itemHref;
                 if (itemHref.indexOf('.json') === -1) {
                     root.itemIsJson = false;
