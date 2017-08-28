@@ -74,6 +74,7 @@ public:
     bool getCanRezTmp() const { return _permissions.can(NodePermissions::Permission::canRezTemporaryEntities); }
     bool getCanWriteToAssetServer() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
     bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
+    bool getCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
 
     void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);
@@ -85,6 +86,11 @@ public:
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
     bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
+
+    static QHash<NodeType_t, QString>& getTypeNameHash() {
+        static QHash<NodeType_t, QString> TypeNameHash;
+        return TypeNameHash;
+    }
 
 private:
     // privatize copy and assignment operator to disallow Node copying

@@ -349,10 +349,9 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
     auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
     auto relativeDirection = glm::inverse(glm::quat_cast(UITransform)) * direction;
 
-    float uiRadius = _hmdUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
-
+    const float UI_RADIUS = 1.0f; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
     float instersectionDistance;
-    if (raySphereIntersect(relativeDirection, relativePosition, uiRadius, &instersectionDistance)){
+    if (raySphereIntersect(relativeDirection, relativePosition, UI_RADIUS, &instersectionDistance)){
         result = position + glm::normalize(direction) * instersectionDistance;
         return true;
     }

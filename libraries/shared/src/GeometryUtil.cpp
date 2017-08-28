@@ -17,6 +17,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "NumericalConstants.h"
+#include "GLMHelpers.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
     // compute the projection of the point vector onto the segment vector
@@ -604,4 +605,203 @@ float coneSphereAngle(const glm::vec3& coneCenter, const glm::vec3& coneDirectio
     float phi = atanf(sphereRadius / dLen);
 
     return glm::max(0.0f, theta - phi);
+}
+
+// given a set of points, compute a best fit plane that passes as close as possible through all the points.
+// http://www.ilikebigbits.com/blog/2015/3/2/plane-from-points
+bool findPlaneFromPoints(const glm::vec3* points, size_t numPoints, glm::vec3& planeNormalOut, glm::vec3& pointOnPlaneOut) {
+    if (numPoints < 3) {
+        return false;
+    }
+    glm::vec3 sum;
+    for (size_t i = 0; i < numPoints; i++) {
+        sum += points[i];
+    }
+    glm::vec3 centroid = sum * (1.0f / (float)numPoints);
+    float xx = 0.0f, xy = 0.0f, xz = 0.0f;
+    float yy = 0.0f, yz = 0.0f, zz = 0.0f;
+
+    for (size_t i = 0; i < numPoints; i++) {
+        glm::vec3 r = points[i] - centroid;
+        xx += r.x * r.x;
+        xy += r.x * r.y;
+        xz += r.x * r.z;
+        yy += r.y * r.y;
+        yz += r.y * r.z;
+        zz += r.z * r.z;
+    }
+
+    float det_x = yy * zz - yz * yz;
+    float det_y = xx * zz - xz * xz;
+    float det_z = xx * yy - xy * xy;
+    float det_max = std::max(std::max(det_x, det_y), det_z);
+
+    if (det_max == 0.0f) {
+        return false; // The points don't span a plane
+    }
+
+    glm::vec3 dir;
+    if (det_max == det_x) {
+        float a = (xz * yz - xy * zz) / det_x;
+        float b = (xy * yz - xz * yy) / det_x;
+        dir = glm::vec3(1.0f, a, b);
+    } else if (det_max == det_y) {
+        float a = (yz * xz - xy * zz) / det_y;
+        float b = (xy * xz - yz * xx) / det_y;
+        dir = glm::vec3(a, 1.0f, b);
+    } else {
+        float a = (yz * xy - xz * yy) / det_z;
+        float b = (xz * xy - yz * xx) / det_z;
+        dir = glm::vec3(a, b, 1.0f);
+    }
+    pointOnPlaneOut = centroid;
+    planeNormalOut = glm::normalize(dir);
+    return true;
+}
+
+bool findIntersectionOfThreePlanes(const glm::vec4& planeA, const glm::vec4& planeB, const glm::vec4& planeC, glm::vec3& intersectionPointOut) {
+    glm::vec3 normalA(planeA);
+    glm::vec3 normalB(planeB);
+    glm::vec3 normalC(planeC);
+    glm::vec3 u = glm::cross(normalB, normalC);
+    float denom = glm::dot(normalA, u);
+    if (fabsf(denom) < EPSILON) {
+        return false;  // planes do not intersect in a point.
+    } else {
+        intersectionPointOut = (planeA.w * u + glm::cross(normalA, planeC.w * normalB - planeB.w * normalC)) / denom;
+        return true;
+    }
+}
+
+const float INV_SQRT_3 = 1.0f / sqrtf(3.0f);
+const int DOP14_COUNT = 14;
+const glm::vec3 DOP14_NORMALS[DOP14_COUNT] = {
+    Vectors::UNIT_X,
+    -Vectors::UNIT_X,
+    Vectors::UNIT_Y,
+    -Vectors::UNIT_Y,
+    Vectors::UNIT_Z,
+    -Vectors::UNIT_Z,
+    glm::vec3(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3),
+    glm::vec3(INV_SQRT_3, -INV_SQRT_3, INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, -INV_SQRT_3, INV_SQRT_3),
+    glm::vec3(INV_SQRT_3, INV_SQRT_3, -INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, INV_SQRT_3, -INV_SQRT_3),
+    glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
+};
+
+typedef std::tuple<int, int, int> Int3Tuple;
+const std::tuple<int, int, int> DOP14_PLANE_COMBINATIONS[] = {
+    Int3Tuple(0, 2, 4),  Int3Tuple(0, 2, 5),  Int3Tuple(0, 2, 6),  Int3Tuple(0, 2, 7),  Int3Tuple(0, 2, 8),  Int3Tuple(0, 2, 9),  Int3Tuple(0, 2, 10),  Int3Tuple(0, 2, 11),  Int3Tuple(0, 2, 12),  Int3Tuple(0, 2, 13),
+    Int3Tuple(0, 3, 4),  Int3Tuple(0, 3, 5),  Int3Tuple(0, 3, 6),  Int3Tuple(0, 3, 7),  Int3Tuple(0, 3, 8),  Int3Tuple(0, 3, 9),  Int3Tuple(0, 3, 10),  Int3Tuple(0, 3, 11),  Int3Tuple(0, 3, 12),  Int3Tuple(0, 3, 13),
+    Int3Tuple(0, 4, 6),  Int3Tuple(0, 4, 7),  Int3Tuple(0, 4, 8),  Int3Tuple(0, 4, 9),  Int3Tuple(0, 4, 10),  Int3Tuple(0, 4, 11),  Int3Tuple(0, 4, 12),  Int3Tuple(0, 4, 13),
+    Int3Tuple(0, 5, 6),  Int3Tuple(0, 5, 7),  Int3Tuple(0, 5, 8),  Int3Tuple(0, 5, 9),  Int3Tuple(0, 5, 10),  Int3Tuple(0, 5, 11),  Int3Tuple(0, 5, 12),  Int3Tuple(0, 5, 13),
+    Int3Tuple(0, 6, 8),  Int3Tuple(0, 6, 9),  Int3Tuple(0, 6, 10),  Int3Tuple(0, 6, 11),  Int3Tuple(0, 6, 12),  Int3Tuple(0, 6, 13),
+    Int3Tuple(0, 7, 8),  Int3Tuple(0, 7, 9),  Int3Tuple(0, 7, 10),  Int3Tuple(0, 7, 11),  Int3Tuple(0, 7, 12),  Int3Tuple(0, 7, 13),
+    Int3Tuple(0, 8, 10),  Int3Tuple(0, 8, 11),  Int3Tuple(0, 8, 12),  Int3Tuple(0, 8, 13),  Int3Tuple(0, 9, 10),
+    Int3Tuple(0, 9, 11),  Int3Tuple(0, 9, 12),  Int3Tuple(0, 9, 13),
+    Int3Tuple(0, 10, 12),  Int3Tuple(0, 10, 13),
+    Int3Tuple(0, 11, 12),  Int3Tuple(0, 11, 13),
+    Int3Tuple(1, 2, 4),  Int3Tuple(1, 2, 5),  Int3Tuple(1, 2, 6),  Int3Tuple(1, 2, 7),  Int3Tuple(1, 2, 8),  Int3Tuple(1, 2, 9),  Int3Tuple(1, 2, 10),  Int3Tuple(1, 2, 11),  Int3Tuple(1, 2, 12),  Int3Tuple(1, 2, 13),
+    Int3Tuple(1, 3, 4),  Int3Tuple(1, 3, 5),  Int3Tuple(1, 3, 6),  Int3Tuple(1, 3, 7),  Int3Tuple(1, 3, 8),  Int3Tuple(1, 3, 9),  Int3Tuple(1, 3, 10),  Int3Tuple(1, 3, 11),  Int3Tuple(1, 3, 12),  Int3Tuple(1, 3, 13),
+    Int3Tuple(1, 4, 6),  Int3Tuple(1, 4, 7),  Int3Tuple(1, 4, 8),  Int3Tuple(1, 4, 9),  Int3Tuple(1, 4, 10),  Int3Tuple(1, 4, 11),  Int3Tuple(1, 4, 12),  Int3Tuple(1, 4, 13),
+    Int3Tuple(1, 5, 6),  Int3Tuple(1, 5, 7),  Int3Tuple(1, 5, 8),  Int3Tuple(1, 5, 9),  Int3Tuple(1, 5, 10),  Int3Tuple(1, 5, 11),  Int3Tuple(1, 5, 12),  Int3Tuple(1, 5, 13),
+    Int3Tuple(1, 6, 8),  Int3Tuple(1, 6, 9),  Int3Tuple(1, 6, 10),  Int3Tuple(1, 6, 11),  Int3Tuple(1, 6, 12),  Int3Tuple(1, 6, 13),
+    Int3Tuple(1, 7, 8),  Int3Tuple(1, 7, 9),  Int3Tuple(1, 7, 10),  Int3Tuple(1, 7, 11),  Int3Tuple(1, 7, 12),  Int3Tuple(1, 7, 13),
+    Int3Tuple(1, 8, 10),  Int3Tuple(1, 8, 11),  Int3Tuple(1, 8, 12),  Int3Tuple(1, 8, 13),
+    Int3Tuple(1, 9, 10),  Int3Tuple(1, 9, 11),  Int3Tuple(1, 9, 12),  Int3Tuple(1, 9, 13),
+    Int3Tuple(1, 10, 12),  Int3Tuple(1, 10, 13),
+    Int3Tuple(1, 11, 12),  Int3Tuple(1, 11, 13),
+    Int3Tuple(2, 4, 6),  Int3Tuple(2, 4, 7),  Int3Tuple(2, 4, 8),  Int3Tuple(2, 4, 9),  Int3Tuple(2, 4, 10),  Int3Tuple(2, 4, 11),  Int3Tuple(2, 4, 12),  Int3Tuple(2, 4, 13),
+    Int3Tuple(2, 5, 6),  Int3Tuple(2, 5, 7),  Int3Tuple(2, 5, 8),  Int3Tuple(2, 5, 9),  Int3Tuple(2, 5, 10),  Int3Tuple(2, 5, 11),  Int3Tuple(2, 5, 12),  Int3Tuple(2, 5, 13),
+    Int3Tuple(2, 6, 8),  Int3Tuple(2, 6, 9),  Int3Tuple(2, 6, 10),  Int3Tuple(2, 6, 11),  Int3Tuple(2, 6, 12),  Int3Tuple(2, 6, 13),
+    Int3Tuple(2, 7, 8),  Int3Tuple(2, 7, 9),  Int3Tuple(2, 7, 10),  Int3Tuple(2, 7, 11),  Int3Tuple(2, 7, 12),  Int3Tuple(2, 7, 13),
+    Int3Tuple(2, 8, 10),  Int3Tuple(2, 8, 11),  Int3Tuple(2, 8, 12),  Int3Tuple(2, 8, 13),
+    Int3Tuple(2, 9, 10),  Int3Tuple(2, 9, 11),  Int3Tuple(2, 9, 12),  Int3Tuple(2, 9, 13),
+    Int3Tuple(2, 10, 12),  Int3Tuple(2, 10, 13),
+    Int3Tuple(2, 11, 12),  Int3Tuple(2, 11, 13),
+    Int3Tuple(3, 4, 6),  Int3Tuple(3, 4, 7),  Int3Tuple(3, 4, 8),  Int3Tuple(3, 4, 9),  Int3Tuple(3, 4, 10),  Int3Tuple(3, 4, 11),  Int3Tuple(3, 4, 12),  Int3Tuple(3, 4, 13),
+    Int3Tuple(3, 5, 6),  Int3Tuple(3, 5, 7),  Int3Tuple(3, 5, 8),  Int3Tuple(3, 5, 9),  Int3Tuple(3, 5, 10),  Int3Tuple(3, 5, 11),  Int3Tuple(3, 5, 12),  Int3Tuple(3, 5, 13),
+    Int3Tuple(3, 6, 8),  Int3Tuple(3, 6, 9),  Int3Tuple(3, 6, 10),  Int3Tuple(3, 6, 11),  Int3Tuple(3, 6, 12),  Int3Tuple(3, 6, 13),
+    Int3Tuple(3, 7, 8),  Int3Tuple(3, 7, 9),  Int3Tuple(3, 7, 10),  Int3Tuple(3, 7, 11),  Int3Tuple(3, 7, 12),  Int3Tuple(3, 7, 13),
+    Int3Tuple(3, 8, 10),  Int3Tuple(3, 8, 11),  Int3Tuple(3, 8, 12),  Int3Tuple(3, 8, 13),
+    Int3Tuple(3, 9, 10),  Int3Tuple(3, 9, 11),  Int3Tuple(3, 9, 12),  Int3Tuple(3, 9, 13),
+    Int3Tuple(3, 10, 12),  Int3Tuple(3, 10, 13),
+    Int3Tuple(3, 11, 12),  Int3Tuple(3, 11, 13),
+    Int3Tuple(4, 6, 8),  Int3Tuple(4, 6, 9),  Int3Tuple(4, 6, 10),  Int3Tuple(4, 6, 11),  Int3Tuple(4, 6, 12),  Int3Tuple(4, 6, 13),
+    Int3Tuple(4, 7, 8),  Int3Tuple(4, 7, 9),  Int3Tuple(4, 7, 10),  Int3Tuple(4, 7, 11),  Int3Tuple(4, 7, 12),  Int3Tuple(4, 7, 13),
+    Int3Tuple(4, 8, 10),  Int3Tuple(4, 8, 11),  Int3Tuple(4, 8, 12),  Int3Tuple(4, 8, 13),
+    Int3Tuple(4, 9, 10),  Int3Tuple(4, 9, 11),  Int3Tuple(4, 9, 12),  Int3Tuple(4, 9, 13),
+    Int3Tuple(4, 10, 12),  Int3Tuple(4, 10, 13),
+    Int3Tuple(4, 11, 12),  Int3Tuple(4, 11, 13),
+    Int3Tuple(5, 6, 8),  Int3Tuple(5, 6, 9),  Int3Tuple(5, 6, 10),  Int3Tuple(5, 6, 11),  Int3Tuple(5, 6, 12),  Int3Tuple(5, 6, 13),
+    Int3Tuple(5, 7, 8),  Int3Tuple(5, 7, 9),  Int3Tuple(5, 7, 10),  Int3Tuple(5, 7, 11),  Int3Tuple(5, 7, 12),  Int3Tuple(5, 7, 13),
+    Int3Tuple(5, 8, 10),  Int3Tuple(5, 8, 11),  Int3Tuple(5, 8, 12),  Int3Tuple(5, 8, 13),
+    Int3Tuple(5, 9, 10),  Int3Tuple(5, 9, 11),  Int3Tuple(5, 9, 12),  Int3Tuple(5, 9, 13),
+    Int3Tuple(5, 10, 12),  Int3Tuple(5, 10, 13),
+    Int3Tuple(5, 11, 12),  Int3Tuple(5, 11, 13),
+    Int3Tuple(6, 8, 10),  Int3Tuple(6, 8, 11),  Int3Tuple(6, 8, 12),  Int3Tuple(6, 8, 13),
+    Int3Tuple(6, 9, 10),  Int3Tuple(6, 9, 11),  Int3Tuple(6, 9, 12),  Int3Tuple(6, 9, 13),
+    Int3Tuple(6, 10, 12),  Int3Tuple(6, 10, 13),
+    Int3Tuple(6, 11, 12),  Int3Tuple(6, 11, 13),
+    Int3Tuple(7, 8, 10),  Int3Tuple(7, 8, 11),  Int3Tuple(7, 8, 12),  Int3Tuple(7, 8, 13),
+    Int3Tuple(7, 9, 10),  Int3Tuple(7, 9, 11),  Int3Tuple(7, 9, 12),  Int3Tuple(7, 9, 13),
+    Int3Tuple(7, 10, 12),  Int3Tuple(7, 10, 13),
+    Int3Tuple(7, 11, 12),  Int3Tuple(7, 11, 13),
+    Int3Tuple(8, 10, 12),  Int3Tuple(8, 10, 13),
+    Int3Tuple(8, 11, 12),  Int3Tuple(8, 11, 13),
+    Int3Tuple(9, 10, 12),  Int3Tuple(9, 10, 13),
+    Int3Tuple(9, 11, 12),  Int3Tuple(9, 11, 13)
+};
+
+void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec3& center, std::vector<glm::vec3>& linesOut) {
+    if (dots.size() != DOP14_COUNT) {
+        return;
+    }
+
+    // iterate over all purmutations of non-parallel planes.
+    // find all the vertices that lie on the surface of the k-dop
+    std::vector<glm::vec3> vertices;
+    for (auto& tuple : DOP14_PLANE_COMBINATIONS) {
+        int i = std::get<0>(tuple);
+        int j = std::get<1>(tuple);
+        int k = std::get<2>(tuple);
+        glm::vec4 planeA(DOP14_NORMALS[i], dots[i]);
+        glm::vec4 planeB(DOP14_NORMALS[j], dots[j]);
+        glm::vec4 planeC(DOP14_NORMALS[k], dots[k]);
+        glm::vec3 intersectionPoint;
+        const float IN_FRONT_MARGIN = 0.01f;
+        if (findIntersectionOfThreePlanes(planeA, planeB, planeC, intersectionPoint)) {
+            bool inFront = false;
+            for (int p = 0; p < DOP14_COUNT; p++) {
+                if (glm::dot(DOP14_NORMALS[p], intersectionPoint) > dots[p] + IN_FRONT_MARGIN) {
+                    inFront = true;
+                }
+            }
+            if (!inFront) {
+                vertices.push_back(intersectionPoint);
+            }
+        }
+    }
+
+    // build a set of lines between these vertices, that also lie on the surface of the k-dop.
+    for (size_t i = 0; i < vertices.size(); i++) {
+        for (size_t j = i; j < vertices.size(); j++) {
+            glm::vec3 midPoint = (vertices[i] + vertices[j]) * 0.5f;
+            int onSurfaceCount = 0;
+            const float SURFACE_MARGIN = 0.01f;
+            for (int p = 0; p < DOP14_COUNT; p++) {
+                float d = glm::dot(DOP14_NORMALS[p], midPoint);
+                if (d > dots[p] - SURFACE_MARGIN && d < dots[p] + SURFACE_MARGIN) {
+                    onSurfaceCount++;
+                }
+            }
+            if (onSurfaceCount > 1) {
+                linesOut.push_back(vertices[i] + center);
+                linesOut.push_back(vertices[j] + center);
+            }
+        }
+    }
 }

@@ -14,6 +14,8 @@
 
 #include <OctreeEditPacketSender.h>
 
+#include <mutex>
+
 #include "EntityItem.h"
 #include "AvatarData.h"
 
@@ -49,6 +51,7 @@ private:
                                       EntityItemID entityItemID, const EntityItemProperties& properties);
 
 private:
+    std::mutex _mutex;
     AvatarData* _myAvatar { nullptr };
     QScriptEngine _scriptEngine;
 };

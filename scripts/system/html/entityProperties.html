@@ -8,130 +8,267 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 -->
 <html>
-    <head>
-        <title>Properties</title>
-        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
-        <link rel="stylesheet" type="text/css" href="css/colpick.css">
-        <link href="css/jsoneditor.css" rel="stylesheet" type="text/css">
-        <script src="js/jquery-2.1.4.min.js"></script>
-        <script src="js/colpick.js"></script>
-        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-        <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
-        <script type="text/javascript" src="js/spinButtons.js"></script>
-        <script type="text/javascript" src="js/keyboardControl.js"></script>
-        <script type="text/javascript" src="js/entityProperties.js"></script>
-        <script src="js/jsoneditor.min.js"></script>
-    </head>
-    <body onload='loaded();'>
-        <div id="properties-list">
-            <div id="properties-header">
-                <div id="type" class="property value">
-                    <span id="type-icon"></span><label id="property-type"><i>No selection</i></label>
-                </div>
-                <div class="property checkbox">
-                    <input type="checkbox" id="property-locked">
-                    <label for="property-locked"><span>&#xe006;</span>&nbsp;Locked</label>
-                </div>
-                <div class="property checkbox">
-                    <input type="checkbox" id="property-visible">
-                    <label for="property-visible"><span>&#xe007;</span>&nbsp;Visible</label>
-                </div>
+
+<head>
+    <title>Properties</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+    <link rel="stylesheet" type="text/css" href="css/colpick.css">
+    <link href="css/jsoneditor.css" rel="stylesheet" type="text/css">
+    <script src="js/jquery-2.1.4.min.js"></script>
+    <script src="js/colpick.js"></script>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
+    <script type="text/javascript" src="js/spinButtons.js"></script>
+    <script type="text/javascript" src="js/keyboardControl.js"></script>
+    <script type="text/javascript" src="js/entityProperties.js"></script>
+    <script src="js/jsoneditor.min.js"></script>
+</head>
+
+<body onload='loaded();'>
+    <div id="properties-list">
+
+        <fieldset id="properties-header">
+            <div id="type" class="property value">
+                <span id="type-icon"></span><label id="property-type"><i>No selection</i></label>
             </div>
-            <hr />
+            <div class="property checkbox">
+                <input type="checkbox" id="property-locked">
+                <label for="property-locked"><span>&#xe006;</span>&nbsp;Locked</label>
+            </div>
+            <div class="property checkbox">
+                <input type="checkbox" id="property-visible">
+                <label for="property-visible"><span>&#xe007;</span>&nbsp;Visible</label>
+            </div>
+        </fieldset>
+
+
+        <fieldset id="general" class="major">
             <div class="shape-group shape-section property dropdown">
                 <label for="property-shape">Shape</label>
                 <select name="SelectShape" id="property-shape">
-                    <option value="Cube">Box</option>
-                    <option value="Sphere">Sphere</option>
-                    <option value="Tetrahedron">Tetrahedron</option>
-                    <option value="Octahedron">Octahedron</option>
-                    <option value="Icosahedron">Icosahedron</option>
-                    <option value="Dodecahedron">Dodecahedron</option>
-                    <option value="Hexagon">Hexagon</option>
-                    <option value="Triangle">Triangle</option>
-                    <option value="Octagon">Octagon</option>
-                    <option value="Cylinder">Cylinder</option>
-                    <option value="Cone">Cone</option>
-                    <option value="Circle">Circle</option>
-                </select>
+                        <option value="Cube">Box</option>
+                        <option value="Sphere">Sphere</option>
+                        <option value="Tetrahedron">Tetrahedron</option>
+                        <option value="Octahedron">Octahedron</option>
+                        <option value="Icosahedron">Icosahedron</option>
+                        <option value="Dodecahedron">Dodecahedron</option>
+                        <option value="Hexagon">Hexagon</option>
+                        <option value="Triangle">Triangle</option>
+                        <option value="Octagon">Octagon</option>
+                        <option value="Cylinder">Cylinder</option>
+                        <option value="Cone">Cone</option>
+                        <option value="Circle">Circle</option>
+                    </select>
             </div>
             <div class="property text">
                 <label for="property-name">Name</label>
                 <input type="text" id="property-name">
             </div>
-            <div class="property text">
-                <label for="property-description">Description</label>
-                <input type="text" id="property-description">
+            <div class="physical-group color-section property color-control1">
+                <div class="color-picker" id="property-color-control1"></div>
+                <label>Entity color</label>
             </div>
-
-            <div class="property textarea">
-                <label for="property-user-data">User data</label>
-                <br>
-                <div class="row">
-                    <input type="button" class="red" id="userdata-clear" value="Clear User Data">
-                    <input type="button" class="blue" id="userdata-new-editor" value="Edit as JSON">
-                    <input disabled type="button" class="black" id="userdata-save" value="Save User Data">
-                    <span id="userdata-saved">Saved!</span>
+        </fieldset>
+        <fieldset id="collision-info">
+            <fieldset class="minor">
+                <div class="behavior-group property checkbox">
+                    <input type="checkbox" id="property-collisionless">
+                    <label for="property-collisionless">Collisionless</label>
                 </div>
-                <div id="static-userdata"></div>
-                <div id="userdata-editor"></div>
-                <textarea id="property-user-data"></textarea>
-            </div>
-            <div id="id" class="property value">
-                <label>ID:</label>
-                <input type="text" id="property-id" readonly>
-            </div>
-            <div class="section-header hyperlink-group hyperlink-section">
-                <label>Hyperlink</label><span>M</span>
-            </div>
-            <div class="hyperlink-group hyperlink-section property url">
-                <label for="property-hyperlink-href">Href - hifi://address</label>
-                <input type="text" id="property-hyperlink-href">
-            </div>
-            <div class="section-header spatial-group">
-                <label>Spatial</label><span>M</span>
-            </div>
-            <div class="spatial-group property xyz">
-                <label>Position <span class="unit">m</span></label>
+                <div class="behavior-group property checkbox">
+                    <input type="checkbox" id="property-dynamic">
+                    <label for="property-dynamic">Dynamic</label>
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="behavior-group two-column">
+                    <fieldset class="column">
+                        <legend class="sub-section-header">
+                            Collides With
+                        </legend>
+                        <div class="checkbox-sub-props">
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-collide-static">
+                                <label for="property-collide-static">Static entities</label>
+                            </div>
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-collide-dynamic">
+                                <label for="property-collide-dynamic">Dynamic entities</label>
+                            </div>
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-collide-kinematic">
+                                <label for="property-collide-kinematic">Kinematic entities</label>
+                            </div>
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-collide-myAvatar">
+                                <label for="property-collide-myAvatar">My avatar</label>
+                            </div>
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-collide-otherAvatar">
+                                <label for="property-collide-otherAvatar">Other avatars</label>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="column">
+                        <legend class="sub-section-header">
+                            Grabbing
+                        </legend>
+                        <div class="checkbox-sub-props">
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-grabbable">
+                                <label for="property-grabbable">Grabbable</label>
+                            </div>
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-wants-trigger">
+                                <label for="property-wants-trigger">Triggerable</label>
+                            </div>
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-cloneable">
+                                <label for="property-cloneable">Cloneable</label>
+                            </div>
+                            <div class="property checkbox">
+                                <input type="checkbox" id="property-ignore-ik">
+                                <label for="property-ignore-ik">Ignore inverse kinematics</label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="column" id="group-cloneable-group" style="display:none;">
+                        <legend class="sub-section-header">
+                             <span>Cloneable Settings</span>
+                        </legend>
+                        <fieldset class="minor">
+                             <div><label>Clone Lifetime</label><input type="number" data-user-data-type="cloneLifetime" id="property-cloneable-lifetime"></div>
+                        </fieldset>
+                        <fieldset class="minor">
+                             <div><label>Clone Limit   </label><input type="number" data-user-data-type="cloneLimit" id="property-cloneable-limit"></div>
+                        </fieldset>
+                        <div class="property checkbox">
+                             <input type="checkbox" id="property-cloneable-dynamic">
+                             <label for="property-cloneable-dynamic">Clone Dynamic</label>
+                        </div>
+                    </fieldset>
+                </div>
+            </fieldset>
+        </fieldset>
+
+
+        <fieldset id="physical" class="major">
+            <legend class="section-header physical-group">
+                Physical<span>M</span>
+            </legend>
+            <fieldset class="minor">
+                <fieldset class="physical-group property xyz fstuple">
+                    <legend>Linear velocity <span class="unit">m/s</span></legend>
+                    <div class="tuple">
+                        <div><input type="number" class="x" id="property-lvel-x"><label for="property-lvel-x">X:</label></div>
+                        <div><input type="number" class="y" id="property-lvel-y"><label for="property-lvel-y">Y:</label></div>
+                        <div><input type="number" class="z" id="property-lvel-z"><label for="property-lvel-z">Z:</label></div>
+                    </div>
+                </fieldset>
+                <div class="physical-group property number">
+                    <label>Linear damping</label>
+                    <input type="number" id="property-ldamping">
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <fieldset class="physical-group property pyr fstuple">
+                    <legend>Angular velocity <span class="unit">deg/s</span></legend>
+                    <div class="tuple">
+                        <div><input type="number" class="pitch" id="property-avel-x"><label for="property-avel-x">Pitch:</label></div>
+                        <div><input type="number" class="yaw" id="property-avel-y"><label for="property-avel-y">Yaw:</label></div>
+                        <div><input type="number" class="roll" id="property-avel-z"><label for="property-avel-z">Roll:</label></div>
+                    </div>
+                </fieldset>
+                <div class="physical-group property number">
+                    <label>Angular damping</label>
+                    <input type="number" id="property-adamping">
+                </div>
+            </fieldset>
+            <fieldset class="physical-group property gen fstuple">
+                <div class="tuple">
+                    <div><label>Restitution</label><input type="number" id="property-restitution"></div>
+                    <div><label>Friction</label><input type="number" id="property-friction"></div>
+                    <div><label>Density</label><input type="number" id="property-density"></div>
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <fieldset class="physical-group property xyz fstuple">
+                    <legend>Gravity <span class="unit">m/s<sup>2</sup></span></legend>
+                    <div class="tuple">
+                        <div><input type="number" class="x" id="property-grav-x"><label for="property-grav-x">X:</label></div>
+                        <div><input type="number" class="y" id="property-grav-y"><label for="property-grav-y">Y:</label></div>
+                        <div><input type="number" class="z" id="property-grav-z"><label for="property-grav-z">Z:</label></div>
+                    </div>
+                </fieldset>
+                <fieldset class="physical-group property xyz fstuple">
+                    <legend>Acceleration <span class="unit">m/s<sup>2</sup></span></legend>
+                    <div class="tuple">
+                        <div><input type="number" class="x" id="property-lacc-x"><label for="property-lacc-x">X:</label></div>
+                        <div><input type="number" class="y" id="property-lacc-y"><label for="property-lacc-y">Y:</label></div>
+                        <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
+                    </div>
+                </fieldset>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="physical-group color-section property rgb fstuple">
+                    <div class="color-picker" id="property-color-control2"></div>
+                    <label>Entity color</label>
+                    <div class="tuple">
+                        <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
+                        <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
+                        <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
+                    </div>
+                </div>
+            </fieldset>
+        </fieldset>
+
+
+        <fieldset id="spatial" class="major">
+            <legend class="section-header spatial-group">
+                Spatial<span>M</span>
+            </legend>
+            <fieldset class="spatial-group property xyz fstuple">
+                <legend>Position <span class="unit">m</span></legend>
                 <div class="tuple">
                     <div><input type="number" class="x" id="property-pos-x"><label for="property-pos-x">X:</label></div>
                     <div><input type="number" class="y" id="property-pos-y"><label for="property-pos-y">Y:</label></div>
                     <div><input type="number" class="z" id="property-pos-z"><label for="property-pos-z">Z:</label></div>
                 </div>
-            </div>
-            <div class="spatial-group property pyr">
-                <label>Rotation <span class="unit">deg</span></label>
+            </fieldset>
+            <fieldset class="spatial-group property pyr fstuple">
+                <legend>Rotation <span class="unit">deg</span></legend>
                 <div class="tuple">
                     <div><input type="number" class="pitch" id="property-rot-x" step="0.1"><label for="property-rot-x">Pitch:</label></div>
                     <div><input type="number" class="yaw" id="property-rot-y" step="0.1"><label for="property-rot-y">Yaw:</label></div>
                     <div><input type="number" class="roll" id="property-rot-z" step="0.1"><label for="property-rot-z">Roll:</label></div>
                 </div>
-            </div>
-            <div class="spatial-group property xyz">
-                <label>Dimensions <span class="unit">m</span></label>
+            </fieldset>
+            <fieldset class="spatial-group property xyz fstuple">
+                <legend>Dimensions <span class="unit">m</span></legend>
                 <div class="tuple">
                     <div><input type="number" class="x" id="property-dim-x" step="0.1"><label for="property-dim-x">X:</label></div>
                     <div><input type="number" class="y" id="property-dim-y" step="0.1"><label for="property-dim-y">Y:</label></div>
                     <div><input type="number" class="z" id="property-dim-z" step="0.1"><label for="property-dim-z">Z:</label></div>
                 </div>
-            </div>
-            <div class="spatial-group property xyz">
-                <label>Registration <span class="unit">(pivot offset as ratio of dimension)</span></label>
+            </fieldset>
+            <fieldset class="spatial-group property xyz fstuple">
+                <legend>Registration <span class="unit">(pivot offset as ratio of dimension)</span></legend>
                 <div class="tuple">
                     <div><input type="number" class="x" id="property-reg-x" step="0.1"><label for="property-reg-x">X:</label></div>
                     <div><input type="number" class="y" id="property-reg-y" step="0.1"><label for="property-reg-y">Y:</label></div>
                     <div><input type="number" class="z" id="property-reg-z" step="0.1"><label for="property-reg-z">Z:</label></div>
                 </div>
-            </div>
-            <div class="spatial-group property gen">
-                <label>Scale <span class="unit">%</span></label>
+            </fieldset>
+            <fieldset class="spatial-group property gen fsrow">
+                <legend>Scale <span class="unit">%</span></legend>
                 <div class="row">
                     <input type="number" id="dimension-rescale-pct" value=100>
                     <input type="button" class="blue" id="dimension-rescale-button" value="Rescale">
                     <input type="button" class="red" id="reset-to-natural-dimensions" value="Reset Dimensions">
                 </div>
-            </div>
+            </fieldset>
             <div class="spatial-group row">
                 <div class="property text">
                     <label for="property-parent-id">Parent ID</label>
@@ -153,278 +290,311 @@
                     </div>
                 </div>
             </div>
-            <hr class="spatial-group poly-vox-section" />
-            <div class="spatial-group poly-vox-section property xyz">
-                <label>Voxel volume size <span class="unit">m</span></label>
+        </fieldset>
+
+
+        <fieldset id="behavior" class="major">
+            <legend class="section-header behavior-group">
+                Behavior<span>M</span>
+            </legend>
+            <div class="property textarea">
+                <label for="property-user-data">User data</label>
+                <br>
+                <div class="row">
+                    <input type="button" class="red" id="userdata-clear" value="Clear User Data">
+                    <input type="button" class="blue" id="userdata-new-editor" value="Edit as JSON">
+                    <input disabled type="button" class="black" id="userdata-save" value="Save User Data">
+                    <span id="userdata-saved">Saved!</span>
+                </div>
+                <div id="static-userdata"></div>
+                <div id="userdata-editor"></div>
+                <textarea id="property-user-data"></textarea>
+            </div>
+            <div id="id" class="property value">
+                <label>ID:</label>
+                <input type="text" id="property-id" readonly>
+            </div>
+
+            <fieldset class="minor">
+                <div class="behavior-group property url ">
+                    <label for="property-collision-sound-url">Collision sound URL</label>
+                    <input type="text" id="property-collision-sound-url">
+                </div>
+                <div class="behavior-group property number">
+                    <label>Lifetime <span class="unit">s</span></label>
+                    <input type="number" id="property-lifetime">
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="behavior-group property url refresh">
+                    <input type="hidden" id="property-script-timestamp" class="value">
+                    <label for="property-script-url">Script URL</label>
+                    <input type="text" id="property-script-url">
+                    <input type="button" id="reload-script-button" class="glyph" value="F">
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="behavior-group property url refresh">
+                    <label for="property-server-scripts">Server Script URL</label>
+                    <input type="text" id="property-server-scripts">
+                    <input type="button" id="reload-server-scripts-button" class="glyph" value="F">
+                </div>
+                <div class="behavior-group property">
+                    <label for="server-script-status">Server Script Status</label>
+                    <span id="server-script-status"></span>
+                </div>
+                <div class="behavior-group property">
+                    <textarea id="server-script-error"></textarea>
+                </div>
+            </fieldset>
+            <div class="property text">
+                <label for="property-description">Description</label>
+                <input type="text" id="property-description">
+            </div>
+        </fieldset>
+
+
+        <fieldset id="hyperlink" class="major">
+            <legend class="section-header hyperlink-group hyperlink-section">
+                Hyperlink<span>M</span>
+            </legend>
+            <div class="hyperlink-group hyperlink-section property url">
+                <label for="property-hyperlink-href">Href - hifi://address</label>
+                <input type="text" id="property-hyperlink-href">
+            </div>
+        </fieldset>
+
+
+
+        <fieldset id="light" class="major">
+            <legend class="section-header light-group light-section">
+                Light<span>M</span>
+            </legend>
+            <fieldset class="light-group light-section property rgb fstuple">
+                <div class="color-picker" id="property-light-color"></div>
+                <legend>Light color</legend>
                 <div class="tuple">
-                    <div><input type="number" class="x" id="property-voxel-volume-size-x"><label for="property-voxel-volume-size-x">X:</label></div>
-                    <div><input type="number" class="y" id="property-voxel-volume-size-y"><label for="property-voxel-volume-size-y">Y:</label></div>
-                    <div><input type="number" class="z" id="property-voxel-volume-size-z"><label for="property-voxel-volume-size-z">Z:</label></div>
+                    <div><input type="number" class="red" id="property-light-color-red"><label for="property-light-color-red">Red:</label></div>
+                    <div><input type="number" class="green" id="property-light-color-green"><label for="property-light-color-green">Green:</label></div>
+                    <div><input type="number" class="blue" id="property-light-color-blue"><label for="property-light-color-blue">Blue:</label></div>
                 </div>
-            </div>
-            <div class="spatial-group poly-vox-section property dropdown">
-                <label>Surface extractor</label>
-                <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
-                    <option value="0">Marching cubes</option>
-                    <option value="1">Cubic</option>
-                    <option value="2">Edged cubic</option>
-                    <option value="3">Edged marching cubes</option>
-                </select>
-            </div>
-            <div class="spatial-group poly-vox-section property url ">
-                <label for="property-x-texture-url">X-axis texture URL</label>
-                <input type="text" id="property-x-texture-url">
-            </div>
-            <div class="spatial-group poly-vox-section property url ">
-                <label for="property-y-texture-url">Y-axis texture URL</label>
-                <input type="text" id="property-y-texture-url">
-            </div>
-            <div class="spatial-group poly-vox-section property url ">
-                <label for="property-z-texture-url">Z-axis texture URL</label>
-                <input type="text" id="property-z-texture-url">
-            </div>
-            <div class="section-header physical-group">
-                <label>Physical</label><span>M</span>
-            </div>
-            <div class="physical-group property xyz">
-                <label>Linear velocity <span class="unit">m/s</span></label>
+            </fieldset>
+            <fieldset class="light-group light-section property gen fstuple">
                 <div class="tuple">
-                    <div><input type="number" class="x" id="property-lvel-x"><label for="property-lvel-x">X:</label></div>
-                    <div><input type="number" class="y" id="property-lvel-y"><label for="property-lvel-y">Y:</label></div>
-                    <div><input type="number" class="z" id="property-lvel-z"><label for="property-lvel-z">Z:</label></div>
+                    <div><label>Intensity</label><input type="number" id="property-light-intensity" min="0" step="0.1"></div>
+                    <div><label>Fall-off radius <span class="unit">m</span></label><input type="number" id="property-light-falloff-radius" min="0" step="0.1"></div>
+                    <div></div>
                 </div>
+            </fieldset>
+            <div class="light-group light-section property checkbox">
+                <input type="checkbox" id="property-light-spot-light">
+                <label for="property-light-spot-light">Spotlight</label>
             </div>
-            <div class="physical-group property number">
-                <label>Linear damping</label>
-                <input type="number" id="property-ldamping">
-            </div>
-            <hr class="physical-group"  />
-            <div class="physical-group property pyr">
-                <label>Angular velocity <span class="unit">deg/s</span></label>
+            <fieldset class="light-group light-section property gen fstuple">
                 <div class="tuple">
-                    <div><input type="number" class="pitch" id="property-avel-x"><label for="property-avel-x">Pitch:</label></div>
-                    <div><input type="number" class="yaw" id="property-avel-y"><label for="property-avel-y">Yaw:</label></div>
-                    <div><input type="number" class="roll" id="property-avel-z"><label for="property-avel-z">Roll:</label></div>
+                    <div><label>Spotlight exponent</label><input type="number" id="property-light-exponent" step="0.01"></div>
+                    <div><label>Spotlight cut-off</label><input type="number" id="property-light-cutoff" step="0.01"></div>
+                    <div></div>
                 </div>
-            </div>
-            <div class="physical-group property number">
-                <label>Angular damping</label>
-                <input type="number" id="property-adamping">
-            </div>
-            <hr class="physical-group" />
-            <div class="physical-group property gen">
-                <div class="tuple">
-                    <div><label>Restitution</label><input type="number" id="property-restitution"></div>
-                    <div><label>Friction</label><input type="number" id="property-friction"></div>
-                    <div><label>Density</label><input type="number" id="property-density"></div>
+            </fieldset>
+        </fieldset>
+
+
+        <fieldset id="model" class="major">
+            <legend class="section-header model-group model-section zone-section">
+                Model<span>M</span>
+            </legend>
+            <fieldset class="minor">
+                <div class="model-group model-section property url ">
+                    <label for="property-model-url">Model URL</label>
+                    <input type="text" id="property-model-url">
                 </div>
-            </div>
-            <hr class="physical-group" />
-            <div class="physical-group property xyz">
-                <label>Gravity <span class="unit">m/s<sup>2</sup></span></label>
-                <div class="tuple">
-                    <div><input type="number" class="x" id="property-grav-x"><label for="property-grav-x">X:</label></div>
-                    <div><input type="number" class="y" id="property-grav-y"><label for="property-grav-y">Y:</label></div>
-                    <div><input type="number" class="z" id="property-grav-z"><label for="property-grav-z">Z:</label></div>
+                <div class="model-group model-section zone-section property dropdown">
+                    <label>Collision shape type</label>
+                    <select name="SelectShapeType" id="property-shape-type">
+                           <option value="none">No Collision</option>
+                           <option value="box">Box</option>
+                           <option value="sphere">Sphere</option>
+                           <option value="compound">Compound</option>
+                           <option value="simple-hull">Basic - Whole model</option>
+                           <option value="simple-compound">Good - Sub-meshes</option>
+                           <option value="static-mesh">Exact - All polygons (non-dynamic only)</option>
+                       </select>
                 </div>
-            </div>
-            <div class="physical-group property xyz">
-                <label>Acceleration <span class="unit">m/s<sup>2</sup></span></label>
-                <div class="tuple">
-                    <div><input type="number" class="x" id="property-lacc-x"><label for="property-lacc-x">X:</label></div>
-                    <div><input type="number" class="y" id="property-lacc-y"><label for="property-lacc-y">Y:</label></div>
-                    <div><input type="number" class="z" id="property-lacc-z"><label for="property-lacc-z">Z:</label></div>
+                <div class="model-group model-section zone-section property url ">
+                    <label for="property-compound-shape-url">Compound shape URL</label>
+                    <input type="text" id="property-compound-shape-url">
                 </div>
-            </div>
-            <hr class="physical-group color-section" />
-            <div class="physical-group color-section property rgb">
-                <div id="property-color" class="color-picker"></div>
-                <label>Entity color</label>
-                <div class="tuple">
-                    <div><input type="number" class="red" id="property-color-red"><label for="property-color-red">Red:</label></div>
-                    <div><input type="number" class="green" id="property-color-green"><label for="property-color-green">Green:</label></div>
-                    <div><input type="number" class="blue" id="property-color-blue"><label for="property-color-blue">Blue:</label></div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="model-group model-section property url ">
+                    <label for="property-model-animation-url">Animation URL</label>
+                    <input type="text" id="property-model-animation-url">
                 </div>
-            </div>
-            <div class="section-header behavior-group">
-                <label>Behavior</label><span>M</span>
-            </div>
-            <div class="behavior-group property checkbox">
-                <input type="checkbox" id="property-collisionless">
-                <label for="property-collisionless">Collisionless</label>
-            </div>
-            <div class="behavior-group property checkbox">
-                <input type="checkbox" id="property-dynamic">
-                <label for="property-dynamic">Dynamic</label>
-            </div>
-            <div class="behavior-group two-column">
-                <div class="column">
-                    <div class="sub-section-header">
-                        <span>Collides With</span>
+
+                <div class="model-group model-section two-column">
+                    <div class="column">
+                        <div class="property checkbox">
+                            <input type="checkbox" id="property-model-animation-playing">
+                            <label for="property-model-animation-playing">Animation playing</label>
+                        </div>
+                        <div class="property checkbox indent">
+                            <input type="checkbox" id="property-model-animation-loop">
+                            <label for="property-model-animation-loop">Animation loop</label>
+                        </div>
+                        <div class="property checkbox indent">
+                            <input type="checkbox" id="property-model-animation-hold">
+                            <label for="property-model-animation-hold">Animation hold</label>
+                        </div>
+                        <div id="animation-fps" class="property number">
+                            <label>Animation FPS</label>
+                            <input type="number" id="property-model-animation-fps">
+                        </div>
                     </div>
-                    <div class="checkbox-sub-props">
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-collide-static">
-                            <label for="property-collide-static">Static entities</label>
+                    <div class="column">
+                        <div class="property number">
+                            <label>Animation frame</label>
+                            <input type="number" id="property-model-animation-frame">
                         </div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-collide-dynamic">
-                            <label for="property-collide-dynamic">Dynamic entities</label>
+                        <div class="property number">
+                            <label>First frame</label>
+                            <input type="number" id="property-model-animation-first-frame">
                         </div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-collide-kinematic">
-                            <label for="property-collide-kinematic">Kinematic entities</label>
-                        </div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-collide-myAvatar">
-                            <label for="property-collide-myAvatar">My avatar</label>
-                        </div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-collide-otherAvatar">
-                            <label for="property-collide-otherAvatar">Other avatars</label>
+                        <div class="property number">
+                            <label>Last frame</label>
+                            <input type="number" id="property-model-animation-last-frame">
                         </div>
                     </div>
                 </div>
-                <div class="column">
-                    <div class="sub-section-header">
-                        <span>Grabbing</span>
-                    </div>
-                    <div class="checkbox-sub-props">
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-grabbable">
-                            <label for="property-grabbable">Grabbable</label>
-                        </div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-wants-trigger">
-                            <label for="property-wants-trigger">Triggerable</label>
-                        </div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-cloneable">
-                            <label for="property-cloneable">Cloneable</label>
-                        </div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-ignore-ik">
-                            <label for="property-ignore-ik">Ignore inverse kinematics</label>
-                        </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="model-group model-section property textarea">
+                    <label for="property-model-textures">Textures</label>
+                    <textarea id="property-model-textures"></textarea>
+                </div>
+                <div class="model-group model-section property textarea">
+                    <label for="property-model-original-textures">Original textures</label>
+                    <textarea id="property-model-original-textures" readonly></textarea>
+                </div>
+            </fieldset>
+        </fieldset>
+
+
+        <fieldset id="zone" class="major">
+            <legend class="section-header zone-group zone-section">
+                Zone<span>M</span>
+            </legend>
+            <fieldset class="minor">
+                <div class="zone-group zone-section property checkbox">
+                    <input type="checkbox" id="property-zone-stage-sun-model-enabled">
+                    <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
+                </div>
+                <div class="zone-group zone-section property checkbox">
+                    <input type="checkbox" id="property-zone-flying-allowed">
+                    <label for="property-zone-flying-allowed">Flying allowed</label>
+                </div>
+                <div class="zone-group zone-section property checkbox">
+                    <input type="checkbox" id="property-zone-ghosting-allowed">
+                    <label for="property-zone-ghosting-allowed">Ghosting allowed</label>
+                </div>
+            </fieldset>
+            <fieldset class="minor">
+                <div class="zone-group zone-section property url ">
+                    <label for="property-zone-filter-url">Filter URL</label>
+                    <input type="text" id="property-zone-filter-url">
+                </div>
+                <div class="sub-section-header zone-group zone-section keylight-section">
+                    <label>Key Light</label>
+                </div>
+                <div class="zone-section keylight-section zone-group property rgb">
+                    <div class="color-picker" id="property-zone-key-light-color"></div>
+                    <label>Key light color</label>
+                    <div class="tuple">
+                        <div><input type="number" class="red" id="property-zone-key-light-color-red" min="0" max="255" step="1"><label for="property-zone-key-light-color-red">Red:</label></div>
+                        <div><input type="number" class="green" id="property-zone-key-light-color-green" min="0" max="255" step="1"><label for="property-zone-key-light-color-green">Green:</label></div>
+                        <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
                     </div>
                 </div>
-                <div class="column" id="group-cloneable-group" style="display:none;">
-                    <div class="sub-section-header">
-                        <span>Cloneable Settings</span>
-                    </div>
-                    <div class="cloneable-group property gen">
-                        <div><label>Clone Lifetime</label><input type="number" data-user-data-type="cloneLifetime" id="property-cloneable-lifetime"></div>
-                        <div><label>Clone Limit</label><input type="number" data-user-data-type="cloneLimit" id="property-cloneable-limit"></div>
-                        <div class="property checkbox">
-                            <input type="checkbox" id="property-cloneable-dynamic">
-                            <label for="property-cloneable-dynamic">Clone Dynamic</label>
-                        </div>
+                <div class="zone-section keylight-section zone-group property number">
+                    <label>Light intensity</label>
+                    <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
+                </div>
+                <div class="zone-group zone-section keylight-section property gen">
+                    <div class="tuple">
+                        <div><label>Light altitude <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-x"></div>
+                        <div><label>Light azimuth <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-y"></div>
+                        <div></div>
                     </div>
                 </div>
-            </div>
-            <hr class="behavior-group" />
-            <div class="behavior-group property url ">
-                <label for="property-collision-sound-url">Collision sound URL</label>
-                <input type="text" id="property-collision-sound-url">
-            </div>
-            <div class="behavior-group property number">
-                <label>Lifetime <span class="unit">s</span></label>
-                <input type="number" id="property-lifetime">
-            </div>
-            <hr class="behavior-group" />
-            <div class="behavior-group property url refresh">
-                <input type="hidden" id="property-script-timestamp" class="value">
-                <label for="property-script-url">Script URL</label>
-                <input type="text" id="property-script-url">
-                <input type="button" id="reload-script-button" class="glyph" value="F">
-            </div>
-            <hr class="behavior-group" />
-            <div class="behavior-group property url refresh">
-                <label for="property-server-scripts">Server Script URL</label>
-                <input type="text" id="property-server-scripts">
-                <input type="button" id="reload-server-scripts-button" class="glyph" value="F">
-            </div>
-            <div class="behavior-group property">
-                <label for="server-script-status">Server Script Status</label>
-                <span id="server-script-status"></span>
-            </div>
-            <div class="behavior-group property">
-                <textarea id="server-script-error"></textarea>
-            </div>
-            <div class="section-header model-group model-section zone-section">
-                <label>Model</label><span>M</span>
-            </div>
-            <div class="model-group model-section property url ">
-                <label for="property-model-url">Model URL</label>
-                <input type="text" id="property-model-url">
-            </div>
-            <div class="model-group model-section zone-section property dropdown">
-                <label>Collision shape type</label>
-                <select name="SelectShapeType" id="property-shape-type">
-                    <option value="none">No Collision</option>
-                    <option value="box">Box</option>
-                    <option value="sphere">Sphere</option>
-                    <option value="compound">Compound</option>
-                    <option value="simple-hull">Basic - Whole model</option>
-                    <option value="simple-compound">Good - Sub-meshes</option>
-                    <option value="static-mesh">Exact - All polygons (non-dynamic only)</option>
-                </select>
-            </div>
-            <div class="model-group model-section zone-section property url ">
-                <label for="property-compound-shape-url">Compound shape URL</label>
-                <input type="text" id="property-compound-shape-url">
-            </div>
-            <hr class="model-group model-section" />
-            <div class="model-group model-section property url ">
-                <label for="property-model-animation-url">Animation URL</label>
-                <input type="text" id="property-model-animation-url">
-            </div>
-            <div class="model-group model-section two-column">
-                <div class="column">
-                    <div class="property checkbox">
-                        <input type="checkbox" id="property-model-animation-playing">
-                        <label for="property-model-animation-playing">Animation playing</label>
-                    </div>
-                    <div class="property checkbox indent">
-                        <input type="checkbox" id="property-model-animation-loop">
-                        <label for="property-model-animation-loop">Animation loop</label>
-                    </div>
-                    <div class="property checkbox indent">
-                        <input type="checkbox" id="property-model-animation-hold">
-                        <label for="property-model-animation-hold">Animation hold</label>
-                    </div>
-                    <div id="animation-fps" class="property number">
-                        <label>Animation FPS</label>
-                        <input type="number" id="property-model-animation-fps">
-                    </div>
+                <div class="zone-group zone-section keylight-section property number">
+                    <label>Ambient intensity</label>
+                    <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
                 </div>
-                <div class="column">
-                    <div class="property number">
-                        <label>Animation frame</label>
-                        <input type="number" id="property-model-animation-frame">
-                    </div>
-                    <div class="property number">
-                        <label>First frame</label>
-                        <input type="number" id="property-model-animation-first-frame">
-                    </div>
-                    <div class="property number">
-                        <label>Last frame</label>
-                        <input type="number" id="property-model-animation-last-frame">
-                    </div>
+                <div class="zone-group zone-section keylight-section property url ">
+                    <label for="property-zone-key-ambient-url">Ambient URL</label>
+                    <input type="text" id="property-zone-key-ambient-url">
                 </div>
-            </div>
-            <hr class="model-group model-section" />
-            <div class="model-group model-section property textarea">
-                <label for="property-model-textures">Textures</label>
-                <textarea id="property-model-textures"></textarea>
-            </div>
-            <div class="model-group model-section property textarea">
-                <label for="property-model-original-textures">Original textures</label>
-                <textarea id="property-model-original-textures" readonly></textarea>
-            </div>
-            <div class="section-header text-group text-section">
-                <label>Text</label><span>M</span>
-            </div>
+            </fieldset>
+            <fieldset class="minor">
+                <legend class="sub-section-header zone-group zone-section stage-section">
+                    Stage
+                </legend>
+                <fieldset class="zone-group zone-section stage-section property gen fstuple">
+                    <div class="tuple">
+                        <div><label>Latitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
+                        <div><label>Longitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
+                        <div><label>Altitude <span class="unit">m</span></label><input type="number" id="property-zone-stage-altitude" step="1"></div>
+                    </div>
+                </fieldset>
+                <div class="zone-group zone-section stage-section property checkbox">
+                    <input type="checkbox" id="property-zone-stage-automatic-hour-day">
+                    <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
+                </div>
+                <fieldset class="zone-group zone-section stage-section property gen fstuple">
+                    <div class="tuple">
+                        <div><label>Day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
+                        <div><label>Hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
+                        <div></div>
+                    </div>
+                </fieldset>
+            </fieldset>
+            <fieldset class="minor">
+                <legend class="sub-section-header zone-group zone-section background-section">
+                    Background
+                </legend>
+                <div class="zone-group zone-section background-section property dropdown">
+                    <label>Background mode</label>
+                    <select name="SelectBackgroundMode" id="property-zone-background-mode">
+                        <option value="inherit">Nothing</option>
+                        <option value="skybox">Skybox</option>
+                    </select>
+                </div>
+            </fieldset>
+            <fieldset class="minor skybox-section">
+                <legend class="sub-section-header zone-group zone-section skybox-section">
+                    Skybox
+                </legend>
+                <fieldset class="zone-group zone-section skybox-section property rgb fstuple">
+                    <div class="color-picker" id="property-zone-skybox-color"></div>
+                    <legend>Skybox color</legend>
+                    <div class="tuple">
+                        <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
+                        <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
+                        <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
+                    </div>
+                </fieldset>
+                <div class="zone-group zone-section skybox-section property url ">
+                    <label for="property-zone-skybox-url">Skybox URL</label>
+                    <input type="text" id="property-zone-skybox-url">
+                </div>
+            </fieldset>
+        </fieldset>
+
+
+        <fieldset id="text" class="major">
+            <legend class="section-header text-group text-section">
+                Text<span>M</span>
+            </legend>
             <div class="text-group text-section property text">
                 <label for="property-text-text">Text content</label>
                 <input type="text" id="property-text-text">
@@ -446,116 +616,22 @@
                     <div><input type="number" class="blue" id="property-text-text-color-blue"><label for="property-text-text-color-blue">Blue:</label></div>
                 </div>
             </div>
-            <div class="text-group text-section property rgb">
+            <fieldset class="text-group text-section property rgb fstuple">
                 <div class="color-picker" id="property-text-background-color"></div>
-                <label>Background color</label>
+                <legend>Background color</legend>
                 <div class="tuple">
                     <div><input type="number" class="red" id="property-text-background-color-red"><label for="roperty-text-background-color-red">Red:</label></div>
                     <div><input type="number" class="green" id="property-text-background-color-green"><label for="property-text-background-color-green">Green:</label></div>
                     <div><input type="number" class="blue" id="property-text-background-color-blue"><label for="property-text-background-color-blue">Blue:</label></div>
                 </div>
-            </div>
-            <div class="section-header zone-group zone-section">
-                <label>Zone</label><span>M</span>
-            </div>
-            <div class="zone-group zone-section property checkbox">
-                <input type="checkbox" id="property-zone-stage-sun-model-enabled">
-                <label for="property-zone-stage-sun-model-enabled">Enable stage sun model</label>
-            </div>
-            <div class="zone-group zone-section property checkbox">
-                <input type="checkbox" id="property-zone-flying-allowed">
-                <label for="property-zone-flying-allowed">Flying allowed</label>
-            </div>
-            <div class="zone-group zone-section property checkbox">
-                <input type="checkbox" id="property-zone-ghosting-allowed">
-                <label for="property-zone-ghosting-allowed">Ghosting allowed</label>
-            </div>
-            <hr class="zone-group zone-section">
-            <div class="zone-group zone-section property url ">
-                <label for="property-zone-filter-url">Filter URL</label>
-                <input type="text" id="property-zone-filter-url">
-            </div>
-            <div class="sub-section-header zone-group zone-section keylight-section">
-                <label>Key Light</label>
-            </div>
-            <div class="zone-section keylight-section zone-group property rgb">
-                <div class="color-picker" id="property-zone-key-light-color"></div>
-                <label>Key light color</label>
-                <div class="tuple">
-                    <div><input type="number" class="red" id="property-zone-key-light-color-red" min="0" max="255" step="1"><label for="property-zone-key-light-color-red">Red:</label></div>
-                    <div><input type="number" class="green" id="property-zone-key-light-color-green" min="0" max="255" step="1"><label for="property-zone-key-light-color-green">Green:</label></div>
-                    <div><input type="number" class="blue" id="property-zone-key-light-color-blue" min="0" max="255" step="1"><label for="property-zone-key-light-color-blue">Blue:</label></div>
-                </div>
-            </div>
-            <div class="zone-section keylight-section zone-group property number">
-                <label>Light intensity</label>
-                <input type="number" id="property-zone-key-intensity" min="0" max="10" step="0.1">
-            </div>
-            <div class="zone-group zone-section keylight-section property gen">
-                <div class="tuple">
-                    <div><label>Light altitude <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-x"></div>
-                    <div><label>Light azimuth <span class="unit">deg</span></label><input type="number" id="property-zone-key-light-direction-y"></div>
-                    <div></div>
-                </div>
-            </div>
-            <div class="zone-group zone-section keylight-section property number">
-                <label>Ambient intensity</label>
-                <input type="number" id="property-zone-key-ambient-intensity" min="0" max="10" step="0.1">
-            </div>
-            <div class="zone-group zone-section keylight-section property url ">
-                <label for="property-zone-key-ambient-url">Ambient URL</label>
-                <input type="text" id="property-zone-key-ambient-url">
-            </div>
-            <div class="sub-section-header zone-group zone-section stage-section">
-                <label>Stage</label>
-            </div>
-            <div class="zone-group zone-section stage-section property gen">
-                <div class="tuple">
-                    <div><label>Latitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-latitude" min="-90" max="90" step="1"></div>
-                    <div><label>Longitude <span class="unit">deg</span></label><input type="number" id="property-zone-stage-longitude" min="-180" max="180" step="1"></div>
-                    <div><label>Altitude <span class="unit">m</span></label><input type="number" id="property-zone-stage-altitude" step="1"></div>
-                </div>
-            </div>
-            <div class="zone-group zone-section stage-section property checkbox">
-                <input type="checkbox" id="property-zone-stage-automatic-hour-day">
-                <label for="property-zone-stage-automatic-hour-day">Match stage hour and day to location</label>
-            </div>
-            <div class="zone-group zone-section stage-section property gen">
-                <div class="tuple">
-                    <div><label>Day of year</label><input type="number" id="property-zone-stage-day" min="0" max="365" step="1"></div>
-                    <div><label>Hour</label><input type="number" id="property-zone-stage-hour" min="0" max="24" step="0.5"></div>
-                    <div></div>
-                </div>
-            </div>
-            <div class="sub-section-header zone-group zone-section background-section">
-                <label>Background</label>
-            </div>
-            <div class="zone-group zone-section background-section property dropdown">
-                <label>Background mode</label>
-                <select name="SelectBackgroundMode" id="property-zone-background-mode">
-                    <option value="inherit">Nothing</option>
-                    <option value="skybox">Skybox</option>
-                </select>
-            </div>
-            <div class="sub-section-header zone-group zone-section skybox-section">
-                <label>Skybox</label>
-            </div>
-            <div class="zone-group zone-section skybox-section property rgb">
-                <div class="color-picker" id="property-zone-skybox-color"></div>
-                <label>Skybox color</label>
-                <div class="tuple">
-                    <div><input type="number" class="red" id="property-zone-skybox-color-red"><label for="property-zone-skybox-color-red">Red:</label></div>
-                    <div><input type="number" class="green" id="property-zone-skybox-color-green"><label for="property-zone-skybox-color-green">Green:</label></div>
-                    <div><input type="number" class="blue" id="property-zone-skybox-color-blue"><label for="property-zone-skybox-color-blue">Blue:</label></div>
-                </div>
-            </div>
-            <div class="zone-group zone-section skybox-section property url ">
-                <label for="property-zone-skybox-url">Skybox URL</label>
-                <input type="text" id="property-zone-skybox-url">
-            </div>
-            <div class="section-header web-group web-section">
-                <label>Web</label><span>M</span>
-            </div>
+            </fieldset>
+        </fieldset>
+
+
+        <fieldset id="web" class="major">
+            <legend class="section-header web-group web-section">
+                Web<span>M</span>
+            </legend>
             <div class="web-group web-section property url ">
                 <label for="property-web-source-url">Source URL</label>
                 <input type="text" id="property-web-source-url">
@@ -564,36 +640,45 @@
                 <label for="property-web-dpi">Resolution (DPI)</label>
                 <input type="number" id="property-web-dpi">
             </div>
-            <div class="section-header light-group light-section">
-                <label>Light</label><span>M</span>
+        </fieldset>
+
+
+
+
+
+        <fieldset id="polyvox" class="major">
+            <legend class="section-header spatial-group poly-vox-section property xyz">
+                Voxel volume size <span>m</span>
+            </legend>
+            <div class="tuple">
+                <div><input type="number" class="x" id="property-voxel-volume-size-x"><label for="property-voxel-volume-size-x">X:</label></div>
+                <div><input type="number" class="y" id="property-voxel-volume-size-y"><label for="property-voxel-volume-size-y">Y:</label></div>
+                <div><input type="number" class="z" id="property-voxel-volume-size-z"><label for="property-voxel-volume-size-z">Z:</label></div>
             </div>
-            <div class="light-group light-section property rgb">
-                <div class="color-picker" id="property-light-color"></div>
-                <label>Light color</label>
-                <div class="tuple">
-                    <div><input type="number" class="red" id="property-light-color-red"><label for="property-light-color-red">Red:</label></div>
-                    <div><input type="number" class="green" id="property-light-color-green"><label for="property-light-color-green">Green:</label></div>
-                    <div><input type="number" class="blue" id="property-light-color-blue"><label for="property-light-color-blue">Blue:</label></div>
-                </div>
+            <div class="spatial-group poly-vox-section property dropdown">
+                <label>Surface extractor</label>
+                <select name="SelectVoxelSurfaceStyle" id="property-voxel-surface-style">
+                     <option value="0">Marching cubes</option>
+                     <option value="1">Cubic</option>
+                     <option value="2">Edged cubic</option>
+                     <option value="3">Edged marching cubes</option>
+                 </select>
             </div>
-            <div class="light-group light-section property gen">
-                <div class="tuple">
-                    <div><label>Intensity</label><input type="number" id="property-light-intensity" min="0" step="0.1"></div>
-                    <div><label>Fall-off radius <span class="unit">m</span></label><input type="number" id="property-light-falloff-radius" min="0" step="0.1"></div>
-                    <div></div>
-                </div>
+            <div class="spatial-group poly-vox-section property url ">
+                <label for="property-x-texture-url">X-axis texture URL</label>
+                <input type="text" id="property-x-texture-url">
             </div>
-            <div class="light-group light-section property checkbox">
-                <input type="checkbox" id="property-light-spot-light">
-                <label for="property-light-spot-light">Spotlight</label>
+            <div class="spatial-group poly-vox-section property url ">
+                <label for="property-y-texture-url">Y-axis texture URL</label>
+                <input type="text" id="property-y-texture-url">
             </div>
-            <div class="light-group light-section property gen">
-                <div class="tuple">
-                    <div><label>Spotlight exponent</label><input type="number" id="property-light-exponent" step="0.01"></div>
-                    <div><label>Spotlight cut-off</label><input type="number" id="property-light-cutoff" step="0.01"></div>
-                    <div></div>
-                </div>
+            <div class="spatial-group poly-vox-section property url ">
+                <label for="property-z-texture-url">Z-axis texture URL</label>
+                <input type="text" id="property-z-texture-url">
             </div>
-        </div>
-    </body>
+        </fieldset>
+
+    </div>
+</body>
+
 </html>

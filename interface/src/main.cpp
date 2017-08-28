@@ -216,7 +216,12 @@ int main(int argc, const char* argv[]) {
             SandboxUtils::runLocalSandbox(serverContentPath, true, noUpdater);
         }
 
-        Application app(argc, const_cast<char**>(argv), startupTime, runningMarkerExisted);
+        // Extend argv to enable WebGL rendering
+        std::vector<const char*> argvExtended(&argv[0], &argv[argc]);
+        argvExtended.push_back("--ignore-gpu-blacklist");
+        int argcExtended = (int)argvExtended.size();
+
+        Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {

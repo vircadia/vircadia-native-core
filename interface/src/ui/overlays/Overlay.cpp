@@ -13,6 +13,8 @@
 #include <NumericalConstants.h>
 #include <RegisteredMetaTypes.h>
 
+#include "Application.h"
+
 static const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float DEFAULT_ALPHA = 0.7f;
 
@@ -20,7 +22,7 @@ Overlay::Overlay() :
     _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
-    _pulse(0.0f),
+    _pulse(1.0f),
     _pulseMax(0.0f),
     _pulseMin(0.0f),
     _pulsePeriod(1.0f),
@@ -30,6 +32,7 @@ Overlay::Overlay() :
     _colorPulse(0.0f),
     _color(DEFAULT_OVERLAY_COLOR),
     _visible(true),
+    _drawHUDLayer(false),
     _anchor(NO_ANCHOR)
 {
 }
@@ -48,6 +51,7 @@ Overlay::Overlay(const Overlay* overlay) :
     _colorPulse(overlay->_colorPulse),
     _color(overlay->_color),
     _visible(overlay->_visible),
+    _drawHUDLayer(overlay->_drawHUDLayer),
     _anchor(overlay->_anchor)
 {
 }
@@ -84,6 +88,11 @@ void Overlay::setProperties(const QVariantMap& properties) {
 
     if (properties["colorPulse"].isValid()) {
         setColorPulse(properties["colorPulse"].toFloat());
+    }
+
+    if (properties["drawHUDLayer"].isValid()) {
+        bool drawHUDLayer = properties["drawHUDLayer"].toBool();
+        setDrawHUDLayer(drawHUDLayer);
     }
 
     if (properties["visible"].isValid()) {
@@ -161,6 +170,12 @@ float Overlay::getAlpha() {
     return (_alphaPulse >= 0.0f) ? _alpha * pulseLevel : _alpha * (1.0f - pulseLevel);
 }
 
+void Overlay::setDrawHUDLayer(bool drawHUDLayer) {
+    if (drawHUDLayer != _drawHUDLayer) {
+        qApp->getOverlays().setOverlayDrawHUDLayer(getOverlayID(), drawHUDLayer);
+        _drawHUDLayer = drawHUDLayer;
+    }
+}
 
 // pulse travels from min to max, then max to min in one period.
 float Overlay::updatePulse() {

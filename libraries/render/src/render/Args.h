@@ -63,6 +63,12 @@ namespace render {
     public:
         enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE, SECONDARY_CAMERA_RENDER_MODE };
         enum DisplayMode { MONO, STEREO_MONITOR, STEREO_HMD };
+        enum OutlineFlags {
+            RENDER_OUTLINE_NONE = 0,
+            RENDER_OUTLINE_WIREFRAMES = 1,
+            RENDER_OUTLINE_MARKETPLACE_MODE = 2,
+            RENDER_OUTLINE_SHADER = 4
+        };
         enum DebugFlags {
             RENDER_DEBUG_NONE = 0,
             RENDER_DEBUG_HULLS = 1
@@ -71,7 +77,6 @@ namespace render {
         Args() {}
 
         Args(const gpu::ContextPointer& context,
-            QSharedPointer<QObject> renderData = QSharedPointer<QObject>(nullptr),
             float sizeScale = 1.0f,
             int boundaryLevelAdjust = 0,
             RenderMode renderMode = DEFAULT_RENDER_MODE,
@@ -79,7 +84,6 @@ namespace render {
             DebugFlags debugFlags = RENDER_DEBUG_NONE,
             gpu::Batch* batch = nullptr) :
             _context(context),
-            _renderData(renderData),
             _sizeScale(sizeScale),
             _boundaryLevelAdjust(boundaryLevelAdjust),
             _renderMode(renderMode),
@@ -104,7 +108,6 @@ namespace render {
         std::shared_ptr<gpu::Context> _context;
         std::shared_ptr<gpu::Framebuffer> _blitFramebuffer;
         std::shared_ptr<render::ShapePipeline> _shapePipeline;
-        QSharedPointer<QObject> _renderData;
         std::stack<ViewFrustum> _viewFrustums;
         glm::ivec4 _viewport { 0.0f, 0.0f, 1.0f, 1.0f };
         glm::vec3 _boomOffset { 0.0f, 0.0f, 1.0f };
@@ -112,11 +115,15 @@ namespace render {
         int _boundaryLevelAdjust { 0 };
         RenderMode _renderMode { DEFAULT_RENDER_MODE };
         DisplayMode _displayMode { MONO };
+        OutlineFlags _outlineFlags{ RENDER_OUTLINE_NONE };
         DebugFlags _debugFlags { RENDER_DEBUG_NONE };
         gpu::Batch* _batch = nullptr;
 
-        uint32_t _globalShapeKey { 0 };
+        uint32_t _globalShapeKey{ 0 };
+        uint32_t _itemShapeKey{ 0 };
         bool _enableTexturing { true };
+
+        bool _enableFade{ false };
 
         RenderDetails _details;
         render::ScenePointer _scene;

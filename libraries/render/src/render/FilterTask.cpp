@@ -28,7 +28,7 @@ void FilterLayeredItems::run(const RenderContextPointer& renderContext, const It
     outItems.clear();
 
     // For each item, filter it into one bucket
-    for (auto itemBound : inItems) {
+    for (auto& itemBound : inItems) {
         auto& item = scene->getItem(itemBound.id);
         if (item.getLayer() == _keepLayer) {
             outItems.emplace_back(itemBound);
