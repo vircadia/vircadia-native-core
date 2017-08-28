@@ -414,12 +414,19 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
 
-    virtual void setJointRotations(QVector<glm::quat> jointRotations) override;
+    virtual void setJointRotations(const QVector<glm::quat>& jointRotations) override;
     virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) override;
     virtual void setJointRotation(int index, const glm::quat& rotation) override;
     virtual void setJointTranslation(int index, const glm::vec3& translation) override;
     virtual void clearJointData(int index) override;
+
+    virtual void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation)  override;
+    virtual void setJointRotation(const QString& name, const glm::quat& rotation)  override;
+    virtual void setJointTranslation(const QString& name, const glm::vec3& translation)  override;
+    virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
+
+
 
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
     Q_INVOKABLE bool clearPinOnJoint(int index);

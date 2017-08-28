@@ -17,6 +17,7 @@ import QtQuick.Controls 1.4
 import "../../styles-uit"
 import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
+import "./wallet" as HifiWallet
 
 // references XXX from root context
 
@@ -30,17 +31,17 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
         onBalanceResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get balance", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get balance", result.message);
             } else {
-                hfcBalanceText.text = balance;
+                hfcBalanceText.text = parseFloat(result.data.balance/100).toFixed(2);
             }
         }
         onInventoryResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get inventory", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get inventory", result.message);
             } else {
-                inventoryContentsList.model = inventory.assets;
+                inventoryContentsList.model = result.data.assets;
             }
         }
     }
@@ -51,7 +52,7 @@ Rectangle {
     Item {
         id: titleBarContainer;
         // Size
-        width: inventoryRoot.width;
+        width: parent.width;
         height: 50;
         // Anchors
         anchors.left: parent.left;
@@ -64,8 +65,11 @@ Rectangle {
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
-            anchors.fill: parent;
+            anchors.top: parent.top;
+            anchors.left: parent.left;
             anchors.leftMargin: 16;
+            anchors.bottom: parent.bottom;
+            width: paintedWidth;
             // Style
             color: hifi.colors.lightGrayText;
             // Alignment
@@ -88,7 +92,7 @@ Rectangle {
     // HFC BALANCE START
     //
     Item {
-        id: hfcBalanceContainer; 
+        id: hfcBalanceContainer;
         // Size
         width: inventoryRoot.width;
         height: childrenRect.height + 20;
@@ -133,7 +137,7 @@ Rectangle {
     //
     // HFC BALANCE END
     //
-    
+
     //
     // INVENTORY CONTENTS START
     //
@@ -148,7 +152,7 @@ Rectangle {
         anchors.topMargin: 8;
         anchors.bottom: actionButtonsContainer.top;
         anchors.bottomMargin: 8;
-        
+
         RalewaySemiBold {
             id: inventoryContentsLabel;
             text: "Inventory:";
@@ -166,6 +170,7 @@ Rectangle {
         }
         ListView {
             id: inventoryContentsList;
+            clip: true;
             // Anchors
             anchors.top: inventoryContentsLabel.bottom;
             anchors.topMargin: 8;
@@ -204,7 +209,7 @@ Rectangle {
     //
     // INVENTORY CONTENTS END
     //
-    
+
     //
     // ACTION BUTTONS START
     //

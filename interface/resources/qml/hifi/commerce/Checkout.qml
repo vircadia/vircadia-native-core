@@ -17,6 +17,7 @@ import QtQuick.Controls 1.4
 import "../../styles-uit"
 import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
+import "./wallet" as HifiWallet
 
 // references XXX from root context
 
@@ -26,40 +27,42 @@ Rectangle {
     id: checkoutRoot;
     property bool inventoryReceived: false;
     property bool balanceReceived: false;
-    property string itemId: ""; 
+    property string itemId: "";
     property string itemHref: "";
     property int balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
+    property int itemPriceFull: 0;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
         onBuyResult: {
-                if (failureMessage.length) {
-                    buyButton.text = "Buy Failed";
-                    buyButton.enabled = false;
-                } else {
-                    if (urlHandler.canHandleUrl(itemHref)) {
-                        urlHandler.handleUrl(itemHref);
-                    }
-                    sendToScript({method: 'checkout_buySuccess', itemId: itemId});
+            if (result.status !== 'success') {
+                buyButton.text = result.message;
+                buyButton.enabled = false;
+            } else {
+                if (urlHandler.canHandleUrl(itemHref)) {
+                    urlHandler.handleUrl(itemHref);
                 }
+                sendToScript({method: 'checkout_buySuccess', itemId: itemId});
+            }
         }
         onBalanceResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get balance", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get balance", result.message);
             } else {
                 balanceReceived = true;
-                hfcBalanceText.text = balance;
-                balanceAfterPurchase = balance - parseInt(itemPriceText.text, 10);
+                hfcBalanceText.text = parseFloat(result.data.balance/100).toFixed(2);
+                balanceAfterPurchase = parseFloat(result.data.balance/100) - parseFloat(checkoutRoot.itemPriceFull/100).toFixed(2);
             }
         }
         onInventoryResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get inventory", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get inventory", result.message);
             } else {
                 inventoryReceived = true;
-                if (inventoryContains(inventory.assets, itemId)) {
+                console.log('inventory fixme', JSON.stringify(result));
+                if (inventoryContains(result.data.assets, itemId)) {
                     alreadyOwned = true;
                 } else {
                     alreadyOwned = false;
@@ -87,8 +90,11 @@ Rectangle {
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
-            anchors.fill: parent;
+            anchors.top: parent.top;
+            anchors.left: parent.left;
             anchors.leftMargin: 16;
+            anchors.bottom: parent.bottom;
+            width: paintedWidth;
             // Style
             color: hifi.colors.lightGrayText;
             // Alignment
@@ -106,7 +112,7 @@ Rectangle {
     //
     // TITLE BAR END
     //
-    
+
     //
     // ITEM DESCRIPTION START
     //
@@ -121,7 +127,7 @@ Rectangle {
 
         // Item Name text
         Item {
-            id: itemNameContainer; 
+            id: itemNameContainer;
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 4;
@@ -162,11 +168,11 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-    
-        
+
+
         // Item Author text
         Item {
-            id: itemAuthorContainer; 
+            id: itemAuthorContainer;
             // Anchors
             anchors.top: itemNameContainer.bottom;
             anchors.topMargin: 4;
@@ -207,10 +213,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // HFC Balance text
         Item {
-            id: hfcBalanceContainer; 
+            id: hfcBalanceContainer;
             // Anchors
             anchors.top: itemAuthorContainer.bottom;
             anchors.topMargin: 16;
@@ -252,10 +258,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // Item Price text
         Item {
-            id: itemPriceContainer; 
+            id: itemPriceContainer;
             // Anchors
             anchors.top: hfcBalanceContainer.bottom;
             anchors.topMargin: 4;
@@ -296,10 +302,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // HFC "Balance After Purchase" text
         Item {
-            id: hfcBalanceAfterPurchaseContainer; 
+            id: hfcBalanceAfterPurchaseContainer;
             // Anchors
             anchors.top: itemPriceContainer.bottom;
             anchors.topMargin: 4;
@@ -346,7 +352,7 @@ Rectangle {
     // ITEM DESCRIPTION END
     //
 
-    
+
     //
     // ACTION BUTTONS START
     //
@@ -381,7 +387,7 @@ Rectangle {
         // "Buy" button
         HifiControlsUit.Button {
             id: buyButton;
-            enabled: balanceAfterPurchase >= 0 && !alreadyOwned && inventoryReceived && balanceReceived;
+            enabled: balanceAfterPurchase >= 0 && inventoryReceived && balanceReceived;
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
             anchors.top: parent.top;
@@ -391,9 +397,16 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 20;
             width: parent.width/2 - anchors.rightMargin*2;
-            text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned" : "Buy") : "--";
+            text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned: Get Item" : "Buy") : "--";
             onClicked: {
-                commerce.buy(itemId, parseInt(itemPriceText.text));
+                if (!alreadyOwned) {
+                    commerce.buy(itemId, parseFloat(itemPriceText.text*100));
+                } else {
+                    if (urlHandler.canHandleUrl(itemHref)) {
+                        urlHandler.handleUrl(itemHref);
+                    }
+                    sendToScript({method: 'checkout_buySuccess', itemId: itemId});
+                }
             }
         }
     }
@@ -423,7 +436,8 @@ Rectangle {
                 itemId = message.params.itemId;
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
-                itemPriceText.text = message.params.itemPrice;
+                checkoutRoot.itemPriceFull = message.params.itemPrice;
+                itemPriceText.text = parseFloat(checkoutRoot.itemPriceFull/100).toFixed(2);
                 itemHref = message.params.itemHref;
                 commerce.balance();
                 commerce.inventory();

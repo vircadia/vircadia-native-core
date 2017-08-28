@@ -27,19 +27,19 @@ ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
 }
 
 bool ProceduralSkybox::empty() {
-    return !_procedural.enabled() && Skybox::empty();
+    return !_procedural.isEnabled() && Skybox::empty();
 }
 
 void ProceduralSkybox::clear() {
     // Parse and prepare a procedural with no shaders to release textures
     parse(QString());
-    _procedural.ready();
+    _procedural.isReady();
 
     Skybox::clear();
 }
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
-    if (_procedural.ready()) {
+    if (_procedural.isReady()) {
         ProceduralSkybox::render(batch, frustum, (*this));
     } else {
         Skybox::render(batch, frustum);

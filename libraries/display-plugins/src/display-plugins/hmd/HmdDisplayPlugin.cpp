@@ -32,9 +32,6 @@
 
 #include "../Logging.h"
 #include "../CompositorHelper.h"
-#include <../render-utils/shaders/render-utils/glowLine_vert.h>
-#include <../render-utils/shaders/render-utils/glowLine_frag.h>
-
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString DISABLE_PREVIEW = "Disable Preview";
@@ -45,16 +42,9 @@ static const bool DEFAULT_MONO_VIEW = true;
 static const bool DEFAULT_DISABLE_PREVIEW = false;
 #endif
 static const glm::mat4 IDENTITY_MATRIX;
-static const size_t NUMBER_OF_HANDS = 2;
 
 //#define LIVE_SHADER_RELOAD 1
 extern glm::vec3 getPoint(float yaw, float pitch);
-
-struct HandLaserData {
-    vec4 p1;
-    vec4 p2;
-    vec4 color;
-};
 
 static QString readFile(const QString& filename) {
     QFile file(filename);
@@ -118,31 +108,9 @@ void HmdDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 }
 
-static const int32_t LINE_DATA_SLOT = 1;
-
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
     _overlayRenderer.build();
-
-    {
-        auto state = std::make_shared<gpu::State>();
-        auto VS = gpu::Shader::createVertex(std::string(glowLine_vert));
-        auto PS = gpu::Shader::createPixel(std::string(glowLine_frag));
-        auto program = gpu::Shader::createProgram(VS, PS);
-        state->setCullMode(gpu::State::CULL_NONE);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-        gpu::Shader::BindingSet bindings;
-        bindings.insert({ "lineData", LINE_DATA_SLOT });;
-        gpu::Shader::makeProgram(*program, bindings);
-        _glowLinePipeline = gpu::Pipeline::create(program, state);
-        _handLaserUniforms = std::array<gpu::BufferPointer, 2>{ { std::make_shared<gpu::Buffer>(), std::make_shared<gpu::Buffer>() } };
-        _extraLaserUniforms = std::make_shared<gpu::Buffer>();
-    };
-
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
@@ -157,10 +125,6 @@ void HmdDisplayPlugin::uncustomizeContext() {
     });
     _overlayRenderer = OverlayRenderer();
     _previewTexture.reset();
-    _handLaserUniforms[0].reset();
-    _handLaserUniforms[1].reset();
-    _extraLaserUniforms.reset();
-    _glowLinePipeline.reset();
     Parent::uncustomizeContext();
 }
 
@@ -383,132 +347,13 @@ void HmdDisplayPlugin::updateFrameData() {
         getGLBackend()->setCameraCorrection(correction);
     }
 
-    withPresentThreadLock([&] {
-        _presentHandLasers = _handLasers;
-        _presentHandPoses = _handPoses;
-        _presentUiModelTransform = _uiModelTransform;
-
-        _presentExtraLaser = _extraLaser;
-        _presentExtraLaserStart = _extraLaserStart;
-    });
-
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
-    static const float OUT_OF_BOUNDS = -1;
-    std::array<vec2, NUMBER_OF_HANDS> handGlowPoints { { vec2(OUT_OF_BOUNDS), vec2(OUT_OF_BOUNDS) } };
-    vec2 extraGlowPoint(OUT_OF_BOUNDS);
-
-    float uiRadius = compositorHelper->getHmdUiRadius();
-
-    // compute the glow point interesections
-    for (size_t i = 0; i < NUMBER_OF_HANDS; ++i) {
-        if (_presentHandPoses[i] == IDENTITY_MATRIX) {
-            continue;
-        }
-        const auto& handLaser = _presentHandLasers[i];
-        if (!handLaser.valid()) {
-            continue;
-        }
-
-        const vec3& laserDirection = handLaser.direction;
-        mat4 model = _presentHandPoses[i];
-        vec3 castStart = vec3(model[3]);
-        vec3 castDirection = glm::quat_cast(model) * laserDirection;
-
-        // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js:19
-        static const vec3 GRAB_POINT_SPHERE_OFFSET(0.04f, 0.13f, 0.039f);  // x = upward, y = forward, z = lateral
-
-        // swizzle grab point so that (x = upward, y = lateral, z = forward)
-        vec3 grabPointOffset = glm::vec3(GRAB_POINT_SPHERE_OFFSET.x, GRAB_POINT_SPHERE_OFFSET.z, -GRAB_POINT_SPHERE_OFFSET.y);
-        if (i == 0) {
-            grabPointOffset.x *= -1.0f; // this changes between left and right hands
-        }
-        castStart += glm::quat_cast(model) * grabPointOffset;
-
-        // Find the intersection of the laser with he UI and use it to scale the model matrix
-        float distance;
-        if (!glm::intersectRaySphere(castStart, castDirection,
-                                     _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
-            continue;
-        }
-
-        _presentHandLaserPoints[i].first = castStart;
-        _presentHandLaserPoints[i].second = _presentHandLaserPoints[i].first + (castDirection * distance);
-
-        vec3 intersectionPosition = castStart + (castDirection * distance) - _presentUiModelTransform.getTranslation();
-        intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
-
-        // Take the interesection normal and convert it to a texture coordinate
-        vec2 yawPitch;
-        {
-            vec2 xdir = glm::normalize(vec2(intersectionPosition.x, -intersectionPosition.z));
-            yawPitch.x = glm::atan(xdir.x, xdir.y);
-            yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + (float)M_PI_2;
-        }
-        vec2 halfFov = CompositorHelper::VIRTUAL_UI_TARGET_FOV / 2.0f;
-
-        // Are we out of range
-        if (glm::any(glm::greaterThan(glm::abs(yawPitch), halfFov))) {
-            continue;
-        }
-
-        yawPitch /= CompositorHelper::VIRTUAL_UI_TARGET_FOV;
-        yawPitch += 0.5f;
-        handGlowPoints[i] = yawPitch;
-    }
-
-    // compute the glow point interesections
-    if (_presentExtraLaser.valid()) {
-        const vec3& laserDirection = _presentExtraLaser.direction;
-        vec3 castStart = _presentExtraLaserStart;
-        vec3 castDirection = laserDirection;
-
-        // Find the intersection of the laser with he UI and use it to scale the model matrix
-        float distance;
-        if (glm::intersectRaySphere(castStart, castDirection,
-            _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
-
-
-            _presentExtraLaserPoints.first = castStart;
-            _presentExtraLaserPoints.second = _presentExtraLaserPoints.first + (castDirection * distance);
-
-            vec3 intersectionPosition = castStart + (castDirection * distance) - _presentUiModelTransform.getTranslation();
-            intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
-
-            // Take the interesection normal and convert it to a texture coordinate
-            vec2 yawPitch;
-            {
-                vec2 xdir = glm::normalize(vec2(intersectionPosition.x, -intersectionPosition.z));
-                yawPitch.x = glm::atan(xdir.x, xdir.y);
-                yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + (float)M_PI_2;
-            }
-            vec2 halfFov = CompositorHelper::VIRTUAL_UI_TARGET_FOV / 2.0f;
-
-            // Are we out of range
-            if (!glm::any(glm::greaterThan(glm::abs(yawPitch), halfFov))) {
-                yawPitch /= CompositorHelper::VIRTUAL_UI_TARGET_FOV;
-                yawPitch += 0.5f;
-                extraGlowPoint = yawPitch;
-            }
-        }
-    }
-
 
     for_each_eye([&](Eye eye) {
         auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
         _overlayRenderer.mvps[eye] = _eyeProjections[eye] * modelView;
     });
-
-    // Setup the uniforms
-    {
-        auto& uniforms = _overlayRenderer.uniforms;
-        uniforms.alpha = _compositeOverlayAlpha;
-        uniforms.glowPoints = vec4(handGlowPoints[0], handGlowPoints[1]);
-        uniforms.glowColors[0] = _presentHandLasers[0].color;
-        uniforms.glowColors[1] = _presentHandLasers[1].color;
-        uniforms.extraGlowPoint = extraGlowPoint;
-        uniforms.extraGlowColor = _presentExtraLaser.color;
-    }
 }
 
 void HmdDisplayPlugin::OverlayRenderer::build() {
@@ -573,8 +418,8 @@ void HmdDisplayPlugin::OverlayRenderer::build() {
 }
 
 void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
-    static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.vert";
-    static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.frag";
+    static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui.vert";
+    static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui.frag";
 
 #if LIVE_SHADER_RELOAD
     static qint64 vsBuiltAge = 0;
@@ -598,7 +443,7 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
         this->uniformsLocation = program->getUniformBuffers().findLocation("overlayBuffer");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(gpu::State::DepthTest(false));
+        state->setDepthTest(gpu::State::DepthTest(true, true, gpu::LESS_EQUAL));
         state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -663,84 +508,6 @@ void HmdDisplayPlugin::compositeOverlay() {
     }
 
     _overlayRenderer.render(*this);
-}
-
-bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) {
-    HandLaserInfo info;
-    info.mode = mode;
-    info.color = color;
-    info.direction = direction;
-    withNonPresentThreadLock([&] {
-        if (hands & Hand::LeftHand) {
-            _handLasers[0] = info;
-        }
-        if (hands & Hand::RightHand) {
-            _handLasers[1] = info;
-        }
-    });
-    // FIXME defer to a child class plugin to determine if hand lasers are actually
-    // available based on the presence or absence of hand controllers
-    return true;
-}
-
-bool HmdDisplayPlugin::setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) {
-    HandLaserInfo info;
-    info.mode = mode;
-    info.color = color;
-    info.direction = sensorSpaceDirection;
-    withNonPresentThreadLock([&] {
-        _extraLaser = info;
-        _extraLaserStart = sensorSpaceStart;
-    });
-
-    // FIXME defer to a child class plugin to determine if hand lasers are actually
-    // available based on the presence or absence of hand controllers
-    return true;
-}
-
-
-void HmdDisplayPlugin::compositeExtra() {
-    // If neither hand laser is activated, exit
-    if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid() && !_presentExtraLaser.valid()) {
-        return;
-    }
-
-    if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX && !_presentExtraLaser.valid()) {
-        return;
-    }
-
-    render([&](gpu::Batch& batch) {
-        batch.setFramebuffer(_compositeFramebuffer);
-        batch.setModelTransform(Transform());
-        batch.setViewportTransform(ivec4(uvec2(0), _renderTargetSize));
-        batch.setViewTransform(_currentPresentFrameInfo.presentPose, false);
-        // Compile the shaders
-        batch.setPipeline(_glowLinePipeline);
-
-
-        bilateral::for_each_side([&](bilateral::Side side){
-            auto index = bilateral::index(side);
-            if (_presentHandPoses[index] == IDENTITY_MATRIX) {
-                return;
-            }
-            const auto& laser = _presentHandLasers[index];
-            if (laser.valid()) {
-                const auto& points = _presentHandLaserPoints[index];
-                _handLaserUniforms[index]->resize(sizeof(HandLaserData));
-                _handLaserUniforms[index]->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _handLasers[index].color });
-                batch.setUniformBuffer(LINE_DATA_SLOT, _handLaserUniforms[index]);
-                batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-            }
-        });
-
-        if (_presentExtraLaser.valid()) {
-            const auto& points = _presentExtraLaserPoints;
-            _extraLaserUniforms->resize(sizeof(HandLaserData));
-            _extraLaserUniforms->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _presentExtraLaser.color });
-            batch.setUniformBuffer(LINE_DATA_SLOT, _extraLaserUniforms);
-            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-        }
-    });
 }
 
 HmdDisplayPlugin::~HmdDisplayPlugin() {

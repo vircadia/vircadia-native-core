@@ -24,6 +24,7 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
+#include <gl/GLHelpers.h>
 #include <scripting/HMDScriptingInterface.h>
 #include <ui/OffscreenQmlSurface.h>
 #include <ui/OffscreenQmlSurfaceCache.h>
@@ -68,6 +69,9 @@ Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setMaximumTouchPoints(4);
 
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+    connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
+    connect(this, &Web3DOverlay::releaseWebSurface, this, &Web3DOverlay::destroyWebSurface);
+    connect(this, &Web3DOverlay::resizeWebSurface, this, &Web3DOverlay::onResizeWebSurface);
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
@@ -82,40 +86,98 @@ Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
 }
 
 Web3DOverlay::~Web3DOverlay() {
-    if (_webSurface) {
-        QQuickItem* rootItem = _webSurface->getRootItem();
+    disconnect(this, &Web3DOverlay::requestWebSurface, this, nullptr);
+    disconnect(this, &Web3DOverlay::releaseWebSurface, this, nullptr);
+    disconnect(this, &Web3DOverlay::resizeWebSurface, this, nullptr);
 
-        if (rootItem && rootItem->objectName() == "tabletRoot") {
-            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
-        }
-
-        // Fix for crash in QtWebEngineCore when rapidly switching domains
-        // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
-        if (rootItem) {
-            QObject* obj = rootItem->findChild<QObject*>("webEngineView");
-            if (obj) {
-                // stop loading
-                QMetaObject::invokeMethod(obj, "stop");
-            }
-        }
-
-        _webSurface->pause();
-        auto overlays = &(qApp->getOverlays());
-        QObject::disconnect(overlays, &Overlays::mousePressOnOverlay, this, nullptr);
-        QObject::disconnect(overlays, &Overlays::mouseReleaseOnOverlay, this, nullptr);
-        QObject::disconnect(overlays, &Overlays::mouseMoveOnOverlay, this, nullptr);
-        QObject::disconnect(overlays, &Overlays::hoverLeaveOverlay, this, nullptr);
-        QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
-        QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-        DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
-        _webSurface.reset();
-    }
+    destroyWebSurface();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_geometryId);
     }
 }
+
+
+void Web3DOverlay::destroyWebSurface() {
+    if (!_webSurface) {
+        return;
+    }
+    QQuickItem* rootItem = _webSurface->getRootItem();
+
+    if (rootItem && rootItem->objectName() == "tabletRoot") {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
+    }
+
+    // Fix for crash in QtWebEngineCore when rapidly switching domains
+    // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
+    if (rootItem) {
+        QObject* obj = rootItem->findChild<QObject*>("webEngineView");
+        if (obj) {
+            // stop loading
+            QMetaObject::invokeMethod(obj, "stop");
+        }
+    }
+
+    _webSurface->pause();
+    auto overlays = &(qApp->getOverlays());
+    QObject::disconnect(overlays, &Overlays::mousePressOnOverlay, this, nullptr);
+    QObject::disconnect(overlays, &Overlays::mouseReleaseOnOverlay, this, nullptr);
+    QObject::disconnect(overlays, &Overlays::mouseMoveOnOverlay, this, nullptr);
+    QObject::disconnect(overlays, &Overlays::hoverLeaveOverlay, this, nullptr);
+    QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
+    QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
+    DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
+    _webSurface.reset();
+}
+
+void Web3DOverlay::buildWebSurface() {
+    if (_webSurface) {
+        return;
+    }
+    gl::withSavedContext([&] {
+        _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(pickURL());
+        // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
+        // and the current rendering load)
+        if (_currentMaxFPS != _desiredMaxFPS) {
+            setMaxFPS(_desiredMaxFPS);
+        }
+        loadSourceURL();
+        _webSurface->resume();
+        _webSurface->resize(QSize(_resolution.x, _resolution.y));
+        _webSurface->getRootItem()->setProperty("url", _url);
+        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
+    });
+
+    auto selfOverlayID = getOverlayID();
+    std::weak_ptr<Web3DOverlay> weakSelf = std::dynamic_pointer_cast<Web3DOverlay>(qApp->getOverlays().getOverlay(selfOverlayID));
+    auto forwardPointerEvent = [=](OverlayID overlayID, const PointerEvent& event) {
+        auto self = weakSelf.lock();
+        if (self && overlayID == selfOverlayID) {
+            self->handlePointerEvent(event);
+        }
+    };
+
+    auto overlays = &(qApp->getOverlays());
+    QObject::connect(overlays, &Overlays::mousePressOnOverlay, this, forwardPointerEvent);
+    QObject::connect(overlays, &Overlays::mouseReleaseOnOverlay, this, forwardPointerEvent);
+    QObject::connect(overlays, &Overlays::mouseMoveOnOverlay, this, forwardPointerEvent);
+    QObject::connect(overlays, &Overlays::hoverLeaveOverlay, this, [=](OverlayID overlayID, const PointerEvent& event) {
+        auto self = weakSelf.lock();
+        if (!self) {
+            return;
+        }
+        if (overlayID == selfOverlayID && (self->_pressed || (!self->_activeTouchPoints.empty() && self->_touchBeginAccepted))) {
+            PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
+                event.getButton(), event.getButtons(), event.getKeyboardModifiers());
+            forwardPointerEvent(overlayID, endEvent);
+        }
+    });
+
+    QObject::connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
+    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
+}
+
 
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
@@ -217,64 +279,29 @@ void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
     }
 }
 
+void Web3DOverlay::onResizeWebSurface() {
+    _mayNeedResize = false;
+    _webSurface->resize(QSize(_resolution.x, _resolution.y));
+}
+
 void Web3DOverlay::render(RenderArgs* args) {
-    QOpenGLContext * currentContext = QOpenGLContext::currentContext();
-    QSurface * currentSurface = currentContext->surface();
-    if (!_webSurface) {
-        _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(pickURL());
-        // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
-        // and the current rendering load)
-        if (_currentMaxFPS != _desiredMaxFPS) {
-            setMaxFPS(_desiredMaxFPS);
-        }
-        loadSourceURL();
-        _webSurface->resume();
-        _webSurface->resize(QSize(_resolution.x, _resolution.y));
-        _webSurface->getRootItem()->setProperty("url", _url);
-        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
-        currentContext->makeCurrent(currentSurface);
-
-        auto selfOverlayID = getOverlayID();
-        std::weak_ptr<Web3DOverlay> weakSelf = std::dynamic_pointer_cast<Web3DOverlay>(qApp->getOverlays().getOverlay(selfOverlayID));
-        auto forwardPointerEvent = [=](OverlayID overlayID, const PointerEvent& event) {
-            auto self = weakSelf.lock();
-            if (self && overlayID == selfOverlayID) {
-                self->handlePointerEvent(event);
-            }
-        };
-
-        auto overlays = &(qApp->getOverlays());
-        QObject::connect(overlays, &Overlays::mousePressOnOverlay, this, forwardPointerEvent);
-        QObject::connect(overlays, &Overlays::mouseReleaseOnOverlay, this, forwardPointerEvent);
-        QObject::connect(overlays, &Overlays::mouseMoveOnOverlay, this, forwardPointerEvent);
-        QObject::connect(overlays, &Overlays::hoverLeaveOverlay, this, [=](OverlayID overlayID, const PointerEvent& event) {
-            auto self = weakSelf.lock();
-            if (!self) {
-                return;
-            }
-            if (overlayID == selfOverlayID && (self->_pressed || (!self->_activeTouchPoints.empty() && self->_touchBeginAccepted))) {
-                PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
-                                      event.getButton(), event.getButtons(), event.getKeyboardModifiers());
-                forwardPointerEvent(overlayID, endEvent);
-            }
-        });
-
-        QObject::connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
-        QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-    } else {
-        if (_currentMaxFPS != _desiredMaxFPS) {
-            setMaxFPS(_desiredMaxFPS);
-        }
-    }
-
-    if (_mayNeedResize) {
-        _mayNeedResize = false;
-        _webSurface->resize(QSize(_resolution.x, _resolution.y));
-    }
-
     if (!_visible || !getParentVisible()) {
         return;
     }
+
+    if (!_webSurface) {
+        emit requestWebSurface();
+        return;
+    }
+
+    if (_currentMaxFPS != _desiredMaxFPS) {
+        setMaxFPS(_desiredMaxFPS);
+    }
+
+    if (_mayNeedResize) {
+        emit resizeWebSurface();
+    }
+
 
     vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
@@ -293,7 +320,6 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
 
     if (!_texture) {
-        auto webSurface = _webSurface;
         _texture = gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda());
         _texture->setSource(__FUNCTION__);
     }
@@ -318,8 +344,8 @@ void Web3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Web3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
-    if (getAlpha() != 1.0f) {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias().withOwnPipeline();
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     return builder.build();

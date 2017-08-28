@@ -63,8 +63,10 @@ public slots:
     QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
     void browseAssetsAsync(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
+    QString checkVersion();
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSecondaryCameraSnapshot();
     void makeConnection(bool success, const QString& userNameOrError);
     void displayAnnouncement(const QString& message);
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));

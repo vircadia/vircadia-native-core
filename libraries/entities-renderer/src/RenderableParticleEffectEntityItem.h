@@ -11,37 +11,104 @@
 #ifndef hifi_RenderableParticleEffectEntityItem_h
 #define hifi_RenderableParticleEffectEntityItem_h
 
+#include "RenderableEntityItem.h"
 #include <ParticleEffectEntityItem.h>
 #include <TextureCache.h>
-#include "RenderableEntityItem.h"
 
-class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem, public RenderableEntityInterface {
-    friend class ParticlePayloadData;
+namespace render { namespace entities {
+
+class ParticleEffectEntityRenderer : public TypedEntityRenderer<ParticleEffectEntityItem> {
+    using Parent = TypedEntityRenderer<ParticleEffectEntityItem>;
+    friend class EntityRenderer;
+
 public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableParticleEffectEntityItem(const EntityItemID& entityItemID);
-
-    RenderableEntityInterface* getRenderableInterface() override { return this; }
-
-    virtual void update(const quint64& now) override;
-
-    void updateRenderItem();
-
-    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    ParticleEffectEntityRenderer(const EntityItemPointer& entity);
 
 protected:
-    virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
-    virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
 
-    void notifyBoundChanged();    
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
-    render::ScenePointer _scene;
-    render::ItemID _renderItemId{ render::Item::INVALID_ITEM_ID };
-    
-    NetworkTexturePointer _texture;
+    virtual ItemKey getKey() override;
+    virtual ShapeKey getShapeKey() override;
+    virtual Item::Bound getBound() override;
+    virtual void doRender(RenderArgs* args) override;
 
+private:
+    using PipelinePointer = gpu::PipelinePointer;
+    using BufferPointer = gpu::BufferPointer;
+    using TexturePointer = gpu::TexturePointer;
+    using Format = gpu::Stream::Format;
+    using Buffer = gpu::Buffer;
+    using BufferView = gpu::BufferView;
+
+    // CPU particles
+    // FIXME either switch to GPU compute particles or switch to simd updating of the particles
+#if 1
+    struct CpuParticle {
+        float seed{ 0.0f };
+        uint64_t expiration { 0 };
+        float lifetime { 0.0f };
+        glm::vec3 position;
+        glm::vec3 velocity;
+        glm::vec3 acceleration;
+
+        void integrate(float deltaTime) {
+            glm::vec3 atSquared = (0.5f * deltaTime * deltaTime) * acceleration;
+            position += velocity * deltaTime + atSquared;
+            velocity += acceleration * deltaTime;
+            lifetime += deltaTime;
+        }
+    };
+    using CpuParticles = std::deque<CpuParticle>;
+#else
+    struct CpuParticles {
+        std::vector<float> seeds;
+        std::vector<float> lifetimes;
+        std::vector<vec4> positions;
+        std::vector<vec4> velocities;
+        std::vector<vec4> accelerations;
+
+        size_t size() const;
+        void resize(size_t size);
+        void integrate(float deltaTime);
+    };
+#endif
+
+
+    template<typename T>
+    struct InterpolationData {
+        T start;
+        T middle;
+        T finish;
+        T spread;
+    };
+
+    struct ParticleUniforms {
+        InterpolationData<float> radius;
+        InterpolationData<glm::vec4> color; // rgba
+        float lifespan;
+        glm::vec3 spare;
+    };
+
+
+    void createParticle(uint64_t now);
+    void stepSimulation();
+    bool emitting() const;
+
+    particle::Properties _particleProperties;
+    CpuParticles _cpuParticles;
+    bool _emitting { false };
+    uint64_t _timeUntilNextEmit { 0 };
+    BufferPointer _particleBuffer{ std::make_shared<Buffer>() };
+    BufferView _uniformBuffer;
+    quint64 _lastSimulated { 0 };
+
+    NetworkTexturePointer _networkTexture;
+    ScenePointer _scene;
 };
 
+} } // namespace 
 
 #endif // hifi_RenderableParticleEffectEntityItem_h

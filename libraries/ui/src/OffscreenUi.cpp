@@ -97,8 +97,8 @@ void OffscreenUi::removeModalDialog(QObject* modal) {
     }
 }
 
-void OffscreenUi::create(QOpenGLContext* context) {
-    OffscreenQmlSurface::create(context);
+void OffscreenUi::create() {
+    OffscreenQmlSurface::create();
     auto myContext = getSurfaceContext();
 
     myContext->setContextProperty("OffscreenUi", this);
@@ -172,7 +172,7 @@ protected:
 
     virtual QVariant waitForResult() {
         while (!_finished) {
-            QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+            QCoreApplication::processEvents();
         }
         return _result;
     }
@@ -328,28 +328,18 @@ class InputDialogListener : public ModalDialogListener {
     Q_OBJECT
 
     friend class OffscreenUi;
-    InputDialogListener(QQuickItem* queryBox, bool custom = false) : ModalDialogListener(queryBox), _custom(custom) {
+    InputDialogListener(QQuickItem* queryBox) : ModalDialogListener(queryBox) {
         if (_finished) {
             return;
         }
         connect(_dialog, SIGNAL(selected(QVariant)), this, SLOT(onSelected(const QVariant&)));
     }
 
-private:
-    bool _custom { false };
 private slots:
     void onSelected(const QVariant& result) {
-        if (_custom) {
-            if (result.isValid()) {
-                // We get a JSON encoded result, so we unpack it into a QVariant wrapping a QVariantMap
-                _result = QVariant(QJsonDocument::fromJson(result.toString().toUtf8()).object().toVariantMap());
-            }
-        } else {
-            _result = result;
-        }
-
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        emit offscreenUi->inputDialogResponse(_result);
+        _result = result;
+	auto offscreenUi = DependencyManager::get<OffscreenUi>();
+	emit offscreenUi->inputDialogResponse(_result);
         offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         _finished = true;
         disconnect(_dialog);
@@ -488,7 +478,7 @@ void OffscreenUi::customInputDialogAsync(const Icon icon, const QString& title, 
         return;
     }
 
-    InputDialogListener* inputDialogListener = new InputDialogListener(createCustomInputDialog(icon, title, config), true);
+    InputDialogListener* inputDialogListener = new InputDialogListener(createCustomInputDialog(icon, title, config));
     QObject* inputDialog = qobject_cast<QObject*>(inputDialogListener);
     _modalDialogListeners.push_back(inputDialog);
     return;

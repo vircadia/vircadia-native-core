@@ -13,6 +13,7 @@
 #define hifi_ModelEntityItem_h
 
 #include "EntityItem.h"
+#include <JointData.h>
 #include "AnimationPropertyGroup.h"
 
 class ModelEntityItem : public EntityItem {
@@ -44,8 +45,8 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    virtual void update(const quint64& now) override;
-    virtual bool needsToCallUpdate() const override;
+    //virtual void update(const quint64& now) override;
+    //virtual bool needsToCallUpdate() const override;
     virtual void debugDump() const override;
 
     void setShapeType(ShapeType type) override;
@@ -56,55 +57,50 @@ public:
     // getters/setters applicable to models and particles
 
     const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
-    bool hasModel() const { return !_modelURL.isEmpty(); }
-    virtual bool hasCompoundShapeURL() const { return !_compoundShapeURL.isEmpty(); }
+    xColor getXColor() const;
+    bool hasModel() const;
+    virtual bool hasCompoundShapeURL() const;
 
     static const QString DEFAULT_MODEL_URL;
-    const QString& getModelURL() const { return _modelURL; }
-    const QUrl& getParsedModelURL() const { return _parsedModelURL; }
+    QString getModelURL() const;
 
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
-    const QString& getCompoundShapeURL() const { return _compoundShapeURL; }
+    QString getCompoundShapeURL() const;
 
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red;
-            _color[GREEN_INDEX] = value.green;
-            _color[BLUE_INDEX] = value.blue;
-    }
+    void setColor(const rgbColor& value);
+    void setColor(const xColor& value);
 
     // model related properties
     virtual void setModelURL(const QString& url);
     virtual void setCompoundShapeURL(const QString& url);
 
     // Animation related items...
-    const AnimationPropertyGroup& getAnimationProperties() const { return _animationProperties; }
+    AnimationPropertyGroup getAnimationProperties() const;
 
-    bool hasAnimation() const { return !_animationProperties.getURL().isEmpty(); }
-    const QString& getAnimationURL() const { return _animationProperties.getURL(); }
+    bool hasAnimation() const;
+    QString getAnimationURL() const;
     void setAnimationURL(const QString& url);
 
-    void setAnimationCurrentFrame(float value) { _animationLoop.setCurrentFrame(value); }
+    void setAnimationCurrentFrame(float value);
     void setAnimationIsPlaying(bool value);
     void setAnimationFPS(float value);
 
-    void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
-    bool getAnimationLoop() const { return _animationLoop.getLoop(); }
+    void setAnimationLoop(bool loop);
+    bool getAnimationLoop() const;
 
-    void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
-    bool getAnimationHold() const { return _animationLoop.getHold(); }
+    void setAnimationHold(bool hold);
+    bool getAnimationHold() const;
 
-    void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
-    float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }
+    void setAnimationFirstFrame(float firstFrame);
+    float getAnimationFirstFrame() const;
 
-    void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
-    float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
+    void setAnimationLastFrame(float lastFrame);
+    float getAnimationLastFrame() const;
 
 
-    bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
-    float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
-    float getAnimationFPS() const { return _animationLoop.getFPS(); }
+    bool getAnimationIsPlaying() const;
+    float getAnimationCurrentFrame() const;
+    float getAnimationFPS() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString getTextures() const;
@@ -116,16 +112,22 @@ public:
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet);
     virtual void setJointTranslations(const QVector<glm::vec3>& translations);
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet);
+
+    virtual void setAnimationJointsData(const QVector<JointData>& jointsData);
+
     QVector<glm::quat> getJointRotations() const;
     QVector<bool> getJointRotationsSet() const;
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
+    bool isAnimatingSomething() const;
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     ShapeType computeTrueShapeType() const;
 
 protected:
+    void resizeJointArrays(int newSize);
+
     // these are used:
     // - to bounce joint data from an animation into the model/rig.
     // - to relay changes from scripts to model/rig.
@@ -135,26 +137,22 @@ protected:
     ReadWriteLockable _jointDataLock;
 
     bool _jointRotationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
-    QVector<glm::quat> _localJointRotations;
-    QVector<bool> _localJointRotationsSet; // ever set?
-    QVector<bool> _localJointRotationsDirty; // needs a relay to model/rig?
+    bool _jointTranslationsExplicitlySet{ false }; // were the joints set as a property or just side effect of animations
 
-    bool _jointTranslationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
-    QVector<glm::vec3> _localJointTranslations;
-    QVector<bool> _localJointTranslationsSet; // ever set?
-    QVector<bool> _localJointTranslationsDirty; // needs a relay to model/rig?
+    struct ModelJointData {
+        JointData joint;
+        bool rotationDirty { false };
+        bool translationDirty { false };
+    };
+
+    QVector<ModelJointData> _localJointData;
     int _lastKnownCurrentFrame;
-    virtual void resizeJointArrays(int newSize = -1);
-
-    bool isAnimatingSomething() const;
 
     rgbColor _color;
     QString _modelURL;
-    QUrl _parsedModelURL;
     QString _compoundShapeURL;
 
     AnimationPropertyGroup _animationProperties;
-    AnimationLoop _animationLoop;
 
     mutable QReadWriteLock _texturesLock;
     QString _textures;
