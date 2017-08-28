@@ -2806,13 +2806,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * desiredBodyMatrix;
     glm::mat4 currentWorldMatrix = myAvatar.getSensorToWorldMatrix() * currentBodyMatrix;
 
-    glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
-    glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
-    glm::vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
-    glm::vec4 desiredColor = glm::dot(Vectors::UNIT_Y, transformVectorFast(desiredBodyMatrix, Vectors::UNIT_Y)) < 0.9912f ? RED : GREEN;
-    glm::vec4 currentColor = glm::dot(Vectors::UNIT_Y, transformVectorFast(currentBodyMatrix, Vectors::UNIT_Y)) < 0.9912f ? BLUE : WHITE;
-
     AnimPose followWorldPose(currentWorldMatrix);
 
     // remove scale present from sensorToWorldMatrix
