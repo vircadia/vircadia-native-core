@@ -40,6 +40,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsColorData = [],  // Uses same index values as optionsOverlays.
         optionsEnabled = [],
         optionsSettings = {},
+        optionsToggles = {},  // For toggle buttons without a setting.
 
         highlightOverlay,
 
@@ -281,7 +282,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.white
                 }
             },
-            "toggleButton": {
+            "toggleButton": {  // TODO: Delete
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.03, y: 0.03, z: 0.01 },
@@ -293,6 +294,29 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 onColor: UI_HIGHLIGHT_COLOR,
                 offColor: UI_BASE_COLOR
+            },
+            "newToggleButton": {  // TODO: Rename to "toggleButton".
+                overlay: "cube",
+                properties: {
+                    dimensions: UIT.dimensions.buttonDimensions,
+                    localRotation: Quat.ZERO,
+                    color: UIT.colors.baseGrayShadow,
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true
+                },
+                onColor: UIT.colors.greenShadow,
+                offColor: UIT.colors.baseGrayShadow,
+                newLabel: {  // TODO: Rename to "label".
+                    // Relative to newToggleButton.
+                    localPosition: {
+                        x: 0,
+                        y: 0,
+                        z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                    },
+                    color: UIT.colors.white
+                }
             },
             "swatch": {
                 overlay: "cube",
@@ -494,7 +518,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         },
 
-        BUTTON_UI_ELEMENTS = ["button", "newButton", "menuButton", "toggleButton", "swatch"],
+        BUTTON_UI_ELEMENTS = ["button", "newButton", "menuButton", "toggleButton", "newToggleButton", "swatch"],
         BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.8 * UIT.dimensions.buttonDimensions.z },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
@@ -708,15 +732,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "pickColor",
-                    type: "button",
+                    type: "newToggleButton",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0935, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
-                        color: { red: 255, green: 255, blue: 255 }
                     },
-                    label: "    PICK",
-                    callback: {
-                        method: "pickColorTool"
+                    newLabel: {
+                        url: "../assets/tools/color/pick-color-label.svg",
+                        scale: 0.0120
+                    },
+                    command: {
+                        method: "togglePickColor"
                     }
                 },
                 {
@@ -1511,7 +1537,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             yDelta: 0.004,
             zDimension: 0.001,
             properties: {
-                localPosition: { x: 0, y: 0, z: 0.003 },
+                localPosition: { x: 0, y: 0, z: 0.001 },
                 localRotation: Quat.ZERO,
                 color: { red: 255, green: 255, blue: 0 },
                 alpha: 0.8,
@@ -1533,6 +1559,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedSourceItems,
         isHighlightingButton,
         isHighlightingNewButton,  // TODO: Delete when no longer needed.
+        isHighlightingNewToggleButton,  // TODO: Rename.
         isHighlightingMenuButton,
         isHighlightingSlider,
         isHighlightingColorCircle,
@@ -1767,7 +1794,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         uiCommandCallback(optionsItems[i].setting.callback, value);
                     }
                 }
+            } else if (optionsItems[i].type === "newToggleButton") {
+                optionsToggles[optionsItems[i].id] = false;  // Default to off.
             }
+
             optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
             optionsOverlaysIDs.push(optionsItems[i].id);
             if (optionsItems[i].label) {
@@ -2184,7 +2214,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
             break;
 
+        case "togglePickColor":
+            optionsToggles.pickColor = !optionsToggles.pickColor;
+            index = optionsOverlaysIDs.indexOf("pickColor");
+            Overlays.editOverlay(optionsOverlays[index], {
+                color: optionsToggles.pickColor
+                    ? UI_ELEMENTS[optionsItems[index].type].onColor
+                    : UI_ELEMENTS[optionsItems[index].type].offColor
+            });
+            uiCommandCallback("pickColorTool", optionsToggles.pickColor);
+            break;
+
         case "setColorFromPick":
+            optionsToggles.pickColor = false;
+            index = optionsOverlaysIDs.indexOf("pickColor");
+            Overlays.editOverlay(optionsOverlays[index], {
+                color: UI_ELEMENTS[optionsItems[index].type].offColor
+            });
             setCurrentColor(parameter);
             setColorPicker(parameter);
             break;
@@ -2440,7 +2486,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         visible: false
                     });
                 } else if (isHighlightingNewButton) {
-                    // Unhighlight button.
+                    // Unhighlight old button.
                     if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
                         color = highlightedSourceItems[highlightedItem].enabledColor;
                     } else {
@@ -2448,6 +2494,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             ? highlightedSourceItems[highlightedItem].properties.color
                             : UI_ELEMENTS.newButton.properties.color;
                     }
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        color: color
+                    });
+                } else if (isHighlightingNewToggleButton) {
+                    // Unhighlight old button.
+                    color = optionsToggles[highlightedSourceItems[highlightedItem].id]
+                        ? UI_ELEMENTS.newToggleButton.onColor
+                        : UI_ELEMENTS.newToggleButton.offColor;
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color
                     });
@@ -2462,6 +2516,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 highlightedItems = intersectionItems;
                 isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingNewButton = intersectionItems[highlightedItem].type === "newButton";
+                isHighlightingNewToggleButton = intersectionItems[highlightedItem].type === "newToggleButton";
                 isHighlightingMenuButton = intersectionItems[highlightedItem].type === "menuButton";
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
@@ -2501,7 +2556,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: HIGHLIGHT_PROPERTIES.properties.color,
                         visible: true
                     });
-                } else if (isHighlightingNewButton) {
+                } else if (isHighlightingNewButton || isHighlightingNewToggleButton) {
                     if (intersectionEnabled[highlightedItem]) {
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                             color: intersectionItems[highlightedItem].highlightColor !== undefined
@@ -2546,6 +2601,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color
                     });
+                } else if (isHighlightingNewToggleButton) {
+                    // Unhighlight old button.
+                    color = optionsToggles[highlightedSourceItems[highlightedItem].id]
+                        ? UI_ELEMENTS.newToggleButton.onColor
+                        : UI_ELEMENTS.newToggleButton.offColor;
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        color: color
+                    });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     // Lower slider or color circle.
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
@@ -2556,6 +2619,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 highlightedItem = NONE;
                 isHighlightingButton = false;
                 isHighlightingNewButton = false;
+                isHighlightingNewToggleButton = false;
                 isHighlightingMenuButton = false;
                 isHighlightingSlider = false;
                 isHighlightingColorCircle = false;
@@ -2821,10 +2885,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItem = NONE;
         highlightedSourceOverlays = null;
         isHighlightingButton = false;
+        isHighlightingNewButton = false;
+        isHighlightingNewToggleButton = false;
         isHighlightingMenuButton = false;
         isHighlightingSlider = false;
         isHighlightingColorCircle = false;
         isHighlightingPicklist = false;
+        for (id in optionsToggles) {
+            if (optionsToggles.hasOwnProperty(id)) {
+                optionsToggles[id] = false;
+            }
+        }
+
         isPicklistOpen = false;
         pressedItem = null;
         pressedSource = null;

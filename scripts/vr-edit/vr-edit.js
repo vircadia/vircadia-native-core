@@ -1352,10 +1352,15 @@
             ui.updateUIEntities();
             break;
         case "pickColorTool":
-            grouping.clear();
-            toolSelected = TOOL_PICK_COLOR;
-            ui.setToolIcon(ui.COLOR_TOOL);
-            ui.updateUIEntities();
+            if (parameter) {
+                grouping.clear();
+                toolSelected = TOOL_PICK_COLOR;
+                ui.updateUIEntities();
+            } else {
+                grouping.clear();
+                toolSelected = TOOL_COLOR;
+                ui.updateUIEntities();
+            }
             break;
         case "physicsTool":
             grouping.clear();
