@@ -33,6 +33,7 @@ Rectangle {
     property double balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
     property int itemPriceFull: 0;
+    property bool itemIsJson: true;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
@@ -506,7 +507,7 @@ Rectangle {
                     horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
                 }
-                // ZRF FIXME: MAKE DROPDOWN
+                // ZRF FIXME: MAKE DROPDOWN???
                 RalewayRegular {
                     id: quantityText;
                     text: "1";
@@ -556,7 +557,7 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter;
                 }
                 RalewayRegular {
-                    id:totalCostText;
+                    id: totalCostText;
                     text: "<b>-- HFC</b>";
                     // Text size
                     size: totalCostTextLabel.size;
@@ -661,7 +662,7 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                enabled: balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived;
+                enabled: (balanceAfterPurchase >= 0 && purchasesReceived && balanceReceived) || !itemIsJson;
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
@@ -670,12 +671,18 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
                 width: parent.width/2 - anchors.rightMargin*2;
-                text: (purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Again" : "Buy"): "--";
+                text: (itemIsJson ? ((purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Again" : "Buy"): "--") : "Use Now!");
                 onClicked: {
-                    buyButton.enabled = false;
-                    commerce.buy(itemId, itemPriceFull);
+                    if (itemIsJson) {
+                        buyButton.enabled = false;
+                        commerce.buy(itemId, itemPriceFull);
+                    } else {
+                        if (urlHandler.canHandleUrl(itemHref)) {
+                            urlHandler.handleUrl(itemHref);
+                        }
+                    }
                 }
-            }            
+            }
 
             // "Purchases" button
             HifiControlsUit.Button {
@@ -939,8 +946,12 @@ Rectangle {
                 itemAuthorText.text = message.params.itemAuthor;
                 root.itemPriceFull = message.params.itemPrice;
                 itemPriceText.text = (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC";
-                totalCostText.text = "<b>" + (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC</b>";
+                totalCostText.text = root.itemPriceFull === 0 ? "Free" : "<b>" + (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC</b>";
                 itemHref = message.params.itemHref;
+                if (itemHref.indexOf('.json') === -1) {
+                    root.itemIsJson = false;
+                }
+                setBuyText();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
@@ -958,22 +969,26 @@ Rectangle {
     }
 
     function setBuyText() {
-        if (root.purchasesReceived && root.balanceReceived) {
-            if (root.balanceAfterPurchase < 0) {
-                if (root.alreadyOwned) {
-                    buyText.text = "You do not have enough HFC to purchase this item again. Go to your Purchases to view the copy you own.";
+        if (root.itemIsJson) {
+            if (root.purchasesReceived && root.balanceReceived) {
+                if (root.balanceAfterPurchase < 0) {
+                    if (root.alreadyOwned) {
+                        buyText.text = "You do not have enough HFC to purchase this item again. Go to your Purchases to view the copy you own.";
+                    } else {
+                        buyText.text = "You do not have enough HFC to purchase this item.";
+                    }
                 } else {
-                    buyText.text = "You do not have enough HFC to purchase this item.";
+                    if (root.alreadyOwned) {
+                        buyText.text = "<b>You already own this item.</b> If you buy it again, you'll be able to use multiple copies of it at once.";
+                    } else {
+                        buyText.text = "This item will be added to your <b>Purchases</b>, which can be accessed from <b>Marketplace</b>.";
+                    }
                 }
             } else {
-                if (root.alreadyOwned) {
-                    buyText.text = "<b>You already own this item.</b> If you buy it again, you'll be able to use multiple copies of it at once.";
-                } else {
-                    buyText.text = "This item will be added to your <b>Purchases</b>, which can be accessed from <b>Marketplace</b>.";
-                }
+                buyText.text = "";
             }
         } else {
-            buyText.text = "";
+            buyText.text = "This Marketplace item isn't an entity. It <b>will not</b> be added to your <b>Purchases</b>.";
         }
     }
 
