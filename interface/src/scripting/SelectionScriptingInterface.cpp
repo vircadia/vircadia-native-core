@@ -155,7 +155,7 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
         render::Transaction transaction;
         render::ItemIDs finalList;
         render::ItemID currentID;
-        auto entityTree = qApp->getEntities()->getTree();
+        auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
         auto& overlays = qApp->getOverlays();
 
         for (QUuid& currentAvatarID : thisList.getAvatarIDs()) {
@@ -169,18 +169,10 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
         }
 
         for (EntityItemID& currentEntityID : thisList.getEntityIDs()) {
-            entityTree->withReadLock([&] {
-                auto entityItem = entityTree->findEntityByEntityItemID(currentEntityID);
-                if (entityItem != NULL) {
-                    auto renderableInterface = entityItem->getRenderableInterface();
-                    if (renderableInterface != NULL) {
-                        currentID = renderableInterface->getMetaRenderItemID();
-                        if (currentID != render::Item::INVALID_ITEM_ID) {
-                            finalList.push_back(currentID);
-                        }
-                    }
-                }
-            });
+            currentID = entityTreeRenderer->renderableIdForEntityId(currentEntityID);
+            if (currentID != render::Item::INVALID_ITEM_ID) {
+                finalList.push_back(currentID);
+            }
         }
 
         for (OverlayID& currentOverlayID : thisList.getOverlayIDs()) {

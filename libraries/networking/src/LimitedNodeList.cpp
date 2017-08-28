@@ -202,12 +202,12 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
     return *_dtlsSocket;
 }
 
-bool LimitedNodeList::isPacketVerified(const udt::Packet& packet) {
+bool LimitedNodeList::isPacketVerifiedWithSource(const udt::Packet& packet, Node* sourceNode) {
     // We track bandwidth when doing packet verification to avoid needing to do a node lookup
     // later when we already do it in packetSourceAndHashMatchAndTrackBandwidth. A node lookup
     // incurs a lock, so it is ideal to avoid needing to do it 2+ times for each packet
     // received.
-    return packetVersionMatch(packet) && packetSourceAndHashMatchAndTrackBandwidth(packet);
+    return packetVersionMatch(packet) && packetSourceAndHashMatchAndTrackBandwidth(packet, sourceNode);
 }
 
 bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
@@ -256,7 +256,7 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
     }
 }
 
-bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet) {
+bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet, Node* sourceNode) {
 
     PacketType headerType = NLPacket::typeInHeader(packet);
 
@@ -298,14 +298,18 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
     } else {
         QUuid sourceID = NLPacket::sourceIDInHeader(packet);
 
-        // figure out which node this is from
-        SharedNodePointer matchingNode = nodeWithUUID(sourceID);
+        // check if we were passed a sourceNode hint or if we need to look it up
+        if (!sourceNode) {
+            // figure out which node this is from
+            SharedNodePointer matchingNode = nodeWithUUID(sourceID);
+            sourceNode = matchingNode.data();
+        }
 
-        if (matchingNode) {
+        if (sourceNode) {
             if (!PacketTypeEnum::getNonVerifiedPackets().contains(headerType)) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
-                QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, matchingNode->getConnectionSecret());
+                QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, sourceNode->getConnectionSecret());
 
                 // check if the md5 hash in the header matches the hash we would expect
                 if (packetHeaderHash != expectedHash) {
@@ -323,9 +327,9 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
 
             // No matter if this packet is handled or not, we update the timestamp for the last time we heard
             // from this sending node
-            matchingNode->setLastHeardMicrostamp(usecTimestampNow());
+            sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
-            emit dataReceived(matchingNode->getType(), packet.getPayloadSize());
+            emit dataReceived(sourceNode->getType(), packet.getPayloadSize());
 
             return true;
 

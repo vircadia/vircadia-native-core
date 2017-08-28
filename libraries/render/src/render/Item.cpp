@@ -92,3 +92,41 @@ const ShapeKey Item::getShapeKey() const {
     }
     return shapeKey;
 }
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload) {
+        if (!payload) {
+            return ItemKey::Builder::opaqueShape().withTypeMeta();
+        }
+        return payload->getKey();
+    }
+
+    template <> const ShapeKey shapeGetShapeKey(const PayloadProxyInterface::Pointer& payload) {
+        if (!payload) {
+            return ShapeKey::Builder::ownPipeline();
+        }
+        return payload->getShapeKey();
+    }
+
+    template <> const Item::Bound payloadGetBound(const PayloadProxyInterface::Pointer& payload) {
+        if (!payload) {
+            return render::Item::Bound();
+        }
+        return payload->getBound();
+    }
+
+    template <> void payloadRender(const PayloadProxyInterface::Pointer& payload, RenderArgs* args) {
+        if (!args || !payload) {
+            return;
+        }
+        payload->render(args);
+    }
+
+    template <> uint32_t metaFetchMetaSubItems(const PayloadProxyInterface::Pointer& payload, ItemIDs& subItems) {
+        if (!payload) {
+            return 0;
+        }
+        return payload->metaFetchMetaSubItems(subItems);
+    }
+
+}

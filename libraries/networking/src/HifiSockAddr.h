@@ -55,6 +55,8 @@ public:
 
     QString toString() const;
 
+    bool hasPrivateAddress() const; // checks if the address behind this sock addr is private per RFC 1918
+
     friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
     friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
     friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);
