@@ -39,10 +39,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsSliderData = [],  // Uses same index values as optionsOverlays.
         optionsColorData = [],  // Uses same index values as optionsOverlays.
         optionsEnabled = [],
-        optionsSettings = {},
+        optionsSettings = {
+            //  <option item id>: { 
+            //      key: <Settings key to store value in>
+            //      value: <current value>
+            //  }
+            //  For reliable access, use the values from optionsSettings rather than doing Settings.getValue() - Settings values
+            //  are not necessarily updated instantaneously.
+        },
         optionsToggles = {},  // For toggle buttons without a setting.
 
         highlightOverlay,
+        swatchHighlightOverlay = null,
 
         LEFT_HAND = 0,
         PANEL_ORIGIN_POSITION_LEFT_HAND = {
@@ -176,6 +184,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         EMPTY_SWATCH_COLOR = UIT.colors.baseGrayShadow,
+        SWATCH_HIGHLIGHT_DELTA = 0.0020,
 
         UI_BASE_COLOR = { red: 64, green: 64, blue: 64 },
         UI_HIGHLIGHT_COLOR = { red: 100, green: 240, blue: 100 },
@@ -319,11 +328,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             },
             "swatch": {
-                overlay: "cube",
+                overlay: "shape",
                 properties: {
-                    dimensions: { x: 0.0294, y: 0.0294, z: UIT.dimensions.buttonDimensions.z },
-                    localRotation: Quat.ZERO,
+                    shape: "Cylinder",
+                    dimensions: { x: 0.0294, y: UIT.dimensions.buttonDimensions.z, z: 0.0294 },
+                    localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: -90 }),
                     color: EMPTY_SWATCH_COLOR,
+                    emissive: true,  // TODO: This has no effect.
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: false,
@@ -332,6 +343,26 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Must have a setting property in order to function property.
                 // Setting property may optionally include a defaultValue.
                 // A setting value of "" means that the swatch is unpopulated.
+            },
+            "swatchHighlight": {
+                overlay: "shape",
+                properties: {
+                    shape: "Cylinder",
+                    dimensions: {
+                        x: 0.0294 + SWATCH_HIGHLIGHT_DELTA,
+                        y: UIT.dimensions.buttonDimensions.z,
+                        z: 0.0294 + SWATCH_HIGHLIGHT_DELTA
+                    },
+                    localRotation: Quat.ZERO,  // Relative to swatch.
+                    localPosition: { x: 0, y: -0.0001, z: 0 },
+                    color: UIT.colors.faintGray,
+                    emissive: true,  // TODO: This has no effect.
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: false
+                }
+
             },
             "label": {
                 overlay: "text3d",
@@ -1557,6 +1588,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingButton,
         isHighlightingNewButton,  // TODO: Delete when no longer needed.
         isHighlightingNewToggleButton,  // TODO: Rename.
+        isHighlightingSwatch,
         isHighlightingMenuButton,
         isHighlightingSlider,
         isHighlightingColorCircle,
@@ -1763,6 +1795,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (value === "" && optionsItems[i].setting.defaultValue !== undefined) {
                     value = optionsItems[i].setting.defaultValue;
                 }
+                // TODO: Regularize use of optionsSettings.
+                if (optionsItems[i].type === "swatch" || optionsItems[i].id === "currentColor") {
+                    optionsSettings[optionsItems[i].id].value = value;
+                }
                 if (value !== "") {
                     properties[optionsItems[i].setting.property] = value;
                     if (optionsItems[i].type === "toggleButton") {
@@ -1953,6 +1989,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
             }
 
+            if (optionsItems[i].type === "swatch" && swatchHighlightOverlay === null) {
+                properties = Object.clone(UI_ELEMENTS.swatchHighlight.properties);
+                properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                swatchHighlightOverlay = Overlays.addOverlay(UI_ELEMENTS.swatchHighlight.overlay, properties);
+            }
+
             optionsEnabled.push(true);
         }
 
@@ -1973,6 +2015,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         Overlays.editOverlay(highlightOverlay, {
             parentID: menuOriginOverlay
         });
+
+        if (swatchHighlightOverlay !== null) {
+            Overlays.deleteOverlay(swatchHighlightOverlay);
+            swatchHighlightOverlay = null;
+        }
 
         for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(optionsOverlays[i]);
@@ -2136,6 +2183,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             color: rgb
         });
         if (optionsSettings.currentColor) {
+            optionsSettings.currentColor.value = rgb;
             Settings.setValue(optionsSettings.currentColor.key, rgb);
         }
     }
@@ -2187,7 +2235,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         case "setColorPerSwatch":
             index = optionsOverlaysIDs.indexOf(parameter);
-            value = Settings.getValue(optionsSettings[parameter].key);
+            value = optionsSettings[parameter].value;
             if (value !== "") {
                 // Set current color to swatch color.
                 setCurrentColor(value);
@@ -2195,10 +2243,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 uiCommandCallback("setColor", value);
             } else {
                 // Swatch has no color; set swatch color to current color.
-                value = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], "color");
+                value = optionsSettings.currentColor.value;
                 Overlays.editOverlay(optionsOverlays[index], {
                     color: value
                 });
+                optionsSettings[parameter].value = value;
                 Settings.setValue(optionsSettings[parameter].key, value);
             }
             break;
@@ -2353,16 +2402,16 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     };
 
     function doGripClicked(command, parameter) {
-        var overlayID;
         switch (command) {
         case "clearSwatch":
-            overlayID = optionsOverlaysIDs.indexOf(parameter);
-            Overlays.editOverlay(optionsOverlays[overlayID], {
-                color: EMPTY_SWATCH_COLOR
+            // Remove highlight ring and change swatch to current color.
+            Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
+            Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(parameter)], {
+                color: optionsSettings.currentColor.value,
+                dimensions: UI_ELEMENTS.swatch.properties.dimensions
             });
-            if (optionsSettings[parameter]) {
-                Settings.setValue(optionsSettings[parameter].key, null);  // Delete settings value.
-            }
+            optionsSettings[parameter].value = "";  // Emulate Settings.getValue() returning "" for nonexistent setting.
+            Settings.setValue(optionsSettings[parameter].key, null);  // Delete settings value.
             break;
         default:
             App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
@@ -2493,6 +2542,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color
                     });
+                } else if (isHighlightingSwatch) {
+                    // Hide highlight and reinstate swatch size and color.
+                    Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
+                    color = optionsSettings[highlightedSourceItems[highlightedItem].id].value;
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        dimensions: UI_ELEMENTS.swatch.properties.dimensions,
+                        color: color === "" ? EMPTY_SWATCH_COLOR : color
+                    });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     // Lower old slider or color circle.
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
@@ -2505,6 +2562,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingNewButton = intersectionItems[highlightedItem].type === "newButton";
                 isHighlightingNewToggleButton = intersectionItems[highlightedItem].type === "newToggleButton";
+                isHighlightingSwatch = intersectionItems[highlightedItem].type === "swatch";
                 isHighlightingMenuButton = intersectionItems[highlightedItem].type === "menuButton";
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
@@ -2552,6 +2610,24 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                                 : UIT.colors.greenHighlight
                         });
                     }
+                } else if (isHighlightingSwatch) {
+                    if (optionsSettings[intersectionItems[highlightedItem].id].value === "") {
+                        // Swatch is empty; highlight it with current color.
+                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                            color: optionsSettings.currentColor.value
+                        });
+                    } else {
+                        // Swatch is full; highlight it with ring.
+                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                            dimensions: Vec3.subtract(UI_ELEMENTS.swatch.properties.dimensions,
+                                { x: SWATCH_HIGHLIGHT_DELTA, y: 0, z: SWATCH_HIGHLIGHT_DELTA })
+                        });
+                        Overlays.editOverlay(swatchHighlightOverlay, {
+                            parentID: intersectionOverlays[highlightedItem],
+                            localPosition: UI_ELEMENTS.swatchHighlight.properties.localPosition,
+                            visible: true
+                        });
+                    }
                 } else if (!isHighlightingMenuButton) {
                     Overlays.editOverlay(highlightOverlay, {
                         parentID: intersectionOverlays[intersectedItem],
@@ -2597,6 +2673,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color
                     });
+                } else if (isHighlightingSwatch) {
+                    // Hide highlight and reinstate swatch size and color.
+                    Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
+                    color = optionsSettings[highlightedSourceItems[highlightedItem].id].value;
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        dimensions: UI_ELEMENTS.swatch.properties.dimensions,
+                        color: color === "" ? EMPTY_SWATCH_COLOR : color
+                    });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     // Lower slider or color circle.
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
@@ -2608,6 +2692,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isHighlightingButton = false;
                 isHighlightingNewButton = false;
                 isHighlightingNewToggleButton = false;
+                isHighlightingSwatch = false;
                 isHighlightingMenuButton = false;
                 isHighlightingSlider = false;
                 isHighlightingColorCircle = false;
@@ -2875,6 +2960,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingButton = false;
         isHighlightingNewButton = false;
         isHighlightingNewToggleButton = false;
+        isHighlightingSwatch = false;
         isHighlightingMenuButton = false;
         isHighlightingSlider = false;
         isHighlightingColorCircle = false;
