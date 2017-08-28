@@ -46,15 +46,29 @@ Rectangle {
                 max: 1.0
                 min: 0.0
             }
-            CheckBox {
-                text: "Debug"
-                checked: Render.getConfig("RenderMainView.Antialiasing")["debug"]
-                onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["debug"] = checked }
+            Row {
+                CheckBox {
+                    text: "Unjitter"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["unjitter"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["unjitter"] = checked }
+                }
             }
-            CheckBox {
-                text: "Freeze "
-                checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
-                onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
+            Row {
+                CheckBox {
+                    text: "Debug"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["debug"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["debug"] = checked }
+                }
+                CheckBox {
+                    text: "Freeze "
+                    checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
+                }
+                CheckBox {
+                    text: "Show Debug Cursor"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["showCursorPixel"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showCursorPixel"] = checked }
+                }
             }
             ConfigSlider {
                 label: qsTr("Debug X")
@@ -64,6 +78,18 @@ Rectangle {
                 max: 1.0
                 min: 0.0
             }
+            Row {
+                CheckBox {
+                    text: "Jitter Sequence"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["showJitterSequence"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showJitterSequence"] = checked }
+                }
+                CheckBox {
+                    text: "CLosest Fragment"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"] = checked }
+                }                
+            }            
             ConfigSlider {
                 label: qsTr("Debug Velocity Threshold [pix]")
                 integral: false

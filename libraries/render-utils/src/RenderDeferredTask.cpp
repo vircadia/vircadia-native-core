@@ -221,7 +221,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     }
 
     // AA job to be revisited
-    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
+    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, jitterBuffer, primaryFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
 
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 

@@ -13,6 +13,20 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
+const int SEQUENCE_LENGTH = 8;
+struct JitterSequence {
+    vec4 offsets[SEQUENCE_LENGTH / 2];
+    int sequenceLength;
+    int currentIndex;
+};
+layout(std140) uniform taaJitterBuffer {
+    JitterSequence sequence;
+};
+
+vec2 taa_getJitterSample(int index) {
+    return vec2((bool(index & 0x01) ? sequence.offsets[index >> 1].zw : sequence.offsets[index >> 1].xy));
+}
+
 <@include gpu/Color.slh@>
 
 uniform sampler2D depthMap;
@@ -27,13 +41,33 @@ struct TAAParams
 	float blend;
 	float motionScale;
 	float debugShowVelocityThreshold;
-    vec4 debugCursor;
+    ivec4 debug;
     vec4 pixelInfo_orbZoom;
 };
 
 layout(std140) uniform taaParamsBuffer {
     TAAParams params;
 };
+
+#define GET_BIT(bitfield, bitIndex) bool((bitfield) & (1 << (bitIndex)))
+
+bool taa_showDebugCursor() {
+    return GET_BIT(params.debug.x, 1);
+}
+
+bool taa_showJitterSequence() {
+    return GET_BIT(params.debug.x, 2);
+}
+
+bool taa_showClosestFragment() {
+    return GET_BIT(params.debug.x, 3);
+}
+
+
+bool taa_unjitter() {
+    return GET_BIT(params.debug.y, 0);
+}
+
 
 vec2 taa_getDebugCursorTexcoord() {
     return params.pixelInfo_orbZoom.xy;
@@ -133,6 +167,7 @@ vec3 taa_findClosestFragment3x3(vec2 uv)
 
 vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceColor, out vec3 historyColor) {
     sourceColor = taa_fetchSourceMap(fragUV).xyz;
+
     vec2 prevFragUV = fragUV - fragVelocity;
     historyColor = sourceColor;
     if (!(any(lessThan(prevFragUV, vec2(0.0))) || any(greaterThan(prevFragUV, vec2(1.0))))) {
@@ -154,8 +189,9 @@ vec3 taa_temporalReprojection(vec2 fragUV, vec2 fragVelocity, float fragZe)
     vec4 texel1 = vec4(historyColor, 1.0);
     vec4 texel0 = vec4(sourceColor, 1.0);
 
-vec2 imageSize = getWidthHeight(0);
-vec2 texelSize = getInvWidthHeight();
+    vec2 imageSize = getWidthHeight(0);
+    vec2 texelSize = getInvWidthHeight();
+    fragUV += float(taa_unjitter()) * taa_getJitterSample(sequence.currentIndex) * texelSize;
 
 		const float _SubpixelThreshold = 0.5;
 		const float _GatherBase = 0.5;
@@ -213,7 +249,7 @@ vec2 texelSize = getInvWidthHeight();
 		float k_feedback = mix(_FeedbackMin, _FeedbackMax, unbiased_weight_sqr);
 
 		// output
- vec3 nextColor =  mix(texel0, texel1, k_feedback).xyz;
+ vec3 nextColor =  mix(texel1, texel0, k_feedback).xyz;
 
 
  //   vec3 nextColor = mix(texel0, texel1, params.blend);

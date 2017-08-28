@@ -18,17 +18,67 @@
 #include "DeferredFrameTransform.h"
 #include "VelocityBufferPass.h"
 
+
+class JitterSampleConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(float scale MEMBER scale NOTIFY dirty)
+        Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
+public:
+    JitterSampleConfig() : render::Job::Config(true) {}
+
+    float scale{ 0.5f };
+    bool freeze{ false };
+signals:
+    void dirty();
+};
+
+
+class JitterSample {
+public:
+
+    struct SampleSequence {
+        SampleSequence();
+        static const int SEQUENCE_LENGTH{ 8 };
+        glm::vec2 offsets[SEQUENCE_LENGTH];
+        int sequenceLength{ SEQUENCE_LENGTH };
+        int currentIndex{ 0 };
+
+    };
+
+    using JitterBuffer = gpu::StructBuffer<SampleSequence>;
+
+    using Config = JitterSampleConfig;
+    using JobModel = render::Job::ModelO<JitterSample, JitterBuffer, Config>;
+
+    void configure(const Config& config);
+    void run(const render::RenderContextPointer& renderContext, JitterBuffer& jitterBuffer);
+
+
+private:
+
+    JitterBuffer _jitterBuffer;
+    float _scale{ 1.0 };
+    bool _freeze{ false };
+};
+
+
 class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
     Q_PROPERTY(float velocityScale MEMBER velocityScale NOTIFY dirty)
-    
+ 
+    Q_PROPERTY(bool unjitter MEMBER unjitter NOTIFY dirty)
+
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
     Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
     Q_PROPERTY(float debugOrbZoom MEMBER debugOrbZoom NOTIFY dirty)
+
+    Q_PROPERTY(bool showJitterSequence MEMBER showJitterSequence NOTIFY dirty)
+    Q_PROPERTY(bool showClosestFragment MEMBER showClosestFragment NOTIFY dirty)
+
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
@@ -40,13 +90,19 @@ public:
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
     float debugOrbZoom{ 2.0f };
 
+    bool unjitter{ true };
+
     bool debug { false };
     bool showCursorPixel { false };
+    bool showJitterSequence{ false };
+    bool showClosestFragment{ false };
 
 signals:
     void dirty();
 };
 
+#define SET_BIT(bitfield, bitIndex, value) bitfield = ((bitfield) & ~(1 << (bitIndex))) | ((value) << (bitIndex))
+#define GET_BIT(bitfield, bitIndex) ((bitfield) & (1 << (bitIndex)))
 
 struct TAAParams {
     float debugX{ 0.0f };
@@ -54,11 +110,18 @@ struct TAAParams {
     float velocityScale{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 
-    glm::vec4 debug{ 0.0f };
+    glm::ivec4 debug{ 0 };
     glm::vec4 pixelInfo{ 0.5f, 0.5f, 2.0f, 0.0f };
 
-    void setDebug(bool enabled) { debug.x = (float)enabled; }
-    bool isDebug() const { return (bool) debug.x; }
+    void setUnjitter(bool enabled) { SET_BIT(debug.y, 0, enabled); }
+    bool isUnjitter() const { return (bool)GET_BIT(debug.y, 0); }
+
+
+    void setDebug(bool enabled) { SET_BIT(debug.x, 0, enabled); }
+    bool isDebug() const { return (bool) GET_BIT(debug.x, 0); }
+
+    void setShowDebugCursor(bool enabled) { SET_BIT(debug.x, 1, enabled); }
+    bool showDebugCursor() const { return (bool)GET_BIT(debug.x, 1); }
 
     void setDebugCursor(glm::vec2 debugCursor) { pixelInfo.x = debugCursor.x; pixelInfo.y = debugCursor.y; }
     glm::vec2 getDebugCursor() const { return glm::vec2(pixelInfo.x, pixelInfo.y); }
@@ -66,12 +129,16 @@ struct TAAParams {
     void setDebugOrbZoom(float orbZoom) { pixelInfo.z = orbZoom; }
     float getDebugOrbZoom() const { return pixelInfo.z; }
 
+    void setShowJitterSequence(bool enabled) { SET_BIT(debug.x, 2, enabled); }
+    void setShowClosestFragment(bool enabled) { SET_BIT(debug.x, 3, enabled); }
+
+
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 
 class Antialiasing {
 public:
-    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, VelocityFramebufferPointer > ;
+    using Inputs = render::VaryingSet5 < DeferredFrameTransformPointer, JitterSample::JitterBuffer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, VelocityFramebufferPointer > ;
     using Config = AntialiasingConfig;
     using JobModel = render::Job::ModelI<Antialiasing, Inputs, Config>;
 
@@ -136,45 +203,5 @@ private:
     int _geometryId { 0 };
 };
 */
-class JitterSampleConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(float scale MEMBER scale NOTIFY dirty)
-    Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
-public:
-    JitterSampleConfig() : render::Job::Config(true) {}
-    
-    float scale { 0.5f };
-    bool freeze{ false };
-signals:
-    void dirty();
-};
-
-class JitterSample {
-public:
- 
-    struct SampleSequence {
-    SampleSequence();
-        static const int SEQUENCE_LENGTH { 8 };
-        int sequenceLength{ SEQUENCE_LENGTH };
-        int currentIndex { 0 };
-        
-        glm::vec2 offsets[SEQUENCE_LENGTH];
-    };
-    
-    using JitterBuffer = gpu::StructBuffer<SampleSequence>;
-    
-    using Config = JitterSampleConfig;
-    using JobModel = render::Job::ModelO<JitterSample, JitterBuffer, Config>;
-    
-    void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, JitterBuffer& jitterBuffer);
-
-    
-private:
-    
-    JitterBuffer _jitterBuffer;
-    float _scale { 1.0 };
-    bool _freeze { false };
-};
 
 #endif // hifi_AntialiasingEffect_h

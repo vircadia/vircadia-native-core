@@ -178,6 +178,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
 const int AntialiasingPass_ParamsSlot = 0;
 const int AntialiasingPass_FrameTransformSlot = 1;
+const int AntialiasingPass_JitterBufferSlot = 2;
 
 const int AntialiasingPass_HistoryMapSlot = 0;
 const int AntialiasingPass_SourceMapSlot = 1;
@@ -209,7 +210,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         slotBindings.insert(gpu::Shader::Binding(std::string("taaParamsBuffer"), AntialiasingPass_ParamsSlot));
 
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AntialiasingPass_FrameTransformSlot));
-   
+        slotBindings.insert(gpu::Shader::Binding(std::string("taaJitterBuffer"), AntialiasingPass_JitterBufferSlot));
+        
         slotBindings.insert(gpu::Shader::Binding(std::string("historyMap"), AntialiasingPass_HistoryMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), AntialiasingPass_SourceMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("velocityMap"), AntialiasingPass_VelocityMapSlot));
@@ -258,6 +260,7 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("taaParamsBuffer"), AntialiasingPass_ParamsSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("taaJitterBuffer"), AntialiasingPass_JitterBufferSlot));
 
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AntialiasingPass_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("nextMap"), AntialiasingPass_NextMapSlot));
@@ -282,12 +285,19 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 void Antialiasing::configure(const Config& config) {
     _params.edit().blend = config.blend;
     _params.edit().velocityScale = config.velocityScale;
+
+    _params.edit().setUnjitter(config.unjitter);
+
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
 
     _params.edit().debugX = config.debugX;
     _params.edit().setDebug(config.debug);
+    _params.edit().setShowDebugCursor(config.showCursorPixel);
     _params.edit().setDebugCursor(config.debugCursorTexcoord);
     _params.edit().setDebugOrbZoom(config.debugOrbZoom);
+
+    _params.edit().setShowJitterSequence(config.showJitterSequence);
+    _params.edit().setShowClosestFragment(config.showClosestFragment);
 }
 
 
@@ -298,9 +308,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     RenderArgs* args = renderContext->args;
 
     auto& deferredFrameTransform = inputs.get0();
-    auto& sourceBuffer = inputs.get1();
-    auto& linearDepthBuffer = inputs.get2();
-    auto& velocityBuffer = inputs.get3();
+    auto& jitterBuffer = inputs.get1();
+    auto& sourceBuffer = inputs.get2();
+    auto& linearDepthBuffer = inputs.get3();
+    auto& velocityBuffer = inputs.get4();
     
     int width = sourceBuffer->getWidth();
     int height = sourceBuffer->getHeight();
@@ -338,9 +349,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
         batch.setResourceTexture(AntialiasingPass_DepthMapSlot, linearDepthBuffer->getLinearDepthTexture());
 
-        batch.setUniformBuffer(AntialiasingPass_ParamsSlot, _params._buffer);
+        batch.setUniformBuffer(AntialiasingPass_ParamsSlot, _params);
         batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, deferredFrameTransform->getFrameTransformBuffer());
-
+        batch.setUniformBuffer(AntialiasingPass_JitterBufferSlot, jitterBuffer);
+        
         batch.setFramebuffer(_antialiasingBuffer[nextFrame]);
         batch.setPipeline(getAntialiasingPipeline());       
         batch.draw(gpu::TRIANGLE_STRIP, 4);
@@ -359,8 +371,9 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         
         batch.setUniformBuffer(AntialiasingPass_ParamsSlot, nullptr);
         batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, nullptr);
-        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, nullptr);
+        batch.setUniformBuffer(AntialiasingPass_JitterBufferSlot, nullptr);
 
+        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_HistoryMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_NextMapSlot, nullptr);
