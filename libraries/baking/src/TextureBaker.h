@@ -15,6 +15,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QRunnable>
+#include <QImageReader>
 
 #include <image/Image.h>
 
@@ -27,6 +28,8 @@ class TextureBaker : public Baker {
 
 public:
     TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDirectory);
+
+    static const QStringList getSupportedFormats();
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 

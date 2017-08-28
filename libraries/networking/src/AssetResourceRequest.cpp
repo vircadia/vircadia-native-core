@@ -82,19 +82,23 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
 
+        bool failed = false;
+
         switch (request->getError()) {
             case MappingRequest::NoError:
                 // we have no error, we should have a resulting hash - use that to send of a request for that asset
                 qCDebug(networking) << "Got mapping for:" << path << "=>" << request->getHash();
 
-                requestHash(request->getHash());
-
                 statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_SUCCESS);
 
                 // if we got a redirected path we need to store that with the resource request as relative path URL
-                if (request->wasRedirected()) {
-                    qDebug() << "Request was redirected";
+                if (request->wasRedirected() && _failOnRedirect) {
                     _relativePathURL = ATP_SCHEME + request->getRedirectedPath();
+                    _result = RedirectFail;
+
+                    failed = true;
+                } else {
+                    requestHash(request->getHash());
                 }
 
                 break;
@@ -113,15 +117,18 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                         break;
                 }
 
-                // since we've failed we know we are finished
-                _state = Finished;
-                emit finished();
-
-                statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_FAILED);
-                statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
+                failed = true;
 
                 break;
             }
+        }
+
+        if (failed) {
+            _state = Finished;
+            emit finished();
+
+            statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_FAILED);
+            statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
         }
 
         _assetMappingRequest->deleteLater();

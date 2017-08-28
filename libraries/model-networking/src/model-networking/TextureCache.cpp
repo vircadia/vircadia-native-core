@@ -299,6 +299,8 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
     _textureSource = std::make_shared<gpu::TextureSource>();
     _lowestRequestedMipLevel = 0;
 
+    _shouldFailOnRedirect = !_sourceIsKTX;
+
     if (type == image::TextureUsage::CUBE_TEXTURE) {
         setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
     } else if (_sourceIsKTX) {
@@ -428,6 +430,21 @@ void NetworkTexture::makeRequest() {
 
 }
 
+bool NetworkTexture::handleFailedRequest(ResourceRequest::Result result) {
+    if (!_sourceIsKTX && result == ResourceRequest::Result::RedirectFail) {
+        auto newPath = _request->getRelativePathUrl();
+        if (newPath.fileName().endsWith(".ktx")) {
+            qDebug() << "Redirecting to" << newPath << "from" << _url;
+            _sourceIsKTX = true;
+            _activeUrl = newPath;
+            _shouldFailOnRedirect = false;
+            makeRequest();
+            return true;
+        }
+    }
+    return Resource::handleFailedRequest(result);
+}
+
 void NetworkTexture::startRequestForNextMipLevel() {
     auto self = _self.lock();
     if (!self) {
@@ -527,7 +544,7 @@ void NetworkTexture::ktxInitialDataRequestFinished() {
         _ktxHighMipData = _ktxMipRequest->getData();
         handleFinishedInitialLoad();
     } else {
-        if (handleFailedRequest(result)) {
+        if (Resource::handleFailedRequest(result)) {
             _ktxResourceState = PENDING_INITIAL_LOAD;
         } else {
             _ktxResourceState = FAILED_TO_LOAD;
@@ -616,7 +633,7 @@ void NetworkTexture::ktxMipRequestFinished() {
             finishedLoading(false);
         }
     } else {
-        if (handleFailedRequest(result)) {
+        if (Resource::handleFailedRequest(result)) {
             _ktxResourceState = PENDING_MIP_REQUEST;
         } else {
             _ktxResourceState = FAILED_TO_LOAD;
