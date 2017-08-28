@@ -34,15 +34,18 @@ Rectangle {
     property bool alreadyOwned: false;
     property int itemPriceFull: 0;
     property bool itemIsJson: true;
+    property bool securityImageResultReceived: false;
+    property bool keyFilePathIfExistsResultReceived: false;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
 
         onSecurityImageResult: {
+            securityImageResultReceived = true;
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
-            } else if (exists && root.activeView !== "checkoutMain") {
+            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
                 root.activeView = "checkoutMain";
             } else if (exists) {
                 // just set the source again (to be sure the change was noticed)
@@ -52,9 +55,10 @@ Rectangle {
         }
 
         onKeyFilePathIfExistsResult: {
+            keyFilePathIfExistsResultReceived = true;
             if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
-            } else if (path !== "" && root.activeView !== "checkoutMain") {
+            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
                 root.activeView = "checkoutMain";
             }
         }
@@ -276,14 +280,13 @@ Rectangle {
         //
         Item {
             id: itemDescriptionContainer;
-            // Size
-            height: childrenRect.height + 20;
             // Anchors
             anchors.left: parent.left;
             anchors.leftMargin: 32;
             anchors.right: parent.right;
             anchors.rightMargin: 32;
-            anchors.top: titleBarContainer.bottom;
+            anchors.top: parent.top;
+            anchors.bottom: checkoutActionButtonsContainer.top;
 
             // HFC Balance text
             Item {
@@ -349,8 +352,7 @@ Rectangle {
                     id: itemNameTextLabel;
                     text: "Item:";
                     // Anchors
-                    anchors.top: hfcBalanceContainer.bottom;
-                    anchors.topMargin: 20;
+                    anchors.top: parent.top;
                     anchors.left: parent.left;
                     width: paintedWidth;
                     height: paintedHeight;
