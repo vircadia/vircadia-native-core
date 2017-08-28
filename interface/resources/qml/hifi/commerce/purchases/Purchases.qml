@@ -37,6 +37,10 @@ Rectangle {
                 root.activeView = "notSetUp";
             } else if (exists && root.activeView !== "purchasesMain") {
                 root.activeView = "purchasesMain";
+            } else if (exists) {
+                // just set the source again (to be sure the change was noticed)
+                securityImage.source = "";
+                securityImage.source = "image://security/securityImage";
             }
         }
 
@@ -56,6 +60,10 @@ Rectangle {
                 filteredPurchasesModel.append(result.data.assets);
             }
         }
+    }
+
+    HifiWallet.SecurityImageModel {
+        id: securityImageModel;
     }
 
     //
@@ -87,6 +95,21 @@ Rectangle {
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
+        }
+
+        // Security Image (TEMPORARY!)
+        Image {
+            id: securityImage;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.right: parent.right;
+            anchors.verticalCenter: parent.verticalCenter;
+            height: parent.height - 10;
+            width: height;
+            fillMode: Image.PreserveAspectFit;
+            mipmap: true;
+            cache: false;
+            source: "image://security/securityImage";
         }
 
         // Separator
