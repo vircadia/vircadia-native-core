@@ -52,8 +52,8 @@ LimiterImpl::LimiterImpl(int sampleRate) {
     _sampleRate = sampleRate;
 
     // defaults
-    setThreshold(0.0);
-    setRelease(250.0);
+    setThreshold(0.0f);
+    setRelease(250.0f);
 }
 
 //

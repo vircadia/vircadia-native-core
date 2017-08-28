@@ -17,6 +17,7 @@ import QtQuick.Controls 1.4
 import "../../styles-uit"
 import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
+import "./wallet" as HifiWallet
 
 // references XXX from root context
 
@@ -26,32 +27,33 @@ Rectangle {
     id: checkoutRoot;
     property bool inventoryReceived: false;
     property bool balanceReceived: false;
-    property string itemId: ""; 
+    property string itemId: "";
     property string itemHref: "";
     property int balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
+    property int itemPriceFull: 0;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
         onBuyResult: {
-                if (result.status !== 'success') {
-                    buyButton.text = result.message;
-                    buyButton.enabled = false;
-                } else {
-                    if (urlHandler.canHandleUrl(itemHref)) {
-                        urlHandler.handleUrl(itemHref);
-                    }
-                    sendToScript({method: 'checkout_buySuccess', itemId: itemId});
+            if (result.status !== 'success') {
+                buyButton.text = result.message;
+                buyButton.enabled = false;
+            } else {
+                if (urlHandler.canHandleUrl(itemHref)) {
+                    urlHandler.handleUrl(itemHref);
                 }
+                sendToScript({method: 'checkout_buySuccess', itemId: itemId});
+            }
         }
         onBalanceResult: {
             if (result.status !== 'success') {
                 console.log("Failed to get balance", result.message);
             } else {
                 balanceReceived = true;
-                hfcBalanceText.text = result.data.balance;
-                balanceAfterPurchase = result.data.balance - parseInt(itemPriceText.text, 10);
+                hfcBalanceText.text = parseFloat(result.data.balance/100).toFixed(2);
+                balanceAfterPurchase = parseFloat(result.data.balance/100) - parseFloat(checkoutRoot.itemPriceFull/100).toFixed(2);
             }
         }
         onInventoryResult: {
@@ -67,14 +69,6 @@ Rectangle {
                 }
             }
         }
-        onSecurityImageResult: {
-            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
-        }
-    }
-
-    SecurityImageSelection {
-        id: securityImageSelection;
-        referrerURL: checkoutRoot.itemHref;
     }
 
     //
@@ -89,20 +83,6 @@ Rectangle {
         anchors.left: parent.left;
         anchors.top: parent.top;
 
-        // Security Image
-        Image {
-            id: securityImage;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            height: parent.height - 5;
-            width: height;
-            anchors.verticalCenter: parent.verticalCenter;
-            fillMode: Image.PreserveAspectFit;
-            mipmap: true;
-        }
-
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
@@ -111,7 +91,7 @@ Rectangle {
             size: hifi.fontSizes.overlayTitle;
             // Anchors
             anchors.top: parent.top;
-            anchors.left: securityImage.right;
+            anchors.left: parent.left;
             anchors.leftMargin: 16;
             anchors.bottom: parent.bottom;
             width: paintedWidth;
@@ -132,7 +112,7 @@ Rectangle {
     //
     // TITLE BAR END
     //
-    
+
     //
     // ITEM DESCRIPTION START
     //
@@ -147,7 +127,7 @@ Rectangle {
 
         // Item Name text
         Item {
-            id: itemNameContainer; 
+            id: itemNameContainer;
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 4;
@@ -188,11 +168,11 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-    
-        
+
+
         // Item Author text
         Item {
-            id: itemAuthorContainer; 
+            id: itemAuthorContainer;
             // Anchors
             anchors.top: itemNameContainer.bottom;
             anchors.topMargin: 4;
@@ -233,10 +213,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // HFC Balance text
         Item {
-            id: hfcBalanceContainer; 
+            id: hfcBalanceContainer;
             // Anchors
             anchors.top: itemAuthorContainer.bottom;
             anchors.topMargin: 16;
@@ -278,10 +258,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // Item Price text
         Item {
-            id: itemPriceContainer; 
+            id: itemPriceContainer;
             // Anchors
             anchors.top: hfcBalanceContainer.bottom;
             anchors.topMargin: 4;
@@ -322,10 +302,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // HFC "Balance After Purchase" text
         Item {
-            id: hfcBalanceAfterPurchaseContainer; 
+            id: hfcBalanceAfterPurchaseContainer;
             // Anchors
             anchors.top: itemPriceContainer.bottom;
             anchors.topMargin: 4;
@@ -372,7 +352,7 @@ Rectangle {
     // ITEM DESCRIPTION END
     //
 
-    
+
     //
     // ACTION BUTTONS START
     //
@@ -420,7 +400,7 @@ Rectangle {
             text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned: Get Item" : "Buy") : "--";
             onClicked: {
                 if (!alreadyOwned) {
-                    commerce.buy(itemId, parseInt(itemPriceText.text));
+                    commerce.buy(itemId, parseFloat(itemPriceText.text*100));
                 } else {
                     if (urlHandler.canHandleUrl(itemHref)) {
                         urlHandler.handleUrl(itemHref);
@@ -456,11 +436,11 @@ Rectangle {
                 itemId = message.params.itemId;
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
-                itemPriceText.text = message.params.itemPrice;
+                checkoutRoot.itemPriceFull = message.params.itemPrice;
+                itemPriceText.text = parseFloat(checkoutRoot.itemPriceFull/100).toFixed(2);
                 itemHref = message.params.itemHref;
                 commerce.balance();
                 commerce.inventory();
-                commerce.getSecurityImage();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

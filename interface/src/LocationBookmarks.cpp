@@ -63,6 +63,10 @@ void LocationBookmarks::setHomeLocation() {
     Bookmarks::addBookmarkToFile(HOME_BOOKMARK, bookmarkAddress);
 }
 
+void LocationBookmarks::setHomeLocationToAddress(const QVariant& address) {
+    Bookmarks::insert("Home", address);
+}
+
 void LocationBookmarks::teleportToBookmark() {
     QAction* action = qobject_cast<QAction*>(sender());
     QString address = action->data().toString();

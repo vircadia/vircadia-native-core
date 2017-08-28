@@ -32,6 +32,18 @@ class ScriptEngine;
 class ZoneEntityItem;
 class EntityItem;
 
+namespace render { namespace entities {
+    class EntityRenderer;
+    using EntityRendererPointer = std::shared_ptr<EntityRenderer>;
+    using EntityRendererWeakPointer = std::weak_ptr<EntityRenderer>;
+} }
+
+// Allow the use of std::unordered_map with QUuid keys
+namespace std { template<> struct hash<EntityItemID> { size_t operator()(const EntityItemID& id) const; }; }
+
+using EntityRenderer = render::entities::EntityRenderer;
+using EntityRendererPointer = render::entities::EntityRendererPointer;
+using EntityRendererWeakPointer = render::entities::EntityRendererWeakPointer;
 class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
@@ -42,6 +54,9 @@ using CalculateEntityLoadingPriority = std::function<float(const EntityItem& ite
 class EntityTreeRenderer : public OctreeProcessor, public Dependency {
     Q_OBJECT
 public:
+    static void setEntitiesShouldFadeFunction(std::function<bool()> func) { _entitiesShouldFadeFunction = func; }
+    static std::function<bool()> getEntitiesShouldFadeFunction() { return _entitiesShouldFadeFunction; }
+
     EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                 AbstractScriptingServicesInterface* scriptingServices);
     virtual ~EntityTreeRenderer();
@@ -53,14 +68,17 @@ public:
     virtual char getMyNodeType() const override { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const override { return PacketType::EntityQuery; }
     virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }
-    virtual void setTree(OctreePointer newTree) override;
 
     // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
-    float getEntityLoadingPriority(const EntityItem& item) const { return _calculateEntityLoadingPriorityFunc(item); }
-    void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { this->_calculateEntityLoadingPriorityFunc = fn; }
+    static float getEntityLoadingPriority(const EntityItem& item) { return _calculateEntityLoadingPriorityFunc(item); }
+    static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
+
+    void setMouseRayPickID(QUuid rayPickID) { _mouseRayPickID = rayPickID; }
+    void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(QUuid)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
+    void setSetPrecisionPickingOperator(std::function<void(QUuid, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 
     void shutdown();
-    void update();
+    void update(bool simulate);
 
     EntityTreePointer getTree() { return std::static_pointer_cast<EntityTree>(_tree); }
 
@@ -73,17 +91,6 @@ public:
 
     /// reloads the entity scripts, calling unload and preload
     void reloadEntityScripts();
-
-    /// if a renderable entity item needs a model, we will allocate it for them
-    Q_INVOKABLE ModelPointer allocateModel(const QString& url, float loadingPriority = 0.0f, SpatiallyNestable* spatiallyNestableOverride = nullptr);
-
-    /// if a renderable entity item needs to update the URL of a model, we will handle that for the entity
-    Q_INVOKABLE ModelPointer updateModel(ModelPointer original, const QString& newUrl);
-
-    /// if a renderable entity item is done with a model, it should return it to us
-    void releaseModel(ModelPointer model);
-
-    void deleteReleasedModels();
 
     // event handles which may generate entity related events
     void mouseReleaseEvent(QMouseEvent* event);
@@ -99,6 +106,14 @@ public:
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
     std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _layeredZones.getZone(); }
+
+    bool wantsKeyboardFocus(const EntityItemID& id) const;
+    QObject* getEventHandler(const EntityItemID& id);
+    bool wantsHandControllerPointerEvents(const EntityItemID& id) const;
+    void setProxyWindow(const EntityItemID& id, QWindow* proxyWindow);
+    void setCollisionSound(const EntityItemID& id, const SharedSoundPointer& sound);
+    EntityItemPointer getEntity(const EntityItemID& id);
+    void onEntityChanged(const EntityItemID& id);
 
 signals:
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
@@ -130,7 +145,8 @@ public slots:
 
     // optional slots that can be wired to menu items
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
-    void setDontDoPrecisionPicking(bool value) { _dontDoPrecisionPicking = value; }
+    void setPrecisionPicking(bool value) { _setPrecisionPickingOperator(_mouseRayPickID, value); }
+    EntityRendererPointer renderableForEntityId(const EntityItemID& id) const;
 
 protected:
     virtual OctreePointer createTree() override {
@@ -140,6 +156,10 @@ protected:
     }
 
 private:
+    render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
+    EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
+    render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
+
     void resetEntitiesScriptEngine();
 
     void addEntityToScene(const EntityItemPointer& entity);
@@ -148,12 +168,6 @@ private:
     bool applyLayeredZones();
 
     void checkAndCallPreload(const EntityItemID& entityID, bool reload = false, bool unloadFirst = false);
-
-    QList<ModelPointer> _releasedModels;
-    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
-                                                                const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>(), bool visibleOnly=false,
-                                                                bool collidableOnly = false);
 
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;
@@ -169,18 +183,21 @@ private:
     bool _wantScripts;
     QSharedPointer<ScriptEngine> _entitiesScriptEngine;
 
-    static void playEntityCollisionSound(EntityItemPointer entity, const Collision& collision);
+    void playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision);
 
     bool _lastPointerEventValid;
     PointerEvent _lastPointerEvent;
     AbstractViewStateInterface* _viewState;
     AbstractScriptingServicesInterface* _scriptingServices;
     bool _displayModelBounds;
-    bool _dontDoPrecisionPicking;
 
     bool _shuttingDown { false };
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
+
+    QUuid _mouseRayPickID;
+    std::function<RayToEntityIntersectionResult(QUuid)> _getPrevRayPickResultOperator;
+    std::function<void(QUuid, bool)> _setPrecisionPickingOperator;
 
     class LayeredZone {
     public:
@@ -238,15 +255,17 @@ private:
     const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
 
-    QHash<EntityItemID, EntityItemPointer> _entitiesInScene;
+    ReadWriteLockable _changedEntitiesGuard;
+    std::unordered_set<EntityItemID> _changedEntities;
+
+    std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
+    std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 
     static int _entitiesScriptEngineCount;
-
-    CalculateEntityLoadingPriority _calculateEntityLoadingPriorityFunc = [](const EntityItem& item) -> float {
-        return 0.0f;
-    };
+    static CalculateEntityLoadingPriority _calculateEntityLoadingPriorityFunc;
+    static std::function<bool()> _entitiesShouldFadeFunction;
 };
 
 

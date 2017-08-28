@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QQueue>
+#include "SpatiallyNestable.h"
+
+#include <queue>
 
 #include "DependencyManager.h"
 #include "SharedUtil.h"
 #include "StreamUtils.h"
 #include "SharedLogging.h"
-#include "SpatiallyNestable.h"
 
 const float defaultAACubeSize = 1.0f;
 const int maxParentingChain = 30;
@@ -932,24 +933,53 @@ SpatiallyNestablePointer SpatiallyNestable::getThisPointer() const {
     return thisPointer;
 }
 
-void SpatiallyNestable::forEachChild(std::function<void(SpatiallyNestablePointer)> actor) {
-    foreach(SpatiallyNestablePointer child, getChildren()) {
+
+void SpatiallyNestable::forEachChild(const ChildLambda& actor) const {
+    for (auto& child : getChildren()) {
         actor(child);
     }
 }
 
-void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor) {
-    QQueue<SpatiallyNestablePointer> toProcess;
-    foreach(SpatiallyNestablePointer child, getChildren()) {
-        toProcess.enqueue(child);
+void SpatiallyNestable::forEachChildTest(const ChildLambdaTest&  actor) const {
+    for (auto& child : getChildren()) {
+        if (!actor(child)) {
+            break;
+        }
+    }
+}
+
+// FIXME make a breadth_first_recursive_iterator to do this
+void SpatiallyNestable::forEachDescendant(const ChildLambda& actor) const {
+    std::list<SpatiallyNestablePointer> toProcess;
+    {
+        auto children = getChildren();
+        toProcess.insert(toProcess.end(), children.begin(), children.end());
     }
 
     while (!toProcess.empty()) {
-        SpatiallyNestablePointer object = toProcess.dequeue();
+        auto& object = toProcess.front();
         actor(object);
-        foreach (SpatiallyNestablePointer child, object->getChildren()) {
-            toProcess.enqueue(child);
+        auto children = object->getChildren();
+        toProcess.insert(toProcess.end(), children.begin(), children.end());
+        toProcess.pop_front();
+    }
+}
+
+void SpatiallyNestable::forEachDescendantTest(const ChildLambdaTest& actor) const {
+    std::list<SpatiallyNestablePointer> toProcess;
+    {
+        auto children = getChildren();
+        toProcess.insert(toProcess.end(), children.begin(), children.end());
+    }
+
+    while (!toProcess.empty()) {
+        auto& object = toProcess.front();
+        if (!actor(object)) {
+            break;
         }
+        auto children = object->getChildren();
+        toProcess.insert(toProcess.end(), children.begin(), children.end());
+        toProcess.pop_front();
     }
 }
 
@@ -979,12 +1009,12 @@ bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
                 _queryAACube = maxAACube;
             }
 
-            getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+            forEachDescendant([&](const SpatiallyNestablePointer& descendant) {
                 bool childSuccess;
                 AACube descendantAACube = descendant->getQueryAACube(childSuccess);
                 if (childSuccess) {
                     if (_queryAACube.contains(descendantAACube)) {
-                        return;
+                        return ;
                     }
                     _queryAACube += descendantAACube.getMinimumPoint();
                     _queryAACube += descendantAACube.getMaximumPoint();
@@ -1012,10 +1042,13 @@ bool SpatiallyNestable::queryAACubeNeedsUpdate() const {
 
     // make sure children are still in their boxes, also.
     bool childNeedsUpdate = false;
-    getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+    forEachDescendantTest([&](const SpatiallyNestablePointer& descendant) {
         if (!childNeedsUpdate && descendant->queryAACubeNeedsUpdate()) {
             childNeedsUpdate = true;
+            // Don't recurse further
+            return false;
         }
+        return true;
     });
     return childNeedsUpdate;
 }
@@ -1031,7 +1064,7 @@ void SpatiallyNestable::updateQueryAACube() {
         _queryAACube = maxAACube;
     }
 
-    getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+    forEachDescendant([&](const SpatiallyNestablePointer& descendant) {
         bool success;
         AACube descendantAACube = descendant->getQueryAACube(success);
         if (success) {

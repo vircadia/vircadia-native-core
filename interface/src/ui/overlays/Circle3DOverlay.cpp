@@ -264,7 +264,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
 const render::ShapeKey Circle3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withoutCullFace().withUnlit();
-    if (getAlpha() != 1.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     if (!getIsSolid() || shouldDrawHUDLayer()) {
