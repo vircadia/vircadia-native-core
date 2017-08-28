@@ -574,7 +574,7 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
                 width: parent.width/2 - anchors.rightMargin*2;
-                text: (itemIsJson ? ((purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Again" : "Buy"): "--") : "Use Now!");
+                text: (itemIsJson ? ((purchasesReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
                 onClicked: {
                     if (itemIsJson) {
                         buyButton.enabled = false;
