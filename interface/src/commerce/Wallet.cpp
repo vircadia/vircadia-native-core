@@ -419,7 +419,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     }
     // temporary...
     QString path = qApp->applicationDirPath();
-    path.append("/resources/qml/hifi/commerce/");
+    path.append("/resources/qml/hifi/commerce/wallet/");
     path.append(filename);
     // now create a new security image pixmap
     _securityImage = new QPixmap();
