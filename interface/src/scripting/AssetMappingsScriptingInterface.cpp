@@ -202,6 +202,13 @@ void AssetMappingModel::refresh() {
             auto existingPaths = _pathToItemMap.keys();
             for (auto& mapping : mappings) {
                 auto& path = mapping.first;
+
+                const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
+                if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+                    // Hide baked mappings
+                    continue;
+                }
+
                 auto parts = path.split("/");
                 auto length = parts.length();
 

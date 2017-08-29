@@ -521,9 +521,11 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
     replyPacket.writePrimitive(count);
 
     for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
-        replyPacket.writeString(it.key());
-        replyPacket.write(QByteArray::fromHex(it.value().toString().toUtf8()));
-        replyPacket.writePrimitive(getAssetStatus(it.key(), it.value().toString()));
+        auto mapping = it.key();
+        auto hash = it.value().toString();
+        replyPacket.writeString(mapping);
+        replyPacket.write(QByteArray::fromHex(hash.toUtf8()));
+        replyPacket.writePrimitive(getAssetStatus(mapping, hash));
     }
 }
 
