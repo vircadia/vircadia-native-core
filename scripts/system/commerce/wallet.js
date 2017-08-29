@@ -14,7 +14,7 @@
 /*global XXX */
 
 (function () { // BEGIN LOCAL_SCOPE
-
+    Script.include("/~/system/libraries/accountUtils.js");
 
     // Function Name: onButtonClicked()
     //
@@ -59,13 +59,7 @@
                 tablet.gotoHomeScreen();
                 break;
             case 'walletSetup_loginClicked':
-                if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
-                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
-                    Menu.triggerOption("Login / Sign Up");
-                    tablet.gotoHomeScreen();
-                } else {
-                    tablet.loadQMLOnTop("../../../dialogs/TabletLoginDialog.qml");
-                }
+                openLoginWindow();
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
