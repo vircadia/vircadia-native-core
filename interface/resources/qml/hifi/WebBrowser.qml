@@ -9,12 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.5 as QQControls
+import QtQuick 2.7
+import QtQuick.Controls 2.2 as QQControls
 import QtQuick.Layouts 1.3
-import QtQuick.Controls.Styles 1.4
 
-import QtWebEngine 1.2
+import QtWebEngine 1.5
 import QtWebChannel 1.0
 
 import "../styles-uit"
@@ -66,8 +65,26 @@ Rectangle {
                 }
             }
 
-            QQControls.TextField {
+            QQControls.ComboBox {
                 id: addressBar
+
+                //selectByMouse: true
+                focus: true
+                //placeholderText: "Enter URL"
+                editable: true
+                flat: true
+                indicator: Item {}
+                Component.onCompleted: ScriptDiscoveryService.scriptsModelFilter.filterRegExp = new RegExp("^.*$", "i")
+
+                Keys.onPressed: {
+                    if (event.key === Qt.Key_Return) {
+                        if (editText.indexOf("http") != 0) {
+                            editText = "http://" + editText;
+                        }
+                        webEngineView.url = editText
+                        event.accepted = true;
+                    }
+                }
 
                 Image {
                     anchors.verticalCenter: addressBar.verticalCenter;
@@ -94,21 +111,18 @@ Rectangle {
                     }
                 }
 
-                style: TextFieldStyle {
-                    padding {
-                        left: 26;
-                        right: 26
-                    }
-                }
-                focus: true
+                leftPadding: 26
+                rightPadding: 26
+
                 Layout.fillWidth: true
-                text: webEngineView.url
-                onAccepted: webEngineView.url = text
+                editText: webEngineView.url
+                onAccepted: webEngineView.url = editText
             }
+
             HifiControls.WebGlyphButton {
                 checkable: true
                 //only QtWebEngine 1.3
-                //checked: webEngineView.audioMuted
+                checked: webEngineView.audioMuted
                 glyph: checked ? hifi.glyphs.unmuted : hifi.glyphs.muted
                 anchors.verticalCenter: parent.verticalCenter;
                 width: hifi.dimensions.controlLineHeight
@@ -120,18 +134,24 @@ Rectangle {
 
         QQControls.ProgressBar {
             id: loadProgressBar
-            style: ProgressBarStyle {
-                background: Rectangle {
-                    color: "#6A6A6A"
-                }
-                progress: Rectangle{
+            background: Rectangle {
+                implicitHeight: 2
+                color: "#6A6A6A"
+            }
+
+            contentItem: Item {
+                implicitHeight: 2
+
+                Rectangle {
+                    width: loadProgressBar.visualPosition * parent.width
+                    height: parent.height
                     color: "#00B4EF"
                 }
             }
 
             width: parent.width;
-            minimumValue: 0
-            maximumValue: 100
+            from: 0
+            to: 100
             value: webEngineView.loadProgress
             height: 2
         }
@@ -183,8 +203,8 @@ Rectangle {
             settings.pluginsEnabled: true
             settings.fullScreenSupportEnabled: false
             //from WebEngine 1.3
-            //            settings.autoLoadIconsForPage: false
-            //            settings.touchIconsEnabled: false
+            settings.autoLoadIconsForPage: false
+            settings.touchIconsEnabled: false
 
             onCertificateError: {
                 error.defer();
@@ -201,9 +221,7 @@ Rectangle {
             }
 
             onNewViewRequested: {
-                if (!request.userInitiated) {
-                    print("Warning: Blocked a popup window.");
-                }
+                request.openIn(webEngineView);
             }
 
             onRenderProcessTerminated: {
