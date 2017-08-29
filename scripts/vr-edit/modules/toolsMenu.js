@@ -501,7 +501,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 overlay: "shape",
                 properties: {
                     shape: "Cylinder",
-                    dimensions: { x: 0.06, y: 0.01, z: 0.06 },
+                    dimensions: { x: 0.1229, y: UIT.dimensions.buttonDimensions.z, z: 0.1229 },
                     localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: -90 }),
                     color: { red: 128, green: 128, blue: 128 },
                     alpha: 1.0,
@@ -558,7 +558,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
         PICKLIST_UI_ELEMENTS = ["picklist", "picklistItem"],
-        MENU_RAISE_DELTA = { x: 0, y: 0, z: 0.006 },
+        MENU_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
+        OPTION_HOVER_DELTA = { x: 0, y: 0, z: 0.002 },
         ITEM_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
 
         MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
@@ -724,10 +725,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorCircle",
                     type: "colorCircle",
                     properties: {
-                        localPosition: { x: 0.04675, y: 0.01655, z: 0.005 }
+                        localPosition: { x: 0.04675, y: 0.01655, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    imageURL: "../assets/color-circle.png",
-                    imageOverlayURL: "../assets/color-circle-black.png",
+                    imageURL: "../assets/tools/color/color-circle.png",
+                    imageOverlayURL: "../assets/tools/color/color-circle-black.png",
                     command: {
                         method: "setColorPerCircle"
                     }
@@ -1929,8 +1930,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (optionsItems[i].imageURL) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
-                    delete childProperties.dimensions;
-                    childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
+                    childProperties.scale = properties.dimensions.x;
                     imageOffset += IMAGE_OFFSET;
                     childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                     childProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 });
@@ -1942,9 +1942,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (optionsItems[i].imageOverlayURL) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = Script.resolvePath(optionsItems[i].imageOverlayURL);
-                    childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
-                    delete childProperties.dimensions;
-                    childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
+                    childProperties.scale = properties.dimensions.x;
                     imageOffset += IMAGE_OFFSET;
                     childProperties.emissive = false;
                     childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
@@ -1970,7 +1968,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.circlePointer.properties);
                 auxiliaryProperties.parentID = optionsColorData[i].value;
-                auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
                 auxiliaryProperties.localPosition =
                     { x: -(auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2, y: 0, z: 0 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: -90 });
@@ -2570,39 +2567,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (isHighlightingMenuButton) {
                     // Raise new menu button.
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
-                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, MENU_RAISE_DELTA),
+                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, MENU_HOVER_DELTA),
                         visible: true
                     });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     // Raise new slider or color circle.
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
-                        localPosition: Vec3.sum(localPosition, ITEM_RAISE_DELTA)
+                        localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                     });
                 }
                 // Highlight new item. (The existence of a command or callback infers that the item should be highlighted.)
-                parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
-                    ["dimensions", "localPosition"]);
-                if (isHighlightingColorCircle) {
-                    // Cylinder used has different coordinate system to other elements.
-                    // TODO: Should be able to remove this special case when UI look is reworked.
-                    Overlays.editOverlay(highlightOverlay, {
-                        parentID: intersectionOverlays[intersectedItem],
-                        dimensions: {
-                            x: parentProperties.dimensions.x + HIGHLIGHT_PROPERTIES.xDelta,
-                            y: parentProperties.dimensions.z + HIGHLIGHT_PROPERTIES.yDelta,
-                            z: HIGHLIGHT_PROPERTIES.zDimension
-                        },
-                        localPosition: {
-                            x: HIGHLIGHT_PROPERTIES.properties.localPosition.x,
-                            y: HIGHLIGHT_PROPERTIES.properties.localPosition.z,
-                            z: HIGHLIGHT_PROPERTIES.properties.localPosition.y
-                        },
-                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
-                        color: HIGHLIGHT_PROPERTIES.properties.color,
-                        visible: true
-                    });
-                } else if (isHighlightingNewButton || isHighlightingNewToggleButton) {
+                if (isHighlightingNewButton || isHighlightingNewToggleButton) {
                     if (intersectionEnabled[highlightedItem]) {
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                             color: intersectionItems[highlightedItem].highlightColor !== undefined
@@ -2628,7 +2604,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             visible: true
                         });
                     }
-                } else if (!isHighlightingMenuButton) {
+                } else if (!isHighlightingMenuButton && !isHighlightingColorCircle) {
+                    parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
+                        ["dimensions", "localPosition"]);
                     Overlays.editOverlay(highlightOverlay, {
                         parentID: intersectionOverlays[intersectedItem],
                         dimensions: {
