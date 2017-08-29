@@ -436,11 +436,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     dimensions: { x: 0.02, y: 0.1, z: 0.01 },
                     localRotation: Quat.ZERO,
-                    color: { red: 128, green: 128, blue: 128 },
-                    alpha: 0.0,
+                    alpha: 0.0,  // Invisible.
                     solid: true,
                     ignoreRayIntersection: false,
-                    visible: true
+                    visible: true  // Catch laser intersections.
+                },
+                newLabel: {  // TODO: Rename to "label".
+                    // Relative to barSlider.
+                    color: UIT.colors.white
                 }
             },
             "barSliderValue": {
@@ -449,7 +452,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: { x: 0.02, y: 0.03, z: 0.01 },
                     localPosition: { x: 0, y: 0.035, z: 0 },
                     localRotation: Quat.ZERO,
-                    color: UI_HIGHLIGHT_COLOR,
+                    color: UIT.colors.greenHighlight,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: true,
@@ -462,7 +465,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: { x: 0.02, y: 0.07, z: 0.01 },
                     localPosition: { x: 0, y: -0.015, z: 0 },
                     localRotation: Quat.ZERO,
-                    color: UI_BASE_COLOR,
+                    color: UIT.colors.baseGrayShadow,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: true,
@@ -566,17 +569,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         PHYSICS_SLIDER_PRESETS = {
             // Slider values in the range 0.0 to 1.0.
-            // Note: Damping values give the desired linear and angular damping values but friction values are a somewhat out,
+            // Note: Friction values give the desired linear and angular damping values but friction values are a somewhat out,
             // especially for the balloon.
-            presetDefault:    { gravity: 0.5,      bounce: 0.5,  damping: 0.5,      density: 0.5      },
-            presetLead:       { gravity: 0.5,      bounce: 0.0,  damping: 0.5,      density: 1.0      },
-            presetWood:       { gravity: 0.5,      bounce: 0.4,  damping: 0.5,      density: 0.5      },
-            presetIce:        { gravity: 0.5,      bounce: 0.99, damping: 0.151004, density: 0.349485 },
-            presetRubber:     { gravity: 0.5,      bounce: 0.99, damping: 0.5,      density: 0.5      },
-            presetCotton:     { gravity: 0.587303, bounce: 0.0,  damping: 0.931878, density: 0.0      },
-            presetTumbleweed: { gravity: 0.595893, bounce: 0.7,  damping: 0.5,      density: 0.0      },
-            presetZeroG:      { gravity: 0.596844, bounce: 0.5,  damping: 0.5,      density: 0.5      },
-            presetBalloon:    { gravity: 0.606313, bounce: 0.99, damping: 0.151004, density: 0.0      }
+            presetDefault:    { gravity: 0.5,      bounce: 0.5,  friction: 0.5,      density: 0.5      },
+            presetLead:       { gravity: 0.5,      bounce: 0.0,  friction: 0.5,      density: 1.0      },
+            presetWood:       { gravity: 0.5,      bounce: 0.4,  friction: 0.5,      density: 0.5      },
+            presetIce:        { gravity: 0.5,      bounce: 0.99, friction: 0.151004, density: 0.349485 },
+            presetRubber:     { gravity: 0.5,      bounce: 0.99, friction: 0.5,      density: 0.5      },
+            presetCotton:     { gravity: 0.587303, bounce: 0.0,  friction: 0.931878, density: 0.0      },
+            presetTumbleweed: { gravity: 0.595893, bounce: 0.7,  friction: 0.5,      density: 0.0      },
+            presetZeroG:      { gravity: 0.596844, bounce: 0.5,  friction: 0.5,      density: 0.5      },
+            presetBalloon:    { gravity: 0.606313, bounce: 0.99, friction: 0.151004, density: 0.0      }
         },
 
         OPTONS_PANELS = {
@@ -1039,7 +1042,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0748, y: 0.0480, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
+                        localPosition: { x: -0.0748, y: 0.0480, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     label: "GRAVITY",
                     setting: {
@@ -1056,7 +1059,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0748, y: 0.0120, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
+                        localPosition: { x: -0.0748, y: 0.0120, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     label: "  GRAB",
                     setting: {
@@ -1073,7 +1076,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0748, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
+                        localPosition: { x: -0.0748, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     label: "COLLIDE",
                     setting: {
@@ -1204,6 +1207,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
+                    newLabel: {
+                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        url: "../assets/tools/physics/gravity-label.svg",
+                        scale: 0.0240
+                    },
                     setting: {
                         key: "VREdit.physicsTool.gravity",
                         defaultValue: 0.5,
@@ -1219,7 +1227,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: 0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
-                   },
+                    },
+                    newLabel: {
+                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        url: "../assets/tools/physics/bounce-label.svg",
+                        scale: 0.0233
+                    },
                     setting: {
                         key: "VREdit.physicsTool.bounce",
                         defaultValue: 0.5,
@@ -1230,19 +1243,24 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "dampingSlider",
+                    id: "frictionSlider",
                     type: "barSlider",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: 0.0561, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
+                    newLabel: {
+                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        url: "../assets/tools/physics/friction-label.svg",
+                        scale: 0.0258
+                    },
                     setting: {
-                        key: "VREdit.physicsTool.damping",
+                        key: "VREdit.physicsTool.friction",
                         defaultValue: 0.5,
-                        callback: "setDamping"
+                        callback: "setFriction"
                     },
                     command: {
-                        method: "setDamping"
+                        method: "setFriction"
                     }
                 },
                 {
@@ -1251,6 +1269,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: 0.0935, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                    },
+                    newLabel: {
+                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        url: "../assets/tools/physics/density-label.svg",
+                        scale: 0.0241
                     },
                     setting: {
                         key: "VREdit.physicsTool.density",
@@ -1835,20 +1858,20 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
             optionsOverlaysIDs.push(optionsItems[i].id);
             if (optionsItems[i].label) {
-                properties = Object.clone(UI_ELEMENTS.label.properties);
-                properties.text = optionsItems[i].label;
-                properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                properties.visible = optionsItems[i].type !== "picklistItem";
-                id = Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+                childProperties = Object.clone(UI_ELEMENTS.label.properties);
+                childProperties.text = optionsItems[i].label;
+                childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                childProperties.visible = optionsItems[i].type !== "picklistItem";
+                id = Overlays.addOverlay(UI_ELEMENTS.label.overlay, childProperties);
                 optionsOverlaysLabels[i] = id;
             }
             if (optionsItems[i].newLabel) {
-                properties = Object.clone(UI_ELEMENTS.image.properties);
-                properties = Object.merge(properties, UI_ELEMENTS[optionsItems[i].type].newLabel);
-                properties = Object.merge(properties, optionsItems[i].newLabel);
-                properties.url = Script.resolvePath(properties.url);
-                properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, properties);
+                childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].newLabel);
+                childProperties = Object.merge(childProperties, optionsItems[i].newLabel);
+                childProperties.url = Script.resolvePath(childProperties.url);
+                childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
                 optionsOverlaysLabels[i] = id;
             }
 
@@ -2355,9 +2378,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             setBarSliderValue(optionsOverlaysIDs.indexOf("bounceSlider"), values.bounce);
             Settings.setValue(optionsSettings.bounceSlider.key, values.bounce);
             uiCommandCallback("setBounce", values.bounce);
-            setBarSliderValue(optionsOverlaysIDs.indexOf("dampingSlider"), values.damping);
-            Settings.setValue(optionsSettings.dampingSlider.key, values.damping);
-            uiCommandCallback("setDamping", values.damping);
+            setBarSliderValue(optionsOverlaysIDs.indexOf("frictionSlider"), values.friction);
+            Settings.setValue(optionsSettings.frictionSlider.key, values.friction);
+            uiCommandCallback("setFriction", values.friction);
             setBarSliderValue(optionsOverlaysIDs.indexOf("densitySlider"), values.density);
             Settings.setValue(optionsSettings.densitySlider.key, values.density);
             uiCommandCallback("setDensity", values.density);
@@ -2374,10 +2397,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             Settings.setValue(optionsSettings.bounceSlider.key, parameter);
             uiCommandCallback("setBounce", parameter);
             break;
-        case "setDamping":
+        case "setFriction":
             setPresetsLabelToCustom();
-            Settings.setValue(optionsSettings.dampingSlider.key, parameter);
-            uiCommandCallback("setDamping", parameter);
+            Settings.setValue(optionsSettings.frictionSlider.key, parameter);
+            uiCommandCallback("setFriction", parameter);
             break;
         case "setDensity":
             setPresetsLabelToCustom();

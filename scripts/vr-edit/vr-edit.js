@@ -1433,7 +1433,7 @@
                 physicsToolPhysics.restitution = parameter;
             }
             break;
-        case "setDamping":
+        case "setFriction":
             if (parameter !== undefined) {
                 // Power range 0.0, 0.5, 1.0 maps to 0, 0.39, 1.0.
                 physicsToolPhysics.damping = 0.69136364 * Math.pow(2.446416831, parameter) - 0.691364;
