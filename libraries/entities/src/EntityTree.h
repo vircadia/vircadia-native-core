@@ -269,6 +269,7 @@ public:
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
+    void deletingEntityPointer(EntityItem* entityID);
     void addingEntity(const EntityItemID& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);

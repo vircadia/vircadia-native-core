@@ -19,6 +19,12 @@
 
 #define SEND_SORTED_ENTITIES
 
+EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
+    OctreeSendThread(myServer, node)
+{
+    connect(std::static_pointer_cast<EntityTree>(myServer->getOctree()).get(), &EntityTree::deletingEntityPointer, this, &EntityTreeSendThread::deletingEntityPointer, Qt::QueuedConnection);
+}
+
 void EntityTreeSendThread::preDistributionProcessing() {
     auto node = _node.toStrongRef();
     auto nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
@@ -151,12 +157,14 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 
 #ifndef SEND_SORTED_ENTITIES
     if (!_sendQueue.empty()) {
+        uint64_t sendTime = usecTimestampNow();
         // print what needs to be sent
         while (!_sendQueue.empty()) {
             PrioritizedEntity entry = _sendQueue.top();
             EntityItemPointer entity = entry.getEntity();
             if (entity) {
                 std::cout << "adebug    send '" << entity->getName().toStdString() << "'" << "  :  " << entry.getPriority() << std::endl;  // adebug
+                _knownState[entity] = sendTime;
             }
             _sendQueue.pop();
             _entitiesInQueue.erase(entry.getRawEntityPointer());
@@ -234,6 +242,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
     switch (type) {
     case DiffTraversal::First:
         _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
+            // When we get to a First traversal, clear the _knownState
+            _knownState.clear();
             next.element->forEachEntity([&](EntityItemPointer entity) {
                 // Bail early if we've already checked this entity this frame
                 if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
@@ -280,7 +290,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                         return;
                     }
-                    if (entity->getLastEdited() > startOfCompletedTraversal) {
+                    if (_knownState.find(entity.get()) == _knownState.end() ||
+                            (_knownState.find(entity.get()) != _knownState.end() && entity->getLastEdited() > _knownState[entity.get()])) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
@@ -319,42 +330,44 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                         return;
                     }
-                    bool success = false;
-                    AACube cube = entity->getQueryAACube(success);
-                    if (success) {
-                        if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
-                            // See the DiffTraversal::First case for an explanation of the "entity is too small" check
-                            float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
-                                                                           cube,
-                                                                           _traversal.getCurrentRootSizeScale(),
-                                                                           _traversal.getCurrentLODOffset());
+                    if (_knownState.find(entity.get()) == _knownState.end() ||
+                            (_knownState.find(entity.get()) != _knownState.end() && entity->getLastEdited() > _knownState[entity.get()])) {
+                        bool success = false;
+                        AACube cube = entity->getQueryAACube(success);
+                        if (success) {
+                            if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
+                                // See the DiffTraversal::First case for an explanation of the "entity is too small" check
+                                float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
+                                                                               cube,
+                                                                               _traversal.getCurrentRootSizeScale(),
+                                                                               _traversal.getCurrentLODOffset());
 
-                            // Only send entities if they are large enough to see
-                            if (renderAccuracy > 0.0f) {
-                                if (entity->getLastEdited() > startOfCompletedTraversal ||
-                                        !_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
-                                    float priority = _conicalView.computePriority(cube);
-                                    _sendQueue.push(PrioritizedEntity(entity, priority));
-                                    _entitiesInQueue.insert(entity.get());
-                                } else {
-                                    // If this entity was skipped last time because it was too small, we still need to send it
-                                    float lastRenderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
-                                                                                       cube,
-                                                                                        _traversal.getCompletedRootSizeScale(),
-                                                                                        _traversal.getCompletedLODOffset());
-
-                                    if (lastRenderAccuracy <= 0.0f) {
+                                // Only send entities if they are large enough to see
+                                if (renderAccuracy > 0.0f) {
+                                    if (!_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
                                         float priority = _conicalView.computePriority(cube);
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
                                         _entitiesInQueue.insert(entity.get());
+                                    } else {
+                                        // If this entity was skipped last time because it was too small, we still need to send it
+                                        float lastRenderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
+                                                                                           cube,
+                                                                                           _traversal.getCompletedRootSizeScale(),
+                                                                                           _traversal.getCompletedLODOffset());
+
+                                        if (lastRenderAccuracy <= 0.0f) {
+                                            float priority = _conicalView.computePriority(cube);
+                                            _sendQueue.push(PrioritizedEntity(entity, priority));
+                                            _entitiesInQueue.insert(entity.get());
+                                        }
                                     }
                                 }
                             }
+                        } else {
+                            const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
+                            _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
+                            _entitiesInQueue.insert(entity.get());
                         }
-                    } else {
-                        const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
-                        _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
-                        _entitiesInQueue.insert(entity.get());
                     }
                 });
             }
@@ -402,11 +415,13 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
     }
 
     LevelDetails entitiesLevel = _packetData.startLevel();
+    uint64_t sendTime = usecTimestampNow();
     while(!_sendQueue.empty()) {
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
         if (entity) {
             OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
+            _knownState[entity.get()] = sendTime;
 
             if (appendEntityState != OctreeElement::COMPLETED) {
                 if (appendEntityState == OctreeElement::PARTIAL) {
@@ -439,3 +454,6 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
 #endif // SEND_SORTED_ENTITIES
 }
 
+void EntityTreeSendThread::deletingEntityPointer(EntityItem* entity) {
+    _knownState.erase(entity);
+}

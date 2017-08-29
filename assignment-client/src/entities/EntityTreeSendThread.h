@@ -24,9 +24,10 @@ class EntityNodeData;
 class EntityItem;
 
 class EntityTreeSendThread : public OctreeSendThread {
+    Q_OBJECT
 
 public:
-    EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) : OctreeSendThread(myServer, node) { }
+    EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
 
 protected:
     void preDistributionProcessing() override;
@@ -44,12 +45,16 @@ private:
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
     std::unordered_set<EntityItem*> _entitiesInQueue;
+    std::unordered_map<EntityItem*, uint64_t> _knownState;
     ConicalView _conicalView; // cached optimized view for fast priority calculations
 
     // packet construction stuff
     EntityTreeElementExtraEncodeDataPointer _extraEncodeData { new EntityTreeElementExtraEncodeData() };
     int32_t _numEntitiesOffset { 0 };
     uint16_t _numEntities { 0 };
+
+private slots:
+    void deletingEntityPointer(EntityItem* entity);
 };
 
 #endif // hifi_EntityTreeSendThread_h
