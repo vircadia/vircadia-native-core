@@ -116,6 +116,12 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: 280;
+        
+            Connections {
+                onSendSignalToWallet: {
+                    sendSignalToWallet(msg);
+                }
+            }
         }
 
         // Text below security images
@@ -192,6 +198,8 @@ Rectangle {
     //
     // SECURITY IMAGE SELECTION END
     //
+
+    signal sendSignalToWallet(var msg);
 
     function resetSubmitButton() {
         securityImageSubmitButton.enabled = true;

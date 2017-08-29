@@ -179,7 +179,7 @@
             var cost = $('.item-cost').text();
 
             if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
-                $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download" id="buyItemButton"></span>Buy Item: ' + (parseFloat(cost / 100).toFixed(2)) + ' HFC');
+                $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download" id="buyItemButton"></span>Own Item: ' + (parseFloat(cost / 100).toFixed(2)) + ' HFC');
             }
 
             $('#side-info').find('.btn').on('click', function () {

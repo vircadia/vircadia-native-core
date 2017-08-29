@@ -48,6 +48,9 @@ Item {
     onVisibleChanged: {
         if (visible) {
             passphraseField.focus = true;
+            sendMessageToLightbox({method: 'disableHmdPreview'});
+        } else {
+            sendMessageToLightbox({method: 'maybeEnableHmdPreview'});
         }
     }
 

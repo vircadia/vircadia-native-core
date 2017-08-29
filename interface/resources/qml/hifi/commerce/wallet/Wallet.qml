@@ -101,6 +101,12 @@ Rectangle {
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
+        
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
     }
     SecurityImageSelectionLightbox {
         id: securityImageSelectionLightbox;
@@ -109,6 +115,12 @@ Rectangle {
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
+        
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
     }
 
 

@@ -27,13 +27,14 @@ Item {
 
     Hifi.QmlCommerce {
         id: commerce;
-        onSecurityImageResult: {
-        }
     }
 
     onVisibleChanged: {
         if (visible) {
             commerce.getSecurityImage();
+            sendSignalToWallet({method: 'disableHmdPreview'});
+        } else {
+            sendSignalToWallet({method: 'maybeEnableHmdPreview'});
         }
     }
 
@@ -83,7 +84,7 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-    signal sendToScript(var message);
+    signal sendSignalToWallet(var msg);
 
     function getImagePathFromImageID(imageID) {
         return (imageID ? gridModel.getImagePathFromImageID(imageID) : "");

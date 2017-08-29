@@ -262,6 +262,12 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: 280;
+            
+            Connections {
+                onSendSignalToWallet: {
+                    sendSignalToWallet(msg);
+                }
+            }
         }
 
         // Text below security images
@@ -407,6 +413,15 @@ Rectangle {
             anchors.left: parent.left;
             anchors.right: parent.right;
             anchors.bottom: passphraseNavBar.top;
+
+            Connections {
+                onSendMessageToLightbox: {
+                    if (msg.method === 'statusResult') {
+                    } else {
+                        sendSignalToWallet(msg);
+                    }
+                }
+            }
         }
 
         // Navigation Bar
