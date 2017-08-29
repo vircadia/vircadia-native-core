@@ -60,7 +60,6 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
         return entityResult;
     });
     setSetPrecisionPickingOperator([](QUuid rayPickID, bool value) {});
-    EntityRenderer::initEntityRenderers();
 
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
