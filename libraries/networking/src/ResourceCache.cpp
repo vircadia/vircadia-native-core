@@ -687,8 +687,9 @@ void Resource::makeRequest() {
         PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
         return;
     }
-    
+
     _request->setByteRange(_requestByteRange);
+    _request->setFailOnRedirect(_shouldFailOnRedirect);
 
     qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
     emit loading();

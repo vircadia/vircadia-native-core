@@ -57,7 +57,8 @@ public:
         AccessDenied,
         InvalidByteRange,
         InvalidURL,
-        NotFound
+        NotFound,
+        RedirectFail
     };
     Q_ENUM(Result)
 
@@ -70,6 +71,7 @@ public:
     bool loadedFromCache() const { return _loadedFromCache; }
     bool getRangeRequestSuccessful() const { return _rangeRequestSuccessful; }
     bool getTotalSizeOfResource() const { return _totalSizeOfResource; }
+    void setFailOnRedirect(bool failOnRedirect) { _failOnRedirect = failOnRedirect; }
 
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
     void setByteRange(ByteRange byteRange) { _byteRange = byteRange; }
@@ -89,6 +91,7 @@ protected:
     State _state { NotStarted };
     Result _result;
     QByteArray _data;
+    bool _failOnRedirect { false };
     bool _cacheEnabled { true };
     bool _loadedFromCache { false };
     ByteRange _byteRange;

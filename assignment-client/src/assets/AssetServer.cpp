@@ -49,7 +49,7 @@ static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
 static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx" };
-static const QList<QByteArray> BAKEABLE_TEXTURE_EXTENSIONS = QImageReader::supportedImageFormats();
+static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 
@@ -71,7 +71,8 @@ void BakeAssetTask::run() {
         };
     } else {
         baker = std::unique_ptr<TextureBaker> {
-            new TextureBaker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE, PathUtils::generateTemporaryDir())
+            new TextureBaker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE,
+                             PathUtils::generateTemporaryDir())
         };
     }
 
@@ -198,7 +199,7 @@ bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHa
     auto extension = path.mid(dotIndex + 1);
 
     QString bakedFilename;
-    
+
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
         bakedFilename = BAKED_MODEL_SIMPLE_NAME;
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(assetHash)) {
@@ -247,6 +248,8 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _transferTaskPool(this),
     _bakingTaskPool(this)
 {
+    BAKEABLE_TEXTURE_EXTENSIONS = TextureBaker::getSupportedFormats();
+    qDebug() << "Supported baking texture formats:" << BAKEABLE_MODEL_EXTENSIONS;
 
     // Most of the work will be I/O bound, reading from disk and constructing packet objects,
     // so the ideal is greater than the number of cores on the system.
