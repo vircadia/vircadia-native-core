@@ -86,6 +86,24 @@ Script.include("/~/system/libraries/controllers.js");
                                {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
                                {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}];
 
+    var GRABBABLE_PROPERTIES = [
+        "position",
+        "registrationPoint",
+        "rotation",
+        "gravity",
+        "collidesWith",
+        "dynamic",
+        "collisionless",
+        "locked",
+        "name",
+        "shapeType",
+        "parentID",
+        "parentJointIndex",
+        "density",
+        "dimensions",
+        "userData"
+    ];
+
 
     function FarActionGrabEntity(hand) {
         this.hand = hand;
@@ -317,18 +335,61 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbedThingID = null;
         };
 
-        this.pointingAtWebOverlay = function(controllerData) {
+        this.pointingAtWebEntity = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
-            var overlayType = Overlays.getOverlayType(intersection.objectID);
-            print(JSON.stringify(Entities.getEntityProperties(intersection.objectID)));
-            if ((intersection.type === RayPick.INTERSECTED_OVERLAY && overlayType === "web3d")  || intersection.objectID === HMD.tabletButtonID) {
+            var entityProperty  = Entities.getEntityProperties(intersection.objectID);
+            var entityType = entityProperty.type;
+            if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web")  || intersection.objectID === HMD.tabletButtonID) {
                 return true;
             }
             return false
         };
 
+        this.distanceRotate = function(otherFarGrabModule) {
+             this.distanceRotating = true;
+            this.distanceHolding = false;
+
+            var worldControllerRotation = getControllerWorldLocation(this.handToController(), true).orientation;
+            var controllerRotationDelta = Quat.multiply(worldControllerRotation, Quat.inverse(this.previousWorldControllerRotation));
+            // Rotate entity by twice the delta rotation.
+            controllerRotationDelta = Quat.multiply(controllerRotationDelta, controllerRotationDelta);
+            
+            // Perform the rotation in the translation controller's action update.
+            otherFarGrabModule.currentObjectRotation = Quat.multiply(controllerRotationDelta,
+                                                                     otherFarGrabModule.currentObjectRotation);
+            
+            // Rotate about the translation controller's target position.
+            this.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta, this.offsetPosition);
+            otherFarGrabModule.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta,
+                                                                  otherFarGrabModule.offsetPosition);
+            
+            this.updateLaserPointer();
+                            
+            this.previousWorldControllerRotation = worldControllerRotation;
+        };
+
+        this.prepareDistanceRotatingData = function(controllerData) {
+            var intersection = controllerData.rayPicks[this.hand];
+            
+            var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+            var worldControllerPosition = controllerLocation.position;
+            var worldControllerRotation = controllerLocation.orientation;
+            
+            var grabbedProperties = Entities.getEntityProperties(intersection.objectID, GRABBABLE_PROPERTIES);
+            this.currentObjectPosition = grabbedProperties.position;
+            this.grabRadius = intersection.distance;
+
+            // Offset between controller vector at the grab radius and the entity position.
+            var targetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+            targetPosition = Vec3.sum(targetPosition, worldControllerPosition);
+            this.offsetPosition = Vec3.subtract(this.currentObjectPosition, targetPosition);
+            
+            // Initial controller rotation.
+            this.previousWorldControllerRotation = worldControllerRotation;
+        };
+
         this.isReady = function (controllerData) {
-            if (this.pointingAtWebOverlay(controllerData)) {
+            if (this.pointingAtWebEntity(controllerData)) {
                 return makeRunningValues(false, [], []);
             }
             
@@ -337,6 +398,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
                 this.updateLaserPointer(controllerData);
+                this.prepareDistanceRotatingData(controllerData);
                 return makeRunningValues(true, [], []);
             } else {
                 return makeRunningValues(false, [], []);
@@ -344,7 +406,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.pointingAtWebOverlay(controllerData)) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.pointingAtWebEntity(controllerData)) {
                 this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);
@@ -374,6 +436,7 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 }
 
+                
                 this.continueDistanceHolding(controllerData);
                 // this.updateLaserPointer(controllerData, false, false);
 
@@ -398,26 +461,32 @@ Script.include("/~/system/libraries/controllers.js");
                                                                               "rotation", "dimensions", "density",
                                                                               "userData", "locked", "type"]);
                     if (entityIsDistanceGrabbable(targetProps)) {
-                        this.grabbedThingID = entityID;
-                        this.grabbedDistance = rayPickInfo.distance;
+                        if (!this.distanceRotating) {
+                            this.grabbedThingID = entityID;
+                            this.grabbedDistance = rayPickInfo.distance;
+                        }
                         var otherModuleName =
                             this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
                         var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
-                        if (otherFarGrabModule.grabbedThingID == this.grabbedThingID) {
-                            this.distanceRotating = true;
-                            this.distanceHolding = false;
-                            // XXX rotate
+                        if (otherFarGrabModule.grabbedThingID == this.grabbedThingID && otherFarGrabModule.distanceHolding) {
+                            this.distanceRotate(otherFarGrabModule);
                         } else {
                             this.distanceHolding = true;
                             this.distanceRotating = false;
                             this.startFarGrabAction(controllerData, targetProps);
                         }
                     }
-                } else if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d || Reticle.position)) {
+                } else if (this.distanceRotating) {
+                     var otherModuleName =
+                         this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
+                    var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
+                    this.distanceRotate(otherFarGrabModule);
+                }
+                    /* else if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d || Reticle.position)) {
                     this.endNearGrabAction();
                     this.laserPointerOff();
                     return makeRunningValues(false, [], []);
-                }
+                }*/
             }
             return makeRunningValues(true, [], []);
         };

@@ -434,6 +434,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.startEquipEntity = function (controllerData) {
+            print("------> starting to equip entity <-------");
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);

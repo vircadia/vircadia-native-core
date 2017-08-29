@@ -14,6 +14,7 @@
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/cloneEntityUtils.js");
 
 (function() {
 
@@ -187,7 +188,18 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 if (controllerData.triggerClicks[this.hand] == 1) {
                     // switch to grab
                     var targetProps = this.getTargetProps(controllerData);
-                    if (targetProps) {
+                    var targetCloneable = entityIsCloneable(targetProps);
+
+                    if (targetCloneable) {
+                        var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
+                        var cloneID = cloneEntity(targetProps, worldEntityProps);
+                        var cloneProps = Entities.getEntityProperties(cloneID);
+
+                        this.grabbing = true;
+                        this.targetEntityID = cloneID
+                        this.startNearParentingGrabEntity(controllerData, cloneProps);
+                       
+                    } else if (targetProps) {
                         this.grabbing = true;
                         this.startNearParentingGrabEntity(controllerData, targetProps);
                     }
