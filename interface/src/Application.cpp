@@ -2762,10 +2762,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
-    const QString HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY = "--skipTutorial";
-    // Skips tutorial/help behavior, and does NOT clear firstRun setting.
-    bool skipTutorial = arguments().contains(HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY);
-
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
 
     // when --url in command line, teleport to location
