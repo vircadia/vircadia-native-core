@@ -105,11 +105,8 @@ void FBXBaker::bakeSourceCopy() {
 
 void FBXBaker::setupOutputFolder() {
     // make sure there isn't already an output directory using the same name
-    int iteration = 0;
-
     if (QDir(_bakedOutputDir).exists()) {
         qWarning() << "Output path" << _bakedOutputDir << "already exists. Continuing.";
-        //_bakedOutputDir = _baseOutputPath + "/" + _fbxName + "-" + QString::number(++iteration) + "/";
     } else {
         qCDebug(model_baking) << "Creating FBX output folder" << _bakedOutputDir;
 
@@ -377,8 +374,15 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             QFileInfo textureFileInfo { fbxTextureFileName.replace("\\", "/") };
 
                             // make sure this texture points to something and isn't one we've already re-mapped
-                            if (!textureFileInfo.filePath().isEmpty()
-                                && textureFileInfo.suffix() != BAKED_TEXTURE_EXT.mid(1)) {
+                            if (!textureFileInfo.filePath().isEmpty()) {
+
+                                if (textureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
+                                    // re-baking an FBX that already references baked textures is a fail
+                                    // so we add an error and return from here
+                                    handleError("Cannot re-bake a partially baked FBX file that references baked KTX textures");
+
+                                    return;
+                                }
 
                                 // construct the new baked texture file name and file path
                                 // ensuring that the baked texture will have a unique name
