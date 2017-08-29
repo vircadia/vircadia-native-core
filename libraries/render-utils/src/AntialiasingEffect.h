@@ -23,13 +23,29 @@ class JitterSampleConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(float scale MEMBER scale NOTIFY dirty)
         Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
+        Q_PROPERTY(int index READ getIndex NOTIFY dirty)
 public:
     JitterSampleConfig() : render::Job::Config(true) {}
 
     float scale{ 0.5f };
     bool freeze{ false };
+
+    void setIndex(int current);
+
+public slots:
+    int pause();
+    int prev();
+    int next();
+    int play();
+
+    int getIndex() const { return _index; }
+
 signals:
     void dirty();
+
+private:
+    int _index{ 0 };
+
 };
 
 
@@ -68,6 +84,7 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(float velocityScale MEMBER velocityScale NOTIFY dirty)
  
     Q_PROPERTY(bool unjitter MEMBER unjitter NOTIFY dirty)
+    Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
@@ -91,6 +108,7 @@ public:
     float debugOrbZoom{ 2.0f };
 
     bool unjitter{ true };
+    bool constrainColor{ true };
 
     bool debug { false };
     bool showCursorPixel { false };
@@ -116,6 +134,8 @@ struct TAAParams {
     void setUnjitter(bool enabled) { SET_BIT(debug.y, 0, enabled); }
     bool isUnjitter() const { return (bool)GET_BIT(debug.y, 0); }
 
+    void setConstrainColor(bool enabled) { SET_BIT(debug.y, 1, enabled); }
+    bool isConstrainColor() const { return (bool)GET_BIT(debug.y, 1); }
 
     void setDebug(bool enabled) { SET_BIT(debug.x, 0, enabled); }
     bool isDebug() const { return (bool) GET_BIT(debug.x, 0); }

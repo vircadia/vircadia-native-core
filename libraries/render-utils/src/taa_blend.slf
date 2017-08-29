@@ -73,17 +73,19 @@ void main(void) {
         vec2 prevOrbPosToPix = pixPos - prevOrbPos;
         float prevOrbPosToPixLength = length(prevOrbPosToPix);
 
+        float orbPixThreshold = 2.0 / taa_getDebugOrbZoom();
+
         if ((prevOrbPosToPixLength < tenPercentHeight) && (cursorVelocityLength > 0.5)) {
             vec2 prevOrbPosToPix_uv = cursorPrevUV + prevOrbPosToPix * texelSize / taa_getDebugOrbZoom();
             vec3 preOrbColor = vec3(0.0);
             if (!(any(lessThan(prevOrbPosToPix_uv, vec2(0.0))) || any(greaterThan(prevOrbPosToPix_uv, vec2(1.0))))) {
                 preOrbColor = texture(historyMap, prevOrbPosToPix_uv).xyz;
             }
-            if (prevOrbPosToPixLength < 2.0) {
+            if (prevOrbPosToPixLength < orbPixThreshold) {
                 preOrbColor = vec3(1.0, 0.0, 1.0);
             }
             float distanceToNext = length(imageSize * (cursorUV - prevOrbPosToPix_uv));
-            if (distanceToNext < 2.0) {
+            if (distanceToNext < orbPixThreshold) {
                 preOrbColor = vec3(1.0, 0.5, 0.0);
             }
             outFragColor = vec4(preOrbColor, 1.0);
@@ -96,10 +98,10 @@ void main(void) {
                 nextOrbColor = texture(nextMap, nextOrbPosToPix_uv).xyz;
             }
             float distanceToPrev = length(imageSize * (cursorPrevUV - nextOrbPosToPix_uv));
-            if (distanceToPrev < 2.0) {
+            if (distanceToPrev < orbPixThreshold) {
                 nextOrbColor = vec3(1.0, 0.0, 1.0);
             }
-            if (nextOrbPosToPixLength < 2.0) {
+            if (nextOrbPosToPixLength < orbPixThreshold) {
                 nextOrbColor = vec3(1.0, 0.5, 0.0);
             }
 
@@ -114,13 +116,14 @@ void main(void) {
         vec2 jitterRegionPos = (pixPos - vec2(tenPercentHeight, imageSize.y - tenPercentHeight));
         if ((all(lessThan(jitterRegionPos, jitterRegionSize)) && all(greaterThan(jitterRegionPos, vec2(0.0))))) {
             
-            float niceDotR2 = 4;
+            float niceDotR2 = 4.0;
 
             for (int s = 0; s < SEQUENCE_LENGTH; s++) {
                 vec2 pixToSampleVec = jitterRegionPos - (vec2(0.5) + taa_getJitterSample(s)) * jitterRegionSize;
-                float radius2 = (s == sequence.currentIndex ? 2.0 * niceDotR2 : niceDotR2);
-                if (dot(pixToSampleVec, pixToSampleVec) < radius2) {
-                    outFragColor = vec4(colorRamp(float(s) / float(SEQUENCE_LENGTH)), 1.0);
+                float radius2 = (s == sequence.currentIndex ? 4.0 * niceDotR2 : niceDotR2);
+                float distToSample2 = dot(pixToSampleVec, pixToSampleVec);
+                if (distToSample2 < radius2) {
+                    outFragColor = vec4(mix( outFragColor.rgb, colorRamp(float(s) / float(SEQUENCE_LENGTH)), 1.0 - distToSample2 / radius2), 1.0);
                     return;
                 }
             }

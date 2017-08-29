@@ -20,11 +20,13 @@ layout(location = 0) out vec4 outFragColor;
 
 void main() {
     vec2 texelSize = getInvWidthHeight();
-    vec2 fragUV = varTexCoord0 - float(taa_unjitter()) * taa_getJitterSample(sequence.currentIndex) * texelSize;
+    vec2 fragUV = varTexCoord0;
+    if (taa_unjitter()) {
+        fragUV -= taa_getJitterSample(sequence.currentIndex) * texelSize;
+    }
 
     vec3 nearFragUV = taa_findClosestFragment3x3(fragUV);
     vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);
-
 
     /*vec3 sourceColor;
     vec3 historyColor;

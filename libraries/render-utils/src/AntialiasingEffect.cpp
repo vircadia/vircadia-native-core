@@ -287,6 +287,7 @@ void Antialiasing::configure(const Config& config) {
     _params.edit().velocityScale = config.velocityScale;
 
     _params.edit().setUnjitter(config.unjitter);
+    _params.edit().setConstrainColor(config.constrainColor);
 
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
 
@@ -380,6 +381,34 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     });
 }
 
+
+void JitterSampleConfig::setIndex(int current) {
+    _index = (current) % JitterSample::SampleSequence::SEQUENCE_LENGTH;    
+    emit dirty();
+}
+
+int JitterSampleConfig::pause() {
+    freeze = true;
+    emit dirty();
+    return _index;
+}
+
+int JitterSampleConfig::prev() {
+    setIndex(_index - 1);
+    return _index;
+}
+
+int JitterSampleConfig::next() {
+    setIndex(_index + 1);
+    return _index;
+}
+
+int JitterSampleConfig::play() {
+    freeze = false;
+    emit dirty();
+    return _index;
+}
+
 JitterSample::SampleSequence::SampleSequence(){
     // Halton sequence (2,3)
     offsets[0] = {  1.0f / 2.0f,  1.0f / 3.0f };
@@ -398,6 +427,12 @@ JitterSample::SampleSequence::SampleSequence(){
 
 void JitterSample::configure(const Config& config) {
     _freeze = config.freeze;
+    if (_freeze) {
+        auto pausedIndex = config.getIndex();
+        if (_jitterBuffer->currentIndex != pausedIndex) {
+            _jitterBuffer.edit().currentIndex = pausedIndex;
+        }
+    }
     _scale = config.scale;
 }
 void JitterSample::run(const render::RenderContextPointer& renderContext, JitterBuffer& jitterBuffer) {

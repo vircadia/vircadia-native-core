@@ -30,6 +30,8 @@ Rectangle {
         spacing: 20
 
         Column{
+            spacing: 10
+            
             ConfigSlider {
                 label: qsTr("Source blend")
                 integral: false
@@ -47,10 +49,35 @@ Rectangle {
                 min: 0.0
             }
             Row {
+                spacing: 10
                 CheckBox {
                     text: "Unjitter"
                     checked: Render.getConfig("RenderMainView.Antialiasing")["unjitter"]
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["unjitter"] = checked }
+                }
+                CheckBox {
+                    text: "Freeze "
+                    checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
+                }
+                Text {
+                    text:  Render.getConfig("RenderMainView.JitterCam").index
+                }
+                Button {
+                    text: "<"
+                    onClicked: { Render.getConfig("RenderMainView.JitterCam").prev(); }
+                } 
+                Button {
+                    text: ">"
+                    onClicked: { Render.getConfig("RenderMainView.JitterCam").next(); }
+                }
+            }
+            Row {
+                spacing: 10
+                CheckBox {
+                    text: "Constrain color"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor"] = checked }
                 }
             }
             Row {
@@ -58,11 +85,6 @@ Rectangle {
                     text: "Debug"
                     checked: Render.getConfig("RenderMainView.Antialiasing")["debug"]
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["debug"] = checked }
-                }
-                CheckBox {
-                    text: "Freeze "
-                    checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
                 }
                 CheckBox {
                     text: "Show Debug Cursor"
@@ -85,7 +107,7 @@ Rectangle {
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showJitterSequence"] = checked }
                 }
                 CheckBox {
-                    text: "CLosest Fragment"
+                    text: "Closest Fragment"
                     checked: Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"]
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"] = checked }
                 }                
@@ -103,8 +125,8 @@ Rectangle {
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
                 property: "debugOrbZoom"
-                max: 8.0
-                min: 0.0
+                max: 32.0
+                min: 1.0
             } 
         }
     }

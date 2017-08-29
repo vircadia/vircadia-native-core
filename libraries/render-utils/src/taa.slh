@@ -67,7 +67,9 @@ bool taa_showClosestFragment() {
 bool taa_unjitter() {
     return GET_BIT(params.debug.y, 0);
 }
-
+bool taa_constrainColor() {
+    return GET_BIT(params.debug.y, 1);
+}
 
 vec2 taa_getDebugCursorTexcoord() {
     return params.pixelInfo_orbZoom.xy;
@@ -191,7 +193,10 @@ vec3 taa_temporalReprojection(vec2 fragUV, vec2 fragVelocity, float fragZe)
 
     vec2 imageSize = getWidthHeight(0);
     vec2 texelSize = getInvWidthHeight();
-    fragUV += float(taa_unjitter()) * taa_getJitterSample(sequence.currentIndex) * texelSize;
+
+    if (taa_unjitter()) {
+        fragUV += taa_getJitterSample(sequence.currentIndex) * texelSize;
+    }
 
 		const float _SubpixelThreshold = 0.5;
 		const float _GatherBase = 0.5;
@@ -249,10 +254,11 @@ vec3 taa_temporalReprojection(vec2 fragUV, vec2 fragVelocity, float fragZe)
 		float k_feedback = mix(_FeedbackMin, _FeedbackMax, unbiased_weight_sqr);
 
 		// output
- vec3 nextColor =  mix(texel1, texel0, k_feedback).xyz;
+    vec3 nextColor =  mix(texel1, texel0, k_feedback).xyz;
 
-
- //   vec3 nextColor = mix(texel0, texel1, params.blend);
+    if (!taa_constrainColor()) {
+        nextColor = mix(historyColor, sourceColor, params.blend);
+    }
 
     return taa_resolveColor(nextColor);
 }
