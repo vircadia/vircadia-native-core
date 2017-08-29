@@ -56,7 +56,7 @@ public:
                 _from->removeEventFilter(this);
             }
         protected:
-            bool eventFilter(QObject* o, QEvent* e) {
+            virtual bool eventFilter(QObject* o, QEvent* e) override {
                 if (e->type() == QEvent::DynamicPropertyChange) {
                     QDynamicPropertyChangeEvent* dpc = static_cast<QDynamicPropertyChangeEvent*>(e);
                     if (dpc->propertyName() == "exclusionGroup")

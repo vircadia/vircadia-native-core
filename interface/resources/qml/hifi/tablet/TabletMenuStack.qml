@@ -159,9 +159,6 @@ Item {
 
         property Component exclusiveGroupMaker: Component {
             ExclusiveGroup {
-                Component.onDestruction: {
-                    console.debug('ExclusionGroup destroyed: ', this)
-                }
             }
         }
 

@@ -58,14 +58,12 @@ FocusScope {
 
         function addExclusionGroup(menuItem, exclusionGroup)
         {
-            console.debug('entering Desktop::addExclusionGroup: menuItem = ', menuItem, 'exclusionGroup = ', exclusionGroup);
             exclusionGroupsByMenuItem.append(
                 {
                     'menuItem' : menuItem.toString(), 
                     'exclusionGroup' : exclusionGroup.toString()
                 }
             );
-            console.debug('Desktop::addExclusionGroup: ', exclusionGroup, 'rootMenu: ', this);
         }
     }
 
