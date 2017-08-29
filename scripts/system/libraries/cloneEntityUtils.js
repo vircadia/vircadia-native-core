@@ -39,13 +39,9 @@ entityIsCloneable = function(props) {
 }
 
 
-cloneEntity = function(cloneableProps, worldEntityProps) {
-    if (!cloneableProps) {
-        return null;
-    }
-    
+cloneEntity = function(props, worldEntityProps) {
     // we need all the properties, for this
-    cloneableProps = Entities.getEntityProperties(cloneableProps.id);
+    var cloneableProps = Entities.getEntityProperties(props.id);
 
     var count = 0;
     worldEntityProps.forEach(function(itemWE) {
@@ -55,7 +51,6 @@ cloneEntity = function(cloneableProps, worldEntityProps) {
     });
     
     var grabInfo = getGrabbableData(cloneableProps);
-
     var limit = grabInfo.cloneLimit ? grabInfo.cloneLimit : 0;
     if (count >= limit && limit !== 0) {
         return null;
@@ -64,23 +59,19 @@ cloneEntity = function(cloneableProps, worldEntityProps) {
     cloneableProps.name = cloneableProps.name + '-clone-' + cloneableProps.id;
     var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
     var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
-    var cUserData = Object.assign({}, cloneableProps.userData);
+    var cUserData = Object.assign({}, JSON.parse(cloneableProps.userData));
     var cProperties = Object.assign({}, cloneableProps);
 
-    try {
-        delete cUserData.grabbableKey.cloneLifetime;
-        delete cUserData.grabbableKey.cloneable;
-        delete cUserData.grabbableKey.cloneDynamic;
-        delete cUserData.grabbableKey.cloneLimit;
-        delete cProperties.id;
-    } catch(e) {
-    }
+    
+    delete cUserData.grabbableKey.cloneLifetime;
+    delete cUserData.grabbableKey.cloneable;
+    delete cUserData.grabbableKey.cloneDynamic;
+    delete cUserData.grabbableKey.cloneLimit;
+    delete cProperties.id;
+    
 
     cProperties.dynamic = dynamic;
     cProperties.locked = false;
-    if (!cUserData.grabbableKey) {
-        cUserData.grabbableKey = {};
-    }
     cUserData.grabbableKey.triggerable = true;
     cUserData.grabbableKey.grabbable = true;
     cProperties.lifetime = lifetime;

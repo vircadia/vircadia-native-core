@@ -15,6 +15,7 @@
 Script.include("/~/system/libraries/Xform.js");
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
+Script.include("/~/system/libraries/cloneEntityUtils.js");
 
 
 var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx";
@@ -321,7 +322,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (props.parentID === NULL_UUID) {
                 hasParent = false;
             }
-            if (hasParent || props.locked || entityHasActions(hotspot.entityID)) {
+            
+            if (hasParent || entityHasActions(hotspot.entityID)) {
                 return false;
             }
 
@@ -368,6 +370,16 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                     hotspotDistance < hotspot.radius;
             });
             return equippableHotspots;
+        };
+
+        this.cloneHotspot = function(props, controllerData) {
+            if (entityIsCloneable(props)) {
+                var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
+                var cloneID = cloneEntity(props, worldEntityProps);
+                return cloneID
+            }
+
+            return null;
         };
 
         this.chooseBestEquipHotspot = function(candidateEntityProps, controllerData) {
@@ -434,10 +446,11 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.startEquipEntity = function (controllerData) {
-            print("------> starting to equip entity <-------");
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+
+            var grabbedProperties = Entities.getEntityProperties(this.targetEntityID);
 
             // if an object is "equipped" and has a predefined offset, use it.
             var offsets = getAttachPointForHotspotFromSettings(this.grabbedHotspot, this.hand);
@@ -467,7 +480,19 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 localPosition: this.offsetPosition,
                 localRotation: this.offsetRotation
             };
-            Entities.editEntity(this.targetEntityID, reparentProps);
+            var isClone = false;
+            if (entityIsCloneable(grabbedProperties)) {
+                var cloneID = this.cloneHotspot(grabbedProperties, controllerData);
+                this.targetEntityID = cloneID;
+                Entities.editEntity(this.targetEntityID, reparentProps);
+                isClone = true;
+            } else if (!grabbedProperties.locked) {    
+                Entities.editEntity(this.targetEntityID, reparentProps);
+            } else {
+                this.grabbedHotspot = null;
+                this.targetEntityID = null;
+                return;
+            }
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "startEquip", args);
@@ -477,6 +502,18 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
+
+            var _this = this;
+            var grabEquipCheck = function() {
+                var args = [_this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                Entities.callEntityMethod(_this.targetEntityID, "startEquip", args);
+            };
+            
+            if (isClone) {
+                // 100 ms seems to be sufficient time to force the check even occur after the object has been initialized.
+                Script.setTimeout(grabEquipCheck, 100);
+            } 
+                
         };
 
         this.endEquipEntity = function () {
@@ -523,6 +560,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
+            //if the potentialHotspot is cloneable, clone it and return it
+            // if the potentialHotspot os not cloneable and locked return null
+            
             if (potentialEquipHotspot) {
                 if (this.triggerSmoothedSqueezed() && !this.waitForTriggerRelease) {
                     this.grabbedHotspot = potentialEquipHotspot;
