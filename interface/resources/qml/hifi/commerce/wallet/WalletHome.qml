@@ -39,6 +39,13 @@ Item {
         onBalanceResult : {
             balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
         }
+
+        onHistoryResult : {
+            if (result.status === 'success') {
+                var txt = result.data.history.map(function (h) { return h.text; }).join("<hr>");
+                transactionHistoryText.text = txt;
+            }
+        }
     }
 
     SecurityImageModel {
@@ -105,6 +112,7 @@ Item {
                 onVisibleChanged: {
                     if (visible) {
                         commerce.balance();
+                        commerce.history();
                     }
                 }
             }
@@ -227,17 +235,14 @@ Item {
             anchors.right: parent.right;
 
             // some placeholder stuff
-            RalewayRegular {
-                text: homeMessage.visible ? "you <b>CANNOT</b> scroll through this." : "you <b>CAN</b> scroll through this";
-                // Text size
-                size: 16;
-                // Anchors
+            TextArea {
+                id: transactionHistoryText;
+                text: "<hr>history unavailable<hr>";
+                textFormat: TextEdit.AutoText;
+                font.pointSize: 10;
                 anchors.fill: parent;
-                // Style
-                color: hifi.colors.darkGray;
-                // Alignment
-                horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
+                horizontalAlignment: Text.AlignLeft;
+                verticalAlignment: Text.AlignTop;
             }
         }
 
@@ -351,6 +356,7 @@ Item {
         }
     }
     signal sendSignalToWallet(var msg);
+
     //
     // FUNCTION DEFINITIONS END
     //
