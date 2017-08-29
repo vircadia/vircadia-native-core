@@ -167,7 +167,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
         showKeyboardFocusHighlight: false,
-        isAA: HMD.active,
         visible: visible
     });
 
@@ -453,10 +452,6 @@ WebTablet.prototype.onHmdChanged = function () {
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
     // TODO -- is this still needed?
     // Entities.editEntity(this.tabletEntityID, tabletProperties);
-
-    // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
-    // This should make the text more readable.
-    Overlays.editOverlay(this.webOverlayID, { isAA: HMD.active });
 };
 
 WebTablet.prototype.pickle = function () {

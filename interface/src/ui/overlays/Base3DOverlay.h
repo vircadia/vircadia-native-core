@@ -43,14 +43,11 @@ public:
     bool getDrawInFront() const { return _drawInFront; }
     bool getIsGrabbable() const { return _isGrabbable; }
 
-    virtual bool isAA() const { return _isAA; }
-
     void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
-    void setIsAA(bool value) { _isAA = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
 
     virtual AABox getBounds() const override = 0;
@@ -75,7 +72,6 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
-    bool _isAA;
     bool _isGrabbable { false };
 
     QString _name;
