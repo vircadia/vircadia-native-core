@@ -29,6 +29,7 @@ Rectangle {
     property string referrerURL: "";
     property bool securityImageResultReceived: false;
     property bool keyFilePathIfExistsResultReceived: false;
+    property bool inventoryReceived: false;
     property bool punctuationMode: false;
     // Style
     color: hifi.colors.baseGray;
@@ -58,6 +59,7 @@ Rectangle {
         }
 
         onInventoryResult: {
+            inventoryReceived = true;
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
@@ -335,7 +337,7 @@ Rectangle {
 
         Item {
             id: noPurchasesAlertContainer;
-            visible: !purchasesContentsList.visible;
+            visible: !purchasesContentsList.visible && root.inventoryReceived;
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
