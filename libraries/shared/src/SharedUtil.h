@@ -240,8 +240,8 @@ void watchParentProcess(int parentPID);
 
 
 #ifdef _WIN32
-HANDLE createJobObject();
-void addProcessToJobObject(HANDLE jobObject, DWORD processId);
+void *createJobObject();
+void addProcessToJobObject(void *jobObject, qint64 processId);
 #endif
 
 #endif // hifi_SharedUtil_h

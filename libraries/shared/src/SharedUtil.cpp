@@ -1081,7 +1081,7 @@ void setMaxCores(uint8_t maxCores) {
 void quitWithParentProcess() {
     if (qApp) {
         qDebug() << "Parent process died, quitting";
-        qApp->quit();
+        exit(0);
     }
 }
 
@@ -1134,7 +1134,7 @@ QString GetLastErrorAsString() {
     return QString::fromStdString(message);
 }
 
-HANDLE createJobObject() {
+void *createJobObject() {
     HANDLE jobObject = CreateJobObject(nullptr, nullptr);
     if (jobObject == nullptr) {
         qWarning() << "Could NOT create job object:" << GetLastErrorAsString();
@@ -1155,7 +1155,7 @@ HANDLE createJobObject() {
     return jobObject;
 }
 
-void addProcessToJobObject(HANDLE jobObject, DWORD processId) {
+void addProcessToJobObject(void *jobObject, qint64 processId) {
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
     if (hProcess == nullptr) {
         qCritical() << "Could NOT open process" << GetLastErrorAsString();
