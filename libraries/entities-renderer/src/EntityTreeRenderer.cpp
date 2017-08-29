@@ -55,11 +55,11 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _displayModelBounds(false),
     _layeredZones(this)
 {
-    setMouseRayPickResultOperator([&](QUuid rayPickID) {
+    setMouseRayPickResultOperator([](QUuid rayPickID) {
         RayToEntityIntersectionResult entityResult;
         return entityResult;
     });
-    setSetPrecisionPickingOperator([&](QUuid rayPickID, bool value) {});
+    setSetPrecisionPickingOperator([](QUuid rayPickID, bool value) {});
     EntityRenderer::initEntityRenderers();
 
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
