@@ -294,7 +294,6 @@ bool RenderableModelEntityItem::getAnimationFrame() {
         auto& originalFbxJoints = _model->getFBXGeometry().joints; // model-> isLoaded above makes sure this doesnt crash to an assert!
         
         int frameCount = frames.size();
-
         bool allowTranslation = getAnimationAllowTranslation();
 
         if (frameCount > 0) {

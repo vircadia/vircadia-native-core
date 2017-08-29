@@ -20,6 +20,7 @@
 
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, Animation, animation, URL, url);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
 
     if (_animationLoop) {
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ANIMATION_FPS, Animation, animation, FPS, fps, _animationLoop->getFPS);
@@ -38,13 +39,12 @@ void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desire
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
         COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
     }
-
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
 }
 
 void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
 
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, url, QString, setURL);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, allowTranslation, bool, setAllowTranslation);
 
     // legacy property support
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationURL, QString, setURL, getURL);
@@ -78,13 +78,11 @@ void AnimationPropertyGroup::copyFromScriptValue(const QScriptValue& object, boo
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationIsPlaying, bool, setRunning, getRunning);
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(animationFrameIndex, float, setCurrentFrame, getCurrentFrame);
     }
-
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(animation, allowTranslation, bool, setAllowTranslation);
-
 }
 
 void AnimationPropertyGroup::merge(const AnimationPropertyGroup& other) {
     COPY_PROPERTY_IF_CHANGED(url);
+    COPY_PROPERTY_IF_CHANGED(allowTranslation);
     if (_animationLoop) {
         _fps = _animationLoop->getFPS();
         _currentFrame = _animationLoop->getCurrentFrame();
@@ -93,7 +91,6 @@ void AnimationPropertyGroup::merge(const AnimationPropertyGroup& other) {
         _firstFrame = _animationLoop->getFirstFrame();
         _lastFrame = _animationLoop->getLastFrame();
         _hold = _animationLoop->getHold();
-        _allowTranslation = getAllowTranslation();
     } else {
         COPY_PROPERTY_IF_CHANGED(fps);
         COPY_PROPERTY_IF_CHANGED(currentFrame);
@@ -102,9 +99,7 @@ void AnimationPropertyGroup::merge(const AnimationPropertyGroup& other) {
         COPY_PROPERTY_IF_CHANGED(firstFrame);
         COPY_PROPERTY_IF_CHANGED(lastFrame);
         COPY_PROPERTY_IF_CHANGED(hold);
-        COPY_PROPERTY_IF_CHANGED(allowTranslation);
     }
-
 }
 
 void AnimationPropertyGroup::setFromOldAnimationSettings(const QString& value) {
@@ -185,6 +180,7 @@ void AnimationPropertyGroup::debugDump() const {
     qCDebug(entities) << "       url:" << getURL() << " has changed:" << urlChanged();
     qCDebug(entities) << "       fps:" << getFPS() << " has changed:" << fpsChanged();
     qCDebug(entities) << "currentFrame:" << getCurrentFrame() << " has changed:" << currentFrameChanged();
+    qCDebug(entities) << "allowTranslation:" << getAllowTranslation() << " has changed:" << allowTranslationChanged(); 
 }
 
 void AnimationPropertyGroup::listChangedProperties(QList<QString>& out) {
@@ -197,6 +193,9 @@ void AnimationPropertyGroup::listChangedProperties(QList<QString>& out) {
     if (currentFrameChanged()) {
         out << "animation-currentFrame";
     }
+    if (allowTranslationChanged()) {
+        out << "animation-allowTranslation";
+    }
 }
 
 
@@ -207,9 +206,11 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     int& propertyCount,
                                     OctreeElement::AppendState& appendState) const {
 
-    bool successPropertyFits = true;
+    bool successPropertyFits = true; 
 
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getURL());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, getAllowTranslation());
+
     if (_animationLoop) {
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, _animationLoop->getFPS());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, _animationLoop->getCurrentFrame());
@@ -227,8 +228,6 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, getLastFrame());
         APPEND_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, getHold());
     }
-
-    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, getAllowTranslation());
 
     return true;
 }
@@ -287,6 +286,7 @@ void AnimationPropertyGroup::markAllChanged() {
     _firstFrameChanged = true;
     _lastFrameChanged = true;
     _holdChanged = true;
+    _allowTranslationChanged = true;
 }
 
 EntityPropertyFlags AnimationPropertyGroup::getChangedProperties() const {
