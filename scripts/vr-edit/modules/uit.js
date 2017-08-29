@@ -38,6 +38,7 @@ UIT = (function () {
 
             topMargin: 0.010,
             leftMargin: 0.0118,
+            rightMargin: 0.0118,
 
             header: { x: 0.24, y: 0.048, z: 0.012 },
             headerHeading: { x: 0.24, y: 0.044, z: 0.012 },

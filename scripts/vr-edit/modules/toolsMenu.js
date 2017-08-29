@@ -540,7 +540,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "picklistItem": {
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.06, y: 0.02, z: 0.01 },
+                    dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                     localPosition: Vec3.ZERO,
                     localRotation: Quat.ZERO,
                     color: { red: 100, green: 100, blue: 100 },
@@ -1009,20 +1009,37 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             ],
             physicsOptions: [
                 {
-                    id: "propertiesLabel",
-                    type: "label",
+                    id: "physicsPropertiesLabel",
+                    type: "image",
                     properties: {
-                        text: "PROPERTIES",
-                        lineHeight: 0.0045,
-                        localPosition: { x: -0.031, y: 0.0475, z: 0.0075}
+                        color: UIT.colors.white,
+                        url: "../assets/tools/physics/properties-label.svg",
+                        scale: 0.0376,
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0376 / 2,
+                            y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "physicsRule1",
+                    type: "horizontalRule",
+                    properties: {
+                        dimensions: { x: 0.0668, y: 0.001 },
+                        localPosition: {
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0668 / 2,
+                            y: UIT.dimensions.panel.y / 2 - 0.0199,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
                     }
                 },
                 {
                     id: "gravityToggle",
                     type: "toggleButton",
                     properties: {
-                        localPosition: { x: -0.0325, y: 0.03, z: 0.005 },
-                        dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                        dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: -0.0748, y: 0.0480, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
                     },
                     label: "GRAVITY",
                     setting: {
@@ -1038,8 +1055,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "grabToggle",
                     type: "toggleButton",
                     properties: {
-                        localPosition: { x: -0.0325, y: 0.005, z: 0.005 },
-                        dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                        dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: -0.0748, y: 0.0120, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
                     },
                     label: "  GRAB",
                     setting: {
@@ -1055,8 +1072,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "collideToggle",
                     type: "toggleButton",
                     properties: {
-                        localPosition: { x: -0.0325, y: -0.02, z: 0.005 },
-                        dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                        dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: -0.0748, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
                     },
                     label: "COLLIDE",
                     setting: {
@@ -1070,20 +1087,41 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
 
                 {
-                    id: "propertiesLabel",
-                    type: "label",
+                    id: "physicsPresetsLabel",
+                    type: "image",
                     properties: {
-                        text: "PRESETS",
-                        lineHeight: 0.0045,
-                        localPosition: { x: 0.002, y: 0.0475, z: 0.0075 }
+                        color: UIT.colors.white,
+                        url: "../assets/tools/physics/presets-label.svg",
+                        scale: 0.0270,
+                        localPosition: {
+                            x: UIT.dimensions.panel.x / 2 - UIT.dimensions.rightMargin - 0.1416 + 0.0270 / 2,
+                            y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "physicsRule2",
+                    type: "horizontalRule",
+                    properties: {
+                        dimensions: { x: 0.1416, y: 0.001 },
+                        localPosition: {
+                            x: UIT.dimensions.panel.x / 2 - UIT.dimensions.rightMargin - 0.1416 / 2,
+                            y: UIT.dimensions.panel.y / 2 - 0.0199,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
                     }
                 },
                 {
                     id: "presets",
                     type: "picklist",
                     properties: {
-                        localPosition: { x: 0.016, y: 0.03, z: 0.005 },
-                        dimensions: { x: 0.06, y: 0.02, z: 0.01 }
+                        dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: {
+                            x: UIT.dimensions.panel.x / 2 - UIT.dimensions.rightMargin - 0.1416 / 2,
+                            y: 0.0480,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
                     },
                     label: "DEFAULT",
                     setting: {
@@ -1158,12 +1196,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     label: "BALLOON",
                     command: { method: "pickPhysicsPreset" }
                 },
+
                 {
                     id: "gravitySlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: -0.007, y: -0.016, z: 0.005 },
-                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                        dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: -0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
                         key: "VREdit.physicsTool.gravity",
@@ -1175,21 +1214,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "gravityLabel",
-                    type: "label",
-                    properties: {
-                        text: "GRAVITY",
-                        lineHeight: 0.0045,
-                        localPosition: { x: -0.003, y: -0.052, z: 0.0075 }
-                    }
-                },
-                {
                     id: "bounceSlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: 0.009, y: -0.016, z: 0.005 },
-                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
-                    },
+                        dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: 0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                   },
                     setting: {
                         key: "VREdit.physicsTool.bounce",
                         defaultValue: 0.5,
@@ -1200,20 +1230,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "bounceLabel",
-                    type: "label",
-                    properties: {
-                        text: "BOUNCE",
-                        lineHeight: 0.0045,
-                        localPosition: { x: 0.015, y: -0.057, z: 0.0075 }
-                    }
-                },
-                {
                     id: "dampingSlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: 0.024, y: -0.016, z: 0.005 },
-                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                        dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: 0.0561, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
                         key: "VREdit.physicsTool.damping",
@@ -1225,20 +1246,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "dampingLabel",
-                    type: "label",
-                    properties: {
-                        text: "DAMPING",
-                        lineHeight: 0.0045,
-                        localPosition: { x: 0.030, y: -0.052, z: 0.0075 }
-                    }
-                },
-                {
                     id: "densitySlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: 0.039, y: -0.016, z: 0.005 },
-                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                        dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: 0.0935, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     setting: {
                         key: "VREdit.physicsTool.density",
@@ -1247,15 +1259,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     command: {
                         method: "setDensity"
-                    }
-                },
-                {
-                    id: "densityLabel",
-                    type: "label",
-                    properties: {
-                        text: "DENSITY",
-                        lineHeight: 0.0045,
-                        localPosition: { x: 0.045, y: -0.057, z: 0.0075 }
                     }
                 }
             ],
