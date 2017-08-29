@@ -472,7 +472,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "imageSlider": {  // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.01, y: 0.06, z: 0.01 },
+                    dimensions: { x: 0.0160, y: 0.1229, z: UIT.dimensions.buttonDimensions.z },
                     localRotation: Quat.ZERO,
                     color: { red: 128, green: 128, blue: 128 },
                     alpha: 1.0,
@@ -737,12 +737,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSlider",
                     type: "imageSlider",
                     properties: {
-                        localPosition: { x: 0.04675, y: -0.0620, z: 0.005 },
+                        localPosition: { x: 0.04675, y: -0.0620, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
                         localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 })
                     },
                     useBaseColor: true,
-                    imageURL: "../assets/slider-white.png",
-                    imageOverlayURL: "../assets/slider-v-alpha.png",
+                    imageURL: "../assets/tools/color/slider-white.png",
+                    // Alpha PNG created by overlaying two black-to-transparent gradients in order to achieve visual effect.
+                    imageOverlayURL: "../assets/tools/color/slider-alpha.png",
                     command: {
                         method: "setColorPerSlider"
                     }
@@ -1879,8 +1880,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (optionsItems[i].imageURL) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
-                    delete childProperties.dimensions;
-                    childProperties.scale = properties.dimensions.y;
+                    childProperties.dimensions = { x: properties.dimensions.x, y: properties.dimensions.y };
                     imageOffset += IMAGE_OFFSET;
                     if (optionsItems[i].useBaseColor) {
                         childProperties.color = properties.color;
@@ -1896,9 +1896,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (optionsItems[i].imageOverlayURL) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = Script.resolvePath(optionsItems[i].imageOverlayURL);
-                    childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
-                    delete childProperties.dimensions;
-                    childProperties.scale = properties.dimensions.y;
+                    childProperties.dimensions = { x: properties.dimensions.x, y: properties.dimensions.y };
                     childProperties.emissive = false;
                     imageOffset += IMAGE_OFFSET;
                     childProperties.localPosition = { x: 0, y: 0, z: properties.dimensions.z / 2 + imageOffset };
@@ -1913,7 +1911,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.sliderPointer.properties);
                 auxiliaryProperties.localPosition = optionsSliderData[i].offset;
                 hsvControl.slider.localPosition = auxiliaryProperties.localPosition;
-                auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
                 hsvControl.slider.pointerOverlay = optionsSliderData[i].value;
@@ -2604,7 +2601,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             visible: true
                         });
                     }
-                } else if (!isHighlightingMenuButton && !isHighlightingColorCircle) {
+                } else if (!isHighlightingMenuButton && !isHighlightingColorCircle && !isHighlightingSlider) {
                     parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
                         ["dimensions", "localPosition"]);
                     Overlays.editOverlay(highlightOverlay, {
