@@ -347,7 +347,7 @@ bool Wallet::createIfNeeded() {
             qCDebug(commerce) << "read private key";
             RSA_free(key);
             // K -- add the public key since we have a legit private key associated with it
-            _publicKeys.push_back(QUrl::toPercentEncoding(publicKey.toBase64()));
+            _publicKeys.push_back(publicKey.toBase64());
             return false;
         }
     }
