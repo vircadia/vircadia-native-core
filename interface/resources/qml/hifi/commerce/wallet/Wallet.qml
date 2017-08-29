@@ -28,6 +28,7 @@ Rectangle {
     property string activeView: "initialize";
     property bool securityImageResultReceived: false;
     property bool keyFilePathIfExistsResultReceived: false;
+    property bool keyboardRaised: false;
 
     // Style
     color: hifi.colors.baseGray;
@@ -57,27 +58,6 @@ Rectangle {
         id: securityImageModel;
     }
 
-    Connections {
-        target: walletSetupLightbox;
-        onSendSignalToWallet: {
-            if (msg.method === 'walletSetup_cancelClicked') {
-                walletSetupLightbox.visible = false;
-            } else if (msg.method === 'walletSetup_finished') {
-                root.activeView = "walletHome";
-            } else {
-                sendToScript(msg);
-            }
-        }
-    }
-    Connections {
-        target: notSetUp;
-        onSendSignalToWallet: {
-            if (msg.method === 'setUpClicked') {
-                walletSetupLightbox.visible = true;
-            }
-        }
-    }
-
     Rectangle {
         id: walletSetupLightboxContainer;
         visible: walletSetupLightbox.visible || passphraseSelectionLightbox.visible || securityImageSelectionLightbox.visible;
@@ -89,29 +69,51 @@ Rectangle {
     WalletSetupLightbox {
         id: walletSetupLightbox;
         visible: false;
-        z: 999;
+        z: 998;
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletSetup_cancelClicked') {
+                    walletSetupLightbox.visible = false;
+                } else if (msg.method === 'walletSetup_finished') {
+                    root.activeView = "walletHome";
+                } else if (msg.method === 'walletSetup_raiseKeyboard') {
+                    root.keyboardRaised = true;
+                } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                    root.keyboardRaised = false;
+                } else {
+                    sendToScript(msg);
+                }
+            }
+        }
     }
     PassphraseSelectionLightbox {
         id: passphraseSelectionLightbox;
         visible: false;
-        z: 999;
+        z: 998;
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
         
         Connections {
             onSendSignalToWallet: {
-                sendToScript(msg);
+                if (msg.method === 'walletSetup_raiseKeyboard') {
+                    root.keyboardRaised = true;
+                } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                    root.keyboardRaised = false;
+                } else {
+                    sendToScript(msg);
+                }
             }
         }
     }
     SecurityImageSelectionLightbox {
         id: securityImageSelectionLightbox;
         visible: false;
-        z: 999;
+        z: 998;
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
@@ -192,6 +194,14 @@ Rectangle {
         anchors.bottom: tabButtonsContainer.top;
         anchors.left: parent.left;
         anchors.right: parent.right;
+        
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'setUpClicked') {
+                    walletSetupLightbox.visible = true;
+                }
+            }
+        }
     }
 
     WalletHome {
@@ -231,14 +241,14 @@ Rectangle {
         anchors.leftMargin: 16;
         anchors.right: parent.right;
         anchors.rightMargin: 16;
-    }
-    Connections {
-        target: security;
-        onSendSignalToWallet: {
-            if (msg.method === 'walletSecurity_changePassphrase') {
-                passphraseSelectionLightbox.visible = true;
-            } else if (msg.method === 'walletSecurity_changeSecurityImage') {
-                securityImageSelectionLightbox.visible = true;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletSecurity_changePassphrase') {
+                    passphraseSelectionLightbox.visible = true;
+                } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                    securityImageSelectionLightbox.visible = true;
+                }
             }
         }
     }
@@ -467,7 +477,47 @@ Rectangle {
     }
     //
     // TAB BUTTONS END
-    //
+    //    
+
+    Item {
+        id: keyboardContainer;
+        z: 999;
+        visible: keyboard.raised;
+        anchors {
+            bottom: parent.bottom;
+            left: parent.left;
+            right: parent.right;
+        }
+
+        Image {
+            id: lowerKeyboardButton;
+            source: "images/lowerKeyboard.png";
+            anchors.horizontalCenter: parent.horizontalCenter;
+            anchors.bottom: keyboard.top;
+            height: 30;
+            width: 120;
+
+            MouseArea {
+                anchors.fill: parent;
+
+                onClicked: {
+                    root.keyboardRaised = false;
+                }
+            }
+        }
+
+        HifiControlsUit.Keyboard {
+            id: keyboard;
+            property bool punctuationMode: false;
+            raised: HMD.mounted && root.keyboardRaised;
+            numeric: keyboard.punctuationMode;
+            anchors {
+                bottom: parent.bottom;
+                left: parent.left;
+                right: parent.right;
+            }
+        }
+    }
 
     //
     // FUNCTION DEFINITIONS START

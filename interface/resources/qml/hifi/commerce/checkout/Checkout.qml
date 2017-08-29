@@ -877,7 +877,7 @@ Rectangle {
             if (root.purchasesReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {
-                        buyText.text = "You do not have enough HFC to purchase this item again. Go to your Purchases to view the copy you own.";
+                        buyText.text = "You do not have enough HFC to purchase this item again. Go to your <b>Purchases</b> to view the copy you own.";
                     } else {
                         buyText.text = "You do not have enough HFC to purchase this item.";
                     }

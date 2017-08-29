@@ -74,6 +74,26 @@ Item {
                 text = "";
             }
         }
+
+        onFocusChanged: {
+            if (focus) {
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            } else if (!passphraseFieldAgain.focus) {
+                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+            onClicked: {
+                parent.focus = true;
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            }
+        }
+
+        onAccepted: {
+            passphraseFieldAgain.focus = true;
+        }
     }
     HifiControlsUit.TextField {
         id: passphraseFieldAgain;
@@ -89,6 +109,26 @@ Item {
             if (visible) {
                 text = "";
             }
+        }
+
+        onFocusChanged: {
+            if (focus) {
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            } else if (!passphraseField.focus) {
+                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+            onClicked: {
+                parent.focus = true;
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            }
+        }
+
+        onAccepted: {
+            focus = false;
         }
     }
 
