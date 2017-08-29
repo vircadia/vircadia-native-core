@@ -238,4 +238,10 @@ void setMaxCores(uint8_t maxCores);
 const QString PARENT_PID_OPTION = "parent-pid";
 void watchParentProcess(int parentPID);
 
+
+#ifdef _WIN32
+HANDLE createJobObject();
+void addProcessToJobObject(HANDLE jobObject, DWORD processId);
+#endif
+
 #endif // hifi_SharedUtil_h

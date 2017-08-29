@@ -1113,3 +1113,56 @@ void watchParentProcess(int parentPID) {
     timer->start();
 }
 #endif
+
+
+#ifdef Q_OS_WIN
+QString GetLastErrorAsString() {
+    //Get the error message, if any.
+    DWORD errorMessageID = ::GetLastError();
+    if (errorMessageID == 0)
+        return QString(); //No error message has been recorded
+
+    LPSTR messageBuffer = nullptr;
+    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+    std::string message(messageBuffer, size);
+
+    //Free the buffer.
+    LocalFree(messageBuffer);
+
+    return QString::fromStdString(message);
+}
+
+HANDLE createJobObject() {
+    HANDLE jobObject = CreateJobObject(nullptr, nullptr);
+    if (jobObject == nullptr) {
+        qWarning() << "Could NOT create job object:" << GetLastErrorAsString();
+        return nullptr;
+    }
+
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION JELI;
+    if (!QueryInformationJobObject(jobObject, JobObjectExtendedLimitInformation, &JELI, sizeof(JELI), nullptr)) {
+        qWarning() << "Could NOT query job object information" << GetLastErrorAsString();
+        return nullptr;
+    }
+    JELI.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if (!SetInformationJobObject(jobObject, JobObjectExtendedLimitInformation, &JELI, sizeof(JELI))) {
+        qWarning() << "Could NOT set job object information" << GetLastErrorAsString();
+        return nullptr;
+    }
+
+    return jobObject;
+}
+
+void addProcessToJobObject(HANDLE jobObject, DWORD processId) {
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+    if (hProcess == nullptr) {
+        qCritical() << "Could NOT open process" << GetLastErrorAsString();
+    }
+    if (!AssignProcessToJobObject(jobObject, hProcess)) {
+        qCritical() << "Could NOT assign process to job object" << GetLastErrorAsString();
+    }
+}
+
+#endif
