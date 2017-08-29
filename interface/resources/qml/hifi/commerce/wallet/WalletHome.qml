@@ -41,8 +41,8 @@ Item {
         }
 
         onHistoryResult : {
-            if (result.status == 'success') {
-                var txt = result.data.history.map(function(h) { return h.text; }).join("<hr>");
+            if (result.status === 'success') {
+                var txt = result.data.history.map(function (h) { return h.text; }).join("<hr>");
                 transactionHistoryText.text = txt;
             }
         }
