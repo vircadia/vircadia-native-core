@@ -582,14 +582,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         OPTONS_PANELS = {
             colorOptions: [
                 {
-                    id: "colorActionsLabel",
+                    id: "colorSwatchesLabel",
                     type: "image",
                     properties: {
                         color: UIT.colors.white,
-                        url: "../assets/tools/common/actions-label.svg",
-                        scale: 0.0276,
+                        url: "../assets/tools/color/swatches-label.svg",
+                        scale: 0.0345,
                         localPosition: {
-                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0276 / 2,
+                            x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0345 / 2,
                             y: UIT.dimensions.panel.y / 2 - UIT.dimensions.topMargin - 0.0047 / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         }
