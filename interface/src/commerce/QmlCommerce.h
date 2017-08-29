@@ -36,12 +36,14 @@ signals:
     void securityImageResult(bool exists);
     void loginStatusResult(bool isLoggedIn);
     void passphraseSetupStatusResult(bool passphraseIsSetup);
+    void historyResult(QJsonObject result);
     void keyFilePathIfExistsResult(const QString& path);
 
 protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
     Q_INVOKABLE void balance();
     Q_INVOKABLE void inventory();
+    Q_INVOKABLE void history();
     Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
     Q_INVOKABLE void getSecurityImage();
     Q_INVOKABLE void getLoginStatus();
