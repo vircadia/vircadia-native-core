@@ -84,7 +84,7 @@ void BakeAssetTask::run() {
     loop.exec();
 
     if (baker->hasErrors()) {
-        qDebug() << "Failed to bake: " << _assetHash << _assetPath;
+        qDebug() << "Failed to bake: " << _assetHash << _assetPath << baker->getErrors();
     } else {
         auto vectorOutputFiles = QVector<QString>::fromStdVector(baker->getOutputFiles());
         qDebug() << "Finished baking: " << _assetHash << _assetPath << vectorOutputFiles;
