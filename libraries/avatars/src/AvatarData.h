@@ -353,6 +353,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
+    Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
@@ -374,6 +375,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
     // sessionDisplayName is sanitized, defaulted version displayName that is defined by the AvatarMixer rather than by Interface clients.
     // The result is unique among all avatars present at the time.
     Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName)
+    Q_PROPERTY(bool lookAtSnappingEnabled MEMBER _lookAtSnappingEnabled NOTIFY lookAtSnappingChanged)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
 
@@ -559,6 +561,7 @@ public:
         QString sessionDisplayName;
         bool isReplicated;
         AvatarEntityMap avatarEntityData;
+        bool lookAtSnappingEnabled;
     };
 
     // identityChanged returns true if identity has changed, false otherwise.
@@ -571,6 +574,7 @@ public:
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
+    bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
@@ -662,6 +666,7 @@ public:
 
 signals:
     void displayNameChanged();
+    void lookAtSnappingChanged(bool enabled);
 
 public slots:
     void sendAvatarDataPacket();
@@ -730,6 +735,7 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
+    bool _lookAtSnappingEnabled { true };
 
     QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _fstJointNames; ///< in order of depth-first traversal

@@ -45,6 +45,7 @@ Handler(buy)
 Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
+Handler(history)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -107,3 +108,6 @@ void Ledger::inventory(const QStringList& keys) {
     keysQuery("inventory", "inventorySuccess", "inventoryFailure");
 }
 
+void Ledger::history(const QStringList& keys) {
+    keysQuery("history", "historySuccess", "historyFailure");
+}
