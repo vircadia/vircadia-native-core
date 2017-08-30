@@ -91,6 +91,7 @@ AvatarData::AvatarData() :
     _targetVelocity(0.0f),
     _density(DEFAULT_AVATAR_DENSITY)
 {
+    connect(this, &AvatarData::lookAtSnappingChanged, this, &AvatarData::markIdentityDataChanged);
 }
 
 AvatarData::~AvatarData() {
@@ -1446,7 +1447,9 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             >> identity.displayName
             >> identity.sessionDisplayName
             >> identity.isReplicated
-            >> identity.avatarEntityData;
+            >> identity.avatarEntityData
+            >> identity.lookAtSnappingEnabled
+        ;
 
         // set the store identity sequence number to match the incoming identity
         _identitySequenceNumber = incomingSequenceNumber;
@@ -1488,6 +1491,11 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             identityChanged = true;
         }
 
+    if (identity.lookAtSnappingEnabled != _lookAtSnappingEnabled) {
+        setProperty("lookAtSnappingEnabled", identity.lookAtSnappingEnabled);
+        identityChanged = true;
+    }
+
 #ifdef WANT_DEBUG
         qCDebug(avatars) << __FUNCTION__
             << "identity.uuid:" << identity.uuid
@@ -1519,7 +1527,9 @@ QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
             << _displayName
             << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
             << (_isReplicated || setIsReplicated)
-            << _avatarEntityData;
+            << _avatarEntityData
+            << _lookAtSnappingEnabled
+        ;
     });
 
     return identityData;
