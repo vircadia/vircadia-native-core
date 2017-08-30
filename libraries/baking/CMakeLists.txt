@@ -9,6 +9,10 @@ if (FBX_FOUND)
     target_link_libraries(${TARGET_NAME} ${FBX_LIBRARIES})
   endif ()
   target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${FBX_INCLUDE_DIR})
+
+  if (UNIX)
+    target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
+  endif (UNIX)
 endif ()
 
 link_hifi_libraries(shared model networking ktx image)
