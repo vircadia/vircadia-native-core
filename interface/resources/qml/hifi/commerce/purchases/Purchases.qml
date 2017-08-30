@@ -74,7 +74,9 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
+                purchasesModel.clear();
                 purchasesModel.append(result.data.assets);
+                filteredPurchasesModel.clear();
                 filteredPurchasesModel.append(result.data.assets);
             }
         }

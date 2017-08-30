@@ -24,6 +24,7 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
+    property bool historyReceived: false;
 
     Hifi.QmlCommerce {
         id: commerce;
@@ -41,9 +42,9 @@ Item {
         }
 
         onHistoryResult : {
+            historyReceived = true;
             if (result.status === 'success') {
-                var txt = result.data.history.map(function (h) { return h.text; }).join("<hr>");
-                transactionHistoryText.text = txt;
+                transactionHistoryModel.append(result.data.history);
             }
         }
     }
@@ -111,6 +112,7 @@ Item {
 
                 onVisibleChanged: {
                     if (visible) {
+                        historyReceived = false;
                         commerce.balance();
                         commerce.history();
                     }
@@ -233,24 +235,60 @@ Item {
             // Style
             color: hifi.colors.faintGray;
         }
-
+        ListModel {
+            id: transactionHistoryModel;
+        }
         Rectangle {
-            id: transactionHistory;
             anchors.top: recentActivityText.bottom;
             anchors.topMargin: 4;
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
+            color: "white";
 
-            // some placeholder stuff
-            TextArea {
-                id: transactionHistoryText;
-                text: "<hr>history unavailable<hr>";
-                textFormat: TextEdit.AutoText;
-                font.pointSize: 10;
+            ListView {
+                id: transactionHistory;
+                anchors.centerIn: parent;
+                width: parent.width - 12;
+                height: parent.height - 12;
+                visible: transactionHistoryModel.count !== 0;
+                clip: true;
+                model: transactionHistoryModel;
+                delegate: Item {
+                    width: parent.width;
+                    height: transactionText.height + 30;
+                    RalewayRegular {
+                        id: transactionText;
+                        text: model.text;
+                        // Style
+                        size: 18;
+                        width: parent.width;
+                        height: paintedHeight;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        color: "black";
+                        wrapMode: Text.WordWrap;
+                        // Alignment
+                        horizontalAlignment: Text.AlignLeft;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+                        
+                    HifiControlsUit.Separator {
+                        anchors.left: parent.left;
+                        anchors.right: parent.right;
+                        anchors.bottom: parent.bottom;
+                    }
+                }
+            }
+
+            // This should never be visible (since you immediately get 100 HFC)
+            RalewayRegular {
+                id: emptyTransationHistory;
+                size: 24;
+                visible: !transactionHistory.visible && root.historyReceived;
+                text: "Recent Activity Unavailable";
                 anchors.fill: parent;
-                horizontalAlignment: Text.AlignLeft;
-                verticalAlignment: Text.AlignTop;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
             }
         }
     }
