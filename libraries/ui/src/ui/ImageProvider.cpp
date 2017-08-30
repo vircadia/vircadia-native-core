@@ -19,10 +19,8 @@ QReadWriteLock ImageProvider::_rwLock;
 QPixmap* ImageProvider::_securityImage = nullptr;
 
 void ImageProvider::setSecurityImage(QPixmap* pixmap) {
-    // we are responsible for the pointer so no need to copy
-    // but we do need to delete the old one.
-    QWriteLocker lock(&_rwLock);
     // no need to delete old one, that is managed by the wallet
+    QWriteLocker lock(&_rwLock);
     _securityImage = pixmap;
 }
 
