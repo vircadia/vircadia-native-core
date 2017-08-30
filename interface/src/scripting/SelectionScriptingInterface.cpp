@@ -105,19 +105,19 @@ void SelectionScriptingInterface::printList(const QString& listName) {
 
         qDebug() << "Avatar IDs:";
         for (auto i : currentList.getAvatarIDs()) {
-            qDebug() << i << '; ';
+            qDebug() << i << ';';
         }
         qDebug() << "";
 
         qDebug() << "Entity IDs:";
         for (auto j : currentList.getEntityIDs()) {
-            qDebug() << j << '; ';
+            qDebug() << j << ';';
         }
         qDebug() << "";
 
         qDebug() << "Overlay IDs:";
         for (auto k : currentList.getOverlayIDs()) {
-            qDebug() << k << '; ';
+            qDebug() << k << ';';
         }
         qDebug() << "";
     } else {
