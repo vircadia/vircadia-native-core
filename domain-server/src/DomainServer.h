@@ -71,6 +71,7 @@ public slots:
 
     void restart();
 
+private slots:
     void processRequestAssignmentPacket(QSharedPointer<ReceivedMessage> packet);
     void processListRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode);
@@ -79,7 +80,6 @@ public slots:
     void processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message);
     void processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> message);
 
-private slots:
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
@@ -129,7 +129,7 @@ private:
 
     void getTemporaryName(bool force = false);
 
-    static bool packetVersionMatch(const udt::Packet& packet);
+    static bool isPacketVerified(const udt::Packet& packet);
 
     bool resetAccountManagerAccessToken();
 

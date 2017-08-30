@@ -53,9 +53,14 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _viewState(viewState),
     _scriptingServices(scriptingServices),
     _displayModelBounds(false),
-    _dontDoPrecisionPicking(false),
     _layeredZones(this)
 {
+    setMouseRayPickResultOperator([](QUuid rayPickID) {
+        RayToEntityIntersectionResult entityResult;
+        return entityResult;
+    });
+    setSetPrecisionPickingOperator([](QUuid rayPickID, bool value) {});
+
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
@@ -428,28 +433,6 @@ void EntityTreeRenderer::deleteReleasedModels() {
     }
 }
 
-RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
-                                                                                    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
-    RayToEntityIntersectionResult result;
-    if (_tree) {
-        EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
-
-        OctreeElementPointer element;
-        EntityItemPointer intersectedEntity = NULL;
-        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction,
-            entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
-            element, result.distance, result.face, result.surfaceNormal,
-            (void**)&intersectedEntity, lockType, &result.accurate);
-        if (result.intersects && intersectedEntity) {
-            result.entityID = intersectedEntity->getEntityItemID();
-            result.intersection = ray.origin + (ray.direction * result.distance);
-            result.entity = intersectedEntity;
-        }
-    }
-    return result;
-}
-
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
 
     connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
@@ -530,11 +513,10 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     if (!_tree || _shuttingDown) {
         return;
     }
+
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
-
-    bool precisionPicking = !_dontDoPrecisionPicking;
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
+    RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mousePressEvent over entity:" << rayPickResult.entityID;
 
@@ -579,11 +561,10 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
     if (!_tree || _shuttingDown) {
         return;
     }
+
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseDoublePressEvent");
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
-
-    bool precisionPicking = !_dontDoPrecisionPicking;
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
+    RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseDoublePressEvent over entity:" << rayPickResult.entityID;
 
@@ -622,8 +603,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
 
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
-    bool precisionPicking = !_dontDoPrecisionPicking;
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
+    RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
 
@@ -671,14 +651,11 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     if (!_tree || _shuttingDown) {
         return;
     }
+
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
-
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
-
-    bool precisionPicking = false; // for mouse moves we do not do precision picking
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
+    RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects) {
-
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
         PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
