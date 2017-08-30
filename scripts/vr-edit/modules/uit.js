@@ -18,6 +18,7 @@ UIT = (function () {
             white: { red: 0xff, green: 0xff, blue: 0xff },
             faintGray: { red: 0xe3, green: 0xe3, blue: 0xe3 },
             lightGrayText: { red: 0xaf, green: 0xaf, blue: 0xaf },
+            lightGray: { red: 0x6a, green: 0x6a, blue: 0x6a },
             baseGray: { red: 0x40, green: 0x40, blue: 0x40 },
             baseGrayShadow: { red: 0x25, green: 0x25, blue: 0x25 },
             darkGray: { red: 0x12, green: 0x12, blue: 0x12 },

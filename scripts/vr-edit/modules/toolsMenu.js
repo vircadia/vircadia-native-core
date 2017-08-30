@@ -48,7 +48,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             //  For reliable access, use the values from optionsSettings rather than doing Settings.getValue() - Settings values
             //  are not necessarily updated instantaneously.
         },
-        optionsToggles = {},  // For toggle buttons without a setting.
+        optionsToggles = {},  // Cater for toggle buttons without a setting.
 
         highlightOverlay,
         swatchHighlightOverlay = null,
@@ -326,7 +326,20 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
                     },
                     color: UIT.colors.white
+                },
+                sublabel: {
+                    // Relative to newToggleButton.
+                    localPosition: {
+                        x: 0,
+                        y: 0,
+                        z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                    },
+                    color: UIT.colors.lightGray
                 }
+                /*
+                onSublabel: { }  // Optional properties to update sublabel with.
+                offSublabel: { }  // Optional properties to update sublabel with.
+                */
             },
             "swatch": {
                 overlay: "shape",
@@ -1047,12 +1060,39 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "gravityToggle",
-                    type: "toggleButton",
+                    type: "newToggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0748, y: 0.0480, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    label: "GRAVITY",
+                    newLabel: {
+                        localPosition: {
+                            x: 0,
+                            y: 0.0034,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        url: "../assets/tools/physics/buttons/gravity-label.svg",
+                        scale: 0.0240,
+                        color: UIT.colors.white
+                    },
+                    sublabel: {
+                        localPosition: {
+                            x: 0,
+                            y: -0.0034,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        url: "../assets/tools/physics/buttons/off-label.svg",
+                        scale: 0.0104,
+                        color: UIT.colors.white  // SVG has gray color.
+                    },
+                    onSublabel: {
+                        url: "../assets/tools/physics/buttons/on-label.svg",
+                        scale: 0.0081
+                    },
+                    offSublabel: {
+                        url: "../assets/tools/physics/buttons/off-label.svg",
+                        scale: 0.0104
+                    },
                     setting: {
                         key: "VREdit.physicsTool.gravityOn",
                         defaultValue: false,
@@ -1063,30 +1103,40 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "grabToggle",
-                    type: "toggleButton",
+                    id: "collideToggle",
+                    type: "newToggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0748, y: 0.0120, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    label: "  GRAB",
-                    setting: {
-                        key: "VREdit.physicsTool.grabOn",
-                        defaultValue: false,
-                        callback: "setGrabOn"
+                    newLabel: {
+                        localPosition: {
+                            x: 0,
+                            y: 0.0034,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        url: "../assets/tools/physics/buttons/collisions-label.svg",
+                        scale: 0.0338,
+                        color: UIT.colors.white
                     },
-                    command: {
-                        method: "setGrabOn"
-                    }
-                },
-                {
-                    id: "collideToggle",
-                    type: "toggleButton",
-                    properties: {
-                        dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0748, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                    sublabel: {
+                        localPosition: {
+                            x: 0,
+                            y: -0.0034,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        url: "../assets/tools/physics/buttons/off-label.svg",
+                        scale: 0.0104,
+                        color: UIT.colors.white  // SVG has gray color.
                     },
-                    label: "COLLIDE",
+                    onSublabel: {
+                        url: "../assets/tools/physics/buttons/on-label.svg",
+                        scale: 0.0081
+                    },
+                    offSublabel: {
+                        url: "../assets/tools/physics/buttons/off-label.svg",
+                        scale: 0.0104
+                    },
                     setting: {
                         key: "VREdit.physicsTool.collideOn",
                         defaultValue: false,
@@ -1094,6 +1144,50 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     command: {
                         method: "setCollideOn"
+                    }
+                },
+                {
+                    id: "grabToggle",
+                    type: "newToggleButton",
+                    properties: {
+                        dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: { x: -0.0748, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                    },
+                    newLabel: {
+                        localPosition: {
+                            x: 0,
+                            y: 0.0034,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        url: "../assets/tools/physics/buttons/grabbable-label.svg",
+                        scale: 0.0334,
+                        color: UIT.colors.white
+                    },
+                    sublabel: {
+                        localPosition: {
+                            x: 0,
+                            y: -0.0034,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        url: "../assets/tools/physics/buttons/off-label.svg",
+                        scale: 0.0104,
+                        color: UIT.colors.white  // SVG has gray color.
+                    },
+                    onSublabel: {
+                        url: "../assets/tools/physics/buttons/on-label.svg",
+                        scale: 0.0081
+                    },
+                    offSublabel: {
+                        url: "../assets/tools/physics/buttons/off-label.svg",
+                        scale: 0.0104
+                    },
+                    setting: {
+                        key: "VREdit.physicsTool.grabOn",
+                        defaultValue: false,
+                        callback: "setGrabOn"
+                    },
+                    command: {
+                        method: "setGrabOn"
                     }
                 },
 
@@ -1891,6 +1985,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             childProperties,
             auxiliaryProperties,
             parentID,
+            sublabelModifier,
             value,
             imageOffset,
             IMAGE_OFFSET = 0.0005,
@@ -1929,6 +2024,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (properties.url) {
                 properties.url = Script.resolvePath(properties.url);
             }
+            sublabelModifier = null;
             if (optionsItems[i].setting) {
                 optionsSettings[optionsItems[i].id] = { key: optionsItems[i].setting.key };
                 value = Settings.getValue(optionsItems[i].setting.key);
@@ -1947,6 +2043,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         properties.color = value
                             ? UI_ELEMENTS[optionsItems[i].type].onColor
                             : UI_ELEMENTS[optionsItems[i].type].offColor;
+                    }
+                    if (optionsItems[i].type === "newToggleButton") {
+                        // Store value in optionsSettings rather than using overlay property.
+                        optionsSettings[optionsItems[i].id].value = value;
+                        optionsToggles[optionsItems[i].id] = value;
+                        properties.color = value
+                            ? UI_ELEMENTS[optionsItems[i].type].onColor
+                            : UI_ELEMENTS[optionsItems[i].type].offColor;
+                        if (optionsItems[i].hasOwnProperty("onSublabel")) {
+                            sublabelModifier = value ? optionsItems[i].onSublabel : optionsItems[i].offSublabel;
+                        }
                     }
                     if (optionsItems[i].type === "barSlider") {
                         // Store value in optionsSettings rather than using overlay property.
@@ -1994,6 +2101,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 childProperties = Object.clone(UI_ELEMENTS.image.properties);
                 childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].newLabel);
                 childProperties = Object.merge(childProperties, optionsItems[i].sublabel);
+                if (sublabelModifier) {
+                    childProperties = Object.merge(childProperties, sublabelModifier);
+                }
                 childProperties.url = Script.resolvePath(childProperties.url);
                 childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
@@ -2351,6 +2461,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     doCommand = function (command, parameter) {
         var index,
             value,
+            properties,
             items,
             parentID,
             label,
@@ -2426,11 +2537,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         case "setCollideOn":
             value = !optionsSettings[parameter].value;
             optionsSettings[parameter].value = value;
+            optionsToggles[parameter] = value;
             Settings.setValue(optionsSettings[parameter].key, value);
             index = optionsOverlaysIDs.indexOf(parameter);
             Overlays.editOverlay(optionsOverlays[index], {
                 color: value ? UI_ELEMENTS[optionsItems[index].type].onColor : UI_ELEMENTS[optionsItems[index].type].offColor
             });
+            properties = Object.clone(value ? optionsItems[index].onSublabel : optionsItems[index].offSublabel);
+            properties.url = Script.resolvePath(properties.url);
+            Overlays.editOverlay(optionsOverlaysSublabels[index], properties);
             uiCommandCallback(command, value);
             break;
 
@@ -3173,12 +3288,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingColorCircle = false;
         isHighlightingPicklist = false;
         isHighlightingPicklistItem = false;
-        for (id in optionsToggles) {
-            if (optionsToggles.hasOwnProperty(id)) {
-                optionsToggles[id] = false;
-            }
-        }
-
         isPicklistOpen = false;
         pressedItem = null;
         pressedSource = null;
