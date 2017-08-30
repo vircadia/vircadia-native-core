@@ -318,8 +318,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 onColor: UIT.colors.greenHighlight,
                 offColor: UIT.colors.baseGrayShadow,
-                onHighlightColor: UIT.colors.greenShadow,
-                offHighlightColor: UIT.colors.darkGray,
+                onHoverColor: UIT.colors.greenShadow,
+                offHoverColor: UIT.colors.darkGray,
                 newLabel: {  // TODO: Rename to "label".
                     // Relative to newToggleButton.
                     localPosition: {
@@ -1830,7 +1830,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsItems,
         intersectionOverlays,
         intersectionEnabled,
-        highlightedItem,
+        highlightedItem,  // TODO: Rename this and similar to "hovered".
         highlightedItems,
         highlightedSourceOverlays,
         highlightedSourceItems,
@@ -2544,8 +2544,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             index = optionsOverlaysIDs.indexOf("pickColor");
             Overlays.editOverlay(optionsOverlays[index], {
                 color: optionsToggles.pickColor
-                    ? UI_ELEMENTS[optionsItems[index].type].onColor
-                    : UI_ELEMENTS[optionsItems[index].type].offColor
+                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
+                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
             });
             uiCommandCallback("pickColorTool", optionsToggles.pickColor);
             break;
@@ -2569,7 +2569,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             Settings.setValue(optionsSettings[parameter].key, value);
             index = optionsOverlaysIDs.indexOf(parameter);
             Overlays.editOverlay(optionsOverlays[index], {
-                color: value ? UI_ELEMENTS[optionsItems[index].type].onColor : UI_ELEMENTS[optionsItems[index].type].offColor
+                color: value
+                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
+                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
             });
             properties = Object.clone(value ? optionsItems[index].onSublabel : optionsItems[index].offSublabel);
             properties.url = Script.resolvePath(properties.url);
@@ -2915,8 +2917,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                             color: optionsToggles[intersectionItems[highlightedItem].id]
-                                ? UI_ELEMENTS.newToggleButton.onHighlightColor
-                                : UI_ELEMENTS.newToggleButton.offHighlightColor,
+                                ? UI_ELEMENTS.newToggleButton.onHoverColor
+                                : UI_ELEMENTS.newToggleButton.offHoverColor,
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
@@ -3068,7 +3070,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (pressedItem) {
                 // Unpress previous button.
                 Overlays.editOverlay(pressedSource[pressedItem.index], {
-                    localPosition: pressedItem.localPosition
+                    localPosition: isHighlightingButton && highlightedItem === pressedItem.index
+                        ? Vec3.sum(pressedItem.localPosition, OPTION_HOVER_DELTA)
+                        : pressedItem.localPosition
                 });
                 pressedItem = null;
                 pressedSource = null;
