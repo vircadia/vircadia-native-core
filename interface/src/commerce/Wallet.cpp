@@ -14,6 +14,7 @@
 #include "Wallet.h"
 #include "Application.h"
 #include "ui/ImageProvider.h"
+#include "scripting/HMDScriptingInterface.h"
 
 #include <PathUtils.h>
 #include <OffscreenUi.h>
@@ -464,7 +465,9 @@ void Wallet::getSecurityImage() {
     }
 
     // decrypt and return
-    if (decryptFile(imageFilePath(), &data, &dataLen)) {
+    QString filePath(imageFilePath());
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists() && decryptFile(filePath, &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
@@ -487,4 +490,25 @@ void Wallet::sendKeyFilePathIfExists() {
     } else {
         emit keyFilePathIfExistsResult("");
     }
+}
+
+void Wallet::reset() {
+    _publicKeys.clear();
+
+    delete _securityImage;
+    _securityImage = nullptr;
+
+    // tell the provider we got nothing
+    updateImageProvider();
+    delete _passphrase;
+
+    // for now we need to maintain the hard-coded passphrase.
+    // FIXME: remove this line as part of wiring up the passphrase
+    // and probably set it to nullptr
+    _passphrase = new QString("pwd");
+
+    QFile keyFile(keyFilePath());
+    QFile imageFile(imageFilePath());
+    keyFile.remove();
+    imageFile.remove();
 }

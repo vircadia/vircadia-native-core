@@ -111,3 +111,10 @@ void Ledger::inventory(const QStringList& keys) {
 void Ledger::history(const QStringList& keys) {
     keysQuery("history", "historySuccess", "historyFailure");
 }
+
+// The api/failResponse is called just for the side effect of logging.
+void Ledger::resetSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
+void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); }
+void Ledger::reset() {
+    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, QJsonObject());
+}

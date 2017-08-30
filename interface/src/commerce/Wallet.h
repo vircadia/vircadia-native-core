@@ -40,6 +40,8 @@ public:
     void setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
 
+    void reset();
+
 signals:
     void securityImageResult(bool exists) ;
     void keyFilePathIfExistsResult(const QString& path);
