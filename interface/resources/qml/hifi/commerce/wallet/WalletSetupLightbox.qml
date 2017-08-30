@@ -24,7 +24,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string lastPage: "securityImage";
+    property string lastPage: "initialize";
     // Style
     color: hifi.colors.baseGray;
 
@@ -58,15 +58,8 @@ Rectangle {
     //
     Item {
         id: securityImageContainer;
-        visible: false;
         // Anchors
         anchors.fill: parent;
-
-        onVisibleChanged: {
-            if (visible) {
-                commerce.getSecurityImage();
-            }
-        }
 
         Item {
             id: securityImageTitle;

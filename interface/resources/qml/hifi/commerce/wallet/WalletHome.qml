@@ -44,6 +44,7 @@ Item {
         onHistoryResult : {
             historyReceived = true;
             if (result.status === 'success') {
+                transactionHistoryModel.clear();
                 transactionHistoryModel.append(result.data.history);
             }
         }
