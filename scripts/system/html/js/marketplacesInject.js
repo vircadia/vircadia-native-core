@@ -90,20 +90,20 @@
         });
     }
 
-    function addInventoryButton() {
+    function addPurchasesButton() {
         // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
         var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
-        var inventoryElement = document.createElement('a');
-        inventoryElement.classList.add("btn");
-        inventoryElement.classList.add("btn-default");
-        inventoryElement.id = "inventoryButton";
-        inventoryElement.setAttribute('href', "#");
-        inventoryElement.innerHTML = "INVENTORY";
-        inventoryElement.style = "height:100%;margin-top:0;padding:15px 15px;";
-        navbarBrandElement.parentNode.insertAdjacentElement('beforeend', inventoryElement);
-        $('#inventoryButton').on('click', function () {
+        var purchasesElement = document.createElement('a');
+        purchasesElement.classList.add("btn");
+        purchasesElement.classList.add("btn-default");
+        purchasesElement.id = "purchasesButton";
+        purchasesElement.setAttribute('href', "#");
+        purchasesElement.innerHTML = "PURCHASES";
+        purchasesElement.style = "height:100%;margin-top:0;padding:15px 15px;";
+        navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
+        $('#purchasesButton').on('click', function () {
             EventBridge.emitWebEvent(JSON.stringify({
-                type: "INVENTORY",
+                type: "PURCHASES",
                 referrerURL: window.location.href
             }));
         });
@@ -121,11 +121,19 @@
     }
 
     function injectBuyButtonOnMainPage() {
+        var cost;
+        
         $('.grid-item').find('#price-or-edit').find('a').each(function() {
             $(this).attr('data-href', $(this).attr('href'));
             $(this).attr('href', '#');
-            });
-        $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
+            cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+            
+            if (parseInt(cost) > 0) {
+                $(this).find('.price').text("BUY");
+            }
+        });
+        
+        
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
                 $(this).closest('.grid-item').find('.item-title').text(),
@@ -153,7 +161,7 @@
             // Try this here in case it works (it will if the user just pressed the "back" button,
             //     since that doesn't trigger another AJAX request.
             injectBuyButtonOnMainPage;
-            addInventoryButton();
+            addPurchasesButton();
         }
     }
 
@@ -161,15 +169,21 @@
         if (confirmAllPurchases) {
             var href = $('#side-info').find('.btn').attr('href');
             $('#side-info').find('.btn').attr('href', '#');
-            $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
+            
+            var cost = $('.item-cost').text();
+
+            if (parseInt(cost) > 0) {
+                $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
+            }
+
             $('#side-info').find('.btn').on('click', function () {
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),
-                    $('.item-cost').text(),
+                    cost,
                     href);
             });
-            addInventoryButton();
+            addPurchasesButton();
         }
     }
 
