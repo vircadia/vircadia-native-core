@@ -199,7 +199,6 @@ QString Web3DOverlay::pickURL() {
     }
 }
 
-
 void Web3DOverlay::loadSourceURL() {
     if (!_webSurface) {
         return;
@@ -302,19 +301,11 @@ void Web3DOverlay::render(RenderArgs* args) {
         emit resizeWebSurface();
     }
 
-
     vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
     Transform transform = getTransform();
-
-    // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
-    // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
-    /*
-    applyTransformTo(transform, true);
-    setTransform(transform);
-    */
-
+    transform.setScale(1.0f); // ignore inherited scale factor from parents
     if (glm::length2(getDimensions()) != 1.0f) {
         transform.postScale(vec3(getDimensions(), 1.0f));
     }

@@ -513,6 +513,7 @@ public:
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
     Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
+    virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 

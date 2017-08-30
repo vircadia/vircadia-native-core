@@ -108,7 +108,6 @@ public:
     SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
     const SkeletonModelPointer getSkeletonModel() const { return _skeletonModel; }
     glm::vec3 getChestPosition() const;
-    float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
 
@@ -151,9 +150,7 @@ public:
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
-#ifdef SPATIALLY_NESTABLE_SCALE_SUPPORT
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
-#endif
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
@@ -263,6 +260,9 @@ public:
      */
     Q_INVOKABLE float getEyeHeight() const;
 
+    float getModelScale() const { return _modelScale; }
+    void setModelScale(float scale) { _modelScale = scale; }
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -365,6 +365,7 @@ private:
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
+    float _modelScale { 1.0f };
 
     static int _jointConesID;
 

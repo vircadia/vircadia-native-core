@@ -2463,7 +2463,7 @@ void Application::paintGL() {
             PerformanceTimer perfTimer("CameraUpdates");
 
             auto myAvatar = getMyAvatar();
-            boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
+            boomOffset = myAvatar->getModelScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
 
             // The render mode is default or mirror if the camera is in mirror mode, assigned further below
             renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -2516,14 +2516,14 @@ void Application::paintGL() {
                     hmdOffset.x = -hmdOffset.x;
 
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
+                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
                         + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                         + mirrorBodyOrientation * hmdOffset);
                 } else {
                     _myCamera.setOrientation(myAvatar->getOrientation()
                         * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
+                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
                         + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                         glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
                 }

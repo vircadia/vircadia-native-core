@@ -558,7 +558,7 @@ void MyAvatar::simulate(float deltaTime) {
             headPosition = getPosition();
         }
         head->setPosition(headPosition);
-        head->setScale(getUniformScale());
+        head->setScale(getModelScale());
         head->simulate(deltaTime);
     }
 
@@ -1223,7 +1223,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
         float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
         if (!avatar->isMyAvatar() && avatar->isInitialized() &&
-            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getUniformScale())) {
+            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getModelScale())) {
             float radius = glm::length(avatar->getHead()->getEyePosition() - avatar->getHead()->getRightEyePosition());
             float angleTo = coneSphereAngle(getHead()->getEyePosition(), lookForward, avatar->getHead()->getEyePosition(), radius);
             if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
@@ -1465,7 +1465,7 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
 
 void MyAvatar::rebuildCollisionShape() {
     // compute localAABox
-    float scale = getUniformScale();
+    float scale = getModelScale();
     float radius = scale * _skeletonModel->getBoundingCapsuleRadius();
     float height = scale * _skeletonModel->getBoundingCapsuleHeight() + 2.0f * radius;
     glm::vec3 corner(-radius, -0.5f * height, -radius);
@@ -1896,7 +1896,7 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
-    return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
+    return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getModelScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
@@ -2251,7 +2251,7 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
         _targetScale = clampedScale;
     }
 
-    setScale(glm::vec3(_targetScale));
+    setModelScale(_targetScale);
     rebuildCollisionShape();
     settings.endGroup();
 }
@@ -2938,6 +2938,30 @@ glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& c
     // transform controller into avatar space
     glm::mat4 avatarMatrix = createMatFromQuatAndPos(getOrientation(), getPosition());
     return glm::inverse(avatarMatrix) * controllerWorldMatrix;
+}
+
+glm::vec3 MyAvatar::getAbsoluteJointScaleInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
+    // only sensor to world matrix has non identity scale.
+    switch (index) {
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
+            auto pose = getControllerPoseInSensorFrame(controller::Action::LEFT_HAND);
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return extractScale(result);
+        }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
+            auto pose = getControllerPoseInSensorFrame(controller::Action::RIGHT_HAND);
+            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
+            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
+            return extractScale(result);
+        }
+        default:
+            return Avatar::getAbsoluteJointScaleInObjectFrame(index);
+    }
 }
 
 glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
