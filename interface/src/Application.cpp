@@ -183,7 +183,6 @@
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
-#include "ui/ImageProvider.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -264,7 +263,7 @@ private:
         switch ((int)event->type()) {
             case ApplicationEvent::Render:
                 render();
-                // Ensure we never back up the render events.  Each render should be triggered only in response 
+                // Ensure we never back up the render events.  Each render should be triggered only in response
                 // to the NEXT render event after the last render occured
                 QCoreApplication::removePostedEvents(this, ApplicationEvent::Render);
                 return true;
@@ -2246,8 +2245,6 @@ void Application::initializeUi() {
         qApp->quit();
     });
 
-    // register the pixmap image provider (used only for security image, for now)
-    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
 
     setupPreferences();
 
@@ -5170,7 +5167,7 @@ void Application::update(float deltaTime) {
         }
     } else {
         // update the rendering without any simulation
-        getEntities()->update(false); 
+        getEntities()->update(false);
     }
 
     // AvatarManager update
