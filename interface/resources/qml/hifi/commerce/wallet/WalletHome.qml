@@ -278,6 +278,12 @@ Item {
                         anchors.bottom: parent.bottom;
                     }
                 }
+                onAtYEndChanged: {
+                    if (transactionHistory.atYEnd) {
+                        console.log("User scrolled to the bottom of 'Recent Activity'.");
+                        // Grab next page of results and append to model
+                    }
+                }
             }
 
             // This should never be visible (since you immediately get 100 HFC)
