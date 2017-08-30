@@ -1224,9 +1224,11 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
             auto bakedMapping = getBakeMapping(hash, bakedFilename);
 
             if (enabled) {
-                // TODO
-            } else {
-                // TODO
+                removeBakedPathsForDeletedAsset(hash);
+                setMapping(bakedMapping, hash);
+            } else if (_fileMappings.value(bakedMapping) == hash) {
+                deleteMappings({ bakedMapping });
+                maybeBake(path, hash);
             }
         }
     }
