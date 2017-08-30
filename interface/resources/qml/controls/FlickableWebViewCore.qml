@@ -20,12 +20,23 @@ Flickable {
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
 
+    boundsBehavior: Flickable.StopAtBounds
+
     StylesUIt.HifiConstants {
         id: hifi
     }
 
+    onHeightChanged: {
+        if (height > 0) {
+            //reload page since window dimentions changed,
+            //so web engine should recalculate page render dimentions
+            reloadTimer.start()
+        }
+    }
+
     ScrollBar.vertical: ScrollBar {
         id: scrollBar
+        visible: flick.contentHeight > flick.height
 
         contentItem: Rectangle {
             opacity: 0.75
@@ -36,10 +47,11 @@ Flickable {
     }
 
     function onLoadingChanged(loadRequest) {
-        // Required to support clicking on "hifi://" links
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
-            flick.contentWidth = 0
-            flick.contentHeight = 0
+            flick.contentWidth = flick.width
+            flick.contentHeight = flick.height
+
+            // Required to support clicking on "hifi://" links
             var url = loadRequest.url.toString();
             if (urlHandler.canHandleUrl(url)) {
                 if (urlHandler.handleUrl(url)) {
@@ -57,9 +69,22 @@ Flickable {
             _webview.runJavaScript("document.body.style.overflow = 'hidden';");
             //calculate page height
             _webview.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
-                flick.contentHeight = Math.max(i_actualPageHeight, flick.height);
+                if (i_actualPageHeight !== undefined) {
+                    flick.contentHeight = i_actualPageHeight
+                } else {
+                    flick.contentHeight = flick.height;
+                }
             })
             flick.contentWidth = flick.width
+        }
+    }
+
+    Timer {
+        id: reloadTimer
+        interval: 100
+        repeat: false
+        onTriggered: {
+            _webview.reload()
         }
     }
 
@@ -100,7 +125,6 @@ Flickable {
 
         Component.onCompleted: {
             width = Qt.binding(function() { return flick.width; });
-
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
