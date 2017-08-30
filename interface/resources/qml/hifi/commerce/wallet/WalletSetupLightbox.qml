@@ -197,6 +197,7 @@ Rectangle {
                     commerce.chooseSecurityImage(securityImagePath);
                     securityImageContainer.visible = false;
                     choosePassphraseContainer.visible = true;
+                    passphraseSelection.clearPassphraseFields();
                 }
             }
         }

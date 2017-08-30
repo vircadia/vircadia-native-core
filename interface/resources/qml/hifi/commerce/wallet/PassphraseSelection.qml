@@ -45,6 +45,10 @@ Item {
         }
     }
 
+    // This will cause a bug -- if you bring up passphrase selection in HUD mode while
+    // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
+    // HMD preview will stay off.
+    // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
             passphraseField.focus = true;
@@ -68,12 +72,6 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "passphrase";
-
-        onVisibleChanged: {
-            if (visible) {
-                text = "";
-            }
-        }
 
         onFocusChanged: {
             if (focus) {
@@ -104,12 +102,6 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "re-enter passphrase";
-
-        onVisibleChanged: {
-            if (visible) {
-                text = "";
-            }
-        }
 
         onFocusChanged: {
             if (focus) {
@@ -279,6 +271,12 @@ Item {
 
     function setErrorText(text) {
         errorText.text = text;
+    }
+
+    function clearPassphraseFields() {
+        passphraseField.text = "";
+        passphraseFieldAgain.text = "";
+        setErrorText("");
     }
 
     signal sendMessageToLightbox(var msg);
