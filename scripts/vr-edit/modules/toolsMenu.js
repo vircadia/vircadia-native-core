@@ -1139,7 +1139,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     setting: {
                         key: "VREdit.physicsTool.collideOn",
-                        defaultValue: false,
+                        defaultValue: true,
                         callback: "setCollideOn"
                     },
                     command: {
