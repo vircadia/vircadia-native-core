@@ -256,7 +256,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.getOtherModule = function() {
-             return (this.hand === RIGHT_HAND) ? leftWebEntityLaserInput : rightWebEntityLaserInput;
+            return (this.hand === RIGHT_HAND) ? leftWebEntityLaserInput : rightWebEntityLaserInput;
         };
         
         this.parameters = makeDispatcherModuleParameters(
@@ -450,7 +450,7 @@ Script.include("/~/system/libraries/controllers.js");
         }
 
         this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand == RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
+            joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController()),
