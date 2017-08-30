@@ -36,6 +36,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlays = [],
         optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
         optionsOverlaysLabels = [],  // Overlay IDs of labels for optionsOverlays.
+        optionsOverlaysSublabels = [],  // Overlay IDs of sublabels for optionsOverlays.
         optionsSliderData = [],  // Uses same index values as optionsOverlays.
         optionsColorData = [],  // Uses same index values as optionsOverlays.
         optionsEnabled = [],
@@ -533,24 +534,32 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     dimensions: { x: 0.06, y: 0.02, z: 0.01 },
                     localRotation: Quat.ZERO,
-                    color: UI_BASE_COLOR,
+                    color: UIT.colors.baseGrayShadow,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: false,
                     visible: true
+                },
+                newLabel: {  // TODO: Rename to "label".
+                    // Relative to picklist.
+                    color: UIT.colors.white
                 }
             },
-            "picklistItem": {
+            "picklistItem": {  // Note: When using, declare before picklist item that it's being used in.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                     localPosition: Vec3.ZERO,
                     localRotation: Quat.ZERO,
-                    color: { red: 100, green: 100, blue: 100 },
+                    color: UIT.colors.baseGrayShadow,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: false,
                     visible: false
+                },
+                newLabel: {  // TODO: Rename to "label".
+                    // Relative to picklistItem.
+                    color: UIT.colors.white
                 }
             }
         },
@@ -560,10 +569,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
-        PICKLIST_UI_ELEMENTS = ["picklist", "picklistItem"],
         MENU_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
         OPTION_HOVER_DELTA = { x: 0, y: 0, z: 0.002 },
-        ITEM_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
+        PICKLIST_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
 
         MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
 
@@ -1116,19 +1124,176 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "presets",
+                    id: "presetDefault",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/default-label.svg",
+                        scale: 0.0436,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0436 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: {
+                        method: "pickPhysicsPreset",
+                        value: "default"
+                    }
+                },
+                {
+                    id: "presetLead",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/lead-label.svg",
+                        scale: 0.0243,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0243 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetWood",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/wood-label.svg",
+                        scale: 0.0316,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0316 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetIce",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/ice-label.svg",
+                        scale: 0.0144,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0144 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetRubber",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/rubber-label.svg",
+                        scale: 0.0400,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0400 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetCotton",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/cotton-label.svg",
+                        scale: 0.0393,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0393 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetTumbleweed",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/tumbleweed-label.svg",
+                        scale: 0.0687,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0687 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetZeroG",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/zero-g-label.svg",
+                        scale: 0.0375,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0375 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetBalloon",
+                    type: "picklistItem",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/balloon-label.svg",
+                        scale: 0.0459,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0459 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "physicsPresets",  // TODO: Rename to "physicsPresets".
                     type: "picklist",
                     properties: {
                         dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: UIT.dimensions.panel.x / 2 - UIT.dimensions.rightMargin - 0.1416 / 2,
                             y: 0.0480,
-                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
-                    label: "DEFAULT",
+                    newLabel: {
+                        url: "../assets/tools/physics/presets/default-label.svg",
+                        scale: 0.0436,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0436 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
+                    sublabel: {
+                        url: "../assets/tools/common/down-arrow.svg",
+                        scale: 0.0080,
+                        localPosition: {
+                            x: 0.1416 / 2 - 0.0108 - 0.0080 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        color: UIT.colors.white  // SVG is colored baseGrayHighlight
+                    },
+                    customLabel: {
+                        url: "../assets/tools/physics/presets/custom-label.svg",
+                        scale: 0.0522,
+                        localPosition: {
+                            x: -0.1416 / 2 + 0.017 + 0.0522 / 2,
+                            y: 0,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    },
                     setting: {
-                        key: "VREdit.physicsTool.presetLabel"
+                        key: "VREdit.physicsTool.presetLabel", // TODO: Rename to "physicsPreset".
+                        defaultValue: "presetDefault"
                     },
                     command: {
                         method: "togglePhysicsPresets"
@@ -1145,60 +1310,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         "presetBalloon"
                     ]
                 },
-                {
-                    id: "presetDefault",
-                    type: "picklistItem",
-                    label: "DEFAULT",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetLead",
-                    type: "picklistItem",
-                    label: "LEAD",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetWood",
-                    type: "picklistItem",
-                    label: "WOOD",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetIce",
-                    type: "picklistItem",
-                    label: "ICE",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetRubber",
-                    type: "picklistItem",
-                    label: "RUBBER",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetCotton",
-                    type: "picklistItem",
-                    label: "COTTON",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetTumbleweed",
-                    type: "picklistItem",
-                    label: "TUMBLEWEED",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetZeroG",
-                    type: "picklistItem",
-                    label: "ZERO-G",
-                    command: { method: "pickPhysicsPreset" }
-                },
-                {
-                    id: "presetBalloon",
-                    type: "picklistItem",
-                    label: "BALLOON",
-                    command: { method: "pickPhysicsPreset" }
-                },
 
                 {
                     id: "gravitySlider",
@@ -1209,7 +1320,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     newLabel: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
-                        url: "../assets/tools/physics/gravity-label.svg",
+                        url: "../assets/tools/physics/sliders/gravity-label.svg",
                         scale: 0.0240
                     },
                     setting: {
@@ -1230,7 +1341,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     newLabel: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
-                        url: "../assets/tools/physics/bounce-label.svg",
+                        url: "../assets/tools/physics/sliders/bounce-label.svg",
                         scale: 0.0233
                     },
                     setting: {
@@ -1251,7 +1362,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     newLabel: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
-                        url: "../assets/tools/physics/friction-label.svg",
+                        url: "../assets/tools/physics/sliders/friction-label.svg",
                         scale: 0.0258
                     },
                     setting: {
@@ -1272,7 +1383,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     newLabel: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
-                        url: "../assets/tools/physics/density-label.svg",
+                        url: "../assets/tools/physics/sliders/density-label.svg",
                         scale: 0.0241
                     },
                     setting: {
@@ -1621,6 +1732,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingSlider,
         isHighlightingColorCircle,
         isHighlightingPicklist,
+        isHighlightingPicklistItem,
         isPicklistOpen,
         pressedItem = null,
         pressedSource = null,
@@ -1842,7 +1954,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                     if (optionsItems[i].type === "picklist") {
                         optionsSettings[optionsItems[i].id].value = value;
-                        optionsItems[i].label = value;
+                        if (value === "custom") {
+                            optionsItems[i].newLabel = optionsItems[i].customLabel;
+                        } else {
+                            optionsItems[i].newLabel = optionsItems[optionsOverlaysIDs.indexOf(value)].newLabel;
+                        }
                     }
                     if (optionsItems[i].setting.command) {
                         doCommand(optionsItems[i].setting.command, value);
@@ -1873,6 +1989,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
                 optionsOverlaysLabels[i] = id;
+            }
+            if (optionsItems[i].sublabel) {
+                childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].newLabel);
+                childProperties = Object.merge(childProperties, optionsItems[i].sublabel);
+                childProperties.url = Script.resolvePath(childProperties.url);
+                childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                optionsOverlaysSublabels[i] = id;
             }
 
             if (optionsItems[i].type === "barSlider") {
@@ -2068,13 +2193,16 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     function setPresetsLabelToCustom() {
-        var CUSTOM = "CUSTOM";
-        if (optionsSettings.presets.value !== CUSTOM) {
-            optionsSettings.presets.value = CUSTOM;
-            Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("presets")], {
-                text: CUSTOM
+        var label;
+        if (optionsSettings.physicsPresets.value !== "custom") {
+            optionsSettings.physicsPresets.value = "custom";
+            label = optionsItems[optionsOverlaysIDs.indexOf("physicsPresets")].customLabel;
+            Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("physicsPresets")], {
+                url: Script.resolvePath(label.url),
+                scale: label.scale,
+                localPosition: label.localPosition
             });
-            Settings.setValue(optionsSettings.presets.key, CUSTOM);
+            Settings.setValue(optionsSettings.physicsPresets.key, "custom");
         }
     }
 
@@ -2309,11 +2437,19 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         case "togglePhysicsPresets":
             if (isPicklistOpen) {
                 // Close picklist.
-                index = optionsOverlaysIDs.indexOf(parameter);
+                index = optionsOverlaysIDs.indexOf("physicsPresets");
 
                 // Lower picklist.
                 Overlays.editOverlay(optionsOverlays[index], {
-                    localPosition: optionsItems[index].properties.localPosition
+                    localPosition: isHighlightingPicklist
+                        ? Vec3.sum(optionsItems[index].properties.localPosition, OPTION_HOVER_DELTA)
+                        : optionsItems[index].properties.localPosition,
+                    color: isHighlightingPicklist
+                        ? UIT.colors.highlightColor
+                        : UI_ELEMENTS.picklist.properties.color
+                });
+                Overlays.editOverlay(optionsOverlaysSublabels[index], {
+                    url: Script.resolvePath("../assets/tools/common/down-arrow.svg")
                 });
 
                 // Hide options.
@@ -2334,12 +2470,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
             if (isPicklistOpen) {
                 // Open picklist.
-                index = optionsOverlaysIDs.indexOf(parameter);
+                index = optionsOverlaysIDs.indexOf("physicsPresets");
                 parentID = optionsOverlays[index];
 
                 // Raise picklist.
                 Overlays.editOverlay(parentID, {
-                    localPosition: Vec3.sum(optionsItems[index].properties.localPosition, ITEM_RAISE_DELTA)
+                    localPosition: Vec3.sum(optionsItems[index].properties.localPosition, PICKLIST_HOVER_DELTA)
+                });
+                Overlays.editOverlay(optionsOverlaysSublabels[index], {
+                    url: Script.resolvePath("../assets/tools/common/up-arrow.svg")
                 });
 
                 // Show options.
@@ -2360,15 +2499,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         case "pickPhysicsPreset":
             // Close picklist.
-            doCommand("togglePhysicsPresets", "presets");
+            doCommand("togglePhysicsPresets");
 
             // Update picklist label.
-            label = optionsItems[optionsOverlaysIDs.indexOf(parameter)].label;
-            optionsSettings.presets.value = label;
-            Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("presets")], {
-                text: label
+            label = optionsItems[optionsOverlaysIDs.indexOf(parameter)].newLabel;
+            Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("physicsPresets")], {
+                url: Script.resolvePath(label.url),
+                scale: label.scale,
+                localPosition: label.localPosition
             });
-            Settings.setValue(optionsSettings.presets.key, label);
+            optionsSettings.physicsPresets.value = parameter;
+            Settings.setValue(optionsSettings.physicsPresets.key, parameter);
 
             // Update sliders.
             values = PHYSICS_SLIDER_PRESETS[parameter];
@@ -2578,6 +2719,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
+                } else if (isHighlightingPicklist) {
+                    // Unhighlight picklist and possibly lower.
+                    if (intersectionItems[intersectedItem].type !== "picklistItem" && !isPicklistOpen) {
+                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                            localPosition: highlightedSourceItems[highlightedItem].properties.localPosition,
+                            color: UI_ELEMENTS.picklist.properties.color
+                        });
+                    } else {
+                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                            color: UIT.colors.darkGray
+                        });
+                    }
+                } else if (isHighlightingPicklistItem) {
+                    // Unhighlight picklist item.
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        color: UI_ELEMENTS.picklistItem.properties.color
+                    });
                 }
                 // Update status variables.
                 highlightedItem = intersectedItem;
@@ -2589,7 +2747,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isHighlightingMenuButton = intersectionItems[highlightedItem].type === "menuButton";
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                isHighlightingPicklist = PICKLIST_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                isHighlightingPicklist = intersectionItems[highlightedItem].type === "picklist";
+                isHighlightingPicklistItem = intersectionItems[highlightedItem].type === "picklistItem";
                 if (isHighlightingMenuButton) {
                     // Raise new menu button.
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
@@ -2634,6 +2793,24 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                         localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
+                    });
+                } else if (isHighlightingPicklist) {
+                    // Highlight picklist and possibly raise.
+                    if (!isPicklistOpen) {
+                        localPosition = intersectionItems[highlightedItem].properties.localPosition;
+                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA),
+                            color: UIT.colors.greenHighlight
+                        });
+                    } else {
+                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                            color: UIT.colors.greenHighlight
+                        });
+                    }
+                } else if (isHighlightingPicklistItem) {
+                    // Highlight picklist item.
+                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        color: UIT.colors.greenHighlight
                     });
                 } else if (!isHighlightingMenuButton && !isHighlightingColorCircle && !isHighlightingSlider) {
                     parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
@@ -2698,6 +2875,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
+                } else if (isHighlightingPicklist) {
+                    // Unhighlight picklist and possibly lower.
+                    if (!isHighlightingPicklistItem && !isPicklistOpen) {
+                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                            localPosition: highlightedSourceItems[highlightedItem].properties.localPosition,
+                            color: UI_ELEMENTS.picklist.properties.color
+                        });
+                    } else {
+                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                            color: UIT.colors.darkGray
+                        });
+                    }
+                } else if (isHighlightingPicklistItem) {
+                    // Unhighlight picklist item.
+                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        color: UI_ELEMENTS.picklistItem.properties.color
+                    });
                 }
                 // Update status variables.
                 highlightedItem = NONE;
@@ -2709,6 +2903,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isHighlightingSlider = false;
                 isHighlightingColorCircle = false;
                 isHighlightingPicklist = false;
+                isHighlightingPicklistItem = false;
             }
             highlightedSourceOverlays = intersectionOverlays;
             highlightedSourceItems = intersectionItems;
@@ -2769,7 +2964,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (intersectionItems && ((intersectionItems[intersectedItem].type === "picklistItem"
                 && controlHand.triggerClicked() !== isPicklistItemPressed)
                     || (intersectionItems[intersectedItem].type !== "picklistItem" && isPicklistItemPressed))) {
-            isPicklistItemPressed = isHighlightingPicklist && controlHand.triggerClicked();
+            isPicklistItemPressed = isHighlightingPicklistItem && controlHand.triggerClicked();
             if (isPicklistItemPressed) {
                 doCommand(intersectionItems[intersectedItem].command.method, intersectionItems[intersectedItem].id);
             }
@@ -2777,7 +2972,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (intersectionItems && isPicklistOpen && controlHand.triggerClicked()
                 && intersectionItems[intersectedItem].type !== "picklist"
                 && intersectionItems[intersectedItem].type !== "picklistItem") {
-            doCommand("togglePhysicsPresets", "presets");  //  TODO: This is a bit hacky.
+            doCommand("togglePhysicsPresets");
         }
 
         // Grip click.
@@ -2977,6 +3172,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingSlider = false;
         isHighlightingColorCircle = false;
         isHighlightingPicklist = false;
+        isHighlightingPicklistItem = false;
         for (id in optionsToggles) {
             if (optionsToggles.hasOwnProperty(id)) {
                 optionsToggles[id] = false;
