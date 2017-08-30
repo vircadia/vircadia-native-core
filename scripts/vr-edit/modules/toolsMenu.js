@@ -458,9 +458,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 newLabel: {  // TODO: Rename to "label".
                     // Relative to barSlider.
                     color: UIT.colors.white
+                },
+                zeroIndicator: {
+                    overlay: "image3d",
+                    properties: {
+                        url: "../assets/horizontal-rule.svg",
+                        dimensions: { x: 0.02, y: 0.001 },
+                        localRotation: Quat.ZERO,
+                        color: UIT.colors.lightGrayText,
+                        alpha: 1.0,
+                        solid: true,
+                        ignoreRayIntersection: true,
+                        isFacingAvatar: false,
+                        visible: true
+                    }
                 }
             },
-            "barSliderValue": {
+            "barSliderValue": {  // TODO: Move to be inside barSlider.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.02, y: 0.03, z: 0.01 },
@@ -473,7 +487,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "barSliderRemainder": {
+            "barSliderRemainder": {  // TODO: Move to be inside barSlider.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.02, y: 0.07, z: 0.01 },
@@ -2111,6 +2125,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
 
             if (optionsItems[i].type === "barSlider") {
+                // Value and remainder bars.
                 optionsSliderData[i] = {};
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
                 auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + value / 2) * properties.dimensions.y, z: 0 };
@@ -2132,6 +2147,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 optionsSliderData[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
                     auxiliaryProperties);
+
+                // Zero indicator.
+                childProperties = Object.clone(UI_ELEMENTS.barSlider.zeroIndicator.properties);
+                childProperties.url = Script.resolvePath(childProperties.url);
+                childProperties.dimensions = {
+                    x: properties.dimensions.x,
+                    y: UI_ELEMENTS.barSlider.zeroIndicator.properties.dimensions.y
+                };
+                childProperties.localPosition = { x: 0, y: 0, z: properties.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset };
+                childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                Overlays.addOverlay(UI_ELEMENTS.barSlider.zeroIndicator.overlay, childProperties);
             }
 
             if (optionsItems[i].type === "imageSlider") {
