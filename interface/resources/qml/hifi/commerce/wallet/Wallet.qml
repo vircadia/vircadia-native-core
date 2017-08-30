@@ -35,6 +35,16 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
 
+        onLoginStatusResult: {
+            if (!isLoggedIn && root.activeView !== "needsLogIn") {
+                root.activeView = "needsLogIn";
+            } else if (isLoggedIn) {
+                root.activeView = "initialize";
+                commerce.getSecurityImage();
+                commerce.getKeyFilePathIfExists();
+            }
+        }
+
         onSecurityImageResult: {
             securityImageResultReceived = true;
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
@@ -131,6 +141,7 @@ Rectangle {
     //
     Item {
         id: titleBarContainer;
+        visible: !needsLogIn.visible;
         // Size
         width: parent.width;
         height: 50;
@@ -182,8 +193,28 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getSecurityImage();
-            commerce.getKeyFilePathIfExists();
+            commerce.getLoginStatus();
+        }
+    }
+        
+    NeedsLogIn {
+        id: needsLogIn;
+        visible: root.activeView === "needsLogIn";
+        anchors.top: parent.top;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
+    }
+    Connections {
+        target: GlobalServices
+        onMyUsernameChanged: {
+            commerce.getLoginStatus();
         }
     }
 
@@ -276,6 +307,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
+        visible: !needsLogIn.visible;
         property int numTabs: 5;
         // Size
         width: root.width;
@@ -483,6 +515,7 @@ Rectangle {
         id: keyboardContainer;
         z: 999;
         visible: keyboard.raised;
+        property bool punctuationMode: false;
         anchors {
             bottom: parent.bottom;
             left: parent.left;
@@ -508,9 +541,8 @@ Rectangle {
 
         HifiControlsUit.Keyboard {
             id: keyboard;
-            property bool punctuationMode: false;
             raised: HMD.mounted && root.keyboardRaised;
-            numeric: keyboard.punctuationMode;
+            numeric: parent.punctuationMode;
             anchors {
                 bottom: parent.bottom;
                 left: parent.left;

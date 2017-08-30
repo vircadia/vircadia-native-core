@@ -42,17 +42,6 @@ signals:
     void securityImageResult(bool exists) ;
     void keyFilePathIfExistsResult(const QString& path);
 
-protected:
-    enum SecurityImage {
-        NONE = 0,
-        Cat,
-        Car,
-        Dog,
-        Stars,
-        Plane,
-        Gingerbread
-    };
-
 private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
