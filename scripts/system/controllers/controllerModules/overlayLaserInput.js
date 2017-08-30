@@ -1,6 +1,6 @@
 "use strict"
 
-//  tabletLaserInput.js
+//  overlayLaserInput.js
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -270,7 +270,7 @@ Script.include("/~/system/libraries/controllers.js");
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    function TabletLaserInput(hand) {
+    function OverlayLaserInput(hand) {
         this.hand = hand;
         this.active = false;
         this.previousLaserClikcedTarget = false;
@@ -281,11 +281,12 @@ Script.include("/~/system/libraries/controllers.js");
         this.laserTarget = null;
         this.pressEnterLaserTarget = null;
         this.hover = false;
+        this.target = null;
         this.lastValidTargetID = this.tabletTargetID;
 
 
         this.parameters = makeDispatcherModuleParameters(
-            200,
+            120,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);
@@ -295,7 +296,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.getOtherModule = function() {
-            return (this.hand === RIGHT_HAND) ? leftTabletLaserInput : rightTabletLaserInput;
+            return (this.hand === RIGHT_HAND) ? leftOverlayLaserInput : rightOverlayLaserInput;
         };
 
         this.handToController = function() {
@@ -311,10 +312,6 @@ Script.include("/~/system/libraries/controllers.js");
                 sendHoverEnterEventToLaserTarget(this.hand, this.laserTarget);
                 this.lastValidTargetID = laserTarget;
             }
-        };
-
-        this.hasTouchFocus = function(laserTarget) {
-            return (this.laserTargetID === HMD.tabletScreenID);
         };
 
         this.relinquishTouchFocus = function() {
@@ -449,12 +446,28 @@ Script.include("/~/system/libraries/controllers.js");
             this.active = false;
         };
 
+        this.deleteContextOverlay = function() {
+            var farGrabModule = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity");
+            if (farGrabModule) {
+                var entityWithContextOverlay = farGrabModule.entityWithContextOverlay;
+
+                if (entityWithContextOverlay) {
+                    ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+                    farGrabModule.entityWithContextOverlay = false;
+                }
+            }
+        };
+
         this.isReady = function (controllerData) {
+            this.target = null;
             var intersection = controllerData.rayPicks[this.hand];
             if (intersection.type === RayPick.INTERSECTED_OVERLAY) {
                 if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE && !this.getOtherModule().active) {
+                    this.target = intersection.objectID;
                     this.active = true;
                     return makeRunningValues(true, [], []);
+                } else {
+                    this.deleteContextOverlay();
                 }
             }
             this.reset();
@@ -462,10 +475,13 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData, deltaTime) {
-
             if (this.shouldExit(controllerData)) {
                 this.exitModule();
                 return makeRunningValues(false, [], []);
+            }
+
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
+                this.deleteContextOverlay();
             }
 
             this.updateLaserTargets(controllerData);
@@ -511,17 +527,17 @@ Script.include("/~/system/libraries/controllers.js");
         LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID]);
     };
 
-    var leftTabletLaserInput = new TabletLaserInput(LEFT_HAND);
-    var rightTabletLaserInput = new TabletLaserInput(RIGHT_HAND);
+    var leftOverlayLaserInput = new OverlayLaserInput(LEFT_HAND);
+    var rightOverlayLaserInput = new OverlayLaserInput(RIGHT_HAND);
 
-    enableDispatcherModule("LeftTabletLaserInput", leftTabletLaserInput);
-    enableDispatcherModule("RightTabletLaserInput", rightTabletLaserInput);
+    enableDispatcherModule("LeftOverlayLaserInput", leftOverlayLaserInput);
+    enableDispatcherModule("RightOverlayLaserInput", rightOverlayLaserInput);
 
     this.cleanup = function () {
-        leftTabletLaserInput.cleanup();
-        rightTabletLaserInput.cleanup();
-        disableDispatcherModule("LeftTabletLaserInput");
-        disableDispatcherModule("RightTabletLaserInput");
+        leftOverlayLaserInput.cleanup();
+        rightOverlayLaserInput.cleanup();
+        disableDispatcherModule("LeftOverlayLaserInput");
+        disableDispatcherModule("RightOverlayLaserInput");
     };
     Script.scriptEnding.connect(this.cleanup);
 }());

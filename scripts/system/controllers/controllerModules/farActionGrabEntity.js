@@ -109,6 +109,8 @@ Script.include("/~/system/libraries/controllers.js");
         this.hand = hand;
         this.grabbedThingID = null;
         this.actionID = null; // action this script created...
+        this.entityWithContextOverlay = false;
+        this.contextOverlayTimer = false;
 
         var ACTION_TTL = 15; // seconds
 
@@ -335,11 +337,11 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbedThingID = null;
         };
 
-        this.pointingAtWebEntity = function(controllerData) {
+        this.notPointingAtEntity = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
             var entityProperty  = Entities.getEntityProperties(intersection.objectID);
             var entityType = entityProperty.type;
-            if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web")  || intersection.objectID === HMD.tabletButtonID) {
+            if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web")  || intersection.type === RayPick.INTERSECTED_OVERLAY) {
                 return true;
             }
             return false
@@ -388,8 +390,15 @@ Script.include("/~/system/libraries/controllers.js");
             this.previousWorldControllerRotation = worldControllerRotation;
         };
 
+        this.destroyContextOverlay = function(controllerData) {
+            if (this.entityWithContextOverlay) {
+                ContextOverlay.destroyContextOverlay(this.entityWithContextOverlay);
+                this.entityWithContextOverlay = false;
+            }
+        }
+
         this.isReady = function (controllerData) {
-            if (this.pointingAtWebEntity(controllerData)) {
+            if (this.notPointingAtEntity(controllerData)) {
                 return makeRunningValues(false, [], []);
             }
             
@@ -401,15 +410,26 @@ Script.include("/~/system/libraries/controllers.js");
                 this.prepareDistanceRotatingData(controllerData);
                 return makeRunningValues(true, [], []);
             } else {
+                this.destroyContextOverlay();
                 return makeRunningValues(false, [], []);
             }
         };
 
+        this.isPointingAtUI = function(controllerData) {
+            var hudRayPickInfo = controllerData.hudRayPicks[this.hand];
+            var hudPoint2d = HMD.overlayFromWorldPoint(hudRayPickInfo.intersection);
+        }
+
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.pointingAtWebEntity(controllerData)) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.notPointingAtEntity(controllerData)) {
                 this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);
+            }
+
+            var targetEntity = controllerData.rayPicks[this.hand].objectID;
+            if (targetEntity !== this.entityWithContextOverlay) {
+                this.destroyContextOverlay();
             }
 
             // gather up the readiness of the near-grab modules
@@ -456,37 +476,58 @@ Script.include("/~/system/libraries/controllers.js");
                 var hudRayPickInfo = controllerData.hudRayPicks[this.hand];
                 var hudPoint2d = HMD.overlayFromWorldPoint(hudRayPickInfo.intersection);
                 if (rayPickInfo.type == RayPick.INTERSECTED_ENTITY) {
-                    var entityID = rayPickInfo.objectID;
-                    var targetProps = Entities.getEntityProperties(entityID, ["dynamic", "shapeType", "position",
-                                                                              "rotation", "dimensions", "density",
-                                                                              "userData", "locked", "type"]);
-                    if (entityIsDistanceGrabbable(targetProps)) {
-                        if (!this.distanceRotating) {
-                            this.grabbedThingID = entityID;
-                            this.grabbedDistance = rayPickInfo.distance;
+                    if (controllerData.triggerClicks[this.hand]) {
+                        var entityID = rayPickInfo.objectID;
+                        var targetProps = Entities.getEntityProperties(entityID, ["dynamic", "shapeType", "position",
+                                                                                  "rotation", "dimensions", "density",
+                                                                                  "userData", "locked", "type"]);
+                        if (entityIsDistanceGrabbable(targetProps)) {
+                            if (!this.distanceRotating) {
+                                this.grabbedThingID = entityID;
+                                this.grabbedDistance = rayPickInfo.distance;
+                            }
+                            var otherModuleName =
+                                this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
+                            var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
+                            if (otherFarGrabModule.grabbedThingID == this.grabbedThingID && otherFarGrabModule.distanceHolding) {
+                                this.distanceRotate(otherFarGrabModule);
+                            } else {
+                                this.distanceHolding = true;
+                                this.distanceRotating = false;
+                                this.startFarGrabAction(controllerData, targetProps);
+                            }
                         }
-                        var otherModuleName =
-                            this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
-                        var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
-                        if (otherFarGrabModule.grabbedThingID == this.grabbedThingID && otherFarGrabModule.distanceHolding) {
-                            this.distanceRotate(otherFarGrabModule);
-                        } else {
-                            this.distanceHolding = true;
-                            this.distanceRotating = false;
-                            this.startFarGrabAction(controllerData, targetProps);
-                        }
+                    } else if (!this.entityWithContextOverlay && !this.contextOverlayTimer) {
+                        var _this = this;
+                        _this.contextOverlayTimer = Script.setTimeout(function () {
+                            if (!_this.entityWithContextOverlay && _this.contextOverlayTimer) {
+                                var props = Entities.getEntityProperties(rayPickInfo.objectID);
+                                var pointerEvent = {
+                                    type: "Move",
+                                    id: this.hand + 1, // 0 is reserved for hardware mouse
+                                    pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID, rayPickInfo.intersection, props),
+                                    pos3D: rayPickInfo.intersection,
+                                    normal: rayPickInfo.surfaceNormal,
+                                    direction: Vec3.subtract(ZERO_VEC, rayPickInfo.surfaceNormal),
+                                    button: "Secondary"
+                                };
+                                if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.objectID, pointerEvent)) {
+                                    _this.entityWithContextOverlay = rayPickInfo.objectID;
+                                }
+                            }
+                            _this.contextOverlayTimer = false;
+                        }, 500);
                     }
                 } else if (this.distanceRotating) {
-                     var otherModuleName =
-                         this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
+                    var otherModuleName =
+                        this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
                     var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
                     this.distanceRotate(otherFarGrabModule);
-                }
-                    /* else if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d || Reticle.position)) {
+                } else if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d || Reticle.position)) {
                     this.endNearGrabAction();
                     this.laserPointerOff();
                     return makeRunningValues(false, [], []);
-                }*/
+                }
             }
             return makeRunningValues(true, [], []);
         };

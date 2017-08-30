@@ -319,7 +319,7 @@ Script.include("/~/system/libraries/controllers.js");
 
 
         this.parameters = makeDispatcherModuleParameters(
-            400,
+            100,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);

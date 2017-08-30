@@ -12,11 +12,9 @@
 var CONTOLLER_SCRIPTS = [
     "squeezeHands.js",
     "controllerDisplayManager.js",
-    // "handControllerGrab.js",
     "handControllerPointer.js",
-    // "grab.js",
+    "grab.js",
     "toggleAdvancedMovementForHandControllers.js",
-
     "ControllerDispatcher.js",
     "controllerModules/nearParentGrabEntity.js",
     "controllerModules/nearParentGrabOverlay.js",
@@ -25,8 +23,9 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/tabletStylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
-    "controllerModules/web3DOverlayLaserInput.js",
+    "controllerModules/overlayLaserInput.js",
     "controllerModules/webEntityLaserInput.js",
+    "controllerModules/inEditMode.js",
     "teleport.js"
 ];
 
