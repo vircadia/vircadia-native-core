@@ -48,6 +48,9 @@ Item {
     onVisibleChanged: {
         if (visible) {
             passphraseField.focus = true;
+            sendMessageToLightbox({method: 'disableHmdPreview'});
+        } else {
+            sendMessageToLightbox({method: 'maybeEnableHmdPreview'});
         }
     }
 
@@ -71,6 +74,26 @@ Item {
                 text = "";
             }
         }
+
+        onFocusChanged: {
+            if (focus) {
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            } else if (!passphraseFieldAgain.focus) {
+                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+            onClicked: {
+                parent.focus = true;
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            }
+        }
+
+        onAccepted: {
+            passphraseFieldAgain.focus = true;
+        }
     }
     HifiControlsUit.TextField {
         id: passphraseFieldAgain;
@@ -86,6 +109,26 @@ Item {
             if (visible) {
                 text = "";
             }
+        }
+
+        onFocusChanged: {
+            if (focus) {
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            } else if (!passphraseField.focus) {
+                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+            onClicked: {
+                parent.focus = true;
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+            }
+        }
+
+        onAccepted: {
+            focus = false;
         }
     }
 
@@ -111,9 +154,19 @@ Item {
                 commerce.getSecurityImage();
             }
         }
-        // "Security picture" text below pic
+        Image {
+            id: topSecurityImageOverlay;
+            source: "images/lockOverlay.png";
+            width: passphrasePageSecurityImage.width * 0.45;
+            height: passphrasePageSecurityImage.height * 0.45;
+            anchors.bottom: passphrasePageSecurityImage.bottom;
+            anchors.right: passphrasePageSecurityImage.right;
+            mipmap: true;
+            opacity: 0.9;
+        }
+        // "Security image" text below pic
         RalewayRegular {
-            text: "security picture";
+            text: "security image";
             // Text size
             size: 12;
             // Anchors

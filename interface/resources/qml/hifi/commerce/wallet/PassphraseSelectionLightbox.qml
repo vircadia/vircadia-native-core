@@ -33,23 +33,6 @@ Rectangle {
         }
     }
 
-    Connections {
-        target: passphraseSelection;
-        onSendMessageToLightbox: {
-            if (msg.method === 'statusResult') {
-                if (msg.status) {
-                    // Success submitting new passphrase
-                    root.resetSubmitButton();
-                    root.visible = false;
-                } else {
-                    // Error submitting new passphrase
-                    root.resetSubmitButton();
-                    passphraseSelection.setErrorText("Backend error");
-                }
-            }
-        }
-    }
-
     //
     // SECURE PASSPHRASE SELECTION START
     //
@@ -113,6 +96,24 @@ Rectangle {
             anchors.left: parent.left;
             anchors.right: parent.right;
             anchors.bottom: passphraseNavBar.top;
+
+            Connections {
+                onSendMessageToLightbox: {
+                    if (msg.method === 'statusResult') {
+                        if (msg.status) {
+                            // Success submitting new passphrase
+                            root.resetSubmitButton();
+                            root.visible = false;
+                        } else {
+                            // Error submitting new passphrase
+                            root.resetSubmitButton();
+                            passphraseSelection.setErrorText("Backend error");
+                        }
+                    } else {
+                        sendSignalToWallet(msg);
+                    }
+                }
+            }
         }
 
         // Navigation Bar
@@ -167,6 +168,8 @@ Rectangle {
     //
     // SECURE PASSPHRASE SELECTION END
     //
+
+    signal sendSignalToWallet(var msg);
 
     function resetSubmitButton() {
         passphraseSubmitButton.enabled = true;

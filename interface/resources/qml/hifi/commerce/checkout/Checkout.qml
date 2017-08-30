@@ -147,6 +147,16 @@ Rectangle {
             cache: false;
             source: "image://security/securityImage";
         }
+        Image {
+            id: securityImageOverlay;
+            source: "../wallet/images/lockOverlay.png";
+            width: securityImage.width * 0.45;
+            height: securityImage.height * 0.45;
+            anchors.bottom: securityImage.bottom;
+            anchors.right: securityImage.right;
+            mipmap: true;
+            opacity: 0.9;
+        }
 
         // Separator
         HifiControlsUit.Separator {
@@ -877,7 +887,7 @@ Rectangle {
             if (root.purchasesReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {
-                        buyText.text = "You do not have enough HFC to purchase this item again. Go to your Purchases to view the copy you own.";
+                        buyText.text = "You do not have enough HFC to purchase this item again. Go to your <b>Purchases</b> to view the copy you own.";
                     } else {
                         buyText.text = "You do not have enough HFC to purchase this item.";
                     }
