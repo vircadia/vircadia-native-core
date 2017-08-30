@@ -28,6 +28,10 @@ void main(void) {
     vec2 imageSize = getWidthHeight(0);
     vec2 texelSize = getInvWidthHeight();
 
+    vec2 fragJitterPix = taa_getJitterSample(sequence.currentIndex);
+
+
+
     vec2 pixPos = varTexCoord0 * imageSize;
     vec2 pixVelocity = imageSize * texture(velocityMap, varTexCoord0).xy;
     float pixVelocityLength = length(pixVelocity);
@@ -37,16 +41,18 @@ void main(void) {
 
     // Pixel Debugged
     if (taa_showDebugCursor()) {
-        vec3 cursorFrag = taa_findClosestFragment3x3(taa_getDebugCursorTexcoord());
-        vec2 cursorUV = cursorFrag.xy;
-        vec2 cursorPixelPos = cursorUV * imageSize;
+        vec2 cursorUVRaw = taa_getDebugCursorTexcoord();
+        vec2 cursorPosRaw = floor(cursorUVRaw * imageSize) + vec2(0.5);
+        vec3 cursorFrag = taa_findClosestFragment3x3(cursorUVRaw);
+        vec2 cursorUV = cursorFrag.xy - fragJitterPix * texelSize;
+        vec2 cursorPos = cursorUV * imageSize;
         vec2 cursorVelocity = texture(velocityMap, cursorUV).xy;
         vec2 cursorPrevUV = cursorUV - cursorVelocity;
         cursorVelocity *= imageSize;
         float cursorVelocityLength = length(cursorVelocity);
         vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
 
-        vec2 cursorToFragVec = pixPos - cursorPixelPos;
+        vec2 cursorToFragVec = pixPos - cursorPos;
         float cursorToFragLength = length(cursorToFragVec);
 
         if ((cursorToFragLength <= cursorVelocityLength)) {
@@ -65,7 +71,8 @@ void main(void) {
         float tenPercentHeight = 0.1 * imageSize.y;
         float centerWidth = imageSize.x * 0.5;
 
-        vec2 nextOrbPos = vec2(centerWidth, imageSize.y - 3 * tenPercentHeight);
+        //vec2 nextOrbPos = vec2(centerWidth, imageSize.y - 3 * tenPercentHeight);
+        vec2 nextOrbPos = cursorPos;
         vec2 nextOrbPosToPix = pixPos - nextOrbPos;
         float nextOrbPosToPixLength = length(nextOrbPosToPix);
 

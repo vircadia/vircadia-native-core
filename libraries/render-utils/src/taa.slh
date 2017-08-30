@@ -182,21 +182,17 @@ float Luminance(vec3 rgb) {
     return rgb.x/4.0 + rgb.y/2.0 + rgb.z/4.0;
 }
 
-vec3 taa_temporalReprojection(vec2 fragUV, vec2 fragVelocity, float fragZe)
+vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix)
 {
-    vec3 sourceColor;
-    vec3 historyColor;
-    vec2 prevFragUV = taa_fetchSourceAndHistory(fragUV, fragVelocity, sourceColor, historyColor);
-
     vec4 texel1 = vec4(historyColor, 1.0);
     vec4 texel0 = vec4(sourceColor, 1.0);
 
     vec2 imageSize = getWidthHeight(0);
     vec2 texelSize = getInvWidthHeight();
 
-    if (taa_unjitter()) {
-        fragUV += taa_getJitterSample(sequence.currentIndex) * texelSize;
-    }
+  /*  if (taa_unjitter()) {
+        fragUV += fragJitterPix * texelSize;
+    }*/
 
 		const float _SubpixelThreshold = 0.5;
 		const float _GatherBase = 0.5;
@@ -255,10 +251,6 @@ vec3 taa_temporalReprojection(vec2 fragUV, vec2 fragVelocity, float fragZe)
 
 		// output
     vec3 nextColor =  mix(texel1, texel0, k_feedback).xyz;
-
-    if (!taa_constrainColor()) {
-        nextColor = mix(historyColor, sourceColor, params.blend);
-    }
 
     return taa_resolveColor(nextColor);
 }
