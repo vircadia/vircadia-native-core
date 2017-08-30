@@ -54,6 +54,7 @@ Item {
         text: "Testing: Reset Wallet!";
         onClicked: {
             commerce.reset();
+            sendSignalToWallet({method: 'walletReset'});
         }
     }
 
