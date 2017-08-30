@@ -594,13 +594,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         BUTTON_UI_ELEMENTS = ["button", "newButton", "menuButton", "toggleButton", "newToggleButton", "swatch"],
-        BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.8 * UIT.dimensions.buttonDimensions.z },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
         MENU_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
         OPTION_HOVER_DELTA = { x: 0, y: 0, z: 0.002 },
         PICKLIST_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
+        BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.002 },
 
         MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
 
