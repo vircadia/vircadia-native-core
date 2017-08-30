@@ -1026,6 +1026,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
 
+    if (cmdOptionExists(argc, constArgv, "--system-cursor")) {
+        _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+    }
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
 
     // enable mouse tracking; otherwise, we only get drag events
@@ -4548,10 +4551,13 @@ void Application::updateMyAvatarLookAtPosition() {
         }
     } else {
         AvatarSharedPointer lookingAt = myAvatar->getLookAtTargetAvatar().lock();
-        if (lookingAt && myAvatar.get() != lookingAt.get()) {
+        bool haveLookAtCandidate = lookingAt && myAvatar.get() != lookingAt.get();
+        auto avatar = static_pointer_cast<Avatar>(lookingAt);
+        bool mutualLookAtSnappingEnabled = avatar && avatar->getLookAtSnappingEnabled() && myAvatar->getLookAtSnappingEnabled();
+        if (haveLookAtCandidate && mutualLookAtSnappingEnabled) {
             //  If I am looking at someone else, look directly at one of their eyes
             isLookingAtSomeone = true;
-            auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
+            auto lookingAtHead = avatar->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
             glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
