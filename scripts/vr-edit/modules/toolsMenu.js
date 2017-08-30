@@ -316,8 +316,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: false,
                     visible: true
                 },
-                onColor: UIT.colors.greenShadow,
+                onColor: UIT.colors.greenHighlight,
                 offColor: UIT.colors.baseGrayShadow,
+                onHighlightColor: UIT.colors.greenShadow,
+                offHighlightColor: UIT.colors.darkGray,
                 newLabel: {  // TODO: Rename to "label".
                     // Relative to newToggleButton.
                     localPosition: {
@@ -1003,8 +1005,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         },
                         color: UIT.colors.baseGrayShadow
                     },
-                    enabledColor: UIT.colors.greenShadow,
-                    highlightColor: UIT.colors.greenHighlight,
+                    enabledColor: UIT.colors.greenHighlight,
+                    highlightColor: UIT.colors.greenShadow,
                     newLabel: {
                         url: "../assets/tools/group/group-label.svg",
                         scale: 0.0351,
@@ -1032,8 +1034,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: UIT.colors.baseGrayShadow
 
                     },
-                    enabledColor: UIT.colors.redAccent,
-                    highlightColor: UIT.colors.redHighlight,
+                    enabledColor: UIT.colors.redHighlight,
+                    highlightColor: UIT.colors.redAccent,
                     newLabel: {
                         url: "../assets/tools/group/ungroup-label.svg",
                         scale: 0.0496,
@@ -2898,13 +2900,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     });
                 }
                 // Highlight new item. (The existence of a command or callback infers that the item should be highlighted.)
-                if (isHighlightingNewButton || isHighlightingNewToggleButton) {
+                if (isHighlightingNewButton) {
                     if (intersectionEnabled[highlightedItem]) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                             color: intersectionItems[highlightedItem].highlightColor !== undefined
                                 ? intersectionItems[highlightedItem].highlightColor
                                 : UIT.colors.greenHighlight,
+                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
+                        });
+                    }
+                }  else if (isHighlightingNewToggleButton) {
+                    if (intersectionEnabled[highlightedItem]) {
+                        localPosition = intersectionItems[highlightedItem].properties.localPosition;
+                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                            color: optionsToggles[intersectionItems[highlightedItem].id]
+                                ? UI_ELEMENTS.newToggleButton.onHighlightColor
+                                : UI_ELEMENTS.newToggleButton.offHighlightColor,
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
