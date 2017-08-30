@@ -107,7 +107,7 @@ Rectangle {
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
-        
+
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSetup_raiseKeyboard') {
@@ -127,7 +127,7 @@ Rectangle {
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
-        
+
         Connections {
             onSendSignalToWallet: {
                 sendToScript(msg);
@@ -196,7 +196,7 @@ Rectangle {
             commerce.getLoginStatus();
         }
     }
-        
+
     NeedsLogIn {
         id: needsLogIn;
         visible: root.activeView === "needsLogIn";
@@ -225,7 +225,7 @@ Rectangle {
         anchors.bottom: tabButtonsContainer.top;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'setUpClicked') {
@@ -296,6 +296,14 @@ Rectangle {
         anchors.leftMargin: 16;
         anchors.right: parent.right;
         anchors.rightMargin: 16;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletReset') {
+                    sendToScript(msg);
+                }
+            }
+        }
     }
 
 
@@ -510,7 +518,7 @@ Rectangle {
     }
     //
     // TAB BUTTONS END
-    //    
+    //
 
     Item {
         id: keyboardContainer;

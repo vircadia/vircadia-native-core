@@ -18,10 +18,25 @@ const QString ImageProvider::PROVIDER_NAME = "security";
 QReadWriteLock ImageProvider::_rwLock;
 QPixmap* ImageProvider::_securityImage = nullptr;
 
-void ImageProvider::setSecurityImage(QPixmap* pixmap) {
+ImageProvider::~ImageProvider() {
+    QWriteLocker lock(&_rwLock);
+    if (_securityImage) {
+        delete _securityImage;
+        _securityImage = nullptr;
+    }
+}
+
+void ImageProvider::setSecurityImage(const QPixmap* pixmap) {
     // no need to delete old one, that is managed by the wallet
     QWriteLocker lock(&_rwLock);
-    _securityImage = pixmap;
+    if (_securityImage) {
+        delete _securityImage;
+    }
+    if (pixmap) {
+        _securityImage = new QPixmap(*pixmap);
+    } else {
+        _securityImage = nullptr;
+    }
 }
 
 QPixmap ImageProvider::requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) {
