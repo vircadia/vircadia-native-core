@@ -2803,13 +2803,8 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // Get controller availability
     bool hasHandControllers = false;
-    HandControllerType handControllerType = Vive;
-    if (PluginUtils::isViveControllerAvailable()) {
+    if (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable()) {
         hasHandControllers = true;
-        handControllerType = Vive;
-    } else if (PluginUtils::isOculusTouchControllerAvailable()) {
-        hasHandControllers = true;
-        handControllerType = Oculus;
     }
 
     // Check HMD use (may be technically available without being in use)
