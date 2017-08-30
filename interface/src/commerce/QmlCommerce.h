@@ -50,6 +50,7 @@ protected:
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
     Q_INVOKABLE void getPassphraseSetupStatus();
     Q_INVOKABLE void getKeyFilePathIfExists();
+    Q_INVOKABLE void reset();
 };
 
 #endif // hifi_QmlCommerce_h

@@ -85,3 +85,10 @@ void QmlCommerce::getKeyFilePathIfExists() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->sendKeyFilePathIfExists();
 }
+
+void QmlCommerce::reset() {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    ledger->reset();
+    wallet->reset();
+}

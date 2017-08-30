@@ -464,7 +464,9 @@ void Wallet::getSecurityImage() {
     }
 
     // decrypt and return
-    if (decryptFile(imageFilePath(), &data, &dataLen)) {
+    QString filePath(imageFilePath());
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists() && decryptFile(filePath, &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
@@ -487,4 +489,14 @@ void Wallet::sendKeyFilePathIfExists() {
     } else {
         emit keyFilePathIfExistsResult("");
     }
+}
+
+void Wallet::reset() {
+    _publicKeys.clear();
+    delete _securityImage;
+    delete _passphrase;
+    QFile keyFile(keyFilePath());
+    QFile imageFile(imageFilePath());
+    keyFile.remove();
+    imageFile.remove();
 }
