@@ -12,6 +12,7 @@
 #include "EntityPriorityQueue.h"
 
 const float PrioritizedEntity::DO_NOT_SEND = -1.0e-6f;
+const float PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY = 1.0f;
 
 void ConicalView::set(const ViewFrustum& viewFrustum) {
     // The ConicalView has two parts: a central sphere (same as ViewFrustum) and a circular cone that bounds the frustum part.

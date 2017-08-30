@@ -22,6 +22,7 @@
 EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
     OctreeSendThread(myServer, node)
 {
+    connect(std::static_pointer_cast<EntityTree>(myServer->getOctree()).get(), &EntityTree::editingEntityPointer, this, &EntityTreeSendThread::editingEntityPointer, Qt::QueuedConnection);
     connect(std::static_pointer_cast<EntityTree>(myServer->getOctree()).get(), &EntityTree::deletingEntityPointer, this, &EntityTreeSendThread::deletingEntityPointer, Qt::QueuedConnection);
 }
 
@@ -108,29 +109,29 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                 // Re-add elements from previous traversal if they still need to be sent
                 while (!prevSendQueue.empty()) {
                     EntityItemPointer entity = prevSendQueue.top().getEntity();
+                    bool forceSend = prevSendQueue.top().shouldForceSend();
                     prevSendQueue.pop();
                     if (entity) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
-                            if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
+                            if (forceSend || _traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                                 float priority = _conicalView.computePriority(cube);
-                                if (priority != PrioritizedEntity::DO_NOT_SEND) {
+                                if (forceSend || priority != PrioritizedEntity::DO_NOT_SEND) {
                                     float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                                    cube,
                                                                                    _traversal.getCurrentRootSizeScale(),
                                                                                    lodLevelOffset);
 
-                                    // Only send entities if they are large enough to see
-                                    if (renderAccuracy > 0.0f) {
+                                    // Only send entities if they are large enough to see, or we need to update them to be out of view
+                                    if (forceSend || renderAccuracy > 0.0f) {
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
                                         _entitiesInQueue.insert(entity.get());
                                     }
                                 }
                             }
                         } else {
-                            const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
-                            _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
+                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                             _entitiesInQueue.insert(entity.get());
                         }
                     }
@@ -274,8 +275,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         }
                     }
                 } else {
-                    const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
-                    _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
+                    _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                     _entitiesInQueue.insert(entity.get());
                 }
             });
@@ -310,8 +310,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 }
                             }
                         } else {
-                            const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
-                            _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
+                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                             _entitiesInQueue.insert(entity.get());
                         }
                     }
@@ -364,8 +363,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 }
                             }
                         } else {
-                            const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
-                            _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
+                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                             _entitiesInQueue.insert(entity.get());
                         }
                     }
@@ -452,6 +450,23 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
 #else // SEND_SORTED_ENTITIES
     return OctreeSendThread::traverseTreeAndBuildNextPacketPayload(params);
 #endif // SEND_SORTED_ENTITIES
+}
+
+void EntityTreeSendThread::editingEntityPointer(const EntityItemPointer entity) {
+    if (entity) {
+        if (_entitiesInQueue.find(entity.get()) == _entitiesInQueue.end() && _knownState.find(entity.get()) != _knownState.end()) {
+            bool success = false;
+            AACube cube = entity->getQueryAACube(success);
+            if (success) {
+                float priority = _conicalView.computePriority(cube);
+                _sendQueue.push(PrioritizedEntity(entity, priority, true));
+                _entitiesInQueue.insert(entity.get());
+            } else {
+                _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY, true));
+                _entitiesInQueue.insert(entity.get());
+            }
+        }
+    }
 }
 
 void EntityTreeSendThread::deletingEntityPointer(EntityItem* entity) {

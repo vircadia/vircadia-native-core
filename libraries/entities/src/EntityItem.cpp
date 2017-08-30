@@ -32,7 +32,8 @@
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
 
-
+Q_DECLARE_METATYPE(EntityItemPointer);
+int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 

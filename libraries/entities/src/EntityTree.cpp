@@ -307,7 +307,9 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 }
                 UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, queryCube);
                 recurseTreeWithOperator(&theOperator);
-                entity->setProperties(tempProperties);
+                if (entity->setProperties(tempProperties)) {
+                    emit editingEntityPointer(entity);
+                }
                 _isDirty = true;
             }
         }
@@ -382,7 +384,9 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
         }
         UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newQueryAACube);
         recurseTreeWithOperator(&theOperator);
-        entity->setProperties(properties);
+        if (entity->setProperties(properties)) {
+            emit editingEntityPointer(entity);
+        }
 
         // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
         QQueue<SpatiallyNestablePointer> toProcess;
@@ -1257,7 +1261,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     if (!isPhysics) {
                         properties.setLastEditedBy(senderNode->getUUID());
                     }
-                    updateEntity(entityItemID, properties, senderNode);
+                    updateEntity(existingEntity, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;

@@ -40,12 +40,14 @@ private:
 class PrioritizedEntity {
 public:
     static const float DO_NOT_SEND;
+    static const float WHEN_IN_DOUBT_PRIORITY;
 
-    PrioritizedEntity(EntityItemPointer entity, float priority) : _weakEntity(entity), _rawEntityPointer(entity.get()), _priority(priority) {}
+    PrioritizedEntity(EntityItemPointer entity, float priority, bool forceSend = false) : _weakEntity(entity), _rawEntityPointer(entity.get()), _priority(priority), _forceSend(forceSend) {}
     float updatePriority(const ConicalView& view);
     EntityItemPointer getEntity() const { return _weakEntity.lock(); }
     EntityItem* getRawEntityPointer() const { return _rawEntityPointer; }
     float getPriority() const { return _priority; }
+    bool shouldForceSend() const { return _forceSend; }
 
     class Compare {
     public:
@@ -57,6 +59,7 @@ private:
     EntityItemWeakPointer _weakEntity;
     EntityItem* _rawEntityPointer;
     float _priority;
+    bool _forceSend;
 };
 
 using EntityPriorityQueue = std::priority_queue< PrioritizedEntity, std::vector<PrioritizedEntity>, PrioritizedEntity::Compare >;
