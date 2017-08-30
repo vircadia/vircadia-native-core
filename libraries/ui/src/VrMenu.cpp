@@ -26,12 +26,14 @@ static unsigned int USER_DATA_ID = 0;
 // and qml object and inject the pointer into both objects
 class MenuUserData : public QObjectUserData {
 public:
-    MenuUserData(QAction* action, QObject* qmlObject) {
+    MenuUserData(QAction* action, QObject* qmlObject, QObject* qmlParent) {
         if (!USER_DATA_ID) {
             USER_DATA_ID = DependencyManager::get<OffscreenUi>()->getMenuUserDataId();
         }
         _action = action;
         _qml = qmlObject;
+        _qmlParent = qmlParent;
+
         action->setUserData(USER_DATA_ID, this);
         qmlObject->setUserData(USER_DATA_ID, this);
         qmlObject->setObjectName(uuid.toString());
@@ -43,6 +45,41 @@ public:
         _shutdownConnection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
             QObject::disconnect(_changedConnection);
         });
+
+        class ExclusionGroupSetter : public QObject {
+        public:
+            ExclusionGroupSetter(QObject* from, QObject* to, QObject* qmlParent) : QObject(from), _from(from), _to(to), _qmlParent(qmlParent) {
+                _from->installEventFilter(this);
+            }
+
+            ~ExclusionGroupSetter() {
+                _from->removeEventFilter(this);
+            }
+        protected:
+            virtual bool eventFilter(QObject* o, QEvent* e) override {
+                if (e->type() == QEvent::DynamicPropertyChange) {
+                    QDynamicPropertyChangeEvent* dpc = static_cast<QDynamicPropertyChangeEvent*>(e);
+                    if (dpc->propertyName() == "exclusionGroup")
+                    {
+                        // unfortunately Qt doesn't support passing dynamic properties between C++ / QML, so we have to use this ugly helper function
+                        QMetaObject::invokeMethod(_qmlParent,
+                            "addExclusionGroup",
+                            Qt::DirectConnection,
+                            Q_ARG(QVariant, QVariant::fromValue(_to)),
+                            Q_ARG(QVariant, _from->property(dpc->propertyName())));
+                    }
+                }
+
+                return QObject::eventFilter(o, e);
+            }
+
+        private:
+            QObject* _from;
+            QObject* _to;
+            QObject* _qmlParent;
+        };
+
+        new ExclusionGroupSetter(action, qmlObject, qmlParent);
     }
 
     ~MenuUserData() {
@@ -110,6 +147,7 @@ private:
     QMetaObject::Connection _changedConnection;
     QAction* _action { nullptr };
     QObject* _qml { nullptr };
+    QObject* _qmlParent{ nullptr };
 };
 
 
@@ -157,16 +195,16 @@ void VrMenu::addMenu(QMenu* menu) {
     }
 
     // Bind the QML and Widget together
-    new MenuUserData(menu->menuAction(), result);
+    new MenuUserData(menu->menuAction(), result, qmlParent);
 }
 
-void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
+void bindActionToQmlAction(QObject* qmlAction, QAction* action, QObject* qmlParent) {
     auto text = action->text();
     if (text == "Login") {
         qDebug(uiLogging) << "Login action " << action;
     }
 
-    new MenuUserData(action, qmlAction);
+    new MenuUserData(action, qmlAction, qmlParent);
     QObject::connect(action, &QAction::toggled, [=](bool checked) {
         qmlAction->setProperty("checked", checked);
     });
@@ -195,7 +233,7 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     QObject* result = reinterpret_cast<QObject*>(returnedValue); // returnedValue.value<QObject*>();
     Q_ASSERT(result);
     // Bind the QML and Widget together
-    bindActionToQmlAction(result, action);
+    bindActionToQmlAction(result, action, _rootMenu);
 }
 
 void VrMenu::addSeparator(QMenu* menu) {
@@ -231,7 +269,7 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
     Q_ASSERT(invokeResult);
     QObject* result = reinterpret_cast<QObject*>(returnedValue); // returnedValue.value<QObject*>();
     Q_ASSERT(result);
-    bindActionToQmlAction(result, action);
+    bindActionToQmlAction(result, action, _rootMenu);
 }
 
 class QQuickMenuBase;
