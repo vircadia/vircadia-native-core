@@ -182,9 +182,19 @@ Item {
             cache: false;
             source: "image://security/securityImage";
         }
-        // "Security picture" text below pic
+        Image {
+            id: securityImageOverlay;
+            source: "images/lockOverlay.png";
+            width: securityImage.width * 0.45;
+            height: securityImage.height * 0.45;
+            anchors.bottom: securityImage.bottom;
+            anchors.right: securityImage.right;
+            mipmap: true;
+            opacity: 0.9;
+        }
+        // "Security image" text below pic
         RalewayRegular {
-            text: "security picture";
+            text: "security image";
             // Text size
             size: 12;
             // Anchors

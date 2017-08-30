@@ -147,6 +147,16 @@ Rectangle {
             cache: false;
             source: "image://security/securityImage";
         }
+        Image {
+            id: securityImageOverlay;
+            source: "../wallet/images/lockOverlay.png";
+            width: securityImage.width * 0.45;
+            height: securityImage.height * 0.45;
+            anchors.bottom: securityImage.bottom;
+            anchors.right: securityImage.right;
+            mipmap: true;
+            opacity: 0.9;
+        }
 
         // Separator
         HifiControlsUit.Separator {
