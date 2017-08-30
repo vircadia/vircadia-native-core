@@ -28,14 +28,14 @@ Rectangle {
     property string activeView: "initialize";
     property bool purchasesReceived: false;
     property bool balanceReceived: false;
+    property bool securityImageResultReceived: false;
+    property bool keyFilePathIfExistsResultReceived: false;
     property string itemId: "";
     property string itemHref: "";
     property double balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
     property int itemPriceFull: 0;
     property bool itemIsJson: true;
-    property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
@@ -48,6 +48,8 @@ Rectangle {
                 root.activeView = "initialize";
                 commerce.getSecurityImage();
                 commerce.getKeyFilePathIfExists();
+                commerce.balance();
+                commerce.inventory();
             }
         }
 
@@ -190,6 +192,10 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
+            securityImageResultReceived = false;
+            purchasesReceived = false;
+            balanceReceived = false;
+            keyFilePathIfExistsResultReceived = false;
             commerce.getLoginStatus();
         }
     }
@@ -310,13 +316,6 @@ Rectangle {
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-
-        onVisibleChanged: {
-            if (visible) {
-                commerce.balance();
-                commerce.inventory();
-            }
-        }
 
         //
         // ITEM DESCRIPTION START

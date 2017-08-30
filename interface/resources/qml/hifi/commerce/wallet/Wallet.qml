@@ -277,6 +277,7 @@ Rectangle {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSecurity_changePassphrase') {
                     passphraseSelectionLightbox.visible = true;
+                    passphraseSelectionLightbox.clearPassphraseFields();
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
                     securityImageSelectionLightbox.visible = true;
                 }

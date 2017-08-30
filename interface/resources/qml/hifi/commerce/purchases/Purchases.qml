@@ -29,7 +29,7 @@ Rectangle {
     property string referrerURL: "";
     property bool securityImageResultReceived: false;
     property bool keyFilePathIfExistsResultReceived: false;
-    property bool inventoryReceived: false;
+    property bool purchasesReceived: false;
     property bool punctuationMode: false;
     // Style
     color: hifi.colors.baseGray;
@@ -43,6 +43,7 @@ Rectangle {
                 root.activeView = "initialize";
                 commerce.getSecurityImage();
                 commerce.getKeyFilePathIfExists();
+                commerce.inventory();
             }
         }
 
@@ -69,11 +70,13 @@ Rectangle {
         }
 
         onInventoryResult: {
-            inventoryReceived = true;
+            purchasesReceived = true;
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
+                purchasesModel.clear();
                 purchasesModel.append(result.data.assets);
+                filteredPurchasesModel.clear();
                 filteredPurchasesModel.append(result.data.assets);
             }
         }
@@ -161,6 +164,9 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
+            securityImageResultReceived = false;
+            purchasesReceived = false;
+            keyFilePathIfExistsResultReceived = false;
             commerce.getLoginStatus();
         }
     }
@@ -283,14 +289,7 @@ Rectangle {
         anchors.top: titleBarContainer.bottom;
         anchors.topMargin: 8;
         anchors.bottom: actionButtonsContainer.top;
-        anchors.bottomMargin: 8;        
-
-        onVisibleChanged: {
-            if (visible) {
-                commerce.balance();
-                commerce.inventory();
-            }
-        }
+        anchors.bottomMargin: 8;
         
         //
         // FILTER BAR START
@@ -378,7 +377,7 @@ Rectangle {
 
         Item {
             id: noPurchasesAlertContainer;
-            visible: !purchasesContentsList.visible && root.inventoryReceived;
+            visible: !purchasesContentsList.visible && root.purchasesReceived;
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
