@@ -224,6 +224,12 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
     memcpy(ckey, hash.data(), 32);
 }
 
+Wallet::~Wallet() {
+    if (_securityImage) {
+        delete _securityImage;
+    }
+}
+
 void Wallet::setPassphrase(const QString& passphrase) {
     if (_passphrase) {
         delete _passphrase;
@@ -411,6 +417,13 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     return QString();
 }
 
+void Wallet::updateImageProvider() {
+    // inform the image provider.  Note it doesn't matter which one you inform, as the
+    // images are statics
+    auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+    auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
+    imageProvider->setSecurityImage(_securityImage);
+}
 
 void Wallet::chooseSecurityImage(const QString& filename) {
 
@@ -431,10 +444,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     if (encryptFile(path, imageFilePath())) {
         qCDebug(commerce) << "emitting pixmap";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
         emit securityImageResult(true);
     } else {
@@ -460,10 +470,7 @@ void Wallet::getSecurityImage() {
         _securityImage->loadFromData(data, dataLen, "jpg");
         qCDebug(commerce) << "created pixmap from encrypted file";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
         delete[] data;
         emit securityImageResult(true);
