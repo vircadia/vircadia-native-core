@@ -27,12 +27,6 @@ Rectangle {
     // Style
     color: hifi.colors.baseGray;
 
-    onVisibleChanged: {
-        if (visible) {
-            root.resetSubmitButton();
-        }
-    }
-
     //
     // SECURE PASSPHRASE SELECTION START
     //
@@ -174,5 +168,9 @@ Rectangle {
     function resetSubmitButton() {
         passphraseSubmitButton.enabled = true;
         passphraseSubmitButton.text = "Submit";
+    }
+
+    function clearPassphraseFields() {
+        passphraseSelection.clearPassphraseFields();
     }
 }

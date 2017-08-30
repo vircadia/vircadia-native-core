@@ -28,12 +28,6 @@ Rectangle {
     // Style
     color: hifi.colors.baseGray;
 
-    onVisibleChanged: {
-        if (visible) {
-            root.resetSubmitButton();
-        }
-    }
-
     Hifi.QmlCommerce {
         id: commerce;
 
