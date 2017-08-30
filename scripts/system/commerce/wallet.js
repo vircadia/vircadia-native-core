@@ -57,9 +57,10 @@
     function fromQml(message) {
         switch (message.method) {
             case 'walletSetup_cancelClicked':
+            case 'needsLogIn_cancelClicked':
                 tablet.gotoHomeScreen();
                 break;
-            case 'walletSetup_loginClicked':
+            case 'needsLogIn_loginClicked':
                 openLoginWindow();
                 break;
             case 'disableHmdPreview':

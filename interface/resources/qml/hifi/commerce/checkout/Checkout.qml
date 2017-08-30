@@ -41,6 +41,16 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
 
+        onLoginStatusResult: {
+            if (!isLoggedIn && root.activeView !== "needsLogIn") {
+                root.activeView = "needsLogIn";
+            } else if (isLoggedIn) {
+                root.activeView = "initialize";
+                commerce.getSecurityImage();
+                commerce.getKeyFilePathIfExists();
+            }
+        }
+
         onSecurityImageResult: {
             securityImageResultReceived = true;
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
@@ -107,6 +117,7 @@ Rectangle {
     //
     Item {
         id: titleBarContainer;
+        visible: !needsLogIn.visible;
         // Size
         width: parent.width;
         height: 50;
@@ -179,10 +190,32 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getSecurityImage();
-            commerce.getKeyFilePathIfExists();
+            commerce.getLoginStatus();
         }
     }
+        
+    HifiWallet.NeedsLogIn {
+        id: needsLogIn;
+        visible: root.activeView === "needsLogIn";
+        anchors.top: parent.top;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
+    }
+    Connections {
+        target: GlobalServices
+        onMyUsernameChanged: {
+            commerce.getLoginStatus();
+        }
+    }
+
+
     
     //
     // "WALLET NOT SET UP" START
