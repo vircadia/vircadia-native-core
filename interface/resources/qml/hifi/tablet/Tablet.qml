@@ -121,7 +121,7 @@ Item {
                 anchors.fill: parent
 
                 RalewaySemiBold {
-                    text: Account.isLoggedIn() ? qsTr("Log out") : qsTr("Log in")
+                    text: Account.loggedIn ? qsTr("Log out") : qsTr("Log in")
                     horizontalAlignment: Text.AlignRight
                     anchors.right: parent.right
                     font.pixelSize: 20
@@ -129,9 +129,9 @@ Item {
                 }
 
                 RalewaySemiBold {
-                    visible: Account.isLoggedIn()
-                    height: Account.isLoggedIn() ? parent.height/2 - parent.spacing/2 : 0
-                    text: Account.isLoggedIn() ? "[" + tabletRoot.usernameShort + "]" : ""
+                    visible: Account.loggedIn
+                    height: Account.loggedIn ? parent.height/2 - parent.spacing/2 : 0
+                    text: Account.loggedIn ? "[" + tabletRoot.usernameShort + "]" : ""
                     horizontalAlignment: Text.AlignRight
                     anchors.right: parent.right
                     font.pixelSize: 20
@@ -142,7 +142,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    if (!Account.isLoggedIn()) {
+                    if (!Account.loggedIn) {
                         DialogsManager.showLoginDialog()
                     } else {
                         Account.logOut()
