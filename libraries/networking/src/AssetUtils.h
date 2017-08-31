@@ -33,6 +33,8 @@ const QString ASSET_FILE_PATH_REGEX_STRING = "^(\\/[^\\/\\0]+)+$";
 const QString ASSET_PATH_REGEX_STRING = "^\\/([^\\/\\0]+(\\/)?)+$";
 const QString ASSET_HASH_REGEX_STRING = QString("^[a-fA-F0-9]{%1}$").arg(SHA256_HASH_HEX_LENGTH);
 
+const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
+
 enum AssetServerError : uint8_t {
     NoError = 0,
     AssetNotFound,

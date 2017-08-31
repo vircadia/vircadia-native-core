@@ -53,8 +53,6 @@ static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 
-static const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
-
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath)
     : _assetHash(assetHash), _assetPath(assetPath), _filePath(filePath) {
 }
