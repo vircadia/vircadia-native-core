@@ -50,7 +50,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
         optionsToggles = {},  // Cater for toggle buttons without a setting.
 
-        highlightOverlay,
         swatchHighlightOverlay = null,
 
         LEFT_HAND = 0,
@@ -81,6 +80,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         MENU_HEADER_HOVER_OFFSET = { x: 0, y: 0, z: 0.0040 },
 
         MENU_HEADER_PROPERTIES = {
+            // Invisible box to catch laser intersections while menu heading and bar move inside.
             dimensions: Vec3.sum(UIT.dimensions.header, MENU_HEADER_HOVER_OFFSET),  // Keep the laser on top when hover.
             localPosition: {
                 x: 0,
@@ -185,23 +185,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         EMPTY_SWATCH_COLOR = UIT.colors.baseGrayShadow,
-        SWATCH_HIGHLIGHT_DELTA = 0.0020,
-
-        UI_BASE_COLOR = { red: 64, green: 64, blue: 64 },
-        UI_HIGHLIGHT_COLOR = { red: 100, green: 240, blue: 100 },
+        SWATCH_HIGHLIGHT_DELTA = 0.0020,  // TODO: Rename to SWATCH_HOVER_DELTA and move to be with other deltas?
 
         UI_ELEMENTS = {
-            "button": {  // TODO: Delete.
-                overlay: "cube",
-                properties: {
-                    dimensions: { x: 0.03, y: 0.03, z: 0.01 },
-                    localRotation: Quat.ZERO,
-                    alpha: 1.0,
-                    solid: true,
-                    ignoreRayIntersection: false,
-                    visible: true
-                }
-            },
             "menuButton": {
                 overlay: "cube",  // Invisible cube for hit area.
                 properties: {
@@ -292,19 +278,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.white
                 }
             },
-            "toggleButton": {  // TODO: Delete
-                overlay: "cube",
-                properties: {
-                    dimensions: { x: 0.03, y: 0.03, z: 0.01 },
-                    localRotation: Quat.ZERO,
-                    alpha: 1.0,
-                    solid: true,
-                    ignoreRayIntersection: false,
-                    visible: true
-                },
-                onColor: UI_HIGHLIGHT_COLOR,
-                offColor: UI_BASE_COLOR
-            },
             "newToggleButton": {  // TODO: Rename to "toggleButton".
                 overlay: "cube",
                 properties: {
@@ -375,28 +348,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     emissive: true,  // TODO: This has no effect.
                     alpha: 1.0,
                     solid: true,
-                    ignoreRayIntersection: false,
+                    ignoreRayIntersection: true,
                     visible: false
                 }
 
-            },
-            "label": {
-                overlay: "text3d",
-                properties: {
-                    dimensions: { x: 0.03, y: 0.0075 },
-                    localPosition: { x: 0, y: 0, z: 0.005 },
-                    localRotation: Quat.ZERO,
-                    topMargin: 0,
-                    leftMargin: 0,
-                    color: { red: 240, green: 240, blue: 240 },
-                    alpha: 1.0,
-                    lineHeight: 0.007,
-                    backgroundAlpha: 0,
-                    ignoreRayIntersection: true,
-                    isFacingAvatar: false,
-                    drawInFront: true,
-                    visible: true
-                }
             },
             "square": {
                 overlay: "cube",  // Emulate a 2D square with a cube.
@@ -447,7 +402,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "barSlider": {  // Values range between 0.0 and 1.0.
+            "barSlider": {
+                // Invisible cube to catch laser intersections; value and remainder entities move inside.
+                // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.02, y: 0.1, z: 0.01 },
@@ -593,7 +550,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         },
 
-        BUTTON_UI_ELEMENTS = ["button", "newButton", "menuButton", "toggleButton", "newToggleButton", "swatch"],
+        BUTTON_UI_ELEMENTS = ["newButton", "menuButton", "newToggleButton", "swatch"],
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
@@ -805,7 +762,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "newToggleButton",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0935, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
+                        localPosition: { x: -0.0935, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
                     newLabel: {
                         url: "../assets/tools/color/pick-color-label.svg",
@@ -1809,22 +1766,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         PHYSICS_TOOL = 4,
         DELETE_TOOL = 5,
 
-        HIGHLIGHT_PROPERTIES = {
-            xDelta: 0.004,
-            yDelta: 0.004,
-            zDimension: 0.001,
-            properties: {
-                localPosition: { x: 0, y: 0, z: 0.001 },
-                localRotation: Quat.ZERO,
-                color: { red: 255, green: 255, blue: 0 },
-                alpha: 0.8,
-                solid: false,
-                drawInFront: true,
-                ignoreRayIntersection: true,
-                visible: false
-            }
-        },
-
         NONE = -1,
 
         optionsItems,
@@ -1835,7 +1776,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedSourceOverlays,
         highlightedSourceItems,
         isHighlightingButton,
-        isHighlightingNewButton,  // TODO: Delete when no longer needed.
+        isHighlightingNewButton,  // TODO: Rename.
         isHighlightingNewToggleButton,  // TODO: Rename.
         isHighlightingSwatch,
         isHighlightingMenuButton,
@@ -1939,53 +1880,40 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             menuOverlays[i] = itemID;
             menuEnabled[i] = true;
 
-            if (MENU_ITEMS[i].label) {
-                properties = Object.clone(UI_ELEMENTS.label.properties);
-                properties.text = MENU_ITEMS[i].label;
-                properties.parentID = itemID;
-                Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
-            }
+            // Collision overlay.
+            properties = Object.clone(UI_ELEMENTS.menuButton.hoverButton.properties);
+            properties.parentID = itemID;
+            buttonID = Overlays.addOverlay(UI_ELEMENTS.menuButton.hoverButton.overlay, properties);
+            menuHoverOverlays[i] = buttonID;
 
-            if (MENU_ITEMS[i].type === "menuButton") {
-                // Collision overlay.
-                properties = Object.clone(UI_ELEMENTS.menuButton.hoverButton.properties);
-                properties.parentID = itemID;
-                buttonID = Overlays.addOverlay(UI_ELEMENTS.menuButton.hoverButton.overlay, properties);
-                menuHoverOverlays[i] = buttonID;
+            // Icon.
+            properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].properties);
+            properties = Object.merge(properties, UI_ELEMENTS.menuButton.icon.properties);
+            properties = Object.merge(properties, MENU_ITEMS[i].icon.properties);
+            properties.url = Script.resolvePath(properties.url);
+            properties.parentID = buttonID;
+            Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].overlay, properties);
 
-                // Icon.
-                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].properties);
-                properties = Object.merge(properties, UI_ELEMENTS.menuButton.icon.properties);
-                properties = Object.merge(properties, MENU_ITEMS[i].icon.properties);
-                properties.url = Script.resolvePath(properties.url);
-                properties.parentID = buttonID;
-                Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].overlay, properties);
+            // Label.
+            properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].properties);
+            properties = Object.merge(properties, UI_ELEMENTS.menuButton.label.properties);
+            properties = Object.merge(properties, MENU_ITEMS[i].label.properties);
+            properties.url = Script.resolvePath(properties.url);
+            properties.parentID = itemID;
+            Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].overlay, properties);
 
-                // Label.
-                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].properties);
-                properties = Object.merge(properties, UI_ELEMENTS.menuButton.label.properties);
-                properties = Object.merge(properties, MENU_ITEMS[i].label.properties);
-                properties.url = Script.resolvePath(properties.url);
-                properties.parentID = itemID;
-                Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].overlay, properties);
-
-                // Sublabel.
-                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].properties);
-                properties = Object.merge(properties, UI_ELEMENTS.menuButton.sublabel.properties);
-                properties.url = Script.resolvePath(properties.url);
-                properties.parentID = itemID;
-                Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].overlay, properties);
-            }
+            // Sublabel.
+            properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].properties);
+            properties = Object.merge(properties, UI_ELEMENTS.menuButton.sublabel.properties);
+            properties.url = Script.resolvePath(properties.url);
+            properties.parentID = itemID;
+            Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].overlay, properties);
         }
     }
 
     function closeMenu() {
         var i,
             length;
-
-        Overlays.editOverlay(highlightOverlay, {
-            parentID: menuOriginOverlay
-        });
 
         for (i = 0, length = menuOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(menuOverlays[i]);
@@ -2053,13 +1981,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
                 if (value !== "") {
                     properties[optionsItems[i].setting.property] = value;
-                    if (optionsItems[i].type === "toggleButton") {
-                        // Store value in optionsSettings rather than using overlay property.
-                        optionsSettings[optionsItems[i].id].value = value;
-                        properties.color = value
-                            ? UI_ELEMENTS[optionsItems[i].type].onColor
-                            : UI_ELEMENTS[optionsItems[i].type].offColor;
-                    }
                     if (optionsItems[i].type === "newToggleButton") {
                         // Store value in optionsSettings rather than using overlay property.
                         optionsSettings[optionsItems[i].id].value = value;
@@ -2096,14 +2017,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
             optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
             optionsOverlaysIDs.push(optionsItems[i].id);
-            if (optionsItems[i].label) {
-                childProperties = Object.clone(UI_ELEMENTS.label.properties);
-                childProperties.text = optionsItems[i].label;
-                childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                childProperties.visible = optionsItems[i].type !== "picklistItem";
-                id = Overlays.addOverlay(UI_ELEMENTS.label.overlay, childProperties);
-                optionsOverlaysLabels[i] = id;
-            }
             if (optionsItems[i].newLabel) {
                 childProperties = Object.clone(UI_ELEMENTS.image.properties);
                 childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].newLabel);
@@ -2293,11 +2206,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     function closeOptions() {
         var i,
             length;
-
-        // Remove options items.
-        Overlays.editOverlay(highlightOverlay, {
-            parentID: menuOriginOverlay
-        });
 
         if (swatchHighlightOverlay !== null) {
             Overlays.deleteOverlay(swatchHighlightOverlay);
@@ -2733,7 +2641,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         var intersectedItem = NONE,
             intersectionItems,
             color,
-            parentProperties,
             localPosition,
             parameter,
             parameterValue,
@@ -2912,7 +2819,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
-                }  else if (isHighlightingNewToggleButton) {
+                } else if (isHighlightingNewToggleButton) {
                     if (intersectionEnabled[highlightedItem]) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
@@ -2967,27 +2874,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                         color: UIT.colors.greenHighlight
                     });
-                } else if (!isHighlightingMenuButton && !isHighlightingColorCircle && !isHighlightingSlider) {
-                    parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
-                        ["dimensions", "localPosition"]);
-                    Overlays.editOverlay(highlightOverlay, {
-                        parentID: intersectionOverlays[intersectedItem],
-                        dimensions: {
-                            x: parentProperties.dimensions.x + HIGHLIGHT_PROPERTIES.xDelta,
-                            y: parentProperties.dimensions.y + HIGHLIGHT_PROPERTIES.yDelta,
-                            z: HIGHLIGHT_PROPERTIES.zDimension
-                        },
-                        localPosition: HIGHLIGHT_PROPERTIES.properties.localPosition,
-                        localRotation: HIGHLIGHT_PROPERTIES.properties.localRotation,
-                        color: HIGHLIGHT_PROPERTIES.properties.color,
-                        visible: true
-                    });
                 }
             } else if (highlightedItem !== NONE) {
-                // Un-highlight previous button.
-                Overlays.editOverlay(highlightOverlay, {
-                    visible: false
-                });
+                // Un-highlight previous items.
                 if (isHighlightingMenuButton) {
                     // Lower menu button.
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
@@ -3309,11 +3198,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Menu items.
         openMenu();
-
-        // Prepare highlight overlay.
-        properties = Object.clone(HIGHLIGHT_PROPERTIES);
-        properties.parentID = menuOriginOverlay;
-        highlightOverlay = Overlays.addOverlay("cube", properties);
 
         // Initial values.
         optionsItems = null;
