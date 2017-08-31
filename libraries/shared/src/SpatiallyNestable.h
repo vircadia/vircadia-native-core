@@ -158,8 +158,13 @@ public:
 
     SpatiallyNestablePointer getThisPointer() const;
 
-    void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
-    void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
+    using ChildLambda = std::function<void(const SpatiallyNestablePointer&)>;
+    using ChildLambdaTest = std::function<bool(const SpatiallyNestablePointer&)>;
+
+    void forEachChild(const ChildLambda& actor) const;
+    void forEachDescendant(const ChildLambda& actor) const;
+    void forEachChildTest(const ChildLambdaTest&  actor) const;
+    void forEachDescendantTest(const ChildLambdaTest& actor) const;
 
     void die() { _isDead = true; }
     bool isDead() const { return _isDead; }

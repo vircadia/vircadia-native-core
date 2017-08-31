@@ -39,12 +39,14 @@ class OffscreenQmlSurface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
+    static void setSharedContext(QOpenGLContext* context);
+
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
 
     using MouseTranslator = std::function<QPoint(const QPointF&)>;
 
-    virtual void create(QOpenGLContext* context);
+    virtual void create();
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
 
@@ -116,6 +118,8 @@ protected:
     void setFocusText(bool newFocusText);
 
 private:
+    static QOpenGLContext* getSharedContext();
+
     QObject* finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     void setupFbo();

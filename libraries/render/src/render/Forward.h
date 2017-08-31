@@ -11,12 +11,23 @@
 #define hifi_render_Forward_h
 
 #include <memory>
+#include <vector>
+#include <set>
+#include <cstdint>
 
 namespace render {
+    class Args;
+
+    using ItemID = uint32_t;
+    using ItemCell = int32_t;
+
+    // A few typedefs for standard containers of ItemIDs
+    using ItemIDs = std::vector<ItemID>;
+    using ItemIDSet = std::set<ItemID>;
+
     class Scene;
     using ScenePointer = std::shared_ptr<Scene>;
     class ShapePipeline;
-    class Args;
 }
 
 using RenderArgs = render::Args;

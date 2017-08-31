@@ -133,20 +133,20 @@
                             </div>
                         </div>
                     </fieldset>
-                    <fieldset style="display:none;">
-                        <!-- extra column ------------------------------------------------------------------------------------ -->
-                        <div class="column" id="group-cloneable-group" style="display:none;">
-                            <div class="sub-section-header">
-                                <span>Cloneable Settings</span>
-                            </div>
-                            <div class="cloneable-group property gen">
-                                <div><label>Clone Lifetime</label><input type="number" data-user-data-type="cloneLifetime" id="property-cloneable-lifetime"></div>
-                                <div><label>Clone Limit</label><input type="number" data-user-data-type="cloneLimit" id="property-cloneable-limit"></div>
-                                <div class="property checkbox">
-                                    <input type="checkbox" id="property-cloneable-dynamic">
-                                    <label for="property-cloneable-dynamic">Clone Dynamic</label>
-                                </div>
-                            </div>
+
+                    <fieldset class="column" id="group-cloneable-group" style="display:none;">
+                        <legend class="sub-section-header">
+                             <span>Cloneable Settings</span>
+                        </legend>
+                        <fieldset class="minor">
+                             <div><label>Clone Lifetime</label><input type="number" data-user-data-type="cloneLifetime" id="property-cloneable-lifetime"></div>
+                        </fieldset>
+                        <fieldset class="minor">
+                             <div><label>Clone Limit   </label><input type="number" data-user-data-type="cloneLimit" id="property-cloneable-limit"></div>
+                        </fieldset>
+                        <div class="property checkbox">
+                             <input type="checkbox" id="property-cloneable-dynamic">
+                             <label for="property-cloneable-dynamic">Clone Dynamic</label>
                         </div>
                     </fieldset>
                 </div>
