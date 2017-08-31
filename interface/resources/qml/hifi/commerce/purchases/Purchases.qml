@@ -41,9 +41,35 @@ Rectangle {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
-                commerce.getSecurityImage();
-                commerce.getKeyFilePathIfExists();
-                commerce.inventory();
+                commerce.getPassphraseSetupStatus();
+            }
+        }
+        
+        onPassphraseSetupStatusResult: {
+            if (!passphraseIsSetup && root.activeView !== "notSetUp") {
+                root.activeView = "notSetUp";
+            } else if (passphraseIsSetup && root.activeView === "initialize") {
+                commerce.getWalletAuthenticatedStatus();
+            }
+        }
+
+        onWalletAuthenticatedStatusResult: {
+            if (!isAuthenticated && !passphraseModal.visible) {
+                passphraseModal.visible = true;
+            } else if (isAuthenticated) {
+                if (passphraseModal.visible) {
+                    passphraseModal.visible = false;
+                }
+                
+                if (!securityImageResultReceived) {
+                    commerce.getSecurityImage();
+                }
+                if (!keyFilePathIfExistsResultReceived) {
+                    commerce.getKeyFilePathIfExists();
+                }
+                if (!purchasesReceived) {
+                    commerce.inventory();
+                }
             }
         }
 
@@ -189,6 +215,22 @@ Rectangle {
         target: GlobalServices
         onMyUsernameChanged: {
             commerce.getLoginStatus();
+        }
+    }
+
+    PassphraseModal {
+        id: passphraseModal;
+        z: 998;
+        visible: false;
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+
+        Connections {
+            onSendSignalToParent: {
+                sendToScript(msg);
+            }
         }
     }
     

@@ -48,9 +48,9 @@ Item {
     onVisibleChanged: {
         if (visible) {
             passphraseField.focus = true;
-            sendSignalToWallet({method: 'disableHmdPreview'});
+            sendSignalToParent({method: 'disableHmdPreview'});
         } else {
-            sendSignalToWallet({method: 'maybeEnableHmdPreview'});
+            sendSignalToParent({method: 'maybeEnableHmdPreview'});
         }
     }
 
@@ -96,9 +96,9 @@ Item {
 
             onFocusChanged: {
                 if (focus) {
-                    sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                    keyboard.raised = true;
                 } else if (!passphraseFieldAgain.focus) {
-                    sendSignalToWallet({method: 'walletSetup_lowerKeyboard'});
+                    keyboard.raised = false;
                 }
             }
 
@@ -106,7 +106,7 @@ Item {
                 anchors.fill: parent;
                 onClicked: {
                     parent.focus = true;
-                    sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                    keyboard.raised = true;
                 }
             }
 
@@ -206,7 +206,7 @@ Item {
                 width: parent.width/2 - anchors.leftMargin*2;
                 text: "Cancel"
                 onClicked: {
-                    sendSignalToWallet({method: 'passphrasePopup_cancelClicked'});
+                    sendSignalToParent({method: 'passphrasePopup_cancelClicked'});
                 }
             }
 
@@ -228,5 +228,45 @@ Item {
         }
     }
 
-    signal sendSignalToWallet(var msg);
+    Item {
+        id: keyboardContainer;
+        z: 999;
+        visible: keyboard.raised;
+        property bool punctuationMode: false;
+        anchors {
+            bottom: parent.bottom;
+            left: parent.left;
+            right: parent.right;
+        }
+
+        Image {
+            id: lowerKeyboardButton;
+            source: "images/lowerKeyboard.png";
+            anchors.horizontalCenter: parent.horizontalCenter;
+            anchors.bottom: keyboard.top;
+            height: 30;
+            width: 120;
+
+            MouseArea {
+                anchors.fill: parent;
+
+                onClicked: {
+                    root.keyboardRaised = false;
+                }
+            }
+        }
+
+        HifiControlsUit.Keyboard {
+            id: keyboard;
+            raised: HMD.mounted && root.keyboardRaised;
+            numeric: parent.punctuationMode;
+            anchors {
+                bottom: parent.bottom;
+                left: parent.left;
+                right: parent.right;
+            }
+        }
+    }
+
+    signal sendSignalToParent(var msg);
 }

@@ -231,6 +231,7 @@
             case 'purchases_goToMarketplaceClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
+            case 'passphrasePopup_cancelClicked':
             case 'needsLogIn_cancelClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;

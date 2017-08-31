@@ -253,14 +253,8 @@ Rectangle {
         anchors.right: parent.right;
 
         Connections {
-            onSendSignalToWallet: {
-                if (msg.method === 'walletSetup_raiseKeyboard') {
-                    root.keyboardRaised = true;
-                } else if (msg.method === 'walletSetup_lowerKeyboard') {
-                    root.keyboardRaised = false;
-                } else {
-                    sendToScript(msg);
-                }
+            onSendSignalToParent: {
+                sendToScript(msg);
             }
         }
     }
