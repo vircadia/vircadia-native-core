@@ -27,29 +27,6 @@ Rectangle {
     // Style
     color: hifi.colors.baseGray;
 
-    onVisibleChanged: {
-        if (visible) {
-            root.resetSubmitButton();
-        }
-    }
-
-    Connections {
-        target: passphraseSelection;
-        onSendMessageToLightbox: {
-            if (msg.method === 'statusResult') {
-                if (msg.status) {
-                    // Success submitting new passphrase
-                    root.resetSubmitButton();
-                    root.visible = false;
-                } else {
-                    // Error submitting new passphrase
-                    root.resetSubmitButton();
-                    passphraseSelection.setErrorText("Backend error");
-                }
-            }
-        }
-    }
-
     //
     // SECURE PASSPHRASE SELECTION START
     //
@@ -113,6 +90,24 @@ Rectangle {
             anchors.left: parent.left;
             anchors.right: parent.right;
             anchors.bottom: passphraseNavBar.top;
+
+            Connections {
+                onSendMessageToLightbox: {
+                    if (msg.method === 'statusResult') {
+                        if (msg.status) {
+                            // Success submitting new passphrase
+                            root.resetSubmitButton();
+                            root.visible = false;
+                        } else {
+                            // Error submitting new passphrase
+                            root.resetSubmitButton();
+                            passphraseSelection.setErrorText("Backend error");
+                        }
+                    } else {
+                        sendSignalToWallet(msg);
+                    }
+                }
+            }
         }
 
         // Navigation Bar
@@ -168,8 +163,14 @@ Rectangle {
     // SECURE PASSPHRASE SELECTION END
     //
 
+    signal sendSignalToWallet(var msg);
+
     function resetSubmitButton() {
         passphraseSubmitButton.enabled = true;
         passphraseSubmitButton.text = "Submit";
+    }
+
+    function clearPassphraseFields() {
+        passphraseSelection.clearPassphraseFields();
     }
 }

@@ -14,7 +14,7 @@
 /*global XXX */
 
 (function () { // BEGIN LOCAL_SCOPE
-
+    Script.include("/~/system/libraries/accountUtils.js");
 
     // Function Name: onButtonClicked()
     //
@@ -53,19 +53,26 @@
     // Description:
     //   -Called when a message is received from SpectatorCamera.qml. The "message" argument is what is sent from the QML
     //    in the format "{method, params}", like json-rpc. See also sendToQml().
+    var isHmdPreviewDisabled = true;
     function fromQml(message) {
         switch (message.method) {
             case 'walletSetup_cancelClicked':
+            case 'needsLogIn_cancelClicked':
                 tablet.gotoHomeScreen();
                 break;
-            case 'walletSetup_loginClicked':
-                if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
-                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
-                    Menu.triggerOption("Login / Sign Up");
-                    tablet.gotoHomeScreen();
-                } else {
-                    tablet.loadQMLOnTop("../../../dialogs/TabletLoginDialog.qml");
-                }
+            case 'needsLogIn_loginClicked':
+                openLoginWindow();
+                break;
+            case 'disableHmdPreview':
+                isHmdPreviewDisabled = Menu.isOptionChecked("Disable Preview");
+                Menu.setIsOptionChecked("Disable Preview", true);
+                break;
+            case 'maybeEnableHmdPreview':
+                Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
+                break;
+            case 'walletReset':
+                onButtonClicked();
+                onButtonClicked();
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
@@ -126,7 +133,8 @@
             button = tablet.addButton({
                 text: buttonName,
                 icon: "icons/tablet-icons/wallet-i.svg",
-                activeIcon: "icons/tablet-icons/wallet-a.svg"
+                activeIcon: "icons/tablet-icons/wallet-a.svg",
+                sortOrder: 10
             });
             button.clicked.connect(onButtonClicked);
             tablet.screenChanged.connect(onTabletScreenChanged);

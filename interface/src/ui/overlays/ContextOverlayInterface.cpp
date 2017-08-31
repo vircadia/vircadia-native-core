@@ -13,6 +13,7 @@
 #include "Application.h"
 
 #include <EntityTreeRenderer.h>
+#include <NetworkingConstants.h>
 
 static const float CONTEXT_OVERLAY_TABLET_OFFSET = 30.0f; // Degrees
 static const float CONTEXT_OVERLAY_TABLET_ORIENTATION = 210.0f; // Degrees
@@ -242,7 +243,7 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
-static const QString MARKETPLACE_BASE_URL = "https://metaverse.highfidelity.com/marketplace/items/";
+static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
 
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in

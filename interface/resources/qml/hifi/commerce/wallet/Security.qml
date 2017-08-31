@@ -13,6 +13,7 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
@@ -35,15 +36,11 @@ Item {
                 topSecurityImage.source = path;
                 changeSecurityImageImage.source = "";
                 changeSecurityImageImage.source = path;
-                changePassphraseImage.source = "";
-                changePassphraseImage.source = path;
             }
         }
 
-        onKeyFilePathResult: {
-            if (path !== "") {
-                keyFilePath.text = path;
-            }
+        onKeyFilePathIfExistsResult: {
+            keyFilePath.text = path;
         }
     }
 
@@ -94,9 +91,19 @@ Item {
             source: "image://security/securityImage";
             cache: false;
         }
-        // "Security picture" text below pic
+        Image {
+            id: topSecurityImageMask;
+            source: "images/lockOverlay.png";
+            width: topSecurityImage.width * 0.45;
+            height: topSecurityImage.height * 0.45;
+            anchors.bottom: topSecurityImage.bottom;
+            anchors.right: topSecurityImage.right;
+            mipmap: true;
+            opacity: 0.9;
+        }
+        // "Security image" text below pic
         RalewayRegular {
-            text: "security picture";
+            text: "security image";
             // Text size
             size: 12;
             // Anchors
@@ -150,10 +157,16 @@ Item {
                 anchors.left: parent.left;
                 height: parent.height;
                 width: height;
-                source: "image://security/securityImage";
+                source: "images/lockOverlay.png";
                 fillMode: Image.PreserveAspectFit;
                 mipmap: true;
                 cache: false;
+                visible: false;
+            }
+            ColorOverlay {
+                anchors.fill: changePassphraseImage;
+                source: changePassphraseImage;
+                color: "white"
             }
             // "Change Passphrase" button
             HifiControlsUit.Button {
@@ -264,7 +277,7 @@ Item {
 
             onVisibleChanged: {
                 if (visible) {
-                    commerce.getKeyFilePath();
+                    commerce.getKeyFilePathIfExists();
                 }
             }
         }

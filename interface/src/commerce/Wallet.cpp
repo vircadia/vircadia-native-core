@@ -14,6 +14,7 @@
 #include "Wallet.h"
 #include "Application.h"
 #include "ui/ImageProvider.h"
+#include "scripting/HMDScriptingInterface.h"
 
 #include <PathUtils.h>
 #include <OffscreenUi.h>
@@ -220,8 +221,14 @@ static const unsigned char IVEC[16] = "IAmAnIVecYay123";
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
     // first ivec
     memcpy(ivec, IVEC, 16);
-    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Md5);
-    memcpy(ckey, hash.data(), 16);
+    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Sha256);
+    memcpy(ckey, hash.data(), 32);
+}
+
+Wallet::~Wallet() {
+    if (_securityImage) {
+        delete _securityImage;
+    }
 }
 
 void Wallet::setPassphrase(const QString& passphrase) {
@@ -238,7 +245,7 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     // a constant.  We can review this later - there are ways to generate keys
     // from a password that may be better.
     unsigned char ivec[16];
-    unsigned char ckey[16];
+    unsigned char ckey[32];
 
     initializeAESKeys(ivec, ckey, _salt);
 
@@ -292,7 +299,7 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
 
 bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
     unsigned char ivec[16];
-    unsigned char ckey[16];
+    unsigned char ckey[32];
     initializeAESKeys(ivec, ckey, _salt);
 
     // read encrypted file
@@ -331,7 +338,6 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
     *outputBufferSize += tempSize;
     *outputBufferPtr = outputBuffer;
     qCDebug(commerce) << "decrypted buffer size" << *outputBufferSize;
-    delete[] outputBuffer;
     return true;
 }
 
@@ -348,7 +354,7 @@ bool Wallet::createIfNeeded() {
             qCDebug(commerce) << "read private key";
             RSA_free(key);
             // K -- add the public key since we have a legit private key associated with it
-            _publicKeys.push_back(QUrl::toPercentEncoding(publicKey.toBase64()));
+            _publicKeys.push_back(publicKey.toBase64());
             return false;
         }
     }
@@ -359,6 +365,7 @@ bool Wallet::createIfNeeded() {
 bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateRSAKeypair();
+    sendKeyFilePathIfExists();
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
@@ -411,6 +418,13 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     return QString();
 }
 
+void Wallet::updateImageProvider() {
+    // inform the image provider.  Note it doesn't matter which one you inform, as the
+    // images are statics
+    auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+    auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
+    imageProvider->setSecurityImage(_securityImage);
+}
 
 void Wallet::chooseSecurityImage(const QString& filename) {
 
@@ -419,7 +433,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     }
     // temporary...
     QString path = qApp->applicationDirPath();
-    path.append("/resources/qml/hifi/commerce/");
+    path.append("/resources/qml/hifi/commerce/wallet/");
     path.append(filename);
     // now create a new security image pixmap
     _securityImage = new QPixmap();
@@ -431,10 +445,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     if (encryptFile(path, imageFilePath())) {
         qCDebug(commerce) << "emitting pixmap";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
         emit securityImageResult(true);
     } else {
@@ -454,23 +465,50 @@ void Wallet::getSecurityImage() {
     }
 
     // decrypt and return
-    if (decryptFile(imageFilePath(), &data, &dataLen)) {
+    QString filePath(imageFilePath());
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists() && decryptFile(filePath, &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
         qCDebug(commerce) << "created pixmap from encrypted file";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
+        delete[] data;
         emit securityImageResult(true);
     } else {
         qCDebug(commerce) << "failed to decrypt security image (maybe none saved yet?)";
         emit securityImageResult(false);
     }
 }
-void Wallet::getKeyFilePath() {
-    emit keyFilePathResult(keyFilePath());
+void Wallet::sendKeyFilePathIfExists() {
+    QString filePath(keyFilePath());
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists()) {
+        emit keyFilePathIfExistsResult(filePath);
+    } else {
+        emit keyFilePathIfExistsResult("");
+    }
+}
+
+void Wallet::reset() {
+    _publicKeys.clear();
+
+    delete _securityImage;
+    _securityImage = nullptr;
+
+    // tell the provider we got nothing
+    updateImageProvider();
+    delete _passphrase;
+
+    // for now we need to maintain the hard-coded passphrase.
+    // FIXME: remove this line as part of wiring up the passphrase
+    // and probably set it to nullptr
+    _passphrase = new QString("pwd");
+
+    QFile keyFile(keyFilePath());
+    QFile imageFile(imageFilePath());
+    keyFile.remove();
+    imageFile.remove();
 }

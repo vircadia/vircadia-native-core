@@ -9,40 +9,83 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/gtx/quaternion.hpp>
+#include "RenderableTextEntityItem.h"
 
+#include <TextEntityItem.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 #include <Transform.h>
+#include <TextEntityItem.h>
+#include <TextRenderer3D.h>
 
-#include "RenderableTextEntityItem.h"
 #include "GLMHelpers.h"
 
-EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity{ new RenderableTextEntityItem(entityID) };
-    entity->setProperties(properties);
-    return entity;
+using namespace render::entities;
+
+static const int FIXED_FONT_POINT_SIZE = 40;
+
+TextEntityRenderer::TextEntityRenderer(const EntityItemPointer& entity) :
+    Parent(entity),
+    _textRenderer(TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f)) {
+
 }
 
-RenderableTextEntityItem::~RenderableTextEntityItem() { 
+
+void TextEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (_geometryID && geometryCache) {
         geometryCache->releaseID(_geometryID);
     }
     delete _textRenderer;
+    _textRenderer = nullptr;
 }
 
-void RenderableTextEntityItem::render(RenderArgs* args) {
+bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+    if (_text != entity->getText()) {
+        return true;
+    }
+
+    if (_lineHeight != entity->getLineHeight()) {
+        return true;
+    }
+
+    if (_textColor != toGlm(entity->getTextColorX())) {
+        return true;
+    }
+
+    if (_backgroundColor != toGlm(entity->getBackgroundColorX())) {
+        return true;
+    }
+
+    if (_dimensions != entity->getDimensions()) {
+        return true;
+    }
+
+    if (_faceCamera != entity->getFaceCamera()) {
+        return true;
+    }
+    return false;
+}
+
+void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    _textColor = toGlm(entity->getTextColorX());
+    _backgroundColor = toGlm(entity->getBackgroundColorX());
+    _dimensions = entity->getDimensions();
+    _faceCamera = entity->getFaceCamera();
+    _lineHeight = entity->getLineHeight();
+    _text = entity->getText();
+}
+
+
+void TextEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
-    Q_ASSERT(getType() == EntityTypes::Text);
-    checkFading();
-    
+   
     static const float SLIGHTLY_BEHIND = -0.005f;
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     bool transparent = fadeRatio < 1.0f;
-    glm::vec4 textColor = glm::vec4(toGlm(getTextColorX()), fadeRatio);
-    glm::vec4 backgroundColor = glm::vec4(toGlm(getBackgroundColorX()), fadeRatio);
-    glm::vec3 dimensions = getDimensions();
+    glm::vec4 textColor = glm::vec4(_textColor, fadeRatio);
+    glm::vec4 backgroundColor = glm::vec4(_backgroundColor, fadeRatio);
+    const glm::vec3& dimensions = _dimensions;
     
     // Render background
     glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
@@ -53,14 +96,10 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
 
-    bool success;
-    Transform transformToTopLeft = getTransformToCenter(success);
-    if (!success) {
-        return;
-    }
-    if (getFaceCamera()) {
+    auto transformToTopLeft = _modelTransform;
+    if (_faceCamera) {
         //rotate about vertical to face the camera
-        glm::vec3 dPosition = args->getViewFrustum().getPosition() - getPosition();
+        glm::vec3 dPosition = args->getViewFrustum().getPosition() - _modelTransform.getTranslation();
         // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
         float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
         glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
@@ -77,18 +116,12 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     geometryCache->bindSimpleProgram(batch, false, transparent, false, false, true);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
     
-    float lineheight = getLineHeight();
-    float scale = lineheight / _textRenderer->getFontSize();
+    float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height
     batch.setModelTransform(transformToTopLeft);
     
-    float leftMargin = 0.1f * lineheight, topMargin = 0.1f * lineheight;
+    float leftMargin = 0.1f * _lineHeight, topMargin = 0.1f * _lineHeight;
     glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
                                  dimensions.y - 2.0f * topMargin);
-    auto text = getText();
-    _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, text, textColor, bounds / scale);
-    
+    _textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, _text, textColor, bounds / scale);
 }
-
-
-

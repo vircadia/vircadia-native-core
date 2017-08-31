@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenQmlSurface.h"
+#include "ImageProvider.h"
 
 // Has to come before Qt GL includes
 #include <gl/Config.h>
@@ -184,7 +185,7 @@ private:
             GLuint texture = textureAndFence.first;
             uvec2 size = _textureSizes[texture];
             auto sizeKey = uvec2ToUint64(size);
-            // Textures can be returned after all surfaces of the given size have been destroyed, 
+            // Textures can be returned after all surfaces of the given size have been destroyed,
             // in which case we just destroy the texture
             if (!_textures.count(sizeKey)) {
                 destroy(textureAndFence);
@@ -296,6 +297,7 @@ private:
 };
 
 
+
 #define SINGLE_QML_ENGINE 0
 
 #if SINGLE_QML_ENGINE
@@ -304,6 +306,9 @@ static size_t globalEngineRefCount{ 0 };
 #endif
 
 void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
+    // register the pixmap image provider (used only for security image, for now)
+    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
+
     engine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
     auto importList = engine->importPathList();
     importList.insert(importList.begin(), PathUtils::resourcesPath());
@@ -372,6 +377,15 @@ void releaseEngine(QQmlEngine* engine) {
 #endif
 }
 
+#define OFFSCREEN_QML_SHARED_CONTEXT_PROPERTY "com.highfidelity.qml.gl.sharedContext"
+void OffscreenQmlSurface::setSharedContext(QOpenGLContext* sharedContext) {
+    qApp->setProperty(OFFSCREEN_QML_SHARED_CONTEXT_PROPERTY, QVariant::fromValue<void*>(sharedContext));
+}
+
+QOpenGLContext* OffscreenQmlSurface::getSharedContext() {
+    return static_cast<QOpenGLContext*>(qApp->property(OFFSCREEN_QML_SHARED_CONTEXT_PROPERTY).value<void*>());
+}
+
 void OffscreenQmlSurface::cleanup() {
     _canvas->makeCurrent();
 
@@ -393,9 +407,9 @@ void OffscreenQmlSurface::cleanup() {
 }
 
 void OffscreenQmlSurface::render() {
-#ifdef HIFI_ENABLE_NSIGHT_DEBUG
-    return;
-#endif
+    if (nsightActive()) {
+        return;
+    }
     if (_paused) {
         return;
     }
@@ -454,8 +468,8 @@ std::function<void(uint32_t, void*)> OffscreenQmlSurface::getDiscardLambda() {
 }
 
 bool OffscreenQmlSurface::allowNewFrame(uint8_t fps) {
-    // If we already have a pending texture, don't render another one 
-    // i.e. don't render faster than the consumer context, since it wastes 
+    // If we already have a pending texture, don't render another one
+    // i.e. don't render faster than the consumer context, since it wastes
     // GPU cycles on producing output that will never be seen
     if (0 != _latestTextureAndFence.first) {
         return false;
@@ -486,7 +500,7 @@ void OffscreenQmlSurface::onAboutToQuit() {
     QObject::disconnect(&_updateTimer);
 }
 
-void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
+void OffscreenQmlSurface::create() {
     qCDebug(uiLogging) << "Building QML surface";
 
     _renderControl = new QMyQuickRenderControl();
@@ -507,7 +521,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _renderControl->_renderWindow = _proxyWindow;
 
     _canvas = new OffscreenGLCanvas();
-    if (!_canvas->create(shareContext)) {
+    if (!_canvas->create(getSharedContext())) {
         qFatal("Failed to create OffscreenGLCanvas");
         return;
     };
@@ -516,6 +530,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 
     // Create a QML engine.
     auto qmlEngine = acquireEngine(_quickWindow);
+
     _qmlContext = new QQmlContext(qmlEngine->rootContext());
 
     _qmlContext->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
@@ -1058,5 +1073,6 @@ void OffscreenQmlSurface::sendToQml(const QVariant& message) {
         QMetaObject::invokeMethod(_rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
     }
 }
+
 
 #include "OffscreenQmlSurface.moc"

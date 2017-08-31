@@ -36,18 +36,21 @@ signals:
     void securityImageResult(bool exists);
     void loginStatusResult(bool isLoggedIn);
     void passphraseSetupStatusResult(bool passphraseIsSetup);
-    void keyFilePathResult(const QString& path);
+    void historyResult(QJsonObject result);
+    void keyFilePathIfExistsResult(const QString& path);
 
 protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
     Q_INVOKABLE void balance();
     Q_INVOKABLE void inventory();
+    Q_INVOKABLE void history();
     Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
     Q_INVOKABLE void getSecurityImage();
     Q_INVOKABLE void getLoginStatus();
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
     Q_INVOKABLE void getPassphraseSetupStatus();
-    Q_INVOKABLE void getKeyFilePath();
+    Q_INVOKABLE void getKeyFilePathIfExists();
+    Q_INVOKABLE void reset();
 };
 
 #endif // hifi_QmlCommerce_h
