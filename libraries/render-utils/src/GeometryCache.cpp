@@ -42,9 +42,7 @@
 #include "simple_textured_fade_frag.h"
 #include "simple_textured_unlit_fade_frag.h"
 #include "simple_opaque_web_browser_frag.h"
-#include "simple_opaque_web_browser_overlay_frag.h"
 #include "simple_transparent_web_browser_frag.h"
-#include "simple_transparent_web_browser_overlay_frag.h"
 #include "glowLine_vert.h"
 #include "glowLine_frag.h"
 
@@ -1828,7 +1826,7 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
 
         auto stateNoBlend = std::make_shared<gpu::State>();
-        PrepareStencil::testMaskDrawShape(*state);
+        PrepareStencil::testMaskDrawShape(*stateNoBlend);
 
         auto noBlendPS = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         auto programNoBlend = gpu::Shader::createProgram(vs, noBlendPS);
@@ -1940,44 +1938,24 @@ static void buildWebShader(const std::string& vertShaderText, const std::string&
     state->setBlendFunction(blendEnable,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    if (blendEnable) {
-        PrepareStencil::testMask(*state);
-    } else {
-        PrepareStencil::testMaskDrawShape(*state);
-    }
+
+    PrepareStencil::testMaskDrawShapeNoAA(*state);
 
     pipelinePointerOut = gpu::Pipeline::create(shaderPointerOut, state);
 }
 
-void GeometryCache::bindOpaqueWebBrowserProgram(gpu::Batch& batch, bool isAA) {
-    batch.setPipeline(getOpaqueWebBrowserProgram(isAA));
+void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent) {
+    batch.setPipeline(getWebBrowserProgram(transparent));
 }
 
-gpu::PipelinePointer GeometryCache::getOpaqueWebBrowserProgram(bool isAA) {
+gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     static std::once_flag once;
     std::call_once(once, [&]() {
-        const bool BLEND_ENABLE = false;
-        buildWebShader(simple_vert, simple_opaque_web_browser_frag, BLEND_ENABLE, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
-        buildWebShader(simple_vert, simple_opaque_web_browser_overlay_frag, BLEND_ENABLE, _simpleOpaqueWebBrowserOverlayShader, _simpleOpaqueWebBrowserOverlayPipeline);
+        buildWebShader(simple_vert, simple_opaque_web_browser_frag, false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipelineNoAA);
+        buildWebShader(simple_vert, simple_transparent_web_browser_frag, true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipelineNoAA);
     });
 
-    return isAA ? _simpleOpaqueWebBrowserPipeline : _simpleOpaqueWebBrowserOverlayPipeline;
-}
-
-void GeometryCache::bindTransparentWebBrowserProgram(gpu::Batch& batch, bool isAA) {
-    batch.setPipeline(getTransparentWebBrowserProgram(isAA));
-}
-
-gpu::PipelinePointer GeometryCache::getTransparentWebBrowserProgram(bool isAA) {
-    static std::once_flag once;
-    std::call_once(once, [&]() {
-
-        const bool BLEND_ENABLE = true;
-        buildWebShader(simple_vert, simple_transparent_web_browser_frag, BLEND_ENABLE, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);
-        buildWebShader(simple_vert, simple_transparent_web_browser_overlay_frag, BLEND_ENABLE, _simpleTransparentWebBrowserOverlayShader, _simpleTransparentWebBrowserOverlayPipeline);
-    });
-
-    return isAA ? _simpleTransparentWebBrowserPipeline : _simpleTransparentWebBrowserOverlayPipeline;
+    return transparent ? _simpleTransparentWebBrowserPipelineNoAA : _simpleOpaqueWebBrowserPipelineNoAA;
 }
 
 void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {

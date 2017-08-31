@@ -111,8 +111,6 @@ public:
     void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
     void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; }
 
-    float getHmdUiRadius() const { return _hmdUIRadius; }
-
 signals:
     void allowMouseCaptureChanged();
     void alphaChanged();
@@ -142,7 +140,6 @@ private:
     float _textureAspectRatio { VIRTUAL_UI_ASPECT_RATIO };
 
     float _alpha { 1.0f };
-    float _hmdUIRadius { 1.0f };
 
     int _previousBorderWidth { -1 };
     int _previousBorderHeight { -1 };
@@ -179,6 +176,7 @@ class ReticleInterface : public QObject {
     Q_PROPERTY(QVariant position READ getPosition WRITE setPosition)
     Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
     Q_PROPERTY(float depth READ getDepth WRITE setDepth)
+    Q_PROPERTY(float scale READ getScale WRITE setScale)
     Q_PROPERTY(glm::vec2 maximumPosition READ getMaximumPosition)
     Q_PROPERTY(bool mouseCaptured READ isMouseCaptured)
     Q_PROPERTY(bool allowMouseCapture READ getAllowMouseCapture WRITE setAllowMouseCapture)
@@ -199,6 +197,9 @@ public:
 
     Q_INVOKABLE float getDepth() { return _compositor->getReticleDepth(); }
     Q_INVOKABLE void setDepth(float depth) { _compositor->setReticleDepth(depth); }
+
+    Q_INVOKABLE float getScale() const;
+    Q_INVOKABLE void setScale(float scale);
 
     Q_INVOKABLE QVariant getPosition() const;
     Q_INVOKABLE void setPosition(QVariant position);

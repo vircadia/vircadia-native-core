@@ -34,11 +34,6 @@ public:
     // TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
-    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
-    /// has changed. This will be called with properties change or when new data is loaded from a stream
-    /// Overriding this function to capture the information that a keylight / Ambient / skybox  properties has changed
-    virtual void somethingChangedNotification() override;
-
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
@@ -60,7 +55,7 @@ public:
     static bool getDrawZoneBoundaries() { return _drawZoneBoundaries; }
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
 
-    virtual bool isReadyToComputeShape() override { return false; }
+    virtual bool isReadyToComputeShape() const override { return false; }
     void setShapeType(ShapeType type) override { _shapeType = type; }
     virtual ShapeType getShapeType() const override;
 
@@ -82,6 +77,13 @@ public:
     void setGhostingAllowed(bool value) { _ghostingAllowed = value; }
     QString getFilterURL() const;
     void setFilterURL(const QString url); 
+
+    bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
+    bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
+    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
+    bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
+
+    void resetRenderingPropertiesChanged();
 
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -113,8 +115,6 @@ protected:
     QString _filterURL { DEFAULT_FILTER_URL };
 
     // Dirty flags turn true when either keylight properties is changing values.
-    // This gets back to false in the somethingChangedNotification() call
-    // Which is called after a setProperties() or a readEntitySubClassFromBUfferCall on the entity.
     bool _keyLightPropertiesChanged { false };
     bool _backgroundPropertiesChanged { false };
     bool _skyboxPropertiesChanged { false };
