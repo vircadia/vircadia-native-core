@@ -553,7 +553,7 @@ Rectangle {
                 }
                 RalewayRegular {
                     id: balanceAfterPurchaseText;
-                    text: balanceAfterPurchase.toFixed(2) + " HFC";
+                    text: balanceAfterPurchase + " HFC";
                     // Text size
                     size: balanceAfterPurchaseTextLabel.size;
                     // Anchors
