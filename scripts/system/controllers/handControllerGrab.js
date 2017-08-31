@@ -1248,7 +1248,7 @@ function MyController(hand) {
             this.stylusTip = getControllerWorldLocation(this.handToController(), true);
 
             // translate tip forward according to constant.
-            var TIP_OFFSET = {x: 0, y: WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, z: 0};
+            var TIP_OFFSET = Vec3.multiply(MyAvatar.sensorToWorldScale, {x: 0, y: WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, z: 0});
             this.stylusTip.position = Vec3.sum(this.stylusTip.position, Vec3.multiplyQbyV(this.stylusTip.orientation, TIP_OFFSET));
         }
 
@@ -1390,16 +1390,16 @@ function MyController(hand) {
             return;
         }
 
+        var X_ROT_NEG_90 = { x: -0.70710678, y: 0, z: 0, w: 0.70710678 };
+        var modelOrientation = Quat.multiply(this.stylusTip.orientation, X_ROT_NEG_90);
+        var modelPositionOffset = Vec3.multiplyQbyV(modelOrientation, { x: 0, y: 0, z: MyAvatar.sensorToWorldScale * -WEB_STYLUS_LENGTH / 2 });
         var stylusProperties = {
             name: "stylus",
             url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
             loadPriority: 10.0,
-            localPosition: Vec3.sum({ x: 0.0,
-                                      y: WEB_TOUCH_Y_OFFSET,
-                                      z: 0.0 },
-                                    getGrabPointSphereOffset(this.handToController())),
-            localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
-            dimensions: { x: 0.01, y: 0.01, z: WEB_STYLUS_LENGTH },
+            position: Vec3.sum(this.stylusTip.position, modelPositionOffset),
+            rotation: modelOrientation,
+            dimensions: Vec3.multiply(MyAvatar.sensorToWorldScale, { x: 0.01, y: 0.01, z: WEB_STYLUS_LENGTH }),
             solid: true,
             visible: true,
             ignoreRayIntersection: true,
