@@ -45,6 +45,7 @@ Handler(buy)
 Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
+Handler(history)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -107,3 +108,13 @@ void Ledger::inventory(const QStringList& keys) {
     keysQuery("inventory", "inventorySuccess", "inventoryFailure");
 }
 
+void Ledger::history(const QStringList& keys) {
+    keysQuery("history", "historySuccess", "historyFailure");
+}
+
+// The api/failResponse is called just for the side effect of logging.
+void Ledger::resetSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
+void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); }
+void Ledger::reset() {
+    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, QJsonObject());
+}

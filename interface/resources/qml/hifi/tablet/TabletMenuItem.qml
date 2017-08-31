@@ -26,24 +26,48 @@ Item {
     visible: source.visible
     width: parent.width
 
-    CheckBox {
+    Item {
         id: check
-        // FIXME: Should use radio buttons if source.exclusiveGroup.
+
         anchors {
             left: parent.left
             leftMargin: hifi.dimensions.menuPadding.x + 15
             verticalCenter: label.verticalCenter
         }
-        width: 20
-        visible: source.visible && source.type === 1 && source.checkable
-        checked: setChecked()
-        function setChecked() {
-            if (!source || source.type !== 1 || !source.checkable) {
-                return false;
+
+        width: checkbox.visible ? checkbox.width : radiobutton.width
+        height: checkbox.visible ? checkbox.height : radiobutton.height
+
+        CheckBox {
+            id: checkbox
+            // FIXME: Should use radio buttons if source.exclusiveGroup.
+            width: 20
+            visible: source.visible && source.type === 1 && source.checkable && !source.exclusiveGroup
+            checked: setChecked()
+            function setChecked() {
+                if (!source || source.type !== 1 || !source.checkable) {
+                    return false;
+                }
+                // FIXME this works for native QML menus but I don't think it will
+                // for proxied QML menus
+                return source.checked;
             }
-            // FIXME this works for native QML menus but I don't think it will
-            // for proxied QML menus
-            return source.checked;
+        }
+
+        RadioButton {
+            id: radiobutton
+            // FIXME: Should use radio buttons if source.exclusiveGroup.
+            width: 20
+            visible: source.visible && source.type === 1 && source.checkable && source.exclusiveGroup
+            checked: setChecked()
+            function setChecked() {
+                if (!source || source.type !== 1 || !source.checkable) {
+                    return false;
+                }
+                // FIXME this works for native QML menus but I don't think it will
+                // for proxied QML menus
+                return source.checked;
+            }
         }
     }
 
