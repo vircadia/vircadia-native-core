@@ -606,7 +606,18 @@ ScrollingWindow {
             HifiControls.CheckBox {
                 text: "Use baked (optimized) versions"
                 colorScheme: root.colorScheme
-                enabled: selectedItems > 0
+                enabled: selectedItems === 1 && assetProxyModel.data(treeView.selection.currentIndex, 0x105) !== "--"
+                checked: selectedItems === 1 && assetProxyModel.data(treeView.selection.currentIndex, 0x105) === "Baked";
+                onClicked: {
+                    var mappings = [];
+                    for (var i in treeView.selection.selectedIndexes) {
+                        var index = treeView.selection.selectedIndexes[i];
+                        var path = assetProxyModel.data(index, 0x100);
+                        mappings.push(path);
+                    }
+                    print("Setting baking enabled:" + mappings + checked);
+                    Assets.setBakingEnabled(mappings, checked);
+                }
             }
         }
 

@@ -124,7 +124,7 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
 
     auto dotIndex = path.lastIndexOf(".");
     if (dotIndex == -1) {
-        return Unrelevant;
+        return Irrelevant;
     }
 
     auto extension = path.mid(dotIndex + 1);
@@ -136,7 +136,7 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
     } else {
-        return Unrelevant;
+        return Irrelevant;
     }
 
     auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + bakedFilename;
@@ -1223,12 +1223,17 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
 
             auto bakedMapping = getBakeMapping(hash, bakedFilename);
 
-            if (enabled) {
+            bool currentlyDisabled = (_fileMappings.value(bakedMapping) == hash);
+
+            if (enabled && currentlyDisabled) {
+                QStringList bakedMappings{ bakedMapping };
+                deleteMappings(bakedMappings);
+                maybeBake(path, hash);
+                qDebug() << "Enabled baking for" << path;
+            } else if (!enabled && !currentlyDisabled) {
                 removeBakedPathsForDeletedAsset(hash);
                 setMapping(bakedMapping, hash);
-            } else if (_fileMappings.value(bakedMapping) == hash) {
-                deleteMappings({ bakedMapping });
-                maybeBake(path, hash);
+                qDebug() << "Disabled baking for" << path;
             }
         }
     }
