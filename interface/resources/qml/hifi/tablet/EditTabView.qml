@@ -181,7 +181,6 @@ TabView {
         WebView {
             id: entityListToolWebView
             url: Paths.defaultScripts + "/system/html/entityList.html"
-            flickable: false
             anchors.fill: parent
             enabled: true
         }
@@ -210,7 +209,6 @@ TabView {
         WebView {
             id: gridControlsWebView
             url: Paths.defaultScripts + "/system/html/gridControls.html"
-            flickable: false
             anchors.fill: parent
             enabled: true
         }
