@@ -449,7 +449,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
 
     class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
     public:
-        virtual void dispatch(nvtt::Task* task, void* context, int count) {
+        virtual void dispatch(nvtt::Task* task, void* context, int count) override {
             for (int i = 0; i < count; i++) {
                 task(context, i);
             }

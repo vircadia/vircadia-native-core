@@ -17,11 +17,7 @@
 # which uses the MIT license (https://github.com/ufz-vislab/VtkFbxConverter/blob/master/LICENSE.txt)
 
 if (NOT FBX_VERSION)
-  if (WIN32)
-    set(FBX_VERSION 2017.1)
-  else()
-    set(FBX_VERSION 2017.0.1)
-  endif()
+  set(FBX_VERSION 2017.1)
 endif()
 
 string(REGEX REPLACE "^([0-9]+).*$" "\\1" FBX_VERSION_MAJOR "${FBX_VERSION}")
@@ -29,7 +25,7 @@ string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*$" "\\1" FBX_VERSION_MINOR  "${FBX_VER
 string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*$" "\\1" FBX_VERSION_PATCH "${FBX_VERSION}")
 
 set(FBX_MAC_LOCATIONS "/Applications/Autodesk/FBX\ SDK/${FBX_VERSION}")
-set(FBX_LINUX_LOCATIONS "/usr/local/lib/gcc4/x64/debug/")
+set(FBX_LINUX_LOCATIONS "/usr/local/fbxsdk")
 
 if (WIN32)
   string(REGEX REPLACE "\\\\" "/" WIN_PROGRAM_FILES_X64_DIRECTORY $ENV{ProgramW6432})
@@ -73,7 +69,7 @@ function(_fbx_find_library _name _lib _suffix)
   find_library(${_name}
     NAMES ${_lib}
     HINTS ${FBX_SEARCH_LOCATIONS}
-    PATH_SUFFIXES lib/${fbx_compiler}/${_suffix} lib/${fbx_compiler}/ub/${_suffix} lib/${VS_PREFIX}/x64/${_suffix}
+    PATH_SUFFIXES lib/${fbx_compiler}/${_suffix} lib/${fbx_compiler}/x64/${_suffix} lib/${fbx_compiler}/ub/${_suffix} lib/${VS_PREFIX}/x64/${_suffix}
   )
 
   mark_as_advanced(${_name})

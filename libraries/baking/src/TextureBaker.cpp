@@ -47,7 +47,7 @@ const QStringList TextureBaker::getSupportedFormats() {
     auto formats = QImageReader::supportedImageFormats();
     QStringList stringFormats;
     std::transform(formats.begin(), formats.end(), std::back_inserter(stringFormats),
-                   [](auto& format) -> QString { return format; });
+                   [](QByteArray& format) -> QString { return format; });
     return stringFormats;
 }
 

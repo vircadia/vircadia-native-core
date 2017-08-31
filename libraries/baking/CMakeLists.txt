@@ -9,9 +9,11 @@ if (FBX_FOUND)
     target_link_libraries(${TARGET_NAME} ${FBX_LIBRARIES})
   endif ()
   target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${FBX_INCLUDE_DIR})
-endif ()
 
-set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE EXCLUDE_FROM_DEFAULT_BUILD TRUE)
+  if (UNIX)
+    target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
+  endif (UNIX)
+endif ()
 
 link_hifi_libraries(shared model networking ktx image)
 include_hifi_library_headers(gpu)
