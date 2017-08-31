@@ -142,7 +142,7 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
     auto bakedPath = "/.baked/" + hash + "/" + bakedFilename;
     auto jt = _fileMappings.find(bakedPath);
     if (jt != _fileMappings.end()) {
-        if (jt->first == hash) {
+        if (jt->second == hash) {
             return NotBaked;
         } else {
             return Baked;
