@@ -1116,39 +1116,39 @@ void watchParentProcess(int parentPID) {
 
 
 #ifdef Q_OS_WIN
-QString GetLastErrorAsString() {
-    //Get the error message, if any.
+QString getLastErrorAsString() {
     DWORD errorMessageID = ::GetLastError();
-    if (errorMessageID == 0)
-        return QString(); //No error message has been recorded
+    if (errorMessageID == 0) {
+        return QString();
+    }
 
     LPSTR messageBuffer = nullptr;
     size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
-    std::string message(messageBuffer, size);
+    auto message = QString::fromLocal8Bit(messageBuffer, (int)size);
 
     //Free the buffer.
     LocalFree(messageBuffer);
 
-    return QString::fromStdString(message);
+    return message;
 }
 
-void *createJobObject() {
+void* createJobObject() {
     HANDLE jobObject = CreateJobObject(nullptr, nullptr);
     if (jobObject == nullptr) {
-        qWarning() << "Could NOT create job object:" << GetLastErrorAsString();
+        qWarning() << "Could NOT create job object:" << getLastErrorAsString();
         return nullptr;
     }
 
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION JELI;
     if (!QueryInformationJobObject(jobObject, JobObjectExtendedLimitInformation, &JELI, sizeof(JELI), nullptr)) {
-        qWarning() << "Could NOT query job object information" << GetLastErrorAsString();
+        qWarning() << "Could NOT query job object information" << getLastErrorAsString();
         return nullptr;
     }
     JELI.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
     if (!SetInformationJobObject(jobObject, JobObjectExtendedLimitInformation, &JELI, sizeof(JELI))) {
-        qWarning() << "Could NOT set job object information" << GetLastErrorAsString();
+        qWarning() << "Could NOT set job object information" << getLastErrorAsString();
         return nullptr;
     }
 
@@ -1158,10 +1158,10 @@ void *createJobObject() {
 void addProcessToJobObject(void *jobObject, qint64 processId) {
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
     if (hProcess == nullptr) {
-        qCritical() << "Could NOT open process" << GetLastErrorAsString();
+        qCritical() << "Could NOT open process" << getLastErrorAsString();
     }
     if (!AssignProcessToJobObject(jobObject, hProcess)) {
-        qCritical() << "Could NOT assign process to job object" << GetLastErrorAsString();
+        qCritical() << "Could NOT assign process to job object" << getLastErrorAsString();
     }
 }
 

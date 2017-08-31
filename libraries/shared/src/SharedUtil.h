@@ -239,9 +239,9 @@ const QString PARENT_PID_OPTION = "parent-pid";
 void watchParentProcess(int parentPID);
 
 
-#ifdef _WIN32
-void *createJobObject();
-void addProcessToJobObject(void *jobObject, qint64 processId);
+#ifdef Q_OS_WIN
+void* createJobObject();
+void addProcessToJobObject(void* jobObject, qint64 processId);
 #endif
 
 #endif // hifi_SharedUtil_h
