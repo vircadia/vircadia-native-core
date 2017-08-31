@@ -409,8 +409,32 @@ int JitterSampleConfig::play() {
     return _index;
 }
 
+template <int B> class Halton {
+public:
+
+    float eval(int index) {
+        float f = 1.0f;
+        float r = 0.0f;
+        float invB = 1.0f / (float)B;
+        index++;
+
+        while (index > 0) {
+            f = f * invB;
+            r = r + f * (float) (index % B);
+            index = index / B;
+        }
+
+        return r;
+    }
+};
+
+
 JitterSample::SampleSequence::SampleSequence(){
     // Halton sequence (2,3)
+
+    Halton<2> genX;
+    Halton<3> genY;
+
     offsets[0] = {  1.0f / 2.0f,  1.0f / 3.0f };
     offsets[1] = {  1.0f / 4.0f,  2.0f / 3.0f };
     offsets[2] = {  3.0f / 4.0f,  1.0f / 9.0f };
@@ -421,7 +445,11 @@ JitterSample::SampleSequence::SampleSequence(){
     offsets[7] = {  1.0f / 16.0f, 8.0f / 9.0f };
 
     for (int i = 0; i < SEQUENCE_LENGTH; i++) {
-        offsets[i] = offsets[i] - vec2(0.5f);
+        offsets[i] = glm::vec2(genX.eval(i), genY.eval(i));
+    }
+
+    for (int i = 0; i < SEQUENCE_LENGTH; i++) {
+        offsets[i] -= vec2(0.5f);
     }
 }
 
@@ -448,11 +476,13 @@ void JitterSample::run(const render::RenderContextPointer& renderContext, Jitter
     auto width = (float) renderContext->args->_viewport.z;
     auto height = (float) renderContext->args->_viewport.w;
 
-    auto jx = -4.0 * jit.x / width;
-    auto jy = -4.0 * jit.y / height;
-    
-    projMat[2][0] += jx;
-    projMat[2][1] += jy;
+ //   auto jx = -4.0 * jit.x / width;
+//    auto jy = -4.0 * jit.y / height;
+    auto jx = -2.0 * jit.x / width;
+    auto jy = -2.0 * jit.y / height;
+
+    projMat[2][0] += jx * projMat[0][0];
+    projMat[2][1] += jy * projMat[1][1];
     
     viewFrustum.setProjection(projMat);
     

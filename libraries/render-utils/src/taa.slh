@@ -13,7 +13,7 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
-const int SEQUENCE_LENGTH = 8;
+const int SEQUENCE_LENGTH = 16;
 struct JitterSequence {
     vec4 offsets[SEQUENCE_LENGTH / 2];
     int sequenceLength;

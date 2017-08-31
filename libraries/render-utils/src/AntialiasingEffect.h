@@ -54,7 +54,7 @@ public:
 
     struct SampleSequence {
         SampleSequence();
-        static const int SEQUENCE_LENGTH{ 8 };
+        static const int SEQUENCE_LENGTH{ 16 };
         glm::vec2 offsets[SEQUENCE_LENGTH];
         int sequenceLength{ SEQUENCE_LENGTH };
         int currentIndex{ 0 };

@@ -125,12 +125,13 @@ void main(void) {
             
             float niceDotR2 = 4.0;
 
-            for (int s = 0; s < SEQUENCE_LENGTH; s++) {
+            int sequenceLength = sequence.sequenceLength;
+            for (int s = 0; s < sequenceLength; s++) {
                 vec2 pixToSampleVec = jitterRegionPos - (vec2(0.5) + taa_getJitterSample(s)) * jitterRegionSize;
                 float radius2 = (s == sequence.currentIndex ? 4.0 * niceDotR2 : niceDotR2);
                 float distToSample2 = dot(pixToSampleVec, pixToSampleVec);
                 if (distToSample2 < radius2) {
-                    outFragColor = vec4(mix( outFragColor.rgb, colorRamp(float(s) / float(SEQUENCE_LENGTH)), 1.0 - distToSample2 / radius2), 1.0);
+                    outFragColor = vec4(mix( outFragColor.rgb, colorRamp(float(s) / float(sequenceLength)), 1.0 - distToSample2 / radius2), 1.0);
                     return;
                 }
             }
