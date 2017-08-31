@@ -40,6 +40,9 @@ void Sphere3DOverlay::render(RenderArgs* args) {
 
     if (batch) {
         Transform transform = getTransform();
+#ifndef USE_SN_SCALE
+        transform.setScale(1.0f);  // ignore inherited scale from SpatiallyNestable
+#endif
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
         batch->setModelTransform(transform);
 

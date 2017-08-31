@@ -106,8 +106,10 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     var _this = this;
 
+    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+
     // scale factor of natural tablet dimensions.
-    this.width = width || DEFAULT_WIDTH;
+    this.width = (width || DEFAULT_WIDTH) * sensorScaleFactor;
     var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
     this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
@@ -152,8 +154,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var WEB_ENTITY_Y_OFFSET = 0.004;
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2) * (1 / sensorScaleFactor);
+    var WEB_ENTITY_Y_OFFSET = 0.004 * (1 / sensorScaleFactor);
 
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
@@ -170,13 +172,13 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: visible
     });
 
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
+    var HOME_BUTTON_Y_OFFSET = ((this.height / 2) - (this.height / 20)) * (1 / sensorScaleFactor);
     this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
         localRotation: {x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
-        alpha: 0.0,
+        alpha: 1.0,
         visible: visible,
         drawInFront: false,
         parentID: this.tabletEntityID,
@@ -301,9 +303,10 @@ WebTablet.prototype.getOverlayObject = function () {
 };
 
 WebTablet.prototype.setWidth = function (width) {
+    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
 
     // scale factor of natural tablet dimensions.
-    this.width = width || DEFAULT_WIDTH;
+    this.width = (width || DEFAULT_WIDTH) * sensorScaleFactor;
     var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
     this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
@@ -313,15 +316,15 @@ WebTablet.prototype.setWidth = function (width) {
     Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
 
     // update webOverlay
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var WEB_ENTITY_Y_OFFSET = 0.004;
+    var WEB_ENTITY_Z_OFFSET = (this.depth / 2) * (1 / sensorScaleFactor);
+    var WEB_ENTITY_Y_OFFSET = 0.004 * (1 / sensorScaleFactor);
     Overlays.editOverlay(this.webOverlayID, {
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         dpi: this.dpi
     });
 
     // update homeButton
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
+    var HOME_BUTTON_Y_OFFSET = ((this.height / 2) - (this.height / 20)) * (1 / sensorScaleFactor);
     Overlays.editOverlay(this.homeButtonID, {
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}

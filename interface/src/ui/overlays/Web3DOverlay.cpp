@@ -305,7 +305,9 @@ void Web3DOverlay::render(RenderArgs* args) {
     vec4 color(toGlm(getColor()), getAlpha());
 
     Transform transform = getTransform();
+#ifndef USE_SN_SCALE
     transform.setScale(1.0f); // ignore inherited scale factor from parents
+#endif
     if (glm::length2(getDimensions()) != 1.0f) {
         transform.postScale(vec3(getDimensions(), 1.0f));
     }

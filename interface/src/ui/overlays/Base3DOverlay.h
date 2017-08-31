@@ -16,6 +16,9 @@
 
 #include "Overlay.h"
 
+// AJT: keep or remove this.
+// #define USE_SN_SCALE
+
 class Base3DOverlay : public Overlay, public SpatiallyNestable {
     Q_OBJECT
 

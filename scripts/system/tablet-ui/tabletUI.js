@@ -28,6 +28,7 @@
     var MSECS_PER_SEC = 1000.0;
     var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
     var gTablet = null;
+    var avatarSensorScale = MyAvatar.sensorToWorldScale;
 
     Script.include("../libraries/WebTablet.js");
 
@@ -71,9 +72,9 @@
         return tabletScalePercentage;
     }
 
-    function updateTabletWidthFromSettings() {
+    function updateTabletWidthFromSettings(force) {
         var newTabletScalePercentage = getTabletScalePercentageFromSettings();
-        if (newTabletScalePercentage !== tabletScalePercentage && UIWebTablet) {
+        if ((force || newTabletScalePercentage !== tabletScalePercentage) && UIWebTablet) {
             tabletScalePercentage = newTabletScalePercentage;
             UIWebTablet.setWidth(DEFAULT_WIDTH * (tabletScalePercentage / 100));
         }
@@ -121,6 +122,7 @@
             Overlays.editOverlay(HMD.homeButtonID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
+            updateTabletWidthFromSettings(true);
         }
         gTablet.tabletShown = true;
     }
@@ -185,7 +187,15 @@
 
         if (now - validCheckTime > MSECS_PER_SEC) {
             validCheckTime = now;
-            updateTabletWidthFromSettings();
+
+            // force tablet to resize if sensorToWorldScale changes
+            var force = false;
+            if (avatarSensorScale !== MyAvatar.sensorToWorldScale) {
+                force = true;
+                avatarSensorScale = MyAvatar.sensorToWorldScale;
+            }
+            updateTabletWidthFromSettings(force);
+
             if (UIWebTablet) {
                 UIWebTablet.setLandscape(landscape);
             }
