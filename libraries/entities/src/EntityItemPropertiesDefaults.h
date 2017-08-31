@@ -27,7 +27,6 @@ const glm::vec3 ENTITY_ITEM_HALF_VEC3 = glm::vec3(0.5f);
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
 const QString ENTITY_ITEM_DEFAULT_MARKETPLACE_ID = QString("");
-const bool ENTITY_ITEM_DEFAULT_SHOULD_HIGHLIGHT = false;
 const QUuid ENTITY_ITEM_DEFAULT_SIMULATOR_ID = QUuid();
 
 const float ENTITY_ITEM_DEFAULT_ALPHA = 1.0f;
