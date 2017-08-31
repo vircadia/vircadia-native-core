@@ -210,6 +210,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         }
 
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
+        
+        // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
+        const auto selectedMetas = task.addJob<SelectItems>("PassTestSelection", metas, "contextOverlayHighlightList");
+        task.addJob<DrawBounds>("DrawSelectionBounds", selectedMetas);
     }
 
     // AA job to be revisited
