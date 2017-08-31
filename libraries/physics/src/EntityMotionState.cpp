@@ -102,7 +102,6 @@ void EntityMotionState::updateServerPhysicsVariables() {
 void EntityMotionState::handleDeactivation() {
     // copy _server data to entity
     if (_serverVariablesSet) {
-        bool success;
         Transform localTransform = _entity->getLocalTransform();
         localTransform.setTranslation(_serverPosition);
         localTransform.setRotation(_serverRotation);
