@@ -206,7 +206,7 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     int& propertyCount,
                                     OctreeElement::AppendState& appendState) const {
 
-    bool successPropertyFits = true; 
+    bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, getURL());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, getAllowTranslation());

@@ -287,7 +287,7 @@ bool RenderableModelEntityItem::getAnimationFrame() {
 
     auto animation = getAnimation();
     if (animation && animation->isLoaded()) {
-        
+
         const QVector<FBXAnimationFrame>& frames = animation->getFramesReference(); // NOTE: getFrames() is too heavy
         auto& fbxJoints = animation->getGeometry().joints;
         
@@ -322,10 +322,10 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                     if (index >= 0) {
                         glm::mat4 translationMat;
 
-                        if (allowTranslation){
+                        if (!allowTranslation){
                             translationMat = glm::translate(originalFbxJoints[index].translation);
                         }
-                        else if (!allowTranslation && index < translations.size()) {
+                        else if (allowTranslation && index < translations.size()) {
                             translationMat = glm::translate(translations[index]);
                         } 
                        
