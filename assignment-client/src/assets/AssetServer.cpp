@@ -266,6 +266,12 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _transferTaskPool(this),
     _bakingTaskPool(this)
 {
+    // enable compression in image library
+    image::setColorTexturesCompressionEnabled(true);
+    image::setGrayscaleTexturesCompressionEnabled(true);
+    image::setNormalTexturesCompressionEnabled(true);
+    image::setCubeTexturesCompressionEnabled(true);
+
     BAKEABLE_TEXTURE_EXTENSIONS = TextureBaker::getSupportedFormats();
     qDebug() << "Supported baking texture formats:" << BAKEABLE_MODEL_EXTENSIONS;
 
