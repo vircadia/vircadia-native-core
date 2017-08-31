@@ -40,8 +40,32 @@ Rectangle {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
-                commerce.getSecurityImage();
-                commerce.getKeyFilePathIfExists();
+                commerce.getPassphraseSetupStatus();
+            }
+        }
+        
+        onPassphraseSetupStatusResult: {
+            if (!passphraseIsSetup && root.activeView !== "notSetUp") {
+                root.activeView = "notSetUp";
+            } else if (passphraseIsSetup && root.activeView === "initialize") {
+                commerce.getWalletAuthenticatedStatus();
+            }
+        }
+
+        onWalletAuthenticatedStatusResult: {
+            if (!isAuthenticated && !passphraseModal.visible) {
+                passphraseModal.visible = true;
+            } else if (isAuthenticated) {
+                if (passphraseModal.visible) {
+                    passphraseModal.visible = false;
+                }
+                
+                if (!securityImageResultReceived) {
+                    commerce.getSecurityImage();
+                }
+                if (!keyFilePathIfExistsResultReceived) {
+                    commerce.getKeyFilePathIfExists();
+                }                
             }
         }
 
@@ -60,16 +84,6 @@ Rectangle {
                 root.activeView = "notSetUp";
             } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
                 root.activeView = "walletHome";
-            }
-        }
-
-        onWalletAuthenticatedStatus: {
-            if (!isAuthenticated && !passphraseModal.visible) {
-                passphraseModal.visible = true;
-            } else if (isAuthenticated && passphraseModal.visible) {
-                passphraseModal.visible = false;
-                commerce.getSecurityImage();
-                commerce.getKeyFilePathIfExists();
             }
         }
     }
@@ -99,7 +113,8 @@ Rectangle {
                 if (msg.method === 'walletSetup_cancelClicked') {
                     walletSetupLightbox.visible = false;
                 } else if (msg.method === 'walletSetup_finished') {
-                    root.activeView = "walletHome";
+                    root.activeView = "initialize";
+                    commerce.getPassphraseSetupStatus();
                 } else if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
                 } else if (msg.method === 'walletSetup_lowerKeyboard') {
@@ -231,7 +246,7 @@ Rectangle {
     PassphraseModal {
         id: passphraseModal;
         z: 998;
-        //visible: false;
+        visible: false;
         anchors.top: titleBarContainer.bottom;
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;

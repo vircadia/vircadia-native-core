@@ -39,19 +39,19 @@ public:
 
     void setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
+    bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
 
     void reset();
 
 signals:
     void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
-    void walletAuthenticatedStatus(bool isAuthenticated);
 
 private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
     QByteArray _salt {"iamsalt!"};
-    QString* _passphrase { new QString("pwd") };
+    QString* _passphrase { new QString("") };
 
     void updateImageProvider();
     bool encryptFile(const QString& inputFilePath, const QString& outputFilePath);

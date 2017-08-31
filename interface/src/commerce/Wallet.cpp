@@ -55,14 +55,14 @@ QString imageFilePath() {
 // use the cached _passphrase if it exists, otherwise we need to prompt
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     // just return a hardcoded pwd for now
-    auto wallet = DependencyManager::get<Wallet>();
-    auto passphrase = wallet->getPassphrase();
+    auto passphrase = DependencyManager::get<Wallet>()->getPassphrase();
     if (passphrase) {
         strcpy(password, passphrase->toLocal8Bit().constData());
-        emit wallet->walletAuthenticatedStatus(true);
         return static_cast<int>(passphrase->size());
     } else {
-        emit wallet->walletAuthenticatedStatus(false);
+        // Old comment below...this should never happen once we're here...what if it does?
+        // ok gotta bring up modal dialog... But right now lets just
+        // just keep it empty
         return 0;
     }
 }
