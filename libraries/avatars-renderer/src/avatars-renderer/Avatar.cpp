@@ -30,6 +30,7 @@
 #include <DebugDraw.h>
 #include <shared/Camera.h>
 #include <SoftAttachmentModel.h>
+#include <render/TransitionStage.h>
 
 #include "Logging.h"
 
@@ -61,7 +62,7 @@ namespace render {
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->getSkeletonModel()) {
-            auto metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+            auto& metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
             return (uint32_t) metaSubItems.size();
         }
@@ -433,7 +434,7 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
 
 void Avatar::updateAttitude(const glm::quat& orientation) {
     _skeletonModel->updateAttitude(orientation);
-	_worldUpDirection = orientation * Vectors::UNIT_Y;
+    _worldUpDirection = orientation * Vectors::UNIT_Y;
 }
 
 void Avatar::applyPositionDelta(const glm::vec3& delta) {
@@ -493,6 +494,48 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
+
+    _mustFadeIn = true;
+}
+
+void Avatar::fadeIn(render::ScenePointer scene) {
+    render::Transaction transaction;
+    fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
+    render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
+    render::Transaction transaction;
+
+    if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
+        transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
+    }
+    else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+        transitionType = render::Transition::BUBBLE_ISECT_OWNER;
+    }
+    fade(transaction, transitionType);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
+    transaction.addTransitionToItem(_renderItemID, type);
+    for (auto& attachmentModel : _attachmentModels) {
+        for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
+            transaction.addTransitionToItem(itemId, type, _renderItemID);
+        }
+    }
+    _isFading = true;
+}
+
+void Avatar::updateFadingStatus(render::ScenePointer scene) {
+    render::Transaction transaction;
+    transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
+        if (transition == nullptr || transition->isFinished) {
+            _isFading = false;
+        }
+    });
+    scene->enqueueTransaction(transaction);
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -514,8 +557,8 @@ void Avatar::postUpdate(float deltaTime) {
 
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;
-        const glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
-        const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const glm::vec4 BLUE(0.0f, 0.0f, _lookAtSnappingEnabled ? 1.0f : 0.25f, 1.0f);
+        const glm::vec4 RED(_lookAtSnappingEnabled ? 1.0f : 0.25f, 0.0f, 0.0f, 1.0f);
 
         int leftEyeJoint = getJointIndex("LeftEye");
         glm::vec3 leftEyePosition;
@@ -629,6 +672,8 @@ void Avatar::render(RenderArgs* renderArgs) {
 }
 
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
+    bool canTryFade{ false };
+
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -637,12 +682,19 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+        canTryFade = true;
     }
     for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
         }
+    }
+
+    if (_mustFadeIn && canTryFade) {
+        // Do it now to be sure all the sub items are ready and the fade is sent to them too
+        fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+        _mustFadeIn = false;
     }
 
     for (auto attachmentModelToRemove : _attachmentsToRemove) {

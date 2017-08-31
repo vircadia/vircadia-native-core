@@ -13,6 +13,7 @@
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
+#include "AbstractViewStateInterface.h"
 
 QString const Line3DOverlay::TYPE = "line3d";
 
@@ -32,6 +33,8 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
     _length = line3DOverlay->getLength();
     _endParentID = line3DOverlay->getEndParentID();
     _endParentJointIndex = line3DOverlay->getEndJointIndex();
+    _glow = line3DOverlay->getGlow();
+    _glowWidth = line3DOverlay->getGlowWidth();
 }
 
 Line3DOverlay::~Line3DOverlay() {
@@ -138,18 +141,16 @@ void Line3DOverlay::render(RenderArgs* args) {
             // TODO: add support for color to renderDashedLine()
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             geometryCache->renderDashedLine(*batch, start, end, colorv4, _geometryCacheID);
-        } else if (_glow > 0.0f) {
-            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _glowWidth, _geometryCacheID);
         } else {
-            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
-            geometryCache->renderLine(*batch, start, end, colorv4, _geometryCacheID);
+            // renderGlowLine handles both glow = 0 and glow > 0 cases
+            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _glowWidth, _geometryCacheID);
         }
     }
 }
 
 const render::ShapeKey Line3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withOwnPipeline();
-    if (getAlpha() != 1.0f || _glow > 0.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     return builder.build();
@@ -222,15 +223,23 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     auto glow = properties["glow"];
     if (glow.isValid()) {
+        float prevGlow = _glow;
         setGlow(glow.toFloat());
-        if (_glow > 0.0f) {
-            _alpha = 0.5f;
+        // Update our payload key if necessary to handle transparency
+        if ((prevGlow <= 0.0f && _glow > 0.0f) || (prevGlow > 0.0f && _glow <= 0.0f)) {
+            auto itemID = getRenderItemID();
+            if (render::Item::isValidID(itemID)) {
+                render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+                render::Transaction transaction;
+                transaction.updateItem(itemID);
+                scene->enqueueTransaction(transaction);
+            }
         }
     }
 
-    auto glowWidth = properties["glow"];
+    auto glowWidth = properties["glowWidth"];
     if (glowWidth.isValid()) {
-        setGlow(glowWidth.toFloat());
+        setGlowWidth(glowWidth.toFloat());
     }
 
 }

@@ -121,6 +121,7 @@ public:
         ReplicatedAvatarIdentity,
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
+        OctreeFileReplacementFromUrl,
         NUM_PACKET_TYPE
     };
 
@@ -287,7 +288,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentitySequenceId,
     MannequinDefaultAvatar,
     AvatarIdentitySequenceFront,
-    IsReplicatedInAvatarIdentity
+    IsReplicatedInAvatarIdentity,
+    AvatarIdentityLookAtSnapping,
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

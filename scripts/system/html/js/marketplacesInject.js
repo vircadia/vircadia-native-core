@@ -25,6 +25,8 @@
     var canWriteAssets = false;
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
+
+    var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
     
     function injectCommonCode(isDirectoryPage) {
 
@@ -65,7 +67,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (window.history.state != null) ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
+            (document.referrer !== "") ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -79,6 +81,7 @@
         letUsKnow.replaceWith(letUsKnow.html());
 
         // Add button links.
+
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -87,8 +90,107 @@
         });
     }
 
+    function addPurchasesButton() {
+        // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
+        var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
+        var purchasesElement = document.createElement('a');
+        purchasesElement.classList.add("btn");
+        purchasesElement.classList.add("btn-default");
+        purchasesElement.id = "purchasesButton";
+        purchasesElement.setAttribute('href', "#");
+        purchasesElement.innerHTML = "PURCHASES";
+        purchasesElement.style = "height:100%;margin-top:0;padding:15px 15px;";
+        navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
+        $('#purchasesButton').on('click', function () {
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "PURCHASES",
+                referrerURL: window.location.href
+            }));
+        });
+    }
+
+    function buyButtonClicked(id, name, author, price, href) {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "CHECKOUT",
+            itemId: id,
+            itemName: name,
+            itemAuthor: author,
+            itemPrice: price ? parseInt(price, 10) : 0,
+            itemHref: href
+        }));
+    }
+
+    function injectBuyButtonOnMainPage() {
+        var cost;
+        
+        $('.grid-item').find('#price-or-edit').find('a').each(function() {
+            $(this).attr('data-href', $(this).attr('href'));
+            $(this).attr('href', '#');
+            cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+
+            $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
+            $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
+            
+            if (parseInt(cost) > 0) {
+                var priceElement = $(this).find('.price')
+                priceElement.css({ "width": "auto", "padding": "3px 5px", "height": "26px" });
+                priceElement.text(parseFloat(cost / 100).toFixed(2) + ' HFC');
+                priceElement.css({ "min-width": priceElement.width() + 10 });
+            }
+        });
+        
+        
+        $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+            buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
+                $(this).closest('.grid-item').find('.item-title').text(),
+                $(this).closest('.grid-item').find('.creator').find('.value').text(),
+                $(this).closest('.grid-item').find('.item-cost').text(),
+                $(this).attr('data-href'));
+        });
+    }
+
     function injectHiFiCode() {
-        // Nothing to do.
+        if (confirmAllPurchases) {
+            var target = document.getElementById('templated-items');
+            // MutationObserver is necessary because the DOM is populated after the page is loaded.
+            // We're searching for changes to the element whose ID is '#templated-items' - this is
+            //     the element that gets filled in by the AJAX.
+            var observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    injectBuyButtonOnMainPage();
+                });
+                //observer.disconnect();
+            });
+            var config = { attributes: true, childList: true, characterData: true };
+            observer.observe(target, config);
+
+            // Try this here in case it works (it will if the user just pressed the "back" button,
+            //     since that doesn't trigger another AJAX request.
+            injectBuyButtonOnMainPage();
+            addPurchasesButton();
+        }
+    }
+
+    function injectHiFiItemPageCode() {
+        if (confirmAllPurchases) {
+            var href = $('#side-info').find('.btn').attr('href');
+            $('#side-info').find('.btn').attr('href', '#');
+            
+            var cost = $('.item-cost').text();
+
+            if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
+                $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download" id="buyItemButton"></span>Own Item: ' + (parseFloat(cost / 100).toFixed(2)) + ' HFC');
+            }
+
+            $('#side-info').find('.btn').on('click', function () {
+                buyButtonClicked(window.location.pathname.split("/")[3],
+                    $('#top-center').find('h1').text(),
+                    $('#creator').find('.value').text(),
+                    cost,
+                    href);
+            });
+            addPurchasesButton();
+        }
     }
 
     function updateClaraCode() {
@@ -140,7 +242,7 @@
 
                 // One file request at a time.
                 if (isPreparing) {
-                    console.log("WARNIKNG: Clara.io FBX: Prepare only one download at a time");
+                    console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
                     return;
                 }
 
@@ -308,25 +410,16 @@
         }
     }
 
-    function onLoad() {
-
-        EventBridge.scriptEventReceived.connect(function (message) {
-            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
-                canWriteAssets = message.slice(-4) === "true";
-            }
-
-            if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
-                cancelClaraDownload();
-            }
-        });
-
+    function injectCode() {
         var DIRECTORY = 0;
         var HIFI = 1;
         var CLARA = 2;
+        var HIFI_ITEM_PAGE = 3;
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
+        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
@@ -339,10 +432,38 @@
             case CLARA:
                 injectClaraCode();
                 break;
+            case HIFI_ITEM_PAGE:
+                injectHiFiItemPageCode();
+                break;
+
         }
+    }
+
+    function onLoad() {
+        EventBridge.scriptEventReceived.connect(function (message) {
+            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
+                canWriteAssets = message.slice(-4) === "true";
+            } else if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
+                cancelClaraDownload();
+            } else {
+                var parsedJsonMessage = JSON.parse(message);
+                
+                if (parsedJsonMessage.type === "marketplaces") {
+                    if (parsedJsonMessage.action === "inspectionModeSetting") {
+                        confirmAllPurchases = !!parsedJsonMessage.data;
+                        injectCode();
+                    }
+                }
+            }
+        });
+
+        // Request inspection mode setting
+        // Code is injected into the webpage after the setting comes back.
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "REQUEST_SETTING"
+        }));
     }
 
     // Load / unload.
     window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
-
 }());

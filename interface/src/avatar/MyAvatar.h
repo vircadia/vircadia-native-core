@@ -23,6 +23,7 @@
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
 #include <avatars-renderer/Avatar.h>
+#include <avatars-renderer/ScriptAvatar.h>
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
@@ -137,6 +138,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
+
+    Q_PROPERTY(float yawSpeed MEMBER _yawSpeed)
+    Q_PROPERTY(float pitchSpeed MEMBER _pitchSpeed)
 
     Q_PROPERTY(bool hmdRollControlEnabled READ getHMDRollControlEnabled WRITE setHMDRollControlEnabled)
     Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
@@ -390,6 +394,7 @@ public:
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
+    Q_INVOKABLE ScriptAvatarData* getTargetAvatar() const;
 
     Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
     Q_INVOKABLE glm::vec3 getRightHandPosition() const;
@@ -414,12 +419,19 @@ public:
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
 
-    virtual void setJointRotations(QVector<glm::quat> jointRotations) override;
+    virtual void setJointRotations(const QVector<glm::quat>& jointRotations) override;
     virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) override;
     virtual void setJointRotation(int index, const glm::quat& rotation) override;
     virtual void setJointTranslation(int index, const glm::vec3& translation) override;
     virtual void clearJointData(int index) override;
+
+    virtual void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation)  override;
+    virtual void setJointRotation(const QString& name, const glm::quat& rotation)  override;
+    virtual void setJointTranslation(const QString& name, const glm::vec3& translation)  override;
+    virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
+
+
 
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
     Q_INVOKABLE bool clearPinOnJoint(int index);
@@ -553,6 +565,7 @@ public slots:
     void setEnableDebugDrawIKTargets(bool isEnabled);
     void setEnableDebugDrawIKConstraints(bool isEnabled);
     void setEnableDebugDrawIKChains(bool isEnabled);
+    void setEnableDebugDrawDetailedCollision(bool isEnabled);
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
@@ -757,6 +770,7 @@ private:
     bool _enableDebugDrawIKTargets { false };
     bool _enableDebugDrawIKConstraints { false };
     bool _enableDebugDrawIKChains { false };
+    bool _enableDebugDrawDetailedCollision { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;

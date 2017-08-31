@@ -604,9 +604,9 @@ void TabletProxy::loadWebScreenOnTop(const QVariant& url, const QString& injectJ
     _state = State::Web;
 }
 
-void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl) {
+void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "gotoWebScreen", Q_ARG(QString, url), Q_ARG(QString, injectedJavaScriptUrl));
+        QMetaObject::invokeMethod(this, "gotoWebScreen", Q_ARG(QString, url), Q_ARG(QString, injectedJavaScriptUrl), Q_ARG(bool, loadOtherBase));
         return;
     }
 
@@ -619,7 +619,11 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
 
     if (root) {
         removeButtonsFromHomeScreen();
-        QMetaObject::invokeMethod(root, "loadWebBase");
+        if (loadOtherBase) {
+            QMetaObject::invokeMethod(root, "loadTabletWebBase");
+        } else {
+            QMetaObject::invokeMethod(root, "loadWebBase");
+        }
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
     }

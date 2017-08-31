@@ -55,10 +55,6 @@ public:
     /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties) = 0;
 
-    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
-    /// has changed. This will be called with properties change or when new data is loaded from a stream
-    virtual void somethingChangedNotification() { }
-
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const = 0;
         
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
