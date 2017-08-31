@@ -1,8 +1,8 @@
 //
-//  PassphraseSelectionLightbox.qml
+//  NeedsLogIn.qml
 //  qml/hifi/commerce/wallet
 //
-//  PassphraseSelectionLightbox
+//  NeedsLogIn
 //
 //  Created by Zach Fox on 2017-08-18
 //  Copyright 2017 High Fidelity, Inc.
@@ -20,23 +20,24 @@ import "../../../controls" as HifiControls
 
 // references XXX from root context
 
-Rectangle {
+Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    // Style
-    color: hifi.colors.baseGray;
+    Hifi.QmlCommerce {
+        id: commerce;
+    }
 
     //
-    // SECURE PASSPHRASE SELECTION START
+    // LOGIN PAGE START
     //
     Item {
-        id: choosePassphraseContainer;
+        id: loginPageContainer;
         // Anchors
         anchors.fill: parent;
 
         Item {
-            id: passphraseTitle;
+            id: loginTitle;
             // Size
             width: parent.width;
             height: 50;
@@ -46,7 +47,7 @@ Rectangle {
 
             // Title Bar text
             RalewaySemiBold {
-                text: "CHANGE PASSPHRASE";
+                text: "HIFI COMMERCE - LOGIN";
                 // Text size
                 size: hifi.fontSizes.overlayTitle;
                 // Anchors
@@ -65,12 +66,13 @@ Rectangle {
 
         // Text below title bar
         RalewaySemiBold {
-            id: passphraseTitleHelper;
-            text: "Choose a Secure Passphrase";
+            id: loginTitleHelper;
+            text: "Please Log In to High Fidelity";
             // Text size
             size: 24;
             // Anchors
-            anchors.top: passphraseTitle.bottom;
+            anchors.top: loginTitle.bottom;
+            anchors.topMargin: 100;
             anchors.left: parent.left;
             anchors.leftMargin: 16;
             anchors.right: parent.right;
@@ -79,49 +81,46 @@ Rectangle {
             // Style
             color: hifi.colors.faintGray;
             // Alignment
-            horizontalAlignment: Text.AlignHLeft;
+            horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
 
-        PassphraseSelection {
-            id: passphraseSelection;
-            anchors.top: passphraseTitleHelper.bottom;
-            anchors.topMargin: 30;
+        // Text below helper text
+        RalewayRegular {
+            id: loginDetailText;
+            text: "To buy/sell items on the <b>Marketplace</b>, or to use your <b>Wallet</b>, you must first log in to High Fidelity.";
+            // Text size
+            size: 18;
+            // Anchors
+            anchors.top: loginTitleHelper.bottom;
+            anchors.topMargin: 25;
             anchors.left: parent.left;
+            anchors.leftMargin: 16;
             anchors.right: parent.right;
-            anchors.bottom: passphraseNavBar.top;
-
-            Connections {
-                onSendMessageToLightbox: {
-                    if (msg.method === 'statusResult') {
-                        if (msg.status) {
-                            // Success submitting new passphrase
-                            root.resetSubmitButton();
-                            root.visible = false;
-                        } else {
-                            // Error submitting new passphrase
-                            root.resetSubmitButton();
-                            passphraseSelection.setErrorText("Backend error");
-                        }
-                    } else {
-                        sendSignalToWallet(msg);
-                    }
-                }
-            }
+            anchors.rightMargin: 16;
+            height: 50;
+            // Style
+            color: hifi.colors.faintGray;
+            wrapMode: Text.WordWrap;
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;
         }
 
-        // Navigation Bar
-        Item {
-            id: passphraseNavBar;
-            // Size
-            width: parent.width;
-            height: 100;
-            // Anchors:
-            anchors.left: parent.left;
-            anchors.bottom: parent.bottom;
+        
 
+        Item {
+            // Size
+            width: root.width;
+            height: 70;
+            // Anchors
+            anchors.top: loginDetailText.bottom;
+            anchors.topMargin: 40;
+            anchors.left: parent.left;
+        
             // "Cancel" button
             HifiControlsUit.Button {
+                id: cancelButton;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
@@ -130,17 +129,17 @@ Rectangle {
                 anchors.bottomMargin: 3;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
-                width: 100;
+                width: parent.width/2 - anchors.leftMargin*2;
                 text: "Cancel"
                 onClicked: {
-                    root.visible = false;
+                    sendToScript({method: 'needsLogIn_cancelClicked'});
                 }
             }
 
-            // "Submit" button
+            // "Set Up" button
             HifiControlsUit.Button {
-                id: passphraseSubmitButton;
-                color: hifi.buttons.black;
+                id: setUpButton;
+                color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
                 anchors.topMargin: 3;
@@ -148,29 +147,42 @@ Rectangle {
                 anchors.bottomMargin: 3;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
-                width: 100;
-                text: "Submit";
+                width: parent.width/2 - anchors.rightMargin*2;
+                text: "Log In"
                 onClicked: {
-                    if (passphraseSelection.validateAndSubmitPassphrase()) {
-                        passphraseSubmitButton.text = "Submitting...";
-                        passphraseSubmitButton.enabled = false;
-                    }
+                    sendToScript({method: 'needsLogIn_loginClicked'});
                 }
             }
         }
     }
     //
-    // SECURE PASSPHRASE SELECTION END
+    // LOGIN PAGE END
     //
 
+    //
+    // FUNCTION DEFINITIONS START
+    //
+    //
+    // Function Name: fromScript()
+    //
+    // Relevant Variables:
+    // None
+    //
+    // Arguments:
+    // message: The message sent from the JavaScript.
+    //     Messages are in format "{method, params}", like json-rpc.
+    //
+    // Description:
+    // Called when a message is received from a script.
+    //
+    function fromScript(message) {
+        switch (message.method) {
+            default:
+                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+        }
+    }
     signal sendSignalToWallet(var msg);
-
-    function resetSubmitButton() {
-        passphraseSubmitButton.enabled = true;
-        passphraseSubmitButton.text = "Submit";
-    }
-
-    function clearPassphraseFields() {
-        passphraseSelection.clearPassphraseFields();
-    }
+    //
+    // FUNCTION DEFINITIONS END
+    //
 }

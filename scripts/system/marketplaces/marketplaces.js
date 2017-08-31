@@ -228,6 +228,15 @@
             case 'purchases_backClicked':
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
+            case 'purchases_goToMarketplaceClicked':
+                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
+            case 'needsLogIn_cancelClicked':
+                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
+            case 'needsLogIn_loginClicked':
+                openLoginWindow();
+                break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));
         }

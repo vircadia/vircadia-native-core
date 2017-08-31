@@ -23,6 +23,8 @@ class Wallet : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+
+    ~Wallet();
     // These are currently blocking calls, although they might take a moment.
     bool createIfNeeded();
     bool generateKeyPair();
@@ -38,20 +40,11 @@ public:
     void setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
 
+    void reset();
+
 signals:
     void securityImageResult(bool exists) ;
     void keyFilePathIfExistsResult(const QString& path);
-
-protected:
-    enum SecurityImage {
-        NONE = 0,
-        Cat,
-        Car,
-        Dog,
-        Stars,
-        Plane,
-        Gingerbread
-    };
 
 private:
     QStringList _publicKeys{};
@@ -59,6 +52,7 @@ private:
     QByteArray _salt {"iamsalt!"};
     QString* _passphrase { new QString("pwd") };
 
+    void updateImageProvider();
     bool encryptFile(const QString& inputFilePath, const QString& outputFilePath);
     bool decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
 };

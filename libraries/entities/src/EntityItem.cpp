@@ -94,7 +94,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
-    requestedProperties += PROP_SHOULD_HIGHLIGHT;
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
@@ -240,7 +239,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
-        APPEND_ENTITY_PROPERTY(PROP_SHOULD_HIGHLIGHT, getShouldHighlight());
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
@@ -790,10 +788,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
         READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-    }
-
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT) {
-        READ_ENTITY_PROPERTY(PROP_SHOULD_HIGHLIGHT, bool, setShouldHighlight);
     }
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
@@ -2769,20 +2763,6 @@ QString EntityItem::getMarketplaceID() const {
 void EntityItem::setMarketplaceID(const QString& value) { 
     withWriteLock([&] {
         _marketplaceID = value;
-    });
-}
-
-bool EntityItem::getShouldHighlight() const {
-    bool result;
-    withReadLock([&] {
-        result = _shouldHighlight;
-    });
-    return result;
-}
-
-void EntityItem::setShouldHighlight(const bool value) {
-    withWriteLock([&] {
-        _shouldHighlight = value;
     });
 }
 
