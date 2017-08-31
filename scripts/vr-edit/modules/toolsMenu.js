@@ -257,7 +257,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 }
             },
-            "newButton": {  // TODO: Rename to "button".
+            "button": {
                 overlay: "cube",
                 properties: {
                     dimensions: UIT.dimensions.buttonDimensions,
@@ -268,8 +268,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: false,
                     visible: true
                 },
-                newLabel: {  // TODO: Rename to "label".
-                    // Relative to newButton.
+                label: {
+                    // Relative to button.
                     localPosition: {
                         x: 0,
                         y: 0,
@@ -278,7 +278,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.white
                 }
             },
-            "newToggleButton": {  // TODO: Rename to "toggleButton".
+            "toggleButton": {
                 overlay: "cube",
                 properties: {
                     dimensions: UIT.dimensions.buttonDimensions,
@@ -293,8 +293,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 offColor: UIT.colors.baseGrayShadow,
                 onHoverColor: UIT.colors.greenShadow,
                 offHoverColor: UIT.colors.darkGray,
-                newLabel: {  // TODO: Rename to "label".
-                    // Relative to newToggleButton.
+                label: {
+                    // Relative to toggleButton.
                     localPosition: {
                         x: 0,
                         y: 0,
@@ -303,7 +303,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.white
                 },
                 sublabel: {
-                    // Relative to newToggleButton.
+                    // Relative to toggleButton.
                     localPosition: {
                         x: 0,
                         y: 0,
@@ -414,7 +414,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: false,
                     visible: true  // Catch laser intersections.
                 },
-                newLabel: {  // TODO: Rename to "label".
+                label: {
                     // Relative to barSlider.
                     color: UIT.colors.white
                 },
@@ -526,7 +526,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: false,
                     visible: true
                 },
-                newLabel: {  // TODO: Rename to "label".
+                label: {
                     // Relative to picklist.
                     color: UIT.colors.white
                 }
@@ -543,14 +543,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: false,
                     visible: false
                 },
-                newLabel: {  // TODO: Rename to "label".
+                label: {
                     // Relative to picklistItem.
                     color: UIT.colors.white
                 }
             }
         },
 
-        BUTTON_UI_ELEMENTS = ["newButton", "menuButton", "newToggleButton", "swatch"],
+        BUTTON_UI_ELEMENTS = ["button", "menuButton", "toggleButton", "swatch"],
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
@@ -759,12 +759,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "pickColor",
-                    type: "newToggleButton",
+                    type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0935, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/color/pick-color-label.svg",
                         scale: 0.0120
                     },
@@ -819,7 +819,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "stretchFinishButton",
-                    type: "newButton",
+                    type: "button",
                     properties: {
                         localPosition: {
                             x: 0,
@@ -827,7 +827,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/common/finish-label.svg",
                         scale: 0.0318
                     },
@@ -903,7 +903,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "cloneFinishButton",
-                    type: "newButton",
+                    type: "button",
                     properties: {
                         localPosition: {
                             x: 0,
@@ -911,7 +911,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/common/finish-label.svg",
                         scale: 0.0318
                     },
@@ -948,7 +948,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "groupButton",
-                    type: "newButton",
+                    type: "button",
                     properties: {
                         dimensions: {
                             x: UIT.dimensions.buttonDimensions.x,
@@ -964,7 +964,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     enabledColor: UIT.colors.greenHighlight,
                     highlightColor: UIT.colors.greenShadow,
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/group/group-label.svg",
                         scale: 0.0351,
                         color: UIT.colors.baseGray
@@ -976,7 +976,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "ungroupButton",
-                    type: "newButton",
+                    type: "button",
                     properties: {
                         dimensions: {
                             x: UIT.dimensions.buttonDimensions.x,
@@ -993,7 +993,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     enabledColor: UIT.colors.redHighlight,
                     highlightColor: UIT.colors.redAccent,
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/group/ungroup-label.svg",
                         scale: 0.0496,
                         color: UIT.colors.baseGray
@@ -1033,12 +1033,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "gravityToggle",
-                    type: "newToggleButton",
+                    type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0748, y: 0.0480, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         localPosition: {
                             x: 0,
                             y: 0.0034,
@@ -1077,12 +1077,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "collideToggle",
-                    type: "newToggleButton",
+                    type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0748, y: 0.0120, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         localPosition: {
                             x: 0,
                             y: 0.0034,
@@ -1121,12 +1121,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "grabToggle",
-                    type: "newToggleButton",
+                    type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0748, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         localPosition: {
                             x: 0,
                             y: 0.0034,
@@ -1193,7 +1193,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetDefault",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/default-label.svg",
                         scale: 0.0436,
                         localPosition: {
@@ -1210,7 +1210,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetLead",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/lead-label.svg",
                         scale: 0.0243,
                         localPosition: {
@@ -1224,7 +1224,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetWood",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/wood-label.svg",
                         scale: 0.0316,
                         localPosition: {
@@ -1238,7 +1238,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetIce",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/ice-label.svg",
                         scale: 0.0144,
                         localPosition: {
@@ -1252,7 +1252,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetRubber",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/rubber-label.svg",
                         scale: 0.0400,
                         localPosition: {
@@ -1266,7 +1266,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetCotton",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/cotton-label.svg",
                         scale: 0.0393,
                         localPosition: {
@@ -1280,7 +1280,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetTumbleweed",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/tumbleweed-label.svg",
                         scale: 0.0687,
                         localPosition: {
@@ -1294,7 +1294,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetZeroG",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/zero-g-label.svg",
                         scale: 0.0375,
                         localPosition: {
@@ -1308,7 +1308,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 {
                     id: "presetBalloon",
                     type: "picklistItem",
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/balloon-label.svg",
                         scale: 0.0459,
                         localPosition: {
@@ -1320,7 +1320,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: { method: "pickPhysicsPreset" }
                 },
                 {
-                    id: "physicsPresets",  // TODO: Rename to "physicsPresets".
+                    id: "physicsPresets",
                     type: "picklist",
                     properties: {
                         dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
@@ -1330,7 +1330,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/physics/presets/default-label.svg",
                         scale: 0.0436,
                         localPosition: {
@@ -1359,7 +1359,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         }
                     },
                     setting: {
-                        key: "VREdit.physicsTool.presetLabel", // TODO: Rename to "physicsPreset".
+                        key: "VREdit.physicsTool.physicsPreset",
                         defaultValue: "presetDefault"
                     },
                     command: {
@@ -1385,7 +1385,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: -0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
                         url: "../assets/tools/physics/sliders/gravity-label.svg",
                         scale: 0.0240
@@ -1406,7 +1406,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: 0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
                         url: "../assets/tools/physics/sliders/bounce-label.svg",
                         scale: 0.0233
@@ -1427,7 +1427,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: 0.0561, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
                         url: "../assets/tools/physics/sliders/friction-label.svg",
                         scale: 0.0258
@@ -1448,7 +1448,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: { x: 0.0935, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
                     },
-                    newLabel: {
+                    label: {
                         localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
                         url: "../assets/tools/physics/sliders/density-label.svg",
                         scale: 0.0241
@@ -1491,7 +1491,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "deleteFinishButton",
-                    type: "newButton",
+                    type: "button",
                     properties: {
                         localPosition: {
                             x: 0,
@@ -1499,7 +1499,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
-                    newLabel: {
+                    label: {
                         url: "../assets/tools/common/finish-label.svg",
                         scale: 0.0318
                     },
@@ -1775,9 +1775,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItems,
         highlightedSourceOverlays,
         highlightedSourceItems,
+        isHighlightingButtonElement,
         isHighlightingButton,
-        isHighlightingNewButton,  // TODO: Rename.
-        isHighlightingNewToggleButton,  // TODO: Rename.
+        isHighlightingToggleButton,
         isHighlightingSwatch,
         isHighlightingMenuButton,
         isHighlightingSlider,
@@ -1981,7 +1981,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
                 if (value !== "") {
                     properties[optionsItems[i].setting.property] = value;
-                    if (optionsItems[i].type === "newToggleButton") {
+                    if (optionsItems[i].type === "toggleButton") {
                         // Store value in optionsSettings rather than using overlay property.
                         optionsSettings[optionsItems[i].id].value = value;
                         optionsToggles[optionsItems[i].id] = value;
@@ -1999,9 +1999,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     if (optionsItems[i].type === "picklist") {
                         optionsSettings[optionsItems[i].id].value = value;
                         if (value === "custom") {
-                            optionsItems[i].newLabel = optionsItems[i].customLabel;
+                            optionsItems[i].label = optionsItems[i].customLabel;
                         } else {
-                            optionsItems[i].newLabel = optionsItems[optionsOverlaysIDs.indexOf(value)].newLabel;
+                            optionsItems[i].label = optionsItems[optionsOverlaysIDs.indexOf(value)].label;
                         }
                     }
                     if (optionsItems[i].setting.command) {
@@ -2011,16 +2011,16 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         uiCommandCallback(optionsItems[i].setting.callback, value);
                     }
                 }
-            } else if (optionsItems[i].type === "newToggleButton") {
+            } else if (optionsItems[i].type === "toggleButton") {
                 optionsToggles[optionsItems[i].id] = false;  // Default to off.
             }
 
             optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
             optionsOverlaysIDs.push(optionsItems[i].id);
-            if (optionsItems[i].newLabel) {
+            if (optionsItems[i].label) {
                 childProperties = Object.clone(UI_ELEMENTS.image.properties);
-                childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].newLabel);
-                childProperties = Object.merge(childProperties, optionsItems[i].newLabel);
+                childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].label);
+                childProperties = Object.merge(childProperties, optionsItems[i].label);
                 childProperties.url = Script.resolvePath(childProperties.url);
                 childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
@@ -2028,7 +2028,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
             if (optionsItems[i].sublabel) {
                 childProperties = Object.clone(UI_ELEMENTS.image.properties);
-                childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].newLabel);
+                childProperties = Object.merge(childProperties, UI_ELEMENTS[optionsItems[i].type].label);
                 childProperties = Object.merge(childProperties, optionsItems[i].sublabel);
                 if (sublabelModifier) {
                     childProperties = Object.merge(childProperties, sublabelModifier);
@@ -2555,7 +2555,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             doCommand("togglePhysicsPresets");
 
             // Update picklist label.
-            label = optionsItems[optionsOverlaysIDs.indexOf(parameter)].newLabel;
+            label = optionsItems[optionsOverlaysIDs.indexOf(parameter)].label;
             Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("physicsPresets")], {
                 url: Script.resolvePath(label.url),
                 scale: label.scale,
@@ -2735,24 +2735,24 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
                     });
-                } else if (isHighlightingNewButton) {
+                } else if (isHighlightingButton) {
                     // Unhighlight old button.
                     if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
                         color = highlightedSourceItems[highlightedItem].enabledColor;
                     } else {
                         color = highlightedSourceItems[highlightedItem].properties.color !== undefined
                             ? highlightedSourceItems[highlightedItem].properties.color
-                            : UI_ELEMENTS.newButton.properties.color;
+                            : UI_ELEMENTS.button.properties.color;
                     }
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color,
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
-                } else if (isHighlightingNewToggleButton) {
+                } else if (isHighlightingToggleButton) {
                     // Unhighlight old button.
                     color = optionsToggles[highlightedSourceItems[highlightedItem].id]
-                        ? UI_ELEMENTS.newToggleButton.onColor
-                        : UI_ELEMENTS.newToggleButton.offColor;
+                        ? UI_ELEMENTS.toggleButton.onColor
+                        : UI_ELEMENTS.toggleButton.offColor;
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color,
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
@@ -2792,9 +2792,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Update status variables.
                 highlightedItem = intersectedItem;
                 highlightedItems = intersectionItems;
-                isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                isHighlightingNewButton = intersectionItems[highlightedItem].type === "newButton";
-                isHighlightingNewToggleButton = intersectionItems[highlightedItem].type === "newToggleButton";
+                isHighlightingButtonElement = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                isHighlightingButton = intersectionItems[highlightedItem].type === "button";
+                isHighlightingToggleButton = intersectionItems[highlightedItem].type === "toggleButton";
                 isHighlightingSwatch = intersectionItems[highlightedItem].type === "swatch";
                 isHighlightingMenuButton = intersectionItems[highlightedItem].type === "menuButton";
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
@@ -2809,7 +2809,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     });
                 }
                 // Highlight new item. (The existence of a command or callback infers that the item should be highlighted.)
-                if (isHighlightingNewButton) {
+                if (isHighlightingButton) {
                     if (intersectionEnabled[highlightedItem]) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
@@ -2819,13 +2819,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
-                } else if (isHighlightingNewToggleButton) {
+                } else if (isHighlightingToggleButton) {
                     if (intersectionEnabled[highlightedItem]) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                             color: optionsToggles[intersectionItems[highlightedItem].id]
-                                ? UI_ELEMENTS.newToggleButton.onHoverColor
-                                : UI_ELEMENTS.newToggleButton.offHoverColor,
+                                ? UI_ELEMENTS.toggleButton.onHoverColor
+                                : UI_ELEMENTS.toggleButton.offHoverColor,
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
@@ -2883,24 +2883,24 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
                     });
-                } else if (isHighlightingNewButton) {
+                } else if (isHighlightingButton) {
                     // Unhighlight button.
                     if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
                         color = highlightedSourceItems[highlightedItem].enabledColor;
                     } else {
                         color = highlightedSourceItems[highlightedItem].properties.color !== undefined
                             ? highlightedSourceItems[highlightedItem].properties.color
-                            : UI_ELEMENTS.newButton.properties.color;
+                            : UI_ELEMENTS.button.properties.color;
                     }
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color,
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
-                } else if (isHighlightingNewToggleButton) {
+                } else if (isHighlightingToggleButton) {
                     // Unhighlight old button.
                     color = optionsToggles[highlightedSourceItems[highlightedItem].id]
-                        ? UI_ELEMENTS.newToggleButton.onColor
-                        : UI_ELEMENTS.newToggleButton.offColor;
+                        ? UI_ELEMENTS.toggleButton.onColor
+                        : UI_ELEMENTS.toggleButton.offColor;
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: color,
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
@@ -2939,9 +2939,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
                 // Update status variables.
                 highlightedItem = NONE;
+                isHighlightingButtonElement = false;
                 isHighlightingButton = false;
-                isHighlightingNewButton = false;
-                isHighlightingNewToggleButton = false;
+                isHighlightingToggleButton = false;
                 isHighlightingSwatch = false;
                 isHighlightingMenuButton = false;
                 isHighlightingSlider = false;
@@ -2959,14 +2959,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (pressedItem) {
                 // Unpress previous button.
                 Overlays.editOverlay(pressedSource[pressedItem.index], {
-                    localPosition: isHighlightingButton && highlightedItem === pressedItem.index
+                    localPosition: isHighlightingButtonElement && highlightedItem === pressedItem.index
                         ? Vec3.sum(pressedItem.localPosition, OPTION_HOVER_DELTA)
                         : pressedItem.localPosition
                 });
                 pressedItem = null;
                 pressedSource = null;
             }
-            if (isHighlightingButton && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
+            if (isHighlightingButtonElement && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
                     && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
                 localPosition = intersectionItems[intersectedItem].properties.localPosition;
@@ -3111,7 +3111,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Overlays.editOverlay(optionsOverlaysLabels[groupButtonIndex], {
                     color: isGroupButtonEnabled
                         ? OPTONS_PANELS.groupOptions[groupButtonIndex].labelEnabledColor
-                        : OPTONS_PANELS.groupOptions[groupButtonIndex].newLabel.color
+                        : OPTONS_PANELS.groupOptions[groupButtonIndex].label.color
                 });
                 optionsEnabled[groupButtonIndex] = enableGroupButton;
             }
@@ -3129,7 +3129,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Overlays.editOverlay(optionsOverlaysLabels[ungroupButtonIndex], {
                     color: isUngroupButtonEnabled
                         ? OPTONS_PANELS.groupOptions[ungroupButtonIndex].labelEnabledColor
-                        : OPTONS_PANELS.groupOptions[ungroupButtonIndex].newLabel.color
+                        : OPTONS_PANELS.groupOptions[ungroupButtonIndex].label.color
                 });
                 optionsEnabled[ungroupButtonIndex] = enableUngroupButton;
             }
@@ -3205,9 +3205,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         intersectionEnabled = null;
         highlightedItem = NONE;
         highlightedSourceOverlays = null;
+        isHighlightingButtonElement = false;
         isHighlightingButton = false;
-        isHighlightingNewButton = false;
-        isHighlightingNewToggleButton = false;
+        isHighlightingToggleButton = false;
         isHighlightingSwatch = false;
         isHighlightingMenuButton = false;
         isHighlightingSlider = false;
