@@ -13,6 +13,7 @@ Item {
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+    property alias flickable: webroot.interactive
 
     // FIXME - Keyboard HMD only: Make Interface either set keyboardRaised property directly in OffscreenQmlSurface
     // or provide HMDinfo object to QML in RenderableWebEntityItem and do the following.
