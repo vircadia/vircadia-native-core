@@ -414,6 +414,7 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
     READ_ENTITY_PROPERTY(PROP_ANIMATION_URL, QString, setURL);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, bool, setAllowTranslation);
 
+
     if (_animationLoop) {
         // apply new properties to our associated AnimationLoop
         READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationLoop->setFPS);

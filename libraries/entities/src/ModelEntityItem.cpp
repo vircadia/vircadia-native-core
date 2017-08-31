@@ -144,10 +144,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         dataAt += bytesFromAnimation;
     }
 
-    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES){
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, bool, setAnimationAllowTranslation);
-    }
-
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
     if (animationPropertiesChanged) {
@@ -159,6 +155,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+
 
     return bytesRead;
 }
