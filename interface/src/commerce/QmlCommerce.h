@@ -38,6 +38,7 @@ signals:
     void passphraseSetupStatusResult(bool passphraseIsSetup);
     void historyResult(QJsonObject result);
     void keyFilePathIfExistsResult(const QString& path);
+    void walletAuthenticatedStatus(bool isAuthenticated);
 
 protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");

@@ -43,8 +43,9 @@ public:
     void reset();
 
 signals:
-    void securityImageResult(bool exists) ;
+    void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
+    void walletAuthenticatedStatus(bool isAuthenticated);
 
 private:
     QStringList _publicKeys{};

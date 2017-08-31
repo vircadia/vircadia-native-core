@@ -58,10 +58,6 @@ Item {
         }
     }
 
-    SecurityImageModel {
-        id: gridModel;
-    }
-
     HifiControlsUit.TextField {
         id: passphraseField;
         anchors.top: parent.top;

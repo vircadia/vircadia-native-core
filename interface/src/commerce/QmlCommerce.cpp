@@ -27,6 +27,7 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(wallet.data(), &Wallet::securityImageResult, this, &QmlCommerce::securityImageResult);
     connect(ledger.data(), &Ledger::historyResult, this, &QmlCommerce::historyResult);
     connect(wallet.data(), &Wallet::keyFilePathIfExistsResult, this, &QmlCommerce::keyFilePathIfExistsResult);
+    connect(wallet.data(), &Wallet::walletAuthenticatedStatus, this, &QmlCommerce::walletAuthenticatedStatus);
 }
 
 void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {

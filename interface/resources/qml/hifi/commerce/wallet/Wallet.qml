@@ -62,6 +62,16 @@ Rectangle {
                 root.activeView = "walletHome";
             }
         }
+
+        onWalletAuthenticatedStatus: {
+            if (!isAuthenticated && !passphraseModal.visible) {
+                passphraseModal.visible = true;
+            } else if (isAuthenticated && passphraseModal.visible) {
+                passphraseModal.visible = false;
+                commerce.getSecurityImage();
+                commerce.getKeyFilePathIfExists();
+            }
+        }
     }
 
     SecurityImageModel {
@@ -215,6 +225,28 @@ Rectangle {
         target: GlobalServices
         onMyUsernameChanged: {
             commerce.getLoginStatus();
+        }
+    }
+
+    PassphraseModal {
+        id: passphraseModal;
+        z: 998;
+        //visible: false;
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletSetup_raiseKeyboard') {
+                    root.keyboardRaised = true;
+                } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                    root.keyboardRaised = false;
+                } else {
+                    sendToScript(msg);
+                }
+            }
         }
     }
 
