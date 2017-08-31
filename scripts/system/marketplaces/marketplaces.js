@@ -197,6 +197,7 @@
     // Description:
     //   -Called when a message is received from Checkout.qml. The "message" argument is what is sent from the Checkout QML
     //    in the format "{method, params}", like json-rpc.
+    var isHmdPreviewDisabled = true;
     function fromQml(message) {
         switch (message.method) {
             case 'checkout_setUpClicked':
@@ -237,6 +238,13 @@
                 break;
             case 'needsLogIn_loginClicked':
                 openLoginWindow();
+                break;
+            case 'disableHmdPreview':
+                isHmdPreviewDisabled = Menu.isOptionChecked("Disable Preview");
+                Menu.setIsOptionChecked("Disable Preview", true);
+                break;
+            case 'maybeEnableHmdPreview':
+                Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));
