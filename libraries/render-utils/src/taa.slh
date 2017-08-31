@@ -15,9 +15,7 @@
 
 const int SEQUENCE_LENGTH = 16;
 struct JitterSequence {
-    vec4 offsets[SEQUENCE_LENGTH / 2];
-    int sequenceLength;
-    int currentIndex;
+    vec4 offsets[(SEQUENCE_LENGTH / 2) + 1];
 };
 layout(std140) uniform taaJitterBuffer {
     JitterSequence sequence;
@@ -25,6 +23,18 @@ layout(std140) uniform taaJitterBuffer {
 
 vec2 taa_getJitterSample(int index) {
     return vec2((bool(index & 0x01) ? sequence.offsets[index >> 1].zw : sequence.offsets[index >> 1].xy));
+}
+
+int taa_getJitterSequenceLength() {
+    return int(sequence.offsets[(SEQUENCE_LENGTH / 2)].z);
+}
+
+int taa_getCurrentJitterIndex() {
+    return int(sequence.offsets[(SEQUENCE_LENGTH / 2)].w);
+}
+
+vec2 taa_getCurrentJitterSample() {
+    return taa_getJitterSample(taa_getCurrentJitterIndex());
 }
 
 <@include gpu/Color.slh@>
