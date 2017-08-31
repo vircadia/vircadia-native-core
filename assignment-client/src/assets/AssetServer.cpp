@@ -1163,6 +1163,8 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
     } else {
         qWarning() << "Could not complete bake for" << originalAssetHash;
     }
+
+    _pendingBakes.remove(originalAssetHash);
 }
 
 bool AssetServer::createMetaFile(AssetHash originalAssetHash) {
