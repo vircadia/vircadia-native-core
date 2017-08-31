@@ -616,7 +616,9 @@ ScrollingWindow {
                         mappings.push(path);
                     }
                     print("Setting baking enabled:" + mappings + checked);
-                    Assets.setBakingEnabled(mappings, checked);
+                    Assets.setBakingEnabled(mappings, checked, function() {
+                        reload();
+                    });
                 }
             }
         }
