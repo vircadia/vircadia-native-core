@@ -546,11 +546,18 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
 
         auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
 
-        if (setMapping(assetPath, assetHash)) {
-            replyPacket.writePrimitive(AssetServerError::NoError);
+        // don't process a set mapping operation that is inside the hidden baked folder
+        if (assetPath.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+            qCDebug(asset_server) << "Refusing to process a set mapping operation inside" << HIDDEN_BAKED_CONTENT_FOLDER;
+            replyPacket.writePrimitive(AssetServerError::PermissionDenied);
         } else {
-            replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
+            if (setMapping(assetPath, assetHash)) {
+                replyPacket.writePrimitive(AssetServerError::NoError);
+            } else {
+                replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
+            }
         }
+
     } else {
         replyPacket.writePrimitive(AssetServerError::PermissionDenied);
     }
@@ -564,7 +571,14 @@ void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, Shared
         QStringList mappingsToDelete;
 
         for (int i = 0; i < numberOfDeletedMappings; ++i) {
-            mappingsToDelete << message.readString();
+            auto mapping = message.readString();
+
+            if (!mapping.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+                mappingsToDelete << mapping;
+            } else {
+                qCDebug(asset_server) << "Refusing to delete mapping" << mapping
+                    << "that is inside" << HIDDEN_BAKED_CONTENT_FOLDER;
+            }
         }
 
         if (deleteMappings(mappingsToDelete)) {
@@ -582,11 +596,18 @@ void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedN
         QString oldPath = message.readString();
         QString newPath = message.readString();
 
-        if (renameMapping(oldPath, newPath)) {
-            replyPacket.writePrimitive(AssetServerError::NoError);
+        if (oldPath.startsWith(HIDDEN_BAKED_CONTENT_FOLDER) || newPath.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+            qCDebug(asset_server) << "Cannot rename" << oldPath << "to" << newPath
+                << "since one of the paths is inside" << HIDDEN_BAKED_CONTENT_FOLDER;
+            replyPacket.writePrimitive(AssetServerError::PermissionDenied);
         } else {
-            replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
+            if (renameMapping(oldPath, newPath)) {
+                replyPacket.writePrimitive(AssetServerError::NoError);
+            } else {
+                replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
+            }
         }
+
     } else {
         replyPacket.writePrimitive(AssetServerError::PermissionDenied);
     }
