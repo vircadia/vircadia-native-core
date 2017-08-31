@@ -124,6 +124,9 @@ private:
     std::pair<bool, AssetMeta> readMetaFile(AssetHash hash);
     bool writeMetaFile(AssetHash originalAssetHash, AssetMeta& meta = AssetMeta());
 
+    /// Remove baked paths when the original asset is deleteds
+    void removeBakedPathsForDeletedAsset(AssetHash originalAssetHash);
+
     Mappings _fileMappings;
 
     QDir _resourcesDirectory;

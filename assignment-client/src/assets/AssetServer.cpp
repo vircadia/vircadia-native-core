@@ -53,6 +53,8 @@ static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 
+static const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
+
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath)
     : _assetHash(assetHash), _assetPath(assetPath), _filePath(filePath) {
 }
@@ -118,7 +120,7 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
         return (*it)->isBaking() ? Baking : Pending;
     }
 
-    if (path.startsWith("/.baked/")) {
+    if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
         return Baked;
     }
 
@@ -139,7 +141,7 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
         return Unrelevant;
     }
 
-    auto bakedPath = "/.baked/" + hash + "/" + bakedFilename;
+    auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + bakedFilename;
     auto jt = _fileMappings.find(bakedPath);
     if (jt != _fileMappings.end()) {
         if (jt->second == hash) {
@@ -182,13 +184,13 @@ void AssetServer::createEmptyMetaFile(const AssetHash& hash) {
 }
 
 bool AssetServer::hasMetaFile(const AssetHash& hash) {
-    QString metaFilePath = "/.baked/" + hash + "/meta.json";
+    QString metaFilePath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/meta.json";
 
     return _fileMappings.find(metaFilePath) != _fileMappings.end();
 }
 
 bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHash) {
-    if (path.startsWith("/.baked/")) {
+    if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
         return false;
     }
 
@@ -218,7 +220,7 @@ bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHa
         return false;
     }
 
-    auto bakedPath = "/.baked/" + assetHash + "/" + bakedFilename;
+    auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
     return _fileMappings.find(bakedPath) == _fileMappings.end();
 }
 
@@ -410,6 +412,8 @@ void AssetServer::cleanupUnmappedFiles() {
 
                 if (removeableFile.remove()) {
                     qCDebug(asset_server) << "\tDeleted" << filename << "from asset files directory since it is unmapped.";
+
+                    removeBakedPathsForDeletedAsset(filename);
                 } else {
                     qCDebug(asset_server) << "\tAttempt to delete unmapped file" << filename << "failed";
                 }
@@ -481,7 +485,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
 
         if (!bakedRootFile.isEmpty()) {
             // we ran into an asset for which we could have a baked version, let's check if it's ready
-            bakedAssetPath = "/.baked/" + originalAssetHash + "/" + bakedRootFile;
+            bakedAssetPath = HIDDEN_BAKED_CONTENT_FOLDER + originalAssetHash + "/" + bakedRootFile;
             auto bakedIt = _fileMappings.find(bakedAssetPath);
 
             if (bakedIt != _fileMappings.end()) {
@@ -887,6 +891,18 @@ bool pathIsFolder(const AssetPath& path) {
     return path.endsWith('/');
 }
 
+void AssetServer::removeBakedPathsForDeletedAsset(AssetHash hash) {
+    // we deleted the file with this hash
+
+    // check if we had baked content for that file that should also now be removed
+    // by calling deleteMappings for the hidden baked content folder for this hash
+    AssetPathList hiddenBakedFolder { HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" };
+
+    qCDebug(asset_server) << "Deleting baked content below" << hiddenBakedFolder << "since" << hash << "was deleted";
+
+    deleteMappings(hiddenBakedFolder);
+}
+
 bool AssetServer::deleteMappings(AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
@@ -956,6 +972,8 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
 
             if (removeableFile.remove()) {
                 qCDebug(asset_server) << "\tDeleted" << hash << "from asset files directory since it is now unmapped.";
+
+                removeBakedPathsForDeletedAsset(hash);
             } else {
                 qCDebug(asset_server) << "\tAttempt to delete unmapped file" << hash << "failed";
             }
@@ -1072,7 +1090,6 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
     }
 }
 
-static const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
 static const QString BAKED_ASSET_SIMPLE_FBX_NAME = "asset.fbx";
 static const QString BAKED_ASSET_SIMPLE_TEXTURE_NAME = "texture.ktx";
 
