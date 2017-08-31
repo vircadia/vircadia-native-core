@@ -232,11 +232,7 @@ Rectangle {
 
         Connections {
             onSendSignalToParent: {
-                if (msg.method === 'passphraseModal_authSuccess') {
-                    root.activeView = "walletHome";
-                } else {
-                    sendToScript(msg);
-                }
+                sendToScript(msg);
             }
         }
     }

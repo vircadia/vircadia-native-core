@@ -62,7 +62,6 @@ Rectangle {
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
             } else if (exists && root.activeView === "initialize") {
-                root.activeView = "checkoutMain";
                 commerce.getWalletAuthenticatedStatus();
             } else if (exists) {
                 // just set the source again (to be sure the change was noticed)
@@ -75,6 +74,7 @@ Rectangle {
             if (!isAuthenticated && !passphraseModal.visible) {
                 passphraseModal.visible = true;
             } else if (isAuthenticated) {
+                root.activeView = "checkoutMain";
                 if (!balanceReceived) {
                     commerce.balance();
                 }
@@ -235,16 +235,7 @@ Rectangle {
 
         Connections {
             onSendSignalToParent: {
-                if (msg.method === 'passphraseModal_authSuccess') {
-                    if (!balanceReceived) {
-                        commerce.balance();
-                    }
-                    if (!purchasesReceived) {
-                        commerce.inventory();
-                    }
-                } else {
-                    sendToScript(msg);
-                }
+                sendToScript(msg);
             }
         }
     }

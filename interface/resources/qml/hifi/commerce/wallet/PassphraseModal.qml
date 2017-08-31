@@ -41,7 +41,6 @@ Item {
                 errorText.text = "Authentication failed - please try again.";
             } else {
                 root.visible = false;
-                sendSignalToParent({method: 'passphraseModal_authSuccess'});
             }
         }
     }
