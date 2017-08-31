@@ -93,7 +93,7 @@ Rectangle {
                     walletSetupLightbox.visible = false;
                 } else if (msg.method === 'walletSetup_finished') {
                     root.activeView = "initialize";
-                    commerce.getPassphraseSetupStatus();
+                    commerce.getLoginStatus();
                 } else if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
                 } else if (msg.method === 'walletSetup_lowerKeyboard') {

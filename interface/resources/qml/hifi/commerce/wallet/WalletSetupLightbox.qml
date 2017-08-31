@@ -210,7 +210,7 @@ Rectangle {
 
         onVisibleChanged: {
             if (visible) {
-                commerce.getPassphraseSetupStatus();
+                commerce.getWalletAuthenticatedStatus();
             }
         }
 
