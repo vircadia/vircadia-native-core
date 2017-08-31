@@ -185,7 +185,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         EMPTY_SWATCH_COLOR = UIT.colors.baseGrayShadow,
-        SWATCH_HIGHLIGHT_DELTA = 0.0020,  // TODO: Rename to SWATCH_HOVER_DELTA and move to be with other deltas?
+        SWATCH_HIGHLIGHT_DELTA = 0.0020,
 
         UI_ELEMENTS = {
             "menuButton": {
@@ -431,32 +431,32 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         isFacingAvatar: false,
                         visible: true
                     }
-                }
-            },
-            "barSliderValue": {  // TODO: Move to be inside barSlider.
-                overlay: "cube",
-                properties: {
-                    dimensions: { x: 0.02, y: 0.03, z: 0.01 },
-                    localPosition: { x: 0, y: 0.035, z: 0 },
-                    localRotation: Quat.ZERO,
-                    color: UIT.colors.greenHighlight,
-                    alpha: 1.0,
-                    solid: true,
-                    ignoreRayIntersection: true,
-                    visible: true
-                }
-            },
-            "barSliderRemainder": {  // TODO: Move to be inside barSlider.
-                overlay: "cube",
-                properties: {
-                    dimensions: { x: 0.02, y: 0.07, z: 0.01 },
-                    localPosition: { x: 0, y: -0.015, z: 0 },
-                    localRotation: Quat.ZERO,
-                    color: UIT.colors.baseGrayShadow,
-                    alpha: 1.0,
-                    solid: true,
-                    ignoreRayIntersection: true,
-                    visible: true
+                },
+                sliderValue: {
+                    overlay: "cube",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.03, z: 0.01 },
+                        localPosition: { x: 0, y: 0.035, z: 0 },
+                        localRotation: Quat.ZERO,
+                        color: UIT.colors.greenHighlight,
+                        alpha: 1.0,
+                        solid: true,
+                        ignoreRayIntersection: true,
+                        visible: true
+                    }
+                },
+                sliderRemainder: {
+                    overlay: "cube",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.07, z: 0.01 },
+                        localPosition: { x: 0, y: -0.015, z: 0 },
+                        localRotation: Quat.ZERO,
+                        color: UIT.colors.baseGrayShadow,
+                        alpha: 1.0,
+                        solid: true,
+                        ignoreRayIntersection: true,
+                        visible: true
+                    }
                 }
             },
             "imageSlider": {  // Values range between 0.0 and 1.0.
@@ -608,7 +608,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch1",
                     type: "swatch",
                     properties: {
-                        localPosition: { x: -0.0935, y: 0.0513, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0935,
+                            y: 0.0513,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch1Color",
@@ -625,7 +629,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch2",
                     type: "swatch",
                     properties: {
-                        localPosition: { x: -0.0561, y: 0.0513, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0561,
+                            y: 0.0513,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch2Color",
@@ -642,7 +650,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch3",
                     type: "swatch",
                     properties: {
-                        localPosition: { x: -0.0935, y: 0.0153, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0935,
+                            y: 0.0153,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch3Color",
@@ -659,7 +671,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch4",
                     type: "swatch",
                     properties: {
-                        localPosition: { x: -0.0561, y: 0.0153, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0561,
+                            y: 0.0153,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch4Color",
@@ -676,7 +692,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch5",
                     type: "swatch",
                     properties: {
-                        localPosition: { x: -0.0935, y: -0.0207, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0935,
+                            y: -0.0207,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch5Color",
@@ -693,7 +713,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSwatch6",
                     type: "swatch",
                     properties: {
-                        localPosition: { x: -0.0561, y: -0.0207, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0561,
+                            y: -0.0207,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch6Color",
@@ -722,7 +746,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorCircle",
                     type: "colorCircle",
                     properties: {
-                        localPosition: { x: 0.04675, y: 0.01655, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: 0.04675,
+                            y: 0.01655,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     imageURL: "../assets/tools/color/color-circle.png",
                     imageOverlayURL: "../assets/tools/color/color-circle-black.png",
@@ -734,7 +762,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSlider",
                     type: "imageSlider",
                     properties: {
-                        localPosition: { x: 0.04675, y: -0.0620, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 },
+                        localPosition: {
+                            x: 0.04675,
+                            y: -0.0620,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        },
                         localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 })
                     },
                     useBaseColor: true,
@@ -762,7 +794,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0935, y: -0.064, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0935,
+                            y: -0.064,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
                         url: "../assets/tools/color/pick-color-label.svg",
@@ -1036,7 +1072,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0748, y: 0.0480, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0748,
+                            y: 0.0480,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
                         localPosition: {
@@ -1080,7 +1120,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0748, y: 0.0120, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0748,
+                            y: 0.0120,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
                         localPosition: {
@@ -1124,7 +1168,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0748, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0748,
+                            y: -0.0240,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
                         localPosition: {
@@ -1383,10 +1431,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "barSlider",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: -0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: -0.0187,
+                            y: -0.0240,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
-                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        localPosition: {
+                            x: 0,
+                            y: -0.04375,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
                         url: "../assets/tools/physics/sliders/gravity-label.svg",
                         scale: 0.0240
                     },
@@ -1404,10 +1460,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "barSlider",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: 0.0187, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: 0.0187,
+                            y: -0.0240,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
-                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        localPosition: {
+                            x: 0,
+                            y: -0.04375,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
                         url: "../assets/tools/physics/sliders/bounce-label.svg",
                         scale: 0.0233
                     },
@@ -1425,10 +1489,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "barSlider",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: 0.0561, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: 0.0561,
+                            y: -0.0240,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
-                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        localPosition: {
+                            x: 0,
+                            y: -0.04375,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
                         url: "../assets/tools/physics/sliders/friction-label.svg",
                         scale: 0.0258
                     },
@@ -1446,10 +1518,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "barSlider",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
-                        localPosition: { x: 0.0935, y: -0.0240, z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2 }
+                        localPosition: {
+                            x: 0.0935,
+                            y: -0.0240,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
                     },
                     label: {
-                        localPosition: { x: 0, y: -0.04375, z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+                        localPosition: {
+                            x: 0,
+                            y: -0.04375,
+                            z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
                         url: "../assets/tools/physics/sliders/density-label.svg",
                         scale: 0.0241
                     },
@@ -1564,7 +1644,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 icon: {
-                    type: "image",  // TODO: Can delete this and similar occurrences?
                     properties: {
                         url: "../assets/tools/color-icon.svg",
                         dimensions: { x: 0.0165, y: 0.0187 }
@@ -1572,7 +1651,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     headerOffset: { x: -0.00825, y: 0.0020, z: 0 }
                 },
                 label: {
-                    type: "image",  // TODO: Can delete this and similar occurrences?
                     properties: {
                         url: "../assets/tools/color-label.svg",
                         scale: 0.0241
@@ -1599,7 +1677,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 icon: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/stretch-icon.svg",
                         dimensions: { x: 0.0167, y: 0.0167 }
@@ -1607,7 +1684,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     headerOffset: { x: -0.00835, y: 0, z: 0 }
                 },
                 label: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/stretch-label.svg",
                         scale: 0.0311
@@ -1633,7 +1709,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 icon: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/clone-icon.svg",
                         dimensions: { x: 0.0154, y: 0.0155 }
@@ -1641,7 +1716,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     headerOffset: { x: -0.0077, y: 0, z: 0 }
                 },
                 label: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/clone-label.svg",
                         scale: 0.0231
@@ -1667,7 +1741,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 icon: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/group-icon.svg",
                         dimensions: { x: 0.0161, y: 0.0114 }
@@ -1675,7 +1748,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     headerOffset: { x: -0.00805, y: 0, z: 0 }
                 },
                 label: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/group-label.svg",
                         scale: 0.0250
@@ -1701,7 +1773,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 icon: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/physics-icon.svg",
                         dimensions: { x: 0.0180, y: 0.0198 }
@@ -1709,7 +1780,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     headerOffset: { x: -0.009, y: 0, z: 0 }
                 },
                 label: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/physics-label.svg",
                         scale: 0.0297
@@ -1735,7 +1805,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 icon: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/delete-icon.svg",
                         dimensions: { x: 0.0161, y: 0.0161 }
@@ -1743,7 +1812,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     headerOffset: { x: -0.00805, y: 0, z: 0 }
                 },
                 label: {
-                    type: "image",
                     properties: {
                         url: "../assets/tools/delete-label.svg",
                         scale: 0.0254
@@ -2042,7 +2110,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (optionsItems[i].type === "barSlider") {
                 // Value and remainder bars.
                 optionsSliderData[i] = {};
-                auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
+                auxiliaryProperties = Object.clone(UI_ELEMENTS.barSlider.sliderValue.properties);
                 auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + value / 2) * properties.dimensions.y, z: 0 };
                 auxiliaryProperties.dimensions = {
                     x: properties.dimensions.x,
@@ -2050,9 +2118,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     z: properties.dimensions.z
                 };
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
+                optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.barSlider.sliderValue.overlay,
                     auxiliaryProperties);
-                auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
+                auxiliaryProperties = Object.clone(UI_ELEMENTS.barSlider.sliderRemainder.properties);
                 auxiliaryProperties.localPosition = { x: 0, y: (0.5 - (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
                 auxiliaryProperties.dimensions = {
                     x: properties.dimensions.x,
@@ -2060,7 +2128,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     z: properties.dimensions.z
                 };
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                optionsSliderData[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
+                optionsSliderData[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSlider.sliderRemainder.overlay,
                     auxiliaryProperties);
 
                 // Zero indicator.
@@ -2070,7 +2138,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     x: properties.dimensions.x,
                     y: UI_ELEMENTS.barSlider.zeroIndicator.properties.dimensions.y
                 };
-                childProperties.localPosition = { x: 0, y: 0, z: properties.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset };
+                childProperties.localPosition = {
+                    x: 0,
+                    y: 0,
+                    z: properties.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                };
                 childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 Overlays.addOverlay(UI_ELEMENTS.barSlider.zeroIndicator.overlay, childProperties);
             }
