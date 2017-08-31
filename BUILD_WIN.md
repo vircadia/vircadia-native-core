@@ -31,9 +31,9 @@ Go to `Control Panel > System > Advanced System Settings > Environment Variables
 
  * Clone the VCPKG [repository](https://github.com/Microsoft/vcpkg)
  * Follow the instructions in the [readme](https://github.com/Microsoft/vcpkg/blob/master/README.md) to bootstrap vcpkg
-  * Note, you may need to do these in a _Developer Command Prompt_
+   * Note, you may need to do these in a _Developer Command Prompt_
  * Set an environment variable VCPKG_ROOT to the location of the cloned repository
-  * Close and re-open any command prompts after setting the environment variable so that they will pick up the change
+   * Close and re-open any command prompts after setting the environment variable so that they will pick up the change
 
 ### Step 6. Installing OpenSSL via vcpkg
 
