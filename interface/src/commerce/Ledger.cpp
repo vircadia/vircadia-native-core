@@ -135,7 +135,6 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     QJsonArray newHistoryArray;
 
     // TODO: do this with 0 copies if possible
-    auto it = historyArray.begin();
     for(auto it = historyArray.begin(); it != historyArray.end(); it++) {
         auto valueObject = (*it).toObject();
         QString from = nameFromKey(valueObject["sender_key"].toString(), keys);
