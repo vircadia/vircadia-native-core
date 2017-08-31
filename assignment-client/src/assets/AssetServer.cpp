@@ -1255,7 +1255,7 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetHash hash) {
     return { false, {} };
 }
 
-bool AssetServer::writeMetaFile(AssetHash originalAssetHash, AssetMeta& meta) {
+bool AssetServer::writeMetaFile(AssetHash originalAssetHash, const AssetMeta& meta) {
     // construct the JSON that will be in the meta file
     QJsonObject metaFileObject;
 

@@ -122,7 +122,7 @@ private:
 
     /// Create meta file to describe baked content for original asset
     std::pair<bool, AssetMeta> readMetaFile(AssetHash hash);
-    bool writeMetaFile(AssetHash originalAssetHash, AssetMeta& meta = AssetMeta());
+    bool writeMetaFile(AssetHash originalAssetHash, const AssetMeta& meta = AssetMeta());
 
     /// Remove baked paths when the original asset is deleteds
     void removeBakedPathsForDeletedAsset(AssetHash originalAssetHash);
