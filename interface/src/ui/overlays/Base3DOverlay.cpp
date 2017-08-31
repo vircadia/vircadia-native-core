@@ -26,8 +26,7 @@ Base3DOverlay::Base3DOverlay() :
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
-    _drawInFront(false),
-    _isAA(true)
+    _drawInFront(false)
 {
 }
 
@@ -39,7 +38,6 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _isDashedLine(base3DOverlay->_isDashedLine),
     _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
     _drawInFront(base3DOverlay->_drawInFront),
-    _isAA(base3DOverlay->_isAA),
     _isGrabbable(base3DOverlay->_isGrabbable)
 {
     setTransform(base3DOverlay->getTransform());
@@ -191,13 +189,6 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
         needRenderItemUpdate = true;
     }
 
-    auto isAA = properties["isAA"];
-    if (isAA.isValid()) {
-        bool value = isAA.toBool();
-        setIsAA(value);
-        needRenderItemUpdate = true;
-    }
-
     // Communicate changes to the renderItem if needed
     if (needRenderItemUpdate) {
         auto itemID = getRenderItemID();
@@ -252,9 +243,6 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
     }
     if (property == "parentJointIndex") {
         return getParentJointIndex();
-    }
-    if (property == "isAA") {
-        return _isAA;
     }
 
     return Overlay::getProperty(property);

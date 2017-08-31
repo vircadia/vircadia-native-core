@@ -182,11 +182,10 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
-    const bool IS_AA = true;
     if (fadeRatio < OPAQUE_ALPHA_THRESHOLD) {
-        DependencyManager::get<GeometryCache>()->bindTransparentWebBrowserProgram(batch, IS_AA);
+        DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, true);
     } else {
-        DependencyManager::get<GeometryCache>()->bindOpaqueWebBrowserProgram(batch, IS_AA);
+        DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch);
     }
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
 }
