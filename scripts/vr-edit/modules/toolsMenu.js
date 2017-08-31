@@ -552,8 +552,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         BUTTON_UI_ELEMENTS = ["button", "menuButton", "toggleButton", "swatch"],
 
-        SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
-        COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
         MENU_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
         OPTION_HOVER_DELTA = { x: 0, y: 0, z: 0.002 },
         PICKLIST_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
@@ -1843,15 +1841,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItems,
         highlightedSourceOverlays,
         highlightedSourceItems,
+        highlightedElementType = null,
         isHighlightingButtonElement,
-        isHighlightingButton,
-        isHighlightingToggleButton,
-        isHighlightingSwatch,
-        isHighlightingMenuButton,
-        isHighlightingSlider,
-        isHighlightingColorCircle,
-        isHighlightingPicklist,
-        isHighlightingPicklistItem,
         isPicklistOpen,
         pressedItem = null,
         pressedSource = null,
@@ -2463,6 +2454,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             parentID,
             label,
             values,
+            isHighlightingPicklist,
             i,
             length;
 
@@ -2554,6 +2546,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 index = optionsOverlaysIDs.indexOf("physicsPresets");
 
                 // Lower picklist.
+                isHighlightingPicklist = highlightedElementType === "picklist";
                 Overlays.editOverlay(optionsOverlays[index], {
                     localPosition: isHighlightingPicklist
                         ? Vec3.sum(optionsItems[index].properties.localPosition, OPTION_HOVER_DELTA)
@@ -2787,17 +2780,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Highlight clickable item.
         if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSourceOverlays) {
-            if (intersectedItem !== NONE && intersectionItems[intersectedItem] &&
-                    (intersectionItems[intersectedItem].command !== undefined
-                    || intersectionItems[intersectedItem].callback !== undefined)) {
-                if (isHighlightingMenuButton) {
-                    // Lower old menu button.
+
+            if (highlightedItem !== NONE) {
+                // Unhover old item.
+                switch (highlightedElementType) {
+                case "menuButton":
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
                     });
-                } else if (isHighlightingButton) {
-                    // Unhighlight old button.
+                    break;
+                case "button":
                     if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
                         color = highlightedSourceItems[highlightedItem].enabledColor;
                     } else {
@@ -2809,8 +2802,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: color,
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
-                } else if (isHighlightingToggleButton) {
-                    // Unhighlight old button.
+                    break;
+                case "toggleButton":
                     color = optionsToggles[highlightedSourceItems[highlightedItem].id]
                         ? UI_ELEMENTS.toggleButton.onColor
                         : UI_ELEMENTS.toggleButton.offColor;
@@ -2818,8 +2811,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: color,
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
-                } else if (isHighlightingSwatch) {
-                    // Hide highlight and reinstate swatch size and color.
+                    break;
+                case "swatch":
                     Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
                     color = optionsSettings[highlightedSourceItems[highlightedItem].id].value;
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
@@ -2827,14 +2820,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: color === "" ? EMPTY_SWATCH_COLOR : color,
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
-                } else if (isHighlightingSlider || isHighlightingColorCircle) {
+                    break;
+                case "barSlider":
+                case "imageSlider":
+                case "colorCircle":
                     // Lower old slider or color circle.
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
                     });
-                } else if (isHighlightingPicklist) {
-                    // Unhighlight picklist and possibly lower.
-                    if (intersectionItems[intersectedItem].type !== "picklistItem" && !isPicklistOpen) {
+                    break;
+                case "picklist":
+                    if (highlightedSourceItems[highlightedItem].type !== "picklistItem" && !isPicklistOpen) {
                         Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                             localPosition: highlightedSourceItems[highlightedItem].properties.localPosition,
                             color: UI_ELEMENTS.picklist.properties.color
@@ -2844,33 +2840,44 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             color: UIT.colors.darkGray
                         });
                     }
-                } else if (isHighlightingPicklistItem) {
-                    // Unhighlight picklist item.
+                    break;
+                case "picklistItem":
                     Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
                         color: UI_ELEMENTS.picklistItem.properties.color
                     });
+                    break;
+                case null:
+                    // Nothing to do.
+                    break;
+                default:
+                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + highlightedElementType);
                 }
+
+                // Update status variables.
+                highlightedItem = NONE;
+                isHighlightingButtonElement = false;
+                highlightedElementType = null;
+            }
+
+            if (intersectedItem !== NONE && intersectionItems[intersectedItem] &&
+                    (intersectionItems[intersectedItem].command !== undefined
+                    || intersectionItems[intersectedItem].callback !== undefined)) {
+
                 // Update status variables.
                 highlightedItem = intersectedItem;
                 highlightedItems = intersectionItems;
                 isHighlightingButtonElement = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                isHighlightingButton = intersectionItems[highlightedItem].type === "button";
-                isHighlightingToggleButton = intersectionItems[highlightedItem].type === "toggleButton";
-                isHighlightingSwatch = intersectionItems[highlightedItem].type === "swatch";
-                isHighlightingMenuButton = intersectionItems[highlightedItem].type === "menuButton";
-                isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                isHighlightingPicklist = intersectionItems[highlightedItem].type === "picklist";
-                isHighlightingPicklistItem = intersectionItems[highlightedItem].type === "picklistItem";
-                if (isHighlightingMenuButton) {
-                    // Raise new menu button.
+                highlightedElementType = intersectionItems[highlightedItem].type;
+
+                // Hover new item.
+                switch (highlightedElementType) {
+                case "menuButton":
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
                         localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, MENU_HOVER_DELTA),
                         visible: true
                     });
-                }
-                // Highlight new item. (The existence of a command or callback infers that the item should be highlighted.)
-                if (isHighlightingButton) {
+                    break;
+                case "button":
                     if (intersectionEnabled[highlightedItem]) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
@@ -2880,7 +2887,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
-                } else if (isHighlightingToggleButton) {
+                    break;
+                case "toggleButton":
                     if (intersectionEnabled[highlightedItem]) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
@@ -2890,7 +2898,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
-                } else if (isHighlightingSwatch) {
+                    break;
+                case "swatch":
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     if (optionsSettings[intersectionItems[highlightedItem].id].value === "") {
                         // Swatch is empty; highlight it with current color.
@@ -2911,14 +2920,16 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             visible: true
                         });
                     }
-                } else if (isHighlightingSlider || isHighlightingColorCircle) {
-                    // Raise new slider or color circle.
+                    break;
+                case "barSlider":
+                case "imageSlider":
+                case "colorCircle":
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                         localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                     });
-                } else if (isHighlightingPicklist) {
-                    // Highlight picklist and possibly raise.
+                    break;
+                case "picklist":
                     if (!isPicklistOpen) {
                         localPosition = intersectionItems[highlightedItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[highlightedItem], {
@@ -2930,86 +2941,20 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             color: UIT.colors.greenHighlight
                         });
                     }
-                } else if (isHighlightingPicklistItem) {
-                    // Highlight picklist item.
+                    break;
+                case "picklistItem":
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                         color: UIT.colors.greenHighlight
                     });
+                    break;
+                case null:
+                    // Nothing to do.
+                    break;
+                default:
+                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + highlightedElementType);
                 }
-            } else if (highlightedItem !== NONE) {
-                // Un-highlight previous items.
-                if (isHighlightingMenuButton) {
-                    // Lower menu button.
-                    Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
-                        localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
-                        visible: false
-                    });
-                } else if (isHighlightingButton) {
-                    // Unhighlight button.
-                    if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
-                        color = highlightedSourceItems[highlightedItem].enabledColor;
-                    } else {
-                        color = highlightedSourceItems[highlightedItem].properties.color !== undefined
-                            ? highlightedSourceItems[highlightedItem].properties.color
-                            : UI_ELEMENTS.button.properties.color;
-                    }
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                        color: color,
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
-                    });
-                } else if (isHighlightingToggleButton) {
-                    // Unhighlight old button.
-                    color = optionsToggles[highlightedSourceItems[highlightedItem].id]
-                        ? UI_ELEMENTS.toggleButton.onColor
-                        : UI_ELEMENTS.toggleButton.offColor;
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                        color: color,
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
-                    });
-                } else if (isHighlightingSwatch) {
-                    // Hide highlight and reinstate swatch size and color.
-                    Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
-                    color = optionsSettings[highlightedSourceItems[highlightedItem].id].value;
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                        dimensions: UI_ELEMENTS.swatch.properties.dimensions,
-                        color: color === "" ? EMPTY_SWATCH_COLOR : color,
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
-                    });
-                } else if (isHighlightingSlider || isHighlightingColorCircle) {
-                    // Lower slider or color circle.
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
-                    });
-                } else if (isHighlightingPicklist) {
-                    // Unhighlight picklist and possibly lower.
-                    if (!isHighlightingPicklistItem && !isPicklistOpen) {
-                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                            localPosition: highlightedSourceItems[highlightedItem].properties.localPosition,
-                            color: UI_ELEMENTS.picklist.properties.color
-                        });
-                    } else {
-                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                            color: UIT.colors.darkGray
-                        });
-                    }
-                } else if (isHighlightingPicklistItem) {
-                    // Unhighlight picklist item.
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                        color: UI_ELEMENTS.picklistItem.properties.color
-                    });
-                }
-                // Update status variables.
-                highlightedItem = NONE;
-                isHighlightingButtonElement = false;
-                isHighlightingButton = false;
-                isHighlightingToggleButton = false;
-                isHighlightingSwatch = false;
-                isHighlightingMenuButton = false;
-                isHighlightingSlider = false;
-                isHighlightingColorCircle = false;
-                isHighlightingPicklist = false;
-                isHighlightingPicklistItem = false;
             }
+
             highlightedSourceOverlays = intersectionOverlays;
             highlightedSourceItems = intersectionItems;
         }
@@ -3031,7 +2976,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
                 localPosition = intersectionItems[intersectedItem].properties.localPosition;
-                if (!isHighlightingMenuButton) {
+                if (highlightedElementType !== "menuButton") {
                     Overlays.editOverlay(intersectionOverlays[intersectedItem], {
                         localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
                     });
@@ -3060,25 +3005,24 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Picklist update.
-        if (intersectionItems && ((intersectionItems[intersectedItem].type === "picklist"
+        if (intersectionItems && ((highlightedElementType === "picklist"
                 && controlHand.triggerClicked() !== isPicklistPressed)
                     || (intersectionItems[intersectedItem].type !== "picklist" && isPicklistPressed))) {
-            isPicklistPressed = isHighlightingPicklist && controlHand.triggerClicked();
+            isPicklistPressed = controlHand.triggerClicked();
             if (isPicklistPressed) {
                 doCommand(intersectionItems[intersectedItem].command.method, intersectionItems[intersectedItem].id);
             }
         }
-        if (intersectionItems && ((intersectionItems[intersectedItem].type === "picklistItem"
+        if (intersectionItems && ((highlightedElementType === "picklistItem"
                 && controlHand.triggerClicked() !== isPicklistItemPressed)
                     || (intersectionItems[intersectedItem].type !== "picklistItem" && isPicklistItemPressed))) {
-            isPicklistItemPressed = isHighlightingPicklistItem && controlHand.triggerClicked();
+            isPicklistItemPressed = controlHand.triggerClicked();
             if (isPicklistItemPressed) {
                 doCommand(intersectionItems[intersectedItem].command.method, intersectionItems[intersectedItem].id);
             }
         }
         if (intersectionItems && isPicklistOpen && controlHand.triggerClicked()
-                && intersectionItems[intersectedItem].type !== "picklist"
-                && intersectionItems[intersectedItem].type !== "picklistItem") {
+                && highlightedElementType !== "picklist" && highlightedElementType !== "picklistItem") {
             doCommand("togglePhysicsPresets");
         }
 
@@ -3093,7 +3037,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Bar slider update.
-        if (intersectionItems && intersectionItems[intersectedItem].type === "barSlider" && controlHand.triggerClicked()) {
+        if (intersectionItems && highlightedElementType === "barSlider" && controlHand.triggerClicked()) {
             sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
             overlayDimensions = intersectionItems[intersectedItem].properties.dimensions;
             if (overlayDimensions === undefined) {
@@ -3111,7 +3055,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Image slider update.
-        if (intersectionItems && intersectionItems[intersectedItem].type === "imageSlider" && controlHand.triggerClicked()) {
+        if (intersectionItems && highlightedElementType === "imageSlider" && controlHand.triggerClicked()) {
             sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
             overlayDimensions = intersectionItems[intersectedItem].properties.dimensions;
             if (overlayDimensions === undefined) {
@@ -3132,7 +3076,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Color circle update.
-        if (intersectionItems && intersectionItems[intersectedItem].type === "colorCircle" && controlHand.triggerClicked()) {
+        if (intersectionItems && highlightedElementType === "colorCircle" && controlHand.triggerClicked()) {
             sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
             delta = Vec3.multiplyQbyV(Quat.inverse(sliderProperties.orientation),
                 Vec3.subtract(intersection.intersection, sliderProperties.position));
@@ -3267,26 +3211,19 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItem = NONE;
         highlightedSourceOverlays = null;
         isHighlightingButtonElement = false;
-        isHighlightingButton = false;
-        isHighlightingToggleButton = false;
-        isHighlightingSwatch = false;
-        isHighlightingMenuButton = false;
-        isHighlightingSlider = false;
-        isHighlightingColorCircle = false;
-        isHighlightingPicklist = false;
-        isHighlightingPicklistItem = false;
-        isPicklistOpen = false;
+        highlightedElementType = null;
         pressedItem = null;
         pressedSource = null;
+        isPicklistOpen = false;
         isPicklistPressed = false;
         isPicklistItemPressed = false;
         isTriggerClicked = false;
         wasTriggerClicked = false;
         isGripClicked = false;
-        isGroupButtonEnabled = false;
-        isUngroupButtonEnabled = false;
 
         // Special handling for Group options.
+        isGroupButtonEnabled = false;
+        isUngroupButtonEnabled = false;
         for (i = 0, length = OPTONS_PANELS.groupOptions.length; i < length; i += 1) {
             id = OPTONS_PANELS.groupOptions[i].id;
             if (id === "groupButton") {
