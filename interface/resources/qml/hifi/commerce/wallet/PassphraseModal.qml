@@ -24,6 +24,9 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
+    z: 998;
+    property bool keyboardRaised: false;
+
     Hifi.QmlCommerce {
         id: commerce;
 
@@ -35,8 +38,7 @@ Item {
         onWalletAuthenticatedStatusResult: {
             submitPassphraseInputButton.enabled = true;
             if (!isAuthenticated) {
-                // Auth failed, show error text
-
+                errorText.text = "Authentication failed - please try again.";
             } else {
                 root.visible = false;
                 sendSignalToParent({method: 'passphraseModal_authSuccess'});
@@ -76,7 +78,7 @@ Item {
         anchors.top: parent.top;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        height: 220;
+        height: 250;
         color: hifi.colors.baseGray;
 
         RalewaySemiBold {
@@ -106,23 +108,21 @@ Item {
             placeholderText: "passphrase";
 
             onFocusChanged: {
-                if (focus) {
-                    keyboard.raised = true;
-                } else if (!passphraseFieldAgain.focus) {
-                    keyboard.raised = false;
-                }
+                root.keyboardRaised = focus;
             }
 
             MouseArea {
                 anchors.fill: parent;
+
                 onClicked: {
                     parent.focus = true;
-                    keyboard.raised = true;
+                    root.keyboardRaised = true;
                 }
             }
 
             onAccepted: {
-                //commerce.submitWalletPassphrase(passphraseField.text);
+                submitPassphraseInputButton.enabled = false;
+                commerce.setPassphrase(passphraseField.text);
             }
         }
 
@@ -139,7 +139,7 @@ Item {
             onClicked: {
                 passphraseField.echoMode = checked ? TextInput.Normal : TextInput.Password;
             }
-        }        
+        }
 
         // Security Image
         Item {
@@ -190,6 +190,27 @@ Item {
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
             }
+        }
+
+        // Error text above buttons
+        RalewaySemiBold {
+            id: errorText;
+            text: "";
+            // Text size
+            size: 16;
+            // Anchors
+            anchors.bottom: passphrasePopupActionButtonsContainer.top;
+            anchors.bottomMargin: 4;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: 30;
+            // Style
+            color: hifi.colors.redHighlight;
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;
         }
         
         //

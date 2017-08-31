@@ -198,7 +198,6 @@ Rectangle {
 
     HifiWallet.PassphraseModal {
         id: passphraseModal;
-        z: 998;
         visible: false;
         anchors.top: titleBarContainer.bottom;
         anchors.bottom: parent.bottom;
