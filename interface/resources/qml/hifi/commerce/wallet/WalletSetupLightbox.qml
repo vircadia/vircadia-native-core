@@ -39,9 +39,9 @@ Rectangle {
             }
         }
 
-        onPassphraseSetupStatusResult: {
+        onWalletAuthenticatedStatusResult: {
             securityImageContainer.visible = false;
-            if (passphraseIsSetup) {
+            if (isAuthenticated) {
                 privateKeysReadyContainer.visible = true;
             } else {
                 choosePassphraseContainer.visible = true;

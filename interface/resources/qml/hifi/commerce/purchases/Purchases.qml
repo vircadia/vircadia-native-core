@@ -28,7 +28,6 @@ Rectangle {
     property string activeView: "initialize";
     property string referrerURL: "";
     property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
     // Style
@@ -41,35 +40,15 @@ Rectangle {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
-                commerce.getPassphraseSetupStatus();
-            }
-        }
-        
-        onPassphraseSetupStatusResult: {
-            if (!passphraseIsSetup && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-            } else if (passphraseIsSetup && root.activeView === "initialize") {
-                commerce.getWalletAuthenticatedStatus();
+                commerce.getKeyFilePathIfExists();
             }
         }
 
-        onWalletAuthenticatedStatusResult: {
-            if (!isAuthenticated && !passphraseModal.visible) {
-                passphraseModal.visible = true;
-            } else if (isAuthenticated) {
-                if (passphraseModal.visible) {
-                    passphraseModal.visible = false;
-                }
-                
-                if (!securityImageResultReceived) {
-                    commerce.getSecurityImage();
-                }
-                if (!keyFilePathIfExistsResultReceived) {
-                    commerce.getKeyFilePathIfExists();
-                }
-                if (!purchasesReceived) {
-                    commerce.inventory();
-                }
+        onKeyFilePathIfExistsResult: {
+            if (path === "" && root.activeView !== "notSetUp") {
+                root.activeView = "notSetUp";
+            } else if (path !== "" && root.activeView === "initialize") {
+                commerce.getSecurityImage();
             }
         }
 
@@ -77,8 +56,9 @@ Rectangle {
             securityImageResultReceived = true;
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
+            } else if (exists && root.activeView === "initialize") {
                 root.activeView = "purchasesMain";
+                commerce.getWalletAuthenticatedStatus();
             } else if (exists) {
                 // just set the source again (to be sure the change was noticed)
                 securityImage.source = "";
@@ -86,12 +66,11 @@ Rectangle {
             }
         }
 
-        onKeyFilePathIfExistsResult: {
-            keyFilePathIfExistsResultReceived = true;
-            if (path === "" && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
-                root.activeView = "purchasesMain";
+        onWalletAuthenticatedStatusResult: {
+            if (!isAuthenticated && !passphraseModal.visible) {
+                passphraseModal.visible = true;
+            } else if (isAuthenticated) {
+                commerce.inventory();
             }
         }
 
@@ -192,7 +171,6 @@ Rectangle {
         Component.onCompleted: {
             securityImageResultReceived = false;
             purchasesReceived = false;
-            keyFilePathIfExistsResultReceived = false;
             commerce.getLoginStatus();
         }
     }
@@ -218,7 +196,7 @@ Rectangle {
         }
     }
 
-    PassphraseModal {
+    HifiWallet.PassphraseModal {
         id: passphraseModal;
         z: 998;
         visible: false;
@@ -229,7 +207,13 @@ Rectangle {
 
         Connections {
             onSendSignalToParent: {
-                sendToScript(msg);
+                if (msg.method === 'passphraseModal_authSuccess') {
+                    if (!purchasesReceived) {
+                        commerce.inventory();
+                    }
+                } else {
+                    sendToScript(msg);
+                }
             }
         }
     }

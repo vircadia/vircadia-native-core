@@ -40,8 +40,8 @@ Item {
             passphrasePageSecurityImage.source = "image://security/securityImage";
         }
 
-        onPassphraseSetupStatusResult: {
-            sendMessageToLightbox({method: 'statusResult', status: passphraseIsSetup});
+        onWalletAuthenticatedStatusResult: {
+            sendMessageToLightbox({method: 'statusResult', status: isAuthenticated});
         }
     }
 
@@ -195,7 +195,7 @@ Item {
     // Text below TextFields
     RalewaySemiBold {
         id: passwordReqs;
-        text: "Passphrase must be at least 4 characters";
+        text: "Passphrase must be at least 3 characters";
         // Text size
         size: 16;
         // Anchors
@@ -252,7 +252,7 @@ Item {
     }
 
     function validateAndSubmitPassphrase() {
-        if (passphraseField.text.length < 4) {
+        if (passphraseField.text.length < 3) {
             setErrorText("Passphrase too short.");
             return false;
         } else if (passphraseField.text !== passphraseFieldAgain.text) {

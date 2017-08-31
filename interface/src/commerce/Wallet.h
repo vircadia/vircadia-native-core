@@ -40,6 +40,7 @@ public:
     void setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
+    bool walletIsAuthenticatedWithPassphrase();
 
     void reset();
 

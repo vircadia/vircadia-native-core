@@ -31,6 +31,17 @@ Item {
             passphraseModalSecurityImage.source = "";
             passphraseModalSecurityImage.source = "image://security/securityImage";
         }
+
+        onWalletAuthenticatedStatusResult: {
+            submitPassphraseInputButton.enabled = true;
+            if (!isAuthenticated) {
+                // Auth failed, show error text
+
+            } else {
+                root.visible = false;
+                sendSignalToParent({method: 'passphraseModal_authSuccess'});
+            }
+        }
     }
 
     // This object is always used in a popup.
@@ -222,7 +233,8 @@ Item {
                 width: parent.width/2 - anchors.rightMargin*2;
                 text: "Submit"
                 onClicked: {
-                    //commerce.submitWalletPassphrase(passphraseField.text);
+                    submitPassphraseInputButton.enabled = false;
+                    commerce.setPassphrase(passphraseField.text);
                 }
             }
         }

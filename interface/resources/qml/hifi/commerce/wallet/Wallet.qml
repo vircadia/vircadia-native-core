@@ -26,8 +26,6 @@ Rectangle {
     id: root;
 
     property string activeView: "initialize";
-    property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     property bool keyboardRaised: false;
 
     // Style
@@ -40,14 +38,22 @@ Rectangle {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
-                commerce.getPassphraseSetupStatus();
+                commerce.getKeyFilePathIfExists();
             }
         }
-        
-        onPassphraseSetupStatusResult: {
-            if (!passphraseIsSetup && root.activeView !== "notSetUp") {
+
+        onKeyFilePathIfExistsResult: {
+            if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
-            } else if (passphraseIsSetup && root.activeView === "initialize") {
+            } else if (path !== "" && root.activeView === "initialize") {
+                commerce.getSecurityImage();
+            }
+        }
+
+        onSecurityImageResult: {
+            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
+                root.activeView = "notSetUp";
+            } else if (exists && root.activeView === "initialize") {
                 commerce.getWalletAuthenticatedStatus();
             }
         }
@@ -56,33 +62,6 @@ Rectangle {
             if (!isAuthenticated && !passphraseModal.visible) {
                 passphraseModal.visible = true;
             } else if (isAuthenticated) {
-                if (passphraseModal.visible) {
-                    passphraseModal.visible = false;
-                }
-                
-                if (!securityImageResultReceived) {
-                    commerce.getSecurityImage();
-                }
-                if (!keyFilePathIfExistsResultReceived) {
-                    commerce.getKeyFilePathIfExists();
-                }                
-            }
-        }
-
-        onSecurityImageResult: {
-            securityImageResultReceived = true;
-            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
-                root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
-                root.activeView = "walletHome";
-            }
-        }
-
-        onKeyFilePathIfExistsResult: {
-            keyFilePathIfExistsResultReceived = true;
-            if (path === "" && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
                 root.activeView = "walletHome";
             }
         }
@@ -254,7 +233,11 @@ Rectangle {
 
         Connections {
             onSendSignalToParent: {
-                sendToScript(msg);
+                if (msg.method === 'passphraseModal_authSuccess') {
+                    root.activeView = "walletHome";
+                } else {
+                    sendToScript(msg);
+                }
             }
         }
     }

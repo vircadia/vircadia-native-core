@@ -342,6 +342,24 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
     return true;
 }
 
+bool Wallet::walletIsAuthenticatedWithPassphrase() {
+    // try to read existing keys if they exist...
+
+    // FIXME: initialize OpenSSL elsewhere soon
+    initialize();
+
+    auto publicKey = readPublicKey(keyFilePath().toStdString().c_str());
+
+    if (publicKey.size() > 0) {
+        if (auto key = readPrivateKey(keyFilePath().toStdString().c_str())) {
+            RSA_free(key);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool Wallet::createIfNeeded() {
     if (_publicKeys.count() > 0) return false;
 
