@@ -3031,9 +3031,7 @@ function MyController(hand) {
                 Overlays.editOverlay(this.grabbedThingID, reparentProps);
                 // AJT: resize tablet to allow it to counter scale.
                 if (this.grabbedThingID === HMD.tabletID) {
-                    var DEFAULT_TABLET_WIDTH = 0.4375;
-                    var tabletScalePercentage = getTabletScalePercentageFromSettings();
-                    resizeTablet(DEFAULT_TABLET_WIDTH * (tabletScalePercentage / 100));
+                    resizeTablet(getTabletWidthFromSettings(), reparentProps.parentJointIndex);
                 }
             } else {
                 if (grabbedProperties.userData.length > 0) {
@@ -3813,9 +3811,7 @@ function MyController(hand) {
                         });
                         // AJT: resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
                         if (this.grabbedThingID === HMD.tabletID) {
-                            var DEFAULT_TABLET_WIDTH = 0.4375;
-                            var tabletScalePercentage = getTabletScalePercentageFromSettings();
-                            resizeTablet(DEFAULT_TABLET_WIDTH * (tabletScalePercentage / 100));
+                            resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
                         }
                     } else {
                         // we're putting this back as a child of some other parent, so zero its velocity

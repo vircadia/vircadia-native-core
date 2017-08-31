@@ -352,7 +352,8 @@ flatten = function(array) {
     return [].concat.apply([], array);
 }
 
-getTabletScalePercentageFromSettings = function () {
+getTabletWidthFromSettings = function () {
+    var DEFAULT_TABLET_WIDTH = 0.4375;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var toolbarMode = tablet.toolbarMode;
     var DEFAULT_TABLET_SCALE = 100;
@@ -364,10 +365,10 @@ getTabletScalePercentageFromSettings = function () {
             tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
         }
     }
-    return tabletScalePercentage;
+    return DEFAULT_TABLET_WIDTH * (tabletScalePercentage / 100);
 };
 
-resizeTablet = function (width, newParentJointID) {
+resizeTablet = function (width, newParentJointIndex) {
 
     if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID) {
         return;
@@ -376,7 +377,7 @@ resizeTablet = function (width, newParentJointID) {
     var sensorScaleFactor = MyAvatar.sensorToWorldScale;
     var sensorScaleOffsetOverride = 1;
     var SENSOR_TO_ROOM_MATRIX = 65534;
-    var parentJointIndex = Overlays.getProperty(HMD.tabletID, "parentJointIndex");
+    var parentJointIndex = newParentJointIndex || Overlays.getProperty(HMD.tabletID, "parentJointIndex");
     if (parentJointIndex === SENSOR_TO_ROOM_MATRIX) {
         sensorScaleOffsetOverride = 1 / sensorScaleFactor;
     }
