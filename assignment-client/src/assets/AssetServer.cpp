@@ -529,7 +529,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
 void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     replyPacket.writePrimitive(AssetServerError::NoError);
 
-    uint32_t count = _fileMappings.size();
+    uint32_t count = (uint32_t)_fileMappings.size();
 
     replyPacket.writePrimitive(count);
 

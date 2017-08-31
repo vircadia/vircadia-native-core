@@ -131,7 +131,7 @@ void GetAllMappingsRequest::doStart() {
 
 
         if (!_error) {
-            int numberOfMappings;
+            uint32_t numberOfMappings;
             message->readPrimitive(&numberOfMappings);
             for (auto i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
