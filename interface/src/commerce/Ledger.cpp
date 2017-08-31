@@ -142,7 +142,11 @@ void Ledger::historySuccess(QNetworkReply& reply) {
         // turns out on my machine, toLocalTime convert to some weird timezone, yet the
         // systemTimeZone is correct.  To avoid a strange bug with other's systems too, lets
         // be explicit
+#ifdef Q_OS_MAC
+        QDateTime createdAt = QDateTime::fromTime_t(valueObject["created_at"].toInt(), Qt::UTC);
+#elif
         QDateTime createdAt = QDateTime::fromSecsSinceEpoch(valueObject["created_at"].toInt(), Qt::UTC);
+#endif
         QDateTime localCreatedAt = createdAt.toTimeZone(QTimeZone::systemTimeZone());
         valueObject["text"] = QString("%1 sent %2 <b>%3 %4</b> on %5 with message \"%6\"").
             arg(from, to, QString::number(valueObject["quantity"].toInt()), valueObject["asset_title"].toString(), localCreatedAt.toString(Qt::SystemLocaleShortDate), valueObject["message"].toString());
