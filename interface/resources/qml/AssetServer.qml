@@ -604,10 +604,16 @@ ScrollingWindow {
             }
 
             HifiControls.CheckBox {
+                function isChecked() {
+                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    var bakingDisabled = (status === "Not Baked" || status === "--");
+                    return selectedItems === 1 && !bakingDisabled; 
+                }
+
                 text: "Use baked (optimized) versions"
                 colorScheme: root.colorScheme
                 enabled: selectedItems === 1 && assetProxyModel.data(treeView.selection.currentIndex, 0x105) !== "--"
-                checked: selectedItems === 1 && assetProxyModel.data(treeView.selection.currentIndex, 0x105) === "Baked";
+                checked: isChecked()
                 onClicked: {
                     var mappings = [];
                     for (var i in treeView.selection.selectedIndexes) {
@@ -619,6 +625,8 @@ ScrollingWindow {
                     Assets.setBakingEnabled(mappings, checked, function() {
                         reload();
                     });
+
+                    checked = Qt.binding(isChecked);
                 }
             }
         }
