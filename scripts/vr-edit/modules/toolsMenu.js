@@ -2043,15 +2043,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (value === "" && optionsItems[i].setting.defaultValue !== undefined) {
                     value = optionsItems[i].setting.defaultValue;
                 }
-                // TODO: Regularize use of optionsSettings.
-                if (optionsItems[i].type === "swatch" || optionsItems[i].id === "currentColor") {
-                    optionsSettings[optionsItems[i].id].value = value;
-                }
+                optionsSettings[optionsItems[i].id].value = value;
                 if (value !== "") {
                     properties[optionsItems[i].setting.property] = value;
                     if (optionsItems[i].type === "toggleButton") {
-                        // Store value in optionsSettings rather than using overlay property.
-                        optionsSettings[optionsItems[i].id].value = value;
                         optionsToggles[optionsItems[i].id] = value;
                         properties.color = value
                             ? UI_ELEMENTS[optionsItems[i].type].onColor
@@ -2059,13 +2054,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         if (optionsItems[i].hasOwnProperty("onSublabel")) {
                             sublabelModifier = value ? optionsItems[i].onSublabel : optionsItems[i].offSublabel;
                         }
-                    }
-                    if (optionsItems[i].type === "barSlider") {
-                        // Store value in optionsSettings rather than using overlay property.
-                        optionsSettings[optionsItems[i].id].value = value;
-                    }
-                    if (optionsItems[i].type === "picklist") {
-                        optionsSettings[optionsItems[i].id].value = value;
+                    } else if (optionsItems[i].type === "picklist") {
                         if (value === "custom") {
                             optionsItems[i].label = optionsItems[i].customLabel;
                         } else {
