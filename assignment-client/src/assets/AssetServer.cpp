@@ -266,6 +266,12 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _transferTaskPool(this),
     _bakingTaskPool(this)
 {
+    // store the current state of image compression so we can reset it when this assignment is complete
+    _wasColorTextureCompressionEnabled = image::isColorTexturesCompressionEnabled();
+    _wasGrayscaleTextureCompressionEnabled = image::isGrayscaleTexturesCompressionEnabled();
+    _wasNormalTextureCompressionEnabled = image::isNormalTexturesCompressionEnabled();
+    _wasCubeTextureCompressionEnabled = image::isCubeTexturesCompressionEnabled();
+
     // enable compression in image library
     image::setColorTexturesCompressionEnabled(true);
     image::setGrayscaleTexturesCompressionEnabled(true);
@@ -300,6 +306,14 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     timer->setTimerType(Qt::CoarseTimer);
     timer->start();
 #endif
+}
+
+void AssetServer::aboutToFinish() {
+    // re-set defaults in image library
+    image::setColorTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
+    image::setGrayscaleTexturesCompressionEnabled(_wasGrayscaleTextureCompressionEnabled);
+    image::setNormalTexturesCompressionEnabled(_wasNormalTextureCompressionEnabled);
+    image::setCubeTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
 }
 
 void AssetServer::run() {
