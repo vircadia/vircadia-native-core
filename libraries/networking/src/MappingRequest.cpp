@@ -133,7 +133,7 @@ void GetAllMappingsRequest::doStart() {
         if (!_error) {
             uint32_t numberOfMappings;
             message->readPrimitive(&numberOfMappings);
-            for (auto i = 0; i < numberOfMappings; ++i) {
+            for (uint32_t i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
                 auto hash = message->read(SHA256_HASH_LENGTH).toHex();
                 BakingStatus status;
