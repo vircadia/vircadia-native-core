@@ -53,8 +53,6 @@ static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 
-static const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
-
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath)
     : _assetHash(assetHash), _assetPath(assetPath), _filePath(filePath) {
 }
@@ -84,7 +82,7 @@ void BakeAssetTask::run() {
     loop.exec();
 
     if (baker->hasErrors()) {
-        qDebug() << "Failed to bake: " << _assetHash << _assetPath;
+        qDebug() << "Failed to bake: " << _assetHash << _assetPath << baker->getErrors();
     } else {
         auto vectorOutputFiles = QVector<QString>::fromStdVector(baker->getOutputFiles());
         qDebug() << "Finished baking: " << _assetHash << _assetPath << vectorOutputFiles;
@@ -521,9 +519,11 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
     replyPacket.writePrimitive(count);
 
     for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
-        replyPacket.writeString(it.key());
-        replyPacket.write(QByteArray::fromHex(it.value().toString().toUtf8()));
-        replyPacket.writePrimitive(getAssetStatus(it.key(), it.value().toString()));
+        auto mapping = it.key();
+        auto hash = it.value().toString();
+        replyPacket.writeString(mapping);
+        replyPacket.write(QByteArray::fromHex(hash.toUtf8()));
+        replyPacket.writePrimitive(getAssetStatus(mapping, hash));
     }
 }
 
