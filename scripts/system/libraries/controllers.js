@@ -18,7 +18,7 @@ getGrabCommunications = function getFarGrabCommunications() {
 // this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp:378
 var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
 
-getGrabPointSphereOffset = function(handController) {
+getGrabPointSphereOffset = function(handController, ignoreSensorToWorldScale) {
     var offset = GRAB_POINT_SPHERE_OFFSET;
     if (handController === Controller.Standard.LeftHand) {
         offset = {
@@ -27,7 +27,11 @@ getGrabPointSphereOffset = function(handController) {
             z: GRAB_POINT_SPHERE_OFFSET.z
         };
     }
-    return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
+    if (ignoreSensorToWorldScale) {
+        return offset;
+    } else {
+        return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
+    }
 };
 
 // controllerWorldLocation is where the controller would be, in-world, with an added offset

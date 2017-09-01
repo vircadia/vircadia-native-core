@@ -2940,30 +2940,6 @@ glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& c
     return glm::inverse(avatarMatrix) * controllerWorldMatrix;
 }
 
-glm::vec3 MyAvatar::getAbsoluteJointScaleInObjectFrame(int index) const {
-    if (index < 0) {
-        index += numeric_limits<unsigned short>::max() + 1; // 65536
-    }
-
-    // only sensor to world matrix has non identity scale.
-    switch (index) {
-        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
-            auto pose = getControllerPoseInSensorFrame(controller::Action::LEFT_HAND);
-            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
-            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
-            return extractScale(result);
-        }
-        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
-            auto pose = getControllerPoseInSensorFrame(controller::Action::RIGHT_HAND);
-            glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
-            glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
-            return extractScale(result);
-        }
-        default:
-            return Avatar::getAbsoluteJointScaleInObjectFrame(index);
-    }
-}
-
 glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
     if (index < 0) {
         index += numeric_limits<unsigned short>::max() + 1; // 65536
