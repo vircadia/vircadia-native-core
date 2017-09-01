@@ -154,7 +154,6 @@ void main(void) {
 	}
     
     if (distToRegionFXAA > 0.0) {
-        outFragColor.rgb = taa_evalTXAA();
         return;
     }
 

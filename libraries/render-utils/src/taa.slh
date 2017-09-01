@@ -14,8 +14,9 @@
 <$declareDeferredFrameTransform()$>
 
 const int SEQUENCE_LENGTH = 16;
+const int INFO_INDEX = SEQUENCE_LENGTH / 2;
 struct JitterSequence {
-    vec4 offsets[(SEQUENCE_LENGTH / 2) + 1];
+    vec4 offsets[INFO_INDEX + 1];
 };
 layout(std140) uniform taaJitterBuffer {
     JitterSequence sequence;
@@ -26,11 +27,11 @@ vec2 taa_getJitterSample(int index) {
 }
 
 int taa_getJitterSequenceLength() {
-    return int(sequence.offsets[(SEQUENCE_LENGTH / 2)].z);
+    return floatBitsToInt(sequence.offsets[INFO_INDEX].z);
 }
 
 int taa_getCurrentJitterIndex() {
-    return int(sequence.offsets[(SEQUENCE_LENGTH / 2)].w);
+    return floatBitsToInt(sequence.offsets[INFO_INDEX].w);
 }
 
 vec2 taa_getCurrentJitterSample() {
@@ -269,7 +270,7 @@ vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, 
 		float k_feedback = mix(_FeedbackMin, _FeedbackMax, unbiased_weight_sqr);
 
 		// output
-    vec3 nextColor =  mix(texel1, texel0, k_feedback).xyz;
+    vec3 nextColor =  mix(texel0, texel1, k_feedback).xyz;
 
     return taa_resolveColor(nextColor);
 }

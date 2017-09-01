@@ -27,10 +27,10 @@ void main(void) {
     
 	float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
     float Zeye = evalZeyeFromZdb(Zdb);
-	if (Zeye <= -getPosLinearDepthFar()) {
+/*	if (Zeye <= -getPosLinearDepthFar()) {
        outFragColor = vec4(0.5, 0.5, 0.0, 0.0);
        return;
-    }
+    }*/
 
 	// The position of the pixel fragment in Eye space then in world space
     vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, texcoordPos);

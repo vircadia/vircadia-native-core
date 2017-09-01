@@ -458,18 +458,21 @@ void JitterSample::configure(const Config& config) {
 void JitterSample::run(const render::RenderContextPointer& renderContext, JitterBuffer& jitterBuffer) {
     auto& current = _jitterBuffer.edit().currentIndex;
     if (!_freeze) {
-        current = (current + 1) % SampleSequence::SEQUENCE_LENGTH;
+        if (current >= 0) {
+            current = (current + 1) % SampleSequence::SEQUENCE_LENGTH;
+        }
+        else {
+            current = -1;
+        }
     }
     auto viewFrustum = renderContext->args->getViewFrustum();
     auto projMat = viewFrustum.getProjection();
     auto theNear = viewFrustum.getNearClip();
     
-    auto jit = jitterBuffer.get().offsets[current];
+    auto jit = jitterBuffer.get().offsets[(current < 0 ? SampleSequence::SEQUENCE_LENGTH : current)];
     auto width = (float) renderContext->args->_viewport.z;
     auto height = (float) renderContext->args->_viewport.w;
 
- //   auto jx = -4.0 * jit.x / width;
-//    auto jy = -4.0 * jit.y / height;
     auto jx = 2.0 * jit.x / width;
     auto jy = 2.0 * jit.y / height;
 
