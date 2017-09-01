@@ -10,7 +10,7 @@
    getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
-   cloneEntity
+   cloneEntity, DISPATCHER_PROPERTIES
 */
 
 Script.include("/~/system/libraries/Xform.js");

@@ -84,7 +84,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] == 0) {
+            if (controllerData.triggerClicks[this.hand] === 0) {
                 this.endNearTrigger(controllerData);
                 return makeRunningValues(false, [], []);
             }

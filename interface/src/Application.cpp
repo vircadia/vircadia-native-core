@@ -1891,7 +1891,6 @@ QString Application::getUserAgent() {
 void Application::toggleTabletUI(bool shouldOpen) const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    qDebug() << "Application::toggleTabletUI" << shouldOpen << hmd->getShouldShowTablet();
     if (!(shouldOpen && hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
