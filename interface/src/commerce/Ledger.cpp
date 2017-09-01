@@ -144,7 +144,7 @@ void Ledger::historySuccess(QNetworkReply& reply) {
         // be explicit
 #ifdef Q_OS_MAC
         QDateTime createdAt = QDateTime::fromTime_t(valueObject["created_at"].toInt(), Qt::UTC);
-#elif
+#else
         QDateTime createdAt = QDateTime::fromSecsSinceEpoch(valueObject["created_at"].toInt(), Qt::UTC);
 #endif
         QDateTime localCreatedAt = createdAt.toTimeZone(QTimeZone::systemTimeZone());
