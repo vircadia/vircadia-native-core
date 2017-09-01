@@ -217,6 +217,55 @@ RSA* readPrivateKey(const char* filename) {
     return key;
 }
 
+RSA* readKeys(const char* filename) {
+    FILE* fp;
+    RSA* key = NULL;
+    if ((fp = fopen(filename, "rt"))) {
+        // file opened successfully
+        qCDebug(commerce) << "opened key file" << filename;
+        if ((key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL))) {
+            // now read private key
+
+            qCDebug(commerce) << "read public key";
+
+            if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
+                qCDebug(commerce) << "read private key";
+
+                return key;
+            }
+            qCDebug(commerce) << "failed to read private key";
+        }
+        qCDebug(commerce) << "failed to read public key";
+    } else {
+        qCDebug(commerce) << "failed to open key file" << filename;
+    }
+    return key;
+}
+
+bool writeKeys(const char* filename, RSA* keys) {
+    FILE* fp;
+    bool retval = false;
+    if ((fp = fopen(filename, "wt"))) {
+        if (!PEM_write_RSAPublicKey(fp, keys)) {
+            fclose(fp);
+            qCDebug(commerce) << "failed to write public key";
+            return retval;
+        }
+
+        if (!PEM_write_RSAPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
+            fclose(fp);
+            qCDebug(commerce) << "failed to write private key";
+            return retval;
+        }
+
+        retval = true;
+        qCDebug(commerce) << "wrote keys successfully";
+    } else {
+        qCDebug(commerce) << "failed to open key file" << filename;
+    }
+    return retval;
+}
+
 static const unsigned char IVEC[16] = "IAmAnIVecYay123";
 
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
@@ -530,4 +579,31 @@ void Wallet::reset() {
     QFile imageFile(imageFilePath());
     keyFile.remove();
     imageFile.remove();
+}
+
+bool Wallet::changePassphrase(const QString& newPassphrase) {
+    RSA* keys = readKeys(keyFilePath().toStdString().c_str());
+    if (keys) {
+        // we read successfully, so now write to a new temp file
+        // save old passphrase just in case
+        // TODO: force re-enter?
+        QString oldPassphrase = *_passphrase;
+        setPassphrase(newPassphrase);
+        QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
+        if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
+            // ok, now move the temp file to the correct spot
+            QFile(QString(keyFilePath())).remove();
+            QFile(tempFileName).rename(QString(keyFilePath()));
+            emit passphraseSetupStatusResult(true);
+            return true;
+        } else {
+            qCDebug(commerce) << "couldn't write keys";
+            setPassphrase(oldPassphrase);
+            emit passphraseSetupStatusResult(false);
+            return false;
+        }
+    }
+    qCDebug(commerce) << "couldn't read keys";
+    emit passphraseSetupStatusResult(false);
+    return false;
 }

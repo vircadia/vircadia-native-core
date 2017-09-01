@@ -41,13 +41,14 @@ public:
     QString* getPassphrase() { return _passphrase; }
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
     bool walletIsAuthenticatedWithPassphrase();
+    bool changePassphrase(const QString& newPassphrase);
 
     void reset();
 
 signals:
     void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
-
+    void passphraseSetupStatusResult(bool successful);
 private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };

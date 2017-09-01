@@ -48,20 +48,10 @@ void QmlCommerce::getSecurityImage() {
     wallet->getSecurityImage();
 }
 
-
-
 void QmlCommerce::chooseSecurityImage(const QString& imageFile) {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->chooseSecurityImage(imageFile);
 }
-
-void QmlCommerce::setPassphrase(const QString& passphrase) {
-    auto wallet = DependencyManager::get<Wallet>();
-    wallet->setPassphrase(passphrase);
-    getWalletAuthenticatedStatus();
-}
-
-
 
 void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
     auto ledger = DependencyManager::get<Ledger>();
@@ -94,7 +84,15 @@ void QmlCommerce::history() {
     ledger->history(wallet->listPublicKeys());
 }
 
-
+void QmlCommerce::setPassphrase(const QString& passphrase) {
+    auto wallet = DependencyManager::get<Wallet>();
+    if (wallet->getPassphrase()) {
+        wallet->changePassphrase(passphrase);
+    } else {
+        wallet->setPassphrase(passphrase);
+    }
+    getWalletAuthenticatedStatus();
+}
 
 void QmlCommerce::reset() {
     auto ledger = DependencyManager::get<Ledger>();
