@@ -910,7 +910,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
     auto& fbxJoints = _animation->getGeometry().joints;
-    auto& originalFbxJoints = _model->getFBXGeometry().joints
+    auto& originalFbxJoints = _model->getFBXGeometry().joints;
     bool allowTranslation = entity->getAnimationAllowTranslation();
     int frameCount = frames.size();
     if (frameCount <= 0) {
