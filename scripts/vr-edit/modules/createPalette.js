@@ -289,6 +289,10 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     setHand(side);
 
+    function otherHand(side) {
+        return (side + 1) % 2;
+    }
+
     function getEntityIDs() {
         return [palettePanelOverlay, paletteHeaderHeadingOverlay, paletteHeaderBarOverlay].concat(paletteItemOverlays);
     }
@@ -313,6 +317,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Highlight and raise new item.
         if (itemIndex !== NONE && highlightedItem !== itemIndex) {
+            Feedback.play(side, Feedback.HOVER_BUTTON);
             Overlays.editOverlay(paletteItemHoverOverlays[itemIndex], {
                 localPosition: UIT.dimensions.paletteItemButtonHoveredOffset,
                 visible: true
@@ -324,6 +329,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isTriggerClicked = controlHand.triggerClicked();
         if (highlightedItem !== NONE && isTriggerClicked && !wasTriggerClicked) {
             // Create entity.
+            Feedback.play(otherHand(side), Feedback.CREATE_ENTITY);
             properties = Object.clone(PALETTE_ITEMS[itemIndex].entity);
             properties.position = Vec3.sum(controlHand.palmPosition(),
                 Vec3.multiplyQbyV(controlHand.orientation(),

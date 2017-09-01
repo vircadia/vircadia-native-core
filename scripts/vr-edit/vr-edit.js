@@ -73,6 +73,7 @@
 
     // Modules
     Script.include("./modules/createPalette.js");
+    Script.include("./modules/feedback.js");
     Script.include("./modules/groups.js");
     Script.include("./modules/hand.js");
     Script.include("./modules/handles.js");
@@ -756,6 +757,7 @@
         }
 
         function enterEditorCloning() {
+            Feedback.play(side, Feedback.CLONE_ENTITY);
             selection.select(intersectedEntityID);  // For when transitioning from EDITOR_SEARCHING.
             selection.cloneEntities();
             intersectedEntityID = selection.intersectedEntityID();
@@ -771,6 +773,7 @@
             if (!grouping.includes(rootEntityID)) {
                 highlights.display(false, selection.selection(), null, highlights.GROUP_COLOR);
             }
+            Feedback.play(side, Feedback.SELECT_ENTITY);
             grouping.toggle(selection.selection());
         }
 
@@ -838,6 +841,7 @@
 
         function updateTool() {
             if (!wasGripClicked && isGripClicked && (toolSelected !== TOOL_NONE)) {
+                Feedback.play(side, Feedback.DROP_TOOL);
                 toolSelected = TOOL_NONE;
                 grouping.clear();
                 ui.clearTool();
@@ -900,12 +904,18 @@
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         setState(EDITOR_HIGHLIGHTING);
-                        selection.applyColor(colorToolColor, false);
+                        if (selection.applyColor(colorToolColor, false)) {
+                            Feedback.play(side, Feedback.APPLY_PROPERTY);
+                        } else {
+                            Feedback.play(side, Feedback.APPLY_ERROR);
+                        }
                     } else if (toolSelected === TOOL_PICK_COLOR) {
                         color = selection.getColor(intersection.entityID);
                         if (color) {
                             colorToolColor = color;
                             ui.doPickColor(colorToolColor);
+                        } else {
+                            Feedback.play(side, Feedback.APPLY_ERROR);
                         }
                         toolSelected = TOOL_COLOR;
                         ui.setToolIcon(ui.COLOR_TOOL);
@@ -914,6 +924,7 @@
                         selection.applyPhysics(physicsToolPhysics);
                     } else if (toolSelected === TOOL_DELETE) {
                         setState(EDITOR_HIGHLIGHTING);
+                        Feedback.play(side, Feedback.DELETE_ENTITY);
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
                     } else {
@@ -981,18 +992,25 @@
                     } else if (toolSelected === TOOL_GROUP) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
-                        selection.applyColor(colorToolColor, false);
+                        if (selection.applyColor(colorToolColor, false)) {
+                            Feedback.play(side, Feedback.APPLY_PROPERTY);
+                        } else {
+                            Feedback.play(side, Feedback.APPLY_ERROR);
+                        }
                     } else if (toolSelected === TOOL_PICK_COLOR) {
                         color = selection.getColor(intersection.entityID);
                         if (color) {
                             colorToolColor = color;
                             ui.doPickColor(colorToolColor);
+                        } else {
+                            Feedback.play(side, Feedback.APPLY_ERROR);
                         }
                         toolSelected = TOOL_COLOR;
                         ui.setToolIcon(ui.COLOR_TOOL);
                     } else if (toolSelected === TOOL_PHYSICS) {
                         selection.applyPhysics(physicsToolPhysics);
                     } else if (toolSelected === TOOL_DELETE) {
+                        Feedback.play(side, Feedback.DELETE_ENTITY);
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
                     } else {
@@ -1027,6 +1045,7 @@
                     }
                 } else if (isGripClicked) {
                     if (!wasGripClicked) {
+                        Feedback.play(side, Feedback.DELETE_ENTITY);
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
                     }
@@ -1328,23 +1347,27 @@
     function onUICommand(command, parameter) {
         switch (command) {
         case "scaleTool":
+            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             grouping.clear();
             toolSelected = TOOL_SCALE;
             ui.setToolIcon(ui.SCALE_TOOL);
             ui.updateUIEntities();
             break;
         case "cloneTool":
+            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             grouping.clear();
             toolSelected = TOOL_CLONE;
             ui.setToolIcon(ui.CLONE_TOOL);
             ui.updateUIEntities();
             break;
         case "groupTool":
+            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             toolSelected = TOOL_GROUP;
             ui.setToolIcon(ui.GROUP_TOOL);
             ui.updateUIEntities();
             break;
         case "colorTool":
+            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             grouping.clear();
             toolSelected = TOOL_COLOR;
             ui.setToolIcon(ui.COLOR_TOOL);
@@ -1357,24 +1380,28 @@
                 toolSelected = TOOL_PICK_COLOR;
                 ui.updateUIEntities();
             } else {
+                Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
                 grouping.clear();
                 toolSelected = TOOL_COLOR;
                 ui.updateUIEntities();
             }
             break;
         case "physicsTool":
+            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             grouping.clear();
             toolSelected = TOOL_PHYSICS;
             ui.setToolIcon(ui.PHYSICS_TOOL);
             ui.updateUIEntities();
             break;
         case "deleteTool":
+            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             grouping.clear();
             toolSelected = TOOL_DELETE;
             ui.setToolIcon(ui.DELETE_TOOL);
             ui.updateUIEntities();
             break;
         case "clearTool":
+            Feedback.play(dominantHand, Feedback.DROP_TOOL);
             grouping.clear();
             toolSelected = TOOL_NONE;
             ui.clearTool();
@@ -1382,9 +1409,11 @@
             break;
 
         case "groupButton":
+            Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
             grouping.group();
             break;
         case "ungroupButton":
+            Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
             grouping.ungroup();
             break;
 

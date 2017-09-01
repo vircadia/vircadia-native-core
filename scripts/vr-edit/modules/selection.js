@@ -365,7 +365,7 @@ Selection = function (side) {
     function applyColor(color, isApplyToAll) {
         // Entities without a color property simply ignore the edit.
         var properties,
-            isError = true,
+            isOK = false,
             i,
             length;
 
@@ -376,7 +376,7 @@ Selection = function (side) {
                     Entities.editEntity(selection[i].id, {
                         color: color
                     });
-                    isError = false;
+                    isOK = true;
                 }
             }
         } else {
@@ -385,14 +385,11 @@ Selection = function (side) {
                 Entities.editEntity(intersectedEntityID, {
                     color: color
                 });
-                isError = false;
+                isOK = true;
             }
         }
 
-        if (isError) {
-            // TODO
-            print("TODO: Error beep");
-        }
+        return isOK;
     }
 
     function getColor(entityID) {
@@ -401,8 +398,6 @@ Selection = function (side) {
         properties = Entities.getEntityProperties(entityID, "color");
         if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) === -1) {
             // Some entities don't have a color property.
-            // TODO
-            print("TODO: Error beep");
             return null;
         }
 
