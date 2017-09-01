@@ -10,6 +10,7 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
@@ -527,7 +528,6 @@ ScrollingWindow {
             headerVisible: true
             sortIndicatorVisible: true
 
-            canEdit: true
             colorScheme: root.colorScheme
 
             modifyEl: renameEl
@@ -542,8 +542,130 @@ ScrollingWindow {
                 id: bakedColumn
                 title: "Use Baked?"
                 role: "baked"
-                width: 140
+                width: 100
             }
+    
+            itemDelegate: Loader {
+                id: itemDelegateLoader
+
+                anchors {
+                    left: parent ? parent.left : undefined
+                    leftMargin: (styleData.column === 0 ? (2 + styleData.depth) : 1) * hifi.dimensions.tablePadding
+                    right: parent ? parent.right : undefined
+                    rightMargin: hifi.dimensions.tablePadding
+                    verticalCenter: parent ? parent.verticalCenter : undefined
+                }
+
+                function convertToGlyph(text) {
+                    switch (text) {
+                        case "Not Baked":
+                            return hifi.glyphs.circleSlash;
+                        case "Baked":
+                            return hifi.glyphs.placemark;
+                        case "Error":
+                            return hifi.glyphs.alert;
+                        default:
+                            return "";
+                    }
+                }
+
+                function getComponent() {
+                    if ((styleData.column === 0) && styleData.selected) {
+                        return textFieldComponent;
+                    } else if (convertToGlyph(styleData.value) != "") {
+                        return glyphComponent;
+                    } else {
+                        return labelComponent;
+                    }
+
+                }
+                sourceComponent: getComponent()
+        
+                Component {
+                    id: labelComponent
+                    FiraSansSemiBold {
+                        text: styleData.value
+                        size: hifi.fontSizes.tableText
+                        color: colorScheme == hifi.colorSchemes.light
+                                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                                : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                       
+                        elide: Text.ElideRight
+                        horizontalAlignment: styleData.column === 1 ? TextInput.AlignHCenter : TextInput.AlignLeft
+                    }
+                }
+                Component {
+                    id: glyphComponent
+
+                    HiFiGlyphs {
+                        text: convertToGlyph(styleData.value)
+                        size: hifi.dimensions.frameIconSize
+                        color: colorScheme == hifi.colorSchemes.light
+                                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                                : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                       
+                        elide: Text.ElideRight
+                        horizontalAlignment: TextInput.AlignHCenter
+                    }
+                }
+                Component {
+                    id: textFieldComponent
+
+                    TextField {
+                        id: textField
+                        readOnly: !activeFocus
+
+                        text: styleData.value
+
+                        FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                        font.family: firaSansSemiBold.name
+                        font.pixelSize: hifi.fontSizes.textFieldInput
+                        height: hifi.dimensions.tableRowHeight
+
+                        style: TextFieldStyle {
+                            textColor: readOnly
+                                        ? hifi.colors.black
+                                        : (treeView.isLightColorScheme ?  hifi.colors.black :  hifi.colors.white)
+                            background: Rectangle {
+                                visible: !readOnly
+                                color: treeView.isLightColorScheme ? hifi.colors.white : hifi.colors.black
+                                border.color: hifi.colors.primaryHighlight
+                                border.width: 1
+                            }
+                            selectedTextColor: hifi.colors.black
+                            selectionColor: hifi.colors.primaryHighlight
+                            padding.left: readOnly ? 0 : hifi.dimensions.textPadding
+                            padding.right: readOnly ? 0 : hifi.dimensions.textPadding
+                        }
+
+                        validator: RegExpValidator {
+                            regExp: /[^/]+/
+                        }
+
+                        Keys.onPressed: {
+                            if (event.key == Qt.Key_Escape) {
+                                text = styleData.value;
+                                unfocusHelper.forceActiveFocus();
+                                event.accepted = true;
+                            }
+                        }
+                        onAccepted:  {
+                            if (acceptableInput && styleData.selected) {
+                                if (!modifyEl(selection.currentIndex, text)) {
+                                    text = styleData.value;
+                                }
+                                unfocusHelper.forceActiveFocus();
+                            }
+                        }
+
+                        onReadOnlyChanged: {
+                            // Have to explicily set keyboardRaised because automatic setting fails because readOnly is true at the time.
+                            keyboardRaised = activeFocus;
+                        }
+                    }
+                }
+            }
+
             
             MouseArea {
                 propagateComposedEvents: true
