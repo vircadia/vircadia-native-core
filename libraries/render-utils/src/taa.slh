@@ -98,6 +98,7 @@ vec2 taa_getRegionDebug() {
 vec2 taa_getRegionFXAA() {
     return params.regionInfo.zw;
 }
+#define USE_YCOCG 1
 
 vec4 taa_fetchColor(sampler2D map, vec2 uv) {
 #if USE_YCOCG
@@ -242,7 +243,7 @@ vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, 
 
 		// shrink chroma min-max
 	#if USE_YCOCG
-		vec2 chroma_extent = 0.25 * 0.5 * (cmax.r - cmin.r);
+		vec2 chroma_extent = vec2(0.25 * 0.5 * (cmax.r - cmin.r));
 		vec2 chroma_center = texel0.gb;
 		cmin.yz = chroma_center - chroma_extent;
 		cmax.yz = chroma_center + chroma_extent;
@@ -270,7 +271,7 @@ vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, 
 		float k_feedback = mix(_FeedbackMin, _FeedbackMax, unbiased_weight_sqr);
 
 		// output
-    vec3 nextColor =  mix(texel0, texel1, k_feedback).xyz;
+    vec3 nextColor =  mix(texel1, texel0, k_feedback).xyz;
 
     return taa_resolveColor(nextColor);
 }
