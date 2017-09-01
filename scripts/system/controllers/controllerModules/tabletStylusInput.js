@@ -171,12 +171,12 @@ Script.include("/~/system/libraries/controllers.js");
             if (resolution === undefined) {
                 return;
             }
-            resolution.z = 1;  // Circumvent divide-by-zero.
+            resolution.z = 1; // Circumvent divide-by-zero.
             var scale = Overlays.getProperty(overlayID, "dimensions");
             if (scale === undefined) {
                 return;
             }
-            scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+            scale.z = 0.01; // overlay dimensions are 2D, not 3D.
             dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
         } else {
             dimensions = Overlays.getProperty(overlayID, "dimensions");
@@ -184,15 +184,17 @@ Script.include("/~/system/libraries/controllers.js");
                 return;
             }
             if (!dimensions.z) {
-                dimensions.z = 0.01;    // sometimes overlay dimensions are 2D, not 3D.
+                dimensions.z = 0.01; // sometimes overlay dimensions are 2D, not 3D.
             }
         }
         var invDimensions = { x: 1 / dimensions.x, y: 1 / dimensions.y, z: 1 / dimensions.z };
         var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), DEFAULT_REGISTRATION_POINT);
 
         // 2D position on overlay plane in meters, relative to the bounding box upper-left hand corner.
-        var position2D = { x: normalizedPosition.x * dimensions.x,
-                           y: (1 - normalizedPosition.y) * dimensions.y }; // flip y-axis
+        var position2D = {
+            x: normalizedPosition.x * dimensions.x,
+            y: (1 - normalizedPosition.y) * dimensions.y // flip y-axis
+        };
 
         return {
             entityID: null,
@@ -227,8 +229,10 @@ Script.include("/~/system/libraries/controllers.js");
         var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
 
         // 2D position on entity plane in meters, relative to the bounding box upper-left hand corner.
-        var position2D = { x: normalizedPosition.x * props.dimensions.x,
-                           y: (1 - normalizedPosition.y) * props.dimensions.y }; // flip y-axis
+        var position2D = {
+            x: normalizedPosition.x * props.dimensions.x,
+            y: (1 - normalizedPosition.y) * props.dimensions.y // flip y-axis
+        };
 
         return {
             entityID: props.id,
@@ -354,7 +358,7 @@ Script.include("/~/system/libraries/controllers.js");
                 // translate tip forward according to constant.
                 var TIP_OFFSET = {x: 0, y: WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, z: 0};
                 this.stylusTip.position = Vec3.sum(this.stylusTip.position,
-                                                   Vec3.multiplyQbyV(this.stylusTip.orientation, TIP_OFFSET));
+                    Vec3.multiplyQbyV(this.stylusTip.orientation, TIP_OFFSET));
             }
 
             // compute tip velocity from hand controller motion, it is more accurate than computing it from previous positions.
@@ -363,9 +367,8 @@ Script.include("/~/system/libraries/controllers.js");
                 var worldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation));
                 var worldControllerLinearVel = Vec3.multiplyQbyV(MyAvatar.orientation, pose.velocity);
                 var worldControllerAngularVel = Vec3.multiplyQbyV(MyAvatar.orientation, pose.angularVelocity);
-                var tipVelocity = Vec3.sum(worldControllerLinearVel,
-                                           Vec3.cross(worldControllerAngularVel,
-                                                      Vec3.subtract(this.stylusTip.position, worldControllerPos)));
+                var tipVelocity = Vec3.sum(worldControllerLinearVel, Vec3.cross(worldControllerAngularVel,
+                    Vec3.subtract(this.stylusTip.position, worldControllerPos)));
                 this.stylusTip.velocity = tipVelocity;
             } else {
                 this.stylusTip.velocity = {x: 0, y: 0, z: 0};
@@ -381,10 +384,11 @@ Script.include("/~/system/libraries/controllers.js");
                 name: "stylus",
                 url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
                 loadPriority: 10.0,
-                localPosition: Vec3.sum({ x: 0.0,
-                                          y: WEB_TOUCH_Y_OFFSET,
-                                          z: 0.0 },
-                                        getGrabPointSphereOffset(this.handToController())),
+                localPosition: Vec3.sum({
+                    x: 0.0,
+                    y: WEB_TOUCH_Y_OFFSET,
+                    z: 0.0
+                }, getGrabPointSphereOffset(this.handToController())),
                 localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
                 dimensions: { x: 0.01, y: 0.01, z: WEB_STYLUS_LENGTH },
                 solid: true,
@@ -393,8 +397,8 @@ Script.include("/~/system/libraries/controllers.js");
                 drawInFront: false,
                 parentID: AVATAR_SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                         "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                         "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
+                    "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                    "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
             };
             this.stylus = Overlays.addOverlay("model", stylusProperties);
         };
@@ -524,8 +528,8 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             this.isNearStylusTarget = isNearStylusTarget(stylusTargets, EDGE_BORDER + hysteresisOffset,
-                                                         TABLET_MIN_TOUCH_DISTANCE - hysteresisOffset,
-                                                         WEB_DISPLAY_STYLUS_DISTANCE + hysteresisOffset);
+                TABLET_MIN_TOUCH_DISTANCE - hysteresisOffset,
+                WEB_DISPLAY_STYLUS_DISTANCE + hysteresisOffset);
 
             if (this.isNearStylusTarget) {
                 if (!this.useFingerInsteadOfStylus) {
@@ -630,7 +634,7 @@ Script.include("/~/system/libraries/controllers.js");
                     var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
                     if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
                         distance2D(this.stylusTarget.position2D,
-                                   this.touchingEnterStylusTarget.position2D) > this.deadspotRadius) {
+                            this.touchingEnterStylusTarget.position2D) > this.deadspotRadius) {
                         sendTouchMoveEventToStylusTarget(this.hand, this.stylusTarget);
                         this.deadspotExpired = true;
                     }

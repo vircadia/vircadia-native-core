@@ -9,7 +9,8 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
    getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
-   Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic
+   Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
+   cloneEntity
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -105,14 +106,14 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         var overlayInfoSet = this.map[keys[i]];
 
         // this overlayInfo is highlighted.
-        if (this.highlightedHotspots.indexOf(keys[i]) != -1) {
+        if (this.highlightedHotspots.indexOf(keys[i]) !== -1) {
             overlayInfoSet.targetSize = HIGHLIGHT_SIZE;
         } else {
             overlayInfoSet.targetSize = NORMAL_SIZE;
         }
 
         // start to fade out this hotspot.
-        if (overlayInfoSet.timestamp != timestamp) {
+        if (overlayInfoSet.timestamp !== timestamp) {
             overlayInfoSet.targetSize = 0;
         }
 
@@ -124,7 +125,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         }
         overlayInfoSet.currentSize += (overlayInfoSet.targetSize - overlayInfoSet.currentSize) * tau;
 
-        if (overlayInfoSet.timestamp != timestamp && overlayInfoSet.currentSize <= 0.05) {
+        if (overlayInfoSet.timestamp !== timestamp && overlayInfoSet.currentSize <= 0.05) {
             // this is an old overlay, that has finished fading out, delete it!
             overlayInfoSet.overlays.forEach(Overlays.deleteOverlay);
             delete this.map[keys[i]];
@@ -136,7 +137,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var position = entityXform.xformPoint(overlayInfoSet.localPosition);
 
                 var dimensions;
-                if (overlayInfoSet.type == "sphere") {
+                if (overlayInfoSet.type === "sphere") {
                     dimensions = overlayInfoSet.hotspot.radius * 2 * overlayInfoSet.currentSize * EQUIP_SPHERE_SCALE_FACTOR;
                 } else {
                     dimensions = overlayInfoSet.hotspot.radius * 2 * overlayInfoSet.currentSize;
@@ -156,8 +157,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         }
     }
 };
-
-
 
 (function() {
 
@@ -185,6 +184,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (!props.userDataParsed) {
                 props.userDataParsed = JSON.parse(props.userData);
             }
+
             wearable = props.userDataParsed.wearable ? props.userDataParsed.wearable : {};
         } catch (err) {
         }
@@ -196,6 +196,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (!props.userDataParsed) {
                 props.userDataParsed = JSON.parse(props.userData);
             }
+
             equipHotspots = props.userDataParsed.equipHotspots ? props.userDataParsed.equipHotspots : [];
         } catch (err) {
         }
@@ -249,6 +250,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.targetEntityID = null;
         this.prevHandIsUpsideDown = false;
         this.triggerValue = 0;
+        this.messageGrabEntity = false;
+        this.grabEntityProps = null;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -257,6 +260,13 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             100);
 
         var equipHotspotBuddy = new EquipHotspotBuddy();
+
+        this.setMessageGrabData = function(entityProperties) {
+            if (entityProperties) {
+                this.messageGrabEntity = true;
+                this.grabEntityProps = entityProperties;
+            }
+        };
 
         // returns a list of all equip-hotspots assosiated with this entity.
         // @param {UUID} entityID
@@ -322,7 +332,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (props.parentID === NULL_UUID) {
                 hasParent = false;
             }
-            
+
             if (hasParent || entityHasActions(hotspot.entityID)) {
                 return false;
             }
@@ -376,7 +386,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (entityIsCloneable(props)) {
                 var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
                 var cloneID = cloneEntity(props, worldEntityProps);
-                return cloneID
+                return cloneID;
             }
 
             return null;
@@ -420,7 +430,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 handIsUpsideDown = true;
             }
 
-            if (handIsUpsideDown != this.prevHandIsUpsideDown) {
+            if (handIsUpsideDown !== this.prevHandIsUpsideDown) {
                 this.prevHandIsUpsideDown = handIsUpsideDown;
                 Controller.triggerHapticPulse(HAPTIC_DEQUIP_STRENGTH, HAPTIC_DEQUIP_DURATION, this.hand);
             }
@@ -486,7 +496,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 this.targetEntityID = cloneID;
                 Entities.editEntity(this.targetEntityID, reparentProps);
                 isClone = true;
-            } else if (!grabbedProperties.locked) {    
+            } else if (!grabbedProperties.locked) {
                 Entities.editEntity(this.targetEntityID, reparentProps);
             } else {
                 this.grabbedHotspot = null;
@@ -508,12 +518,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var args = [_this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(_this.targetEntityID, "startEquip", args);
             };
-            
+
             if (isClone) {
                 // 100 ms seems to be sufficient time to force the check even occur after the object has been initialized.
                 Script.setTimeout(grabEquipCheck, 100);
-            } 
-                
+            }
+
         };
 
         this.endEquipEntity = function () {
@@ -546,8 +556,18 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var controllerLocation = getControllerWorldLocation(this.handToController(), true);
             var worldHandPosition = controllerLocation.position;
             var candidateEntityProps = controllerData.nearbyEntityProperties[this.hand];
-
-            var potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntityProps, controllerData);
+         
+            
+            var potentialEquipHotspot = null;
+            if (this.messageGrabEntity) {
+                var hotspots = this.collectEquipHotspots(this.grabEntityProps);
+                if (hotspots.length > -1) {
+                    potentialEquipHotspot = hotspots[0];
+                }
+            } else {
+                potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntityProps, controllerData);
+            }
+            
             if (!this.waitForTriggerRelease) {
                 this.updateEquipHaptics(potentialEquipHotspot, worldHandPosition);
             }
@@ -560,17 +580,19 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
-            //if the potentialHotspot is cloneable, clone it and return it
+            // if the potentialHotspot is cloneable, clone it and return it
             // if the potentialHotspot os not cloneable and locked return null
-            
+
             if (potentialEquipHotspot) {
-                if (this.triggerSmoothedSqueezed() && !this.waitForTriggerRelease) {
+                if ((this.triggerSmoothedSqueezed() && !this.waitForTriggerRelease) || this.messageGrabEntity) {
                     this.grabbedHotspot = potentialEquipHotspot;
                     this.targetEntityID = this.grabbedHotspot.entityID;
                     this.startEquipEntity(controllerData);
+                    this.messageGrabEnity = false;
                 }
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
+                this.messageGrabEnity = false;
                 return makeRunningValues(false, [], []);
             }
         };
@@ -610,7 +632,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 this.waitForTriggerRelease = false;
             }
 
-            if (dropDetected && this.prevDropDetected != dropDetected) {
+            if (dropDetected && this.prevDropDetected !== dropDetected) {
                 this.waitForTriggerRelease = true;
             }
 
@@ -627,7 +649,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                     var prefprops = Entities.getEntityProperties(this.targetEntityID, ["localPosition", "localRotation"]);
                     if (prefprops && prefprops.localPosition && prefprops.localRotation) {
                         storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand,
-                                                             prefprops.localPosition, prefprops.localRotation);
+                            prefprops.localPosition, prefprops.localRotation);
                     }
                 }
 
@@ -650,6 +672,40 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
         };
     }
+
+    var handleMessage = function(channel, message, sender) {
+        var data;
+        print(channel);
+        if (sender === MyAvatar.sessionUUID) {
+            if (channel === 'Hifi-Hand-Grab') {
+                try {
+                    data = JSON.parse(message);
+                    var equipModule = (data.hand === 'left') ? leftEquipEntity : rightEquipEntity;
+                    var entityProperties = Entities.getEntityProperties(data.entityID, DISPATCHER_PROPERTIES);
+                    entityProperties.id = data.entityID;
+                    equipModule.setMessageGrabData(entityProperties);
+
+                } catch (e) {
+                    print("WARNING: equipEntity.js -- error parsing Hifi-Hand-Grab message: " + message);
+                }
+            }
+        } else if (channel === 'Hifi-Hand-Drop') {
+            data = JSON.parse(message);
+            if (data.hand === 'left') {
+                leftEquipEntity.endEquipEntity();
+            } else if (data.hand === 'right') {
+                rightEquipEntity.endEquipEntity();
+            } else if (data.hand === 'both') {
+                leftEquipEntity.endEquipEntity();
+                rightEquipEntity.endEquipEntity();
+            }
+        }
+
+    };
+
+    Messages.subscribe('Hifi-Hand-Grab');
+    Messages.subscribe('Hifi-Hand-Drop');
+    Messages.messageReceived.connect(handleMessage);
 
     var leftEquipEntity = new EquipEntity(LEFT_HAND);
     var rightEquipEntity = new EquipEntity(RIGHT_HAND);

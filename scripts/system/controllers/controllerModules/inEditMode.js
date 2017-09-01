@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 //  inEditMode.js
 //
@@ -8,7 +8,10 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
-   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
+   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
+   COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE,
+   isInEditMode
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -71,13 +74,17 @@ Script.include("/~/system/libraries/utils.js");
         parentID: AVATAR_SELF_ID
     };
 
-    var renderStates = [{name: "half", path: halfPath, end: halfEnd},
-                        {name: "full", path: fullPath, end: fullEnd},
-                        {name: "hold", path: holdPath}];
-    
-    var defaultRenderStates = [{name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
-                               {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
-                               {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}];
+    var renderStates = [
+        {name: "half", path: halfPath, end: halfEnd},
+        {name: "full", path: fullPath, end: fullEnd},
+        {name: "hold", path: holdPath}
+    ];
+
+    var defaultRenderStates = [
+        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
+        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
+        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
+    ];
 
     function InEditMode(hand) {
         this.hand = hand;
@@ -97,7 +104,7 @@ Script.include("/~/system/libraries/utils.js");
             }
             return false;
         };
-        
+
         this.handToController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
@@ -116,7 +123,7 @@ Script.include("/~/system/libraries/utils.js");
         this.updateLaserPointer = function(controllerData) {
             var RADIUS = 0.005;
             var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
-            
+
             if (this.mode === "full") {
                 this.fullEnd.dimensions = dim;
                 LaserPointers.editRenderState(this.laserPointer, this.mode, {path: fullPath, end: this.fullEnd});
@@ -124,11 +131,11 @@ Script.include("/~/system/libraries/utils.js");
                 this.halfEnd.dimensions = dim;
                 LaserPointers.editRenderState(this.laserPointer, this.mode, {path: halfPath, end: this.halfEnd});
             }
-            
+
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
         };
-        
+
         this.pointingAtTablet = function(objectID) {
             if (objectID === HMD.tabletScreenID || objectID === HMD.tabletButtonID) {
                 return true;
@@ -157,16 +164,21 @@ Script.include("/~/system/libraries/utils.js");
             }
         };
 
-        this.isReady = function(controllerData) {
-            var overlays = controllerData.nearbyOverlayIDs[this.hand];
-            var objectID = controllerData.rayPicks[this.hand].objectID;
+        this.exitModule = function() {
+            this.disableLasers();
+            return makeRunningValues(false, [], []);
+        };
 
+        this.disableLasers = function() {
+            LaserPointers.disableLaserPointer(this.laserPointer);
+        };
+
+        this.isReady = function(controllerData) {
             if (isInEditMode()) {
                 this.triggerClicked = false;
                 return makeRunningValues(true, [], []);
             }
-
-            return makeRunningValues(false, [], []);
+            return this.exitModule();
         };
 
         this.run = function(controllerData) {
@@ -175,44 +187,44 @@ Script.include("/~/system/libraries/utils.js");
                 var tabletReady = tabletStylusInput.isReady(controllerData);
 
                 if (tabletReady.active) {
-                    return makeRunningValues(false, [], []);
+                    return this.exitModule();
                 }
             }
 
-            var overlayLaser =  getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
+            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
 
                 if (overlayLaserReady.active && this.pointingAtTablet(overlayLaser.target)) {
-                    return makeRunningValues(false, [], []);
+                    return this.exitModule();
                 }
             }
 
-            var nearOverlay =  getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
+            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
             if (nearOverlay) {
                 var nearOverlayReady = nearOverlay.isReady(controllerData);
 
                 if (nearOverlayReady.active && nearOverlay.grabbedThingID === HMD.tabletID) {
-                    return makeRunningValues(false, [], []);
+                    return this.exitModule();
                 }
             }
             this.processControllerTriggers(controllerData);
             this.updateLaserPointer(controllerData);
             this.sendPickData(controllerData);
-            
+
 
             return this.isReady(controllerData);
         };
 
-            this.cleanup = function() {
+        this.cleanup = function() {
             LaserPointers.disableLaserPointer(this.laserPointer);
             LaserPointers.removeLaserPointer(this.laserPointer);
-        }
+        };
 
 
         this.halfEnd = halfEnd;
         this.fullEnd = fullEnd;
-        
+
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
@@ -222,10 +234,9 @@ Script.include("/~/system/libraries/utils.js");
             faceAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
-            
-        LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
-    };
 
+        LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
+    }
 
     var leftHandInEditMode = new InEditMode(LEFT_HAND);
     var rightHandInEditMode = new InEditMode(RIGHT_HAND);

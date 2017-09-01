@@ -34,6 +34,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     var highVarianceCount = 0;
     var veryhighVarianceCount = 0;
     this.tabletID = null;
+    this.blacklist = [];
 
     // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
     // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -293,6 +294,12 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         }
     };
 
+    this.setBlacklist = function() {
+        RayPick.setIgnoreEntities(_this.leftControllerRayPick, this.blacklist);
+        RayPick.setIgnoreEntities(_this.rightControllerRayPick, this.blacklist);
+        
+    };
+
     var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
     var mapping = Controller.newMapping(MAPPING_NAME);
     mapping.from([Controller.Standard.RT]).peek().to(_this.rightTriggerPress);
@@ -324,26 +331,59 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         joint: "_CONTROLLER_LEFTHAND",
         filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
         enabled: true,
-        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
+        posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand)
     });
     this.leftControllerHudRayPick = RayPick.createRayPick({
         joint: "_CONTROLLER_LEFTHAND",
         filter: RayPick.PICK_HUD,
         enabled: true,
-        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
+        posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand)
     });
     this.rightControllerRayPick = RayPick.createRayPick({
         joint: "_CONTROLLER_RIGHTHAND",
         filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
         enabled: true,
-        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
+        posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand)
     });
     this.rightControllerHudRayPick = RayPick.createRayPick({
         joint: "_CONTROLLER_RIGHTHAND",
         filter: RayPick.PICK_HUD,
         enabled: true,
-        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
+        posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand)
     });
+
+    this.handleHandMessage = function(channel, message, sender) {
+        var data
+        if (sender === MyAvatar.sessionUUID) {
+            try {
+                if (channel === 'Hifi-Hand-RayPick-Blacklist') {
+                    data = JSON.parse(message);
+                    var action = data.action;
+                    var id = data.id;
+                    var index = this.blacklis.indexOf(id);
+                    
+                    if (action === 'add' && index === -1) {
+                        this.blacklist.push(id);
+                        //this.setBlacklist();
+                    }
+                    
+                    if (action === 'remove') {
+                        if (index > -1) {
+                            blacklist.splice(index, 1);
+                            //this.setBlacklist();
+                        }
+                    }
+                }
+                
+            } catch (e) {
+                print("WARNING: handControllerGrab.js -- error parsing Hifi-Hand-RayPick-Blacklist message: " + message);
+            }
+        }
+    };
 
 
 
@@ -357,7 +397,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         RayPick.removeRayPick(_this.rightControllerHudRayPick);
         RayPick.removeRayPick(_this.leftControllerHudRayPick);
     };
-
+    Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
+    Messages.messageReceived.connect(this.handleHandMessage);
     Script.scriptEnding.connect(this.cleanup);
     Script.update.connect(this.update);
 }());

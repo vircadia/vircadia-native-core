@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 //  overlayLaserInput.js
 //
@@ -8,16 +8,16 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
-   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
+   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
+   COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE
 */
-
-
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-     var halfPath = {
+    var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         visible: true,
@@ -72,13 +72,17 @@ Script.include("/~/system/libraries/controllers.js");
         parentID: AVATAR_SELF_ID
     };
 
-    var renderStates = [{name: "half", path: halfPath, end: halfEnd},
-                        {name: "full", path: fullPath, end: fullEnd},
-                        {name: "hold", path: holdPath}];
+    var renderStates = [
+        {name: "half", path: halfPath, end: halfEnd},
+        {name: "full", path: fullPath, end: fullEnd},
+        {name: "hold", path: holdPath}
+    ];
 
-    var defaultRenderStates = [{name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
-                               {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
-                               {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}];
+    var defaultRenderStates = [
+        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
+        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
+        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
+    ];
 
 
     // triggered when stylus presses a web overlay/entity
@@ -200,7 +204,7 @@ Script.include("/~/system/libraries/controllers.js");
     }
 
     // will return undefined if overlayID does not exist.
-    function calculateLaserTargetFromOverlay(laserTip, overlayID) {
+    function calculateLaserTargetFromOverlay(worldPos, overlayID) {
         var overlayPosition = Overlays.getProperty(overlayID, "position");
         if (overlayPosition === undefined) {
             return null;
@@ -212,12 +216,11 @@ Script.include("/~/system/libraries/controllers.js");
             return null;
         }
         var normal = Vec3.multiplyQbyV(overlayRotation, {x: 0, y: 0, z: 1});
-        var distance = Vec3.dot(Vec3.subtract(laserTip, overlayPosition), normal);
-        var position = Vec3.subtract(laserTip, Vec3.multiply(normal, distance));
+        var distance = Vec3.dot(Vec3.subtract(worldPos, overlayPosition), normal);
 
         // calclulate normalized position
         var invRot = Quat.inverse(overlayRotation);
-        var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, overlayPosition));
+        var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(worldPos, overlayPosition));
         var dpi = Overlays.getProperty(overlayID, "dpi");
 
         var dimensions;
@@ -228,12 +231,12 @@ Script.include("/~/system/libraries/controllers.js");
             if (resolution === undefined) {
                 return null;
             }
-            resolution.z = 1;  // Circumvent divide-by-zero.
+            resolution.z = 1;// Circumvent divide-by-zero.
             var scale = Overlays.getProperty(overlayID, "dimensions");
             if (scale === undefined) {
                 return null;
             }
-            scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+            scale.z = 0.01;// overlay dimensions are 2D, not 3D.
             dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
         } else {
             dimensions = Overlays.getProperty(overlayID, "dimensions");
@@ -241,21 +244,23 @@ Script.include("/~/system/libraries/controllers.js");
                 return null;
             }
             if (!dimensions.z) {
-                dimensions.z = 0.01;    // sometimes overlay dimensions are 2D, not 3D.
+                dimensions.z = 0.01;// sometimes overlay dimensions are 2D, not 3D.
             }
         }
         var invDimensions = { x: 1 / dimensions.x, y: 1 / dimensions.y, z: 1 / dimensions.z };
         var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), DEFAULT_REGISTRATION_POINT);
 
         // 2D position on overlay plane in meters, relative to the bounding box upper-left hand corner.
-        var position2D = { x: normalizedPosition.x * dimensions.x,
-                           y: (1 - normalizedPosition.y) * dimensions.y }; // flip y-axis
+        var position2D = {
+            x: normalizedPosition.x * dimensions.x,
+            y: (1 - normalizedPosition.y) * dimensions.y // flip y-axis
+        };
 
         return {
             entityID: null,
             overlayID: overlayID,
             distance: distance,
-            position: position,
+            position: worldPos,
             position2D: position2D,
             normal: normal,
             normalizedPosition: normalizedPosition,
@@ -400,8 +405,8 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.laserTarget) {
                 var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
                 if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
-                    distance2D(this.laserTarget.position2D,
-                               this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
+                    distance2D( this.laserTarget.position2D,
+                        this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
                     sendTouchMoveEventToLaserTarget(this.hand, this.laserTarget);
                     this.deadspotExpired = true;
                 }
@@ -412,7 +417,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.releaseTouchEvent = function() {
             sendTouchEndEventToLaserTarget(this.hand, this.pressEnterLaserTarget);
-        }
+        };
 
 
         this.updateLaserTargets = function(controllerData) {
@@ -423,9 +428,9 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.shouldExit = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
-            var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY)
+            var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY);
             return offOverlay;
-        }
+        };
 
         this.exitModule = function() {
             this.releaseTouchEvent();
@@ -433,7 +438,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.reset();
             this.updateLaserPointer();
             LaserPointers.disableLaserPointer(this.laserPointer);
-        }
+        };
 
         this.reset = function() {
             this.hover = false;
@@ -515,7 +520,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.halfEnd = halfEnd;
         this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand == RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
+            joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController()),
@@ -525,7 +530,7 @@ Script.include("/~/system/libraries/controllers.js");
         });
 
         LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID]);
-    };
+    }
 
     var leftOverlayLaserInput = new OverlayLaserInput(LEFT_HAND);
     var rightOverlayLaserInput = new OverlayLaserInput(RIGHT_HAND);

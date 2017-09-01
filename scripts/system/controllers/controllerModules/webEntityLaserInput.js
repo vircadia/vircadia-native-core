@@ -5,14 +5,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/*jslint bitwise: true */
+/* jslint bitwise: true */
 
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
    getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE,
+   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC
 
 */
 
@@ -20,7 +20,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-     var halfPath = {
+    var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         visible: true,
@@ -75,13 +75,17 @@ Script.include("/~/system/libraries/controllers.js");
         parentID: AVATAR_SELF_ID
     };
 
-    var renderStates = [{name: "half", path: halfPath, end: halfEnd},
-                        {name: "full", path: fullPath, end: fullEnd},
-                        {name: "hold", path: holdPath}];
+    var renderStates = [
+        {name: "half", path: halfPath, end: halfEnd},
+        {name: "full", path: fullPath, end: fullEnd},
+        {name: "hold", path: holdPath}
+    ];
 
-    var defaultRenderStates = [{name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
-                               {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
-                               {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}];
+    var defaultRenderStates = [
+        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
+        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
+        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
+    ];
 
 
     // triggered when stylus presses a web overlay/entity
@@ -143,7 +147,7 @@ Script.include("/~/system/libraries/controllers.js");
     }
 
 
-     function sendTouchStartEventToLaserTarget(hand, laserTarget) {
+    function sendTouchStartEventToLaserTarget(hand, laserTarget) {
         var pointerEvent = {
             type: "Press",
             id: hand + 1, // 0 is reserved for hardware mouse
@@ -208,16 +212,18 @@ Script.include("/~/system/libraries/controllers.js");
         Vec3.multiplyQbyV(props.rotation, {x: 0, y: 1, z: 0});
         var distance = Vec3.dot(Vec3.subtract(intersection, props.position), normal);
         var position = Vec3.subtract(intersection, Vec3.multiply(normal, distance));
-        
+
         // generate normalized coordinates
         var invRot = Quat.inverse(props.rotation);
         var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(position, props.position));
         var invDimensions = { x: 1 / props.dimensions.x, y: 1 / props.dimensions.y, z: 1 / props.dimensions.z };
         var normalizedPosition = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), props.registrationPoint);
-        
+
         // 2D position on entity plane in meters, relative to the bounding box upper-left hand corner.
-        var position2D = { x: normalizedPosition.x * props.dimensions.x,
-                           y: (1 - normalizedPosition.y) * props.dimensions.y }; // flip y-axis
+        var position2D = {
+            x: normalizedPosition.x * props.dimensions.x,
+            y: (1 - normalizedPosition.y) * props.dimensions.y // flip y-axis
+        };
 
         return {
             entityID: props.id,
@@ -258,7 +264,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.getOtherModule = function() {
             return (this.hand === RIGHT_HAND) ? leftWebEntityLaserInput : rightWebEntityLaserInput;
         };
-        
+
         this.parameters = makeDispatcherModuleParameters(
             550,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
@@ -288,7 +294,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.processControllerTriggers = function(controllerData) {
-             if (controllerData.triggerClicks[this.hand]) {
+            if (controllerData.triggerClicks[this.hand]) {
                 this.mode = "full";
                 this.laserPressingTarget = true;
                 this.hover = false;
@@ -316,7 +322,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.laserPressEnter = function () {
             sendTouchStartEventToLaserTarget(this.hand, this.laserTarget);
             Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
-            
+
             this.touchingEnterTimer = 0;
             this.pressEnterLaserTarget = this.laserTarget;
             this.deadspotExpired = false;
@@ -340,12 +346,12 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.laserPressing = function (controllerData, dt) {
             this.touchingEnterTimer += dt;
-            
+
             if (this.laserTarget) {
                 var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
                 if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
                     distance2D(this.laserTarget.position2D,
-                               this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
+                        this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
                     sendTouchMoveEventToLaserTarget(this.hand, this.laserTarget);
                     this.deadspotExpired = true;
                 }
@@ -353,19 +359,19 @@ Script.include("/~/system/libraries/controllers.js");
                 this.laserPressingTarget = false;
             }
         };
-        
+
         this.releaseTouchEvent = function() {
             if (this.pressEnterLaserTarget === null) {
                 return;
             }
 
             sendTouchEndEventToLaserTarget(this.hand, this.pressEnterLaserTarget);
-        }
+        };
 
         this.updateLaserPointer = function(controllerData) {
             var RADIUS = 0.005;
             var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
-            
+
             if (this.mode === "full") {
                 fullEnd.dimensions = dim;
                 LaserPointers.editRenderState(this.laserPointer, this.mode, {path: fullPath, end: fullEnd});
@@ -373,7 +379,7 @@ Script.include("/~/system/libraries/controllers.js");
                 halfEnd.dimensions = dim;
                 LaserPointers.editRenderState(this.laserPointer, this.mode, {path: halfPath, end: halfEnd});
             }
-            
+
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
         };
@@ -386,7 +392,7 @@ Script.include("/~/system/libraries/controllers.js");
             if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web")) {
                 return true;
             }
-            return false
+            return false;
         };
 
         this.exitModule = function() {
@@ -396,7 +402,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.updateLaserPointer();
             LaserPointers.disableLaserPointer(this.laserPointer);
         };
-        
+
         this.reset = function() {
             this.pressEnterLaserTarget = null;
             this.laserTarget = null;
@@ -412,7 +418,7 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.isPointingAtWebEntity(controllerData) && !otherModule.active) {
                 return makeRunningValues(true, [], []);
             }
-            
+
             return makeRunningValues(false, [], []);
         };
 
@@ -433,7 +439,7 @@ Script.include("/~/system/libraries/controllers.js");
                 this.laserPressExit();
             }
             this.previousLaserClickedTarget = this.laserPressingTarget;
-            
+
             if (this.laserPressingTarget) {
                 this.laserPressing(controllerData, deltaTime);
             }
@@ -447,7 +453,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.cleanup = function() {
             LaserPointers.disableLaserPointer(this.laserPointer);
             LaserPointers.removeLaserPointer(this.laserPointer);
-        }
+        };
 
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
@@ -458,13 +464,13 @@ Script.include("/~/system/libraries/controllers.js");
             faceAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
-    };
+    }
 
 
     var leftWebEntityLaserInput = new WebEntityLaserInput(LEFT_HAND);
     var rightWebEntityLaserInput = new WebEntityLaserInput(RIGHT_HAND);
 
-    enableDispatcherModule("LeftWebEntityLaserInput", leftWebEntityLaserInput); 
+    enableDispatcherModule("LeftWebEntityLaserInput", leftWebEntityLaserInput);
     enableDispatcherModule("RightWebEntityLaserInput", rightWebEntityLaserInput);
 
     this.cleanup = function() {
@@ -474,5 +480,5 @@ Script.include("/~/system/libraries/controllers.js");
         disableDispatcherModule("RightWebEntityLaserInput");
     };
     Script.scriptEnding.connect(this.cleanup);
-    
+
 }());

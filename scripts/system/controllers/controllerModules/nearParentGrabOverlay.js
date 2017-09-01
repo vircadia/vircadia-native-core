@@ -28,7 +28,7 @@ var GRAB_RADIUS = 0.35;
         this.previouslyUnhooked = {};
 
         this.parameters = makeDispatcherModuleParameters(
-            140,
+            90,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);
