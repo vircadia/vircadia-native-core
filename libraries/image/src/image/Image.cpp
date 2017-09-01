@@ -148,7 +148,7 @@ gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(co
 
 bool isColorTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    return compressColorTextures;
+    return compressColorTextures.load();
 #else
     return false;
 #endif
@@ -156,7 +156,7 @@ bool isColorTexturesCompressionEnabled() {
 
 bool isNormalTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    return compressNormalTextures;
+    return compressNormalTextures.load();
 #else
     return false;
 #endif
@@ -164,7 +164,7 @@ bool isNormalTexturesCompressionEnabled() {
 
 bool isGrayscaleTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    return compressGrayscaleTextures;
+    return compressGrayscaleTextures.load();
 #else
     return false;
 #endif
@@ -172,26 +172,26 @@ bool isGrayscaleTexturesCompressionEnabled() {
 
 bool isCubeTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    return compressCubeTextures;
+    return compressCubeTextures.load();
 #else
     return false;
 #endif
 }
 
 void setColorTexturesCompressionEnabled(bool enabled) {
-    compressColorTextures = enabled;
+    compressColorTextures.store(enabled);
 }
 
 void setNormalTexturesCompressionEnabled(bool enabled) {
-    compressNormalTextures = enabled;
+    compressNormalTextures.store(enabled);
 }
 
 void setGrayscaleTexturesCompressionEnabled(bool enabled) {
-    compressGrayscaleTextures = enabled;
+    compressGrayscaleTextures.store(enabled);
 }
 
 void setCubeTexturesCompressionEnabled(bool enabled) {
-    compressCubeTextures = enabled;
+    compressCubeTextures.store(enabled);
 }
 
 
