@@ -60,9 +60,9 @@ int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
         strcpy(password, passphrase->toLocal8Bit().constData());
         return static_cast<int>(passphrase->size());
     } else {
-        // Old comment below...this should never happen once we're here...what if it does?
-        // ok gotta bring up modal dialog... But right now lets just
-        // just keep it empty
+        // this shouldn't happen - so lets log it to tell us we have
+        // a problem with the flow...
+        qCCritical(commerce) << "no cached passphrase while decrypting!";
         return 0;
     }
 }
