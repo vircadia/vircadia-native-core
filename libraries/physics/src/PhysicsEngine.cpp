@@ -441,7 +441,7 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
     while (contactItr != _contactMap.end()) {
         ContactInfo& contact = contactItr->second;
         ContactEventType type = contact.computeType(_numContactFrames);
-        const btScalar SIGNIFICANT_DEPTH = -0.008f; // penetrations have negative distance
+        const btScalar SIGNIFICANT_DEPTH = -0.002f; // penetrations have negative distance
         if (type != CONTACT_EVENT_TYPE_CONTINUE ||
                 (contact.distance < SIGNIFICANT_DEPTH &&
                  contact.readyForContinue(_numContactFrames))) {

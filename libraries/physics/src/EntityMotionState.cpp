@@ -531,7 +531,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         }
 
         if (!_body->isStaticOrKinematicObject()) {
-            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.02f;  // 5 cm/sec
+            const float DYNAMIC_LINEAR_VELOCITY_THRESHOLD = 0.05f;  // 5 cm/sec
             const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
 
             bool movingSlowlyLinear =

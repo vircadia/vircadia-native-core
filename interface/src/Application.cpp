@@ -319,7 +319,7 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
-static const float PHYSICS_READY_RANGE = 1.0f; // how far from avatar to check for entities that aren't ready for simulation
+static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
