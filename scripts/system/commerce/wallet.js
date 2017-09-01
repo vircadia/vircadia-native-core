@@ -70,6 +70,10 @@
             case 'maybeEnableHmdPreview':
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
+            case 'walletReset':
+                onButtonClicked();
+                onButtonClicked();
+                break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
         }

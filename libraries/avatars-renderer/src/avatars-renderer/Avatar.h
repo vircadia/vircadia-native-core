@@ -242,6 +242,7 @@ public:
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     bool isInScene() const { return render::Item::isValidID(_renderItemID); }
+    render::ItemID getRenderItemID() { return _renderItemID; }
     bool isMoving() const { return _moving; }
 
     void setPhysicsCallback(AvatarPhysicsCallback cb);

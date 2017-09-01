@@ -31,6 +31,7 @@ Item {
 
     // "Unavailable"
     RalewayRegular {
+        id: helpText;
         text: "Help me!";
         // Anchors
         anchors.fill: parent;
@@ -42,6 +43,19 @@ Item {
         // Alignment
         horizontalAlignment: Text.AlignHCenter;
         verticalAlignment: Text.AlignVCenter;
+    }
+    HifiControlsUit.Button {
+        color: hifi.buttons.black;
+        colorScheme: hifi.colorSchemes.dark;
+        anchors.bottom: helpText.bottom;
+        anchors.horizontalCenter: parent.horizontalCenter;
+        height: 50;
+        width: 250;
+        text: "Testing: Reset Wallet!";
+        onClicked: {
+            commerce.reset();
+            sendSignalToWallet({method: 'walletReset'});
+        }
     }
 
     //
