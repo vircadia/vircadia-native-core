@@ -6360,7 +6360,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
         }
     } else {
             methodDetails = "UserDoesNotHavePermissionToReplaceContent";
-            OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content",
+            OffscreenUi::warning("You do not have permissions to replace domain content", "Enable 'Replace Content' in the domain server settings to continue.",
                                  QMessageBox::Ok, QMessageBox::Ok);
     }
     QJsonObject messageProperties = {
