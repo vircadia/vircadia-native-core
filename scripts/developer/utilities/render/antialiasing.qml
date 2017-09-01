@@ -93,10 +93,18 @@ Rectangle {
                 }
             }
             ConfigSlider {
-                label: qsTr("Debug X")
+                label: qsTr("Debug Region <")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
                 property: "debugX"
+                max: 1.0
+                min: 0.0
+            }
+            ConfigSlider {
+                label: qsTr("FXAA Region >")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "debugFXAAX"
                 max: 1.0
                 min: 0.0
             }

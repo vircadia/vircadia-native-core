@@ -291,7 +291,9 @@ void Antialiasing::configure(const Config& config) {
 
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
 
-    _params.edit().debugX = config.debugX;
+    _params.edit().regionInfo.x = config.debugX;
+    _params.edit().regionInfo.z = config.debugFXAAX;
+
     _params.edit().setDebug(config.debug);
     _params.edit().setShowDebugCursor(config.showCursorPixel);
     _params.edit().setDebugCursor(config.debugCursorTexcoord);

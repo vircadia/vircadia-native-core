@@ -88,6 +88,7 @@ class AntialiasingConfig : public render::Job::Config {
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
+    Q_PROPERTY(float debugFXAAX MEMBER debugFXAAX NOTIFY dirty)
     Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
@@ -103,6 +104,7 @@ public:
     float velocityScale{ 1.0f };
 
     float debugX{ 0.0f };
+    float debugFXAAX{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
     float debugOrbZoom{ 2.0f };
@@ -123,25 +125,26 @@ signals:
 #define GET_BIT(bitfield, bitIndex) ((bitfield) & (1 << (bitIndex)))
 
 struct TAAParams {
-    float debugX{ 0.0f };
+    float nope{ 0.0f };
     float blend{ 0.1f };
     float velocityScale{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 
-    glm::ivec4 debug{ 0 };
+    glm::ivec4 flags{ 0 };
     glm::vec4 pixelInfo{ 0.5f, 0.5f, 2.0f, 0.0f };
+    glm::vec4 regionInfo{ 0.0f, 0.0f, 1.0f, 0.0f };
 
-    void setUnjitter(bool enabled) { SET_BIT(debug.y, 0, enabled); }
-    bool isUnjitter() const { return (bool)GET_BIT(debug.y, 0); }
+    void setUnjitter(bool enabled) { SET_BIT(flags.y, 0, enabled); }
+    bool isUnjitter() const { return (bool)GET_BIT(flags.y, 0); }
 
-    void setConstrainColor(bool enabled) { SET_BIT(debug.y, 1, enabled); }
-    bool isConstrainColor() const { return (bool)GET_BIT(debug.y, 1); }
+    void setConstrainColor(bool enabled) { SET_BIT(flags.y, 1, enabled); }
+    bool isConstrainColor() const { return (bool)GET_BIT(flags.y, 1); }
 
-    void setDebug(bool enabled) { SET_BIT(debug.x, 0, enabled); }
-    bool isDebug() const { return (bool) GET_BIT(debug.x, 0); }
+    void setDebug(bool enabled) { SET_BIT(flags.x, 0, enabled); }
+    bool isDebug() const { return (bool) GET_BIT(flags.x, 0); }
 
-    void setShowDebugCursor(bool enabled) { SET_BIT(debug.x, 1, enabled); }
-    bool showDebugCursor() const { return (bool)GET_BIT(debug.x, 1); }
+    void setShowDebugCursor(bool enabled) { SET_BIT(flags.x, 1, enabled); }
+    bool showDebugCursor() const { return (bool)GET_BIT(flags.x, 1); }
 
     void setDebugCursor(glm::vec2 debugCursor) { pixelInfo.x = debugCursor.x; pixelInfo.y = debugCursor.y; }
     glm::vec2 getDebugCursor() const { return glm::vec2(pixelInfo.x, pixelInfo.y); }
@@ -149,8 +152,8 @@ struct TAAParams {
     void setDebugOrbZoom(float orbZoom) { pixelInfo.z = orbZoom; }
     float getDebugOrbZoom() const { return pixelInfo.z; }
 
-    void setShowJitterSequence(bool enabled) { SET_BIT(debug.x, 2, enabled); }
-    void setShowClosestFragment(bool enabled) { SET_BIT(debug.x, 3, enabled); }
+    void setShowJitterSequence(bool enabled) { SET_BIT(flags.x, 2, enabled); }
+    void setShowClosestFragment(bool enabled) { SET_BIT(flags.x, 3, enabled); }
 
 
 };
