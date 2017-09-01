@@ -89,8 +89,8 @@ Rectangle {
                 console.log("Failed to get balance", result.data.message);
             } else {
                 root.balanceReceived = true;
-                hfcBalanceText.text = (parseFloat(result.data.balance/100).toFixed(2)) + " HFC";
-                balanceAfterPurchase = parseFloat(result.data.balance/100) - root.itemPriceFull/100;
+                hfcBalanceText.text = result.data.balance + " HFC";
+                balanceAfterPurchase = result.data.balance - root.itemPriceFull;
                 root.setBuyText();
             }
         }
@@ -199,7 +199,7 @@ Rectangle {
             commerce.getLoginStatus();
         }
     }
-        
+
     HifiWallet.NeedsLogIn {
         id: needsLogIn;
         visible: root.activeView === "needsLogIn";
@@ -222,7 +222,7 @@ Rectangle {
     }
 
 
-    
+
     //
     // "WALLET NOT SET UP" START
     //
@@ -233,7 +233,7 @@ Rectangle {
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         RalewayRegular {
             id: notSetUpText;
             text: "<b>Your wallet isn't set up.</b><br><br>Set up your Wallet (no credit card necessary) to claim your <b>free HFC</b> " +
@@ -264,7 +264,7 @@ Rectangle {
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: 24;
-        
+
             // "Cancel" button
             HifiControlsUit.Button {
                 id: cancelButton;
@@ -553,7 +553,7 @@ Rectangle {
                 }
                 RalewayRegular {
                     id: balanceAfterPurchaseText;
-                    text: balanceAfterPurchase.toFixed(2) + " HFC";
+                    text: balanceAfterPurchase + " HFC";
                     // Text size
                     size: balanceAfterPurchaseTextLabel.size;
                     // Anchors
@@ -648,7 +648,7 @@ Rectangle {
                     sendToScript({method: 'checkout_goToPurchases'});
                 }
             }
-        
+
             RalewayRegular {
                 id: buyText;
                 // Text size
@@ -687,7 +687,7 @@ Rectangle {
         anchors.bottom: root.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         RalewayRegular {
             id: completeText;
             text: "<b>Purchase Complete!</b><br><br>You bought <b>" + (itemNameText.text) + "</b> by <b>" + (itemAuthorText.text) + "</b>";
@@ -706,7 +706,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        
+
         Item {
             id: checkoutSuccessActionButtonsContainer;
             // Size
@@ -756,7 +756,7 @@ Rectangle {
                 }
             }
         }
-        
+
         Item {
             id: continueShoppingButtonContainer;
             // Size
@@ -799,7 +799,7 @@ Rectangle {
         anchors.bottom: root.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         RalewayRegular {
             id: failureHeaderText;
             text: "<b>Purchase Failed.</b><br>Your Purchases and HFC balance haven't changed.";
@@ -818,7 +818,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        
+
         RalewayRegular {
             id: failureErrorText;
             // Text size
@@ -836,7 +836,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        
+
         Item {
             id: backToMarketplaceButtonContainer;
             // Size
@@ -892,7 +892,7 @@ Rectangle {
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 root.itemPriceFull = message.params.itemPrice;
-                itemPriceText.text = root.itemPriceFull === 0 ? "Free" : "<b>" + (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC</b>";
+                itemPriceText.text = root.itemPriceFull === 0 ? "Free" : "<b>" + root.itemPriceFull + " HFC</b>";
                 itemHref = message.params.itemHref;
                 if (itemHref.indexOf('.json') === -1) {
                     root.itemIsJson = false;
