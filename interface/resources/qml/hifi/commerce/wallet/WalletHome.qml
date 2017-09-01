@@ -88,13 +88,14 @@ Item {
         height: 60;
         Rectangle {
             id: hfcBalanceField;
+            color: hifi.colors.darkGray;
             anchors.right: parent.right;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             height: parent.height - 15;
 
             // "HFC" balance label
-            RalewayRegular {
+            FiraSansRegular {
                 id: balanceLabel;
                 text: "HFC";
                 // Text size
@@ -106,7 +107,7 @@ Item {
                 anchors.rightMargin: 4;
                 width: paintedWidth;
                 // Style
-                color: hifi.colors.darkGray;
+                color: hifi.colors.lightGrayText;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
                 verticalAlignment: Text.AlignVCenter;
@@ -121,7 +122,7 @@ Item {
             }
 
             // Balance Text
-            FiraSansRegular {
+            FiraSansSemiBold {
                 id: balanceText;
                 text: "--";
                 // Text size
@@ -133,7 +134,7 @@ Item {
                 anchors.right: balanceLabel.left;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.darkGray;
+                color: hifi.colors.lightGrayText;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
                 verticalAlignment: Text.AlignVCenter;
@@ -258,7 +259,7 @@ Item {
                 delegate: Item {
                     width: parent.width;
                     height: transactionText.height + 30;
-                    RalewayRegular {
+                    FiraSansRegular {
                         id: transactionText;
                         text: model.text;
                         // Style
@@ -288,7 +289,7 @@ Item {
             }
 
             // This should never be visible (since you immediately get 100 HFC)
-            RalewayRegular {
+            FiraSansRegular {
                 id: emptyTransationHistory;
                 size: 24;
                 visible: !transactionHistory.visible && root.historyReceived;
