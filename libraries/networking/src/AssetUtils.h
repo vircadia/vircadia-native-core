@@ -55,7 +55,7 @@ enum AssetMappingOperationType : uint8_t {
 };
 
 enum BakingStatus {
-    Unrelevant,
+    Irrelevant,
     NotBaked,
     Pending,
     Baking,

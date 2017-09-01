@@ -97,7 +97,6 @@ QString bakingStatusToString(BakingStatus status) {
             return "Baked";
         case Error:
             return "Error";
-        case Unrelevant:
         default:
             return "--";
     }
