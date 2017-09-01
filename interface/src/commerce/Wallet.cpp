@@ -67,6 +67,61 @@ int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     }
 }
 
+RSA* readKeys(const char* filename) {
+    FILE* fp;
+    RSA* key = NULL;
+    if ((fp = fopen(filename, "rt"))) {
+        // file opened successfully
+        qCDebug(commerce) << "opened key file" << filename;
+        if ((key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL))) {
+            // now read private key
+
+            qCDebug(commerce) << "read public key";
+
+            if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
+                qCDebug(commerce) << "read private key";
+                fclose(fp);
+                return key;
+            }
+            qCDebug(commerce) << "failed to read private key";
+        } else {
+            qCDebug(commerce) << "failed to read public key";
+        }
+        fclose(fp);
+    } else {
+        qCDebug(commerce) << "failed to open key file" << filename;
+    }
+    return key;
+}
+
+bool writeKeys(const char* filename, RSA* keys) {
+    FILE* fp;
+    bool retval = false;
+    if ((fp = fopen(filename, "wt"))) {
+        if (!PEM_write_RSAPublicKey(fp, keys)) {
+            fclose(fp);
+            qCDebug(commerce) << "failed to write public key";
+            QFile(QString(filename)).remove();
+            return retval;
+        }
+
+        if (!PEM_write_RSAPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
+            fclose(fp);
+            qCDebug(commerce) << "failed to write private key";
+            QFile(QString(filename)).remove();
+            return retval;
+        }
+
+        retval = true;
+        qCDebug(commerce) << "wrote keys successfully";
+        fclose(fp);
+    } else {
+        qCDebug(commerce) << "failed to open key file" << filename;
+    }
+    return retval;
+}
+
+
 // BEGIN copied code - this will be removed/changed at some point soon
 // copied (without emits for various signals) from libraries/networking/src/RSAKeypairGenerator.cpp.
 // We will have a different implementation in practice, but this gives us a start for now
@@ -125,27 +180,9 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
     }
 
 
-
-    // now lets persist them to files
-    // FIXME: for now I'm appending to the file if it exists.  As long as we always put
-    // the keys in the same order, this works fine.  TODO: verify this will skip over
-    // anything else (like an embedded image)
-    FILE* fp;
-    if ((fp = fopen(keyFilePath().toStdString().c_str(), "at"))) {
-        if (!PEM_write_RSAPublicKey(fp, keyPair)) {
-            fclose(fp);
-            QFile(keyFilePath()).remove();
-            qCDebug(commerce) << "failed to write public key";
-            return retval;
-        }
-
-        if (!PEM_write_RSAPrivateKey(fp, keyPair, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
-            fclose(fp);
-            QFile(keyFilePath()).remove();
-            qCDebug(commerce) << "failed to write private key";
-            return retval;
-        }
-        fclose(fp);
+    if (!writeKeys(keyFilePath().toStdString().c_str(), keyPair)) {
+        qCDebug(commerce) << "couldn't save keys!";
+        return retval;
     }
 
     RSA_free(keyPair);
@@ -215,61 +252,6 @@ RSA* readPrivateKey(const char* filename) {
     }
     return key;
 }
-
-RSA* readKeys(const char* filename) {
-    FILE* fp;
-    RSA* key = NULL;
-    if ((fp = fopen(filename, "rt"))) {
-        // file opened successfully
-        qCDebug(commerce) << "opened key file" << filename;
-        if ((key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL))) {
-            // now read private key
-
-            qCDebug(commerce) << "read public key";
-
-            if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
-                qCDebug(commerce) << "read private key";
-                fclose(fp);
-                return key;
-            }
-            qCDebug(commerce) << "failed to read private key";
-        } else {
-            qCDebug(commerce) << "failed to read public key";
-        }
-        fclose(fp);
-    } else {
-        qCDebug(commerce) << "failed to open key file" << filename;
-    }
-    return key;
-}
-
-bool writeKeys(const char* filename, RSA* keys) {
-    FILE* fp;
-    bool retval = false;
-    if ((fp = fopen(filename, "wt"))) {
-        if (!PEM_write_RSAPublicKey(fp, keys)) {
-            fclose(fp);
-            qCDebug(commerce) << "failed to write public key";
-            QFile(QString(filename)).remove();
-            return retval;
-        }
-
-        if (!PEM_write_RSAPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
-            fclose(fp);
-            qCDebug(commerce) << "failed to write private key";
-            QFile(QString(filename)).remove();
-            return retval;
-        }
-
-        retval = true;
-        qCDebug(commerce) << "wrote keys successfully";
-        fclose(fp);
-    } else {
-        qCDebug(commerce) << "failed to open key file" << filename;
-    }
-    return retval;
-}
-
 static const unsigned char IVEC[16] = "IAmAnIVecYay123";
 
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
@@ -603,6 +585,7 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
             return true;
         } else {
             qCDebug(commerce) << "couldn't write keys";
+            QFile(tempFileName).remove();
             setPassphrase(oldPassphrase);
             return false;
         }
