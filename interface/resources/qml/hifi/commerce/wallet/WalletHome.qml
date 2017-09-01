@@ -38,7 +38,7 @@ Item {
         }
 
         onBalanceResult : {
-            balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
+            balanceText.text = result.data.balance;
         }
 
         onHistoryResult : {
@@ -273,7 +273,7 @@ Item {
                         horizontalAlignment: Text.AlignLeft;
                         verticalAlignment: Text.AlignVCenter;
                     }
-                        
+
                     HifiControlsUit.Separator {
                         anchors.left: parent.left;
                         anchors.right: parent.right;
