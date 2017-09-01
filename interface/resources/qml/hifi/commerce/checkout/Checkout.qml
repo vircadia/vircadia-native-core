@@ -28,18 +28,30 @@ Rectangle {
     property string activeView: "initialize";
     property bool purchasesReceived: false;
     property bool balanceReceived: false;
+    property bool securityImageResultReceived: false;
+    property bool keyFilePathIfExistsResultReceived: false;
     property string itemId: "";
     property string itemHref: "";
     property double balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
     property int itemPriceFull: 0;
     property bool itemIsJson: true;
-    property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
+
+        onLoginStatusResult: {
+            if (!isLoggedIn && root.activeView !== "needsLogIn") {
+                root.activeView = "needsLogIn";
+            } else if (isLoggedIn) {
+                root.activeView = "initialize";
+                commerce.getSecurityImage();
+                commerce.getKeyFilePathIfExists();
+                commerce.balance();
+                commerce.inventory();
+            }
+        }
 
         onSecurityImageResult: {
             securityImageResultReceived = true;
@@ -107,6 +119,7 @@ Rectangle {
     //
     Item {
         id: titleBarContainer;
+        visible: !needsLogIn.visible;
         // Size
         width: parent.width;
         height: 50;
@@ -147,6 +160,16 @@ Rectangle {
             cache: false;
             source: "image://security/securityImage";
         }
+        Image {
+            id: securityImageOverlay;
+            source: "../wallet/images/lockOverlay.png";
+            width: securityImage.width * 0.45;
+            height: securityImage.height * 0.45;
+            anchors.bottom: securityImage.bottom;
+            anchors.right: securityImage.right;
+            mipmap: true;
+            opacity: 0.9;
+        }
 
         // Separator
         HifiControlsUit.Separator {
@@ -169,10 +192,36 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getSecurityImage();
-            commerce.getKeyFilePathIfExists();
+            securityImageResultReceived = false;
+            purchasesReceived = false;
+            balanceReceived = false;
+            keyFilePathIfExistsResultReceived = false;
+            commerce.getLoginStatus();
         }
     }
+        
+    HifiWallet.NeedsLogIn {
+        id: needsLogIn;
+        visible: root.activeView === "needsLogIn";
+        anchors.top: parent.top;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
+    }
+    Connections {
+        target: GlobalServices
+        onMyUsernameChanged: {
+            commerce.getLoginStatus();
+        }
+    }
+
+
     
     //
     // "WALLET NOT SET UP" START
@@ -267,13 +316,6 @@ Rectangle {
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-
-        onVisibleChanged: {
-            if (visible) {
-                commerce.balance();
-                commerce.inventory();
-            }
-        }
 
         //
         // ITEM DESCRIPTION START
@@ -877,7 +919,7 @@ Rectangle {
             if (root.purchasesReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {
-                        buyText.text = "You do not have enough HFC to purchase this item again. Go to your Purchases to view the copy you own.";
+                        buyText.text = "You do not have enough HFC to purchase this item again. Go to your <b>Purchases</b> to view the copy you own.";
                     } else {
                         buyText.text = "You do not have enough HFC to purchase this item.";
                     }

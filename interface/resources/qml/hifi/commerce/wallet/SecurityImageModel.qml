@@ -16,27 +16,27 @@ import QtQuick 2.5
 ListModel {
     id: root;
     ListElement{
-        sourcePath: "images/01cat.jpg"
+        sourcePath: "images/01.jpg"
         securityImageEnumValue: 1;
     }
     ListElement{
-        sourcePath: "images/02car.jpg"
+        sourcePath: "images/02.jpg"
         securityImageEnumValue: 2;
     }
     ListElement{
-        sourcePath: "images/03dog.jpg"
+        sourcePath: "images/03.jpg"
         securityImageEnumValue: 3;
     }
     ListElement{
-        sourcePath: "images/04stars.jpg"
+        sourcePath: "images/04.jpg"
         securityImageEnumValue: 4;
     }
     ListElement{
-        sourcePath: "images/05plane.jpg"
+        sourcePath: "images/05.jpg"
         securityImageEnumValue: 5;
     }
     ListElement{
-        sourcePath: "images/06gingerbread.jpg"
+        sourcePath: "images/06.jpg"
         securityImageEnumValue: 6;
     }
 

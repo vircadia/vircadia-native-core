@@ -24,16 +24,16 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-
-    Hifi.QmlCommerce {
-        id: commerce;
-        onSecurityImageResult: {
-        }
-    }
-
+    
+    // This will cause a bug -- if you bring up security image selection in HUD mode while
+    // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
+    // HMD preview will stay off.
+    // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
-            commerce.getSecurityImage();
+            sendSignalToWallet({method: 'disableHmdPreview'});
+        } else {
+            sendSignalToWallet({method: 'maybeEnableHmdPreview'});
         }
     }
 
@@ -83,7 +83,7 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-    signal sendToScript(var message);
+    signal sendSignalToWallet(var msg);
 
     function getImagePathFromImageID(imageID) {
         return (imageID ? gridModel.getImagePathFromImageID(imageID) : "");
