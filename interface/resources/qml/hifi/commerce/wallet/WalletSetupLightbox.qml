@@ -24,20 +24,12 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string lastPage: "login";
+    property string lastPage: "initialize";
     // Style
     color: hifi.colors.baseGray;
 
     Hifi.QmlCommerce {
         id: commerce;
-
-        onLoginStatusResult: {
-            if (isLoggedIn) {
-                securityImageContainer.visible = true;
-            } else {
-                loginPageContainer.visible = true;
-            }
-        }
 
         onSecurityImageResult: {
             if (!exists && root.lastPage === "securityImage") {
@@ -62,149 +54,12 @@ Rectangle {
     }
 
     //
-    // LOGIN PAGE START
-    //
-    Item {
-        id: loginPageContainer;
-        visible: false;
-        // Anchors
-        anchors.fill: parent;
-
-        Component.onCompleted: {
-            commerce.getLoginStatus();
-        }
-
-        Item {
-            id: loginTitle;
-            // Size
-            width: parent.width;
-            height: 50;
-            // Anchors
-            anchors.left: parent.left;
-            anchors.top: parent.top;
-
-            // Title Bar text
-            RalewaySemiBold {
-                text: "WALLET SETUP - LOGIN";
-                // Text size
-                size: hifi.fontSizes.overlayTitle;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                anchors.leftMargin: 16;
-                anchors.bottom: parent.bottom;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.faintGray;
-                // Alignment
-                horizontalAlignment: Text.AlignHLeft;
-                verticalAlignment: Text.AlignVCenter;
-            }
-        }
-
-        // Text below title bar
-        RalewaySemiBold {
-            id: loginTitleHelper;
-            text: "Please Log In to High Fidelity";
-            // Text size
-            size: 24;
-            // Anchors
-            anchors.top: loginTitle.bottom;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            anchors.right: parent.right;
-            anchors.rightMargin: 16;
-            height: 50;
-            // Style
-            color: hifi.colors.faintGray;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
-        // Text below helper text
-        RalewaySemiBold {
-            id: loginDetailText;
-            text: "To set up your wallet, you must first log in to High Fidelity.";
-            // Text size
-            size: 18;
-            // Anchors
-            anchors.top: loginTitleHelper.bottom;
-            anchors.topMargin: 25;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            anchors.right: parent.right;
-            anchors.rightMargin: 16;
-            height: 50;
-            // Style
-            color: hifi.colors.faintGray;
-            wrapMode: Text.WordWrap;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
-        // "Cancel" button
-        HifiControlsUit.Button {
-            color: hifi.buttons.black;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.top: loginDetailText.bottom;
-            anchors.topMargin: 25;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            width: 150;
-            height: 50;
-            text: "Log In"
-            onClicked: {
-                sendSignalToWallet({method: 'walletSetup_loginClicked'});
-            }
-        }
-
-        // Navigation Bar
-        Item {
-            // Size
-            width: parent.width;
-            height: 100;
-            // Anchors:
-            anchors.left: parent.left;
-            anchors.bottom: parent.bottom;
-
-            // "Cancel" button
-            HifiControlsUit.Button {
-                color: hifi.buttons.black;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
-                width: 100;
-                text: "Cancel"
-                onClicked: {
-                    sendSignalToWallet({method: 'walletSetup_cancelClicked'});
-                }
-            }
-        }
-    }
-    //
-    // LOGIN PAGE END
-    //
-
-    //
     // SECURITY IMAGE SELECTION START
     //
     Item {
         id: securityImageContainer;
-        visible: false;
         // Anchors
         anchors.fill: parent;
-
-        onVisibleChanged: {
-            if (visible) {
-                commerce.getSecurityImage();
-            }
-        }
 
         Item {
             id: securityImageTitle;
@@ -262,6 +117,12 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: 280;
+            
+            Connections {
+                onSendSignalToWallet: {
+                    sendSignalToWallet(msg);
+                }
+            }
         }
 
         // Text below security images
@@ -329,6 +190,7 @@ Rectangle {
                     commerce.chooseSecurityImage(securityImagePath);
                     securityImageContainer.visible = false;
                     choosePassphraseContainer.visible = true;
+                    passphraseSelection.clearPassphraseFields();
                 }
             }
         }
@@ -407,6 +269,15 @@ Rectangle {
             anchors.left: parent.left;
             anchors.right: parent.right;
             anchors.bottom: passphraseNavBar.top;
+
+            Connections {
+                onSendMessageToLightbox: {
+                    if (msg.method === 'statusResult') {
+                    } else {
+                        sendSignalToWallet(msg);
+                    }
+                }
+            }
         }
 
         // Navigation Bar

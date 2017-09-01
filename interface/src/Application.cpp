@@ -166,6 +166,7 @@
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/RatesScriptingInterface.h"
+#include "scripting/SelectionScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -183,7 +184,6 @@
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
-#include "ui/ImageProvider.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -264,7 +264,7 @@ private:
         switch ((int)event->type()) {
             case ApplicationEvent::Render:
                 render();
-                // Ensure we never back up the render events.  Each render should be triggered only in response 
+                // Ensure we never back up the render events.  Each render should be triggered only in response
                 // to the NEXT render event after the last render occured
                 QCoreApplication::removePostedEvents(this, ApplicationEvent::Render);
                 return true;
@@ -676,6 +676,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
+    DependencyManager::set<SelectionScriptingInterface>();
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
@@ -2246,8 +2247,6 @@ void Application::initializeUi() {
         qApp->quit();
     });
 
-    // register the pixmap image provider (used only for security image, for now)
-    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
 
     setupPreferences();
 
@@ -2321,6 +2320,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+    surfaceContext->setContextProperty("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
@@ -5187,7 +5187,7 @@ void Application::update(float deltaTime) {
         }
     } else {
         // update the rendering without any simulation
-        getEntities()->update(false); 
+        getEntities()->update(false);
     }
 
     // AvatarManager update
@@ -5661,17 +5661,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
-
-            RenderArgs::OutlineFlags renderOutlineFlags = RenderArgs::RENDER_OUTLINE_NONE;
-            auto contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
-            if (contextOverlayInterface->getEnabled()) {
-                if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
-                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE;
-                } else {
-                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
-                }
-            }
-            renderArgs->_outlineFlags = renderOutlineFlags;
         }
     }
 
@@ -6138,6 +6127,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
+    scriptEngine->registerGlobalObject("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);

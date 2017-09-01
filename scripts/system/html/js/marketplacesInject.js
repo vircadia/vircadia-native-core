@@ -127,9 +127,15 @@
             $(this).attr('data-href', $(this).attr('href'));
             $(this).attr('href', '#');
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+
+            $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
+            $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
             
             if (parseInt(cost) > 0) {
-                $(this).find('.price').text("BUY");
+                var priceElement = $(this).find('.price')
+                priceElement.css({ "width": "auto", "padding": "3px 5px", "height": "26px" });
+                priceElement.text(parseFloat(cost / 100).toFixed(2) + ' HFC');
+                priceElement.css({ "min-width": priceElement.width() + 10 });
             }
         });
         
@@ -160,23 +166,23 @@
 
             // Try this here in case it works (it will if the user just pressed the "back" button,
             //     since that doesn't trigger another AJAX request.
-            injectBuyButtonOnMainPage;
+            injectBuyButtonOnMainPage();
             addPurchasesButton();
         }
     }
 
     function injectHiFiItemPageCode() {
         if (confirmAllPurchases) {
-            var href = $('#side-info').find('.btn').attr('href');
-            $('#side-info').find('.btn').attr('href', '#');
+            var href = $('#side-info').find('.btn').first().attr('href');
+            $('#side-info').find('.btn').first().attr('href', '#');
             
             var cost = $('.item-cost').text();
 
-            if (parseInt(cost) > 0) {
-                $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
+            if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
+                $('#side-info').find('.btn').first().html('<span class="glyphicon glyphicon-download" id="buyItemButton"></span>Own Item: ' + (parseFloat(cost / 100).toFixed(2)) + ' HFC');
             }
 
-            $('#side-info').find('.btn').on('click', function () {
+            $('#side-info').find('.btn').first().on('click', function () {
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),

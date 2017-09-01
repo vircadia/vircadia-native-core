@@ -14,6 +14,7 @@
 #include "Wallet.h"
 #include "Application.h"
 #include "ui/ImageProvider.h"
+#include "scripting/HMDScriptingInterface.h"
 
 #include <PathUtils.h>
 #include <OffscreenUi.h>
@@ -224,6 +225,12 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
     memcpy(ckey, hash.data(), 32);
 }
 
+Wallet::~Wallet() {
+    if (_securityImage) {
+        delete _securityImage;
+    }
+}
+
 void Wallet::setPassphrase(const QString& passphrase) {
     if (_passphrase) {
         delete _passphrase;
@@ -411,6 +418,13 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     return QString();
 }
 
+void Wallet::updateImageProvider() {
+    // inform the image provider.  Note it doesn't matter which one you inform, as the
+    // images are statics
+    auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+    auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
+    imageProvider->setSecurityImage(_securityImage);
+}
 
 void Wallet::chooseSecurityImage(const QString& filename) {
 
@@ -431,10 +445,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     if (encryptFile(path, imageFilePath())) {
         qCDebug(commerce) << "emitting pixmap";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
         emit securityImageResult(true);
     } else {
@@ -454,16 +465,15 @@ void Wallet::getSecurityImage() {
     }
 
     // decrypt and return
-    if (decryptFile(imageFilePath(), &data, &dataLen)) {
+    QString filePath(imageFilePath());
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists() && decryptFile(filePath, &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
         qCDebug(commerce) << "created pixmap from encrypted file";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
         delete[] data;
         emit securityImageResult(true);
@@ -480,4 +490,25 @@ void Wallet::sendKeyFilePathIfExists() {
     } else {
         emit keyFilePathIfExistsResult("");
     }
+}
+
+void Wallet::reset() {
+    _publicKeys.clear();
+
+    delete _securityImage;
+    _securityImage = nullptr;
+
+    // tell the provider we got nothing
+    updateImageProvider();
+    delete _passphrase;
+
+    // for now we need to maintain the hard-coded passphrase.
+    // FIXME: remove this line as part of wiring up the passphrase
+    // and probably set it to nullptr
+    _passphrase = new QString("pwd");
+
+    QFile keyFile(keyFilePath());
+    QFile imageFile(imageFilePath());
+    keyFile.remove();
+    imageFile.remove();
 }
