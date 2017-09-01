@@ -145,6 +145,14 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
     auto jt = _fileMappings.find(bakedPath);
     if (jt != _fileMappings.end()) {
         if (jt->second == hash) {
+            bool loaded;
+            AssetMeta meta;
+
+            std::tie(loaded, meta) = readMetaFile(hash);
+            if (loaded && meta.failedLastBake) {
+                return Error;
+            }
+
             return NotBaked;
         } else {
             return Baked;
