@@ -117,7 +117,7 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: 280;
-            
+
             Connections {
                 onSendSignalToWallet: {
                     sendSignalToWallet(msg);
@@ -210,7 +210,7 @@ Rectangle {
 
         onVisibleChanged: {
             if (visible) {
-                commerce.getPassphraseSetupStatus();
+                commerce.getWalletAuthenticatedStatus();
             }
         }
 

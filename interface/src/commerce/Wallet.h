@@ -48,7 +48,7 @@ public:
 signals:
     void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
-    void passphraseSetupStatusResult(bool successful);
+
 private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
