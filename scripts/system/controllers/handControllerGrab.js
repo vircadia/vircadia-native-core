@@ -1651,8 +1651,11 @@ function MyController(hand) {
             hysteresisOffset = 0.05;
         }
 
-        this.isNearStylusTarget = isNearStylusTarget(stylusTargets, EDGE_BORDER + hysteresisOffset,
-                                                     TABLET_MIN_TOUCH_DISTANCE - hysteresisOffset, WEB_DISPLAY_STYLUS_DISTANCE + hysteresisOffset);
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        this.isNearStylusTarget = isNearStylusTarget(stylusTargets,
+                                                     (EDGE_BORDER + hysteresisOffset) * sensorScaleFactor,
+                                                     (TABLET_MIN_TOUCH_DISTANCE - hysteresisOffset) * sensorScaleFactor,
+                                                     (WEB_DISPLAY_STYLUS_DISTANCE + hysteresisOffset) * sensorScaleFactor);
 
         if (this.isNearStylusTarget) {
             if (!this.useFingerInsteadOfStylus) {
@@ -1742,9 +1745,10 @@ function MyController(hand) {
         }
 
         // when the grab-point enters a grabable entity, give a haptic pulse
-        candidateEntities = Entities.findEntities(worldHandPosition, NEAR_GRAB_RADIUS);
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        candidateEntities = Entities.findEntities(worldHandPosition, NEAR_GRAB_RADIUS * sensorScaleFactor);
         var grabbableEntities = candidateEntities.filter(function(entity) {
-            return _this.entityIsNearGrabbable(entity, worldHandPosition, NEAR_GRAB_MAX_DISTANCE);
+            return _this.entityIsNearGrabbable(entity, worldHandPosition, NEAR_GRAB_MAX_DISTANCE * sensorScaleFactor);
         });
         if (grabbableEntities.length > 0) {
             if (!this.grabPointIntersectsEntity) {
@@ -2242,12 +2246,13 @@ function MyController(hand) {
             }
         }
 
-        var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS);
+        var sensorScaleFactor = MyAvatar.sensorToWorldMatrix
+        var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS * sensorScaleFactor);
         var grabbableEntities = candidateEntities.filter(function(entity) {
-            return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE);
+            return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE * sensorScaleFactor);
         });
 
-        var candidateOverlays = Overlays.findOverlays(handPosition, NEAR_GRAB_RADIUS);
+        var candidateOverlays = Overlays.findOverlays(handPosition, NEAR_GRAB_RADIUS * sensorScaleFactor);
         var grabbableOverlays = candidateOverlays.filter(function(overlayID) {
             return Overlays.getProperty(overlayID, "grabbable");
         });
@@ -2756,9 +2761,10 @@ function MyController(hand) {
         }
         var rayPositionOnEntity = Vec3.subtract(grabbedProperties.position, this.offsetPosition);
         //Far to Near Grab: If object is draw by user inside FAR_TO_NEAR_GRAB_MAX_DISTANCE, grab it
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
         if (this.entityIsFarToNearGrabbable(rayPositionOnEntity,
                                             controllerLocation.position,
-                                            FAR_TO_NEAR_GRAB_MAX_DISTANCE)) {
+                                            FAR_TO_NEAR_GRAB_MAX_DISTANCE * sensorScaleFactor)) {
             this.farToNearGrab = true;
 
             Entities.deleteAction(this.grabbedThingID, this.actionID);
