@@ -389,6 +389,32 @@ void JitterSampleConfig::setIndex(int current) {
     emit dirty();
 }
 
+int JitterSampleConfig::cycleStopPauseRun() {
+    _state = (_state + 1) % 3;
+    switch (_state) {
+        case 0: {
+            stop = true;
+            freeze = false;
+            setIndex(-1);
+            break;
+        }
+        case 1: {
+            stop = false;
+            freeze = true;
+            setIndex(0);
+            break;
+        }
+        case 2:
+        default: {
+            stop = false;
+            freeze = false;
+            setIndex(0);
+            break;
+        }
+    }
+    return _state;
+}
+
 int JitterSampleConfig::pause() {
     freeze = true;
     emit dirty();
@@ -447,7 +473,7 @@ JitterSample::SampleSequence::SampleSequence(){
 
 void JitterSample::configure(const Config& config) {
     _freeze = config.freeze;
-    if (_freeze) {
+    if (config.stop || _freeze) {
         auto pausedIndex = config.getIndex();
         if (_jitterBuffer->currentIndex != pausedIndex) {
             _jitterBuffer.edit().currentIndex = pausedIndex;

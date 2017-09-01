@@ -23,27 +23,31 @@ class JitterSampleConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(float scale MEMBER scale NOTIFY dirty)
         Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
+        Q_PROPERTY(bool stop MEMBER stop NOTIFY dirty)
         Q_PROPERTY(int index READ getIndex NOTIFY dirty)
 public:
     JitterSampleConfig() : render::Job::Config(true) {}
 
     float scale{ 0.5f };
+    bool stop{ false };
     bool freeze{ false };
 
     void setIndex(int current);
 
 public slots:
+    int cycleStopPauseRun();
     int pause();
     int prev();
     int next();
     int play();
 
     int getIndex() const { return _index; }
-
+    int getState() const { return _state; }
 signals:
     void dirty();
 
 private:
+    int _state{ 0 };
     int _index{ 0 };
 
 };

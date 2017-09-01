@@ -49,5 +49,5 @@ void main() {
         nextColor = taa_temporalReprojection(sourceColor, historyColor, fragUV, fragVel, nearFragUV.z, fragJitterPix);
     }
     
-    outFragColor = vec4(nextColor, 1.0);
+    outFragColor = vec4(taa_resolveColor(nextColor), 1.0);
 }

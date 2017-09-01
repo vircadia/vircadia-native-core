@@ -273,7 +273,7 @@ vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, 
 		// output
     vec3 nextColor =  mix(texel1, texel0, k_feedback).xyz;
 
-    return taa_resolveColor(nextColor);
+    return nextColor;
 }
 
 <$declareColorWheel()$>
