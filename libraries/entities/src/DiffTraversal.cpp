@@ -142,19 +142,45 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
     next.intersection = ViewFrustum::OUTSIDE;
 }
 
+void DiffTraversal::Waypoint::getNextVisibleElementFullScene(DiffTraversal::VisibleElement& next, uint64_t lastTime) {
+    // NOTE: no need to set next.intersection or check LOD truncation in the "FullScene" context
+    if (_nextIndex == -1) {
+        ++_nextIndex;
+        EntityTreeElementPointer element = _weakElement.lock();
+        if (element->getLastChangedContent() > lastTime) {
+            next.element = element;
+            return;
+        }
+    }
+    if (_nextIndex < NUMBER_OF_CHILDREN) {
+        EntityTreeElementPointer element = _weakElement.lock();
+        if (element) {
+            while (_nextIndex < NUMBER_OF_CHILDREN) {
+                EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
+                ++_nextIndex;
+                if (nextElement && nextElement->getLastChanged() > lastTime) {
+                    next.element = nextElement;
+                    return;
+                }
+            }
+        }
+    }
+    next.element.reset();
+}
+
 DiffTraversal::DiffTraversal() {
     const int32_t MIN_PATH_DEPTH = 16;
     _path.reserve(MIN_PATH_DEPTH);
 }
 
-DiffTraversal::Type DiffTraversal::prepareNewTraversal(
-        const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset) {
+DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesFrustum) {
     assert(root);
-    // there are three types of traversal:
+    // there are four types of traversal:
     //
     //   (1) First = fresh view --> find all elements in view
     //   (2) Repeat = view hasn't changed --> find elements changed since last complete traversal
     //   (3) Differential = view has changed --> find elements changed or in new view but not old
+    //   (4) FullScene = no view frustum -> send everything
     //
     // for each traversal type we assign the appropriate _getNextVisibleElementCallback
     //
@@ -166,7 +192,12 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(
     //
 
     Type type;
-    if (_completedView.startTime == 0) {
+    if (!usesFrustum) {
+        type = Type::FullScene;
+        _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
+            _path.back().getNextVisibleElementFullScene(next, _completedView.startTime);
+        };
+    } else if (_completedView.startTime == 0) {
         type = Type::First;
         _currentView.viewFrustum = viewFrustum;
         _currentView.lodLevelOffset = root->getLevel() + lodLevelOffset - 1; // -1 because true root has level=1

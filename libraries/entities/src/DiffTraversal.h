@@ -46,6 +46,7 @@ public:
         void getNextVisibleElementFirstTime(VisibleElement& next, const View& view);
         void getNextVisibleElementRepeat(VisibleElement& next, const View& view, uint64_t lastTime);
         void getNextVisibleElementDifferential(VisibleElement& next, const View& view, const View& lastView);
+        void getNextVisibleElementFullScene(VisibleElement& next, uint64_t lastTime);
 
         int8_t getNextIndex() const { return _nextIndex; }
         void initRootNextIndex() { _nextIndex = -1; }
@@ -55,11 +56,11 @@ public:
         int8_t _nextIndex;
     };
 
-    typedef enum { First, Repeat, Differential } Type;
+    typedef enum { First, Repeat, Differential, FullScene } Type;
 
     DiffTraversal();
 
-    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset);
+    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool isFullScene);
 
     const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
     const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }

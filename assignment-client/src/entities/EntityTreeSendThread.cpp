@@ -98,7 +98,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             nodeData->copyCurrentViewFrustum(viewFrustum);
             EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
             int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
-            startNewTraversal(viewFrustum, root, lodLevelOffset);
+            startNewTraversal(viewFrustum, root, lodLevelOffset, true);
 
             // When the viewFrustum changed the sort order may be incorrect, so we re-sort
             // and also use the opportunity to cull anything no longer in view
@@ -138,6 +138,11 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                 }
             }
         }
+    } else if (_traversal.finished()) {
+        ViewFrustum viewFrustum;
+        EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
+        int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + NO_BOUNDARY_ADJUST;
+        startNewTraversal(viewFrustum, root, lodLevelOffset, false);
     }
 
     if (!_traversal.finished()) {
@@ -165,7 +170,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             EntityItemPointer entity = entry.getEntity();
             if (entity) {
                 std::cout << "adebug    send '" << entity->getName().toStdString() << "'" << "  :  " << entry.getPriority() << std::endl;  // adebug
-                _knownState[entity] = sendTime;
+                _knownState[entity.get()] = sendTime;
             }
             _sendQueue.pop();
             _entitiesInQueue.erase(entry.getRawEntityPointer());
@@ -225,13 +230,14 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
     return hasNewChild || hasNewDescendants;
 }
 
-void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset) {
-    DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root, lodLevelOffset);
-    // there are three types of traversal:
+void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesFrustum) {
+    DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root, lodLevelOffset, usesFrustum);
+    // there are four types of traversal:
     //
     //      (1) FirstTime = at login --> find everything in view
     //      (2) Repeat = view hasn't changed --> find what has changed since last complete traversal
     //      (3) Differential = view has changed --> find what has changed or in new view but not old
+    //      (4) FullScene = no view frustum -> send everything
     //
     // The "scanCallback" we provide to the traversal depends on the type:
     //
@@ -371,10 +377,26 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
             }
         });
         break;
+    case DiffTraversal::FullScene:
+        _traversal.setScanCallback([&](DiffTraversal::VisibleElement& next) {
+            next.element->forEachEntity([&](EntityItemPointer entity) {
+                // Bail early if we've already checked this entity this frame
+                if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                    return;
+                }
+                if (_knownState.find(entity.get()) == _knownState.end() ||
+                    (_knownState.find(entity.get()) != _knownState.end() && entity->getLastEdited() > _knownState[entity.get()])) {
+                    // We don't have a view frustum from which to compute priority
+                    _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                    _entitiesInQueue.insert(entity.get());
+                }
+            });
+        });
+        break;
     }
 }
 
-bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params) {
+bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) {
 #ifdef SEND_SORTED_ENTITIES
     //auto entityTree = std::static_pointer_cast<EntityTree>(_myServer->getOctree());
     if (_sendQueue.empty()) {
@@ -418,17 +440,20 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
         if (entity) {
-            OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
-            _knownState[entity.get()] = sendTime;
+            // Only send entities that match the jsonFilters, but keep track of everything we've tried to send so we don't try to send it again
+            if (entity->matchesJSONFilters(jsonFilters)) {
+                OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
 
-            if (appendEntityState != OctreeElement::COMPLETED) {
-                if (appendEntityState == OctreeElement::PARTIAL) {
-                    ++_numEntities;
+                if (appendEntityState != OctreeElement::COMPLETED) {
+                    if (appendEntityState == OctreeElement::PARTIAL) {
+                        ++_numEntities;
+                    }
+                    params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+                    break;
                 }
-                params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-                break;
+                ++_numEntities;
             }
-            ++_numEntities;
+            _knownState[entity.get()] = sendTime;
         }
         _sendQueue.pop();
         _entitiesInQueue.erase(entity.get());
