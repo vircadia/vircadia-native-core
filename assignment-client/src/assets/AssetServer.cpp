@@ -1056,7 +1056,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
                 _fileMappings[newKey] = it->second;
             }
 
-            it++;
+            ++it;
         }
 
         if (writeMappingsToFile()) {
