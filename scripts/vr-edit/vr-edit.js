@@ -1002,11 +1002,11 @@
                         if (color) {
                             colorToolColor = color;
                             ui.doPickColor(colorToolColor);
+                            toolSelected = TOOL_COLOR;
+                            ui.setToolIcon(ui.COLOR_TOOL);
                         } else {
                             Feedback.play(side, Feedback.APPLY_ERROR);
                         }
-                        toolSelected = TOOL_COLOR;
-                        ui.setToolIcon(ui.COLOR_TOOL);
                     } else if (toolSelected === TOOL_PHYSICS) {
                         selection.applyPhysics(physicsToolPhysics);
                     } else if (toolSelected === TOOL_DELETE) {
