@@ -31,6 +31,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         menuOverlays = [],
         menuHoverOverlays = [],
+        menuIconOverlays = [],
         menuLabelOverlays = [],
         menuEnabled = [],
 
@@ -232,7 +233,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         },
                         localRotation: Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 }),
                         color: UIT.colors.lightGrayText
-                    }
+                    },
+                    highlightColor: UIT.colors.darkGray
                 },
                 label: {
                     // Relative to menuButton.
@@ -1960,7 +1962,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties.visible = isVisible;
             properties.parentID = buttonID;
             overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].overlay, properties);
-            menuLabelOverlays.push(overlayID);
+            menuIconOverlays[i] = overlayID;
 
             // Label.
             properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].properties);
@@ -1993,6 +1995,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         menuOverlays = [];
         menuHoverOverlays = [];
+        menuIconOverlays = [];
         menuLabelOverlays = [];
         pressedItem = null;
     }
@@ -2749,6 +2752,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             for (i = 0, length = menuOverlays.length; i < length; i += 1) {
                 Overlays.editOverlay(menuOverlays[i], { visible: visible });
             }
+            for (i = 0, length = menuIconOverlays.length; i < length; i += 1) {
+                Overlays.editOverlay(menuIconOverlays[i], { visible: visible });
+            }
             for (i = 0, length = menuLabelOverlays.length; i < length; i += 1) {
                 Overlays.editOverlay(menuLabelOverlays[i], { visible: visible });
             }
@@ -2803,6 +2809,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.greenHighlight,
                     emissive: true  // TODO: This has no effect.
                 });
+                Overlays.editOverlay(menuHeaderBackOverlay, {
+                    color: UIT.colors.white
+                });
                 Overlays.editOverlay(menuHeaderTitleOverlay, {
                     url: Script.resolvePath(MENU_HEADER_TITLE_BACK_URL),
                     scale: MENU_HEADER_TITLE_BACK_SCALE
@@ -2819,6 +2828,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     localPosition: MENU_HEADER_HEADING_PROPERTIES.localPosition,
                     color: UIT.colors.baseGray,
                     emissive: false
+                });
+                Overlays.editOverlay(menuHeaderBackOverlay, {
+                    color: MENU_HEADER_BACK_PROPERTIES.color
                 });
                 Overlays.editOverlay(menuHeaderTitleOverlay, {
                     url: optionsHeadingURL,
@@ -2860,6 +2872,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
+                    });
+                    Overlays.editOverlay(menuIconOverlays[highlightedItem], {
+                        color: UI_ELEMENTS.menuButton.icon.properties.color
                     });
                     break;
                 case "button":
@@ -2948,6 +2963,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
                         localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, MENU_HOVER_DELTA),
                         visible: true
+                    });
+                    Overlays.editOverlay(menuIconOverlays[highlightedItem], {
+                        color: UI_ELEMENTS.menuButton.icon.highlightColor
                     });
                     break;
                 case "button":
@@ -3328,6 +3346,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         Overlays.deleteOverlay(menuOriginOverlay);  // Automatically deletes all other overlays because they're children.
         menuOverlays = [];
         menuHoverOverlays = [];
+        menuIconOverlays = [];
         menuLabelOverlays = [];
         optionsOverlays = [];
         optionsOverlaysLabels = [];
