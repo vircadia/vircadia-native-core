@@ -29,7 +29,6 @@ Rectangle {
     property bool purchasesReceived: false;
     property bool balanceReceived: false;
     property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     property string itemId: "";
     property string itemHref: "";
     property double balanceAfterPurchase: 0;
@@ -46,10 +45,15 @@ Rectangle {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
-                commerce.getSecurityImage();
                 commerce.getKeyFilePathIfExists();
-                commerce.balance();
-                commerce.inventory();
+            }
+        }
+
+        onKeyFilePathIfExistsResult: {
+            if (path === "" && root.activeView !== "notSetUp") {
+                root.activeView = "notSetUp";
+            } else if (path !== "" && root.activeView === "initialize") {
+                commerce.getSecurityImage();
             }
         }
 
@@ -57,8 +61,8 @@ Rectangle {
             securityImageResultReceived = true;
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
-                root.activeView = "checkoutMain";
+            } else if (exists && root.activeView === "initialize") {
+                commerce.getWalletAuthenticatedStatus();
             } else if (exists) {
                 // just set the source again (to be sure the change was noticed)
                 securityImage.source = "";
@@ -66,12 +70,17 @@ Rectangle {
             }
         }
 
-        onKeyFilePathIfExistsResult: {
-            keyFilePathIfExistsResultReceived = true;
-            if (path === "" && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
+        onWalletAuthenticatedStatusResult: {
+            if (!isAuthenticated && !passphraseModal.visible) {
+                passphraseModal.visible = true;
+            } else if (isAuthenticated) {
                 root.activeView = "checkoutMain";
+                if (!balanceReceived) {
+                    commerce.balance();
+                }
+                if (!purchasesReceived) {
+                    commerce.inventory();
+                }
             }
         }
 
@@ -108,10 +117,6 @@ Rectangle {
                 root.setBuyText();
             }
         }
-    }
-
-    HifiWallet.SecurityImageModel {
-        id: securityImageModel;
     }
 
     //
@@ -195,11 +200,10 @@ Rectangle {
             securityImageResultReceived = false;
             purchasesReceived = false;
             balanceReceived = false;
-            keyFilePathIfExistsResultReceived = false;
             commerce.getLoginStatus();
         }
     }
-
+        
     HifiWallet.NeedsLogIn {
         id: needsLogIn;
         visible: root.activeView === "needsLogIn";
@@ -221,8 +225,21 @@ Rectangle {
         }
     }
 
+    HifiWallet.PassphraseModal {
+        id: passphraseModal;
+        visible: false;
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
 
-
+        Connections {
+            onSendSignalToParent: {
+                sendToScript(msg);
+            }
+        }
+    }
+    
     //
     // "WALLET NOT SET UP" START
     //
@@ -233,7 +250,7 @@ Rectangle {
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-
+        
         RalewayRegular {
             id: notSetUpText;
             text: "<b>Your wallet isn't set up.</b><br><br>Set up your Wallet (no credit card necessary) to claim your <b>free HFC</b> " +
@@ -264,7 +281,7 @@ Rectangle {
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: 24;
-
+        
             // "Cancel" button
             HifiControlsUit.Button {
                 id: cancelButton;
