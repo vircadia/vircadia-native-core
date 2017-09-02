@@ -272,6 +272,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         NONE = -1,
         highlightedItem = NONE,
         wasTriggerClicked = false,
+        otherSide,
 
         // References.
         controlHand;
@@ -284,16 +285,13 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     function setHand(hand) {
         // Assumes UI is not displaying.
         side = hand;
+        otherSide = (side + 1) % 2;
         controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
         controlJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
         paletteLateralOffset = side === LEFT_HAND ? -UIT.dimensions.handLateralOffset : UIT.dimensions.handLateralOffset;
     }
 
     setHand(side);
-
-    function otherHand(side) {
-        return (side + 1) % 2;
-    }
 
     function getOverlayIDs() {
         return [palettePanelOverlay, paletteHeaderHeadingOverlay, paletteHeaderBarOverlay].concat(paletteItemOverlays);
@@ -334,7 +332,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Highlight and raise new item.
         if (itemIndex !== NONE && highlightedItem !== itemIndex) {
-            Feedback.play(side, Feedback.HOVER_BUTTON);
+            Feedback.play(otherSide, Feedback.HOVER_BUTTON);
             Overlays.editOverlay(paletteItemHoverOverlays[itemIndex], {
                 localPosition: UIT.dimensions.paletteItemButtonHoveredOffset,
                 visible: true
@@ -346,7 +344,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isTriggerClicked = controlHand.triggerClicked();
         if (highlightedItem !== NONE && isTriggerClicked && !wasTriggerClicked) {
             // Create entity.
-            Feedback.play(otherHand(side), Feedback.CREATE_ENTITY);
+            Feedback.play(otherSide, Feedback.CREATE_ENTITY);
             properties = Object.clone(PALETTE_ITEMS[itemIndex].entity);
             properties.position = Vec3.sum(controlHand.palmPosition(),
                 Vec3.multiplyQbyV(controlHand.orientation(),
