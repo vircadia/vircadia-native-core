@@ -134,8 +134,8 @@
         laser = new Laser(side);
 
 
-        function setUIEntities(entityIDs) {
-            laser.setUIEntities(entityIDs);
+        function setUIOverlays(overlayIDs) {
+            laser.setUIOverlays(overlayIDs);
         }
 
         function getHand() {
@@ -198,7 +198,7 @@
         }
 
         return {
-            setUIEntities: setUIEntities,
+            setUIOverlays: setUIOverlays,
             hand: getHand,
             laser: getLaser,
             intersection: getIntersection,
@@ -249,16 +249,16 @@
             toolsMenu.clearTool();
         }
 
-        function setUIEntities() {
-            var uiEntityIDs = [].concat(toolsMenu.entityIDs(), createPalette.entityIDs());
-            leftInputs.setUIEntities(side === RIGHT_HAND ? uiEntityIDs : []);
-            rightInputs.setUIEntities(side === LEFT_HAND ? uiEntityIDs : []);
+        function setUIOverlays() {
+            var uiOverlayIDs = [].concat(toolsMenu.overlayIDs(), createPalette.overlayIDs());
+            leftInputs.setUIOverlays(side === RIGHT_HAND ? uiOverlayIDs : []);
+            rightInputs.setUIOverlays(side === LEFT_HAND ? uiOverlayIDs : []);
         }
 
         function display() {
             toolsMenu.display();
             createPalette.display();
-            setUIEntities();
+            setUIOverlays();
             isDisplaying = true;
         }
 
@@ -278,8 +278,8 @@
         }
 
         function clear() {
-            leftInputs.setUIEntities([]);
-            rightInputs.setUIEntities([]);
+            leftInputs.setUIOverlays([]);
+            rightInputs.setUIOverlays([]);
             toolIcon.clear();
             toolsMenu.clear();
             createPalette.clear();
@@ -318,7 +318,7 @@
             DELETE_TOOL: toolsMenu.DELETE_TOOL,
             display: display,
             setVisible: setVisible,
-            updateUIEntities: setUIEntities,
+            updateUIOverlays: setUIOverlays,
             doPickColor: doPickColor,
             update: update,
             clear: clear,
@@ -900,7 +900,7 @@
                 toolSelected = TOOL_NONE;
                 grouping.clear();
                 ui.clearTool();
-                ui.updateUIEntities();
+                ui.updateUIOverlays();
             }
         }
 
@@ -1419,20 +1419,20 @@
             grouping.clear();
             toolSelected = TOOL_SCALE;
             ui.setToolIcon(ui.SCALE_TOOL);
-            ui.updateUIEntities();
+            ui.updateUIOverlays();
             break;
         case "cloneTool":
             Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             grouping.clear();
             toolSelected = TOOL_CLONE;
             ui.setToolIcon(ui.CLONE_TOOL);
-            ui.updateUIEntities();
+            ui.updateUIOverlays();
             break;
         case "groupTool":
             Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             toolSelected = TOOL_GROUP;
             ui.setToolIcon(ui.GROUP_TOOL);
-            ui.updateUIEntities();
+            ui.updateUIOverlays();
             break;
         case "colorTool":
             Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
@@ -1440,18 +1440,18 @@
             toolSelected = TOOL_COLOR;
             ui.setToolIcon(ui.COLOR_TOOL);
             colorToolColor = parameter;
-            ui.updateUIEntities();
+            ui.updateUIOverlays();
             break;
         case "pickColorTool":
             if (parameter) {
                 grouping.clear();
                 toolSelected = TOOL_PICK_COLOR;
-                ui.updateUIEntities();
+                ui.updateUIOverlays();
             } else {
                 Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
                 grouping.clear();
                 toolSelected = TOOL_COLOR;
-                ui.updateUIEntities();
+                ui.updateUIOverlays();
             }
             break;
         case "physicsTool":
@@ -1459,21 +1459,21 @@
             grouping.clear();
             toolSelected = TOOL_PHYSICS;
             ui.setToolIcon(ui.PHYSICS_TOOL);
-            ui.updateUIEntities();
+            ui.updateUIOverlays();
             break;
         case "deleteTool":
             Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
             grouping.clear();
             toolSelected = TOOL_DELETE;
             ui.setToolIcon(ui.DELETE_TOOL);
-            ui.updateUIEntities();
+            ui.updateUIOverlays();
             break;
         case "clearTool":
             Feedback.play(dominantHand, Feedback.DROP_TOOL);
             grouping.clear();
             toolSelected = TOOL_NONE;
             ui.clearTool();
-            ui.updateUIEntities();
+            ui.updateUIOverlays();
             break;
 
         case "groupButton":

@@ -295,7 +295,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return (side + 1) % 2;
     }
 
-    function getEntityIDs() {
+    function getOverlayIDs() {
         return [palettePanelOverlay, paletteHeaderHeadingOverlay, paletteHeaderBarOverlay].concat(paletteItemOverlays);
     }
 
@@ -478,7 +478,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     return {
         setHand: setHand,
-        entityIDs: getEntityIDs,  // TODO: Rename to overlayIDs.
+        overlayIDs: getOverlayIDs,
         setVisible: setVisible,
         update: update,
         display: display,

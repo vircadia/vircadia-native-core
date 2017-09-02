@@ -47,7 +47,7 @@ Laser = function (side) {
 
         LEFT_HAND = 0,
 
-        uiEntityIDs = [],
+        uiOverlayIDs = [],
 
         intersection;
 
@@ -140,8 +140,8 @@ Laser = function (side) {
         Overlays.editOverlay(laserSphere, { visible: false });
     }
 
-    function setUIEntities(entityIDs) {
-        uiEntityIDs = entityIDs;
+    function setUIOverlays(overlayIDs) {
+        uiOverlayIDs = overlayIDs;
     }
 
     function update(hand) {
@@ -182,10 +182,10 @@ Laser = function (side) {
             isLaserOn = true;
             display(pickRay.origin, pickRay.direction, laserLength, true, hand.triggerClicked());
 
-        } else if (uiEntityIDs.length > 0) {
+        } else if (uiOverlayIDs.length > 0) {
 
             // Special UI cursor.
-            intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, uiEntityIDs, NO_EXCLUDE_IDS,
+            intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, uiOverlayIDs, NO_EXCLUDE_IDS,
                 VISIBLE_ONLY);
             if (intersection.intersects) {
                 intersection.laserIntersected = true;
@@ -256,7 +256,7 @@ Laser = function (side) {
     }
 
     return {
-        setUIEntities: setUIEntities,
+        setUIOverlays: setUIOverlays,
         update: update,
         intersection: getIntersection,
         setLength: setLength,

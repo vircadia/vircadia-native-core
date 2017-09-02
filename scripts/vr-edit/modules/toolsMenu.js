@@ -1907,7 +1907,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     setHand(side);
 
-    function getEntityIDs() {
+    function getOverlayIDs() {
         return [menuPanelOverlay, menuHeaderOverlay].concat(menuOverlays).concat(optionsOverlays);
     }
 
@@ -3349,7 +3349,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         DELETE_TOOL: DELETE_TOOL,
         iconInfo: getIconInfo,
         setHand: setHand,
-        entityIDs: getEntityIDs,  // TODO: Rename to overlayIDs.
+        overlayIDs: getOverlayIDs,
         clearTool: clearTool,
         doCommand: doCommand,
         setVisible: setVisible,
