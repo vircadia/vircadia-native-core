@@ -31,6 +31,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         menuOverlays = [],
         menuHoverOverlays = [],
+        menuLabelOverlays = [],
         menuEnabled = [],
 
         optionsOverlays = [],
@@ -39,6 +40,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlaysSublabels = [],  // Overlay IDs of sublabels for optionsOverlays.
         optionsSliderData = [],  // Uses same index values as optionsOverlays.
         optionsColorData = [],  // Uses same index values as optionsOverlays.
+        optionsExtraOverlays = [],
         optionsEnabled = [],
         optionsSettings = {
             //  <option item id>: { 
@@ -51,6 +53,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsToggles = {},  // Cater for toggle buttons without a setting.
 
         swatchHighlightOverlay = null,
+
+        staticOverlays = [],
 
         LEFT_HAND = 0,
         PANEL_ORIGIN_POSITION_LEFT_HAND = {
@@ -1864,6 +1868,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         isDisplaying = false,
+        isVisible = true,
         isOptionsOpen = false,
         isOptionsHeadingRaised = false,
         optionsHeadingURL,
@@ -1919,6 +1924,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         var properties,
             itemID,
             buttonID,
+            overlayID,
             i,
             length;
 
@@ -1934,6 +1940,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         for (i = 0, length = MENU_ITEMS.length; i < length; i += 1) {
             properties = Object.clone(UI_ELEMENTS[MENU_ITEMS[i].type].properties);
             properties = Object.merge(properties, MENU_ITEMS[i].properties);
+            properties.visible = isVisible;
             properties.parentID = menuPanelOverlay;
             itemID = Overlays.addOverlay(UI_ELEMENTS[MENU_ITEMS[i].type].overlay, properties);
             menuOverlays[i] = itemID;
@@ -1950,23 +1957,29 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties = Object.merge(properties, UI_ELEMENTS.menuButton.icon.properties);
             properties = Object.merge(properties, MENU_ITEMS[i].icon.properties);
             properties.url = Script.resolvePath(properties.url);
+            properties.visible = isVisible;
             properties.parentID = buttonID;
-            Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].overlay, properties);
+            overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].overlay, properties);
+            menuLabelOverlays.push(overlayID);
 
             // Label.
             properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].properties);
             properties = Object.merge(properties, UI_ELEMENTS.menuButton.label.properties);
             properties = Object.merge(properties, MENU_ITEMS[i].label.properties);
             properties.url = Script.resolvePath(properties.url);
+            properties.visible = isVisible;
             properties.parentID = itemID;
-            Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].overlay, properties);
+            overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].overlay, properties);
+            menuLabelOverlays.push(overlayID);
 
             // Sublabel.
             properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].properties);
             properties = Object.merge(properties, UI_ELEMENTS.menuButton.sublabel.properties);
             properties.url = Script.resolvePath(properties.url);
+            properties.visible = isVisible;
             properties.parentID = itemID;
-            Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].overlay, properties);
+            overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].overlay, properties);
+            menuLabelOverlays.push(overlayID);
         }
     }
 
@@ -1980,6 +1993,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         menuOverlays = [];
         menuHoverOverlays = [];
+        menuLabelOverlays = [];
         pressedItem = null;
     }
 
@@ -1992,6 +2006,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             value,
             imageOffset,
             IMAGE_OFFSET = 0.0005,
+            CIRCLE_CURSOR_SPHERE_DIMENSIONS = { x: 0.01, y: 0.01, z: 0.01 },
             CIRCLE_CURSOR_GAP = 0.002,
             id,
             i,
@@ -2003,7 +2018,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Update header.
         optionsHeadingURL = Script.resolvePath(menuItem.title.url);
         optionsHeadingScale = menuItem.title.scale;
-        Overlays.editOverlay(menuHeaderBackOverlay, { visible: true });
+        Overlays.editOverlay(menuHeaderBackOverlay, { visible: isVisible });
         Overlays.editOverlay(menuHeaderTitleOverlay, {
             url: optionsHeadingURL,
             scale: optionsHeadingScale
@@ -2012,7 +2027,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             url: Script.resolvePath(menuItem.icon.properties.url),
             dimensions: menuItem.icon.properties.dimensions,
             localPosition: Vec3.sum(MENU_HEADER_ICON_OFFSET, menuItem.icon.headerOffset),
-            visible: true
+            visible: isVisible
         });
 
         // Open specified options panel.
@@ -2100,6 +2115,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.barSlider.sliderValue.overlay,
                     auxiliaryProperties);
+                optionsExtraOverlays.push(optionsSliderData[i].value);
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.barSlider.sliderRemainder.properties);
                 auxiliaryProperties.localPosition = { x: 0, y: (0.5 - (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
                 auxiliaryProperties.dimensions = {
@@ -2110,6 +2126,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 optionsSliderData[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSlider.sliderRemainder.overlay,
                     auxiliaryProperties);
+                optionsExtraOverlays.push(optionsSliderData[i].remainder);
 
                 // Zero indicator.
                 childProperties = Object.clone(UI_ELEMENTS.barSlider.zeroIndicator.properties);
@@ -2124,7 +2141,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     z: properties.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
                 };
                 childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                Overlays.addOverlay(UI_ELEMENTS.barSlider.zeroIndicator.overlay, childProperties);
+                id = Overlays.addOverlay(UI_ELEMENTS.barSlider.zeroIndicator.overlay, childProperties);
+                optionsExtraOverlays.push(id);
             }
 
             if (optionsItems[i].type === "imageSlider") {
@@ -2144,6 +2162,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     hsvControl.slider.colorOverlay = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
                     hsvControl.slider.length = properties.dimensions.y;
+                    optionsExtraOverlays.push(hsvControl.slider.colorOverlay);
                 }
 
                 // Overlay image.
@@ -2155,7 +2174,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     imageOffset += IMAGE_OFFSET;
                     childProperties.localPosition = { x: 0, y: 0, z: properties.dimensions.z / 2 + imageOffset };
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    optionsExtraOverlays.push(id);
                 }
 
                 // Value pointers.
@@ -2166,12 +2186,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.localPosition = optionsSliderData[i].offset;
                 hsvControl.slider.localPosition = auxiliaryProperties.localPosition;
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
+                id = optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
+                optionsExtraOverlays.push(id);
                 hsvControl.slider.pointerOverlay = optionsSliderData[i].value;
                 auxiliaryProperties.localPosition = { x: 0, y: properties.dimensions.x, z: 0 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
                 auxiliaryProperties.parentID = optionsSliderData[i].value;
-                Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
+                id = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
+                optionsExtraOverlays.push(id);
             }
 
             if (optionsItems[i].type === "colorCircle") {
@@ -2186,7 +2208,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                     childProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    id = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    optionsExtraOverlays.push(id);
                 }
 
                 // Overlay image.
@@ -2201,6 +2224,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     childProperties.alpha = 0.0;
                     hsvControl.circle.overlay = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    optionsExtraOverlays.push(hsvControl.circle.overlay);
                 }
 
                 // Value pointers.
@@ -2209,6 +2233,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 optionsColorData[i].offset =
                     { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.sphere.properties);
+                auxiliaryProperties.dimensions = CIRCLE_CURSOR_SPHERE_DIMENSIONS;
                 auxiliaryProperties.localPosition = optionsColorData[i].offset;
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 auxiliaryProperties.visible = false;
@@ -2222,19 +2247,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.localPosition =
                     { x: -(auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2, y: 0, z: 0 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: -90 });
-                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                id = Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                optionsExtraOverlays.push(id);
                 auxiliaryProperties.localPosition =
                     { x: (auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2, y: 0, z: 0 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 90 });
-                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                id = Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                optionsExtraOverlays.push(id);
                 auxiliaryProperties.localPosition =
                     { x: 0, y: 0, z: -(auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 });
-                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                id = Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                optionsExtraOverlays.push(id);
                 auxiliaryProperties.localPosition =
                     { x: 0, y: 0, z: (auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 });
-                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                id = Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                optionsExtraOverlays.push(id);
             }
 
             if (optionsItems[i].type === "swatch" && swatchHighlightOverlay === null) {
@@ -2271,9 +2300,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         optionsOverlaysIDs = [];
         optionsOverlaysLabels = [];
+        optionsOverlaysSublabels = [];
         optionsSliderData = [];
         optionsColorData = [];
         optionsEnabled = [];
+        optionsExtraOverlays = [];
         optionsItems = null;
 
         isPicklistOpen = false;
@@ -2691,6 +2722,46 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return Math.min(1.0, Math.max(0.0, fraction * 1.01 - 0.005));
     }
 
+    function setVisible(visible) {
+        var i,
+            length;
+
+        for (i = 0, length = staticOverlays.length; i < length; i += 1) {
+            Overlays.editOverlay(staticOverlays[i], { visible: visible });
+        }
+
+        if (isOptionsOpen) {
+            Overlays.editOverlay(menuHeaderBackOverlay, { visible: visible });
+            Overlays.editOverlay(menuHeaderIconOverlay, { visible: visible });
+            for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
+                Overlays.editOverlay(optionsOverlays[i], { visible: visible });
+            }
+            for (i = 0, length = optionsOverlaysLabels.length; i < length; i += 1) {
+                Overlays.editOverlay(optionsOverlaysLabels[i], { visible: visible });
+            }
+            for (i = 0, length = optionsOverlaysSublabels.length; i < length; i += 1) {
+                Overlays.editOverlay(optionsOverlaysSublabels[i], { visible: visible });
+            }
+            for (i = 0, length = optionsExtraOverlays.length; i < length; i += 1) {
+                Overlays.editOverlay(optionsExtraOverlays[i], { visible: visible });
+            }
+        } else {
+            for (i = 0, length = menuOverlays.length; i < length; i += 1) {
+                Overlays.editOverlay(menuOverlays[i], { visible: visible });
+            }
+            for (i = 0, length = menuLabelOverlays.length; i < length; i += 1) {
+                Overlays.editOverlay(menuLabelOverlays[i], { visible: visible });
+            }
+            if (!visible) {
+                for (i = 0, length = menuHoverOverlays.length; i < length; i += 1) {
+                    Overlays.editOverlay(menuHoverOverlays[i], { visible: false });
+                }
+            }
+        }
+
+        isVisible = visible;
+    }
+
     function update(intersection, groupsCount, entitiesCount) {
         var intersectedItem = NONE,
             intersectionItems,
@@ -2754,7 +2825,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     scale: optionsHeadingScale
                 });
                 Overlays.editOverlay(menuHeaderIconOverlay, {
-                    visible: true
+                    visible: isVisible
                 });
                 isOptionsHeadingRaised = false;
             }
@@ -3209,6 +3280,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         properties.parentID = menuOriginOverlay;
         menuPanelOverlay = Overlays.addOverlay("cube", properties);
 
+        // Always-visible overlays.
+        staticOverlays = [menuHeaderOverlay, menuHeaderHeadingOverlay, menuHeaderBarOverlay, menuHeaderTitleOverlay,
+            menuPanelOverlay];
+
         // Menu items.
         openMenu();
 
@@ -3253,7 +3328,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         Overlays.deleteOverlay(menuOriginOverlay);  // Automatically deletes all other overlays because they're children.
         menuOverlays = [];
         menuHoverOverlays = [];
+        menuLabelOverlays = [];
         optionsOverlays = [];
+        optionsOverlaysLabels = [];
+        optionsOverlaysSublabels = [];
+        optionsExtraOverlays = [];
         isDisplaying = false;
     }
 
@@ -3270,9 +3349,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         DELETE_TOOL: DELETE_TOOL,
         iconInfo: getIconInfo,
         setHand: setHand,
-        entityIDs: getEntityIDs,
+        entityIDs: getEntityIDs,  // TODO: Rename to overlayIDs.
         clearTool: clearTool,
         doCommand: doCommand,
+        setVisible: setVisible,
         update: update,
         display: display,
         clear: clear,

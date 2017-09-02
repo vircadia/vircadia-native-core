@@ -283,8 +283,12 @@
             toolIcon.clear();
             toolsMenu.clear();
             createPalette.clear();
-
             isDisplaying = false;
+        }
+
+        function setVisible(visible) {
+            toolsMenu.setVisible(visible);
+            createPalette.setVisible(visible);
         }
 
         function destroy() {
@@ -313,6 +317,7 @@
             PHYSICS_TOOL: toolsMenu.PHYSICS_TOOL,
             DELETE_TOOL: toolsMenu.DELETE_TOOL,
             display: display,
+            setVisible: setVisible,
             updateUIEntities: setUIEntities,
             doPickColor: doPickColor,
             update: update,
@@ -386,7 +391,8 @@
             MIN_SCALE = 0.001,
 
             getIntersection,  // Function.
-            intersection;
+            intersection,
+            isUIVisible = true;
 
 
         if (!this instanceof Editor) {
@@ -443,6 +449,27 @@
 
         function getRootEntityID() {
             return rootEntityID;
+        }
+
+        function isCameraOutsideEntity(entityID) {
+            var cameraPosition,
+                entityPosition,
+                pickRay,
+                PRECISION_PICKING = true,
+                NO_EXCLUDE_IDS = [],
+                VISIBLE_ONLY = true,
+                intersection;
+
+            cameraPosition = Camera.position;
+            entityPosition = Entities.getEntityProperties(entityID, "position").position;
+            pickRay = {
+                origin: cameraPosition,
+                direction: Vec3.normalize(Vec3.subtract(entityPosition, cameraPosition)),
+                length: Vec3.distance(entityPosition, cameraPosition)
+            };
+            intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, [entityID], NO_EXCLUDE_IDS, VISIBLE_ONLY);
+
+            return intersection.distance < pickRay.length;
         }
 
 
@@ -879,13 +906,24 @@
 
 
         function update() {
-            var previousState = editorState,
+            var showUI,
+                previousState = editorState,
                 doUpdateState,
                 color;
 
             intersection = getIntersection();
             isTriggerClicked = hand.triggerClicked();
             isGripClicked = hand.gripClicked();
+
+            // Hide UI if hand is intersecting entity and camera is outside entity, or it hand is intersecting stretch handle.
+            if (dominantHand !== side) {
+                showUI = !intersection.handIntersected
+                    || (intersection.entityID !== null && !isCameraOutsideEntity(intersection.entityID));
+                if (showUI !== isUIVisible) {
+                    isUIVisible = !isUIVisible;
+                    ui.setVisible(isUIVisible);
+                }
+            }
 
             // State update.
             switch (editorState) {

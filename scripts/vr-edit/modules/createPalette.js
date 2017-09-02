@@ -23,6 +23,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         paletteItemOverlays = [],
         paletteItemPositions = [],
         paletteItemHoverOverlays = [],
+        iconOverlays = [],
+        staticOverlays = [],
 
         LEFT_HAND = 0,
 
@@ -297,6 +299,21 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return [palettePanelOverlay, paletteHeaderHeadingOverlay, paletteHeaderBarOverlay].concat(paletteItemOverlays);
     }
 
+    function setVisible(visible) {
+        var i,
+            length;
+
+        for (i = 0, length = staticOverlays.length; i < length; i += 1) {
+            Overlays.editOverlay(staticOverlays[i], { visible: visible });
+        }
+
+        if (!visible) {
+            for (i = 0, length = paletteItemHoverOverlays.length; i < length; i += 1) {
+                Overlays.editOverlay(paletteItemHoverOverlays[i], { visible: false });
+            }
+        }
+    }
+
     function update(intersectionOverlayID) {
         var itemIndex,
             isTriggerClicked,
@@ -432,8 +449,12 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties = Object.merge(properties, PALETTE_ITEMS[i].icon.properties);
             properties.parentID = paletteItemHoverOverlays[i];
             properties.url = Script.resolvePath(properties.url);
-            Overlays.addOverlay(PALETTE_ITEM.icon.overlay, properties);
+            iconOverlays[i] = Overlays.addOverlay(PALETTE_ITEM.icon.overlay, properties);
         }
+
+        // Always-visible overlays.
+        staticOverlays = [].concat(paletteHeaderHeadingOverlay, paletteHeaderBarOverlay, paletteTitleOverlay,
+            palettePanelOverlay, paletteItemOverlays, iconOverlays);
 
         isDisplaying = true;
     }
@@ -446,6 +467,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         Overlays.deleteOverlay(paletteOriginOverlay);  // Automatically deletes all other overlays because they're children.
         paletteItemOverlays = [];
         paletteItemHoverOverlays = [];
+        iconOverlays = [];
+        staticOverlays = [];
         isDisplaying = false;
     }
 
@@ -455,7 +478,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     return {
         setHand: setHand,
-        entityIDs: getEntityIDs,
+        entityIDs: getEntityIDs,  // TODO: Rename to overlayIDs.
+        setVisible: setVisible,
         update: update,
         display: display,
         clear: clear,
