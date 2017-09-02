@@ -723,8 +723,14 @@
                     toolSelected === TOOL_COLOR || toolSelected === TOOL_PICK_COLOR ? selection.intersectedEntityIndex() : null,
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(rootEntityID)
                         ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
+                if (!intersection.laserIntersected && !isUIVisible) {
+                    laser.disable();
+                } else {
+                    laser.enable();
+                }
             } else {
                 highlights.clear();
+                laser.enable();
             }
             isOtherEditorEditingEntityID = otherEditor.isEditing(rootEntityID);
         }
