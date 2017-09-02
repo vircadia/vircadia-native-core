@@ -38,30 +38,51 @@ var GRAB_RADIUS = 0.35;
         this.handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
         this.controllerJointIndex = getControllerJointIndex(this.hand);
 
+        this.getOtherModule = function() {
+            return (this.hand === RIGHT_HAND) ? leftNearParentingGrabOverlay : rightNearParentingGrabOverlay;
+        };
+
+        this.otherHandIsParent = function(props) {
+            return this.getOtherModule().thisHandIsParent(props);
+        };
+
         this.thisHandIsParent = function(props) {
             if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
                 return false;
             }
 
             var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
-            if (props.parentJointIndex == handJointIndex) {
+            if (props.parentJointIndex === handJointIndex) {
                 return true;
             }
 
             var controllerJointIndex = this.controllerJointIndex;
-            if (props.parentJointIndex == controllerJointIndex) {
+            if (props.parentJointIndex === controllerJointIndex) {
                 return true;
             }
 
             var controllerCRJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
-                                                                "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                                "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-            if (props.parentJointIndex == controllerCRJointIndex) {
+                "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+
+            if (props.parentJointIndex === controllerCRJointIndex) {
                 return true;
             }
 
             return false;
         };
+
+        this.getGrabbedProperties = function() {
+            return {
+                position: Overlays.getProperty(this.grabbedThingID, "position"),
+                rotation: Overlays.getProperty(this.grabbedThingID, "rotation"),
+                parentID: Overlays.getProperty(this.grabbedThingID, "parentID"),
+                parentJointIndex: Overlays.getProperty(this.grabbedThingID, "parentJointIndex"),
+                dynamic: false,
+                shapeType: "none"
+            };
+        };
+
 
         this.startNearParentingGrabOverlay = function (controllerData) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
@@ -74,15 +95,8 @@ var GRAB_RADIUS = 0.35;
             // }
             handJointIndex = this.controllerJointIndex;
 
-            var grabbedProperties = {
-                position: Overlays.getProperty(this.grabbedThingID, "position"),
-                rotation: Overlays.getProperty(this.grabbedThingID, "rotation"),
-                parentID: Overlays.getProperty(this.grabbedThingID, "parentID"),
-                parentJointIndex: Overlays.getProperty(this.grabbedThingID, "parentJointIndex"),
-                dynamic: false,
-                shapeType: "none"
-            };
-            
+            var grabbedProperties = this.getGrabbedProperties();
+
             var reparentProps = {
                 parentID: AVATAR_SELF_ID,
                 parentJointIndex: handJointIndex,
@@ -94,6 +108,12 @@ var GRAB_RADIUS = 0.35;
                 // this should never happen, but if it does, don't set previous parent to be this hand.
                 // this.previousParentID[this.grabbedThingID] = NULL;
                 // this.previousParentJointIndex[this.grabbedThingID] = -1;
+            } else if (this.otherHandIsParent(grabbedProperties)) {
+                // the other hand is parent. Steal the object and information
+                var otherModule = this.getOtherModule();
+                this.previousParentID[this.grabbedThingID] = otherModule.previousParentID[this.garbbedThingID];
+                this.previousParentJointIndex[this.grabbedThingID] = otherModule.previousParentJointIndex[this.grabbedThingID];
+
             } else {
                 this.previousParentID[this.grabbedThingID] = grabbedProperties.parentID;
                 this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
@@ -117,7 +137,7 @@ var GRAB_RADIUS = 0.35;
                 // before we grabbed it, overlay was a child of something; put it back.
                 Overlays.editOverlay(this.grabbedThingID, {
                     parentID: this.previousParentID[this.grabbedThingID],
-                    parentJointIndex: this.previousParentJointIndex[this.grabbedThingID],
+                    parentJointIndex: this.previousParentJointIndex[this.grabbedThingID]
                 });
             }
 
@@ -135,10 +155,10 @@ var GRAB_RADIUS = 0.35;
             }
             return null;
         };
-            
+
 
         this.isReady = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] == 0) {
+            if (controllerData.triggerClicks[this.hand] === 0) {
                 return makeRunningValues(false, [], []);
             }
 
@@ -160,10 +180,16 @@ var GRAB_RADIUS = 0.35;
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] == 0) {
+            if (controllerData.triggerClicks[this.hand] === 0) {
                 this.endNearParentingGrabOverlay();
                 return makeRunningValues(false, [], []);
             } else {
+                // check if someone stole the target from us
+                var grabbedProperties = this.getGrabbedProperties();
+                if (!this.thisHandIsParent(grabbedProperties)) {
+                    return makeRunningValues(false, [], []);
+                }
+
                 return makeRunningValues(true, [this.grabbedThingID], []);
             }
         };

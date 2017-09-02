@@ -187,6 +187,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             wearable = props.userDataParsed.wearable ? props.userDataParsed.wearable : {};
         } catch (err) {
+            // don't want to spam the logs
         }
         return wearable;
     }
@@ -199,6 +200,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             equipHotspots = props.userDataParsed.equipHotspots ? props.userDataParsed.equipHotspots : [];
         } catch (err) {
+            // don't want to spam the logs
         }
         return equipHotspots;
     }
@@ -255,7 +257,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         this.parameters = makeDispatcherModuleParameters(
             300,
-            this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
+            this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip"] : ["leftHand", "rightHandEquip"],
             [],
             100);
 
@@ -556,8 +558,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var controllerLocation = getControllerWorldLocation(this.handToController(), true);
             var worldHandPosition = controllerLocation.position;
             var candidateEntityProps = controllerData.nearbyEntityProperties[this.hand];
-         
-            
+
+
             var potentialEquipHotspot = null;
             if (this.messageGrabEntity) {
                 var hotspots = this.collectEquipHotspots(this.grabEntityProps);
@@ -567,7 +569,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             } else {
                 potentialEquipHotspot = this.chooseBestEquipHotspot(candidateEntityProps, controllerData);
             }
-            
+
             if (!this.waitForTriggerRelease) {
                 this.updateEquipHaptics(potentialEquipHotspot, worldHandPosition);
             }
@@ -675,7 +677,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
     var handleMessage = function(channel, message, sender) {
         var data;
-        print(channel);
         if (sender === MyAvatar.sessionUUID) {
             if (channel === 'Hifi-Hand-Grab') {
                 try {

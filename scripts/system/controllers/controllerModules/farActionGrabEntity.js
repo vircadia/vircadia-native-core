@@ -527,6 +527,19 @@ Script.include("/~/system/libraries/controllers.js");
                     this.distanceRotate(otherFarGrabModule);
                 }
             }
+            return this.exitIfDisabled();
+        };
+
+        this.exitIfDisabled = function() {
+            var moduleName = this.hand === RIGHT_HAND ? "RightDisableModules" : "LeftDisableModules";
+            var disableModule = getEnabledModuleByName(moduleName);
+            if (disableModule) {
+                if (disableModule.disableModules) {
+                    this.laserPointerOff();
+                    this.endNearGrabAction();
+                    return makeRunningValues(false, [], []);
+                }
+            }
             return makeRunningValues(true, [], []);
         };
 

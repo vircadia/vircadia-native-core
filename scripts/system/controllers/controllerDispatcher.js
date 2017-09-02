@@ -5,11 +5,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/*jslint bitwise: true */
+/* jslint bitwise: true */
 
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
-   controllerDispatcherPlugins, controllerDispatcherPluginsNeedSort, entityIsGrabbable,
-   LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES
+   controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true, entityIsGrabbable:true,
+   LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
+   getGrabPointSphereOffset
 */
 
 controllerDispatcherPlugins = {};
@@ -21,18 +22,16 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
 (function() {
     var _this = this;
-
-    var NEAR_MIN_RADIUS = 0.1;
     var NEAR_MAX_RADIUS = 1.0;
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
-    var lastInterval = Date.now();
-    var intervalCount = 0;
-    var totalDelta = 0;
-    var totalVariance = 0;
-    var highVarianceCount = 0;
-    var veryhighVarianceCount = 0;
+    this.lastInterval = Date.now();
+    this.intervalCount = 0;
+    this.totalDelta = 0;
+    this.totalVariance = 0;
+    this.highVarianceCount = 0;
+    this.veryhighVarianceCount = 0;
     this.tabletID = null;
     this.blacklist = [];
 
@@ -63,7 +62,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     this.unmarkSlotsForPluginName = function (runningPluginName) {
         // this is used to free activity-slots when a plugin is deactivated while it's running.
         for (var activitySlot in _this.activitySlots) {
-            if (activitySlot.hasOwnProperty(activitySlot) && _this.activitySlots[activitySlot] == runningPluginName) {
+            if (activitySlot.hasOwnProperty(activitySlot) && _this.activitySlots[activitySlot] === runningPluginName) {
                 _this.activitySlots[activitySlot] = false;
             }
         }
@@ -106,23 +105,23 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     };
 
     this.updateTimings = function () {
-        intervalCount++;
+        _this.intervalCount++;
         var thisInterval = Date.now();
-        var deltaTimeMsec = thisInterval - lastInterval;
+        var deltaTimeMsec = thisInterval - _this.lastInterval;
         var deltaTime = deltaTimeMsec / 1000;
-        lastInterval = thisInterval;
+        _this.lastInterval = thisInterval;
 
-        totalDelta += deltaTimeMsec;
+        _this.totalDelta += deltaTimeMsec;
 
         var variance = Math.abs(deltaTimeMsec - BASIC_TIMER_INTERVAL_MS);
-        totalVariance += variance;
+        _this.totalVariance += variance;
 
         if (variance > 1) {
-            highVarianceCount++;
+            _this.highVarianceCount++;
         }
 
         if (variance > 5) {
-            veryhighVarianceCount++;
+            _this.veryhighVarianceCount++;
         }
 
         return deltaTime;
@@ -132,13 +131,12 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         if (HMD.tabletID !== _this.tabletID) {
             RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
             RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
-            tabletIgnored = true
         }
-    }
+    };
 
     this.update = function () {
-        var deltaTime =  this.updateTimings();
-        this.setIgnoreTablet()
+        var deltaTime = this.updateTimings();
+        this.setIgnoreTablet();
 
         if (controllerDispatcherPluginsNeedSort) {
             this.orderedPluginNames = [];
@@ -167,8 +165,10 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             controllerDispatcherPluginsNeedSort = false;
         }
 
-        var controllerLocations = [_this.dataGatherers.leftControllerLocation(),
-                                   _this.dataGatherers.rightControllerLocation()];
+        var controllerLocations = [
+            _this.dataGatherers.leftControllerLocation(),
+            _this.dataGatherers.rightControllerLocation()
+        ];
 
         // find 3d overlays near each hand
         var nearbyOverlayIDs = [];
@@ -221,7 +221,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 length: 1000
             };
 
-            if (rayPicks[h].type == RayPick.INTERSECTED_ENTITY) {
+            if (rayPicks[h].type === RayPick.INTERSECTED_ENTITY) {
                 // XXX check to make sure this one isn't already in nearbyEntityProperties?
                 if (rayPicks[h].distance < NEAR_GRAB_PICK_RADIUS) {
                     var nearEntityID = rayPicks[h].objectID;
@@ -259,7 +259,6 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             var candidatePlugin = controllerDispatcherPlugins[orderedPluginName];
 
             if (_this.slotsAreAvailableForPlugin(candidatePlugin)) {
-                //print(orderedPluginName);
                 var readiness = candidatePlugin.isReady(controllerData, deltaTime);
                 if (readiness.active) {
                     // this plugin will start.  add it to the list of running plugins and mark the
@@ -297,7 +296,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     this.setBlacklist = function() {
         RayPick.setIgnoreEntities(_this.leftControllerRayPick, this.blacklist);
         RayPick.setIgnoreEntities(_this.rightControllerRayPick, this.blacklist);
-        
+
     };
 
     var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
@@ -313,19 +312,6 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     mapping.from([Controller.Standard.RightGrip]).peek().to(_this.rightSecondaryPress);
 
     Controller.enableMapping(MAPPING_NAME);
-
-
-    this.mouseRayPick = RayPick.createRayPick({
-        joint: "Mouse",
-        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
-        enabled: true
-    });
-
-    this.mouseHudRayPick = RayPick.createRayPick({
-        joint: "Mouse",
-        filter: RayPick.PICK_HUD,
-        enabled: true
-    });
 
     this.leftControllerRayPick = RayPick.createRayPick({
         joint: "_CONTROLLER_LEFTHAND",
@@ -357,7 +343,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     });
 
     this.handleHandMessage = function(channel, message, sender) {
-        var data
+        var data;
         if (sender === MyAvatar.sessionUUID) {
             try {
                 if (channel === 'Hifi-Hand-RayPick-Blacklist') {
@@ -365,33 +351,29 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                     var action = data.action;
                     var id = data.id;
                     var index = this.blacklis.indexOf(id);
-                    
+
                     if (action === 'add' && index === -1) {
                         this.blacklist.push(id);
-                        //this.setBlacklist();
+                        this.setBlacklist();
                     }
-                    
+
                     if (action === 'remove') {
                         if (index > -1) {
-                            blacklist.splice(index, 1);
-                            //this.setBlacklist();
+                            this.blacklist.splice(index, 1);
+                            this.setBlacklist();
                         }
                     }
                 }
-                
+
             } catch (e) {
                 print("WARNING: handControllerGrab.js -- error parsing Hifi-Hand-RayPick-Blacklist message: " + message);
             }
         }
     };
 
-
-
-
     this.cleanup = function () {
         Script.update.disconnect(_this.update);
         Controller.disableMapping(MAPPING_NAME);
-        // RayPick.removeRayPick(_this.mouseRayPick);
         RayPick.removeRayPick(_this.leftControllerRayPick);
         RayPick.removeRayPick(_this.rightControllerRayPick);
         RayPick.removeRayPick(_this.rightControllerHudRayPick);

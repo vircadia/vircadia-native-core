@@ -9,11 +9,12 @@
    getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
-   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent
+   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
+Script.include("/~/system/libraries/cloneEntityUtils.js");
 
 (function() {
 
@@ -172,7 +173,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
-                if (!propsArePhysical(targetProps)) {
+                if (!propsArePhysical(targetProps) && !propsAreCloneDynamic) {
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
@@ -185,13 +186,12 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.run = function (controllerData) {
             if (this.actionID) {
-                if (controllerData.triggerClicks[this.hand] == 0) {
+                if (controllerData.triggerClicks[this.hand] === 0) {
                     this.endNearGrabAction();
                     return makeRunningValues(false, [], []);
                 }
 
                 this.refreshNearGrabAction(controllerData);
-
                 var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
             } else {
@@ -204,9 +204,18 @@ Script.include("/~/system/libraries/controllers.js");
 
                 var targetProps = this.getTargetProps(controllerData);
                 if (targetProps) {
-                    if (controllerData.triggerClicks[this.hand] == 1) {
+                    if (controllerData.triggerClicks[this.hand] === 1) {
                         // switch to grabbing
-                        this.startNearGrabAction(controllerData, targetProps);
+                        var targetCloneable = entityIsCloneable(targetProps);
+                        if (targetCloneable) {
+                            var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
+                            var cloneID = cloneEntity(targetProps, worldEntityProps);
+                            var cloneProps = Entities.getEntityProperties(cloneID);
+                            this.targetEntityID = cloneID;
+                            this.startNearGrabAction(controllerData, cloneProps);
+                        } else {
+                            this.startNearGrabAction(controllerData, targetProps);
+                        }
                     }
                 }
             }

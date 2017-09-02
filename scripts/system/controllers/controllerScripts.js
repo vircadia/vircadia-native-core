@@ -26,6 +26,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/overlayLaserInput.js",
     "controllerModules/webEntityLaserInput.js",
     "controllerModules/inEditMode.js",
+    "controllerModules/disableOtherModule.js",
     "teleport.js"
 ];
 

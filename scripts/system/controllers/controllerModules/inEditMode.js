@@ -93,7 +93,7 @@ Script.include("/~/system/libraries/utils.js");
 
         this.parameters = makeDispatcherModuleParameters(
             160,
-            this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
+            this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             100);
 
         this.nearTablet = function(overlays) {

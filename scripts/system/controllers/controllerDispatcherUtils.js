@@ -6,37 +6,37 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Camera, HMD, MyAvatar, controllerDispatcherPlugins, Quat, Vec3, Overlays,
-   MSECS_PER_SEC, LEFT_HAND, RIGHT_HAND, NULL_UUID, AVATAR_SELF_ID, FORBIDDEN_GRAB_TYPES,
-   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, ZERO_VEC, ONE_VEC, DEFAULT_REGISTRATION_POINT, INCHES_TO_METERS,
-   TRIGGER_OFF_VALUE,
-   TRIGGER_ON_VALUE,
-   PICK_MAX_DISTANCE,
-   DEFAULT_SEARCH_SPHERE_DISTANCE,
-   NEAR_GRAB_PICK_RADIUS,
-   COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-   COLORS_GRAB_DISTANCE_HOLD,
-   NEAR_GRAB_RADIUS,
-   DISPATCHER_PROPERTIES,
+/* global Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays,
+   MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, NULL_UUID:true, AVATAR_SELF_ID:true, FORBIDDEN_GRAB_TYPES:true,
+   HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true, DEFAULT_REGISTRATION_POINT:true, INCHES_TO_METERS:true,
+   TRIGGER_OFF_VALUE:true,
+   TRIGGER_ON_VALUE:true,
+   PICK_MAX_DISTANCE:true,
+   DEFAULT_SEARCH_SPHERE_DISTANCE:true,
+   NEAR_GRAB_PICK_RADIUS:true,
+   COLORS_GRAB_SEARCHING_HALF_SQUEEZE:true,
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE:true,
+   COLORS_GRAB_DISTANCE_HOLD:true,
+   NEAR_GRAB_RADIUS:true,
+   DISPATCHER_PROPERTIES:true,
    Entities,
-   makeDispatcherModuleParameters,
-   makeRunningValues,
-   enableDispatcherModule,
-   disableDispatcherModule,
-   getEnabledModuleByName,
-   getGrabbableData,
-   entityIsGrabbable,
-   entityIsDistanceGrabbable,
-   getControllerJointIndex,
-   propsArePhysical,
-   controllerDispatcherPluginsNeedSort,
-   projectOntoXYPlane,
-   projectOntoEntityXYPlane,
-   projectOntoOverlayXYPlane,
-   entityHasActions,
-   ensureDynamic,
-   findGroupParent
+   makeDispatcherModuleParameters:true,
+   makeRunningValues:true,
+   enableDispatcherModule:true,
+   disableDispatcherModule:true,
+   getEnabledModuleByName:true,
+   getGrabbableData:true,
+   entityIsGrabbable:true,
+   entityIsDistanceGrabbable:true,
+   getControllerJointIndex:true,
+   propsArePhysical:true,
+   controllerDispatcherPluginsNeedSort:true,
+   projectOntoXYPlane:true,
+   projectOntoEntityXYPlane:true,
+   projectOntoOverlayXYPlane:true,
+   entityHasActions:true,
+   ensureDynamic:true,
+   findGroupParent:true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -69,10 +69,7 @@ COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 };
 COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };
 COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
 
-
 NEAR_GRAB_RADIUS = 0.1;
-
-
 
 DISPATCHER_PROPERTIES = [
     "position",
@@ -91,9 +88,6 @@ DISPATCHER_PROPERTIES = [
     "dimensions",
     "userData"
 ];
-
-
-
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
 // activitySlots -- indicates which "slots" must not yet be in use for this module to start
@@ -211,12 +205,12 @@ getControllerJointIndex = function (hand) {
         var controllerJointIndex = -1;
         if (Camera.mode === "first person") {
             controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                                                          "_CONTROLLER_RIGHTHAND" :
-                                                          "_CONTROLLER_LEFTHAND");
+                "_CONTROLLER_RIGHTHAND" :
+                "_CONTROLLER_LEFTHAND");
         } else if (Camera.mode === "third person") {
             controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                                                          "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                          "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+                "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
         }
 
         return controllerJointIndex;
@@ -229,19 +223,24 @@ propsArePhysical = function (props) {
     if (!props.dynamic) {
         return false;
     }
-    var isPhysical = (props.shapeType && props.shapeType != 'none');
+    var isPhysical = (props.shapeType && props.shapeType !== 'none');
     return isPhysical;
 };
 
 projectOntoXYPlane = function (worldPos, position, rotation, dimensions, registrationPoint) {
     var invRot = Quat.inverse(rotation);
     var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(worldPos, position));
-    var invDimensions = { x: 1 / dimensions.x,
-                          y: 1 / dimensions.y,
-                          z: 1 / dimensions.z };
+    var invDimensions = {
+        x: 1 / dimensions.x,
+        y: 1 / dimensions.y,
+        z: 1 / dimensions.z
+    };
+
     var normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), registrationPoint);
-    return { x: normalizedPos.x * dimensions.x,
-             y: (1 - normalizedPos.y) * dimensions.y }; // flip y-axis
+    return {
+        x: normalizedPos.x * dimensions.x,
+        y: (1 - normalizedPos.y) * dimensions.y // flip y-axis
+    };
 };
 
 projectOntoEntityXYPlane = function (entityID, worldPos, props) {
@@ -257,14 +256,14 @@ projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldP
     if (dpi) {
         // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
         var resolution = Overlays.getProperty(overlayID, "resolution");
-        resolution.z = 1;  // Circumvent divide-by-zero.
+        resolution.z = 1; // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
-        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        scale.z = 0.01; // overlay dimensions are 2D, not 3D.
         dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
         if (dimensions.z) {
-            dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+            dimensions.z = 0.01; // overlay dimensions are 2D, not 3D.
         }
     }
 
@@ -279,7 +278,7 @@ ensureDynamic = function (entityID) {
     // if we distance hold something and keep it very still before releasing it, it ends up
     // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
     var props = Entities.getEntityProperties(entityID, ["velocity", "dynamic", "parentID"]);
-    if (props.dynamic && props.parentID == NULL_UUID) {
+    if (props.dynamic && props.parentID === NULL_UUID) {
         var velocity = props.velocity;
         if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             velocity = { x: 0.0, y: 0.2, z: 0.0 };
@@ -289,7 +288,7 @@ ensureDynamic = function (entityID) {
 };
 
 findGroupParent = function (controllerData, targetProps) {
-    while (targetProps.parentID && targetProps.parentID != NULL_UUID) {
+    while (targetProps.parentID && targetProps.parentID !== NULL_UUID) {
         // XXX use controllerData.nearbyEntityPropertiesByID ?
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {

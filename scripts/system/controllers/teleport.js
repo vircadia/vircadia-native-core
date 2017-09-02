@@ -14,6 +14,7 @@
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic
 */
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 Script.include("/~/system/libraries/Xform.js");
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -225,7 +226,7 @@ function Teleporter(hand) {
     }
     
     this.parameters = makeDispatcherModuleParameters(
-        300,
+        80,
         this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
         [],
         100);
@@ -338,12 +339,12 @@ function Teleporter(hand) {
         }
     };
 }
-
+    
     // related to repositioning the avatar after you teleport
     var FOOT_JOINT_NAMES = ["RightToe_End", "RightToeBase", "RightFoot"];
     var DEFAULT_ROOT_TO_FOOT_OFFSET = 0.5;
     function getAvatarFootOffset() {
-
+        
         // find a valid foot jointIndex
         var footJointIndex = -1;
         var i, l = FOOT_JOINT_NAMES.length;
