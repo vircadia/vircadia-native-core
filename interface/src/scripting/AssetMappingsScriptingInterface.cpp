@@ -161,7 +161,23 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
 
     connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
         if (callback.isCallable()) {
-            QJSValueList args { request->getErrorString() };
+            QJSValueList args{ request->getErrorString() };
+            callback.call(args);
+        }
+
+        request->deleteLater();
+    });
+
+    request->start();
+}
+
+void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool enabled, QJSValue callback) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createSetBakingEnabledRequest(paths, enabled);
+
+    connect(request, &SetBakingEnabledRequest::finished, this, [this, callback](SetBakingEnabledRequest* request) mutable {
+        if (callback.isCallable()) {
+            QJSValueList args{ request->getErrorString() };
             callback.call(args);
         }
 
@@ -202,6 +218,12 @@ void AssetMappingModel::refresh() {
             auto existingPaths = _pathToItemMap.keys();
             for (auto& mapping : mappings) {
                 auto& path = mapping.first;
+
+                if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+                    // Hide baked mappings
+                    continue;
+                }
+
                 auto parts = path.split("/");
                 auto length = parts.length();
 
@@ -214,18 +236,16 @@ void AssetMappingModel::refresh() {
                 // start index at 1 to avoid empty string from leading slash
                 for (int i = 1; i < length; ++i) {
                     fullPath += (i == 1 ? "" : "/") + parts[i];
+                    bool isFolder = i < length - 1;
 
                     auto it = _pathToItemMap.find(fullPath);
                     if (it == _pathToItemMap.end()) {
                         auto item = new QStandardItem(parts[i]);
-                        bool isFolder = i < length - 1;
-                        auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                         item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
                         item->setData(isFolder, Qt::UserRole + 1);
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
                         item->setData(fullPath, Qt::UserRole + 4);
-                        item->setData(statusString, Qt::UserRole + 5);
                         
                         if (lastItem) {
                             lastItem->appendRow(item);
@@ -237,6 +257,10 @@ void AssetMappingModel::refresh() {
                     } else {
                         lastItem = it.value();
                     }
+
+                    // update status
+                    auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
+                    lastItem->setData(statusString, Qt::UserRole + 5);
                 }
 
                 Q_ASSERT(fullPath == path);

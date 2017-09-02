@@ -53,8 +53,6 @@ static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 
-static const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
-
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath)
     : _assetHash(assetHash), _assetPath(assetPath), _filePath(filePath) {
 }
@@ -84,7 +82,7 @@ void BakeAssetTask::run() {
     loop.exec();
 
     if (baker->hasErrors()) {
-        qDebug() << "Failed to bake: " << _assetHash << _assetPath;
+        qDebug() << "Failed to bake: " << _assetHash << _assetPath << baker->getErrors();
         emit bakeFailed(_assetHash, _assetPath);
     } else {
         auto vectorOutputFiles = QVector<QString>::fromStdVector(baker->getOutputFiles());
@@ -126,7 +124,7 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
 
     auto dotIndex = path.lastIndexOf(".");
     if (dotIndex == -1) {
-        return Unrelevant;
+        return Irrelevant;
     }
 
     auto extension = path.mid(dotIndex + 1);
@@ -138,7 +136,7 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
     } else {
-        return Unrelevant;
+        return Irrelevant;
     }
 
     auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + bakedFilename;
@@ -541,10 +539,12 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
 
     replyPacket.writePrimitive(count);
 
-    for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++it) {
-        replyPacket.writeString(it->first);
-        replyPacket.write(QByteArray::fromHex(it->second.toUtf8()));
-        replyPacket.writePrimitive(getAssetStatus(it->first, it->second));
+    for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
+        auto mapping = it->first;
+        auto hash = it->second;
+        replyPacket.writeString(mapping);
+        replyPacket.write(QByteArray::fromHex(hash.toUtf8()));
+        replyPacket.writePrimitive(getAssetStatus(mapping, hash));
     }
 }
 
@@ -1212,6 +1212,8 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
     } else {
         qWarning() << "Could not complete bake for" << originalAssetHash;
     }
+
+    _pendingBakes.remove(originalAssetHash);
 }
 
 static const QString BAKE_VERSION_KEY = "bake_version";
@@ -1320,10 +1322,17 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
 
             auto bakedMapping = getBakeMapping(hash, bakedFilename);
 
-            if (enabled) {
-                // TODO
-            } else {
-                // TODO
+            bool currentlyDisabled = (_fileMappings.value(bakedMapping) == hash);
+
+            if (enabled && currentlyDisabled) {
+                QStringList bakedMappings{ bakedMapping };
+                deleteMappings(bakedMappings);
+                maybeBake(path, hash);
+                qDebug() << "Enabled baking for" << path;
+            } else if (!enabled && !currentlyDisabled) {
+                removeBakedPathsForDeletedAsset(hash);
+                setMapping(bakedMapping, hash);
+                qDebug() << "Disabled baking for" << path;
             }
         }
     }

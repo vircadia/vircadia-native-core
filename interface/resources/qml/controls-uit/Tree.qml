@@ -19,7 +19,6 @@ TreeView {
     id: treeView
 
     property var treeModel: ListModel { }
-    property var canEdit: false
     property bool centerHeaderText: false
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
@@ -198,9 +197,7 @@ TreeView {
                    : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
     }
 
-    itemDelegate: Loader {
-        id: itemDelegateLoader
-
+    itemDelegate: FiraSansSemiBold {
         anchors {
             left: parent ? parent.left : undefined
             leftMargin: (2 + styleData.depth) * hifi.dimensions.tablePadding
@@ -209,101 +206,13 @@ TreeView {
             verticalCenter: parent ? parent.verticalCenter : undefined
         }
 
-        function getComponent() {
-            if (treeView.canEdit && styleData.selected) {
-                return textFieldComponent;
-            } else {
-                if (styleData.value.startsWith("HifiGlyphs#")) {
-                    return glyphComponent;
-                } else {
-                    return labelComponent;
-                }
-            }
-
-        }
-        sourceComponent: getComponent()
-        
-        Component {
-            id: labelComponent
-            FiraSansSemiBold {
-
-                text: styleData.value
-                size: hifi.fontSizes.tableText
-                color: colorScheme == hifi.colorSchemes.light
-                       ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+        text: styleData.value
+        size: hifi.fontSizes.tableText
+        color: colorScheme == hifi.colorSchemes.light
+                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
                        
-                elide: Text.ElideRight
-            }
-        }
-        Component {
-            id: glyphComponent
-            HiFiGlyphs {
-                text: styleData.value.replace("HifiGlyphs#", "")
-                size: hifi.fontSizes.tableText
-                color: colorScheme == hifi.colorSchemes.light
-                       ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
-                       
-                elide: Text.ElideRight
-            }
-        }
-        Component {
-            id: textFieldComponent
-
-            TextField {
-                id: textField
-                readOnly: !activeFocus
-
-                text: styleData.value
-
-                FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
-                font.family: firaSansSemiBold.name
-                font.pixelSize: hifi.fontSizes.textFieldInput
-                height: hifi.dimensions.tableRowHeight
-
-                style: TextFieldStyle {
-                    textColor: readOnly
-                               ? hifi.colors.black
-                               : (treeView.isLightColorScheme ?  hifi.colors.black :  hifi.colors.white)
-                    background: Rectangle {
-                        visible: !readOnly
-                        color: treeView.isLightColorScheme ? hifi.colors.white : hifi.colors.black
-                        border.color: hifi.colors.primaryHighlight
-                        border.width: 1
-                    }
-                    selectedTextColor: hifi.colors.black
-                    selectionColor: hifi.colors.primaryHighlight
-                    padding.left: readOnly ? 0 : hifi.dimensions.textPadding
-                    padding.right: readOnly ? 0 : hifi.dimensions.textPadding
-                }
-
-                validator: RegExpValidator {
-                    regExp: /[^/]+/
-                }
-
-                Keys.onPressed: {
-                    if (event.key == Qt.Key_Escape) {
-                        text = styleData.value;
-                        unfocusHelper.forceActiveFocus();
-                        event.accepted = true;
-                    }
-                }
-                onAccepted:  {
-                    if (acceptableInput && styleData.selected) {
-                        if (!modifyEl(selection.currentIndex, text)) {
-                            text = styleData.value;
-                        }
-                        unfocusHelper.forceActiveFocus();
-                    }
-                }
-
-                onReadOnlyChanged: {
-                    // Have to explicily set keyboardRaised because automatic setting fails because readOnly is true at the time.
-                    keyboardRaised = activeFocus;
-                }
-            }
-        }
+        elide: Text.ElideRight
     }
 
     Item {
