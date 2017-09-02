@@ -29,7 +29,7 @@ Feedback = (function () {
             DELETE_ENTITY:   { sound: DELETE_SOUND, volume: 0.5, haptic: 0.2  },
             SELECT_ENTITY:   { sound: SELECT_SOUND, volume: 0.2, haptic: 0.1  },  // E.g., Group tool.
             CLONE_ENTITY:    { sound: CLONE_SOUND,  volume: 0.2, haptic: 0.1  },
-            CREATE_ENTITY:   { sound: CREATE_SOUND, volume: 0.2, haptic: 0.2  },
+            CREATE_ENTITY:   { sound: CREATE_SOUND, volume: 0.5, haptic: 0.2  },
             HOVER_MENU_ITEM: { sound: null,         volume: 0,   haptic: 0.09  },  // Tools menu.
             HOVER_BUTTON:    { sound: null,         volume: 0,   haptic: 0.06  },  // Tools options and Create palette items.
             EQUIP_TOOL:      { sound: EQUIP_SOUND,  volume: 0.5, haptic: 0.6  },
