@@ -109,6 +109,10 @@ Handles = function (side) {
         return isAxisHandle(overlayID) || isCornerHandle(overlayID);
     }
 
+    function getOverlays() {
+        return [].concat(cornerHandleOverlays, faceHandleOverlays);
+    }
+
     function scalingAxis(overlayID) {
         var axesIndex;
         if (isCornerHandle(overlayID)) {
@@ -340,6 +344,7 @@ Handles = function (side) {
 
     return {
         display: display,
+        overlays: getOverlays,
         isHandle: isHandle,
         scalingAxis: scalingAxis,
         scalingDirections: scalingDirections,

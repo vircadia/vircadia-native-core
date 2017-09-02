@@ -151,64 +151,58 @@ Laser = function (side) {
             pickRay;
 
         if (!isLaserEnabled) {
+            intersection = {};
             return;
         }
 
-        if (!hand.intersection().intersects) {
-            handPosition = hand.position();
-            handOrientation = hand.orientation();
-            deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
-            pickRay = {
-                origin: Vec3.sum(handPosition, deltaOrigin),
-                direction: Quat.getUp(handOrientation),
-                length: PICK_MAX_DISTANCE
-            };
+        handPosition = hand.position();
+        handOrientation = hand.orientation();
+        deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
+        pickRay = {
+            origin: Vec3.sum(handPosition, deltaOrigin),
+            direction: Quat.getUp(handOrientation),
+            length: PICK_MAX_DISTANCE
+        };
 
-            if (hand.triggerPressed()) {
+        if (hand.triggerPressed()) {
 
-                // Normal laser operation with trigger.
-                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+            // Normal laser operation with trigger.
+            intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                VISIBLE_ONLY);
+            if (!intersection.intersects) {
+                intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                     VISIBLE_ONLY);
-                if (!intersection.intersects) {
-                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                        VISIBLE_ONLY);
-                    intersection.editableEntity = intersection.intersects && Entities.hasEditableRoot(intersection.entityID);
-                }
+                intersection.editableEntity = intersection.intersects && Entities.hasEditableRoot(intersection.entityID);
+                intersection.overlayID = null;
+            }
+            intersection.laserIntersected = intersection.intersects;
+            laserLength = (specifiedLaserLength !== null)
+                ? specifiedLaserLength
+                : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+            isLaserOn = true;
+            display(pickRay.origin, pickRay.direction, laserLength, true, hand.triggerClicked());
+
+        } else if (uiEntityIDs.length > 0) {
+
+            // Special UI cursor.
+            intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, uiEntityIDs, NO_EXCLUDE_IDS,
+                VISIBLE_ONLY);
+            if (intersection.intersects) {
                 intersection.laserIntersected = true;
                 laserLength = (specifiedLaserLength !== null)
                     ? specifiedLaserLength
                     : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+                if (!isLaserOn) {
+                    // Start laser dot at UI distance.
+                    searchDistance = laserLength;
+                }
                 isLaserOn = true;
-                display(pickRay.origin, pickRay.direction, laserLength, true, hand.triggerClicked());
-
-            } else if (uiEntityIDs.length > 0) {
-
-                // Special UI cursor.
-                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, uiEntityIDs, NO_EXCLUDE_IDS,
-                    VISIBLE_ONLY);
-                if (intersection.intersects) {
-                    intersection.laserIntersected = true;
-                    laserLength = (specifiedLaserLength !== null)
-                        ? specifiedLaserLength
-                        : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
-                    if (!isLaserOn) {
-                        // Start laser dot at UI distance.
-                        searchDistance = laserLength;
-                    }
-                    isLaserOn = true;
-                    display(pickRay.origin, pickRay.direction, laserLength, false, false);
-                } else if (isLaserOn) {
-                    isLaserOn = false;
-                    hide();
-                }
-
-            } else {
-                intersection = { intersects: false };
-                if (isLaserOn) {
-                    isLaserOn = false;
-                    hide();
-                }
+                display(pickRay.origin, pickRay.direction, laserLength, false, false);
+            } else if (isLaserOn) {
+                isLaserOn = false;
+                hide();
             }
+
         } else {
             intersection = { intersects: false };
             if (isLaserOn) {

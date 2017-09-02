@@ -151,17 +151,33 @@
         }
 
         function update() {
-            // Hand update.
-            hand.update();
-            intersection = hand.intersection();
+            var laserIntersection,
+                handIntersection;
 
-            // Laser update.
-            // Displays laser if hand has no intersection and trigger is pressed.
+            hand.update();
             if (hand.valid()) {
                 laser.update(hand);
-                if (!intersection.intersects) {
-                    intersection = laser.intersection();
+                // Use intersections in order to achieve entity manipulation while inside an entity:
+                // - Use laser overlay intersection if there is one (for UI).
+                // - Otherwise use hand overlay if there is one (for UI).
+                // - Otherwise use laser entity intersection if there is one (for entity manipulation).
+                //   Except if hand intersection is for same entity.
+                // - Otherwise use hand entity intersection if there is one (for entity manipulation).
+                laserIntersection = laser.intersection();
+                if (laserIntersection.intersects && laserIntersection.overlayID !== null) {
+                    intersection = laserIntersection;
+                } else {
+                    handIntersection = hand.intersection();
+                    if (handIntersection.intersects && handIntersection.overlayID !== null) {
+                        intersection = handIntersection;
+                    } else if (laserIntersection.intersects && laserIntersection.entityID !== handIntersection.entityID) {
+                        intersection = laserIntersection;
+                    } else {
+                        intersection = handIntersection;
+                    }
                 }
+            } else {
+                intersection = {};
             }
         }
 
@@ -405,6 +421,10 @@
 
         function isHandle(overlayID) {
             return handles.isHandle(overlayID);
+        }
+
+        function setHandleOverlays(overlayIDs) {
+            hand.setHandleOverlays(overlayIDs);
         }
 
         function isEditing(aRootEntityID) {
@@ -656,6 +676,9 @@
 
         function enterEditorHighlighting() {
             selection.select(intersectedEntityID);
+            if (!intersection.laserIntersected && !isUIVisible) {
+                laser.disable();
+            }
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(rootEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
                     toolSelected === TOOL_COLOR || toolSelected === TOOL_PICK_COLOR ? selection.intersectedEntityIndex() : null,
@@ -676,12 +699,13 @@
             } else {
                 highlights.clear();
             }
-            isOtherEditorEditingEntityID = !isOtherEditorEditingEntityID;
+            isOtherEditorEditingEntityID = otherEditor.isEditing(rootEntityID);
         }
 
         function exitEditorHighlighting() {
             highlights.clear();
             isOtherEditorEditingEntityID = false;
+            laser.enable();
         }
 
         function enterEditorGrabbing() {
@@ -693,6 +717,7 @@
             }
             if (toolSelected === TOOL_SCALE) {
                 handles.display(rootEntityID, selection.boundingBox(), selection.count() > 1);
+                otherEditor.setHandleOverlays(handles.overlays());
             }
             startEditing();
             wasScaleTool = toolSelected === TOOL_SCALE;
@@ -702,14 +727,17 @@
             selection.select(intersectedEntityID);
             if (toolSelected === TOOL_SCALE) {
                 handles.display(rootEntityID, selection.boundingBox(), selection.count() > 1);
+                otherEditor.setHandleOverlays(handles.overlays());
             } else {
                 handles.clear();
+                otherEditor.setHandleOverlays([]);
             }
         }
 
         function exitEditorGrabbing() {
             finishEditing();
             handles.clear();
+            otherEditor.setHandleOverlays([]);
             laser.clearLength();
             laser.enable();
         }
@@ -1170,6 +1198,7 @@
             selection.clear();
             highlights.clear();
             handles.clear();
+            otherEditor.setHandleOverlays([]);
         }
 
         function destroy() {
@@ -1192,6 +1221,7 @@
             hoverHandle: hoverHandle,
             enableAutoGrab: enableAutoGrab,
             isHandle: isHandle,
+            setHandleOverlays: setHandleOverlays,
             isEditing: isEditing,
             isScaling: isScaling,
             intersectedEntityID: getIntersectedEntityID,

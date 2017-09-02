@@ -42,6 +42,7 @@ Hand = function (side) {
         handOrientation,
         palmPosition,
 
+        handleOverlayIDs = [],
         intersection = {};
 
     if (!this instanceof Hand) {
@@ -58,6 +59,10 @@ Hand = function (side) {
         controllerTrigger = Controller.Standard.RT;
         controllerTriggerClicked = Controller.Standard.RTClick;
         controllerGrip = Controller.Standard.RightGrip;
+    }
+
+    function setHandleOverlays(overlayIDs) {
+        handleOverlayIDs = overlayIDs;
     }
 
     function valid() {
@@ -143,24 +148,29 @@ Hand = function (side) {
             isGripClickedHandled = false;
         }
 
-        // Hand-overlay intersection, if any.
+        // Hand-overlay intersection, if any handle overlays.
         overlayID = null;
         palmPosition = side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
-        overlayIDs = Overlays.findOverlays(palmPosition, NEAR_HOVER_RADIUS);
-        if (overlayIDs.length > 0) {
-            // Typically, there will be only one overlay; optimize for that case.
-            overlayID = overlayIDs[0];
-            if (overlayIDs.length > 1) {
-                // Find closest overlay.
-                overlayDistance = Vec3.length(Vec3.subtract(Overlays.getProperty(overlayID, "position"), palmPosition));
-                for (i = 1, length = overlayIDs.length; i < length; i += 1) {
-                    distance =
-                        Vec3.length(Vec3.subtract(Overlays.getProperty(overlayIDs[i], "position"), palmPosition));
-                    if (distance > overlayDistance) {
-                        overlayID = overlayIDs[i];
-                        overlayDistance = distance;
+        if (handleOverlayIDs.length > 0) {
+            overlayIDs = Overlays.findOverlays(palmPosition, NEAR_HOVER_RADIUS);
+            if (overlayIDs.length > 0) {
+                // Typically, there will be only one overlay; optimize for that case.
+                overlayID = overlayIDs[0];
+                if (overlayIDs.length > 1) {
+                    // Find closest overlay.
+                    overlayDistance = Vec3.length(Vec3.subtract(Overlays.getProperty(overlayID, "position"), palmPosition));
+                    for (i = 1, length = overlayIDs.length; i < length; i += 1) {
+                        distance =
+                            Vec3.length(Vec3.subtract(Overlays.getProperty(overlayIDs[i], "position"), palmPosition));
+                        if (distance > overlayDistance) {
+                            overlayID = overlayIDs[i];
+                            overlayDistance = distance;
+                        }
                     }
                 }
+            }
+            if (handleOverlayIDs.indexOf(overlayID) === -1) {
+                overlayID = null;
             }
         }
 
@@ -194,7 +204,7 @@ Hand = function (side) {
             intersects: overlayID !== null || entityID !== null,
             overlayID: overlayID,
             entityID: entityID,
-            handIntersected: true,
+            handIntersected: overlayID !== null || entityID !== null,
             editableEntity: entityID !== null
         };
     }
@@ -208,6 +218,7 @@ Hand = function (side) {
     }
 
     return {
+        setHandleOverlays: setHandleOverlays,
         valid: valid,
         position: position,
         orientation: orientation,
