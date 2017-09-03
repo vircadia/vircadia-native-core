@@ -60,13 +60,15 @@ macro(setup_qt)
         string(REPLACE \\ / QT_DIR ${QT_DIR})
     endif()
 
-
-    if (NOT EXISTS "${QT_DIR}/include/QtCore/QtGlobal")
-        message(FATAL_ERROR "Unable to locate Qt includes in ${QT_DIR}")
-    endif()
+    # This check doesn't work on Mac
+    #if (NOT EXISTS "${QT_DIR}/include/QtCore/QtGlobal")
+    #    message(FATAL_ERROR "Unable to locate Qt includes in ${QT_DIR}")
+    #endif()
+    
     if (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}/Qt5Core/Qt5CoreConfig.cmake")
         message(FATAL_ERROR "Unable to locate Qt cmake config in ${QT_CMAKE_PREFIX_PATH}")
     endif()
+    
     message(STATUS "The Qt build in use is: \"${QT_DIR}\"")
 
     # Instruct CMake to run moc automatically when needed.
