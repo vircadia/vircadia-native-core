@@ -72,7 +72,7 @@ Rectangle {
                 focus: true
                 //placeholderText: "Enter URL"
                 editable: true
-                flat: true
+                //flat: true
                 indicator: Item {}
                 Component.onCompleted: ScriptDiscoveryService.scriptsModelFilter.filterRegExp = new RegExp("^.*$", "i")
 
@@ -158,14 +158,15 @@ Rectangle {
 
         HifiControls.BaseWebView {
             id: webEngineView
+            width: parent.width;
+            property real webViewHeight: root.height - loadProgressBar.height - 48 - 4
+            height: keyboardEnabled && keyboardRaised ? webViewHeight - keyboard.height : webViewHeight
+
+
             focus: true
             objectName: "tabletWebEngineView"
 
             url: "http://www.highfidelity.com"
-            property real webViewHeight: root.height - loadProgressBar.height - 48 - 4
-
-            width: parent.width;
-            height: keyboardEnabled && keyboardRaised ? webViewHeight - keyboard.height : webViewHeight
 
             profile: HFWebEngineProfile;
 
@@ -257,6 +258,7 @@ Rectangle {
             }
         }
     }
+
 
     HifiControls.Keyboard {
         id: keyboard
