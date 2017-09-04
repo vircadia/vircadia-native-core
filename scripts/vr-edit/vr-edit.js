@@ -233,7 +233,8 @@
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
 
 
-        function setHand(side) {
+        function setHand(newSide) {
+            side = newSide;
             toolIcon.setHand(otherHand(side));
             toolsMenu.setHand(side);
             createPalette.setHand(side);
