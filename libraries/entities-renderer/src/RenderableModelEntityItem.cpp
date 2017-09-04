@@ -912,7 +912,6 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     auto& animationGeometry = _animation->getGeometry();
     auto& animationJointNames = animationGeometry.getJointNames();
     auto& fbxJoints = animationGeometry.joints;
-    auto& _debugFbxJoints = animationGeometry.jointIndices;
 
     auto& originalFbx = _model->getFBXGeometry();
     auto& originalFbxJoints = originalFbx.joints;
@@ -967,8 +966,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
                 translationMat = glm::translate(translations[index]);
             } else if (!allowTranslation && index < animationJointNames.size()){
                 QString jointName = fbxJoints[index].name; // Pushing this here so its not done on every entity, with the exceptions of those allowing for translation
-                 
-
+                
                 if (originalFbxIndices.contains(jointName)) {
                     // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get it's translation.
                     int remappedIndex = originalFbxIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
