@@ -909,8 +909,15 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     QVector<JointData> jointsData;
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
-    auto& fbxJoints = _animation->getGeometry().joints;
-    auto& originalFbxJoints = _model->getFBXGeometry().joints;
+    auto& animationGeometry = _animation->getGeometry();
+    auto& animationJointNames = animationGeometry.getJointNames();
+    auto& fbxJoints = animationGeometry.joints;
+    auto& _debugFbxJoints = animationGeometry.jointIndices;
+
+    auto& originalFbx = _model->getFBXGeometry();
+    auto& originalFbxJoints = originalFbx.joints;
+    auto& originalFbxIndices = originalFbx.jointIndices;
+
     bool allowTranslation = entity->getAnimationAllowTranslation();
     int frameCount = frames.size();
     if (frameCount <= 0) {
@@ -952,13 +959,22 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     jointsData.resize(_jointMapping.size());
     for (int j = 0; j < _jointMapping.size(); j++) {
         int index = _jointMapping[j];
+
         if (index >= 0) {
             glm::mat4 translationMat;
-            if (!allowTranslation){
-                translationMat = glm::translate(originalFbxJoints[index].translation);
-            } else if (index < translations.size()) {
+
+            if (allowTranslation && index < translations.size()) {
                 translationMat = glm::translate(translations[index]);
-            }
+            } else if (!allowTranslation && index < animationJointNames.size()){
+                QString jointName = fbxJoints[index].name; // Pushing this here so its not done on every entity, with the exceptions of those allowing for translation
+                 
+
+                if (originalFbxIndices.contains(jointName)) {
+                    // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get it's translation.
+                    int remappedIndex = originalFbxIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
+                    translationMat = glm::translate(originalFbxJoints[remappedIndex].translation);
+                }
+            } 
             glm::mat4 rotationMat;
             if (index < rotations.size()) {
                 rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
@@ -975,7 +991,6 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
             jointData.rotationSet = true;
         }
     }
-
     // Set the data in the entity
     entity->setAnimationJointsData(jointsData);
 
