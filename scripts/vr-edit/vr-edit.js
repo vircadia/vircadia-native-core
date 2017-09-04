@@ -1614,6 +1614,17 @@
         }
     }
 
+    function onSkeletonChanged() {
+        if (isAppActive) {
+            // Close the app because the new avatar may have different joint numbers meaning that the UI would be attached 
+            // incorrectly. Let the user reopen the app because it can take some time for the new avatar to load.
+            isAppActive = false;
+            updateHandControllerGrab();
+            button.editProperties({ isActive: false });
+            stopApp();
+        }
+    }
+
 
     function setUp() {
         updateHandControllerGrab();
@@ -1653,8 +1664,9 @@
         // Grouping object.
         grouping = new Grouping();
 
-        // Settings changes.
+        // Changes.
         MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
+        MyAvatar.skeletonChanged.connect(onSkeletonChanged);
 
         // Start main update loop.
         if (isAppActive) {
@@ -1663,16 +1675,20 @@
     }
 
     function tearDown() {
+        if (!tablet) {
+            return;
+        }
+
         if (updateTimer) {
             Script.clearTimeout(updateTimer);
         }
 
+        MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
+        MyAvatar.skeletonChanged.disconnect(onSkeletonChanged);
+
         isAppActive = false;
         updateHandControllerGrab();
 
-        if (!tablet) {
-            return;
-        }
 
         if (button) {
             button.clicked.disconnect(onAppButtonClicked);
