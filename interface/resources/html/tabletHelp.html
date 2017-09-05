@@ -6,13 +6,28 @@
         <title>Welcome to Interface</title>
 
         <style>
-          body {
+            @font-face {
+                font-family: 'Raleway Light';
+                src: url('../fonts/Raleway-Light.ttf') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+
+            body {
                 background: black;
                 width: 100%;
                 overflow-x: hidden;
                 overflow-y: hidden;
                 margin: 0;
                 padding: 0;
+            }
+
+            a:link {color:inherit}
+            a:active {color:inherit}
+            a:visited {color:inherit}
+            a:hover {
+                color:inherit;
+                cursor: pointer;
             }
 
             #left_button {
@@ -37,6 +52,15 @@
                 margin: auto;
                 position: absolute;
                 top: 0; left: 0; bottom: 0; right: 0;
+            }
+
+            #report_problem {
+                position: fixed;
+                top: 10;
+                right: 10;
+                font-family: "Raleway Light", sans-serif;
+                text-decoration: none;
+                color: #ddd;
             }
         </style>
         <script>
@@ -152,6 +176,7 @@
             <a href="#" id="left_button" onmousedown="cycleLeft()"></a>
             <a href="#" id="right_button" onmousedown="cycleRight()"></a>
         </div>
+        <a href="mailto:support@highfidelity.com" id="report_problem">Report Problem</a>
     </body>
 
 </html>
