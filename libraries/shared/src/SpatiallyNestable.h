@@ -122,7 +122,7 @@ public:
     virtual glm::vec3 getSNScale(int jointIndex, bool& success) const;
 
     // object's parent's frame
-    virtual const Transform getLocalTransform() const;
+    virtual Transform getLocalTransform() const;
     virtual void setLocalTransform(const Transform& transform);
 
     virtual glm::vec3 getLocalPosition() const;

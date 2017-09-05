@@ -107,6 +107,7 @@ protected:
     // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
     EntityItem* _entity;
 
+    bool _serverVariablesSet { false };
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
     glm::vec3 _serverVelocity;

@@ -706,7 +706,7 @@ void SpatiallyNestable::setSNScale(const glm::vec3& scale, bool& success) {
     }
 }
 
-const Transform SpatiallyNestable::getLocalTransform() const {
+Transform SpatiallyNestable::getLocalTransform() const {
     Transform result;
     _transformLock.withReadLock([&] {
         result =_transform;
