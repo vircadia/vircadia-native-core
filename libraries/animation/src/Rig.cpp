@@ -32,6 +32,10 @@
 #include "AnimUtil.h"
 #include "IKTarget.h"
 
+static int nextRigId = 1;
+static std::map<int, Rig*> rigRegistry;
+static std::mutex rigRegistryMutex;
+
 static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
     const float EPSILON = 0.0001f;
     return glm::length(u - v) / glm::length(u) <= EPSILON;
@@ -48,6 +52,26 @@ static bool isEqual(const glm::quat& p, const glm::quat& q) {
 const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_HEAD_POS(0.0f, 0.75f, 0.0f);
+
+Rig::Rig() {
+    // Ensure thread-safe access to the rigRegistry.
+    std::lock_guard<std::mutex> guard(rigRegistryMutex);
+
+    // Insert this newly allocated rig into the rig registry
+    _rigId = nextRigId;
+    rigRegistry[_rigId] = this;
+    nextRigId++;
+}
+
+Rig::~Rig() {
+    // Ensure thread-safe access to the rigRegstry, but also prevent the rig from being deleted
+    // while Rig::animationStateHandlerResult is being invoked on a script thread.
+    std::lock_guard<std::mutex> guard(rigRegistryMutex);
+    auto iter = rigRegistry.find(_rigId);
+    if (iter != rigRegistry.end()) {
+        rigRegistry.erase(iter);
+    }
+}
 
 void Rig::overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
 
@@ -935,8 +959,19 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
         int identifier = data.key();
         StateHandler& value = data.value();
         QScriptValue& function = value.function;
-        auto handleResult = [this, identifier](QScriptValue result) { // called in script thread to get the result back to us.
-            animationStateHandlerResult(identifier, result);
+        int rigId = _rigId;
+        auto handleResult = [rigId, identifier](QScriptValue result) { // called in script thread to get the result back to us.
+            // Hold the rigRegistryMutex to ensure thread-safe access to the rigRegistry, but
+            // also to prevent the rig from being deleted while this lambda is being executed.
+            std::lock_guard<std::mutex> guard(rigRegistryMutex);
+
+            // if the rig pointer is in the registry, it has not been deleted yet.
+            auto iter = rigRegistry.find(rigId);
+            if (iter != rigRegistry.end()) {
+                Rig* rig = iter->second;
+                assert(rig);
+                rig->animationStateHandlerResult(identifier, result);
+            }
         };
         // invokeMethod makes a copy of the args, and copies of AnimVariantMap do copy the underlying map, so this will correctly capture
         // the state of _animVars and allow continued changes to _animVars in this thread without conflict.

@@ -51,8 +51,6 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     });
 
     withNonPresentThreadLock([&] {
-        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
-        _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
     return Parent::beginFrameRender(frameIndex);

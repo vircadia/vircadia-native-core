@@ -70,7 +70,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(RenderArgs* ar
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testMaskNoAA(*state);
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
@@ -95,7 +95,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testMaskNoAA(*state);
 
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
@@ -159,7 +159,6 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
 
         // Blend step
-        getBlendPipeline();
         batch.setResourceTexture(0, _antialiasingTexture);
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());

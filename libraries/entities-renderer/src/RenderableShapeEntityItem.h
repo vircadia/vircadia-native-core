@@ -9,57 +9,35 @@
 #ifndef hifi_RenderableShapeEntityItem_h
 #define hifi_RenderableShapeEntityItem_h
 
-#include <ShapeEntityItem.h>
-#include <procedural/Procedural.h>
-
 #include "RenderableEntityItem.h"
 
-class ShapePayload : public RenderableEntityItemProxy {
+#include <procedural/Procedural.h>
+#include <ShapeEntityItem.h>
+
+namespace render { namespace entities { 
+
+class ShapeEntityRenderer : public TypedEntityRenderer<ShapeEntityItem> {
+    using Parent = TypedEntityRenderer<ShapeEntityItem>;
+    using Pointer = std::shared_ptr<ShapeEntityRenderer>;
 public:
-    ShapePayload(const EntityItemPointer& entity, render::ItemID metaID)
-        : RenderableEntityItemProxy(entity, metaID) {}
-    typedef render::Payload<ShapePayload> Payload;
-    typedef Payload::DataPointer Pointer;
-
-};
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const ShapePayload::Pointer& payload);
-    template <> const Item::Bound payloadGetBound(const ShapePayload::Pointer& payload);
-    template <> void payloadRender(const ShapePayload::Pointer& payload, RenderArgs* args);
-    template <> uint32_t metaFetchMetaSubItems(const ShapePayload::Pointer& payload, ItemIDs& subItems);
-    template <> const ShapeKey shapeGetShapeKey(const ShapePayload::Pointer& payload);
-}
-
-class RenderableShapeEntityItem : public ShapeEntityItem, private SimplerRenderableEntitySupport {
-    using Pointer = std::shared_ptr<RenderableShapeEntityItem>;
-    static Pointer baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    static EntityItemPointer boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    static EntityItemPointer sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableShapeEntityItem(const EntityItemID& entityItemID) : ShapeEntityItem(entityItemID) {}
-
-    bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    void render(RenderArgs* args) override;
-    void setUserData(const QString& value) override;
-
-    bool isTransparent() override;
-
-    virtual void computeShapeInfo(ShapeInfo& info) override;
-    ShapeType getShapeType() const override;
-
+    ShapeEntityRenderer(const EntityItemPointer& entity);
 
 private:
-    std::unique_ptr<Procedural> _procedural { nullptr };
+    virtual bool needsRenderUpdate() const override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
+    virtual bool isTransparent() const override;
 
-    //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain
-    //! prior functionality where new or unsupported shapes are treated as
-    //! ellipsoids.
-    ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
-
-    SIMPLE_RENDERABLE();
+    Procedural _procedural;
+    QString _lastUserData;
+    entity::Shape _shape { entity::Sphere };
+    glm::vec4 _color;
+    glm::vec3 _position;
+    glm::vec3 _dimensions;
+    glm::quat _orientation;
 };
 
-
+} } 
 #endif // hifi_RenderableShapeEntityItem_h

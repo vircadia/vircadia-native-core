@@ -1,5 +1,5 @@
 //
-//  Commerce.cpp
+//  QmlCommerce.cpp
 //  interface/src/commerce
 //
 //  Created by Howard Stearns on 8/4/17.
@@ -14,6 +14,7 @@
 #include "DependencyManager.h"
 #include "Ledger.h"
 #include "Wallet.h"
+#include <AccountManager.h>
 
 HIFI_QML_DEF(QmlCommerce)
 
@@ -24,6 +25,32 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(ledger.data(), &Ledger::balanceResult, this, &QmlCommerce::balanceResult);
     connect(ledger.data(), &Ledger::inventoryResult, this, &QmlCommerce::inventoryResult);
     connect(wallet.data(), &Wallet::securityImageResult, this, &QmlCommerce::securityImageResult);
+    connect(ledger.data(), &Ledger::historyResult, this, &QmlCommerce::historyResult);
+    connect(wallet.data(), &Wallet::keyFilePathIfExistsResult, this, &QmlCommerce::keyFilePathIfExistsResult);
+}
+
+void QmlCommerce::getLoginStatus() {
+    emit loginStatusResult(DependencyManager::get<AccountManager>()->isLoggedIn());
+}
+
+void QmlCommerce::getKeyFilePathIfExists() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->sendKeyFilePathIfExists();
+}
+
+void QmlCommerce::getWalletAuthenticatedStatus() {
+    auto wallet = DependencyManager::get<Wallet>();
+    emit walletAuthenticatedStatusResult(wallet->walletIsAuthenticatedWithPassphrase());
+}
+
+void QmlCommerce::getSecurityImage() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->getSecurityImage();
+}
+
+void QmlCommerce::chooseSecurityImage(const QString& imageFile) {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->chooseSecurityImage(imageFile);
 }
 
 void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
@@ -31,14 +58,12 @@ void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUser
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
-        return emit buyResult("Uninitialized Wallet.");
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
+        return emit buyResult(result);
     }
     QString key = keys[0];
     // For now, we receive at the same key that pays for it.
     ledger->buy(key, cost, assetId, key, buyerUsername);
-    // FIXME: until we start talking to server, report post-transaction balance and inventory so we can see log for testing.
-    balance();
-    inventory();
 }
 
 void QmlCommerce::balance() {
@@ -46,17 +71,32 @@ void QmlCommerce::balance() {
     auto wallet = DependencyManager::get<Wallet>();
     ledger->balance(wallet->listPublicKeys());
 }
+
 void QmlCommerce::inventory() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     ledger->inventory(wallet->listPublicKeys());
 }
 
-void QmlCommerce::chooseSecurityImage(uint imageID) {
+void QmlCommerce::history() {
+    auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
-    wallet->chooseSecurityImage(imageID);
+    ledger->history(wallet->listPublicKeys());
 }
-void QmlCommerce::getSecurityImage() {
+
+void QmlCommerce::setPassphrase(const QString& passphrase) {
     auto wallet = DependencyManager::get<Wallet>();
-    wallet->getSecurityImage();
+    if (wallet->getPassphrase() && !wallet->getPassphrase()->isEmpty()) {
+        wallet->changePassphrase(passphrase);
+    } else {
+        wallet->setPassphrase(passphrase);
+    }
+    getWalletAuthenticatedStatus();
+}
+
+void QmlCommerce::reset() {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    ledger->reset();
+    wallet->reset();
 }

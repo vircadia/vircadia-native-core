@@ -1329,9 +1329,9 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
     _needsParentFixup.append(entity);
 }
 
-void EntityTree::update() {
+void EntityTree::update(bool simulate) {
     fixupNeedsParentFixups();
-    if (_simulation) {
+    if (simulate && _simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
             VectorOfEntities pendingDeletes;
@@ -1845,16 +1845,6 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytes
             _maxEditDelta = sinceEdit;
         }
     }
-}
-
-void EntityTree::callLoader(EntityItemID entityID) {
-    // this is used to bounce from the networking thread to the main thread
-    this->withWriteLock([&] {
-        EntityItemPointer entity = findEntityByEntityItemID(entityID);
-        if (entity) {
-            entity->loader();
-        }
-    });
 }
 
 int EntityTree::getJointIndex(const QUuid& entityID, const QString& name) const {
