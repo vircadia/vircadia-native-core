@@ -62,7 +62,7 @@ var TIP_TEXTURE_BASE_URL = BASE_URL + "meshes/controller/vive_tips.fbm/";
 
 var viveModelURL = BASE_URL + "meshes/controller/vive_body.fbx";
 var viveTipsModelURL = BASE_URL + "meshes/controller/vive_tips.fbx";
-var viveTriggerModelURL = "meshes/controller/vive_trigger.fbx"
+var viveTriggerModelURL = "meshes/controller/vive_trigger.fbx";
 
 VIVE_CONTROLLER_CONFIGURATION_LEFT = {
     name: "Vive",
@@ -81,6 +81,7 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     type: "static",
                     modelURL: viveTipsModelURL,
                     naturalPosition: {"x":-0.004377640783786774,"y":-0.034371938556432724,"z":0.06769277155399323},
+                    naturalDimensions: {x: 0.191437, y: 0.094095, z: 0.085656},
 
                     textureName: "Tex.Blank",
                     defaultTextureLayer: "blank",
@@ -112,6 +113,7 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     xInput: "Vive.LX",
                     yInput: "Vive.LY",
                     naturalPosition: {"x":0,"y":0.000979491975158453,"z":0.04872849956154823},
+                    naturalDimensions: {x: 0.042824, y: 0.012537, z: 0.043115},
                     minValue: 0.0,
                     maxValue: 1.0,
                     minPosition: { x: -0.035, y: 0.004, z: -0.005 },
@@ -137,6 +139,7 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     modelURL: BASE_URL + "meshes/controller/vive_trigger.fbx",
                     input: Controller.Standard.LT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
+                    naturalDimensions: {x: 0.019105, y: 0.022189, z: 0.01909},
                     origin: { x: 0, y: -0.015, z: -0.00 },
                     minValue: 0.0,
                     maxValue: 1.0,
@@ -147,10 +150,10 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
-                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/black.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/black.jpg"
                         },
                         highlight: {
-                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/yellow.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/yellow.jpg"
                         }
                     }
                 },
@@ -158,30 +161,35 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                 l_grip: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_l_grip.fbx",
-                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
+                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    naturalDimensions: {x: 0.010094, y: 0.015064, z: 0.029552}
                 },
 
                 r_grip: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_r_grip.fbx",
-                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
+                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    naturalDimensions: {x: 0.010083, y: 0.015064, z: 0.029552}
                 },
 
                 sys_button: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_sys_button.fbx",
-                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311}
+                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311},
+                    naturalDimensions: {x: 0.009986, y: 0.004282, z: 0.010264}
                 },
 
                 button: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
-                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
+                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564},
+                    naturalDimensions: {x: 0.009986, y: 0.004496, z: 0.010121}
                 },
                 button2: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
-                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
+                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564},
+                    naturalDimensions: {x: 0.009986, y: 0.004496, z: 0.010121}
                 }
             }
         }
@@ -211,6 +219,7 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     type: "static",
                     modelURL: viveTipsModelURL,
                     naturalPosition: {"x":-0.004377640783786774,"y":-0.034371938556432724,"z":0.06769277155399323},
+                    naturalDimensions: {x: 0.191437, y: 0.094095, z: 0.085656},
 
                     textureName: "Tex.Blank",
 
@@ -243,6 +252,7 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     xInput: "Vive.RX",
                     yInput: "Vive.RY",
                     naturalPosition: { x: 0, y: 0.000979491975158453, z: 0.04872849956154823 },
+                    naturalDimensions: {x: 0.042824, y: 0.012537, z: 0.043115},
                     minValue: 0.0,
                     maxValue: 1.0,
                     minPosition: { x: -0.035, y: 0.004, z: -0.005 },
@@ -268,6 +278,7 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     modelURL: BASE_URL + "meshes/controller/vive_trigger.fbx",
                     input: Controller.Standard.RT,
                     naturalPosition: {"x":0.000004500150680541992,"y":-0.027690507471561432,"z":0.04830199480056763},
+                    naturalDimensions: {x: 0.019105, y: 0.022189, z: 0.01909},
                     origin: { x: 0, y: -0.015, z: -0.00 },
                     minValue: 0.0,
                     maxValue: 1.0,
@@ -278,10 +289,10 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                     defaultTextureLayer: "normal",
                     textureLayers: {
                         normal: {
-                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/black.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/black.jpg"
                         },
                         highlight: {
-                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/yellow.jpg",
+                            defaultTextureURL: BASE_URL + viveTriggerModelURL + "/Trigger.fbm/yellow.jpg"
                         }
                     }
                 },
@@ -289,30 +300,35 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                 l_grip: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_l_grip.fbx",
-                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
+                    naturalPosition: {"x":-0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    naturalDimensions: {x: 0.010094, y: 0.015064, z: 0.029552}
                 },
 
                 r_grip: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_r_grip.fbx",
-                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226}
+                    naturalPosition: {"x":0.01720449887216091,"y":-0.014324013143777847,"z":0.08714400231838226},
+                    naturalDimensions: {x: 0.010083, y: 0.015064, z: 0.029552}
                 },
 
                 sys_button: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_sys_button.fbx",
-                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311}
+                    naturalPosition: {"x":0,"y":0.0020399854984134436,"z":0.08825899660587311},
+                    naturalDimensions: {x: 0.009986, y: 0.004282, z: 0.010264}
                 },
 
                 button: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
-                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
+                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564},
+                    naturalDimensions: {x: 0.009986, y: 0.004496, z: 0.010121}
                 },
                 button2: {
                     type: "static",
                     modelURL: BASE_URL + "meshes/controller/vive_button.fbx",
-                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564}
+                    naturalPosition: {"x":0,"y":0.005480996798723936,"z":0.019918499514460564},
+                    naturalDimensions: {x: 0.009986, y: 0.004496, z: 0.010121}
                 }
             }
         }

@@ -590,6 +590,8 @@ public slots:
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
 
+    virtual void setModelScale(float scale) override;
+
 signals:
     void audioListenerModeChanged();
     void transformChanged();
@@ -602,6 +604,7 @@ signals:
     void wentActive();
     void skeletonChanged();
     void dominantHandChanged(const QString& hand);
+    void sensorToWorldScaleChanged(float sensorToWorldScale);
 
 private:
 

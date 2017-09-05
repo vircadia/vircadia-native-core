@@ -2651,6 +2651,9 @@ float MyAvatar::getUserHeight() const {
 
 void MyAvatar::setUserHeight(float value) {
     _userHeight.set(value);
+
+    float sensorToWorldScale = getEyeHeight() / getUserEyeHeight();
+    emit sensorToWorldScaleChanged(sensorToWorldScale);
 }
 
 float MyAvatar::getUserEyeHeight() const {
@@ -3206,4 +3209,13 @@ void MyAvatar::updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose&
 
 const MyHead* MyAvatar::getMyHead() const {
     return static_cast<const MyHead*>(getHead());
+}
+
+void MyAvatar::setModelScale(float scale) {
+    bool changed = (scale != getModelScale());
+    Avatar::setModelScale(scale);
+    if (changed) {
+        float sensorToWorldScale = getEyeHeight() / getUserEyeHeight();
+        emit sensorToWorldScaleChanged(sensorToWorldScale);
+    }
 }

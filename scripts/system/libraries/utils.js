@@ -368,13 +368,13 @@ getTabletWidthFromSettings = function () {
     return DEFAULT_TABLET_WIDTH * (tabletScalePercentage / 100);
 };
 
-resizeTablet = function (width, newParentJointIndex) {
+resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride) {
 
     if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID) {
         return;
     }
 
-    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+    var sensorScaleFactor = sensorToWorldScaleOverride || MyAvatar.sensorToWorldScale;
     var sensorScaleOffsetOverride = 1;
     var SENSOR_TO_ROOM_MATRIX = 65534;
     var parentJointIndex = newParentJointIndex || Overlays.getProperty(HMD.tabletID, "parentJointIndex");

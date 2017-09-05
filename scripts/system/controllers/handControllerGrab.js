@@ -3035,7 +3035,7 @@ function MyController(hand) {
 
             if (this.grabbedIsOverlay) {
                 Overlays.editOverlay(this.grabbedThingID, reparentProps);
-                // AJT: resize tablet to allow it to counter scale.
+                // resize tablet to allow it to counter scale.
                 if (this.grabbedThingID === HMD.tabletID) {
                     resizeTablet(getTabletWidthFromSettings(), reparentProps.parentJointIndex);
                 }
@@ -3815,7 +3815,7 @@ function MyController(hand) {
                             parentID: this.previousParentID[this.grabbedThingID],
                             parentJointIndex: this.previousParentJointIndex[this.grabbedThingID],
                         });
-                        // AJT: resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
+                        // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
                         if (this.grabbedThingID === HMD.tabletID) {
                             resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
                         }

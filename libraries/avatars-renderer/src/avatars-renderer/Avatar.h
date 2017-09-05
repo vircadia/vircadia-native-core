@@ -261,8 +261,8 @@ public:
      */
     Q_INVOKABLE float getEyeHeight() const;
 
-    float getModelScale() const { return _modelScale; }
-    void setModelScale(float scale) { _modelScale = scale; }
+    virtual float getModelScale() const { return _modelScale; }
+    virtual void setModelScale(float scale) { _modelScale = scale; }
 
 public slots:
 
