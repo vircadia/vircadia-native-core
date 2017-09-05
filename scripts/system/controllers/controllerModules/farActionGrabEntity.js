@@ -483,6 +483,10 @@ Script.include("/~/system/libraries/controllers.js");
                             "userData", "locked", "type"
                         ]);
 
+                        if (entityID !== this.entityWithContextOverlay) {
+                            this.destroyContextOverlay();
+                        }
+
                         if (entityIsDistanceGrabbable(targetProps)) {
                             if (!this.distanceRotating) {
                                 this.grabbedThingID = entityID;
