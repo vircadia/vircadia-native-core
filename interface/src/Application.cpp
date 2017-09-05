@@ -2551,7 +2551,7 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/updateCompositor");
-        getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
+        getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
     }
 
     gpu::FramebufferPointer finalFramebuffer;
