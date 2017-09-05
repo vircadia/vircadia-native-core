@@ -13,11 +13,11 @@ Item {
     id: root
     HifiConstants { id: hifi }
     HifiStyles.HifiConstants { id: hifistyles }
-    //width: parent.width
+
     height: 600
     property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
     property alias url: webview.url
-    //property WebEngineView webView: webview
+
     property bool canGoBack: webview.canGoBack
     property bool canGoForward: webview.canGoForward
 
@@ -123,5 +123,4 @@ Item {
             break;
         }
     }
-    
 }
