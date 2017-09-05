@@ -134,7 +134,7 @@
             if (parseInt(cost) > 0) {
                 var priceElement = $(this).find('.price')
                 priceElement.css({ "width": "auto", "padding": "3px 5px", "height": "26px" });
-                priceElement.text(parseFloat(cost / 100).toFixed(2) + ' HFC');
+                priceElement.text(cost + ' HFC');
                 priceElement.css({ "min-width": priceElement.width() + 10 });
             }
         });
