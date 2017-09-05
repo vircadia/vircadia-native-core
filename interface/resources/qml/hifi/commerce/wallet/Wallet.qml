@@ -26,8 +26,6 @@ Rectangle {
     id: root;
 
     property string activeView: "initialize";
-    property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     property bool keyboardRaised: false;
 
     // Style
@@ -40,25 +38,30 @@ Rectangle {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
-                commerce.getSecurityImage();
                 commerce.getKeyFilePathIfExists();
             }
         }
 
-        onSecurityImageResult: {
-            securityImageResultReceived = true;
-            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
+        onKeyFilePathIfExistsResult: {
+            if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
-                root.activeView = "walletHome";
+            } else if (path !== "" && root.activeView === "initialize") {
+                commerce.getSecurityImage();
             }
         }
 
-        onKeyFilePathIfExistsResult: {
-            keyFilePathIfExistsResultReceived = true;
-            if (path === "" && root.activeView !== "notSetUp") {
+        onSecurityImageResult: {
+            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
+            } else if (exists && root.activeView === "initialize") {
+                commerce.getWalletAuthenticatedStatus();
+            }
+        }
+
+        onWalletAuthenticatedStatusResult: {
+            if (!isAuthenticated && passphraseModal && !passphraseModal.visible) {
+                passphraseModal.visible = true;
+            } else if (isAuthenticated) {
                 root.activeView = "walletHome";
             }
         }
@@ -89,7 +92,8 @@ Rectangle {
                 if (msg.method === 'walletSetup_cancelClicked') {
                     walletSetupLightbox.visible = false;
                 } else if (msg.method === 'walletSetup_finished') {
-                    root.activeView = "walletHome";
+                    root.activeView = "initialize";
+                    commerce.getLoginStatus();
                 } else if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
                 } else if (msg.method === 'walletSetup_lowerKeyboard') {
@@ -107,7 +111,7 @@ Rectangle {
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
-        
+
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSetup_raiseKeyboard') {
@@ -127,7 +131,7 @@ Rectangle {
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
-        
+
         Connections {
             onSendSignalToWallet: {
                 sendToScript(msg);
@@ -196,7 +200,7 @@ Rectangle {
             commerce.getLoginStatus();
         }
     }
-        
+
     NeedsLogIn {
         id: needsLogIn;
         visible: root.activeView === "needsLogIn";
@@ -218,6 +222,21 @@ Rectangle {
         }
     }
 
+    PassphraseModal {
+        id: passphraseModal;
+        visible: false;
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+
+        Connections {
+            onSendSignalToParent: {
+                sendToScript(msg);
+            }
+        }
+    }
+
     NotSetUp {
         id: notSetUp;
         visible: root.activeView === "notSetUp";
@@ -225,7 +244,7 @@ Rectangle {
         anchors.bottom: tabButtonsContainer.top;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'setUpClicked') {
@@ -296,6 +315,14 @@ Rectangle {
         anchors.leftMargin: 16;
         anchors.right: parent.right;
         anchors.rightMargin: 16;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletReset') {
+                    sendToScript(msg);
+                }
+            }
+        }
     }
 
 
@@ -510,7 +537,7 @@ Rectangle {
     }
     //
     // TAB BUTTONS END
-    //    
+    //
 
     Item {
         id: keyboardContainer;

@@ -28,6 +28,9 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     _hmdScriptingInterface = DependencyManager::get<HMDScriptingInterface>();
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
+
+    _selectionToSceneHandler.initialize("contextOverlayHighlightList");
 
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
@@ -58,6 +61,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
     });
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
+
+    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
 }
 
 static const uint32_t LEFT_HAND_HW_ID = 1;
@@ -261,25 +266,11 @@ void ContextOverlayInterface::openMarketplace() {
 }
 
 void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    auto entityTree = qApp->getEntities()->getTree();
-    entityTree->withReadLock([&] {
-        auto entityItem = entityTree->findEntityByEntityItemID(entityItemID);
-        if ((entityItem != NULL) && !entityItem->getShouldHighlight()) {
-            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
-            entityItem->setShouldHighlight(true);
-        }
-    });
+    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
 }
 
 void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    auto entityTree = qApp->getEntities()->getTree();
-    entityTree->withReadLock([&] {
-        auto entityItem = entityTree->findEntityByEntityItemID(entityItemID);
-        if ((entityItem != NULL) && entityItem->getShouldHighlight()) {
-            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityItemID;
-            entityItem->setShouldHighlight(false);
-        }
-    });
+    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
 }
 
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {

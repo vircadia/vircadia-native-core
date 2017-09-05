@@ -24,6 +24,7 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
+    property bool historyReceived: false;
 
     Hifi.QmlCommerce {
         id: commerce;
@@ -37,13 +38,14 @@ Item {
         }
 
         onBalanceResult : {
-            balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
+            balanceText.text = result.data.balance;
         }
 
         onHistoryResult : {
+            historyReceived = true;
             if (result.status === 'success') {
-                var txt = result.data.history.map(function (h) { return h.text; }).join("<hr>");
-                transactionHistoryText.text = txt;
+                transactionHistoryModel.clear();
+                transactionHistoryModel.append(result.data.history);
             }
         }
     }
@@ -86,13 +88,14 @@ Item {
         height: 60;
         Rectangle {
             id: hfcBalanceField;
+            color: hifi.colors.darkGray;
             anchors.right: parent.right;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             height: parent.height - 15;
 
             // "HFC" balance label
-            RalewayRegular {
+            FiraSansRegular {
                 id: balanceLabel;
                 text: "HFC";
                 // Text size
@@ -104,13 +107,14 @@ Item {
                 anchors.rightMargin: 4;
                 width: paintedWidth;
                 // Style
-                color: hifi.colors.darkGray;
+                color: hifi.colors.lightGrayText;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
                 verticalAlignment: Text.AlignVCenter;
 
                 onVisibleChanged: {
                     if (visible) {
+                        historyReceived = false;
                         commerce.balance();
                         commerce.history();
                     }
@@ -118,7 +122,7 @@ Item {
             }
 
             // Balance Text
-            FiraSansRegular {
+            FiraSansSemiBold {
                 id: balanceText;
                 text: "--";
                 // Text size
@@ -130,7 +134,7 @@ Item {
                 anchors.right: balanceLabel.left;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.darkGray;
+                color: hifi.colors.lightGrayText;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
                 verticalAlignment: Text.AlignVCenter;
@@ -233,24 +237,66 @@ Item {
             // Style
             color: hifi.colors.faintGray;
         }
-
+        ListModel {
+            id: transactionHistoryModel;
+        }
         Rectangle {
-            id: transactionHistory;
             anchors.top: recentActivityText.bottom;
             anchors.topMargin: 4;
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
+            color: "white";
 
-            // some placeholder stuff
-            TextArea {
-                id: transactionHistoryText;
-                text: "<hr>history unavailable<hr>";
-                textFormat: TextEdit.AutoText;
-                font.pointSize: 10;
+            ListView {
+                id: transactionHistory;
+                anchors.centerIn: parent;
+                width: parent.width - 12;
+                height: parent.height - 12;
+                visible: transactionHistoryModel.count !== 0;
+                clip: true;
+                model: transactionHistoryModel;
+                delegate: Item {
+                    width: parent.width;
+                    height: transactionText.height + 30;
+                    FiraSansRegular {
+                        id: transactionText;
+                        text: model.text;
+                        // Style
+                        size: 18;
+                        width: parent.width;
+                        height: paintedHeight;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        color: "black";
+                        wrapMode: Text.WordWrap;
+                        // Alignment
+                        horizontalAlignment: Text.AlignLeft;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    HifiControlsUit.Separator {
+                        anchors.left: parent.left;
+                        anchors.right: parent.right;
+                        anchors.bottom: parent.bottom;
+                    }
+                }
+                onAtYEndChanged: {
+                    if (transactionHistory.atYEnd) {
+                        console.log("User scrolled to the bottom of 'Recent Activity'.");
+                        // Grab next page of results and append to model
+                    }
+                }
+            }
+
+            // This should never be visible (since you immediately get 100 HFC)
+            FiraSansRegular {
+                id: emptyTransationHistory;
+                size: 24;
+                visible: !transactionHistory.visible && root.historyReceived;
+                text: "Recent Activity Unavailable";
                 anchors.fill: parent;
-                horizontalAlignment: Text.AlignLeft;
-                verticalAlignment: Text.AlignTop;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
             }
         }
     }
