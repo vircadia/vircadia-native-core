@@ -92,6 +92,7 @@ void EntityMotionState::updateServerPhysicsVariables() {
 
     Transform localTransform;
     _entity->getLocalTransformAndVelocities(localTransform, _serverVelocity, _serverAngularVelocity);
+    _serverVariablesSet = true;
     _serverPosition = localTransform.getTranslation();
     _serverRotation = localTransform.getRotation();
     _serverAcceleration = _entity->getAcceleration();
@@ -99,18 +100,19 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 void EntityMotionState::handleDeactivation() {
-    // copy _server data to entity
-    bool success;
-    _entity->setPosition(_serverPosition, success, false);
-    _entity->setOrientation(_serverRotation, success, false);
-    _entity->setVelocity(ENTITY_ITEM_ZERO_VEC3);
-    _entity->setAngularVelocity(ENTITY_ITEM_ZERO_VEC3);
-    // and also to RigidBody
-    btTransform worldTrans;
-    worldTrans.setOrigin(glmToBullet(_serverPosition));
-    worldTrans.setRotation(glmToBullet(_serverRotation));
-    _body->setWorldTransform(worldTrans);
-    // no need to update velocities... should already be zero
+    if (_serverVariablesSet) {
+        // copy _server data to entity
+        Transform localTransform = _entity->getLocalTransform();
+        localTransform.setTranslation(_serverPosition);
+        localTransform.setRotation(_serverRotation);
+        _entity->setLocalTransformAndVelocities(localTransform, ENTITY_ITEM_ZERO_VEC3, ENTITY_ITEM_ZERO_VEC3);
+        // and also to RigidBody
+        btTransform worldTrans;
+        worldTrans.setOrigin(glmToBullet(_entity->getPosition()));
+        worldTrans.setRotation(glmToBullet(_entity->getRotation()));
+        _body->setWorldTransform(worldTrans);
+        // no need to update velocities... should already be zero
+    }
 }
 
 // virtual
@@ -339,6 +341,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // if we've never checked before, our _lastStep will be 0, and we need to initialize our state
     if (_lastStep == 0) {
         btTransform xform = _body->getWorldTransform();
+        _serverVariablesSet = true;
         _serverPosition = worldToLocal.transform(bulletToGLM(xform.getOrigin()));
         _serverRotation = worldToLocal.getRotation() * bulletToGLM(xform.getRotation());
         _serverVelocity = worldVelocityToLocal.transform(getBodyLinearVelocityGTSigma());

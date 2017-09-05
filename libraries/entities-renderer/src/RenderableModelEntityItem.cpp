@@ -910,6 +910,8 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
     auto& fbxJoints = _animation->getGeometry().joints;
+    auto& originalFbxJoints = _model->getFBXGeometry().joints;
+    bool allowTranslation = entity->getAnimationAllowTranslation();
     int frameCount = frames.size();
     if (frameCount <= 0) {
         return;
@@ -952,7 +954,9 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         int index = _jointMapping[j];
         if (index >= 0) {
             glm::mat4 translationMat;
-            if (index < translations.size()) {
+            if (!allowTranslation){
+                translationMat = glm::translate(originalFbxJoints[index].translation);
+            } else if (index < translations.size()) {
                 translationMat = glm::translate(translations[index]);
             }
             glm::mat4 rotationMat;
