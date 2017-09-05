@@ -21,6 +21,8 @@ import "../controls-uit" as HifiControls
 import "../windows"
 import "../controls"
 
+import HifiWeb 1.0
+
 Rectangle {
     id: root;
 
@@ -31,17 +33,61 @@ Rectangle {
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+    property var suggestionsList: []
 
+    OpenSearchEngine {
+        id: searchEngine
+        name: "Google";
+        //icon: ":icons/sites/google.png"
+        searchUrlTemplate: "https://www.google.com/search?client=qupzilla&q=%s";
+        suggestionsUrlTemplate: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
+        suggestionsUrl: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
+
+        onSuggestions: {
+            if (suggestions.length > 0) {
+                console.log("suggestions:", suggestions)
+                suggestionsList = []
+                suggestionsList.push(addressBar.editText) //do not overwrite edit text
+                for(var i = 0; i < suggestions.length; i++) {
+                    suggestionsList.push(suggestions[i])
+                }
+                addressBar.model = suggestionsList
+                if (!addressBar.popup.visible) {
+                    addressBar.popup.open()
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: suggestionRequestTimer
+        interval: 200
+        repeat: false
+        onTriggered: {
+            if (addressBar.editText !== "") {
+                searchEngine.requestSuggestions(addressBar.editText)
+            }
+        }
+    }
 
     color: hifi.colors.baseGray;
 
-    // only show the title if loaded through a "loader"
+    function goTo(url) {
+        if (url.indexOf("http") !== 0) {
+            url = "http://" + url;
+        }
+        webEngineView.url = url
+        event.accepted = true;
+        suggestionRequestTimer.stop()
+        addressBar.popup.close()
+    }
 
     Column {
         spacing: 2
         width: parent.width;
 
         RowLayout {
+            id: addressBarRow
             width: parent.width;
             height: 48
 
@@ -70,49 +116,64 @@ Rectangle {
 
                 //selectByMouse: true
                 focus: true
-                //placeholderText: "Enter URL"
+
                 editable: true
                 //flat: true
                 indicator: Item {}
+                background: Item {}
+                onActivated: {
+                    goTo(textAt(index))
+                }
+
+                contentItem: QQControls.TextField {
+                    id: addressBarInput
+                    leftPadding: 26
+                    rightPadding: hifi.dimensions.controlLineHeight
+                    text: addressBar.editText
+                    placeholderText: qsTr("Enter URL")
+                    font: addressBar.font
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+
+                    Image {
+                        anchors.verticalCenter: parent.verticalCenter;
+                        x: 5
+                        z: 2
+                        id: faviconImage
+                        width: 16; height: 16
+                        sourceSize: Qt.size(width, height)
+                        source: webEngineView.icon
+                        onSourceChanged: console.log("web icon", source)
+                    }
+
+                    HifiControls.WebGlyphButton {
+                        glyph: webEngineView.loading ? hifi.glyphs.closeSmall : hifi.glyphs.reloadSmall;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        width: hifi.dimensions.controlLineHeight
+                        z: 2
+                        x: addressBarInput.width - implicitWidth
+                        onClicked: {
+                            if (webEngineView.loading) {
+                                webEngineView.stop()
+                            } else {
+                                reloadTimer.start()
+                            }
+                        }
+                    }
+                }
+
                 Component.onCompleted: ScriptDiscoveryService.scriptsModelFilter.filterRegExp = new RegExp("^.*$", "i")
 
                 Keys.onPressed: {
                     if (event.key === Qt.Key_Return) {
-                        if (editText.indexOf("http") != 0) {
-                            editText = "http://" + editText;
-                        }
-                        webEngineView.url = editText
-                        event.accepted = true;
+                        goTo(editText)
                     }
                 }
 
-                Image {
-                    anchors.verticalCenter: addressBar.verticalCenter;
-                    x: 5
-                    z: 2
-                    id: faviconImage
-                    width: 16; height: 16
-                    sourceSize: Qt.size(width, height)
-                    source: webEngineView.icon
+                onEditTextChanged: {
+                    console.log("edit text", addressBar.editText)
+                    suggestionRequestTimer.restart()
                 }
-
-                HifiControls.WebGlyphButton {
-                    glyph: webEngineView.loading ? hifi.glyphs.closeSmall : hifi.glyphs.reloadSmall;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    width: hifi.dimensions.controlLineHeight
-                    z: 2
-                    x: addressBar.width - 28
-                    onClicked: {
-                        if (webEngineView.loading) {
-                            webEngineView.stop()
-                        } else {
-                            reloadTimer.start()
-                        }
-                    }
-                }
-
-                leftPadding: 26
-                rightPadding: 26
 
                 Layout.fillWidth: true
                 editText: webEngineView.url
@@ -121,7 +182,6 @@ Rectangle {
 
             HifiControls.WebGlyphButton {
                 checkable: true
-                //only QtWebEngine 1.3
                 checked: webEngineView.audioMuted
                 glyph: checked ? hifi.glyphs.unmuted : hifi.glyphs.muted
                 anchors.verticalCenter: parent.verticalCenter;
@@ -162,7 +222,6 @@ Rectangle {
             property real webViewHeight: root.height - loadProgressBar.height - 48 - 4
             height: keyboardEnabled && keyboardRaised ? webViewHeight - keyboard.height : webViewHeight
 
-
             focus: true
             objectName: "tabletWebEngineView"
 
@@ -171,6 +230,13 @@ Rectangle {
             profile: HFWebEngineProfile;
 
             property string userScriptUrl: ""
+
+            onLoadingChanged: {
+                if (!loading) {
+                    suggestionRequestTimer.stop()
+                    addressBar.popup.close()
+                }
+            }
 
             // creates a global EventBridge object.
             WebEngineScript {
@@ -202,10 +268,9 @@ Rectangle {
             settings.javascriptEnabled: true
             settings.errorPageEnabled: true
             settings.pluginsEnabled: true
-            settings.fullScreenSupportEnabled: false
-            //from WebEngine 1.3
-            settings.autoLoadIconsForPage: false
-            settings.touchIconsEnabled: false
+            settings.fullScreenSupportEnabled: true
+            settings.autoLoadIconsForPage: true
+            settings.touchIconsEnabled: true
 
             onCertificateError: {
                 error.defer();
