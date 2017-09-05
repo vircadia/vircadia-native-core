@@ -434,11 +434,6 @@ Script.include("/~/system/libraries/controllers.js");
                 return makeRunningValues(false, [], []);
             }
 
-            var targetEntity = controllerData.rayPicks[this.hand].objectID;
-            if (targetEntity !== this.entityWithContextOverlay) {
-                this.destroyContextOverlay();
-            }
-
             var otherModuleName =this.hand === RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
             var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
 
