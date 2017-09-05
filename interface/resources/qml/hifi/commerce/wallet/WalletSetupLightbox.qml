@@ -24,7 +24,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string lastPage: "securityImage";
+    property string lastPage: "initialize";
     // Style
     color: hifi.colors.baseGray;
 
@@ -39,9 +39,9 @@ Rectangle {
             }
         }
 
-        onPassphraseSetupStatusResult: {
+        onWalletAuthenticatedStatusResult: {
             securityImageContainer.visible = false;
-            if (passphraseIsSetup) {
+            if (isAuthenticated) {
                 privateKeysReadyContainer.visible = true;
             } else {
                 choosePassphraseContainer.visible = true;
@@ -58,15 +58,8 @@ Rectangle {
     //
     Item {
         id: securityImageContainer;
-        visible: false;
         // Anchors
         anchors.fill: parent;
-
-        onVisibleChanged: {
-            if (visible) {
-                commerce.getSecurityImage();
-            }
-        }
 
         Item {
             id: securityImageTitle;
@@ -124,7 +117,7 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: 280;
-            
+
             Connections {
                 onSendSignalToWallet: {
                     sendSignalToWallet(msg);
@@ -217,7 +210,7 @@ Rectangle {
 
         onVisibleChanged: {
             if (visible) {
-                commerce.getPassphraseSetupStatus();
+                commerce.getWalletAuthenticatedStatus();
             }
         }
 

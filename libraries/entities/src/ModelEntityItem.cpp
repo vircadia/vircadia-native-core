@@ -330,6 +330,10 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationHold(hold);
     }
 
+    if (settingsMap.contains("allowTranslation")) {
+        bool allowTranslation = settingsMap["allowTranslation"].toBool();
+        setAnimationAllowTranslation(allowTranslation);
+    }
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
 }
 

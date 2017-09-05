@@ -910,6 +910,8 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
     auto& fbxJoints = _animation->getGeometry().joints;
+    auto& originalFbxJoints = _model->getFBXGeometry().joints;
+    bool allowTranslation = entity->getAnimationAllowTranslation();
     int frameCount = frames.size();
     if (frameCount <= 0) {
         return;
@@ -952,7 +954,9 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         int index = _jointMapping[j];
         if (index >= 0) {
             glm::mat4 translationMat;
-            if (index < translations.size()) {
+            if (!allowTranslation){
+                translationMat = glm::translate(originalFbxJoints[index].translation);
+            } else if (index < translations.size()) {
                 translationMat = glm::translate(translations[index]);
             }
             glm::mat4 rotationMat;
@@ -1080,7 +1084,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     _marketplaceEntity = entity->getMarketplaceID().length() != 0;
-    _shouldHighlight = entity->getShouldHighlight();
     _animating = entity->isAnimatingSomething();
 
     withWriteLock([&] {
@@ -1206,17 +1209,6 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     withReadLock([&]{
         model = _model;
     });
-
-    // this simple logic should say we set showingEntityHighlight to true whenever we are in marketplace mode and we have a marketplace id, or
-    // whenever we are not set to none and shouldHighlight is true.
-    bool showingEntityHighlight = ((bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE) && _marketplaceEntity != 0) ||
-                                  (args->_outlineFlags != RenderArgs::RENDER_OUTLINE_NONE && _shouldHighlight);
-    if (showingEntityHighlight) {
-        static glm::vec4 yellowColor(1.0f, 1.0f, 0.0f, 1.0f);
-        gpu::Batch& batch = *args->_batch;
-        batch.setModelTransform(_modelTransform); // we want to include the scale as well
-        DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, yellowColor);
-    }
 
     if (_model && _model->didVisualGeometryRequestFail()) {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
