@@ -14,6 +14,7 @@
 #include <FSTReader.h>
 #include "FBXReader.h"
 #include "OBJReader.h"
+#include "GLTFReader.h"
 
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
@@ -173,9 +174,10 @@ void GeometryReader::run() {
 
         QString urlname = _url.path().toLower();
         if (!urlname.isEmpty() && !_url.path().isEmpty() &&
-			(_url.path().toLower().endsWith(".fbx") || 
-			_url.path().toLower().endsWith(".obj") || 
-			_url.path().toLower().endsWith(".obj.gz"))) {
+            (_url.path().toLower().endsWith(".fbx") ||
+                _url.path().toLower().endsWith(".obj") ||
+                _url.path().toLower().endsWith(".obj.gz") ||
+                _url.path().toLower().endsWith(".gltf"))) {
             FBXGeometry::Pointer fbxGeometry;
 
             if (_url.path().toLower().endsWith(".fbx")) {
@@ -183,17 +185,28 @@ void GeometryReader::run() {
                 if (fbxGeometry->meshes.size() == 0 && fbxGeometry->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported FBX version");
                 }
-            } else if (_url.path().toLower().endsWith(".obj")) {
+            }
+            else if (_url.path().toLower().endsWith(".obj")) {
                 fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, _combineParts, _url));
-			} else if (_url.path().toLower().endsWith(".obj.gz")) {
-				QByteArray uncompressedData;
-				if (gunzip(_data, uncompressedData)){
-					fbxGeometry.reset(OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url));
-				} else {
-					throw QString("failed to decompress .obj.gz" );
-				}
+            }
+            else if (_url.path().toLower().endsWith(".obj.gz")) {
+                QByteArray uncompressedData;
+                if (gunzip(_data, uncompressedData)) {
+                    fbxGeometry.reset(OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url));
+                }
+                else {
+                    throw QString("failed to decompress .obj.gz");
+                }
 
-			} else {
+            }
+            else if (_url.path().toLower().endsWith(".gltf")) {
+                std::unique_ptr<GLTFReader> glreader = std::make_unique<GLTFReader>();
+                fbxGeometry.reset(glreader->readGLTF(_data, _mapping, _url));
+                if (fbxGeometry->meshes.size() == 0 && fbxGeometry->joints.size() == 0) {
+                    throw QString("empty geometry, possibly due to an unsupported GLTF version");
+                }
+            }
+            else {
                 throw QString("unsupported format");
             }
 

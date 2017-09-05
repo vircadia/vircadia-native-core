@@ -1,7 +1,7 @@
-name = mannequin
+name = Avocado
 type = body+head
 scale = 1
-filename = mannequin/mannequin.baked.fbx
+filename = DamagedHelmet/DamagedHelmet.gltf
 joint = jointEyeLeft = LeftEye
 joint = jointRightHand = RightHand
 joint = jointHead = Head
