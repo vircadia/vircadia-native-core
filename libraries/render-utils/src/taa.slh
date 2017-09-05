@@ -203,18 +203,41 @@ float Luminance(vec3 rgb) {
     return rgb.x/4.0 + rgb.y/2.0 + rgb.z/4.0;
 }
 
-vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix)
-{
-    vec4 texel1 = vec4(historyColor, 1.0);
-    vec4 texel0 = vec4(sourceColor, 1.0);
-
+mat3 taa_evalNeighbourColorRegion(vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix) {
     vec2 imageSize = getWidthHeight(0);
     vec2 texelSize = getInvWidthHeight();
 
-  /*  if (taa_unjitter()) {
-        fragUV += fragJitterPix * texelSize;
-    }*/
+ #if MINMAX_3X3 || MINMAX_3X3_ROUNDED
 
+		vec2 du = vec2(texelSize.x, 0.0);
+		vec2 dv = vec2(0.0, texelSize.y);
+
+		vec3 ctl = taa_fetchSourceMap(fragUV - dv - du).rgb;
+		vec3 ctc = taa_fetchSourceMap(fragUV - dv).rgb;
+		vec3 ctr = taa_fetchSourceMap(fragUV - dv + du).rgb;
+		vec3 cml = taa_fetchSourceMap(fragUV - du).rgb;
+		vec3 cmc = taa_fetchSourceMap(fragUV).rgb; // could resuse the same osurce sample isn't it ?
+		vec3 cmr = taa_fetchSourceMap(fragUV + du).rgb;
+		vec3 cbl = taa_fetchSourceMap(fragUV + dv - du).rgb;
+		vec3 cbc = taa_fetchSourceMap(fragUV + dv).rgb;
+		vec3 cbr = taa_fetchSourceMap(fragUV + dv + du).rgb;
+
+		vec3 cmin = min(ctl, min(ctc, min(ctr, min(cml, min(cmc, min(cmr, min(cbl, min(cbc, cbr))))))));
+		vec3 cmax = max(ctl, max(ctc, max(ctr, max(cml, max(cmc, max(cmr, max(cbl, max(cbc, cbr))))))));
+
+		#if MINMAX_3X3_ROUNDED || USE_YCOCG || USE_CLIPPING
+			vec3 cavg = (ctl + ctc + ctr + cml + cmc + cmr + cbl + cbc + cbr) / 9.0;
+		#endif
+
+		#if MINMAX_3X3_ROUNDED
+			vec3 cmin5 = min(ctc, min(cml, min(cmc, min(cmr, cbc))));
+			vec3 cmax5 = max(ctc, max(cml, max(cmc, max(cmr, cbc))));
+			vec3 cavg5 = (ctc + cml + cmc + cmr + cbc) / 5.0;
+			cmin = 0.5 * (cmin + cmin5);
+			cmax = 0.5 * (cmax + cmax5);
+			cavg = 0.5 * (cavg + cavg5);
+		#endif
+    #else
 		const float _SubpixelThreshold = 0.5;
 		const float _GatherBase = 0.5;
 		const float _GatherSubpixelMotion = 0.1666;
@@ -228,33 +251,51 @@ vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, 
 
 		vec2 ss_offset01 = k_min_max_support * vec2(-texelSize.x, texelSize.y);
 		vec2 ss_offset11 = k_min_max_support * vec2(texelSize.x, texelSize.y);
-		vec4 c00 = taa_fetchSourceMap(fragUV - ss_offset11);
-		vec4 c10 = taa_fetchSourceMap(fragUV - ss_offset01);
-		vec4 c01 = taa_fetchSourceMap(fragUV + ss_offset01);
-		vec4 c11 = taa_fetchSourceMap(fragUV + ss_offset11);
+		vec3 c00 = taa_fetchSourceMap(fragUV - ss_offset11).rgb;
+		vec3 c10 = taa_fetchSourceMap(fragUV - ss_offset01).rgb;
+		vec3 c01 = taa_fetchSourceMap(fragUV + ss_offset01).rgb;
+		vec3 c11 = taa_fetchSourceMap(fragUV + ss_offset11).rgb;
 
-		vec4 cmin = min(c00, min(c10, min(c01, c11)));
-		vec4 cmax = max(c00, max(c10, max(c01, c11)));
+		vec3 cmin = min(c00, min(c10, min(c01, c11)));
+		vec3 cmax = max(c00, max(c10, max(c01, c11)));
 
 		#if USE_YCOCG || USE_CLIPPING
-			vec4 cavg = (c00 + c10 + c01 + c11) / 4.0;
+			vec3 cavg = (c00 + c10 + c01 + c11) / 4.0;
 		#endif
-
+   #endif
 
 		// shrink chroma min-max
 	#if USE_YCOCG
 		vec2 chroma_extent = vec2(0.25 * 0.5 * (cmax.r - cmin.r));
 		vec2 chroma_center = texel0.gb;
-		cmin.yz = chroma_center - chroma_extent;
+		colorMinMaxAvg[0].yz = chroma_center - chroma_extent;
 		cmax.yz = chroma_center + chroma_extent;
 		cavg.yz = chroma_center;
 	#endif
 
+   return mat3(cmin, cmax, cavg);
+}
+
+
+vec3 taa_temporalReprojection(vec3 sourceColor, vec3 historyColor, vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix)
+{
+    vec3 texel0 = (sourceColor);
+    vec3 texel1 = (historyColor);
+
+    vec2 imageSize = getWidthHeight(0);
+    vec2 texelSize = getInvWidthHeight();
+
+    if (taa_unjitter()) {
+        fragUV -= fragJitterPix * texelSize;
+    }
+
+    mat3 colorMinMaxAvg = taa_evalNeighbourColorRegion(fragUV, fragVelocity, fragZe, fragJitterPix);
+   
 		// clamp to neighbourhood of current sample
 	#if USE_CLIPPING
-		texel1 = clip_aabb(cmin.xyz, cmax.xyz, clamp(cavg, cmin, cmax), texel1);
+		texel1 = clip_aabb(colorMinMaxAvg[0], colorMinMaxAvg[1], clamp(colorMinMaxAvg[2], colorMinMaxAvg[0], colorMinMaxAvg[1]), texel1);
 	#else
-		texel1 = clamp(texel1, cmin, cmax);
+		texel1 = clamp(texel1, colorMinMaxAvg[0], colorMinMaxAvg[1]);
 	#endif
 
 		// feedback weight from unbiased luminance diff (t.lottes)
