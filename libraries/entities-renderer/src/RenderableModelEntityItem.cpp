@@ -909,13 +909,11 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     QVector<JointData> jointsData;
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
-    auto& animationGeometry = _animation->getGeometry();
-    auto& animationJointNames = animationGeometry.getJointNames();
-    auto& fbxJoints = animationGeometry.joints;
+    QStringList animationJointNames = _animation->getGeometry().getJointNames();
+    auto& fbxJoints = _animation->getGeometry().joints;
 
-    auto& originalFbx = _model->getFBXGeometry();
-    auto& originalFbxJoints = originalFbx.joints;
-    auto& originalFbxIndices = originalFbx.jointIndices;
+    auto& originalFbxJoints = _model->getFBXGeometry().joints;
+    auto& originalFbxIndices = _model->getFBXGeometry().jointIndices;
 
     bool allowTranslation = entity->getAnimationAllowTranslation();
     int frameCount = frames.size();
