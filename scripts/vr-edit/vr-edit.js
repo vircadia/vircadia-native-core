@@ -948,7 +948,7 @@
                 break;
             case EDITOR_SEARCHING:
                 if (hand.valid()
-                        && (!intersection.entityID || !intersection.editableEntity)
+                        && (!intersection.entityID || !(intersection.editableEntity || toolSelected === TOOL_PICK_COLOR))
                         && !(intersection.overlayID && !wasTriggerClicked && isTriggerClicked
                             && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
@@ -963,12 +963,12 @@
                     intersectedEntityID = otherEditor.intersectedEntityID();
                     rootEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && intersection.editableEntity
+                } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
                         && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab) {
                     intersectedEntityID = intersection.entityID;
                     rootEntityID = Entities.rootOf(intersectedEntityID);
                     setState(EDITOR_HIGHLIGHTING);
-                } else if (intersection.entityID && intersection.editableEntity
+                } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
                         && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked) {
                     intersectedEntityID = intersection.entityID;
                     rootEntityID = Entities.rootOf(intersectedEntityID);
@@ -1014,7 +1014,7 @@
                 break;
             case EDITOR_HIGHLIGHTING:
                 if (hand.valid()
-                        && intersection.entityID && intersection.editableEntity
+                        && intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
                         && !(!wasTriggerClicked && isTriggerClicked
                             && (!otherEditor.isEditing(rootEntityID) || toolSelected !== TOOL_SCALE))
                         && !(!wasTriggerClicked && isTriggerClicked && intersection.overlayID
@@ -1056,7 +1056,8 @@
                     intersectedEntityID = otherEditor.intersectedEntityID();
                     rootEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && intersection.editableEntity && !wasTriggerClicked && isTriggerClicked) {
+                } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                        && !wasTriggerClicked && isTriggerClicked) {
                     intersectedEntityID = intersection.entityID;  // May be a different entityID.
                     rootEntityID = Entities.rootOf(intersectedEntityID);
                     if (otherEditor.isEditing(rootEntityID)) {
