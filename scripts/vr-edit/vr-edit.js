@@ -1590,9 +1590,18 @@
 
 
     function onAppButtonClicked() {
+        var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications",
+            EDIT_ERROR = 4,  // Per notifications.js.
+            INSUFFICIENT_PERMISSIONS_ERROR_MSG =
+                "You do not have the necessary permissions to edit on this domain.";  // Same as edit.js.
+
         // Application tablet/toolbar button clicked.
         if (!isAppActive && !(Entities.canRez() || Entities.canRezTmp())) {
             Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
+            Messages.sendLocalMessage(NOTIFICATIONS_MESSAGE_CHANNEL, JSON.stringify({
+                message: INSUFFICIENT_PERMISSIONS_ERROR_MSG,
+                notificationType: EDIT_ERROR
+            }));
             return;
         }
 
