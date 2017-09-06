@@ -2833,15 +2833,16 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         // If this is a first run we short-circuit the address passed in
         if (firstRun.get()) {
             showHelp();
-                if (sandboxIsRunning) {
-                    qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                    DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                    sentTo = SENT_TO_SANDBOX;
-                } else {
-                    qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                    DependencyManager::get<AddressManager>()->goToEntry();
-                    sentTo = SENT_TO_ENTRY;
-                }
+            if (sandboxIsRunning) {
+                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+                DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                sentTo = SENT_TO_SANDBOX;
+            } else {
+                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
+                DependencyManager::get<AddressManager>()->goToEntry();
+                sentTo = SENT_TO_ENTRY;
+            }
+            firstRun.set(false);
 
         } else {
             qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
