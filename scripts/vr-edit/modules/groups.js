@@ -81,13 +81,27 @@ Groups = function () {
 
     function group() {
         // Groups all selections into one.
-        var rootID,
+        var DYNAMIC_AND_COLLISIONLESS = { dynamic: true, collisionless: true },
+            rootID,
             i,
-            count;
+            lengthI,
+            j,
+            lengthJ;
+
+        // If the first group has physics (i.e., root entity is dynamic) make all entities in child groups dynamic and 
+        // collisionless. (Don't need to worry about other groups physics properties because only those of the the first entity 
+        // in the linkset are used by High Fidelity.) See Selection.applyPhysics().
+        if (selections[0][0].dynamic) {
+            for (i = 1, lengthI = selections.length; i < lengthI; i += 1) {
+                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j += 1) {
+                    Entities.editEntity(selections[i][j].id, DYNAMIC_AND_COLLISIONLESS);
+                }
+            }
+        }
 
         // Make the first entity in the first group the root and link the first entities of all other groups to it.
         rootID = rootEntityIDs[0];
-        for (i = 1, count = rootEntityIDs.length; i < count; i += 1) {
+        for (i = 1, lengthI = rootEntityIDs.length; i < lengthI; i += 1) {
             Entities.editEntity(rootEntityIDs[i], {
                 parentID: rootID
             });
@@ -95,7 +109,7 @@ Groups = function () {
 
         // Update selection.
         rootEntityIDs.splice(1, rootEntityIDs.length - 1);
-        for (i = 1, count = selections.length; i < count; i += 1) {
+        for (i = 1, lengthI = selections.length; i < lengthI; i += 1) {
             selections[i][0].parentID = rootID;
             selections[0] = selections[0].concat(selections[i]);
         }
@@ -114,8 +128,11 @@ Groups = function () {
             hasSoloChildren = false,
             hasGroupChildren = false,
             isUngroupAll,
+            NONDYNAMIC_AND_NONCOLLISIONLESS = { dynamic: false, collisionless: false },
             i,
-            count;
+            lengthI,
+            j,
+            lengthJ;
 
         function updateGroupInformation() {
             var childrenIndexesLength = childrenIndexes.length;
@@ -141,7 +158,7 @@ Groups = function () {
 
         // Compile information on immediate children.
         rootID = rootEntityIDs[0];
-        for (i = 1, count = selections[0].length; i < count; i += 1) {
+        for (i = 1, lengthI = selections[0].length; i < lengthI; i += 1) {
             if (selections[0][i].parentID === rootID) {
                 childrenIDs.push(selections[0][i].id);
                 childrenIndexes.push(i);
@@ -161,6 +178,16 @@ Groups = function () {
                 rootEntityIDs.push(childrenIDs[i]);
                 selections[0][childrenIndexes[i]].parentID = Uuid.NULL;
                 selections.push(selections[0].splice(childrenIndexes[i], childrenIndexes[i + 1] - childrenIndexes[i]));
+            }
+        }
+
+        // If root group has physics, reset child groups to defaults for dynamic and collisionless. See 
+        // Selection.applyPhysics().
+        if (selections[0][0].dynamic) {
+            for (i = 1, lengthI = selections.length; i < lengthI; i += 1) {
+                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j += 1) {
+                    Entities.editEntity(selections[i][j].id, NONDYNAMIC_AND_NONCOLLISIONLESS);
+                }
             }
         }
     }

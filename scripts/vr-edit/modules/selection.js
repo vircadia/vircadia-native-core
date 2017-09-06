@@ -224,11 +224,11 @@ Selection = function (side) {
     }
 
     function finishEditing() {
-        var count,
-            i;
+        var i;
 
         // Restore entity set's physics.
-        for (i = 0, count = selection.length; i < count; i += 1) {
+        // Note: Need to apply children-first in order to avoid children's relative positions sometimes drifting.
+        for (i = selection.length - 1; i >= 0; i -= 1) {
             Entities.editEntity(selection[i].id, {
                 dynamic: selection[i].dynamic,
                 collisionless: selection[i].collisionless
@@ -424,9 +424,25 @@ Selection = function (side) {
     }
 
     function applyPhysics(physicsProperties) {
-        // Apply physics to just the root entity.
-        var properties;
+        // Regarding trees of entities, when physics is to be enabled the physics engine currently:
+        // - Only works with physics applied to the root entity; i.e., child entities are ignored for collisions.
+        // - Requires child entities to be dynamic if the root entity is dynamic, otherwise child entities can drift.
+        // - Requires child entities to be collisionless, otherwise the entity tree can become self-propelled.
+        // See also: Groups.group() and ungroup().
+        var properties,
+            i,
+            length;
 
+        // Make children cater to physicsProperties.
+        properties = {
+            dynamic: physicsProperties.dynamic,
+            collisionless: physicsProperties.dynamic || physicsProperties.collisionless
+        };
+        for (i = 1, length = selection.length; i < length; i += 1) {
+            Entities.editEntity(selection[i].id, properties);
+        }
+
+        // Set root per physicsProperties.
         properties = Object.clone(physicsProperties);
         properties.userData = updatePhysicsUserData(selection[intersectedEntityIndex].userData, physicsProperties.userData);
         Entities.editEntity(rootEntityID, properties);
