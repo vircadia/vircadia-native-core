@@ -14,20 +14,12 @@ import "configSlider"
 
 Item {
     id: root
-    property var pickConfig: Render.getConfig("RenderMainView.PickOutlined")
-    property var debugConfig: Render.getConfig("RenderMainView.DebugOutline")
-    property var drawConfig: Render.getConfig("RenderMainView.DrawOutline")
+    property var debugConfig: Render.getConfig("RenderMainView.OutlineDebug")
+    property var drawConfig: Render.getConfig("RenderMainView.OutlineEffect")
 
     Column {
         spacing: 8
 
-        CheckBox {
-            text: "Edit Outline"
-            checked: root.pickConfig["pick"]
-            onCheckedChanged: {
-                root.pickConfig["pick"] = checked;
-            }
-        }
         CheckBox {
             text: "View Outlined Depth"
             checked: root.debugConfig["viewOutlinedDepth"]

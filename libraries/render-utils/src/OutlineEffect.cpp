@@ -145,12 +145,12 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
     auto mainFrameBuffer = inputs.get1();
 
     if (mainFrameBuffer) {
-        auto sceneDepthBuffer = mainFrameBuffer->getPrimaryDepthTexture();
+        auto sceneDepthBuffer = inputs.get2();
         const auto frameTransform = inputs.get0();
-        auto outlinedDepthBuffer = inputs.get2();
+        auto outlinedDepthBuffer = mainFrameBuffer->getPrimaryDepthTexture();
         auto destinationFrameBuffer = inputs.get3();
         auto pipeline = getPipeline();
-        auto framebufferSize = glm::ivec2(sceneDepthBuffer->getDimensions());
+        auto framebufferSize = glm::ivec2(outlinedDepthBuffer->getDimensions());
 
         if (!_primaryWithoutDepthBuffer || framebufferSize!=_frameBufferSize) {
             // Failing to recreate this frame buffer when the screen has been resized creates a bug on Mac
@@ -159,7 +159,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             _frameBufferSize = framebufferSize;
         }
 
-        if (outlinedDepthBuffer) {
+        if (sceneDepthBuffer) {
             auto args = renderContext->args;
             {
                 auto& configuration = _configuration.edit();
@@ -185,8 +185,8 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
 
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
                 batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
-                batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer);
-                batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthBuffer->getDepthTexture());
+                batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer->getDepthTexture());
+                batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthBuffer);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
 
                 // Restore previous frame buffer
@@ -255,7 +255,7 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
             batch.setModelTransform(Transform());
 
             batch.setPipeline(getDebugPipeline());
-            batch.setResourceTexture(0, outlineFramebuffer->getDepthTexture());
+            batch.setResourceTexture(0, outlineFramebuffer->getPrimaryDepthTexture());
 
             const glm::vec4 color(1.0f, 0.5f, 0.2f, 1.0f);
             const glm::vec2 bottomLeft(-1.0f, -1.0f);
@@ -369,7 +369,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     const auto input = inputs.get<Inputs>();
     const auto selectedMetas = inputs.getN<Inputs>(0);
     const auto shapePlumber = input.get1();
-    const auto deferredFramebuffer = inputs.getN<Inputs>(2);
+    const auto outlinedFrameBuffer = inputs.getN<Inputs>(2);
     const auto primaryFramebuffer = inputs.getN<Inputs>(3);
     const auto deferredFrameTransform = inputs.getN<Inputs>(4);
 
@@ -383,22 +383,22 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
         initZPassPipelines(*shapePlumberZPass, state);
     }
 
-    const auto& outlinedItemIDs = task.addJob<render::MetaToSubItems>("MetaToSubItemIDs", selectedMetas);
-    const auto& outlinedItems = task.addJob<render::IDsToBounds>("MetaToSubItems", outlinedItemIDs, true);
+    const auto& outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", selectedMetas);
+    const auto& outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs, true);
+
+    // Retrieve z value of the scene objects
+    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedItems, outlinedFrameBuffer).asVarying();
+    const auto sceneFrameBuffer = task.addJob<PrepareOutline>("OutlineCopyDepth", outlinePrepareInputs);
 
     // Sort
-    const auto& sortedPipelines = task.addJob<render::PipelineSortShapes>("PipelineSort", outlinedItems);
-    const auto& sortedShapes = task.addJob<render::DepthSortShapes>("DepthSort", sortedPipelines);
-    task.addJob<DrawOutlineDepth>("Depth", sortedShapes, shapePlumberZPass);
-
-    // Retrieve z value of the outlined objects
-    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedItems, deferredFramebuffer).asVarying();
-    const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("CopyDepth", outlinePrepareInputs);
+    const auto& sortedPipelines = task.addJob<render::PipelineSortShapes>("OutlinePipelineSort", outlinedItems);
+    const auto& sortedShapes = task.addJob<render::DepthSortShapes>("OutlineDepthSort", sortedPipelines);
+    task.addJob<DrawOutlineDepth>("OutlineDepth", sortedShapes, shapePlumberZPass);
 
     // Draw outline
-    const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, deferredFramebuffer, outlinedFrameBuffer, primaryFramebuffer).asVarying();
-    task.addJob<DrawOutline>("Effect", drawOutlineInputs);
+    const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlinedFrameBuffer, sceneFrameBuffer, primaryFramebuffer).asVarying();
+    task.addJob<DrawOutline>("OutlineEffect", drawOutlineInputs);
 
     // Debug outline
-    task.addJob<DebugOutline>("Debug", outlinedFrameBuffer);
+    task.addJob<DebugOutline>("OutlineDebug", outlinedFrameBuffer);
 }

@@ -146,7 +146,7 @@ signals:
 
 class DebugOutline {
 public:
-    using Inputs = OutlineFramebufferPointer;
+    using Inputs = DeferredFramebufferPointer;
     using Config = DebugOutlineConfig;
     using JobModel = render::Job::ModelI<DebugOutline, Inputs, Config>;
 
