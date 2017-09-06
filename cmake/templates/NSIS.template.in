@@ -964,13 +964,13 @@ SectionEnd
 
       ; the process is running, ask the user to close it
       
-      ${If} $displayName == "Sandbox"
+      ${If} "${displayName}" == "Sandbox"
       MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
         "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it in the system tray and click Retry to continue." \
         /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
       ${EndIf}
 
-      ${If} $displayName == "Interface"
+      ${If} "${displayName}" == "Interface"
       MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
         "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it and click Retry to continue." \
         /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
