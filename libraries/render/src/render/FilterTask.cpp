@@ -98,8 +98,9 @@ void SelectSortItems::run(const RenderContextPointer& renderContext, const ItemB
     }
 }
 
-void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemIDs& outItems) {
+void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
     auto& scene = renderContext->_scene;
+    ItemIDs outItemIds;
 
     // Now we have a selection of items to render
     outItems.clear();
@@ -107,7 +108,14 @@ void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBo
     for (auto idBound : inItems) {
         auto& item = scene->getItem(idBound.id);
 
-        item.fetchMetaSubItems(outItems);
+        item.fetchMetaSubItems(outItemIds);
+    }
+
+    // Transform Item IDs to ItemBounds
+    for (auto id : outItemIds) {
+        auto& item = scene->getItem(id);
+
+        outItems.emplace_back(ItemBound{ id, item.getBound() });
     }
 }
 

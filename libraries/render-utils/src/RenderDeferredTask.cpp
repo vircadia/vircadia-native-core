@@ -40,7 +40,6 @@
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
-#include "PickItemsJob.h"
 #include "OutlineEffect.h"
 
 #include <gpu/StandardShaderLib.h>
@@ -96,16 +95,20 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Select items that need to be outlined
-    const auto outlinedOpaques = task.addJob<PickItemsJob>("PickOutlined", opaques,
-        // Pick only shapes so exclude meta
-        render::ItemKey::Builder().withTypeShape().build()._flags, render::ItemKey::Builder().withTypeMeta().build()._flags);
+    const auto outlineSelectionName = "contextOverlayHighlightList";
+    const auto outlinedOpaquesSelection = task.addJob<SelectItems>("SelectOutlinedOpaques", opaques, outlineSelectionName);
+    const auto outlinedTransparentSelection = task.addJob<SelectItems>("SelectOutlinedTransparents", transparents, outlineSelectionName);
+    const auto outlinedOpaqueItems = task.addJob<MetaToSubItems>("OutlinedOpaqueMetaToSubItems", outlinedOpaquesSelection);
+    const auto outlinedTransparentItems = task.addJob<MetaToSubItems>("OutlinedTransparentMetaToSubItems", outlinedTransparentSelection);
 
     // Render opaque outline objects first in DeferredBuffer
-    const auto opaqueOutlineInputs = DrawStateSortDeferred::Inputs(outlinedOpaques, lightingModel).asVarying();
-    task.addJob<DrawStateSortDeferred>("DrawOpaqueOutlined", opaqueOutlineInputs, shapePlumber);
+    const auto outlineOpaqueInputs = DrawStateSortDeferred::Inputs(outlinedOpaqueItems, lightingModel).asVarying();
+    const auto outlineTransparentInputs = DrawStateSortDeferred::Inputs(outlinedTransparentItems, lightingModel).asVarying();
+    task.addJob<DrawStateSortDeferred>("DrawOpaqueOutlined", outlineOpaqueInputs, shapePlumber);
+    task.addJob<DrawStateSortDeferred>("DrawTransparentOutlined", outlineTransparentInputs, shapePlumber);
 
     // Retrieve z value of the outlined objects
-    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedOpaques, deferredFramebuffer).asVarying();
+    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedOpaqueItems, outlinedTransparentItems, deferredFramebuffer).asVarying();
     const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("PrepareOutline", outlinePrepareInputs);
 
     // Render opaque objects in DeferredBuffer
