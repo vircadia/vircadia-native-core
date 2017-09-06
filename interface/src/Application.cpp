@@ -604,6 +604,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     // Set dependencies
+    DependencyManager::set<Cursor::Manager>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
@@ -6320,11 +6321,11 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
 
 bool Application::askToReplaceDomainContent(const QString& url) {
     QString methodDetails;
+    const int MAX_CHARACTERS_PER_LINE = 90;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         QUrl originURL { url };
         if (originURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
-            const int MAX_CHARACTERS_PER_LINE = 90;
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
@@ -6360,7 +6361,9 @@ bool Application::askToReplaceDomainContent(const QString& url) {
         }
     } else {
             methodDetails = "UserDoesNotHavePermissionToReplaceContent";
-            OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content",
+            static const QString warningMessage = simpleWordWrap("The domain owner must enable 'Replace Content' "
+                "permissions for you in this domain's server settings before you can continue.", MAX_CHARACTERS_PER_LINE);
+            OffscreenUi::warning("You do not have permissions to replace domain content", warningMessage,
                                  QMessageBox::Ok, QMessageBox::Ok);
     }
     QJsonObject messageProperties = {
