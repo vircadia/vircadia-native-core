@@ -45,9 +45,17 @@ void main() {
 
     vec3 nextColor = mix(historyColor, sourceColor, params.blend);
  
-    if (taa_constrainColor()) {
-        nextColor = taa_temporalReprojection(sourceColor, historyColor, fragUV, fragVel, nearFragUV.z, fragJitterPix);
+     if (taa_constrainColor()) {
+        mat3 colorMinMaxAvg = taa_evalNeighbourColorRegion(sourceColor, fragUV, fragVel, nearFragUV.z, fragJitterPix);
+     
+	    // clamp history to neighbourhood of current sample
+        historyColor = taa_clampColor(colorMinMaxAvg[0], colorMinMaxAvg[1], colorMinMaxAvg[2], historyColor);
+        nextColor = historyColor;
     }
     
+    if (taa_feedbackColor()) {
+         nextColor = taa_evalFeedbackColor(sourceColor, historyColor, params.blend);
+    }
+
     outFragColor = vec4(taa_resolveColor(nextColor), 1.0);
 }

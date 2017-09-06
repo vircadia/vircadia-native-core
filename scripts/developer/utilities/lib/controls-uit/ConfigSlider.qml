@@ -45,8 +45,8 @@ Item {
     HifiControls.Label {
         id: labelValue
         text: sliderControl.value.toFixed(root.integral ? 0 : 2)
-        anchors.left: root.left
-        anchors.leftMargin: 200
+        anchors.right: root.right
+        anchors.rightMargin: 8
         anchors.top: root.top
         anchors.topMargin: 15
     }

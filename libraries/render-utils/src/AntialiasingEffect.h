@@ -36,9 +36,10 @@ public:
 
 public slots:
     int cycleStopPauseRun();
-    int pause();
     int prev();
     int next();
+    int none();
+    int pause();
     int play();
 
     int getIndex() const { return _index; }
@@ -89,6 +90,9 @@ class AntialiasingConfig : public render::Job::Config {
  
     Q_PROPERTY(bool unjitter MEMBER unjitter NOTIFY dirty)
     Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
+    Q_PROPERTY(bool constrainColor9Taps MEMBER constrainColor9Taps NOTIFY dirty)
+    Q_PROPERTY(bool clipHistoryColor MEMBER clipHistoryColor NOTIFY dirty)
+    Q_PROPERTY(bool feedbackColor MEMBER feedbackColor NOTIFY dirty)
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
@@ -115,6 +119,9 @@ public:
 
     bool unjitter{ true };
     bool constrainColor{ true };
+    bool constrainColor9Taps{ true };
+    bool clipHistoryColor{ true };
+    bool feedbackColor{ true };
 
     bool debug { false };
     bool showCursorPixel { false };
@@ -143,6 +150,15 @@ struct TAAParams {
 
     void setConstrainColor(bool enabled) { SET_BIT(flags.y, 1, enabled); }
     bool isConstrainColor() const { return (bool)GET_BIT(flags.y, 1); }
+
+    void setConstrainColor9Taps(bool enabled) { SET_BIT(flags.y, 2, enabled); }
+    bool isConstrainColor9Taps() const { return (bool)GET_BIT(flags.y, 2); }
+
+    void setClipHistoryColor(bool enabled) { SET_BIT(flags.y, 3, enabled); }
+    bool isClipHistoryColor() const { return (bool)GET_BIT(flags.y, 3); }
+
+    void setFeedbackColor(bool enabled) { SET_BIT(flags.y, 4, enabled); }
+    bool isFeedbackColor() const { return (bool)GET_BIT(flags.y, 4); }
 
     void setDebug(bool enabled) { SET_BIT(flags.x, 0, enabled); }
     bool isDebug() const { return (bool) GET_BIT(flags.x, 0); }

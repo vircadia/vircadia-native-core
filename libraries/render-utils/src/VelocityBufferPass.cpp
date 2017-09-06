@@ -159,7 +159,7 @@ const gpu::PipelinePointer& VelocityBufferPass::getCameraMotionPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
-        PrepareStencil::testShape(*state);
+       // PrepareStencil::testShape(*state);
 
         state->setColorWriteMask(true, true, false, false);
         

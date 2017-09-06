@@ -30,25 +30,32 @@ Rectangle {
         spacing: 20
 
         Column{
-            spacing: 10
-            
-            HifiControls.ConfigSlider {
-                label: qsTr("Source blend")
-                integral: false
-                config: Render.getConfig("RenderMainView.Antialiasing")
-                property: "blend"
-                max: 1.0
-                min: 0.0
+
+           
+            Row {
+                spacing: 10
+                
+                var debugFXAA = false
+                HifiControls.Button {
+                    text: {
+                        if (debugFXAA) {
+                            return "FXAA"
+                        } else {
+                            return "TAA"
+                        }
+                        }
+                    onClicked: {
+                         if (debugFXAA) {
+                            Render.getConfig("RenderMainView.JitterCam").stop();
+                            Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 0;
+                         } else {
+                            Render.getConfig("RenderMainView.JitterCam").run();
+                            Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 1.0;
+                         }
+                         debugFXAA = !debugFXAA
+                    }
+                }
             }
-            ConfigSlider {
-                label: qsTr("Velocity scale")
-                integral: false
-                config: Render.getConfig("RenderMainView.Antialiasing")
-                property: "velocityScale"
-                max: 1.0
-                min: 0.0
-            }
-            Separator {}
             Row {
                 spacing: 10
                 
@@ -90,13 +97,44 @@ Rectangle {
                 }
             }
             Separator {}          
-            Row {
+            Column {
                 spacing: 10
                 HifiControls.CheckBox {
                     boxSize: 20
                     text: "Constrain color"
                     checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor"]
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor"] = checked }
+                }
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Constrain color 9 Taps"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor9Taps"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor9Taps"] = checked }
+                }
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Clip / Clamp History color"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["clipHistoryColor"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["clipHistoryColor"] = checked }
+                }
+                Row {
+                    spacing: 10
+                        
+                    HifiControls.CheckBox {
+                        boxSize: 20
+                        text: "Feedback history color"
+                        checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
+                        onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
+                    }
+            
+                    HifiControls.ConfigSlider {
+                        label: qsTr("Source blend")
+                        integral: false
+                        config: Render.getConfig("RenderMainView.Antialiasing")
+                        property: "blend"
+                        max: 1.0
+                        min: 0.0
+                    }
                 }
             }
             Row {
@@ -156,6 +194,15 @@ Rectangle {
                 max: 32.0
                 min: 1.0
             } 
+            Separator {}            
+             ConfigSlider {
+                label: qsTr("Velocity scale")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "velocityScale"
+                max: 1.0
+                min: 0.0
+            }
         }
     }
 }

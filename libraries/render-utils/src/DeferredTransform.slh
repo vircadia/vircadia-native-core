@@ -16,6 +16,9 @@
 struct CameraCorrection {
     mat4 _correction;
     mat4 _correctionInverse;
+    
+    mat4 _prevCorrection;
+    mat4 _prevCorrectionInverse;
 };
  
 uniform cameraCorrectionBuffer {

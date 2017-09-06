@@ -34,9 +34,9 @@ void main(void) {
 
 	// The position of the pixel fragment in Eye space then in world space
     vec3 eyePos = evalEyePositionFromZeye(stereoSide.x, Zeye, texcoordPos);
-	vec3 worldPos = (frameTransform._viewInverse * vec4(eyePos, 1.0)).xyz;
+	vec3 worldPos = (frameTransform._viewInverse * cameraCorrection._correction * vec4(eyePos, 1.0)).xyz;
     
-    vec3 prevEyePos = (frameTransform._prevView * vec4(worldPos, 1.0)).xyz;
+    vec3 prevEyePos = (cameraCorrection._prevCorrectionInverse * frameTransform._prevView * vec4(worldPos, 1.0)).xyz;
     vec4 prevClipPos = (frameTransform._projection[stereoSide.x] * vec4(prevEyePos, 1.0));
     vec2 prevUV =  0.5 * (prevClipPos.xy / prevClipPos.w) + vec2(0.5);
 

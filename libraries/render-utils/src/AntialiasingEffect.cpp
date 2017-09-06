@@ -288,6 +288,9 @@ void Antialiasing::configure(const Config& config) {
 
     _params.edit().setUnjitter(config.unjitter);
     _params.edit().setConstrainColor(config.constrainColor);
+    _params.edit().setConstrainColor9Taps(config.constrainColor9Taps);
+    _params.edit().setClipHistoryColor(config.clipHistoryColor);
+    _params.edit().setFeedbackColor(config.feedbackColor);
 
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
 
@@ -393,32 +396,20 @@ int JitterSampleConfig::cycleStopPauseRun() {
     _state = (_state + 1) % 3;
     switch (_state) {
         case 0: {
-            stop = true;
-            freeze = false;
-            setIndex(-1);
+            return none();
             break;
         }
         case 1: {
-            stop = false;
-            freeze = true;
-            setIndex(0);
+            return pause();
             break;
         }
         case 2:
         default: {
-            stop = false;
-            freeze = false;
-            setIndex(0);
+            return play();
             break;
         }
     }
     return _state;
-}
-
-int JitterSampleConfig::pause() {
-    freeze = true;
-    emit dirty();
-    return _index;
 }
 
 int JitterSampleConfig::prev() {
@@ -431,11 +422,32 @@ int JitterSampleConfig::next() {
     return _index;
 }
 
-int JitterSampleConfig::play() {
+int JitterSampleConfig::none() {
+    _state = 0;
+    stop = true;
     freeze = false;
-    emit dirty();
-    return _index;
+    setIndex(-1);
+    return _state;
 }
+
+int JitterSampleConfig::pause() {
+    _state = 1;
+    stop = false;
+    freeze = true;
+    setIndex(0);
+    return _state;
+}
+
+
+int JitterSampleConfig::play() {
+    _state = 2;
+    stop = false;
+    freeze = false;
+    setIndex(0);
+    return _state;
+}
+
+
 
 template <int B> class Halton {
 public:
