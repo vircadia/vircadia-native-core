@@ -1342,7 +1342,8 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
 
             auto bakedMapping = getBakeMapping(hash, bakedFilename);
 
-            bool currentlyDisabled = (_fileMappings.value(bakedMapping) == hash);
+            auto it = _fileMappings.find(bakedMapping);
+            bool currentlyDisabled = (it != _fileMappings.end() && it->second == hash);
 
             if (enabled && currentlyDisabled) {
                 QStringList bakedMappings{ bakedMapping };
