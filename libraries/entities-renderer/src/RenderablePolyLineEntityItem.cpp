@@ -126,6 +126,7 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
         auto textures = entity->getTextures();
         QString path = textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : textures;
         if (!_texture || _lastTextures != path) {
+            _lastTextures = path;
             _texture = DependencyManager::get<TextureCache>()->getTexture(QUrl(path));
         }
     }
@@ -220,7 +221,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     batch.setModelTransform(Transform{ _modelTransform }.setScale(vec3(1)));
     batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
 
-    if (_texture->isLoaded()) {
+    if (_texture && _texture->isLoaded()) {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
