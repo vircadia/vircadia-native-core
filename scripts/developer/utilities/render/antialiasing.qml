@@ -34,25 +34,26 @@ Rectangle {
            
             Row {
                 spacing: 10
-                
-                var debugFXAA = false
+                 id: fxaaOnOff
+                property bool debugFXAA: false
                 HifiControls.Button {
                     text: {
-                        if (debugFXAA) {
+                        if (fxaaOnOff.debugFXAA) {
                             return "FXAA"
                         } else {
                             return "TAA"
                         }
                         }
                     onClicked: {
-                         if (debugFXAA) {
-                            Render.getConfig("RenderMainView.JitterCam").stop();
+                        fxaaOnOff.debugFXAA = !fxaaOnOff.debugFXAA
+                         if (fxaaOnOff.debugFXAA) {
+                            Render.getConfig("RenderMainView.JitterCam").none();
                             Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 0;
                          } else {
-                            Render.getConfig("RenderMainView.JitterCam").run();
+                            Render.getConfig("RenderMainView.JitterCam").play();
                             Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 1.0;
                          }
-                         debugFXAA = !debugFXAA
+                         
                     }
                 }
             }
