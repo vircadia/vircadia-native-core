@@ -215,8 +215,7 @@ Selection = function (side) {
     }
 
     function startEditing() {
-        var count,
-            i;
+        var i;
 
         // Disable entity set's physics.
         //for (i = 0, count = selection.length; i < count; i += 1) {

@@ -1740,11 +1740,6 @@
         Messages.messageReceived.connect(onMessageReceived);
         MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
         MyAvatar.skeletonChanged.connect(onSkeletonChanged);
-
-        // Start main update loop.
-        if (isAppActive) {
-            update();
-        }
     }
 
     function tearDown() {
