@@ -59,7 +59,7 @@ Rectangle {
         }
 
         onWalletAuthenticatedStatusResult: {
-            if (!isAuthenticated && !passphraseModal.visible) {
+            if (!isAuthenticated && passphraseModal && !passphraseModal.visible) {
                 passphraseModal.visible = true;
             } else if (isAuthenticated) {
                 root.activeView = "walletHome";
