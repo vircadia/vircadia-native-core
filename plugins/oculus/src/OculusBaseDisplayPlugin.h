@@ -19,6 +19,8 @@ public:
     ~OculusBaseDisplayPlugin();
     bool isSupported() const override;
 
+    glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
+
     bool hasAsyncReprojection() const override { return true; }
 
 

@@ -2596,7 +2596,7 @@ void Application::paintGL() {
             mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
 
-            // adjust near clip plane by heightRatio
+            // adjust near clip plane by sensorToWorldScale
             auto baseProjection = glm::perspective(renderArgs.getViewFrustum().getFieldOfView(),
                                                    renderArgs.getViewFrustum().getAspectRatio(),
                                                    renderArgs.getViewFrustum().getNearClip() * sensorToWorldScale,

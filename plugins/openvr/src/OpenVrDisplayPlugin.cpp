@@ -357,6 +357,19 @@ bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
 }
 
+glm::mat4 OpenVrDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
+    if (_system) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        vr::EVREye openVrEye = (eye == Left) ? vr::Eye_Left : vr::Eye_Right;
+        return toGlm(_system->GetProjectionMatrix(openVrEye, baseNearClip, baseFarClip));
+    } else {
+        return baseProjection;
+    }
+}
+
 float OpenVrDisplayPlugin::getTargetFrameRate() const {
     if (forceInterleavedReprojection && !_asyncReprojectionActive) {
         return TARGET_RATE_OpenVr / 2.0f;
