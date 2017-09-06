@@ -272,6 +272,10 @@ void Wallet::setPassphrase(const QString& passphrase) {
         delete _passphrase;
     }
     _passphrase = new QString(passphrase);
+
+    // no matter what, we now need to clear the keys as they
+    // need to be read using this passphrase
+    _publicKeys.clear();
 }
 
 // encrypt some stuff
@@ -383,11 +387,25 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
 
+    // this should always be false if we don't have a passphrase
+    // cached yet
+    if (!_passphrase || _passphrase->isEmpty()) {
+        return false;
+    }
+    if (_publicKeys.count() > 0) {
+        // we _must_ be authenticated if the publicKeys are there
+        return true;
+    }
+
+    // otherwise, we have a passphrase but no keys, so we have to check
     auto publicKey = readPublicKey(keyFilePath().toStdString().c_str());
 
     if (publicKey.size() > 0) {
         if (auto key = readPrivateKey(keyFilePath().toStdString().c_str())) {
             RSA_free(key);
+
+            // be sure to add the public key so we don't do this over and over
+            _publicKeys.push_back(publicKey.toBase64());
             return true;
         }
     }
