@@ -27,6 +27,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/webEntityLaserInput.js",
     "controllerModules/inEditMode.js",
     "controllerModules/disableOtherModule.js",
+    "controllerModules/farTrigger.js",
     "teleport.js"
 ];
 

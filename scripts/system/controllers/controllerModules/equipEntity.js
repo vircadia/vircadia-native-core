@@ -257,7 +257,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         this.parameters = makeDispatcherModuleParameters(
             300,
-            this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip"] : ["leftHand", "rightHandEquip"],
+            this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip"] : ["leftHand", "leftHandEquip"],
             [],
             100);
 
@@ -539,6 +539,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             ensureDynamic(this.targetEntityID);
             this.targetEntityID = null;
+            this.messageGrabEntity = false;
+            this.grabEntityProps = null;
         };
 
         this.updateInputs = function (controllerData) {
@@ -594,9 +596,16 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 }
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
-                this.messageGrabEnity = false;
                 return makeRunningValues(false, [], []);
             }
+        };
+
+        this.isTargetIDValid = function() {
+            var entityProperties = Entities.getEntityProperties(this.targetEntityID);
+            for (var propertry in entityProperties) {
+                return true;
+            }
+            return false;
         };
 
         this.isReady = function (controllerData, deltaTime) {
@@ -609,6 +618,11 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var timestamp = Date.now();
             this.updateInputs(controllerData);
 
+            if (!this.isTargetIDValid()) {
+                this.endEquipEntity();
+                return makeRunningValues(false, [], []);
+            }
+                
             if (!this.targetEntityID) {
                 return this.checkNearbyHotspots(controllerData, deltaTime, timestamp);
             }
@@ -681,7 +695,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (channel === 'Hifi-Hand-Grab') {
                 try {
                     data = JSON.parse(message);
-                    var equipModule = (data.hand === 'left') ? leftEquipEntity : rightEquipEntity;
+                    print(JSON.stringify(data));
+                    var equipModule = (data.hand === "left") ? leftEquipEntity : rightEquipEntity;
                     var entityProperties = Entities.getEntityProperties(data.entityID, DISPATCHER_PROPERTIES);
                     entityProperties.id = data.entityID;
                     equipModule.setMessageGrabData(entityProperties);
