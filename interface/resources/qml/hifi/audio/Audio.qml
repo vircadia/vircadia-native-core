@@ -85,7 +85,7 @@ Rectangle {
         }
 
         ColumnLayout {
-            x: margins.paddings; // padding does not work
+            x: margins.paddings;
             spacing: 16;
             width: parent.width;
 
@@ -94,7 +94,7 @@ Rectangle {
                 AudioControls.CheckBox {
                     id: muteMic
                     text: qsTr("Mute microphone");
-                    spacing: 8
+                    spacing: margins.sizeCheckBox - boxSize
                     isRedCheck: true;
                     checked: Audio.muted;
                     onClicked: {
@@ -105,7 +105,7 @@ Rectangle {
             }
 
             RowLayout {
-                spacing: 16;
+                spacing: muteMic.spacing*2; //make it visually distinguish
                 AudioControls.CheckBox {
                     spacing: muteMic.spacing
                     text: qsTr("Enable noise reduction");
@@ -167,11 +167,14 @@ Rectangle {
             model: Audio.devices.input;
             delegate: Item {
                 width: rightMostInputLevelPos
-                height: margins.sizeCheckBox
+                height: margins.sizeCheckBox > checkBoxInput.implicitHeight ?
+                            margins.sizeCheckBox : checkBoxInput.implicitHeight
 
                 AudioControls.CheckBox {
+                    id: checkBoxInput
                     anchors.left: parent.left
                     spacing: margins.sizeCheckBox - boxSize
+                    anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - inputLevel.width
                     clip: true
                     checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
@@ -233,9 +236,11 @@ Rectangle {
             model: Audio.devices.output;
             delegate: Item {
                 width: rightMostInputLevelPos
-                height: margins.sizeCheckBox
+                height: margins.sizeCheckBox > checkBoxOutput.implicitHeight ?
+                            margins.sizeCheckBox : checkBoxOutput.implicitHeight
 
                 AudioControls.CheckBox {
+                    id: checkBoxOutput
                     width: parent.width
                     spacing: margins.sizeCheckBox - boxSize
                     boxSize: margins.sizeCheckBox / 2
