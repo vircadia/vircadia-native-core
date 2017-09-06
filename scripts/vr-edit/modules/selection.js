@@ -219,12 +219,18 @@ Selection = function (side) {
             i;
 
         // Disable entity set's physics.
-        for (i = 0, count = selection.length; i < count; i += 1) {
+        //for (i = 0, count = selection.length; i < count; i += 1) {
+        for (i = selection.length - 1; i >= 0; i -= 1) {
             Entities.editEntity(selection[i].id, {
-                dynamic: false,         // So that gravity doesn't fight with us trying to hold the entity in place.
-                collisionless: true     // So that entity doesn't bump us about as we resize the entity.
+                dynamic: false,  // So that gravity doesn't fight with us trying to hold the entity in place.
+                collisionless: true,  // So that entity doesn't bump us about as we resize the entity.
+                velocity: Vec3.ZERO,  // So that entity doesn't drift if we've grabbed a set while it was moving.
+                angularVelocity: Vec3.ZERO  // ""
             });
         }
+
+        // Stop moving.
+        Entities.editEntity(rootEntityID, { velocity: Vec3.ZERO, angularVelocity: Vec3.ZERO });
     }
 
     function finishEditing() {
