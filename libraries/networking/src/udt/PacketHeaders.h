@@ -259,6 +259,8 @@ const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 const PacketVersion VERSION_ENTITIES_HINGE_CONSTRAINT = 69;
 const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
 const PacketVersion VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT = 71;
+const PacketVersion VERSION_ENTITIES_HAS_HIGHLIGHT_SCRIPTING_INTERFACE = 72;
+const PacketVersion VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES = 73;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
@@ -288,7 +290,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentitySequenceId,
     MannequinDefaultAvatar,
     AvatarIdentitySequenceFront,
-    IsReplicatedInAvatarIdentity
+    IsReplicatedInAvatarIdentity,
+    AvatarIdentityLookAtSnapping,
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

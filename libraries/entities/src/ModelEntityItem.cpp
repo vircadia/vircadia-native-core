@@ -132,10 +132,13 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
         READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
     } else {
-        // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
-        // will automatically read into the animation loop
-        int bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                                                                        propertyFlags, overwriteLocalData, animationPropertiesChanged);
+        int bytesFromAnimation;
+        withWriteLock([&] {
+            // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
+            // will automatically read into the animation loop
+            bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+                propertyFlags, overwriteLocalData, animationPropertiesChanged);
+        });
 
         bytesRead += bytesFromAnimation;
         dataAt += bytesFromAnimation;
@@ -188,8 +191,10 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 
-    _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
-        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    withReadLock([&] {
+        _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
 
@@ -241,12 +246,14 @@ ShapeType ModelEntityItem::computeTrueShapeType() const {
 }
 
 void ModelEntityItem::setModelURL(const QString& url) {
-    if (_modelURL != url) {
-        _modelURL = url;
-        if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
-            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+    withWriteLock([&] {
+        if (_modelURL != url) {
+            _modelURL = url;
+            if (_shapeType == SHAPE_TYPE_STATIC_MESH) {
+                _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            }
         }
-    }
+    });
 }
 
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
@@ -261,7 +268,9 @@ void ModelEntityItem::setCompoundShapeURL(const QString& url) {
 
 void ModelEntityItem::setAnimationURL(const QString& url) {
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
-    _animationProperties.setURL(url);
+    withWriteLock([&] {
+        _animationProperties.setURL(url);
+    });
 }
 
 void ModelEntityItem::setAnimationSettings(const QString& value) {
@@ -321,6 +330,10 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationHold(hold);
     }
 
+    if (settingsMap.contains("allowTranslation")) {
+        bool allowTranslation = settingsMap["allowTranslation"].toBool();
+        setAnimationAllowTranslation(allowTranslation);
+    }
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
 }
 

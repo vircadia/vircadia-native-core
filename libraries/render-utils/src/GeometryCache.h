@@ -166,11 +166,8 @@ public:
     static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false, bool fading = false);
 
-    void bindOpaqueWebBrowserProgram(gpu::Batch& batch, bool isAA);
-    gpu::PipelinePointer getOpaqueWebBrowserProgram(bool isAA);
-
-    void bindTransparentWebBrowserProgram(gpu::Batch& batch, bool isAA);
-    gpu::PipelinePointer getTransparentWebBrowserProgram(bool isAA);
+    void bindWebBrowserProgram(gpu::Batch& batch, bool transparent = false);
+    gpu::PipelinePointer getWebBrowserProgram(bool transparent);
 
     static void initializeShapePipelines();
 
@@ -459,10 +456,8 @@ private:
     static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
     gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
-    gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
     gpu::PipelinePointer _simpleOpaqueWebBrowserPipelineNoAA;
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
-    gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
     gpu::PipelinePointer _simpleTransparentWebBrowserPipelineNoAA;
 
     static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,

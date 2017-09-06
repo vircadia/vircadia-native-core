@@ -335,9 +335,9 @@ void Web3DOverlay::render(RenderArgs* args) {
     batch.setModelTransform(transform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
-        geometryCache->bindTransparentWebBrowserProgram(batch, _isAA);
+        geometryCache->bindWebBrowserProgram(batch, true);
     } else {
-        geometryCache->bindOpaqueWebBrowserProgram(batch, _isAA);
+        geometryCache->bindWebBrowserProgram(batch);
     }
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
     batch.setResourceTexture(0, nullptr); // restore default white color after me

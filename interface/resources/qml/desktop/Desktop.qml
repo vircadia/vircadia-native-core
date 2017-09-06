@@ -50,7 +50,22 @@ FocusScope {
     property bool desktopRoot: true
 
     // The VR version of the primary menu
-    property var rootMenu: Menu { objectName: "rootMenu" }
+    property var rootMenu: Menu { 
+        objectName: "rootMenu" 
+
+        // for some reasons it is not possible to use just '({})' here as it gets empty when passed to TableRoot/DesktopRoot
+        property var exclusionGroupsByMenuItem : ListModel {}
+
+        function addExclusionGroup(menuItem, exclusionGroup)
+        {
+            exclusionGroupsByMenuItem.append(
+                {
+                    'menuItem' : menuItem.toString(), 
+                    'exclusionGroup' : exclusionGroup.toString()
+                }
+            );
+        }
+    }
 
     // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX/AMD
     //        because shaders are 4.2, and do not include #version declarations.

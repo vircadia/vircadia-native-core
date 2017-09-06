@@ -14,6 +14,7 @@
 #include "Wallet.h"
 #include "Application.h"
 #include "ui/ImageProvider.h"
+#include "scripting/HMDScriptingInterface.h"
 
 #include <PathUtils.h>
 #include <OffscreenUi.h>
@@ -55,15 +56,71 @@ QString imageFilePath() {
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     // just return a hardcoded pwd for now
     auto passphrase = DependencyManager::get<Wallet>()->getPassphrase();
-    if (passphrase) {
+    if (passphrase && !passphrase->isEmpty()) {
         strcpy(password, passphrase->toLocal8Bit().constData());
         return static_cast<int>(passphrase->size());
     } else {
-        // ok gotta bring up modal dialog... But right now lets just
-        // just keep it empty
+        // this shouldn't happen - so lets log it to tell us we have
+        // a problem with the flow...
+        qCCritical(commerce) << "no cached passphrase while decrypting!";
         return 0;
     }
 }
+
+RSA* readKeys(const char* filename) {
+    FILE* fp;
+    RSA* key = NULL;
+    if ((fp = fopen(filename, "rt"))) {
+        // file opened successfully
+        qCDebug(commerce) << "opened key file" << filename;
+        if ((key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL))) {
+            // now read private key
+
+            qCDebug(commerce) << "read public key";
+
+            if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
+                qCDebug(commerce) << "read private key";
+                fclose(fp);
+                return key;
+            }
+            qCDebug(commerce) << "failed to read private key";
+        } else {
+            qCDebug(commerce) << "failed to read public key";
+        }
+        fclose(fp);
+    } else {
+        qCDebug(commerce) << "failed to open key file" << filename;
+    }
+    return key;
+}
+
+bool writeKeys(const char* filename, RSA* keys) {
+    FILE* fp;
+    bool retval = false;
+    if ((fp = fopen(filename, "wt"))) {
+        if (!PEM_write_RSAPublicKey(fp, keys)) {
+            fclose(fp);
+            qCDebug(commerce) << "failed to write public key";
+            QFile(QString(filename)).remove();
+            return retval;
+        }
+
+        if (!PEM_write_RSAPrivateKey(fp, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
+            fclose(fp);
+            qCDebug(commerce) << "failed to write private key";
+            QFile(QString(filename)).remove();
+            return retval;
+        }
+
+        retval = true;
+        qCDebug(commerce) << "wrote keys successfully";
+        fclose(fp);
+    } else {
+        qCDebug(commerce) << "failed to open key file" << filename;
+    }
+    return retval;
+}
+
 
 // BEGIN copied code - this will be removed/changed at some point soon
 // copied (without emits for various signals) from libraries/networking/src/RSAKeypairGenerator.cpp.
@@ -123,25 +180,9 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
     }
 
 
-
-    // now lets persist them to files
-    // FIXME: for now I'm appending to the file if it exists.  As long as we always put
-    // the keys in the same order, this works fine.  TODO: verify this will skip over
-    // anything else (like an embedded image)
-    FILE* fp;
-    if ((fp = fopen(keyFilePath().toStdString().c_str(), "at"))) {
-        if (!PEM_write_RSAPublicKey(fp, keyPair)) {
-            fclose(fp);
-            qCDebug(commerce) << "failed to write public key";
-            return retval;
-        }
-
-        if (!PEM_write_RSAPrivateKey(fp, keyPair, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
-            fclose(fp);
-            qCDebug(commerce) << "failed to write private key";
-            return retval;
-        }
-        fclose(fp);
+    if (!writeKeys(keyFilePath().toStdString().c_str(), keyPair)) {
+        qCDebug(commerce) << "couldn't save keys!";
+        return retval;
     }
 
     RSA_free(keyPair);
@@ -200,9 +241,6 @@ RSA* readPrivateKey(const char* filename) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
         if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
-            // cleanup
-            fclose(fp);
-
             qCDebug(commerce) << "parsed private key file successfully";
 
         } else {
@@ -214,7 +252,6 @@ RSA* readPrivateKey(const char* filename) {
     }
     return key;
 }
-
 static const unsigned char IVEC[16] = "IAmAnIVecYay123";
 
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
@@ -224,11 +261,21 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
     memcpy(ckey, hash.data(), 32);
 }
 
+Wallet::~Wallet() {
+    if (_securityImage) {
+        delete _securityImage;
+    }
+}
+
 void Wallet::setPassphrase(const QString& passphrase) {
     if (_passphrase) {
         delete _passphrase;
     }
     _passphrase = new QString(passphrase);
+
+    // no matter what, we now need to clear the keys as they
+    // need to be read using this passphrase
+    _publicKeys.clear();
 }
 
 // encrypt some stuff
@@ -334,6 +381,38 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
     return true;
 }
 
+bool Wallet::walletIsAuthenticatedWithPassphrase() {
+    // try to read existing keys if they exist...
+
+    // FIXME: initialize OpenSSL elsewhere soon
+    initialize();
+
+    // this should always be false if we don't have a passphrase
+    // cached yet
+    if (!_passphrase || _passphrase->isEmpty()) {
+        return false;
+    }
+    if (_publicKeys.count() > 0) {
+        // we _must_ be authenticated if the publicKeys are there
+        return true;
+    }
+
+    // otherwise, we have a passphrase but no keys, so we have to check
+    auto publicKey = readPublicKey(keyFilePath().toStdString().c_str());
+
+    if (publicKey.size() > 0) {
+        if (auto key = readPrivateKey(keyFilePath().toStdString().c_str())) {
+            RSA_free(key);
+
+            // be sure to add the public key so we don't do this over and over
+            _publicKeys.push_back(publicKey.toBase64());
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool Wallet::createIfNeeded() {
     if (_publicKeys.count() > 0) return false;
 
@@ -347,7 +426,7 @@ bool Wallet::createIfNeeded() {
             qCDebug(commerce) << "read private key";
             RSA_free(key);
             // K -- add the public key since we have a legit private key associated with it
-            _publicKeys.push_back(QUrl::toPercentEncoding(publicKey.toBase64()));
+            _publicKeys.push_back(publicKey.toBase64());
             return false;
         }
     }
@@ -411,6 +490,13 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     return QString();
 }
 
+void Wallet::updateImageProvider() {
+    // inform the image provider.  Note it doesn't matter which one you inform, as the
+    // images are statics
+    auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+    auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
+    imageProvider->setSecurityImage(_securityImage);
+}
 
 void Wallet::chooseSecurityImage(const QString& filename) {
 
@@ -419,7 +505,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     }
     // temporary...
     QString path = qApp->applicationDirPath();
-    path.append("/resources/qml/hifi/commerce/");
+    path.append("/resources/qml/hifi/commerce/wallet/");
     path.append(filename);
     // now create a new security image pixmap
     _securityImage = new QPixmap();
@@ -431,10 +517,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     if (encryptFile(path, imageFilePath())) {
         qCDebug(commerce) << "emitting pixmap";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
         emit securityImageResult(true);
     } else {
@@ -454,16 +537,15 @@ void Wallet::getSecurityImage() {
     }
 
     // decrypt and return
-    if (decryptFile(imageFilePath(), &data, &dataLen)) {
+    QString filePath(imageFilePath());
+    QFileInfo fileInfo(filePath);
+    if (fileInfo.exists() && decryptFile(filePath, &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
         qCDebug(commerce) << "created pixmap from encrypted file";
 
-        // inform the image provider
-        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-        imageProvider->setSecurityImage(_securityImage);
+        updateImageProvider();
 
         delete[] data;
         emit securityImageResult(true);
@@ -480,4 +562,52 @@ void Wallet::sendKeyFilePathIfExists() {
     } else {
         emit keyFilePathIfExistsResult("");
     }
+}
+
+void Wallet::reset() {
+    _publicKeys.clear();
+
+    delete _securityImage;
+    _securityImage = nullptr;
+
+    // tell the provider we got nothing
+    updateImageProvider();
+    delete _passphrase;
+
+    // for now we need to maintain the hard-coded passphrase.
+    // FIXME: remove this line as part of wiring up the passphrase
+    // and probably set it to nullptr
+    _passphrase = new QString("pwd");
+
+    QFile keyFile(keyFilePath());
+    QFile imageFile(imageFilePath());
+    keyFile.remove();
+    imageFile.remove();
+}
+
+bool Wallet::changePassphrase(const QString& newPassphrase) {
+    qCDebug(commerce) << "changing passphrase";
+    RSA* keys = readKeys(keyFilePath().toStdString().c_str());
+    if (keys) {
+        // we read successfully, so now write to a new temp file
+        // save old passphrase just in case
+        // TODO: force re-enter?
+        QString oldPassphrase = *_passphrase;
+        setPassphrase(newPassphrase);
+        QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
+        if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
+            // ok, now move the temp file to the correct spot
+            QFile(QString(keyFilePath())).remove();
+            QFile(tempFileName).rename(QString(keyFilePath()));
+            qCDebug(commerce) << "passphrase changed successfully";
+            return true;
+        } else {
+            qCDebug(commerce) << "couldn't write keys";
+            QFile(tempFileName).remove();
+            setPassphrase(oldPassphrase);
+            return false;
+        }
+    }
+    qCDebug(commerce) << "couldn't read keys";
+    return false;
 }
