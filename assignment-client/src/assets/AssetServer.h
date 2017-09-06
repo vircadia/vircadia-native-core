@@ -22,6 +22,14 @@
 #include "AutoBaker.h"
 #include "ReceivedMessage.h"
 
+
+namespace std {
+    template <>
+    struct hash<QString> {
+        size_t operator()(const QString& v) const { return qHash(v); }
+    };
+}
+
 class BakeAssetTask : public QObject, public QRunnable {
     Q_OBJECT
 public:
@@ -33,12 +41,22 @@ public:
 
 signals:
     void bakeComplete(QString assetHash, QString assetPath, QVector<QString> outputFiles);
+    void bakeFailed(QString assetHash, QString assetPath);
 
 private:
     std::atomic<bool> _isBaking { false };
     AssetHash _assetHash;
     AssetPath _assetPath;
     QString _filePath;
+};
+
+struct AssetMeta {
+    AssetMeta() {
+    }
+
+    int bakeVersion { 0 };
+    int applicationVersion { 0 };
+    bool failedLastBake { false };
 };
 
 class AssetServer : public ThreadedAssignment {
@@ -60,7 +78,7 @@ private slots:
     void sendStatsPacket() override;
 
 private:
-    using Mappings = QVariantHash;
+    using Mappings = std::unordered_map<QString, QString>;
 
     void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
     void handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
@@ -100,9 +118,11 @@ private:
 
     /// Move baked content for asset to baked directory and update baked status
     void handleCompletedBake(QString originalAssetHash, QString assetPath, QVector<QString> bakedFilePaths);
+    void handleFailedBake(QString originalAssetHash, QString assetPath);
 
     /// Create meta file to describe baked content for original asset
-    bool createMetaFile(AssetHash originalAssetHash);
+    std::pair<bool, AssetMeta> readMetaFile(AssetHash hash);
+    bool writeMetaFile(AssetHash originalAssetHash, const AssetMeta& meta = AssetMeta());
 
     /// Remove baked paths when the original asset is deleteds
     void removeBakedPathsForDeletedAsset(AssetHash originalAssetHash);

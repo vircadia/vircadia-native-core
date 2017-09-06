@@ -83,6 +83,7 @@ void BakeAssetTask::run() {
 
     if (baker->hasErrors()) {
         qDebug() << "Failed to bake: " << _assetHash << _assetPath << baker->getErrors();
+        emit bakeFailed(_assetHash, _assetPath);
     } else {
         auto vectorOutputFiles = QVector<QString>::fromStdVector(baker->getOutputFiles());
         qDebug() << "Finished baking: " << _assetHash << _assetPath << vectorOutputFiles;
@@ -99,6 +100,7 @@ void AssetServer::bakeAsset(const AssetHash& assetHash, const AssetPath& assetPa
         _pendingBakes[assetHash] = task;
 
         connect(task.get(), &BakeAssetTask::bakeComplete, this, &AssetServer::handleCompletedBake);
+        connect(task.get(), &BakeAssetTask::bakeFailed, this, &AssetServer::handleFailedBake);
 
         _bakingTaskPool.start(task.get());
     } else {
@@ -140,7 +142,15 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
     auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + bakedFilename;
     auto jt = _fileMappings.find(bakedPath);
     if (jt != _fileMappings.end()) {
-        if (jt->toString() == hash) {
+        if (jt->second == hash) {
+            bool loaded;
+            AssetMeta meta;
+
+            std::tie(loaded, meta) = readMetaFile(hash);
+            if (loaded && meta.failedLastBake) {
+                return Error;
+            }
+
             return NotBaked;
         } else {
             return Baked;
@@ -153,8 +163,8 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
 void AssetServer::bakeAssets() {
     auto it = _fileMappings.cbegin();
     for (; it != _fileMappings.cend(); ++it) {
-        auto path = it.key();
-        auto hash = it.value().toString();
+        auto path = it->first;
+        auto hash = it->second;
         maybeBake(path, hash);
     }
 }
@@ -181,9 +191,8 @@ void AssetServer::createEmptyMetaFile(const AssetHash& hash) {
 
 bool AssetServer::hasMetaFile(const AssetHash& hash) {
     QString metaFilePath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/meta.json";
-    qDebug() << "in mappings?" << metaFilePath;
 
-    return _fileMappings.contains(metaFilePath);
+    return _fileMappings.find(metaFilePath) != _fileMappings.end();
 }
 
 bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHash) {
@@ -200,16 +209,25 @@ bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHa
 
     QString bakedFilename;
 
+    bool loaded;
+    AssetMeta meta;
+    std::tie(loaded, meta) = readMetaFile(assetHash);
+
+    // TODO: Allow failed bakes that happened on old versions to be re-baked
+    if (loaded && meta.failedLastBake) {
+        return false;
+    }
+
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
         bakedFilename = BAKED_MODEL_SIMPLE_NAME;
-    } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(assetHash)) {
+    } else if (loaded && BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit())) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
     } else {
         return false;
     }
 
     auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
-    return !_fileMappings.contains(bakedPath);
+    return _fileMappings.find(bakedPath) == _fileMappings.end();
 }
 
 bool interfaceRunning() {
@@ -364,7 +382,7 @@ void AssetServer::completeSetup() {
 
         qCInfo(asset_server) << "There are" << hashedFiles.size() << "asset files in the asset directory.";
 
-        if (_fileMappings.count() > 0) {
+        if (_fileMappings.size() > 0) {
             cleanupUnmappedFiles();
         }
 
@@ -382,23 +400,28 @@ void AssetServer::cleanupUnmappedFiles() {
 
     auto files = _filesDirectory.entryInfoList(QDir::Files);
 
-    // grab the currently mapped hashes
-    auto mappedHashes = _fileMappings.values();
-
     qCInfo(asset_server) << "Performing unmapped asset cleanup.";
 
     for (const auto& fileInfo : files) {
-        if (hashFileRegex.exactMatch(fileInfo.fileName())) {
-            if (!mappedHashes.contains(fileInfo.fileName())) {
+        auto filename = fileInfo.fileName();
+        if (hashFileRegex.exactMatch(filename)) {
+            bool matched { false };
+            for (auto& pair : _fileMappings) {
+                if (pair.second == filename) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
                 // remove the unmapped file
                 QFile removeableFile { fileInfo.absoluteFilePath() };
 
                 if (removeableFile.remove()) {
-                    qCDebug(asset_server) << "\tDeleted" << fileInfo.fileName() << "from asset files directory since it is unmapped.";
+                    qCDebug(asset_server) << "\tDeleted" << filename << "from asset files directory since it is unmapped.";
 
-                    removeBakedPathsForDeletedAsset(fileInfo.fileName());
+                    removeBakedPathsForDeletedAsset(filename);
                 } else {
-                    qCDebug(asset_server) << "\tAttempt to delete unmapped file" << fileInfo.fileName() << "failed";
+                    qCDebug(asset_server) << "\tAttempt to delete unmapped file" << filename << "failed";
                 }
             }
         }
@@ -460,9 +483,8 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(assetPathExtension.toLocal8Bit())) {
             bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
         }
-        qDebug() << bakedRootFile << assetPathExtension;
         
-        auto originalAssetHash = it->toString();
+        auto originalAssetHash = it->second;
         QString redirectedAssetHash;
         QString bakedAssetPath;
         quint8 wasRedirected = false;
@@ -475,7 +497,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
             if (bakedIt != _fileMappings.end()) {
                 qDebug() << "Did find baked version for: " << originalAssetHash << assetPath;
                 // we found a baked version of the requested asset to serve, redirect to that
-                redirectedAssetHash = bakedIt->toString();
+                redirectedAssetHash = bakedIt->second;
                 wasRedirected = true;
             } else {
                 qDebug() << "Did not find baked version for: " << originalAssetHash << assetPath;
@@ -500,9 +522,8 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
 
             auto query = QUrlQuery(url.query());
             bool isSkybox = query.hasQueryItem("skybox");
-            qDebug() << "Is skybox? " << isSkybox;
             if (isSkybox) {
-                createMetaFile(originalAssetHash);
+                writeMetaFile(originalAssetHash);
                 maybeBake(originalAssetHash, assetPath);
             }
         }
@@ -514,13 +535,13 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
 void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     replyPacket.writePrimitive(AssetServerError::NoError);
 
-    auto count = _fileMappings.size();
+    uint32_t count = (uint32_t)_fileMappings.size();
 
     replyPacket.writePrimitive(count);
 
     for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
-        auto mapping = it.key();
-        auto hash = it.value().toString();
+        auto mapping = it->first;
+        auto hash = it->second;
         replyPacket.writeString(mapping);
         replyPacket.write(QByteArray::fromHex(hash.toUtf8()));
         replyPacket.writePrimitive(getAssetStatus(mapping, hash));
@@ -784,31 +805,38 @@ bool AssetServer::loadMappingsFromFile() {
             auto jsonDocument = QJsonDocument::fromJson(mapFile.readAll(), &error);
 
             if (error.error == QJsonParseError::NoError) {
-                _fileMappings = jsonDocument.object().toVariantHash();
-
-                // remove any mappings that don't match the expected format
-                auto it = _fileMappings.begin();
-                while (it != _fileMappings.end()) {
-                    bool shouldDrop = false;
-
-                    if (!isValidFilePath(it.key())) {
-                        qCWarning(asset_server) << "Will not keep mapping for" << it.key() << "since it is not a valid path.";
-                        shouldDrop = true;
-                    }
-
-                    if (!isValidHash(it.value().toString())) {
-                        qCWarning(asset_server) << "Will not keep mapping for" << it.key() << "since it does not have a valid hash.";
-                        shouldDrop = true;
-                    }
-
-                    if (shouldDrop) {
-                        it = _fileMappings.erase(it);
-                    } else {
-                        ++it;
-                    }
+                if (!jsonDocument.isObject()) {
+                    qCWarning(asset_server) << "Failed to read mapping file, root value in" << mapFilePath << "is not an object";
+                    return false;
                 }
 
-                qCInfo(asset_server) << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
+                //_fileMappings = jsonDocument.object().toVariantHash();
+                auto root = jsonDocument.object();
+                for (auto it = root.begin(); it != root.end(); ++it) {
+                    auto key = it.key();
+                    auto value = it.value();
+
+                    if (!value.isString()) {
+                        qCWarning(asset_server) << "Skipping" << key << ":" << value << "because it is not a string";
+                        continue;
+                    }
+
+                    if (!isValidFilePath(key)) {
+                        qCWarning(asset_server) << "Will not keep mapping for" << key << "since it is not a valid path.";
+                        continue;
+                    }
+
+                    if (!isValidHash(value.toString())) {
+                        qCWarning(asset_server) << "Will not keep mapping for" << key << "since it does not have a valid hash.";
+                        continue;
+                    }
+
+
+                    qDebug() << "Added " << key << value.toString();
+                    _fileMappings[key] = value.toString();
+                }
+
+                qCInfo(asset_server) << "Loaded" << _fileMappings.size() << "mappings from map file at" << mapFilePath;
                 return true;
             }
         }
@@ -827,8 +855,13 @@ bool AssetServer::writeMappingsToFile() {
 
     QFile mapFile { mapFilePath };
     if (mapFile.open(QIODevice::WriteOnly)) {
-        auto jsonObject = QJsonObject::fromVariantHash(_fileMappings);
-        QJsonDocument jsonDocument { jsonObject };
+        QJsonObject root;
+
+        for (auto it : _fileMappings) {
+            root[it.first] = it.second;
+        }
+
+        QJsonDocument jsonDocument { root };
 
         if (mapFile.write(jsonDocument.toJson()) != -1) {
             qCDebug(asset_server) << "Wrote JSON mappings to file at" << mapFilePath;
@@ -857,7 +890,8 @@ bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     }
 
     // remember what the old mapping was in case persistence fails
-    auto oldMapping = _fileMappings.value(path).toString();
+    auto it = _fileMappings.find(path);
+    auto oldMapping = it != _fileMappings.end() ? it->second : "";
 
     // update the in memory QHash
     _fileMappings[path] = hash;
@@ -871,7 +905,7 @@ bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     } else {
         // failed to persist this mapping to file - put back the old one in our in-memory representation
         if (oldMapping.isEmpty()) {
-            _fileMappings.remove(path);
+            _fileMappings.erase(_fileMappings.find(path));
         } else {
             _fileMappings[path] = oldMapping;
         }
@@ -916,9 +950,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
             auto sizeBefore = _fileMappings.size();
 
             while (it != _fileMappings.end()) {
-                if (it.key().startsWith(path)) {
+                if (it->first.startsWith(path)) {
                     // add this hash to the list we need to check for asset removal from the server
-                    hashesToCheckForDeletion << it.value().toString();
+                    hashesToCheckForDeletion << it->second;
 
                     it = _fileMappings.erase(it);
                 } else {
@@ -934,12 +968,14 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
             }
 
         } else {
-            auto oldMapping = _fileMappings.take(path);
-            if (!oldMapping.isNull()) {
-                // add this hash to the list we need to check for asset removal from server
-                hashesToCheckForDeletion << oldMapping.toString();
+            auto it = _fileMappings.find(path);
+            if (it != _fileMappings.end()) {
+                _fileMappings.erase(it);
 
-                qCDebug(asset_server) << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
+                // add this hash to the list we need to check for asset removal from server
+                hashesToCheckForDeletion << it->second;
+
+                qCDebug(asset_server) << "Deleted a mapping:" << path << "=>" << it->second;
             } else {
                 qCDebug(asset_server) << "Unable to delete a mapping that was not found:" << path;
             }
@@ -950,12 +986,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
     if (writeMappingsToFile()) {
         // persistence succeeded we are good to go
 
-        // grab the current mapped hashes
-        auto mappedHashes = _fileMappings.values();
-
-        // enumerate the mapped hashes and clear the list of hashes to check for anything that's present
-        for (auto& hashVariant : mappedHashes) {
-            auto it = hashesToCheckForDeletion.find(hashVariant.toString());
+        // TODO iterate through hashesToCheckForDeletion instead
+        for (auto& pair : _fileMappings) {
+            auto it = hashesToCheckForDeletion.find(pair.second);
             if (it != hashesToCheckForDeletion.end()) {
                 hashesToCheckForDeletion.erase(it);
             }
@@ -1013,13 +1046,14 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
         auto it = oldMappings.begin();
 
         while (it != oldMappings.end()) {
-            if (it.key().startsWith(oldPath)) {
-                auto newKey = it.key();
+            auto& oldKey = it->first;
+            if (oldKey.startsWith(oldPath)) {
+                auto newKey = oldKey;
                 newKey.replace(0, oldPath.size(), newPath);
 
                 // remove the old version from the in memory file mappings
-                _fileMappings.remove(it.key());
-                _fileMappings.insert(newKey, it.value());
+                _fileMappings.erase(_fileMappings.find(oldKey));
+                _fileMappings[newKey] = it->second;
             }
 
             ++it;
@@ -1047,10 +1081,12 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
         }
 
         // take the old hash to remove the old mapping
-        auto oldSourceMapping = _fileMappings.take(oldPath).toString();
+        auto it = _fileMappings.find(oldPath);
+        auto oldSourceMapping = it->second;
+        _fileMappings.erase(it);
 
         // in case we're overwriting, keep the current destination mapping for potential rollback
-        auto oldDestinationMapping = _fileMappings.value(newPath);
+        auto oldDestinationMapping = _fileMappings.find(newPath)->second;
 
         if (!oldSourceMapping.isEmpty()) {
             _fileMappings[newPath] = oldSourceMapping;
@@ -1066,10 +1102,10 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
 
                 if (!oldDestinationMapping.isNull()) {
                     // put back the overwritten mapping for the destination path
-                    _fileMappings[newPath] = oldDestinationMapping.toString();
+                    _fileMappings[newPath] = oldDestinationMapping;
                 } else {
                     // clear the new mapping
-                    _fileMappings.remove(newPath);
+                    _fileMappings.erase(_fileMappings.find(newPath));
                 }
 
                 qCDebug(asset_server) << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
@@ -1088,6 +1124,19 @@ static const QString BAKED_ASSET_SIMPLE_TEXTURE_NAME = "texture.ktx";
 
 QString getBakeMapping(const AssetHash& hash, const QString& relativeFilePath) {
     return HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
+}
+
+void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath) {
+    qDebug() << "Failed: " << originalAssetHash << assetPath;
+
+    bool loaded;
+    AssetMeta meta;
+
+    std::tie(loaded, meta) = readMetaFile(originalAssetHash);
+
+    meta.failedLastBake = true;
+
+    writeMetaFile(originalAssetHash, meta);
 }
 
 void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath, QVector<QString> bakedFilePaths) {
@@ -1159,7 +1208,7 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
 
     if (!errorCompletingBake) {
         // create the meta file to store which version of the baking process we just completed
-        createMetaFile(originalAssetHash);
+        writeMetaFile(originalAssetHash);
     } else {
         qWarning() << "Could not complete bake for" << originalAssetHash;
     }
@@ -1167,14 +1216,62 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
     _pendingBakes.remove(originalAssetHash);
 }
 
-bool AssetServer::createMetaFile(AssetHash originalAssetHash) {
+static const QString BAKE_VERSION_KEY = "bake_version";
+static const QString APP_VERSION_KEY = "app_version";
+static const QString FAILED_LAST_BAKE_KEY = "failed_last_bake";
+
+std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetHash hash) {
+    auto metaFilePath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + "meta.json";
+
+    auto it = _fileMappings.find(metaFilePath);
+    if (it == _fileMappings.end()) {
+        return { false, {} };
+    }
+
+    auto metaFileHash = it->second;
+
+    QFile metaFile(_filesDirectory.absoluteFilePath(metaFileHash));
+
+    if (metaFile.open(QIODevice::ReadOnly)) {
+        auto data = metaFile.readAll();
+        metaFile.close();
+
+        QJsonParseError error;
+        auto doc = QJsonDocument::fromJson(data, &error);
+
+        if (error.error == QJsonParseError::NoError && doc.isObject()) {
+            auto root = doc.object();
+
+            auto bakeVersion = root[BAKE_VERSION_KEY].toInt(-1);
+            auto appVersion = root[APP_VERSION_KEY].toInt(-1);
+            auto failedLastBake = root[FAILED_LAST_BAKE_KEY];
+
+            if (bakeVersion != -1
+                && appVersion != -1
+                && failedLastBake.isBool()) {
+
+                AssetMeta meta;
+                meta.bakeVersion = bakeVersion;
+                meta.applicationVersion = appVersion;
+                meta.failedLastBake = failedLastBake.toBool();
+
+                return { true, meta };
+            } else {
+                qCWarning(asset_server) << "Metafile for" << hash << "has either missing or malformed data.";
+            }
+        }
+    }
+
+    return { false, {} };
+}
+
+bool AssetServer::writeMetaFile(AssetHash originalAssetHash, const AssetMeta& meta) {
     // construct the JSON that will be in the meta file
     QJsonObject metaFileObject;
 
-    static const int BAKE_VERSION = 1;
-    static const QString VERSION_KEY = "version";
-
-    metaFileObject[VERSION_KEY] = BAKE_VERSION;
+    metaFileObject[BAKE_VERSION_KEY] = meta.bakeVersion;
+    metaFileObject[APP_VERSION_KEY] = meta.applicationVersion;
+    metaFileObject[FAILED_LAST_BAKE_KEY] = meta.failedLastBake;
 
     QJsonDocument metaFileDoc;
     metaFileDoc.setObject(metaFileObject);
@@ -1204,7 +1301,7 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
     for (const auto& path : paths) {
         auto it = _fileMappings.find(path);
         if (it != _fileMappings.end()) {
-            auto hash = it->toString();
+            auto hash = it->second;
 
             auto dotIndex = path.lastIndexOf(".");
             if (dotIndex == -1) {
