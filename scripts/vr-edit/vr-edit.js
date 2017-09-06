@@ -19,6 +19,7 @@
         ENABLED_CAPTION_COLOR_OVERRIDE = "",
         DISABLED_CAPTION_COLOR_OVERRIDE = "#888888",
         VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
+        START_DELAY = 2000,  // ms
 
         // Application state
         isAppActive,
@@ -1803,6 +1804,6 @@
         tablet = null;
     }
 
-    setUp();
+    Script.setTimeout(setUp, START_DELAY);  // Delay start so that Entities.canRez() work; button is enabled correctly.
     Script.scriptEnding.connect(tearDown);
 }());
