@@ -66,12 +66,11 @@ gpu::TexturePointer OutlineFramebuffer::getDepthTexture() {
 }
 
 void PrepareOutline::run(const render::RenderContextPointer& renderContext, const PrepareOutline::Inputs& inputs, PrepareOutline::Output& output) {
-    auto outlinedOpaqueItems = inputs.get0();
-    auto outlinedTransparentItems = inputs.get1();
+    auto outlinedItems = inputs.get0();
 
-    if (!outlinedOpaqueItems.empty() || !outlinedTransparentItems.empty()) {
+    if (!outlinedItems.empty()) {
         auto args = renderContext->args;
-        auto deferredFrameBuffer = inputs.get2();
+        auto deferredFrameBuffer = inputs.get1();
         auto frameSize = deferredFrameBuffer->getFrameSize();
 
         if (!_outlineFramebuffer) {

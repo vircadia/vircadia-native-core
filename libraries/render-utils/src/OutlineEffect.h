@@ -44,7 +44,7 @@ class PrepareOutline {
 
 public:
 
-    using Inputs = render::VaryingSet3<render::ItemBounds, render::ItemBounds, DeferredFramebufferPointer>;
+    using Inputs = render::VaryingSet2<render::ItemBounds, DeferredFramebufferPointer>;
 	// Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
     using Output = OutlineFramebufferPointer;
 	using JobModel = render::Job::ModelIO<PrepareOutline, Inputs, Output>;

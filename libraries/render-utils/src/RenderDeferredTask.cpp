@@ -96,19 +96,15 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Select items that need to be outlined
     const auto outlineSelectionName = "contextOverlayHighlightList";
-    const auto outlinedOpaquesSelection = task.addJob<SelectItems>("SelectOutlinedOpaques", opaques, outlineSelectionName);
-    const auto outlinedTransparentSelection = task.addJob<SelectItems>("SelectOutlinedTransparents", transparents, outlineSelectionName);
-    const auto outlinedOpaqueItems = task.addJob<MetaToSubItems>("OutlinedOpaqueMetaToSubItems", outlinedOpaquesSelection);
-    const auto outlinedTransparentItems = task.addJob<MetaToSubItems>("OutlinedTransparentMetaToSubItems", outlinedTransparentSelection);
+    const auto selectedMetas = task.addJob<SelectItems>("PassTestSelection", metas, "contextOverlayHighlightList");
+    const auto outlinedItems = task.addJob<MetaToSubItems>("OutlinedMetaToSubItems", selectedMetas);
 
     // Render opaque outline objects first in DeferredBuffer
-    const auto outlineOpaqueInputs = DrawStateSortDeferred::Inputs(outlinedOpaqueItems, lightingModel).asVarying();
-    const auto outlineTransparentInputs = DrawStateSortDeferred::Inputs(outlinedTransparentItems, lightingModel).asVarying();
-    task.addJob<DrawStateSortDeferred>("DrawOpaqueOutlined", outlineOpaqueInputs, shapePlumber);
-    task.addJob<DrawStateSortDeferred>("DrawTransparentOutlined", outlineTransparentInputs, shapePlumber);
+    const auto outlineInputs = DrawStateSortDeferred::Inputs(outlinedItems, lightingModel).asVarying();
+    task.addJob<DrawStateSortDeferred>("DrawOutlinedDepth", outlineInputs, shapePlumber);
 
     // Retrieve z value of the outlined objects
-    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedOpaqueItems, outlinedTransparentItems, deferredFramebuffer).asVarying();
+    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedItems, deferredFramebuffer).asVarying();
     const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("PrepareOutline", outlinePrepareInputs);
 
     // Render opaque objects in DeferredBuffer
@@ -181,8 +177,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Draw outline
-    const auto outlineInputs = DrawOutline::Inputs(deferredFrameTransform, deferredFramebuffer, outlinedFrameBuffer, primaryFramebuffer).asVarying();
-    task.addJob<DrawOutline>("DrawOutline", outlineInputs);
+    const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, deferredFramebuffer, outlinedFrameBuffer, primaryFramebuffer).asVarying();
+    task.addJob<DrawOutline>("DrawOutline", drawOutlineInputs);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
@@ -237,7 +233,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
         
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
-        const auto selectedMetas = task.addJob<SelectItems>("PassTestSelection", metas, "contextOverlayHighlightList");
         task.addJob<DrawBounds>("DrawSelectionBounds", selectedMetas);
     }
 
