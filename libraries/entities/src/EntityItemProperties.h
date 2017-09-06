@@ -308,6 +308,17 @@ public:
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
     void setRenderInfoHasTransparent(bool value) { _renderInfoHasTransparent = value; }
 
+    void setPackedNormals(const QByteArray& value);
+    QVector<glm::vec3> unpackNormals(const QByteArray& normals);
+
+    void setPackedStrokeColors(const QByteArray& value);
+    QVector<glm::vec3> unpackStrokeColors(const QByteArray& strokeColors);
+
+    QByteArray getPackedNormals() const;
+    QByteArray packNormals(const QVector<glm::vec3>& normals) const;
+
+    QByteArray getPackedStrokeColors() const;
+    QByteArray packStrokeColors(const QVector<glm::vec3>& strokeColors) const;
 
 protected:
     QString getCollisionMaskAsString() const;

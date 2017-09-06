@@ -1336,8 +1336,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             if (properties.getType() == EntityTypes::PolyLine) {
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
-                APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getNormals());
-                APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, properties.getStrokeColors());
+                APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getPackedNormals());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, properties.getPackedStrokeColors());
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
 				APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, properties.getIsUVModeStretch());
@@ -1415,6 +1415,58 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         packetData->discardSubTree();
     }
     return success;
+}
+
+QByteArray EntityItemProperties::getPackedNormals() const {
+    return packNormals(getNormals());
+}
+
+QByteArray EntityItemProperties::packNormals(const QVector<glm::vec3>& normals) const {
+    qDebug() << "------------PACKINGNORMALS-----------------";
+    int normalsSize = normals.size();
+    QByteArray packedNormals = QByteArray(normalsSize * 6 + 1, '0');
+    // add size of the array
+    packedNormals.push_back((byte)normalsSize);
+    int index = 1;
+    for (int i = 0; i < normalsSize; i++) {
+        unsigned char auxBuffer[6];
+        int numBytes = packFloatVec3ToSignedTwoByteFixed(auxBuffer, normals[i], 15);
+        qDebug() << "PACKINGNORMALS " << normals[i].x << " " << normals[i].y << " " << normals[i].z;
+        memcpy(packedNormals.data() + index, auxBuffer, numBytes);
+        index += numBytes;
+    }
+    qDebug() << "----------------ENDPACKINGNORMALS--------------------";
+    return packedNormals;
+}
+
+QByteArray EntityItemProperties::getPackedStrokeColors() const {
+    return packStrokeColors(getStrokeColors());
+}
+QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& strokeColors) const {
+    qDebug() << "***************PACKINGSTROKECOLORS**********************";
+    int strokeColorsSize = strokeColors.size();
+    QByteArray packedStrokeColors = QByteArray(strokeColorsSize * 3 + 1, '0');
+
+    // add size of the array
+    packedStrokeColors.push_back((byte)strokeColorsSize);
+
+
+    for (int i = 0; i < strokeColorsSize; i++) {
+        // convert float to byte
+        byte r = strokeColors[i].r * 255;
+        byte g = strokeColors[i].g * 255;
+        byte b = strokeColors[i].b * 255;
+
+        // add the color to the QByteArray
+        packedStrokeColors.push_back(r);
+        packedStrokeColors.push_back(g);
+        packedStrokeColors.push_back(b);
+
+        qDebug() << "PACKINGSTROKECOLORS" << strokeColors[i].r << " " << strokeColors[i].g << " " << strokeColors[i].b;
+    }
+
+    qDebug() << "**************ENDPACKINGSTROKECOLORS********************";
+    return packedStrokeColors;
 }
 
 // TODO:
@@ -1635,8 +1687,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::PolyLine) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QVector<glm::vec3>, setNormals);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QVector<glm::vec3>, setStrokeColors);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QByteArray, setPackedNormals);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
 		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
@@ -1660,6 +1712,54 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     return valid;
 }
 
+void EntityItemProperties::setPackedNormals(const QByteArray& value) {
+    setNormals(unpackNormals(value));
+}
+
+QVector<glm::vec3> EntityItemProperties::unpackNormals(const QByteArray& normals) {
+    qDebug() << "***************UNPACKINGNORMALS**********************";
+    // the size of the vector is packed first
+    QVector<glm::vec3> unpackedNormals = QVector<glm::vec3>(normals[0]);
+    if (normals[0] == normals.size() / 6 - 1) {
+
+        qDebug() << "UNPACKINGNORMALS SIZE  " << normals[0];
+        for (int i = 1; i < normals.size();) {
+            glm::vec3 aux = glm::vec3();
+            i += unpackFloatVec3FromSignedTwoByteFixed((unsigned char*)normals.data() + i, aux, 15);
+            unpackedNormals.push_back(aux);
+            qDebug() << "UNPACKINGNORMALS::" << unpackedNormals.back().x << " " << unpackedNormals.back().y << " " << unpackedNormals.back().z;
+        }
+    }
+    qDebug() << "***************ENDUNPACKINGNORMALS**********************";
+    return unpackedNormals;
+}
+
+void EntityItemProperties::setPackedStrokeColors(const QByteArray& value) {
+    setStrokeColors(unpackStrokeColors(value));
+}
+
+QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
+    qDebug() << "------------UNPACKINGSTROKECOLORS-----------------";
+    // the size of the vector is packed first
+    QVector<glm::vec3> unpackedStrokeColors = QVector<glm::vec3>(strokeColors[0]);
+    if (strokeColors[0] == strokeColors.size() / 3 - 1) {
+        qDebug() << "UNPACKINGSTROKECOLORS SIZE  " << strokeColors[0];
+        for (int i = 1; i < strokeColors.size();) {
+
+            float r = strokeColors[i++] / 255.0f;
+            float g = strokeColors[i++] / 255.0f;
+            float b = strokeColors[i++] / 255.0f;
+            qDebug() << "UNPACKINGSTROKECOLORS " << r << " " << g << " " << b;
+
+            unpackedStrokeColors.push_back(glmVec3(r, g, b));
+        }
+
+    }
+
+    qDebug() << "-----------------ENDUNPACKINGSTROKECOLORS------------------";
+
+    return unpackedStrokeColors;
+}
 
 // NOTE: This version will only encode the portion of the edit message immediately following the
 // header it does not include the send times and sequence number because that is handled by the
