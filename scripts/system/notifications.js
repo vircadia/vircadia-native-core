@@ -449,7 +449,23 @@
         return finishedLines.join('\n');
     }
 
+    function updateNotificationsTexts() {
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        for (var i = 0; i < notifications.length; i++) {
+            var overlayType = Overlays.getOverlayType(notifications[i]);
+
+            if (overlayType === "text3d") {
+                var props = {
+                    font: {size: fontSize * sensorScaleFactor},
+                    lineHeight: 10.0 * (fontSize * sensorScaleFactor / 12.0) * NOTIFICATION_3D_SCALE
+                };
+                Overlays.editOverlay(notifications[i], props);
+            }
+        }
+    }
+
     function update() {
+        updateNotificationsTexts();
         var noticeOut,
             buttonOut,
             arraysOut,
