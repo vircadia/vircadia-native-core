@@ -150,7 +150,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
             endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
         }
         if (_faceAvatar) {
-            glm::quat rotation = glm::inverse(glm::quat_cast(glm::lookAt(endVec, DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), Vectors::UP)));
+            glm::quat rotation = glm::inverse(glm::quat_cast(glm::lookAt(endVec, DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation()*Vectors::UP)));
             endProps.insert("rotation", quatToVariant(glm::quat(glm::radians(glm::vec3(0, glm::degrees(safeEulerAngles(rotation)).y, 0)))));
         }
         endProps.insert("visible", true);
