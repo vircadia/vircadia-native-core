@@ -972,7 +972,7 @@ SectionEnd
 
       ${If} "${displayName}" == "Interface"
       MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
-        "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it and click Retry to continue." \
+        "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it in the task bar and click Retry to continue." \
         /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
       ${EndIf}
 
