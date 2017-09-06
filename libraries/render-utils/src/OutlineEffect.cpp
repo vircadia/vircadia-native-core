@@ -12,6 +12,10 @@
 
 #include "GeometryCache.h"
 
+#include <render/FilterTask.h>
+
+#include "RenderDeferredTask.h"
+
 #include "gpu/Context.h"
 #include "gpu/StandardShaderLib.h"
 
@@ -293,4 +297,39 @@ const gpu::PipelinePointer& DebugOutline::getDebugPipeline() {
     }
 
     return _debugPipeline;
+}
+
+DrawOutlineTask::DrawOutlineTask() {
+
+}
+
+void DrawOutlineTask::configure(const Config& config) {
+
+}
+
+void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
+    const auto input = inputs.get<Inputs>();
+    const auto selectedMetas = inputs.getN<Inputs>(0);
+    const auto shapePlumber = input.get1();
+    const auto lightingModel = inputs.getN<Inputs>(2);
+    const auto deferredFramebuffer = inputs.getN<Inputs>(3);
+    const auto primaryFramebuffer = inputs.getN<Inputs>(4);
+    const auto deferredFrameTransform = inputs.getN<Inputs>(5);
+
+    const auto& outlinedItems = task.addJob<render::MetaToSubItems>("OutlinedMetaToSubItems", selectedMetas);
+
+    // Render opaque outline objects first in DeferredBuffer
+    const auto outlineInputs = DrawStateSortDeferred::Inputs(outlinedItems, lightingModel).asVarying();
+    task.addJob<DrawStateSortDeferred>("DrawOutlinedDepth", outlineInputs, shapePlumber);
+
+    // Retrieve z value of the outlined objects
+    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedItems, deferredFramebuffer).asVarying();
+    const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("CopyOutlineDepth", outlinePrepareInputs);
+
+    // Draw outline
+    const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, deferredFramebuffer, outlinedFrameBuffer, primaryFramebuffer).asVarying();
+    task.addJob<DrawOutline>("DrawOutlineEffect", drawOutlineInputs);
+
+    // Debug outline
+    task.addJob<DebugOutline>("DebugOutline", outlinedFrameBuffer);
 }

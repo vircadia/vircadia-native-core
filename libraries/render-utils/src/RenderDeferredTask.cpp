@@ -95,17 +95,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Select items that need to be outlined
-    const auto outlineSelectionName = "contextOverlayHighlightList";
     const auto selectedMetas = task.addJob<SelectItems>("PassTestSelection", metas, "contextOverlayHighlightList");
-    const auto outlinedItems = task.addJob<MetaToSubItems>("OutlinedMetaToSubItems", selectedMetas);
-
-    // Render opaque outline objects first in DeferredBuffer
-    const auto outlineInputs = DrawStateSortDeferred::Inputs(outlinedItems, lightingModel).asVarying();
-    task.addJob<DrawStateSortDeferred>("DrawOutlinedDepth", outlineInputs, shapePlumber);
-
-    // Retrieve z value of the outlined objects
-    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedItems, deferredFramebuffer).asVarying();
-    const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("PrepareOutline", outlinePrepareInputs);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).asVarying();
@@ -173,12 +163,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
-    // Draw outline
-    const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, deferredFramebuffer, outlinedFrameBuffer, primaryFramebuffer).asVarying();
-    task.addJob<DrawOutline>("DrawOutline", drawOutlineInputs);
+    const auto outlineInputs = DrawOutlineTask::Inputs(selectedMetas, shapePlumber, lightingModel, deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
+    task.addJob<DrawOutlineTask>("DrawOutline", outlineInputs);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
@@ -212,9 +201,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).asVarying();
         task.addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
-
-        // Debug outline
-        task.addJob<DebugOutline>("DebugOutline", outlinedFrameBuffer);
 
         // Scene Octree Debugging job
         {

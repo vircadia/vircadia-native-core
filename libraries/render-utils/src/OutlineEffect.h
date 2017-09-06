@@ -165,6 +165,21 @@ private:
     bool _isDisplayDepthEnabled{ false };
 };
 
+#include "LightingModel.h"
+
+class DrawOutlineTask {
+public:
+    using Inputs = render::VaryingSet6<render::ItemBounds, render::ShapePlumberPointer, LightingModelPointer, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+    using Config = render::Task::Config;
+    using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
+
+    DrawOutlineTask();
+
+    void configure(const Config& config);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+
+};
+
 #endif // hifi_render_utils_OutlineEffect_h
 
 
