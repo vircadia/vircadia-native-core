@@ -15,10 +15,13 @@
     var APP_NAME = "VR EDIT",  // TODO: App name.
         APP_ICON_INACTIVE = "icons/tablet-icons/edit-i.svg",  // TODO: App icons.
         APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",
+        APP_ICON_DISABLED = "icons/tablet-icons/edit-disabled.svg",
+        ENABLED_CAPTION_COLOR_OVERRIDE = "",
+        DISABLED_CAPTION_COLOR_OVERRIDE = "#888888",
         VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
 
         // Application state
-        isAppActive = false,
+        isAppActive,
         dominantHand,
 
         // Tool state
@@ -65,6 +68,7 @@
         updateTimer = null,
         tablet,
         button,
+        DOMAIN_CHANGED_MESSAGE = "Toolbar-DomainChanged",
 
         DEBUG = true;  // TODO: Set false.
 
@@ -1569,7 +1573,7 @@
 
     function startApp() {
         ui.display();
-        update();
+        update();  // Start main update loop.
     }
 
     function stopApp() {
@@ -1584,8 +1588,14 @@
         toolSelected = TOOL_NONE;
     }
 
+
     function onAppButtonClicked() {
         // Application tablet/toolbar button clicked.
+        if (!isAppActive && !(Entities.canRez() || Entities.canRezTmp())) {
+            Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
+            return;
+        }
+
         isAppActive = !isAppActive;
         updateHandControllerGrab();
         button.editProperties({ isActive: isAppActive });
@@ -1594,6 +1604,49 @@
             startApp();
         } else {
             stopApp();
+        }
+    }
+
+    function onDomainChanged() {
+        // Fires when domain starts or domain changes; does not fire when domain stops.
+        var hasRezPermissions = Entities.canRez() || Entities.canRezTmp();
+        if (isAppActive && !hasRezPermissions) {
+            isAppActive = false;
+            updateHandControllerGrab();
+            stopApp();
+        }
+        button.editProperties({
+            icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
+            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            isActive: isAppActive
+        });
+    }
+
+    function onCanRezChanged() {
+        // canRez or canRezTmp changed.
+        var hasRezPermissions = Entities.canRez() || Entities.canRezTmp();
+        if (isAppActive && !hasRezPermissions) {
+            isAppActive = false;
+            updateHandControllerGrab();
+            stopApp();
+        }
+        button.editProperties({
+            icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
+            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
+            isActive: isAppActive
+        });
+    }
+
+    function onMessageReceived(channel) {
+        // Hacky but currently the only way of detecting server stopping or restarting. Also occurs if changing domains.
+        // TODO: Remove this when Window.domainChanged or other signal is emitted when you disconnect from a domain.
+        if (channel === DOMAIN_CHANGED_MESSAGE) {
+            // Happens a little while after server goes away.
+            if (isAppActive && !location.isConnected) {
+                // Interface deletes all overlays when domain connection is lost; restart app to work around this.
+                stopApp();
+                startApp();
+            }
         }
     }
 
@@ -1627,19 +1680,24 @@
 
 
     function setUp() {
-        updateHandControllerGrab();
+        var hasRezPermissions;
 
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
+            App.log("ERROR: Tablet not found! App not started.");
             return;
         }
 
-        // Settings values.
+        // Application state.
+        isAppActive = false;
+        updateHandControllerGrab();
         dominantHand = MyAvatar.getDominantHand() === "left" ? LEFT_HAND : RIGHT_HAND;
 
         // Tablet/toolbar button.
+        hasRezPermissions = Entities.canRez() || Entities.canRezTmp();
         button = tablet.addButton({
-            icon: APP_ICON_INACTIVE,
+            icon: hasRezPermissions ? APP_ICON_INACTIVE : APP_ICON_DISABLED,
+            captionColorOverride: hasRezPermissions ? ENABLED_CAPTION_COLOR_OVERRIDE : DISABLED_CAPTION_COLOR_OVERRIDE,
             activeIcon: APP_ICON_ACTIVE,
             text: APP_NAME,
             isActive: isAppActive
@@ -1665,6 +1723,11 @@
         grouping = new Grouping();
 
         // Changes.
+        Window.domainChanged.connect(onDomainChanged);
+        Entities.canRezChanged.connect(onCanRezChanged);
+        Entities.canRezTmpChanged.connect(onCanRezChanged);
+        Messages.subscribe(DOMAIN_CHANGED_MESSAGE);
+        Messages.messageReceived.connect(onMessageReceived);
         MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
         MyAvatar.skeletonChanged.connect(onSkeletonChanged);
 
@@ -1683,12 +1746,16 @@
             Script.clearTimeout(updateTimer);
         }
 
+        Window.domainChanged.disconnect(onDomainChanged);
+        Entities.canRezChanged.disconnect(onCanRezChanged);
+        Entities.canRezTmpChanged.disconnect(onCanRezChanged);
+        Messages.messageReceived.disconnect(onMessageReceived);
+        Messages.unsubscribe(DOMAIN_CHANGED_MESSAGE);
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
         MyAvatar.skeletonChanged.disconnect(onSkeletonChanged);
 
         isAppActive = false;
         updateHandControllerGrab();
-
 
         if (button) {
             button.clicked.disconnect(onAppButtonClicked);

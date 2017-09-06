@@ -25,16 +25,17 @@ Feedback = (function () {
         ERROR_SOUND = SoundCache.getSound(Script.resolvePath("../assets/audio/error.wav")),
 
         FEEDBACK_PARAMETERS = {
-            DROP_TOOL:       { sound: DROP_SOUND,   volume: 0.3, haptic: 0.75 },
-            DELETE_ENTITY:   { sound: DELETE_SOUND, volume: 0.5, haptic: 0.2  },
-            SELECT_ENTITY:   { sound: SELECT_SOUND, volume: 0.2, haptic: 0.1  },  // E.g., Group tool.
-            CLONE_ENTITY:    { sound: CLONE_SOUND,  volume: 0.2, haptic: 0.1  },
-            CREATE_ENTITY:   { sound: CREATE_SOUND, volume: 0.4, haptic: 0.2  },
-            HOVER_MENU_ITEM: { sound: null,         volume: 0,   haptic: 0.1  },  // Tools menu.
+            DROP_TOOL:       { sound: DROP_SOUND,   volume: 0.3, haptic: 0.75  },
+            DELETE_ENTITY:   { sound: DELETE_SOUND, volume: 0.5, haptic: 0.2   },
+            SELECT_ENTITY:   { sound: SELECT_SOUND, volume: 0.2, haptic: 0.1   },  // E.g., Group tool.
+            CLONE_ENTITY:    { sound: CLONE_SOUND,  volume: 0.2, haptic: 0.1   },
+            CREATE_ENTITY:   { sound: CREATE_SOUND, volume: 0.4, haptic: 0.2   },
+            HOVER_MENU_ITEM: { sound: null,         volume: 0,   haptic: 0.1   } ,  // Tools menu.
             HOVER_BUTTON:    { sound: null,         volume: 0,   haptic: 0.075 },  // Tools options and Create palette items.
-            EQUIP_TOOL:      { sound: EQUIP_SOUND,  volume: 0.3, haptic: 0.6  },
-            APPLY_PROPERTY:  { sound: null,         volume: 0,   haptic: 0.3  },
-            APPLY_ERROR:     { sound: ERROR_SOUND,  volume: 0.2, haptic: 0.7  }
+            EQUIP_TOOL:      { sound: EQUIP_SOUND,  volume: 0.3, haptic: 0.6   },
+            APPLY_PROPERTY:  { sound: null,         volume: 0,   haptic: 0.3   },
+            APPLY_ERROR:     { sound: ERROR_SOUND,  volume: 0.2, haptic: 0.7   },
+            GENERAL_ERROR:   { sound: ERROR_SOUND,  volume: 0.2, haptic: 0.7   }
         },
 
         VOLUME_MULTPLIER = 0.5,  // Resulting volume range should be within 0.0 - 1.0.
@@ -67,6 +68,7 @@ Feedback = (function () {
         EQUIP_TOOL: "EQUIP_TOOL",
         APPLY_PROPERTY: "APPLY_PROPERTY",
         APPLY_ERROR: "APPLY_ERROR",
+        GENERAL_ERROR: "GENERAL_ERROR",
         play: play
     };
 }());
