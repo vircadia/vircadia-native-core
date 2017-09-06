@@ -33,16 +33,28 @@ void DiffTraversal::Waypoint::getNextVisibleElementFirstTime(DiffTraversal::Visi
     } else if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
         if (element) {
-            // check for LOD truncation
-            float visibleLimit = boundaryDistanceForRenderLevel(element->getLevel() + view.lodLevelOffset, view.rootSizeScale);
-            float distance2 = glm::distance2(view.viewFrustum.getPosition(), element->getAACube().calcCenter());
-            if (distance2 < visibleLimit * visibleLimit) {
+            // No LOD truncation if we aren't using the view frustum
+            if (!view.usesViewFrustum) {
                 while (_nextIndex < NUMBER_OF_CHILDREN) {
                     EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
                     ++_nextIndex;
-                    if (nextElement && view.viewFrustum.cubeIntersectsKeyhole(nextElement->getAACube())) {
+                    if (nextElement) {
                         next.element = nextElement;
                         return;
+                    }
+                }
+            } else {
+                // check for LOD truncation
+                float visibleLimit = boundaryDistanceForRenderLevel(element->getLevel() + view.lodLevelOffset, view.rootSizeScale);
+                float distance2 = glm::distance2(view.viewFrustum.getPosition(), element->getAACube().calcCenter());
+                if (distance2 < visibleLimit * visibleLimit) {
+                    while (_nextIndex < NUMBER_OF_CHILDREN) {
+                        EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
+                        ++_nextIndex;
+                        if (nextElement && view.viewFrustum.cubeIntersectsKeyhole(nextElement->getAACube())) {
+                            next.element = nextElement;
+                            return;
+                        }
                     }
                 }
             }
@@ -66,19 +78,32 @@ void DiffTraversal::Waypoint::getNextVisibleElementRepeat(
     if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
         if (element) {
-            // check for LOD truncation
-            float visibleLimit = boundaryDistanceForRenderLevel(element->getLevel() + view.lodLevelOffset, view.rootSizeScale);
-            float distance2 = glm::distance2(view.viewFrustum.getPosition(), element->getAACube().calcCenter());
-            if (distance2 < visibleLimit * visibleLimit) {
+            // No LOD truncation if we aren't using the view frustum
+            if (!view.usesViewFrustum) {
                 while (_nextIndex < NUMBER_OF_CHILDREN) {
                     EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
                     ++_nextIndex;
                     if (nextElement && nextElement->getLastChanged() > lastTime) {
-                        ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
-                        if (intersection != ViewFrustum::OUTSIDE) {
-                            next.element = nextElement;
-                            next.intersection = intersection;
-                            return;
+                        next.element = nextElement;
+                        next.intersection = ViewFrustum::INSIDE;
+                        return;
+                    }
+                }
+            } else {
+                // check for LOD truncation
+                float visibleLimit = boundaryDistanceForRenderLevel(element->getLevel() + view.lodLevelOffset, view.rootSizeScale);
+                float distance2 = glm::distance2(view.viewFrustum.getPosition(), element->getAACube().calcCenter());
+                if (distance2 < visibleLimit * visibleLimit) {
+                    while (_nextIndex < NUMBER_OF_CHILDREN) {
+                        EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
+                        ++_nextIndex;
+                        if (nextElement && nextElement->getLastChanged() > lastTime) {
+                            ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
+                            if (intersection != ViewFrustum::OUTSIDE) {
+                                next.element = nextElement;
+                                next.intersection = intersection;
+                                return;
+                            }
                         }
                     }
                 }
@@ -142,45 +167,18 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
     next.intersection = ViewFrustum::OUTSIDE;
 }
 
-void DiffTraversal::Waypoint::getNextVisibleElementFullScene(DiffTraversal::VisibleElement& next, uint64_t lastTime) {
-    // NOTE: no need to set next.intersection or check LOD truncation in the "FullScene" context
-    if (_nextIndex == -1) {
-        ++_nextIndex;
-        EntityTreeElementPointer element = _weakElement.lock();
-        if (element->getLastChangedContent() > lastTime) {
-            next.element = element;
-            return;
-        }
-    }
-    if (_nextIndex < NUMBER_OF_CHILDREN) {
-        EntityTreeElementPointer element = _weakElement.lock();
-        if (element) {
-            while (_nextIndex < NUMBER_OF_CHILDREN) {
-                EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
-                ++_nextIndex;
-                if (nextElement && nextElement->getLastChanged() > lastTime) {
-                    next.element = nextElement;
-                    return;
-                }
-            }
-        }
-    }
-    next.element.reset();
-}
-
 DiffTraversal::DiffTraversal() {
     const int32_t MIN_PATH_DEPTH = 16;
     _path.reserve(MIN_PATH_DEPTH);
 }
 
-DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesFrustum) {
+DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum) {
     assert(root);
-    // there are four types of traversal:
+    // there are three types of traversal:
     //
     //   (1) First = fresh view --> find all elements in view
     //   (2) Repeat = view hasn't changed --> find elements changed since last complete traversal
     //   (3) Differential = view has changed --> find elements changed or in new view but not old
-    //   (4) FullScene = no view frustum -> send everything
     //
     // for each traversal type we assign the appropriate _getNextVisibleElementCallback
     //
@@ -190,14 +188,11 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
     //
     // external code should update the _scanElementCallback after calling prepareNewTraversal
     //
+    _currentView.usesViewFrustum = usesViewFrustum;
 
     Type type;
-    if (!usesFrustum) {
-        type = Type::FullScene;
-        _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
-            _path.back().getNextVisibleElementFullScene(next, _completedView.startTime);
-        };
-    } else if (_completedView.startTime == 0) {
+    // If usesViewFrustum changes, treat it as a First traversal
+    if (_completedView.startTime == 0 || _currentView.usesViewFrustum != _completedView.usesViewFrustum) {
         type = Type::First;
         _currentView.viewFrustum = viewFrustum;
         _currentView.lodLevelOffset = root->getLevel() + lodLevelOffset - 1; // -1 because true root has level=1
@@ -205,7 +200,7 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
         _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementFirstTime(next, _currentView);
         };
-    } else if (_completedView.viewFrustum.isVerySimilar(viewFrustum) && lodLevelOffset == _completedView.lodLevelOffset) {
+    } else if (!_currentView.usesViewFrustum || (_completedView.viewFrustum.isVerySimilar(viewFrustum) && lodLevelOffset == _completedView.lodLevelOffset)) {
         type = Type::Repeat;
         _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementRepeat(next, _completedView, _completedView.startTime);

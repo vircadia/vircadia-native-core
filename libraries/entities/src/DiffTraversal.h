@@ -36,6 +36,7 @@ public:
         uint64_t startTime { 0 };
         float rootSizeScale { 1.0f };
         int32_t lodLevelOffset { 0 };
+        bool usesViewFrustum { true };
     };
 
     // Waypoint is an bookmark in a "path" of waypoints during a traversal.
@@ -46,7 +47,6 @@ public:
         void getNextVisibleElementFirstTime(VisibleElement& next, const View& view);
         void getNextVisibleElementRepeat(VisibleElement& next, const View& view, uint64_t lastTime);
         void getNextVisibleElementDifferential(VisibleElement& next, const View& view, const View& lastView);
-        void getNextVisibleElementFullScene(VisibleElement& next, uint64_t lastTime);
 
         int8_t getNextIndex() const { return _nextIndex; }
         void initRootNextIndex() { _nextIndex = -1; }
@@ -56,15 +56,16 @@ public:
         int8_t _nextIndex;
     };
 
-    typedef enum { First, Repeat, Differential, FullScene } Type;
+    typedef enum { First, Repeat, Differential } Type;
 
     DiffTraversal();
 
-    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool isFullScene);
+    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum);
 
     const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
     const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }
 
+    bool doesCurrentUseViewFrustum() const { return _currentView.usesViewFrustum; }
     float getCurrentRootSizeScale() const { return _currentView.rootSizeScale; }
     float getCompletedRootSizeScale() const { return _completedView.rootSizeScale; }
     float getCurrentLODOffset() const { return _currentView.lodLevelOffset; }

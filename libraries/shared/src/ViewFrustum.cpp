@@ -403,12 +403,12 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const 
     bool result =
         testMatches(0, positionDistance, POSITION_SIMILAR_ENOUGH) &&
         testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) &&
-           testMatches(compareTo._fieldOfView, _fieldOfView) &&
-           testMatches(compareTo._aspectRatio, _aspectRatio) &&
-           testMatches(compareTo._nearClip, _nearClip) &&
-           testMatches(compareTo._farClip, _farClip) &&
-           testMatches(compareTo._focalLength, _focalLength);
-
+        testMatches(compareTo._centerSphereRadius, _centerSphereRadius) &&
+        testMatches(compareTo._fieldOfView, _fieldOfView) &&
+        testMatches(compareTo._aspectRatio, _aspectRatio) &&
+        testMatches(compareTo._nearClip, _nearClip) &&
+        testMatches(compareTo._farClip, _farClip) &&
+        testMatches(compareTo._focalLength, _focalLength);
 
     if (!result && debug) {
         qCDebug(shared, "ViewFrustum::isVerySimilar()... result=%s\n", debug::valueOf(result));
