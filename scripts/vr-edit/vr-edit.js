@@ -1220,7 +1220,7 @@
 
             wasTriggerClicked = isTriggerClicked;
             wasGripClicked = isGripClicked;
-            isAutoGrab = isAutoGrab && isTriggerClicked;
+            isAutoGrab = isAutoGrab && isTriggerClicked && !isGripClicked;
 
             if (DEBUG && editorState !== previousState) {
                 debug(side, EDITOR_STATE_STRINGS[editorState]);
