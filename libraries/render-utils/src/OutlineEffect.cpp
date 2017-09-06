@@ -13,8 +13,7 @@
 #include "GeometryCache.h"
 
 #include <render/FilterTask.h>
-
-#include "RenderDeferredTask.h"
+#include <render/SortTask.h>
 
 #include "gpu/Context.h"
 #include "gpu/StandardShaderLib.h"
@@ -23,6 +22,10 @@
 #include "debug_deferred_buffer_vert.h"
 #include "debug_deferred_buffer_frag.h"
 #include "Outline_frag.h"
+
+using namespace render;
+
+extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 OutlineFramebuffer::OutlineFramebuffer() {
 }
@@ -299,6 +302,61 @@ const gpu::PipelinePointer& DebugOutline::getDebugPipeline() {
     return _debugPipeline;
 }
 
+void DrawOutlineDepth::run(const render::RenderContextPointer& renderContext, const render::ShapeBounds& inShapes) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+
+    RenderArgs* args = renderContext->args;
+    ShapeKey::Builder defaultKeyBuilder;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        // Setup camera, projection and viewport for all items
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+
+        batch.clearFramebuffer(
+            gpu::Framebuffer::BUFFER_DEPTH,
+            vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, true);
+
+        auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
+        auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+
+        std::vector<ShapeKey> skinnedShapeKeys{};
+
+        // Iterate through all inShapes and render the unskinned
+        args->_shapePipeline = shadowPipeline;
+        batch.setPipeline(shadowPipeline->pipeline);
+        for (auto items : inShapes) {
+            if (items.first.isSkinned()) {
+                skinnedShapeKeys.push_back(items.first);
+            }
+            else {
+                renderItems(renderContext, items.second);
+            }
+        }
+
+        // Reiterate to render the skinned
+        args->_shapePipeline = shadowSkinnedPipeline;
+        batch.setPipeline(shadowSkinnedPipeline->pipeline);
+        for (const auto& key : skinnedShapeKeys) {
+            renderItems(renderContext, inShapes.at(key));
+        }
+
+        args->_shapePipeline = nullptr;
+        args->_batch = nullptr;
+    });
+}
+
 DrawOutlineTask::DrawOutlineTask() {
 
 }
@@ -311,25 +369,36 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     const auto input = inputs.get<Inputs>();
     const auto selectedMetas = inputs.getN<Inputs>(0);
     const auto shapePlumber = input.get1();
-    const auto lightingModel = inputs.getN<Inputs>(2);
-    const auto deferredFramebuffer = inputs.getN<Inputs>(3);
-    const auto primaryFramebuffer = inputs.getN<Inputs>(4);
-    const auto deferredFrameTransform = inputs.getN<Inputs>(5);
+    const auto deferredFramebuffer = inputs.getN<Inputs>(2);
+    const auto primaryFramebuffer = inputs.getN<Inputs>(3);
+    const auto deferredFrameTransform = inputs.getN<Inputs>(4);
 
-    const auto& outlinedItems = task.addJob<render::MetaToSubItems>("OutlinedMetaToSubItems", selectedMetas);
+    // Prepare the ShapePipeline
+    ShapePlumberPointer shapePlumberZPass = std::make_shared<ShapePlumber>();
+    {
+        auto state = std::make_shared<gpu::State>();
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setColorWriteMask(0);
 
-    // Render opaque outline objects first in DeferredBuffer
-    const auto outlineInputs = DrawStateSortDeferred::Inputs(outlinedItems, lightingModel).asVarying();
-    task.addJob<DrawStateSortDeferred>("DrawOutlinedDepth", outlineInputs, shapePlumber);
+        initZPassPipelines(*shapePlumberZPass, state);
+    }
+
+    const auto& outlinedItemIDs = task.addJob<render::MetaToSubItems>("MetaToSubItemIDs", selectedMetas);
+    const auto& outlinedItems = task.addJob<render::IDsToBounds>("MetaToSubItems", outlinedItemIDs, true);
+
+    // Sort
+    const auto& sortedPipelines = task.addJob<render::PipelineSortShapes>("PipelineSort", outlinedItems);
+    const auto& sortedShapes = task.addJob<render::DepthSortShapes>("DepthSort", sortedPipelines);
+    task.addJob<DrawOutlineDepth>("Depth", sortedShapes, shapePlumberZPass);
 
     // Retrieve z value of the outlined objects
     const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedItems, deferredFramebuffer).asVarying();
-    const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("CopyOutlineDepth", outlinePrepareInputs);
+    const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("CopyDepth", outlinePrepareInputs);
 
     // Draw outline
     const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, deferredFramebuffer, outlinedFrameBuffer, primaryFramebuffer).asVarying();
-    task.addJob<DrawOutline>("DrawOutlineEffect", drawOutlineInputs);
+    task.addJob<DrawOutline>("Effect", drawOutlineInputs);
 
     // Debug outline
-    task.addJob<DebugOutline>("DebugOutline", outlinedFrameBuffer);
+    task.addJob<DebugOutline>("Debug", outlinedFrameBuffer);
 }

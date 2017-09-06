@@ -165,11 +165,21 @@ private:
     bool _isDisplayDepthEnabled{ false };
 };
 
-#include "LightingModel.h"
+class DrawOutlineDepth {
+public:
+    using JobModel = render::Job::ModelI<DrawOutlineDepth, render::ShapeBounds>;
+
+    DrawOutlineDepth(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    void run(const render::RenderContextPointer& renderContext,
+        const render::ShapeBounds& inShapes);
+
+protected:
+    render::ShapePlumberPointer _shapePlumber;
+};
 
 class DrawOutlineTask {
 public:
-    using Inputs = render::VaryingSet6<render::ItemBounds, render::ShapePlumberPointer, LightingModelPointer, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+    using Inputs = render::VaryingSet5<render::ItemBounds, render::ShapePlumberPointer, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
     using Config = render::Task::Config;
     using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
 

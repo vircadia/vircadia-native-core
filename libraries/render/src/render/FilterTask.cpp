@@ -98,9 +98,8 @@ void SelectSortItems::run(const RenderContextPointer& renderContext, const ItemB
     }
 }
 
-void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemIDs& outItems) {
     auto& scene = renderContext->_scene;
-    ItemIDs outItemIds;
 
     // Now we have a selection of items to render
     outItems.clear();
@@ -108,14 +107,25 @@ void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBo
     for (auto idBound : inItems) {
         auto& item = scene->getItem(idBound.id);
 
-        item.fetchMetaSubItems(outItemIds);
-    }
-
-    // Transform Item IDs to ItemBounds
-    for (auto id : outItemIds) {
-        auto& item = scene->getItem(id);
-
-        outItems.emplace_back(ItemBound{ id, item.getBound() });
+        item.fetchMetaSubItems(outItems);
     }
 }
 
+void IDsToBounds::run(const RenderContextPointer& renderContext, const ItemIDs& inItems, ItemBounds& outItems) {
+    auto& scene = renderContext->_scene;
+
+    // Now we have a selection of items to render
+    outItems.clear();
+
+    if (!_disableAABBs) {
+        for (auto id : inItems) {
+            auto& item = scene->getItem(id);
+
+            outItems.emplace_back(ItemBound{ id, item.getBound() });
+        }
+    } else {
+        for (auto id : inItems) {
+            outItems.emplace_back(ItemBound{ id });
+        }
+    }
+}

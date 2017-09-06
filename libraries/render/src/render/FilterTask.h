@@ -135,11 +135,24 @@ namespace render {
     // From meta-Items, generate the sub-items
     class MetaToSubItems {
     public:
-        using JobModel = Job::ModelIO<MetaToSubItems, ItemBounds, ItemBounds>;
+        using JobModel = Job::ModelIO<MetaToSubItems, ItemBounds, ItemIDs>;
 
         MetaToSubItems() {}
 
-        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemIDs& outItems);
+    };
+
+    // From item IDs build item bounds
+    class IDsToBounds {
+    public:
+        using JobModel = Job::ModelIO<IDsToBounds, ItemIDs, ItemBounds>;
+
+        IDsToBounds(bool disableAABBs = false) : _disableAABBs(disableAABBs) {}
+
+        void run(const RenderContextPointer& renderContext, const ItemIDs& inItems, ItemBounds& outItems);
+
+    private:
+        bool _disableAABBs{ false };
     };
 
 }
