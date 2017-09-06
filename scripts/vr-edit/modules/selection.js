@@ -21,7 +21,11 @@ Selection = function (side) {
         rootEntityID = null,
         rootPosition,
         rootOrientation,
+        scaleFactor,
+        scaleRotation,
         scaleCenter,
+        scalePosition,
+        scaleOrientation,
         scaleRootOffset,
         scaleRootOrientation,
         ENTITY_TYPE = "entity",
@@ -261,7 +265,6 @@ Selection = function (side) {
 
     function startDirectScaling(center) {
         // Save initial position and orientation so that can scale relative to these without accumulating float errors.
-        scaleCenter = center;
         scaleRootOffset = Vec3.subtract(rootPosition, center);
         scaleRootOrientation = rootOrientation;
     }
@@ -287,10 +290,29 @@ Selection = function (side) {
                 localPosition: Vec3.multiply(factor, selection[i].localPosition)
             });
         }
+
+        // Save most recent scale parameters.
+        scaleFactor = factor;
+        scaleRotation = rotation;
+        scaleCenter = center;
     }
 
     function finishDirectScaling() {
-        select(intersectedEntityID);  // Refresh.
+        // Update selection with final entity properties.
+        var i,
+            length;
+        // Final scale, position, and orientaation of root.
+        rootPosition = Vec3.sum(scaleCenter, Vec3.multiply(scaleFactor, Vec3.multiplyQbyV(scaleRotation, scaleRootOffset)));
+        rootOrientation = Quat.multiply(scaleRotation, scaleRootOrientation);
+        selection[0].dimensions = Vec3.multiply(scaleFactor, selection[0].dimensions);
+        selection[0].position = rootPosition;
+        selection[0].rotation = rootOrientation;
+
+        // Final scale and position of children.
+        for (i = 1, length = selection.length; i < length; i += 1) {
+            selection[i].dimensions = Vec3.multiply(scaleFactor, selection[i].dimensions);
+            selection[i].localPosition = Vec3.multiply(scaleFactor, selection[i].localPosition);
+        }
     }
 
     function startHandleScaling() {
@@ -320,10 +342,28 @@ Selection = function (side) {
                 localPosition: Vec3.multiplyVbyV(factor, selection[i].localPosition)
             });
         }
+
+        // Save most recent scale parameters.
+        scaleFactor = factor;
+        scalePosition = position;
+        scaleOrientation = orientation;
     }
 
     function finishHandleScaling() {
-        select(intersectedEntityID);  // Refresh.
+        // Update selection with final entity properties.
+        var i,
+            length;
+
+        // Final scale and position of root.
+        selection[0].dimensions = Vec3.multiplyVbyV(scaleFactor, selection[0].dimensions);
+        selection[0].position = scalePosition;
+        selection[0].rotation = scaleOrientation;
+
+        // Final scale and position of children.
+        for (i = 1, length = selection.length; i < length; i += 1) {
+            selection[i].dimensions = Vec3.multiplyVbyV(scaleFactor, selection[i].dimensions);
+            selection[i].localPosition = Vec3.multiplyVbyV(scaleFactor, selection[i].localPosition);
+        }
     }
 
     function cloneEntities() {
