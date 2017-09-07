@@ -13,19 +13,20 @@
 #define hifi_ImageProvider_h
 
 #include <QQuickImageProvider>
+#include <QReadWriteLock>
 
 class ImageProvider: public QQuickImageProvider {
 public:
     static const QString PROVIDER_NAME;
 
     ImageProvider() : QQuickImageProvider(QQuickImageProvider::Pixmap) {}
-
+    virtual ~ImageProvider();
     QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;
 
-    void setSecurityImage(QPixmap* pixmap) { _securityImage = pixmap; }
-
+    void setSecurityImage(const QPixmap* pixmap);
 protected:
-    QPixmap* _securityImage { nullptr };
+    static QReadWriteLock _rwLock;
+    static QPixmap* _securityImage;
 
 };
 

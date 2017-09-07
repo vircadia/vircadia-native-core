@@ -27,7 +27,7 @@
     var isPreparing = false;  // Explicitly track download request status.
 
     var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
-    
+
     function injectCommonCode(isDirectoryPage) {
 
         // Supporting styles from marketplaces.css.
@@ -90,20 +90,20 @@
         });
     }
 
-    function addInventoryButton() {
+    function addPurchasesButton() {
         // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
         var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
-        var inventoryElement = document.createElement('a');
-        inventoryElement.classList.add("btn");
-        inventoryElement.classList.add("btn-default");
-        inventoryElement.id = "inventoryButton";
-        inventoryElement.setAttribute('href', "#");
-        inventoryElement.innerHTML = "INVENTORY";
-        inventoryElement.style = "height:100%;margin-top:0;padding:15px 15px;";
-        navbarBrandElement.parentNode.insertAdjacentElement('beforeend', inventoryElement);
-        $('#inventoryButton').on('click', function () {
+        var purchasesElement = document.createElement('a');
+        purchasesElement.classList.add("btn");
+        purchasesElement.classList.add("btn-default");
+        purchasesElement.id = "purchasesButton";
+        purchasesElement.setAttribute('href', "#");
+        purchasesElement.innerHTML = "PURCHASES";
+        purchasesElement.style = "height:100%;margin-top:0;padding:15px 15px;";
+        navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
+        $('#purchasesButton').on('click', function () {
             EventBridge.emitWebEvent(JSON.stringify({
-                type: "INVENTORY",
+                type: "PURCHASES",
                 referrerURL: window.location.href
             }));
         });
@@ -121,11 +121,25 @@
     }
 
     function injectBuyButtonOnMainPage() {
+        var cost;
+
         $('.grid-item').find('#price-or-edit').find('a').each(function() {
             $(this).attr('data-href', $(this).attr('href'));
             $(this).attr('href', '#');
-            });
-        $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
+            cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+
+            $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
+            $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
+
+            if (parseInt(cost) > 0) {
+                var priceElement = $(this).find('.price')
+                priceElement.css({ "width": "auto", "padding": "3px 5px", "height": "26px" });
+                priceElement.text(cost + ' HFC');
+                priceElement.css({ "min-width": priceElement.width() + 10 });
+            }
+        });
+
+
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
                 $(this).closest('.grid-item').find('.item-title').text(),
@@ -152,24 +166,31 @@
 
             // Try this here in case it works (it will if the user just pressed the "back" button,
             //     since that doesn't trigger another AJAX request.
-            injectBuyButtonOnMainPage;
-            addInventoryButton();
+            injectBuyButtonOnMainPage();
+            addPurchasesButton();
         }
     }
 
     function injectHiFiItemPageCode() {
         if (confirmAllPurchases) {
-            var href = $('#side-info').find('.btn').attr('href');
-            $('#side-info').find('.btn').attr('href', '#');
-            $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
-            $('#side-info').find('.btn').on('click', function () {
+            var href = $('#side-info').find('.btn').first().attr('href');
+            $('#side-info').find('.btn').first().attr('href', '#');
+
+            var cost = $('.item-cost').text();
+
+            if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
+                $('#side-info').find('.btn').first().html('<span class="glyphicon glyphicon-download" id="buyItemButton"></span>Own Item: ' + cost + ' HFC');
+
+            }
+
+            $('#side-info').find('.btn').first().on('click', function () {
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),
-                    $('.item-cost').text(),
+                    cost,
                     href);
             });
-            addInventoryButton();
+            addPurchasesButton();
         }
     }
 
@@ -244,7 +265,7 @@
                 // Reference: https://clara.io/learn/sdk/api/export
 
                 //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
-                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to 
+                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to
                 // be successful in generating zip files.
                 var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
 
@@ -427,7 +448,7 @@
                 cancelClaraDownload();
             } else {
                 var parsedJsonMessage = JSON.parse(message);
-                
+
                 if (parsedJsonMessage.type === "marketplaces") {
                     if (parsedJsonMessage.action === "inspectionModeSetting") {
                         confirmAllPurchases = !!parsedJsonMessage.data;

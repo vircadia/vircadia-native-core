@@ -24,6 +24,7 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
+    property bool historyReceived: false;
 
     Hifi.QmlCommerce {
         id: commerce;
@@ -37,7 +38,15 @@ Item {
         }
 
         onBalanceResult : {
-            balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
+            balanceText.text = result.data.balance;
+        }
+
+        onHistoryResult : {
+            historyReceived = true;
+            if (result.status === 'success') {
+                transactionHistoryModel.clear();
+                transactionHistoryModel.append(result.data.history);
+            }
         }
     }
 
@@ -79,13 +88,14 @@ Item {
         height: 60;
         Rectangle {
             id: hfcBalanceField;
+            color: hifi.colors.darkGray;
             anchors.right: parent.right;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             height: parent.height - 15;
 
             // "HFC" balance label
-            RalewayRegular {
+            FiraSansRegular {
                 id: balanceLabel;
                 text: "HFC";
                 // Text size
@@ -97,20 +107,22 @@ Item {
                 anchors.rightMargin: 4;
                 width: paintedWidth;
                 // Style
-                color: hifi.colors.darkGray;
+                color: hifi.colors.lightGrayText;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
                 verticalAlignment: Text.AlignVCenter;
 
                 onVisibleChanged: {
                     if (visible) {
+                        historyReceived = false;
                         commerce.balance();
+                        commerce.history();
                     }
                 }
             }
 
             // Balance Text
-            FiraSansRegular {
+            FiraSansSemiBold {
                 id: balanceText;
                 text: "--";
                 // Text size
@@ -122,7 +134,7 @@ Item {
                 anchors.right: balanceLabel.left;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.darkGray;
+                color: hifi.colors.lightGrayText;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
                 verticalAlignment: Text.AlignVCenter;
@@ -174,9 +186,19 @@ Item {
             cache: false;
             source: "image://security/securityImage";
         }
-        // "Security picture" text below pic
+        Image {
+            id: securityImageOverlay;
+            source: "images/lockOverlay.png";
+            width: securityImage.width * 0.45;
+            height: securityImage.height * 0.45;
+            anchors.bottom: securityImage.bottom;
+            anchors.right: securityImage.right;
+            mipmap: true;
+            opacity: 0.9;
+        }
+        // "Security image" text below pic
         RalewayRegular {
-            text: "security picture";
+            text: "security image";
             // Text size
             size: 12;
             // Anchors
@@ -200,8 +222,7 @@ Item {
         anchors.topMargin: 8;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        anchors.bottom: homeMessage.visible ? homeMessage.top : root.bottom;
-        anchors.bottomMargin: 10;
+        anchors.bottom: parent.bottom;
 
         RalewayRegular {
             id: recentActivityText;
@@ -216,114 +237,66 @@ Item {
             // Style
             color: hifi.colors.faintGray;
         }
-
+        ListModel {
+            id: transactionHistoryModel;
+        }
         Rectangle {
-            id: transactionHistory;
             anchors.top: recentActivityText.bottom;
             anchors.topMargin: 4;
-            anchors.bottom: toggleFullHistoryButton.top;
-            anchors.bottomMargin: 8;
+            anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
+            color: "white";
 
-            // some placeholder stuff
-            RalewayRegular {
-                text: homeMessage.visible ? "you <b>CANNOT</b> scroll through this." : "you <b>CAN</b> scroll through this";
-                // Text size
-                size: 16;
-                // Anchors
+            ListView {
+                id: transactionHistory;
+                anchors.centerIn: parent;
+                width: parent.width - 12;
+                height: parent.height - 12;
+                visible: transactionHistoryModel.count !== 0;
+                clip: true;
+                model: transactionHistoryModel;
+                delegate: Item {
+                    width: parent.width;
+                    height: transactionText.height + 30;
+                    FiraSansRegular {
+                        id: transactionText;
+                        text: model.text;
+                        // Style
+                        size: 18;
+                        width: parent.width;
+                        height: paintedHeight;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        color: "black";
+                        wrapMode: Text.WordWrap;
+                        // Alignment
+                        horizontalAlignment: Text.AlignLeft;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    HifiControlsUit.Separator {
+                        anchors.left: parent.left;
+                        anchors.right: parent.right;
+                        anchors.bottom: parent.bottom;
+                    }
+                }
+                onAtYEndChanged: {
+                    if (transactionHistory.atYEnd) {
+                        console.log("User scrolled to the bottom of 'Recent Activity'.");
+                        // Grab next page of results and append to model
+                    }
+                }
+            }
+
+            // This should never be visible (since you immediately get 100 HFC)
+            FiraSansRegular {
+                id: emptyTransationHistory;
+                size: 24;
+                visible: !transactionHistory.visible && root.historyReceived;
+                text: "Recent Activity Unavailable";
                 anchors.fill: parent;
-                // Style
-                color: hifi.colors.darkGray;
-                // Alignment
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
-            }
-        }
-
-        HifiControlsUit.Button {
-            id: toggleFullHistoryButton;
-            color: hifi.buttons.black;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.bottom: parent.bottom;
-            anchors.right: parent.right;
-            width: 250;
-            height: 40;
-            text: homeMessage.visible ? "See Full Transaction History" : "Collapse Transaction History";
-            onClicked: {
-                if (homeMessage.visible) {
-                    homeMessage.visible = false;
-                } else {
-                    homeMessage.visible = true;
-                }
-            }
-        }
-    }
-
-    // Item for "messages" - like "Welcome"
-    Item {
-        id: homeMessage;
-        anchors.bottom: parent.bottom;
-        anchors.left: parent.left;
-        anchors.leftMargin: 20;
-        anchors.right: parent.right;
-        anchors.rightMargin: 20;
-        height: childrenRect.height;
-
-        RalewayRegular {
-            id: messageText;
-            text: "<b>Welcome! Let's get you some spending money.</b><br><br>" +
-            "Now that your account is all set up, click the button below to request your starter money. " +
-            "A robot will promptly review your request and put money into your account.";
-            // Text size
-            size: 16;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            height: 130;
-            // Style
-            color: hifi.colors.faintGray;
-            wrapMode: Text.WordWrap;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
-        Item {
-            id: homeMessageButtons;
-            anchors.top: messageText.bottom;
-            anchors.topMargin: 4;
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            height: 40;
-            HifiControlsUit.Button {
-                id: noThanksButton;
-                color: hifi.buttons.black;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.left: parent.left;
-                width: 100;
-                text: "No Thanks"
-                onClicked: {
-                    messageText.text = "Okay...weird. Who doesn't like free money? If you change your mind, too bad. Sorry."
-                    homeMessageButtons.visible = false;
-                }
-            }
-            HifiControlsUit.Button {
-                id: freeMoneyButton;
-                color: hifi.buttons.black;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.right: parent.right;
-                width: 210;
-                text: "Free Money Please"
-                onClicked: {
-                    messageText.text = "Go, MoneyRobots, Go!"
-                    homeMessageButtons.visible = false;
-                }
             }
         }
     }
@@ -351,6 +324,7 @@ Item {
         }
     }
     signal sendSignalToWallet(var msg);
+
     //
     // FUNCTION DEFINITIONS END
     //

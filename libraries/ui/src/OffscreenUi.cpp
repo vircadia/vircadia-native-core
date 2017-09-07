@@ -554,20 +554,19 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     getSurfaceContext()->setContextProperty("DebugQML", QVariant(false));
 #endif
 
-    _desktop = dynamic_cast<QQuickItem*>(load(url));
-    Q_ASSERT(_desktop);
-    getSurfaceContext()->setContextProperty("desktop", _desktop);
+    load(url, [=](QQmlContext* context, QObject* newObject) {
+        _desktop = static_cast<QQuickItem*>(newObject);
+        getSurfaceContext()->setContextProperty("desktop", _desktop);
+        _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
-    _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
+        _vrMenu = new VrMenu(this);
+        for (const auto& menuInitializer : _queuedMenuInitializers) {
+            menuInitializer(_vrMenu);
+        }
 
-    _vrMenu = new VrMenu(this);
-    for (const auto& menuInitializer : _queuedMenuInitializers) {
-        menuInitializer(_vrMenu);
-    }
-
-    new KeyboardFocusHack();
-
-    connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
+        new KeyboardFocusHack();
+        connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
+    });
 }
 
 QQuickItem* OffscreenUi::getDesktop() {

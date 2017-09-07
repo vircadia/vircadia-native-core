@@ -28,12 +28,15 @@ public:
     bool receiveAt(const QString& hfc_key, const QString& old_key);
     void balance(const QStringList& keys);
     void inventory(const QStringList& keys);
+    void history(const QStringList& keys);
+    void reset();
 
 signals:
     void buyResult(QJsonObject result);
     void receiveAtResult(QJsonObject result);
     void balanceResult(QJsonObject result);
     void inventoryResult(QJsonObject result);
+    void historyResult(QJsonObject result);
 
 public slots:
     void buySuccess(QNetworkReply& reply);
@@ -44,6 +47,10 @@ public slots:
     void balanceFailure(QNetworkReply& reply);
     void inventorySuccess(QNetworkReply& reply);
     void inventoryFailure(QNetworkReply& reply);
+    void historySuccess(QNetworkReply& reply);
+    void historyFailure(QNetworkReply& reply);
+    void resetSuccess(QNetworkReply& reply);
+    void resetFailure(QNetworkReply& reply);
 
 private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
