@@ -56,16 +56,17 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     _projection = projection;
     glm::mat4 inverseProjection = glm::inverse(projection);
 
-    // compute our dimensions the usual way
+    // compute frustum corners
     for (int i = 0; i < NUM_FRUSTUM_CORNERS; ++i) {
         _corners[i] = inverseProjection * NDC_VALUES[i];
         _corners[i] /= _corners[i].w;
     }
+
+    // compute frustum properties
     _nearClip = -_corners[BOTTOM_LEFT_NEAR].z;
     _farClip = -_corners[BOTTOM_LEFT_FAR].z;
     _aspectRatio = (_corners[TOP_RIGHT_NEAR].x - _corners[BOTTOM_LEFT_NEAR].x) /
         (_corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_LEFT_NEAR].y);
-
     glm::vec4 top = inverseProjection * vec4(0.0f, 1.0f, -1.0f, 1.0f);
     top /= top.w;
     _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0.0f, 0.0f, -1.0f), glm::normalize(vec3(top))))));
@@ -117,6 +118,23 @@ void ViewFrustum::calculate() {
     _ourModelViewProjectionMatrix = _projection * view; // Remember, matrix multiplication is the other way around
 }
 
+void ViewFrustum::calculateProjection() {
+    if (0.0f != _aspectRatio && 0.0f != _nearClip && 0.0f != _farClip && _nearClip != _farClip) {
+        // _projection is calculated from the frustum parameters
+        _projection = glm::perspective( glm::radians(_fieldOfView), _aspectRatio, _nearClip, _farClip);
+
+        // frustum corners are computed from inverseProjection
+        glm::mat4 inverseProjection = glm::inverse(_projection);
+        for (int i = 0; i < NUM_FRUSTUM_CORNERS; ++i) {
+            _corners[i] = inverseProjection * NDC_VALUES[i];
+            _corners[i] /= _corners[i].w;
+        }
+
+        // finally calculate planes and _ourModelViewProjectionMatrix
+        calculate();
+    }
+}
+
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
 const char* ViewFrustum::debugPlaneName (int plane) const {
     switch (plane) {
@@ -160,16 +178,12 @@ void ViewFrustum::fromByteArray(const QByteArray& input) {
     setCenterRadius(cameraCenterRadius);
 
     // Also make sure it's got the correct lens details from the camera
-    const float VIEW_FRUSTUM_FOV_OVERSEND = 60.0f;
-    float originalFOV = cameraFov;
-    float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
-
     if (0.0f != cameraAspectRatio &&
         0.0f != cameraNearClip &&
         0.0f != cameraFarClip &&
         cameraNearClip != cameraFarClip) {
         setProjection(glm::perspective(
-            glm::radians(wideFOV), // hack
+            glm::radians(cameraFov),
             cameraAspectRatio,
             cameraNearClip,
             cameraFarClip));
@@ -324,125 +338,25 @@ bool ViewFrustum::boxIntersectsKeyhole(const AABox& box) const {
     return true;
 }
 
-bool testMatches(glm::quat lhs, glm::quat rhs, float epsilon = EPSILON) {
-    return (fabs(lhs.x - rhs.x) <= epsilon && fabs(lhs.y - rhs.y) <= epsilon && fabs(lhs.z - rhs.z) <= epsilon
-            && fabs(lhs.w - rhs.w) <= epsilon);
+bool closeEnough(float a, float b, float relativeError) {
+    assert(relativeError >= 0.0f);
+    // NOTE: we add EPSILON to the denominator so we can avoid checking for division by zero.
+    // This method works fine when: fabsf(a + b) >> EPSILON
+    return fabsf(a - b) / (0.5f * fabsf(a + b) + EPSILON) < relativeError;
 }
 
-bool testMatches(glm::vec3 lhs, glm::vec3 rhs, float epsilon = EPSILON) {
-    return (fabs(lhs.x - rhs.x) <= epsilon && fabs(lhs.y - rhs.y) <= epsilon && fabs(lhs.z - rhs.z) <= epsilon);
-}
+bool ViewFrustum::isVerySimilar(const ViewFrustum& other) const {
+    const float MIN_POSITION_SLOP_SQUARED = 25.0f; // 5 meters squared
+    const float MIN_ORIENTATION_DOT = 0.9924039f; // dot product of two quaternions 10 degrees apart
+    const float MIN_RELATIVE_ERROR = 0.01f; // 1%
 
-bool testMatches(float lhs, float rhs, float epsilon = EPSILON) {
-    return (fabs(lhs - rhs) <= epsilon);
-}
-
-bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
-    bool result =
-           testMatches(compareTo._position, _position) &&
-           testMatches(compareTo._direction, _direction) &&
-           testMatches(compareTo._up, _up) &&
-           testMatches(compareTo._right, _right) &&
-           testMatches(compareTo._fieldOfView, _fieldOfView) &&
-           testMatches(compareTo._aspectRatio, _aspectRatio) &&
-           testMatches(compareTo._nearClip, _nearClip) &&
-           testMatches(compareTo._farClip, _farClip) &&
-           testMatches(compareTo._focalLength, _focalLength);
-
-    if (!result && debug) {
-        qCDebug(shared, "ViewFrustum::matches()... result=%s", debug::valueOf(result));
-        qCDebug(shared, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
-                (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
-                (double)_position.x, (double)_position.y, (double)_position.z);
-        qCDebug(shared, "%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f",
-                (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._direction.x, (double)compareTo._direction.y, (double)compareTo._direction.z,
-                (double)_direction.x, (double)_direction.y, (double)_direction.z );
-        qCDebug(shared, "%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f",
-                (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._up.x, (double)compareTo._up.y, (double)compareTo._up.z,
-                (double)_up.x, (double)_up.y, (double)_up.z );
-        qCDebug(shared, "%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f",
-                (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._right.x, (double)compareTo._right.y, (double)compareTo._right.z,
-                (double)_right.x, (double)_right.y, (double)_right.z );
-        qCDebug(shared, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
-                (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._fieldOfView, (double)_fieldOfView);
-        qCDebug(shared, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
-                (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._aspectRatio, (double)_aspectRatio);
-        qCDebug(shared, "%s -- compareTo._nearClip=%f _nearClip=%f",
-                (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._nearClip, (double)_nearClip);
-        qCDebug(shared, "%s -- compareTo._farClip=%f _farClip=%f",
-                (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._farClip, (double)_farClip);
-        qCDebug(shared, "%s -- compareTo._focalLength=%f _focalLength=%f",
-                (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._focalLength, (double)_focalLength);
-    }
-    return result;
-}
-
-bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const {
-
-    //  Compute distance between the two positions
-    const float POSITION_SIMILAR_ENOUGH = 5.0f; // 5 meters
-    float positionDistance = glm::distance(_position, compareTo._position);
-
-    // Compute the angular distance between the two orientations
-    const float ORIENTATION_SIMILAR_ENOUGH = 10.0f; // 10 degrees in any direction
-    glm::quat dQOrientation = _orientation * glm::inverse(compareTo._orientation);
-    float angleOrientation = compareTo._orientation == _orientation ? 0.0f : glm::degrees(glm::angle(dQOrientation));
-    if (isNaN(angleOrientation)) {
-        angleOrientation = 0.0f;
-    }
-
-    bool result =
-        testMatches(0, positionDistance, POSITION_SIMILAR_ENOUGH) &&
-        testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) &&
-        testMatches(compareTo._centerSphereRadius, _centerSphereRadius) &&
-        testMatches(compareTo._fieldOfView, _fieldOfView) &&
-        testMatches(compareTo._aspectRatio, _aspectRatio) &&
-        testMatches(compareTo._nearClip, _nearClip) &&
-        testMatches(compareTo._farClip, _farClip) &&
-        testMatches(compareTo._focalLength, _focalLength);
-
-    if (!result && debug) {
-        qCDebug(shared, "ViewFrustum::isVerySimilar()... result=%s\n", debug::valueOf(result));
-        qCDebug(shared, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
-                (testMatches(compareTo._position,_position, POSITION_SIMILAR_ENOUGH) ?
-                     "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
-                (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
-                (double)_position.x, (double)_position.y, (double)_position.z );
-
-        qCDebug(shared, "%s -- positionDistance=%f",
-                (testMatches(0,positionDistance, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
-                (double)positionDistance);
-
-        qCDebug(shared, "%s -- angleOrientation=%f",
-                (testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
-                (double)angleOrientation);
-
-        qCDebug(shared, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
-                (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._fieldOfView, (double)_fieldOfView);
-        qCDebug(shared, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
-                (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._aspectRatio, (double)_aspectRatio);
-        qCDebug(shared, "%s -- compareTo._nearClip=%f _nearClip=%f",
-                (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._nearClip, (double)_nearClip);
-        qCDebug(shared, "%s -- compareTo._farClip=%f _farClip=%f",
-                (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._farClip, (double)_farClip);
-        qCDebug(shared, "%s -- compareTo._focalLength=%f _focalLength=%f",
-                (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._focalLength, (double)_focalLength);
-    }
-    return result;
+    return glm::distance2(_position, other._position) < MIN_POSITION_SLOP_SQUARED &&
+        fabsf(glm::dot(_orientation, other._orientation)) > MIN_ORIENTATION_DOT &&
+        closeEnough(_fieldOfView, other._fieldOfView, MIN_RELATIVE_ERROR) &&
+        closeEnough(_aspectRatio, other._aspectRatio, MIN_RELATIVE_ERROR) &&
+        closeEnough(_nearClip, other._nearClip, MIN_RELATIVE_ERROR) &&
+        closeEnough(_farClip, other._farClip, MIN_RELATIVE_ERROR) &&
+        closeEnough(_focalLength, other._focalLength, MIN_RELATIVE_ERROR);
 }
 
 PickRay ViewFrustum::computePickRay(float x, float y) {
