@@ -61,7 +61,7 @@ void VelocityFramebuffer::allocate() {
 
     // For Velocity Buffer:
     _velocityTexture = gpu::Texture::createRenderBuffer(gpu::Element(gpu::VEC2, gpu::HALF, gpu::RGB), width, height, gpu::Texture::SINGLE_MIP,
-        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
+        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR));
     _velocityFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("velocity"));
     _velocityFramebuffer->setRenderBuffer(0, _velocityTexture);
     _velocityFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());

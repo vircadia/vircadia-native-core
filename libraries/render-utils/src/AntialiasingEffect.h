@@ -86,12 +86,12 @@ private:
 class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
-    Q_PROPERTY(float velocityScale MEMBER velocityScale NOTIFY dirty)
+    Q_PROPERTY(float covarianceGamma MEMBER covarianceGamma NOTIFY dirty)
  
     Q_PROPERTY(bool unjitter MEMBER unjitter NOTIFY dirty)
     Q_PROPERTY(bool constrainColor MEMBER constrainColor NOTIFY dirty)
-    Q_PROPERTY(bool constrainColor9Taps MEMBER constrainColor9Taps NOTIFY dirty)
-    Q_PROPERTY(bool clipHistoryColor MEMBER clipHistoryColor NOTIFY dirty)
+    Q_PROPERTY(bool covarianceClipColor MEMBER covarianceClipColor NOTIFY dirty)
+    Q_PROPERTY(bool clipExactColor MEMBER clipExactColor NOTIFY dirty)
     Q_PROPERTY(bool feedbackColor MEMBER feedbackColor NOTIFY dirty)
 
     Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
@@ -109,19 +109,20 @@ public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
     float blend{ 0.1f };
-    float velocityScale{ 1.0f };
+
+
+    bool unjitter{ false };
+    bool constrainColor{ true };
+    bool covarianceClipColor{ true };
+    float covarianceGamma{ 1.0f };
+    bool clipExactColor{ true };
+    bool feedbackColor{ true };
 
     float debugX{ 0.0f };
     float debugFXAAX{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
     float debugOrbZoom{ 2.0f };
-
-    bool unjitter{ true };
-    bool constrainColor{ true };
-    bool constrainColor9Taps{ true };
-    bool clipHistoryColor{ true };
-    bool feedbackColor{ true };
 
     bool debug { false };
     bool showCursorPixel { false };
@@ -138,7 +139,7 @@ signals:
 struct TAAParams {
     float nope{ 0.0f };
     float blend{ 0.1f };
-    float velocityScale{ 1.0f };
+    float covarianceGamma{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 
     glm::ivec4 flags{ 0 };
@@ -151,11 +152,11 @@ struct TAAParams {
     void setConstrainColor(bool enabled) { SET_BIT(flags.y, 1, enabled); }
     bool isConstrainColor() const { return (bool)GET_BIT(flags.y, 1); }
 
-    void setConstrainColor9Taps(bool enabled) { SET_BIT(flags.y, 2, enabled); }
-    bool isConstrainColor9Taps() const { return (bool)GET_BIT(flags.y, 2); }
+    void setCovarianceClipColor(bool enabled) { SET_BIT(flags.y, 2, enabled); }
+    bool isCovarianceClipColor() const { return (bool)GET_BIT(flags.y, 2); }
 
-    void setClipHistoryColor(bool enabled) { SET_BIT(flags.y, 3, enabled); }
-    bool isClipHistoryColor() const { return (bool)GET_BIT(flags.y, 3); }
+    void setClipExactColor(bool enabled) { SET_BIT(flags.y, 3, enabled); }
+    bool isClipExactColor() const { return (bool)GET_BIT(flags.y, 3); }
 
     void setFeedbackColor(bool enabled) { SET_BIT(flags.y, 4, enabled); }
     bool isFeedbackColor() const { return (bool)GET_BIT(flags.y, 4); }

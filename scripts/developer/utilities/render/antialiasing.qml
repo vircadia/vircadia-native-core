@@ -30,6 +30,7 @@ Rectangle {
         spacing: 20
 
         Column{
+                spacing: 10
 
            
             Row {
@@ -101,37 +102,55 @@ Rectangle {
             Separator {}          
             Column {
                 spacing: 10
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Constrain color"
-                    checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor"] = checked }
-                }
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Clip / Clamp History color"
-                    checked: Render.getConfig("RenderMainView.Antialiasing")["clipHistoryColor"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["clipHistoryColor"] = checked }
-                }
                 Row {
                     spacing: 10
-                        
                     HifiControls.CheckBox {
                         boxSize: 20
-                        text: "Feedback history color"
-                        checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
-                        onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
+                        text: "Constrain color"
+                        checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor"]
+                        onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor"] = checked }
                     }
-            
-                    HifiControls.ConfigSlider {
-                        label: qsTr("Source blend")
-                        integral: false
-                        config: Render.getConfig("RenderMainView.Antialiasing")
-                        property: "blend"
-                        max: 1.0
-                        min: 0.0
+
+                    Column {
+                        spacing: 10
+                        HifiControls.CheckBox {
+                            boxSize: 20
+                            text: "Covariance Min Max"
+                            checked: Render.getConfig("RenderMainView.Antialiasing")["covarianceClipColor"]
+                            onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["covarianceClipColor"] = checked }
+                        }
+                        HifiControls.CheckBox {
+                            boxSize: 20
+                            text: "Clip exact color"
+                            checked: Render.getConfig("RenderMainView.Antialiasing")["clipExactColor"]
+                            onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["clipExactColor"] = checked }
+                        }
+                        HifiControls.ConfigSlider {
+                            label: qsTr("Covariance gamma")
+                            integral: false
+                            config: Render.getConfig("RenderMainView.Antialiasing")
+                            property: "covarianceGamma"
+                            max: 1.5
+                            min: 0.5
+                        }
                     }
+                }                            
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Feedback history color"
+                    checked: Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["feedbackColor"] = checked }
                 }
+        
+                HifiControls.ConfigSlider {
+                    label: qsTr("Source blend")
+                    integral: false
+                    config: Render.getConfig("RenderMainView.Antialiasing")
+                    property: "blend"
+                    max: 1.0
+                    min: 0.0
+                }
+
             }
             Row {
 
@@ -149,7 +168,7 @@ Rectangle {
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showCursorPixel"] = checked }
                 }
             }
-            ConfigSlider {
+            HifiControls.ConfigSlider {
                 label: qsTr("Debug Region <")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
@@ -157,7 +176,7 @@ Rectangle {
                 max: 1.0
                 min: 0.0
             }
-            ConfigSlider {
+            HifiControls.ConfigSlider {
                 label: qsTr("FXAA Region >")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
@@ -174,7 +193,7 @@ Rectangle {
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"] = checked }
                 }                
             }            
-            ConfigSlider {
+            HifiControls.ConfigSlider {
                 label: qsTr("Debug Velocity Threshold [pix]")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
@@ -182,23 +201,14 @@ Rectangle {
                 max: 50
                 min: 0.0
             }
-            ConfigSlider {
+            HifiControls.ConfigSlider {
                 label: qsTr("Debug Orb Zoom")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
                 property: "debugOrbZoom"
                 max: 32.0
                 min: 1.0
-            } 
-            Separator {}            
-             ConfigSlider {
-                label: qsTr("Velocity scale")
-                integral: false
-                config: Render.getConfig("RenderMainView.Antialiasing")
-                property: "velocityScale"
-                max: 1.0
-                min: 0.0
-            }
+            }    
         }
     }
 }

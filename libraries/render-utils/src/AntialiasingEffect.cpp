@@ -220,7 +220,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         
         gpu::Shader::makeProgram(*program, slotBindings);
         
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+       gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         PrepareStencil::testMask(*state);
 
@@ -284,12 +284,12 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 
 void Antialiasing::configure(const Config& config) {
     _params.edit().blend = config.blend;
-    _params.edit().velocityScale = config.velocityScale;
+    _params.edit().covarianceGamma = config.covarianceGamma;
 
     _params.edit().setUnjitter(config.unjitter);
     _params.edit().setConstrainColor(config.constrainColor);
-    _params.edit().setConstrainColor9Taps(config.constrainColor9Taps);
-    _params.edit().setClipHistoryColor(config.clipHistoryColor);
+    _params.edit().setCovarianceClipColor(config.covarianceClipColor);
+    _params.edit().setClipExactColor(config.clipExactColor);
     _params.edit().setFeedbackColor(config.feedbackColor);
 
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
@@ -491,7 +491,7 @@ void JitterSample::configure(const Config& config) {
             _jitterBuffer.edit().currentIndex = pausedIndex;
         }
     } else {
-        if (_jitterBuffer->currentIndex == SampleSequence::SEQUENCE_LENGTH) {
+        if (_jitterBuffer->currentIndex < 0) {
             _jitterBuffer.edit().currentIndex = config.getIndex();
         }
     }
