@@ -200,7 +200,7 @@ vec3 taa_findClosestFragment3x3(vec2 uv)
 vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, vec2 fragJitterPix, out vec3 sourceColor, out vec3 historyColor) {
     sourceColor = taa_fetchSourceMap(fragUV).xyz;
 
-    vec2 prevFragUV = fragUV - fragJitterPix - fragVelocity;
+    vec2 prevFragUV = fragUV - fragVelocity;
     historyColor = sourceColor;
     if (!(any(lessThan(prevFragUV, vec2(0.0))) || any(greaterThan(prevFragUV, vec2(1.0))))) {
         historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
