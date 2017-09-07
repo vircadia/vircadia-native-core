@@ -336,7 +336,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         for (int i = 0; i < 2; i++) {
             _antialiasingBuffer[i] = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
             auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
-            auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+            auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
             _antialiasingTexture[i] = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
             _antialiasingBuffer[i]->setRenderBuffer(0, _antialiasingTexture[i]);
         }
@@ -489,6 +489,10 @@ void JitterSample::configure(const Config& config) {
         auto pausedIndex = config.getIndex();
         if (_jitterBuffer->currentIndex != pausedIndex) {
             _jitterBuffer.edit().currentIndex = pausedIndex;
+        }
+    } else {
+        if (_jitterBuffer->currentIndex == SampleSequence::SEQUENCE_LENGTH) {
+            _jitterBuffer.edit().currentIndex = config.getIndex();
         }
     }
     _scale = config.scale;

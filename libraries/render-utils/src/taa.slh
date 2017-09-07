@@ -219,8 +219,7 @@ mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVeloci
     vec2 texelSize = getInvWidthHeight();
     vec3 cmin, cmax, cavg;
 
-    if (taa_constrainColor9Taps()) {
-
+    #if MINMAX_3X3_ROUNDED
 		vec2 du = vec2(texelSize.x, 0.0);
 		vec2 dv = vec2(0.0, texelSize.y);
 
@@ -228,7 +227,7 @@ mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVeloci
 		vec3 ctc = taa_fetchSourceMap(fragUV - dv).rgb;
 		vec3 ctr = taa_fetchSourceMap(fragUV - dv + du).rgb;
 		vec3 cml = taa_fetchSourceMap(fragUV - du).rgb;
-		vec3 cmc = taa_fetchSourceMap(fragUV).rgb; // could resuse the same osurce sample isn't it ?
+		vec3 cmc = sourceColor; //taa_fetchSourceMap(fragUV).rgb; // could resuse the same osurce sample isn't it ?
 		vec3 cmr = taa_fetchSourceMap(fragUV + du).rgb;
 		vec3 cbl = taa_fetchSourceMap(fragUV + dv - du).rgb;
 		vec3 cbc = taa_fetchSourceMap(fragUV + dv).rgb;
@@ -251,7 +250,7 @@ mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVeloci
 			cmax = 0.5 * (cmax + cmax5);
 			cavg = 0.5 * (cavg + cavg5);
 		#endif
-    } else {
+    #else
 		const float _SubpixelThreshold = 0.5;
 		const float _GatherBase = 0.5;
 		const float _GatherSubpixelMotion = 0.1666;
@@ -277,7 +276,7 @@ mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVeloci
         #elif
             cavg = (cmin + cmax ) * 0.5;
 		#endif
-   }
+    #endif
 
    		// shrink chroma min-max
 	#if USE_YCOCG
@@ -373,7 +372,7 @@ vec3 taa_getVelocityColorAboveThreshold(float velocityPixLength) {
 }
 
 
-vec3 taa_evalTXAA(vec2 fragUV) {
+vec3 taa_evalFXAA(vec2 fragUV) {
 
     vec2 texelSize = getInvWidthHeight();
 

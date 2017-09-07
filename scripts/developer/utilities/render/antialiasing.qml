@@ -57,6 +57,7 @@ Rectangle {
                     }
                 }
             }
+            Separator {}          
             Row {
                 spacing: 10
                 
@@ -64,11 +65,11 @@ Rectangle {
                     text: {
                         var state = 2 - (Render.getConfig("RenderMainView.JitterCam").freeze * 1 - Render.getConfig("RenderMainView.JitterCam").stop * 2); 
                         if (state === 2) {
-                            return ">>"
+                            return "Jitter"
                         } else if  (state === 1) {
-                            return "|" + Render.getConfig("RenderMainView.JitterCam").index + "|"
+                            return "Paused at " + Render.getConfig("RenderMainView.JitterCam").index + ""
                         } else {
-                            return "[]"
+                            return "No Jitter"
                         }
                         }
                     onClicked: { Render.getConfig("RenderMainView.JitterCam").cycleStopPauseRun(); }
@@ -105,12 +106,6 @@ Rectangle {
                     text: "Constrain color"
                     checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor"]
                     onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor"] = checked }
-                }
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Constrain color 9 Taps"
-                    checked: Render.getConfig("RenderMainView.Antialiasing")["constrainColor9Taps"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["constrainColor9Taps"] = checked }
                 }
                 HifiControls.CheckBox {
                     boxSize: 20
