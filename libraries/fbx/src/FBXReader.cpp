@@ -468,7 +468,7 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
 }
 
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
-    const FBXNode& node = _fbxNode;
+    const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -1839,7 +1839,7 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
-    reader._fbxNode = FBXReader::parseFBX(device);
+    reader._rootNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
 
