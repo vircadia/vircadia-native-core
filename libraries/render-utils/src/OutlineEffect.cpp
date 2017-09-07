@@ -22,6 +22,7 @@
 #include "debug_deferred_buffer_vert.h"
 #include "debug_deferred_buffer_frag.h"
 #include "Outline_frag.h"
+#include "Outline_filled_frag.h"
 
 using namespace render;
 
@@ -153,7 +154,6 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
         const auto frameTransform = inputs.get0();
         auto outlinedDepthBuffer = mainFrameBuffer->getPrimaryDepthTexture();
         auto destinationFrameBuffer = inputs.get3();
-        auto pipeline = getPipeline();
         auto framebufferSize = glm::ivec2(outlinedDepthBuffer->getDimensions());
 
         if (!_primaryWithoutDepthBuffer || framebufferSize!=_frameBufferSize) {
@@ -164,6 +164,8 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
         }
 
         if (sceneDepthBuffer) {
+            const auto OPACITY_EPSILON = 5e-3f;
+            auto pipeline = getPipeline(_fillOpacityUnoccluded>OPACITY_EPSILON || _fillOpacityOccluded>OPACITY_EPSILON);
             auto args = renderContext->args;
             {
                 auto& configuration = _configuration.edit();
@@ -200,7 +202,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
     }
 }
 
-const gpu::PipelinePointer& DrawOutline::getPipeline() {
+const gpu::PipelinePointer& DrawOutline::getPipeline(bool isFilled) {
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::Shader::createPixel(std::string(Outline_frag));
@@ -217,8 +219,13 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         state->setDepthTest(gpu::State::DepthTest(false, false));
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         _pipeline = gpu::Pipeline::create(program, state);
+
+        ps = gpu::Shader::createPixel(std::string(Outline_filled_frag));
+        program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram(*program, slotBindings);
+        _pipelineFilled = gpu::Pipeline::create(program, state);
     }
-    return _pipeline;
+    return isFilled ? _pipelineFilled : _pipeline;
 }
 
 DebugOutline::DebugOutline() {
@@ -310,51 +317,53 @@ void DrawOutlineDepth::run(const render::RenderContextPointer& renderContext, co
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
-    RenderArgs* args = renderContext->args;
-    ShapeKey::Builder defaultKeyBuilder;
+    if (!inShapes.empty()) {
+        RenderArgs* args = renderContext->args;
+        ShapeKey::Builder defaultKeyBuilder;
 
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            args->_batch = &batch;
 
-        // Setup camera, projection and viewport for all items
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
+            // Setup camera, projection and viewport for all items
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
+            glm::mat4 projMat;
+            Transform viewMat;
+            args->getViewFrustum().evalProjectionMatrix(projMat);
+            args->getViewFrustum().evalViewTransform(viewMat);
 
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
+            batch.setProjectionTransform(projMat);
+            batch.setViewTransform(viewMat);
 
-        auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-        auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+            auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
+            auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
 
-        std::vector<ShapeKey> skinnedShapeKeys{};
+            std::vector<ShapeKey> skinnedShapeKeys{};
 
-        // Iterate through all inShapes and render the unskinned
-        args->_shapePipeline = shadowPipeline;
-        batch.setPipeline(shadowPipeline->pipeline);
-        for (auto items : inShapes) {
-            if (items.first.isSkinned()) {
-                skinnedShapeKeys.push_back(items.first);
+            // Iterate through all inShapes and render the unskinned
+            args->_shapePipeline = shadowPipeline;
+            batch.setPipeline(shadowPipeline->pipeline);
+            for (auto items : inShapes) {
+                if (items.first.isSkinned()) {
+                    skinnedShapeKeys.push_back(items.first);
+                }
+                else {
+                    renderItems(renderContext, items.second);
+                }
             }
-            else {
-                renderItems(renderContext, items.second);
+
+            // Reiterate to render the skinned
+            args->_shapePipeline = shadowSkinnedPipeline;
+            batch.setPipeline(shadowSkinnedPipeline->pipeline);
+            for (const auto& key : skinnedShapeKeys) {
+                renderItems(renderContext, inShapes.at(key));
             }
-        }
 
-        // Reiterate to render the skinned
-        args->_shapePipeline = shadowSkinnedPipeline;
-        batch.setPipeline(shadowSkinnedPipeline->pipeline);
-        for (const auto& key : skinnedShapeKeys) {
-            renderItems(renderContext, inShapes.at(key));
-        }
-
-        args->_shapePipeline = nullptr;
-        args->_batch = nullptr;
-    });
+            args->_shapePipeline = nullptr;
+            args->_batch = nullptr;
+        });
+    }
 }
 
 DrawOutlineTask::DrawOutlineTask() {

@@ -117,11 +117,12 @@ private:
 
     using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineParameters>;
 
-    const gpu::PipelinePointer& getPipeline();
+    const gpu::PipelinePointer& getPipeline(bool isFilled);
 
     gpu::FramebufferPointer _primaryWithoutDepthBuffer;
     glm::ivec2 _frameBufferSize {0, 0};
     gpu::PipelinePointer _pipeline;
+    gpu::PipelinePointer _pipelineFilled;
     OutlineConfigurationBuffer _configuration;
     glm::vec3 _color;
     float _size;
