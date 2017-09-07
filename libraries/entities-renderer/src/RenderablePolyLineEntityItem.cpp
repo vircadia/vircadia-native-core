@@ -141,6 +141,10 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     auto normalsChanged = entity->normalsChanged();
     entity->resetPolyLineChanged();
 
+    _polylineTransform = Transform();
+    _polylineTransform.setTranslation(entity->getPosition());
+    _polylineTransform.setRotation(entity->getRotation());
+
     if (pointsChanged) {
         _lastPoints = entity->getLinePoints();
     }
@@ -218,7 +222,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
 
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(Transform{ _modelTransform }.setScale(vec3(1)));
+    batch.setModelTransform(_polylineTransform);
     batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
 
     if (_texture && _texture->isLoaded()) {

@@ -47,6 +47,7 @@ protected:
     void updateGeometry(const std::vector<Vertex>& vertices);
     static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, const QVector<glm::vec3>& normals, const QVector<float>& strokeWidths);
 
+    Transform _polylineTransform;
     QVector<glm::vec3> _lastPoints;
     QVector<glm::vec3> _lastNormals;
     QVector<float> _lastStrokeWidths;
