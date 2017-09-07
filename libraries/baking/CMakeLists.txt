@@ -15,5 +15,5 @@ if (FBX_FOUND)
   endif (UNIX)
 endif ()
 
-link_hifi_libraries(shared model networking ktx image)
+link_hifi_libraries(shared model networking ktx image fbx)
 include_hifi_library_headers(gpu)

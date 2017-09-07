@@ -16,7 +16,7 @@
 
 #include <SettingHandle.h>
 
-#include "../FBXBaker.h"
+#include <FBXBaker.h>
 
 #include "BakeWidget.h"
 

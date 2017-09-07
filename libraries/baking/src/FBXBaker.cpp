@@ -1,6 +1,6 @@
 //
 //  FBXBaker.cpp
-//  tools/oven/src
+//  tools/baking/src
 //
 //  Created by Stephen Birarda on 3/30/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -26,6 +26,9 @@
 #include <SharedUtil.h>
 
 #include <PathUtils.h>
+
+#include <FBXReader.h>
+#include <FBXWriter.h>
 
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
@@ -205,29 +208,16 @@ void FBXBaker::handleFBXNetworkReply() {
 }
 
 void FBXBaker::importScene() {
-    // create an FBX SDK importer
-    FbxImporter* importer = FbxImporter::Create(_sdkManager.get(), "");
-
     qDebug() << "file path: " << _originalFBXFilePath.toLocal8Bit().data() << QDir(_originalFBXFilePath).exists();
-    // import the copy of the original FBX file
-    bool importStatus = importer->Initialize(_originalFBXFilePath.toLocal8Bit().data());
 
-    if (!importStatus) {
-        // failed to initialize importer, print an error and return
-        handleError("Failed to import " + _fbxURL.toString() + " - " + importer->GetStatus().GetErrorString());
+    QFile fbxFile(_originalFBXFilePath);
+    if (!fbxFile.open(QIODevice::ReadOnly)) {
+        handleError("Error opening " + _originalFBXFilePath);
         return;
-    } else {
-        qCDebug(model_baking) << "Imported" << _fbxURL << "to FbxScene";
     }
 
-    // setup a new scene to hold the imported file
-    _scene = FbxScene::Create(_sdkManager.get(), "bakeScene");
-
-    // import the file to the created scene
-    importer->Import(_scene);
-
-    // destroy the importer that is no longer needed
-    importer->Destroy();
+    qCDebug(model_baking) << "Imported" << _fbxURL << "to FbxScene";
+    _rootNode = FBXReader::parseFBX(&fbxFile);
 }
 
 QString texturePathRelativeToFBX(QUrl fbxURL, QUrl textureURL) {

@@ -1,6 +1,6 @@
 //
 //  FBXBaker.h
-//  tools/oven/src
+//  tools/baking/src
 //
 //  Created by Stephen Birarda on 3/30/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -23,6 +23,8 @@
 #include "ModelBakingLoggingCategory.h"
 
 #include <gpu/Texture.h> 
+
+#include <FBX.h>
 
 namespace fbxsdk {
     class FbxManager;
@@ -76,6 +78,8 @@ private:
     void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir);
 
     QUrl _fbxURL;
+
+    FBXNode _rootNode;
     
     QString _bakedFBXFilePath;
 
