@@ -119,6 +119,10 @@ void PrepareOutline::run(const render::RenderContextPointer& renderContext, cons
 
             // Restore previous frame buffer
             batch.setFramebuffer(deferredFrameBuffer->getDeferredFramebuffer());
+            // Clear it
+            batch.clearFramebuffer(
+                gpu::Framebuffer::BUFFER_DEPTH,
+                vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, false);
         });
 
         output = _outlineFramebuffer;
@@ -323,10 +327,6 @@ void DrawOutlineDepth::run(const render::RenderContextPointer& renderContext, co
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
-
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_DEPTH,
-            vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, true);
 
         auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
