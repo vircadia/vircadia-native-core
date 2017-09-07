@@ -2246,7 +2246,7 @@ function MyController(hand) {
             }
         }
 
-        var sensorScaleFactor = MyAvatar.sensorToWorldMatrix
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
         var candidateEntities = Entities.findEntities(handPosition, NEAR_GRAB_RADIUS * sensorScaleFactor);
         var grabbableEntities = candidateEntities.filter(function(entity) {
             return _this.entityIsNearGrabbable(entity, handPosition, NEAR_GRAB_MAX_DISTANCE * sensorScaleFactor);
