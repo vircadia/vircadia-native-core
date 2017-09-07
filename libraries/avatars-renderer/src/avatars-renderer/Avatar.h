@@ -232,6 +232,7 @@ public:
 
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
+    float getTargetScale() const { return _targetScale; }
 
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 

@@ -193,8 +193,8 @@ void setupPreferences() {
         preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
     }
     {
-        auto getter = [=]()->float { return myAvatar->getModelScale(); };
-        auto setter = [=](float value) { myAvatar->setModelScale(value); };
+        auto getter = [=]()->float { return myAvatar->getTargetScale(); };
+        auto setter = [=](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
         preference->setStep(0.05f);
         preference->setDecimals(2);
