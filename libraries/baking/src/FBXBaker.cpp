@@ -212,7 +212,7 @@ void FBXBaker::importScene() {
 
     QFile fbxFile(_originalFBXFilePath);
     if (!fbxFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalFBXFilePath);
+        handleError("Error opening " + _originalFBXFilePath + " for reading");
         return;
     }
 
@@ -502,29 +502,25 @@ void FBXBaker::handleBakedTexture() {
 }
 
 void FBXBaker::exportScene() {
-    // setup the exporter
-    FbxExporter* exporter = FbxExporter::Create(_sdkManager.get(), "");
-
     // save the relative path to this FBX inside our passed output folder
-
     auto fileName = _fbxURL.fileName();
     auto baseName = fileName.left(fileName.lastIndexOf('.'));
     auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
 
     _bakedFBXFilePath = _bakedOutputDir + "/" + bakedFilename;
 
-    bool exportStatus = exporter->Initialize(_bakedFBXFilePath.toLocal8Bit().data());
+    auto fbxData = FBXWriter::encodeFBX(_rootNode);
 
-    if (!exportStatus) {
-        // failed to initialize exporter, print an error and return
-        handleError("Failed to export FBX file at " + _fbxURL.toString() + " to " + _bakedFBXFilePath
-                    + "- error: " + exporter->GetStatus().GetErrorString());
+    QFile bakedFile(_bakedFBXFilePath);
+
+    if (!bakedFile.open(QIODevice::WriteOnly)) {
+        handleError("Error opening " + _bakedFBXFilePath + " for writing");
+        return;
     }
 
-    _outputFiles.push_back(_bakedFBXFilePath);
+    bakedFile.write(fbxData);
 
-    // export the scene
-    exporter->Export(_scene);
+    _outputFiles.push_back(_bakedFBXFilePath);
 
     qCDebug(model_baking) << "Exported" << _fbxURL << "with re-written paths to" << _bakedFBXFilePath;
 }
