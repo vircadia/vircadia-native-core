@@ -5433,6 +5433,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                             << perUnknownServer << " to send us jurisdiction.";
                 }
 
+                // TODO: remove this hackery: it no longer makes sense for streaming of entities in scene.
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen
@@ -5453,16 +5454,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
-            }
-
-            // if asked to forceResend, then set the query's position/orientation to be degenerate in a manner
-            // that will cause our next query to be guarenteed to be different and the server will resend to us
-            if (forceResend) {
-                _octreeQuery.setCameraPosition(glm::vec3(-0.1, -0.1, -0.1));
-                const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
-                _octreeQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
-                _octreeQuery.setCameraNearClip(0.1f);
-                _octreeQuery.setCameraFarClip(0.1f);
             }
 
             // encode the query data
