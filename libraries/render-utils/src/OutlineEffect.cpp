@@ -18,6 +18,7 @@
 #include "gpu/Context.h"
 #include "gpu/StandardShaderLib.h"
 
+
 #include "surfaceGeometry_copyDepth_frag.h"
 #include "debug_deferred_buffer_vert.h"
 #include "debug_deferred_buffer_frag.h"
@@ -31,11 +32,11 @@ extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 OutlineFramebuffer::OutlineFramebuffer() {
 }
 
-void OutlineFramebuffer::update(const gpu::TexturePointer& linearDepthBuffer) {
+void OutlineFramebuffer::update(const gpu::TexturePointer& colorBuffer) {
     // If the depth buffer or size changed, we need to delete our FBOs and recreate them at the
     // new correct dimensions.
     if (_depthTexture) {
-        auto newFrameSize = glm::ivec2(linearDepthBuffer->getDimensions());
+        auto newFrameSize = glm::ivec2(colorBuffer->getDimensions());
         if (_frameSize != newFrameSize) {
             _frameSize = newFrameSize;
             clear();
@@ -52,11 +53,11 @@ void OutlineFramebuffer::allocate() {
     
     auto width = _frameSize.x;
     auto height = _frameSize.y;
-    auto format = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED);
-    
+    auto format = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
+
     _depthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(format, width, height));
     _depthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("outlineDepth"));
-    _depthFramebuffer->setRenderBuffer(0, _depthTexture);
+    _depthFramebuffer->setDepthStencilBuffer(_depthTexture, format);
 }
 
 gpu::FramebufferPointer OutlineFramebuffer::getDepthFramebuffer() {
@@ -73,57 +74,69 @@ gpu::TexturePointer OutlineFramebuffer::getDepthTexture() {
     return _depthTexture;
 }
 
-void PrepareOutline::run(const render::RenderContextPointer& renderContext, const PrepareOutline::Inputs& inputs, PrepareOutline::Output& output) {
-    auto outlinedItems = inputs.get0();
+void DrawOutlineDepth::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+    auto& inShapes = inputs.get0();
+    auto& deferredFrameBuffer = inputs.get1();
 
-    if (!outlinedItems.empty()) {
-        auto args = renderContext->args;
-        auto deferredFrameBuffer = inputs.get1();
+    if (!inShapes.empty()) {
         auto frameSize = deferredFrameBuffer->getFrameSize();
+        RenderArgs* args = renderContext->args;
+        ShapeKey::Builder defaultKeyBuilder;
 
         if (!_outlineFramebuffer) {
             _outlineFramebuffer = std::make_shared<OutlineFramebuffer>();
         }
-        _outlineFramebuffer->update(deferredFrameBuffer->getPrimaryDepthTexture());
+        _outlineFramebuffer->update(deferredFrameBuffer->getDeferredColorTexture());
 
-        if (!_copyDepthPipeline) {
-            auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-            auto ps = gpu::Shader::createPixel(std::string(surfaceGeometry_copyDepth_frag));
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-            gpu::Shader::BindingSet slotBindings;
-            slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), 0));
-            gpu::Shader::makeProgram(*program, slotBindings);
-
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
-            state->setColorWriteMask(true, false, false, false);
-
-            // Good to go add the brand new pipeline
-            _copyDepthPipeline = gpu::Pipeline::create(program, state);
-        }
-
-        // TODO : Instead of copying entire buffer, we should only copy the sub rect containing the outlined object
-        // grown to take into account blur width
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            batch.enableStereo(false);
-
-            batch.setViewportTransform(args->_viewport);
-            batch.setProjectionTransform(glm::mat4());
-            batch.resetViewTransform();
-            batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(frameSize, args->_viewport));
+            args->_batch = &batch;
 
             batch.setFramebuffer(_outlineFramebuffer->getDepthFramebuffer());
-            batch.setPipeline(_copyDepthPipeline);
-            batch.setResourceTexture(0, deferredFrameBuffer->getPrimaryDepthTexture());
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-            // Restore previous frame buffer
-            batch.setFramebuffer(deferredFrameBuffer->getDeferredFramebuffer());
             // Clear it
             batch.clearFramebuffer(
                 gpu::Framebuffer::BUFFER_DEPTH,
                 vec4(vec3(1.0, 1.0, 1.0), 0.0), 1.0, 0, false);
+
+            // Setup camera, projection and viewport for all items
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
+
+            glm::mat4 projMat;
+            Transform viewMat;
+            args->getViewFrustum().evalProjectionMatrix(projMat);
+            args->getViewFrustum().evalViewTransform(viewMat);
+
+            batch.setProjectionTransform(projMat);
+            batch.setViewTransform(viewMat);
+
+            auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
+            auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+
+            std::vector<ShapeKey> skinnedShapeKeys{};
+
+            // Iterate through all inShapes and render the unskinned
+            args->_shapePipeline = shadowPipeline;
+            batch.setPipeline(shadowPipeline->pipeline);
+            for (auto items : inShapes) {
+                if (items.first.isSkinned()) {
+                    skinnedShapeKeys.push_back(items.first);
+                }
+                else {
+                    renderItems(renderContext, items.second);
+                }
+            }
+
+            // Reiterate to render the skinned
+            args->_shapePipeline = shadowSkinnedPipeline;
+            batch.setPipeline(shadowSkinnedPipeline->pipeline);
+            for (const auto& key : skinnedShapeKeys) {
+                renderItems(renderContext, inShapes.at(key));
+            }
+
+            args->_shapePipeline = nullptr;
+            args->_batch = nullptr;
         });
 
         output = _outlineFramebuffer;
@@ -147,14 +160,14 @@ void DrawOutline::configure(const Config& config) {
 }
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-    auto mainFrameBuffer = inputs.get1();
+    auto outlineFrameBuffer = inputs.get1();
 
-    if (mainFrameBuffer) {
+    if (outlineFrameBuffer) {
         auto sceneDepthBuffer = inputs.get2();
         const auto frameTransform = inputs.get0();
-        auto outlinedDepthBuffer = mainFrameBuffer->getPrimaryDepthTexture();
+        auto outlinedDepthTexture = outlineFrameBuffer->getDepthTexture();
         auto destinationFrameBuffer = inputs.get3();
-        auto framebufferSize = glm::ivec2(outlinedDepthBuffer->getDimensions());
+        auto framebufferSize = glm::ivec2(outlinedDepthTexture->getDimensions());
 
         if (!_primaryWithoutDepthBuffer || framebufferSize!=_frameBufferSize) {
             // Failing to recreate this frame buffer when the screen has been resized creates a bug on Mac
@@ -191,8 +204,8 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
 
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
                 batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
-                batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer->getDepthTexture());
-                batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthBuffer);
+                batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer->getPrimaryDepthTexture());
+                batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthTexture);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
 
                 // Restore previous frame buffer
@@ -266,7 +279,7 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
             batch.setModelTransform(Transform());
 
             batch.setPipeline(getDebugPipeline());
-            batch.setResourceTexture(0, outlineFramebuffer->getPrimaryDepthTexture());
+            batch.setResourceTexture(0, outlineFramebuffer->getDepthTexture());
 
             const glm::vec4 color(1.0f, 0.5f, 0.2f, 1.0f);
             const glm::vec2 bottomLeft(-1.0f, -1.0f);
@@ -313,59 +326,6 @@ const gpu::PipelinePointer& DebugOutline::getDebugPipeline() {
     return _debugPipeline;
 }
 
-void DrawOutlineDepth::run(const render::RenderContextPointer& renderContext, const render::ShapeBounds& inShapes) {
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-
-    if (!inShapes.empty()) {
-        RenderArgs* args = renderContext->args;
-        ShapeKey::Builder defaultKeyBuilder;
-
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            args->_batch = &batch;
-
-            // Setup camera, projection and viewport for all items
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
-
-            glm::mat4 projMat;
-            Transform viewMat;
-            args->getViewFrustum().evalProjectionMatrix(projMat);
-            args->getViewFrustum().evalViewTransform(viewMat);
-
-            batch.setProjectionTransform(projMat);
-            batch.setViewTransform(viewMat);
-
-            auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-            auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-
-            std::vector<ShapeKey> skinnedShapeKeys{};
-
-            // Iterate through all inShapes and render the unskinned
-            args->_shapePipeline = shadowPipeline;
-            batch.setPipeline(shadowPipeline->pipeline);
-            for (auto items : inShapes) {
-                if (items.first.isSkinned()) {
-                    skinnedShapeKeys.push_back(items.first);
-                }
-                else {
-                    renderItems(renderContext, items.second);
-                }
-            }
-
-            // Reiterate to render the skinned
-            args->_shapePipeline = shadowSkinnedPipeline;
-            batch.setPipeline(shadowSkinnedPipeline->pipeline);
-            for (const auto& key : skinnedShapeKeys) {
-                renderItems(renderContext, inShapes.at(key));
-            }
-
-            args->_shapePipeline = nullptr;
-            args->_batch = nullptr;
-        });
-    }
-}
-
 DrawOutlineTask::DrawOutlineTask() {
 
 }
@@ -378,7 +338,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     const auto input = inputs.get<Inputs>();
     const auto selectedMetas = inputs.getN<Inputs>(0);
     const auto shapePlumber = input.get1();
-    const auto outlinedFrameBuffer = inputs.getN<Inputs>(2);
+    const auto sceneFrameBuffer = inputs.getN<Inputs>(2);
     const auto primaryFramebuffer = inputs.getN<Inputs>(3);
     const auto deferredFrameTransform = inputs.getN<Inputs>(4);
 
@@ -387,22 +347,21 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     {
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setColorWriteMask(0);
+        state->setColorWriteMask(false, false, false, false);
 
         initZPassPipelines(*shapePlumberZPass, state);
     }
 
-    const auto& outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", selectedMetas);
-    const auto& outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs, true);
-
-    // Retrieve z value of the scene objects
-    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedItems, outlinedFrameBuffer).asVarying();
-    const auto sceneFrameBuffer = task.addJob<PrepareOutline>("OutlineCopyDepth", outlinePrepareInputs);
+    const auto outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", selectedMetas);
+    const auto outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs, true);
 
     // Sort
-    const auto& sortedPipelines = task.addJob<render::PipelineSortShapes>("OutlinePipelineSort", outlinedItems);
-    const auto& sortedShapes = task.addJob<render::DepthSortShapes>("OutlineDepthSort", sortedPipelines);
-    task.addJob<DrawOutlineDepth>("OutlineDepth", sortedShapes, shapePlumberZPass);
+    const auto sortedPipelines = task.addJob<render::PipelineSortShapes>("OutlinePipelineSort", outlinedItems);
+    const auto sortedShapes = task.addJob<render::DepthSortShapes>("OutlineDepthSort", sortedPipelines);
+
+    // Draw depth of outlined objects in separate buffer
+    const auto drawOutlineDepthInputs = DrawOutlineDepth::Inputs(sortedShapes, sceneFrameBuffer).asVarying();
+    const auto outlinedFrameBuffer = task.addJob<DrawOutlineDepth>("OutlineDepth", drawOutlineDepthInputs, shapePlumberZPass);
 
     // Draw outline
     const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlinedFrameBuffer, sceneFrameBuffer, primaryFramebuffer).asVarying();

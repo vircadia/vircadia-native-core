@@ -24,7 +24,7 @@ public:
     gpu::TexturePointer getDepthTexture();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
-    void update(const gpu::TexturePointer& linearDepthBuffer);
+    void update(const gpu::TexturePointer& colorBuffer);
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
 
 protected:
@@ -40,23 +40,22 @@ protected:
 
 using OutlineFramebufferPointer = std::shared_ptr<OutlineFramebuffer>;
 
-class PrepareOutline {
-
+class DrawOutlineDepth {
 public:
 
-    using Inputs = render::VaryingSet2<render::ItemBounds, DeferredFramebufferPointer>;
-	// Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
-    using Output = OutlineFramebufferPointer;
-	using JobModel = render::Job::ModelIO<PrepareOutline, Inputs, Output>;
+    using Inputs = render::VaryingSet2<render::ShapeBounds, DeferredFramebufferPointer>;
+    // Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
+    using Outputs = OutlineFramebufferPointer;
+    using JobModel = render::Job::ModelIO<DrawOutlineDepth, Inputs, Outputs>;
 
-	PrepareOutline() {}
+    DrawOutlineDepth(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
 
-	void run(const render::RenderContextPointer& renderContext, const PrepareOutline::Inputs& input, PrepareOutline::Output& output);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
 
-private:
+protected:
 
+    render::ShapePlumberPointer _shapePlumber;
     OutlineFramebufferPointer _outlineFramebuffer;
-    gpu::PipelinePointer _copyDepthPipeline;
 };
 
 class DrawOutlineConfig : public render::Job::Config {
@@ -94,7 +93,7 @@ signals:
 
 class DrawOutline {
 public:
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, DeferredFramebufferPointer, OutlineFramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineFramebufferPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
     using Config = DrawOutlineConfig;
     using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
 
@@ -147,7 +146,7 @@ signals:
 
 class DebugOutline {
 public:
-    using Inputs = DeferredFramebufferPointer;
+    using Inputs = OutlineFramebufferPointer;
     using Config = DebugOutlineConfig;
     using JobModel = render::Job::ModelI<DebugOutline, Inputs, Config>;
 
@@ -164,18 +163,6 @@ private:
     gpu::PipelinePointer _debugPipeline;
     int _geometryId{ 0 };
     bool _isDisplayDepthEnabled{ false };
-};
-
-class DrawOutlineDepth {
-public:
-    using JobModel = render::Job::ModelI<DrawOutlineDepth, render::ShapeBounds>;
-
-    DrawOutlineDepth(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void run(const render::RenderContextPointer& renderContext,
-        const render::ShapeBounds& inShapes);
-
-protected:
-    render::ShapePlumberPointer _shapePlumber;
 };
 
 class DrawOutlineTask {
