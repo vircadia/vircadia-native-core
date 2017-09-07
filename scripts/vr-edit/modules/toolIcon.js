@@ -86,11 +86,6 @@ ToolIcon = function (side) {
 
     setHand(side);
 
-    function update() {
-        // TODO: Display icon animation.
-        // TODO: Clear icon animation.
-    }
-
     function clear() {
         // Deletes current tool model.
         if (modelOverlay) {
@@ -160,7 +155,6 @@ ToolIcon = function (side) {
 
     return {
         setHand: setHand,
-        update: update,
         display: display,
         clear: clear,
         destroy: destroy

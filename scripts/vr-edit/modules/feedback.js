@@ -30,7 +30,7 @@ Feedback = (function () {
             SELECT_ENTITY:   { sound: SELECT_SOUND, volume: 0.2, haptic: 0.1   },  // E.g., Group tool.
             CLONE_ENTITY:    { sound: CLONE_SOUND,  volume: 0.2, haptic: 0.1   },
             CREATE_ENTITY:   { sound: CREATE_SOUND, volume: 0.4, haptic: 0.2   },
-            HOVER_MENU_ITEM: { sound: null,         volume: 0,   haptic: 0.1   } ,  // Tools menu.
+            HOVER_MENU_ITEM: { sound: null,         volume: 0,   haptic: 0.1   },  // Tools menu.
             HOVER_BUTTON:    { sound: null,         volume: 0,   haptic: 0.075 },  // Tools options and Create palette items.
             EQUIP_TOOL:      { sound: EQUIP_SOUND,  volume: 0.3, haptic: 0.6   },
             APPLY_PROPERTY:  { sound: null,         volume: 0,   haptic: 0.3   },

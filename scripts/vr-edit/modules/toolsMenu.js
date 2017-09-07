@@ -1843,12 +1843,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsItems,
         intersectionOverlays,
         intersectionEnabled,
-        highlightedItem,  // TODO: Rename this and similar to "hovered".
-        highlightedItems,
-        highlightedSourceOverlays,
-        highlightedSourceItems,
-        highlightedElementType = null,
-        isHighlightingButtonElement,
+        hoveredItem,
+        hoveredSourceOverlays,
+        hoveredSourceItems,
+        hoveredElementType = null,
+        isHoveringButtonElement,
         isPicklistOpen,
         pressedItem = null,
         pressedSource = null,
@@ -2583,7 +2582,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 index = optionsOverlaysIDs.indexOf("physicsPresets");
 
                 // Lower picklist.
-                isHighlightingPicklist = highlightedElementType === "picklist";
+                isHighlightingPicklist = hoveredElementType === "picklist";
                 Overlays.editOverlay(optionsOverlays[index], {
                     localPosition: isHighlightingPicklist
                         ? Vec3.sum(optionsItems[index].properties.localPosition, OPTION_HOVER_DELTA)
@@ -2865,74 +2864,74 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         }
 
-        // Highlight clickable item.
-        if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSourceOverlays) {
+        // Hover clickable item.
+        if (intersectedItem !== hoveredItem || intersectionOverlays !== hoveredSourceOverlays) {
 
-            if (highlightedItem !== NONE) {
+            if (hoveredItem !== NONE) {
                 // Unhover old item.
-                switch (highlightedElementType) {
+                switch (hoveredElementType) {
                 case "menuButton":
-                    Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
+                    Overlays.editOverlay(menuHoverOverlays[hoveredItem], {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
                     });
-                    Overlays.editOverlay(menuIconOverlays[highlightedItem], {
+                    Overlays.editOverlay(menuIconOverlays[hoveredItem], {
                         color: UI_ELEMENTS.menuButton.icon.properties.color
                     });
                     break;
                 case "button":
-                    if (highlightedSourceItems[highlightedItem].enabledColor !== undefined && optionsEnabled[highlightedItem]) {
-                        color = highlightedSourceItems[highlightedItem].enabledColor;
+                    if (hoveredSourceItems[hoveredItem].enabledColor !== undefined && optionsEnabled[hoveredItem]) {
+                        color = hoveredSourceItems[hoveredItem].enabledColor;
                     } else {
-                        color = highlightedSourceItems[highlightedItem].properties.color !== undefined
-                            ? highlightedSourceItems[highlightedItem].properties.color
+                        color = hoveredSourceItems[hoveredItem].properties.color !== undefined
+                            ? hoveredSourceItems[hoveredItem].properties.color
                             : UI_ELEMENTS.button.properties.color;
                     }
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
                         color: color,
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
+                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
                     });
                     break;
                 case "toggleButton":
-                    color = optionsToggles[highlightedSourceItems[highlightedItem].id]
+                    color = optionsToggles[hoveredSourceItems[hoveredItem].id]
                         ? UI_ELEMENTS.toggleButton.onColor
                         : UI_ELEMENTS.toggleButton.offColor;
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
                         color: color,
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
+                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
                     });
                     break;
                 case "swatch":
                     Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
-                    color = optionsSettings[highlightedSourceItems[highlightedItem].id].value;
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                    color = optionsSettings[hoveredSourceItems[hoveredItem].id].value;
+                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
                         dimensions: UI_ELEMENTS.swatch.properties.dimensions,
                         color: color === "" ? EMPTY_SWATCH_COLOR : color,
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
+                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
                     });
                     break;
                 case "barSlider":
                 case "imageSlider":
                 case "colorCircle":
                     // Lower old slider or color circle.
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                        localPosition: highlightedSourceItems[highlightedItem].properties.localPosition
+                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
                     });
                     break;
                 case "picklist":
-                    if (highlightedSourceItems[highlightedItem].type !== "picklistItem" && !isPicklistOpen) {
-                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
-                            localPosition: highlightedSourceItems[highlightedItem].properties.localPosition,
+                    if (hoveredSourceItems[hoveredItem].type !== "picklistItem" && !isPicklistOpen) {
+                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                            localPosition: hoveredSourceItems[hoveredItem].properties.localPosition,
                             color: UI_ELEMENTS.picklist.properties.color
                         });
                     } else {
-                        Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
                             color: UIT.colors.darkGray
                         });
                     }
                     break;
                 case "picklistItem":
-                    Overlays.editOverlay(highlightedSourceOverlays[highlightedItem], {
+                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
                         color: UI_ELEMENTS.picklistItem.properties.color
                     });
                     break;
@@ -2940,13 +2939,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     // Nothing to do.
                     break;
                 default:
-                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + highlightedElementType);
+                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
                 }
 
                 // Update status variables.
-                highlightedItem = NONE;
-                isHighlightingButtonElement = false;
-                highlightedElementType = null;
+                hoveredItem = NONE;
+                isHoveringButtonElement = false;
+                hoveredElementType = null;
             }
 
             if (intersectedItem !== NONE && intersectionItems[intersectedItem] &&
@@ -2954,41 +2953,40 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     || intersectionItems[intersectedItem].callback !== undefined)) {
 
                 // Update status variables.
-                highlightedItem = intersectedItem;
-                highlightedItems = intersectionItems;
-                isHighlightingButtonElement = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                highlightedElementType = intersectionItems[highlightedItem].type;
+                hoveredItem = intersectedItem;
+                isHoveringButtonElement = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[hoveredItem].type) !== NONE;
+                hoveredElementType = intersectionItems[hoveredItem].type;
 
                 // Hover new item.
-                switch (highlightedElementType) {
+                switch (hoveredElementType) {
                 case "menuButton":
                     Feedback.play(otherSide, Feedback.HOVER_MENU_ITEM);
-                    Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
+                    Overlays.editOverlay(menuHoverOverlays[hoveredItem], {
                         localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, MENU_HOVER_DELTA),
                         visible: true
                     });
-                    Overlays.editOverlay(menuIconOverlays[highlightedItem], {
+                    Overlays.editOverlay(menuIconOverlays[hoveredItem], {
                         color: UI_ELEMENTS.menuButton.icon.highlightColor
                     });
                     break;
                 case "button":
-                    if (intersectionEnabled[highlightedItem]) {
+                    if (intersectionEnabled[hoveredItem]) {
                         Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                        localPosition = intersectionItems[highlightedItem].properties.localPosition;
-                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
-                            color: intersectionItems[highlightedItem].highlightColor !== undefined
-                                ? intersectionItems[highlightedItem].highlightColor
+                        localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                            color: intersectionItems[hoveredItem].highlightColor !== undefined
+                                ? intersectionItems[hoveredItem].highlightColor
                                 : UIT.colors.greenHighlight,
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     }
                     break;
                 case "toggleButton":
-                    if (intersectionEnabled[highlightedItem]) {
+                    if (intersectionEnabled[hoveredItem]) {
                         Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                        localPosition = intersectionItems[highlightedItem].properties.localPosition;
-                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
-                            color: optionsToggles[intersectionItems[highlightedItem].id]
+                        localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                            color: optionsToggles[intersectionItems[hoveredItem].id]
                                 ? UI_ELEMENTS.toggleButton.onHoverColor
                                 : UI_ELEMENTS.toggleButton.offHoverColor,
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
@@ -2997,22 +2995,22 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     break;
                 case "swatch":
                     Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                    localPosition = intersectionItems[highlightedItem].properties.localPosition;
-                    if (optionsSettings[intersectionItems[highlightedItem].id].value === "") {
+                    localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                    if (optionsSettings[intersectionItems[hoveredItem].id].value === "") {
                         // Swatch is empty; highlight it with current color.
-                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
                             color: optionsSettings.currentColor.value,
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                     } else {
                         // Swatch is full; highlight it with ring.
-                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
                             dimensions: Vec3.subtract(UI_ELEMENTS.swatch.properties.dimensions,
                                 { x: SWATCH_HIGHLIGHT_DELTA, y: 0, z: SWATCH_HIGHLIGHT_DELTA }),
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
                         Overlays.editOverlay(swatchHighlightOverlay, {
-                            parentID: intersectionOverlays[highlightedItem],
+                            parentID: intersectionOverlays[hoveredItem],
                             localPosition: UI_ELEMENTS.swatchHighlight.properties.localPosition,
                             visible: true
                         });
@@ -3022,28 +3020,28 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 case "imageSlider":
                 case "colorCircle":
                     Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                    localPosition = intersectionItems[highlightedItem].properties.localPosition;
-                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                    localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                    Overlays.editOverlay(intersectionOverlays[hoveredItem], {
                         localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                     });
                     break;
                 case "picklist":
                     Feedback.play(otherSide, Feedback.HOVER_BUTTON);
                     if (!isPicklistOpen) {
-                        localPosition = intersectionItems[highlightedItem].properties.localPosition;
-                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
                             localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA),
                             color: UIT.colors.greenHighlight
                         });
                     } else {
-                        Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
                             color: UIT.colors.greenHighlight
                         });
                     }
                     break;
                 case "picklistItem":
                     Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                    Overlays.editOverlay(intersectionOverlays[hoveredItem], {
                         color: UIT.colors.greenHighlight
                     });
                     break;
@@ -3051,12 +3049,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     // Nothing to do.
                     break;
                 default:
-                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + highlightedElementType);
+                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
                 }
             }
 
-            highlightedSourceOverlays = intersectionOverlays;
-            highlightedSourceItems = intersectionItems;
+            hoveredSourceOverlays = intersectionOverlays;
+            hoveredSourceItems = intersectionItems;
         }
 
         // Press/unpress button.
@@ -3065,18 +3063,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (pressedItem) {
                 // Unpress previous button.
                 Overlays.editOverlay(pressedSource[pressedItem.index], {
-                    localPosition: isHighlightingButtonElement && highlightedItem === pressedItem.index
+                    localPosition: isHoveringButtonElement && hoveredItem === pressedItem.index
                         ? Vec3.sum(pressedItem.localPosition, OPTION_HOVER_DELTA)
                         : pressedItem.localPosition
                 });
                 pressedItem = null;
                 pressedSource = null;
             }
-            if (isHighlightingButtonElement && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
+            if (isHoveringButtonElement && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
                     && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
                 localPosition = intersectionItems[intersectedItem].properties.localPosition;
-                if (highlightedElementType !== "menuButton") {
+                if (hoveredElementType !== "menuButton") {
                     Overlays.editOverlay(intersectionOverlays[intersectedItem], {
                         localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
                     });
@@ -3105,7 +3103,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Picklist update.
-        if (intersectionItems && ((highlightedElementType === "picklist"
+        if (intersectionItems && ((hoveredElementType === "picklist"
                 && controlHand.triggerClicked() !== isPicklistPressed)
                     || (intersectionItems[intersectedItem].type !== "picklist" && isPicklistPressed))) {
             isPicklistPressed = controlHand.triggerClicked();
@@ -3113,7 +3111,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 doCommand(intersectionItems[intersectedItem].command.method, intersectionItems[intersectedItem].id);
             }
         }
-        if (intersectionItems && ((highlightedElementType === "picklistItem"
+        if (intersectionItems && ((hoveredElementType === "picklistItem"
                 && controlHand.triggerClicked() !== isPicklistItemPressed)
                     || (intersectionItems[intersectedItem].type !== "picklistItem" && isPicklistItemPressed))) {
             isPicklistItemPressed = controlHand.triggerClicked();
@@ -3122,7 +3120,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         }
         if (intersectionItems && isPicklistOpen && controlHand.triggerClicked()
-                && highlightedElementType !== "picklist" && highlightedElementType !== "picklistItem") {
+                && hoveredElementType !== "picklist" && hoveredElementType !== "picklistItem") {
             doCommand("togglePhysicsPresets");
         }
 
@@ -3137,7 +3135,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Bar slider update.
-        if (intersectionItems && highlightedElementType === "barSlider" && controlHand.triggerClicked()) {
+        if (intersectionItems && hoveredElementType === "barSlider" && controlHand.triggerClicked()) {
             sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
             overlayDimensions = intersectionItems[intersectedItem].properties.dimensions;
             if (overlayDimensions === undefined) {
@@ -3155,7 +3153,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Image slider update.
-        if (intersectionItems && highlightedElementType === "imageSlider" && controlHand.triggerClicked()) {
+        if (intersectionItems && hoveredElementType === "imageSlider" && controlHand.triggerClicked()) {
             sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
             overlayDimensions = intersectionItems[intersectedItem].properties.dimensions;
             if (overlayDimensions === undefined) {
@@ -3176,7 +3174,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Color circle update.
-        if (intersectionItems && highlightedElementType === "colorCircle" && controlHand.triggerClicked()) {
+        if (intersectionItems && hoveredElementType === "colorCircle" && controlHand.triggerClicked()) {
             sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
             delta = Vec3.multiplyQbyV(Quat.inverse(sliderProperties.orientation),
                 Vec3.subtract(intersection.intersection, sliderProperties.position));
@@ -3208,7 +3206,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isGroupButtonEnabled = enableGroupButton;
                 Overlays.editOverlay(optionsOverlays[groupButtonIndex], {
                     color: isGroupButtonEnabled
-                        ? (highlightedItem === groupButtonIndex
+                        ? (hoveredItem === groupButtonIndex
                             ? OPTONS_PANELS.groupOptions[groupButtonIndex].highlightColor
                             : OPTONS_PANELS.groupOptions[groupButtonIndex].enabledColor)
                         : OPTONS_PANELS.groupOptions[groupButtonIndex].properties.color
@@ -3226,7 +3224,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isUngroupButtonEnabled = enableUngroupButton;
                 Overlays.editOverlay(optionsOverlays[ungroupButtonIndex], {
                     color: isUngroupButtonEnabled
-                        ? (highlightedItem === ungroupButtonIndex
+                        ? (hoveredItem === ungroupButtonIndex
                             ? OPTONS_PANELS.groupOptions[ungroupButtonIndex].highlightColor
                             : OPTONS_PANELS.groupOptions[ungroupButtonIndex].enabledColor)
                         : OPTONS_PANELS.groupOptions[ungroupButtonIndex].properties.color
@@ -3312,10 +3310,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsItems = null;
         intersectionOverlays = null;
         intersectionEnabled = null;
-        highlightedItem = NONE;
-        highlightedSourceOverlays = null;
-        isHighlightingButtonElement = false;
-        highlightedElementType = null;
+        hoveredItem = NONE;
+        hoveredSourceOverlays = null;
+        isHoveringButtonElement = false;
+        hoveredElementType = null;
         pressedItem = null;
         pressedSource = null;
         isPicklistOpen = false;

@@ -71,7 +71,7 @@
         button,
         DOMAIN_CHANGED_MESSAGE = "Toolbar-DomainChanged",
 
-        DEBUG = true;  // TODO: Set false.
+        DEBUG = false;
 
     // Utilities
     Script.include("./utilities/utilities.js");
@@ -275,7 +275,6 @@
                 intersection = getIntersection();
                 toolsMenu.update(intersection, grouping.groupsCount(), grouping.entitiesCount());
                 createPalette.update(intersection.overlayID);
-                toolIcon.update();
             }
         }
 
@@ -1037,7 +1036,6 @@
                         intersectedEntityID = intersection.entityID;
                         doUpdateState = true;
                     }
-                    // TODO: For development testing, update intersectedEntityID so that physics can be applied to it.
                     if ((toolSelected === TOOL_COLOR || toolSelected === TOOL_PHYSICS)
                             && intersection.entityID !== intersectedEntityID) {
                         intersectedEntityID = intersection.entityID;
