@@ -28,7 +28,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/inEditMode.js",
     "controllerModules/disableOtherModule.js",
     "controllerModules/farTrigger.js",
-    "teleport.js"
+    "controllerModules/teleport.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

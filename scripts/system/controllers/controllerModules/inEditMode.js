@@ -14,7 +14,7 @@
    isInEditMode
 */
 
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/utils.js");
 
@@ -94,6 +94,7 @@ Script.include("/~/system/libraries/utils.js");
         this.parameters = makeDispatcherModuleParameters(
             160,
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
+            [],
             100);
 
         this.nearTablet = function(overlays) {

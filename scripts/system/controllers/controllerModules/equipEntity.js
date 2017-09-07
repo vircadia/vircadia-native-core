@@ -14,7 +14,7 @@
 */
 
 Script.include("/~/system/libraries/Xform.js");
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/cloneEntityUtils.js");
 

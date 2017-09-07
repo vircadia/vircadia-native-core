@@ -12,7 +12,7 @@
    makeDispatcherModuleParameters, Overlays, makeRunningValues
 */
 
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 var GRAB_RADIUS = 0.35;
 
 (function() {
@@ -158,7 +158,7 @@ var GRAB_RADIUS = 0.35;
 
 
         this.isReady = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0) {
+            if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
                 return makeRunningValues(false, [], []);
             }
 
@@ -180,7 +180,7 @@ var GRAB_RADIUS = 0.35;
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0) {
+            if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
                 this.endNearParentingGrabOverlay();
                 return makeRunningValues(false, [], []);
             } else {

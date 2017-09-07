@@ -12,7 +12,7 @@
    getEnabledModuleByName
 */
 
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
 (function() {
     function DisableModules(hand) {
@@ -21,6 +21,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         this.parameters = makeDispatcherModuleParameters(
             90,
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
+            [],
             100);
 
         this.isReady = function(controllerData) {

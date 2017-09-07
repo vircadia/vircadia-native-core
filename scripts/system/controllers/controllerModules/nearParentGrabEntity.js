@@ -13,7 +13,7 @@
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic
 */
 
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/cloneEntityUtils.js");
 
 (function() {
@@ -169,7 +169,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             this.targetEntityID = null;
             this.grabbing = false;
 
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                 return makeRunningValues(false, [], []);
             }
 
@@ -188,7 +188,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
         this.run = function (controllerData, deltaTime) {
             if (this.grabbing) {
-                if (controllerData.triggerClicks[this.hand] === 0) {
+                if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
                     this.endNearParentingGrabEntity();
                     return makeRunningValues(false, [], []);
                 }
@@ -208,7 +208,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 if (!readiness.active) {
                     return readiness;
                 }
-                if (controllerData.triggerClicks[this.hand] === 1) {
+                if (controllerData.triggerClicks[this.hand] === 1 || controllerData.secondaryValues[this.hand] === 1) {
                     // switch to grab
                     var targetProps = this.getTargetProps(controllerData);
                     var targetCloneable = entityIsCloneable(targetProps);

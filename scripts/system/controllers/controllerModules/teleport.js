@@ -17,7 +17,7 @@
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 Script.include("/~/system/libraries/Xform.js");
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -27,9 +27,9 @@ var inTeleportMode = false;
 var SMOOTH_ARRIVAL_SPACING = 33;
 var NUMBER_OF_STEPS = 6;
 
-var TARGET_MODEL_URL = Script.resolvePath("../assets/models/teleport-destination.fbx");
-var TOO_CLOSE_MODEL_URL = Script.resolvePath("../assets/models/teleport-cancel.fbx");
-var SEAT_MODEL_URL = Script.resolvePath("../assets/models/teleport-seat.fbx");
+var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleport-destination.fbx");
+var TOO_CLOSE_MODEL_URL = Script.resolvePath("../../assets/models/teleport-cancel.fbx");
+var SEAT_MODEL_URL = Script.resolvePath("../../assets/models/teleport-seat.fbx");
 
 var TARGET_MODEL_DIMENSIONS = {
     x: 1.15,
