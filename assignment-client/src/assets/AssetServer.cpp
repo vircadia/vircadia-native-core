@@ -1106,7 +1106,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
         _fileMappings.erase(it);
 
         // in case we're overwriting, keep the current destination mapping for potential rollback
-        auto oldDestinationMapping = _fileMappings.find(newPath)->second;
+        auto oldDestinationIt = _fileMappings.find(newPath);
 
         if (!oldSourceMapping.isEmpty()) {
             _fileMappings[newPath] = oldSourceMapping;
@@ -1120,9 +1120,9 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
                 // we couldn't persist the renamed mapping, rollback and return failure
                 _fileMappings[oldPath] = oldSourceMapping;
 
-                if (!oldDestinationMapping.isNull()) {
+                if (oldDestinationIt != _fileMappings.end()) {
                     // put back the overwritten mapping for the destination path
-                    _fileMappings[newPath] = oldDestinationMapping;
+                    _fileMappings[newPath] = oldDestinationIt->second;
                 } else {
                     // clear the new mapping
                     _fileMappings.erase(_fileMappings.find(newPath));
