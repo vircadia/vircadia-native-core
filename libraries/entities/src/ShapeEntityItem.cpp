@@ -51,6 +51,14 @@ namespace entity {
     }
 }
 
+// shapeCalculator is a hook for external code that knows how to configure a ShapeInfo
+// for given entity::Shape and dimensions
+ShapeEntityItem::ShapeInfoCalculator shapeCalculator = nullptr;
+
+void ShapeEntityItem::setShapeInfoCalulator(ShapeEntityItem::ShapeInfoCalculator callback) {
+    shapeCalculator = callback;
+}
+
 ShapeEntityItem::Pointer ShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     Pointer entity(new ShapeEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
@@ -278,8 +286,14 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
         case entity::Shape::Icosahedron:
         case entity::Shape::Cone:
             {
-                //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later)
-                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+                if (shapeCalculator) {
+                    shapeCalculator(info, _shape, getDimensions());
+                    // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
+                    // TODO: figure out how to support concave shapes
+                    _collisionShapeType = SHAPE_TYPE_HULL;
+                } else {
+                    _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+                }
             }
             break;
         case entity::Shape::Torus:
