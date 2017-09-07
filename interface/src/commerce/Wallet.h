@@ -26,7 +26,6 @@ public:
 
     ~Wallet();
     // These are currently blocking calls, although they might take a moment.
-    bool createIfNeeded();
     bool generateKeyPair();
     QStringList listPublicKeys();
     QString signWithKey(const QByteArray& text, const QString& key);
