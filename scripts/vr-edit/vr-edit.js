@@ -383,15 +383,10 @@
             isHandleScaling = false,  // ""
             initialTargetsSeparation,
             initialtargetsDirection,
-            initialTargetToBoundingBoxCenter,
             otherTargetPosition,
             handleUnitScaleAxis,
             handleScaleDirections,
-            handleHandOffset,
             initialHandleDistance,
-            initialHandleOrientationInverse,
-            initialHandleRegistrationOffset,
-            initialSelectionOrientationInverse,
             laserOffset,
             MIN_SCALE = 0.001,
 
@@ -533,41 +528,23 @@
         function startHandleScaling(targetPosition, overlayID) {
             // Called on grabbing hand by scaling hand.
             var initialTargetPosition,
-                boundingBox,
                 selectionPositionAndOrientation,
-                scaleAxis,
-                handDistance;
-
-            isScalingWithHand = intersection.handIntersected;
-
-            otherTargetPosition = targetPosition;
+                scaleAxis;
 
             // Keep grabbed handle highlighted and hide other handles.
             handles.grab(overlayID);
 
-            // Vector from target to bounding box center.
+            isScalingWithHand = intersection.handIntersected;
+
+            otherTargetPosition = targetPosition;
             initialTargetPosition = getScaleTargetPosition();
-            boundingBox = selection.boundingBox();
-            initialTargetToBoundingBoxCenter = Vec3.subtract(boundingBox.center, initialTargetPosition);
-
-            // Selection information.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
-            initialSelectionOrientationInverse = Quat.inverse(selectionPositionAndOrientation.orientation);
-
-            // Handle information.
-            initialHandleOrientationInverse = Quat.inverse(hand.orientation());
             handleUnitScaleAxis = handles.scalingAxis(overlayID);  // Unit vector in direction of scaling.
             handleScaleDirections = handles.scalingDirections(overlayID);  // Which axes to scale the selection on.
-            initialHandleDistance = Vec3.length(Vec3.multiplyVbyV(boundingBox.dimensions, handleScaleDirections)) / 2;
-            initialHandleRegistrationOffset = Vec3.multiplyQbyV(initialSelectionOrientationInverse,
-                Vec3.subtract(selectionPositionAndOrientation.position, boundingBox.center));
-
-            // Distance from hand to handle in direction of handle.
             scaleAxis = Vec3.multiplyQbyV(selectionPositionAndOrientation.orientation, handleUnitScaleAxis);
-            handDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, boundingBox.center), scaleAxis));
-            handleHandOffset = handDistance - initialHandleDistance;
+            initialHandleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, initialTargetPosition), scaleAxis));
 
-            selection.startHandleScaling();
+            selection.startHandleScaling(initialTargetPosition);
             handles.startScaling();
             isHandleScaling = true;
         }
@@ -629,10 +606,7 @@
             // Scales selection per changing position of scaling hand; positions and orients per grabbing hand.
             var targetPosition,
                 deltaHandOrientation,
-                deltaHandleOrientation,
-                selectionPosition,
                 selectionOrientation,
-                boundingBoxCenter,
                 scaleAxis,
                 handleDistance,
                 scale,
@@ -643,15 +617,10 @@
             deltaHandOrientation = Quat.multiply(hand.orientation(), initialHandOrientationInverse);
             selectionOrientation = Quat.multiply(deltaHandOrientation, initialSelectionOrientation);
 
-            // Desired distance of handle from center of bounding box.
+            // Desired distance of handle from other hand
             targetPosition = getScaleTargetPosition();
-            deltaHandleOrientation = Quat.multiply(hand.orientation(), initialHandleOrientationInverse);
-            boundingBoxCenter = Vec3.sum(targetPosition,
-                Vec3.multiplyQbyV(deltaHandleOrientation, initialTargetToBoundingBoxCenter));
             scaleAxis = Vec3.multiplyQbyV(selection.getPositionAndOrientation().orientation, handleUnitScaleAxis);
-            handleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, boundingBoxCenter), scaleAxis));
-            handleDistance -= handleHandOffset;
-            handleDistance = Math.max(handleDistance, MIN_SCALE);
+            handleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, targetPosition), scaleAxis));
 
             // Scale selection relative to initial dimensions.
             scale = handleDistance / initialHandleDistance;
@@ -662,13 +631,9 @@
                 z: handleScaleDirections.z !== 0 ? scale3D.z : 1
             };
 
-            // Reposition selection per scale.
-            selectionPosition = Vec3.sum(boundingBoxCenter,
-                Vec3.multiplyQbyV(selectionOrientation, Vec3.multiplyVbyV(scale3D, initialHandleRegistrationOffset)));
-
             // Scale.
             handles.scale(scale3D);
-            selection.handleScale(scale3D, selectionPosition, selectionOrientation);
+            selection.handleScale(scale3D, targetPosition, selectionOrientation);
 
             // Update grab offset.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();

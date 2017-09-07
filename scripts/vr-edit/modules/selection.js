@@ -320,8 +320,9 @@ Selection = function (side) {
         }
     }
 
-    function startHandleScaling() {
-        // Nothing to do.
+    function startHandleScaling(position) {
+        // Save initial offset from hand position to root position so that can scale without accumulating float errors.
+        scaleRootOffset = Vec3.multiplyQbyV(Quat.inverse(rootOrientation), Vec3.subtract(rootPosition, position));
     }
 
     function handleScale(factor, position, orientation) {
@@ -330,7 +331,7 @@ Selection = function (side) {
             length;
 
         // Scale and position root.
-        rootPosition = position;
+        rootPosition = Vec3.sum(Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(factor, scaleRootOffset)), position);
         rootOrientation = orientation;
         Entities.editEntity(selection[0].id, {
             dimensions: Vec3.multiplyVbyV(factor, selection[0].dimensions),
