@@ -1448,14 +1448,14 @@ QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& stro
     QByteArray packedStrokeColors = QByteArray(strokeColorsSize * 3 + 1, '0');
 
     // add size of the array
-    packedStrokeColors.push_back((byte)strokeColorsSize);
+    packedStrokeColors.push_back((uint8_t)strokeColorsSize);
 
 
     for (int i = 0; i < strokeColorsSize; i++) {
         // convert float to byte
-        byte r = strokeColors[i].r * 255;
-        byte g = strokeColors[i].g * 255;
-        byte b = strokeColors[i].b * 255;
+        uint8_t r = strokeColors[i].r * 255;
+        uint8_t g = strokeColors[i].g * 255;
+        uint8_t b = strokeColors[i].b * 255;
 
         // add the color to the QByteArray
         packedStrokeColors.push_back(r);
