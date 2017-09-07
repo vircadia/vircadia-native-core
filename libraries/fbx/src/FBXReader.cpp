@@ -168,7 +168,8 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-const char* HUMANIK_JOINTS[] = {
+/// The names of the joints in the Maya HumanIK rig
+static const std::array<char*, 16> HUMANIK_JOINTS = {
     "RightHand",
     "RightForeArm",
     "RightArm",
@@ -184,8 +185,7 @@ const char* HUMANIK_JOINTS[] = {
     "RightLeg",
     "LeftLeg",
     "RightFoot",
-    "LeftFoot",
-    ""
+    "LeftFoot"
 };
 
 class FBXModel {
@@ -512,11 +512,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
 
     QVector<QString> humanIKJointNames;
-    for (int i = 0;; i++) {
+    for (int i = 0; i < HUMANIK_JOINTS.size(); i++) {
         QByteArray jointName = HUMANIK_JOINTS[i];
-        if (jointName.isEmpty()) {
-            break;
-        }
         humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
     }
     QVector<QString> humanIKJointIDs(humanIKJointNames.size());
