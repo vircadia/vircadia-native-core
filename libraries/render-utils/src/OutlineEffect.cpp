@@ -81,7 +81,6 @@ void DrawOutlineDepth::run(const render::RenderContextPointer& renderContext, co
     auto& deferredFrameBuffer = inputs.get1();
 
     if (!inShapes.empty()) {
-        auto frameSize = deferredFrameBuffer->getFrameSize();
         RenderArgs* args = renderContext->args;
         ShapeKey::Builder defaultKeyBuilder;
 
