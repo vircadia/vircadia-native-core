@@ -86,11 +86,17 @@ void QmlCommerce::history() {
 
 void QmlCommerce::setPassphrase(const QString& passphrase) {
     auto wallet = DependencyManager::get<Wallet>();
-    if (wallet->getPassphrase() && !wallet->getPassphrase()->isEmpty()) {
+    if(wallet->getPassphrase() && !wallet->getPassphrase()->isEmpty() && !passphrase.isEmpty()) {
         wallet->changePassphrase(passphrase);
     } else {
         wallet->setPassphrase(passphrase);
     }
+    getWalletAuthenticatedStatus();
+}
+
+void QmlCommerce::generateKeyPair() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->generateKeyPair();
     getWalletAuthenticatedStatus();
 }
 

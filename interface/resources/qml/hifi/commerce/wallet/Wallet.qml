@@ -318,7 +318,7 @@ Rectangle {
 
         Connections {
             onSendSignalToWallet: {
-                if (msg.method === 'walletReset') {
+                if (msg.method === 'walletReset' || msg.method === 'passphraseReset') {
                     sendToScript(msg);
                 }
             }

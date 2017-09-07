@@ -245,6 +245,8 @@ RSA* readPrivateKey(const char* filename) {
 
         } else {
             qCDebug(commerce) << "couldn't parse" << filename;
+            // if the passphrase is wrong, then let's not cache it
+            DependencyManager::get<Wallet>()->setPassphrase("");
         }
         fclose(fp);
     } else {
@@ -273,8 +275,6 @@ void Wallet::setPassphrase(const QString& passphrase) {
     }
     _passphrase = new QString(passphrase);
 
-    // no matter what, we now need to clear the keys as they
-    // need to be read using this passphrase
     _publicKeys.clear();
 }
 
@@ -413,28 +413,10 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
     return false;
 }
 
-bool Wallet::createIfNeeded() {
-    if (_publicKeys.count() > 0) return false;
-
+bool Wallet::generateKeyPair() {
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
 
-    // try to read existing keys if they exist...
-    auto publicKey = readPublicKey(keyFilePath().toStdString().c_str());
-    if (publicKey.size() > 0) {
-        if (auto key = readPrivateKey(keyFilePath().toStdString().c_str()) ) {
-            qCDebug(commerce) << "read private key";
-            RSA_free(key);
-            // K -- add the public key since we have a legit private key associated with it
-            _publicKeys.push_back(publicKey.toBase64());
-            return false;
-        }
-    }
-    qCInfo(commerce) << "Creating wallet.";
-    return generateKeyPair();
-}
-
-bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateRSAKeypair();
     sendKeyFilePathIfExists();
@@ -453,7 +435,6 @@ bool Wallet::generateKeyPair() {
 
 QStringList Wallet::listPublicKeys() {
     qCInfo(commerce) << "Enumerating public keys.";
-    createIfNeeded();
     return _publicKeys;
 }
 
@@ -572,12 +553,8 @@ void Wallet::reset() {
 
     // tell the provider we got nothing
     updateImageProvider();
-    delete _passphrase;
+    _passphrase->clear();
 
-    // for now we need to maintain the hard-coded passphrase.
-    // FIXME: remove this line as part of wiring up the passphrase
-    // and probably set it to nullptr
-    _passphrase = new QString("pwd");
 
     QFile keyFile(keyFilePath());
     QFile imageFile(imageFilePath());
@@ -608,6 +585,7 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
             return false;
         }
     }
-    qCDebug(commerce) << "couldn't read keys";
+    qCDebug(commerce) << "couldn't decrypt keys with current passphrase, clearing";
+    setPassphrase(QString(""));
     return false;
 }
