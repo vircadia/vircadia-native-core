@@ -256,6 +256,10 @@ bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3
 void Base3DOverlay::locationChanged(bool tellPhysics) {
     SpatiallyNestable::locationChanged(tellPhysics);
 
+    // Force the actual update of the render transform now that we notify for the change
+    // so it s captured for the time of rendering
+    notifyRenderTransformChange();
+
     auto itemID = getRenderItemID();
     if (render::Item::isValidID(itemID)) {
         render::ScenePointer scene = qApp->getMain3DScene();

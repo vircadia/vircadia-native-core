@@ -52,6 +52,9 @@ public:
 
     virtual AABox getBounds() const override = 0;
 
+    void notifyRenderTransformChange() const { _renderTransformDirty = true; }
+    virtual Transform evalRenderTransform() const { return Transform(); }
+
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
@@ -73,6 +76,7 @@ protected:
     bool _ignoreRayIntersection;
     bool _drawInFront;
     bool _isGrabbable { false };
+    mutable bool _renderTransformDirty{ true };
 
     QString _name;
 };
