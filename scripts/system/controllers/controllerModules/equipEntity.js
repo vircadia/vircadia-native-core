@@ -492,6 +492,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 localPosition: this.offsetPosition,
                 localRotation: this.offsetRotation
             };
+
             var isClone = false;
             if (entityIsCloneable(grabbedProperties)) {
                 var cloneID = this.cloneHotspot(grabbedProperties, controllerData);
@@ -622,7 +623,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 this.endEquipEntity();
                 return makeRunningValues(false, [], []);
             }
-                
+
             if (!this.targetEntityID) {
                 return this.checkNearbyHotspots(controllerData, deltaTime, timestamp);
             }
@@ -695,7 +696,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (channel === 'Hifi-Hand-Grab') {
                 try {
                     data = JSON.parse(message);
-                    print(JSON.stringify(data));
                     var equipModule = (data.hand === "left") ? leftEquipEntity : rightEquipEntity;
                     var entityProperties = Entities.getEntityProperties(data.entityID, DISPATCHER_PROPERTIES);
                     entityProperties.id = data.entityID;
@@ -704,19 +704,17 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 } catch (e) {
                     print("WARNING: equipEntity.js -- error parsing Hifi-Hand-Grab message: " + message);
                 }
-            }
-        } else if (channel === 'Hifi-Hand-Drop') {
-            data = JSON.parse(message);
-            if (data.hand === 'left') {
-                leftEquipEntity.endEquipEntity();
-            } else if (data.hand === 'right') {
-                rightEquipEntity.endEquipEntity();
-            } else if (data.hand === 'both') {
-                leftEquipEntity.endEquipEntity();
-                rightEquipEntity.endEquipEntity();
+            } else if (channel === 'Hifi-Hand-Drop') {
+                if (message === "left") {
+                    leftEquipEntity.endEquipEntity();
+                } else if (message === "right") {
+                    rightEquipEntity.endEquipEntity();
+                } else if (message === "both") {
+                    leftEquipEntity.endEquipEntity();
+                    rightEquipEntity.endEquipEntity();
+                }
             }
         }
-
     };
 
     Messages.subscribe('Hifi-Hand-Grab');
