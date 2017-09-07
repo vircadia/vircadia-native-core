@@ -182,6 +182,7 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
                                                              getCameraAspectRatio(),
                                                              getCameraNearClip(),
                                                              getCameraFarClip()));
+            newestViewFrustum.calculate();
         }
         
         
@@ -189,7 +190,7 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
             QMutexLocker viewLocker(&_viewMutex);
             if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
                 _currentViewFrustum = newestViewFrustum;
-                _currentViewFrustum.calculate();
+                //_currentViewFrustum.calculateProjection();
                 currentViewFrustumChanged = true;
             }
         }
