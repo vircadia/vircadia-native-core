@@ -6669,7 +6669,9 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
-    properties.setPosition(getMyAvatar()->getPosition() + getMyAvatar()->getOrientation() * glm::vec3(0.0f, 0.0f, -2.0f));
+    glm::vec3 positionOffset = getMyAvatar()->getOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
+    properties.setPosition(getMyAvatar()->getPosition() + positionOffset);
+    properties.setRotation(getMyAvatar()->getOrientation());
     properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
     auto entityID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
 
@@ -6716,7 +6718,7 @@ void Application::addAssetToWorldCheckModelSize() {
         if (dimensions != DEFAULT_DIMENSIONS) {
 
             // Scale model so that its maximum is exactly specific size.
-            const float MAXIMUM_DIMENSION = 1.0f;
+            const float MAXIMUM_DIMENSION = 1.0f * getMyAvatar()->getSensorToWorldScale();
             auto previousDimensions = dimensions;
             auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
                 MAXIMUM_DIMENSION / dimensions.z));
