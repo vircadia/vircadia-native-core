@@ -34,7 +34,7 @@ Rectangle {
         id: commerce;
 
         onAccountResult: {
-            if(result.status === "success") {
+            if (result.status === "success") {
                 commerce.getKeyFilePathIfExists();
             } else {
                 // unsure how to handle a failure here. We definitely cannot proceed.
