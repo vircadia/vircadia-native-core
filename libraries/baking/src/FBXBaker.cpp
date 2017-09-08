@@ -278,58 +278,6 @@ QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeF
     return urlToTexture;
 }
 
-image::TextureUsage::Type textureTypeForMaterialProperty(FbxProperty& property, FbxSurfaceMaterial* material) {
-    using namespace image::TextureUsage;
-    
-    // this is a property we know has a texture, we need to match it to a High Fidelity known texture type
-    // since that information is passed to the baking process
-
-    // grab the hierarchical name for this property and lowercase it for case-insensitive compare
-    auto propertyName = QString(property.GetHierarchicalName()).toLower();
-
-    // figure out the type of the property based on what known value string it matches
-    if ((propertyName.contains("diffuse") && !propertyName.contains("tex_global_diffuse"))
-        || propertyName.contains("tex_color_map")) {
-        return ALBEDO_TEXTURE;
-    } else if (propertyName.contains("transparentcolor") ||  propertyName.contains("transparencyfactor")) {
-        return ALBEDO_TEXTURE;
-    } else if (propertyName.contains("bump")) {
-        return BUMP_TEXTURE;
-    } else if (propertyName.contains("normal")) {
-        return NORMAL_TEXTURE;
-    } else if ((propertyName.contains("specular") && !propertyName.contains("tex_global_specular"))
-               || propertyName.contains("reflection")) {
-        return SPECULAR_TEXTURE;
-    } else if (propertyName.contains("tex_metallic_map")) {
-        return METALLIC_TEXTURE;
-    } else if (propertyName.contains("shininess")) {
-        return GLOSS_TEXTURE;
-    } else if (propertyName.contains("tex_roughness_map")) {
-        return ROUGHNESS_TEXTURE;
-    } else if (propertyName.contains("emissive")) {
-        return EMISSIVE_TEXTURE;
-    } else if (propertyName.contains("ambientcolor")) {
-        return LIGHTMAP_TEXTURE;
-    } else if (propertyName.contains("ambientfactor")) {
-        // we need to check what the ambient factor is, since that tells Interface to process this texture
-        // either as an occlusion texture or a light map
-        auto lambertMaterial = FbxCast<FbxSurfaceLambert>(material);
-
-        if (lambertMaterial->AmbientFactor == 0) {
-            return LIGHTMAP_TEXTURE;
-        } else if (lambertMaterial->AmbientFactor > 0) {
-            return OCCLUSION_TEXTURE;
-        } else {
-            return UNUSED_TEXTURE;
-        }
-
-    } else if (propertyName.contains("tex_ao_map")) {
-        return OCCLUSION_TEXTURE;
-    }
-
-    return UNUSED_TEXTURE;
-}
-
 void FBXBaker::rewriteAndBakeSceneTextures() {
     using namespace image::TextureUsage;
     QHash<QString, image::TextureUsage::Type> textureTypes;
