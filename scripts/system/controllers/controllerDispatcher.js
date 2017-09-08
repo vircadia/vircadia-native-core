@@ -18,7 +18,7 @@ controllerDispatcherPluginsNeedSort = false;
 
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/controllers.js");
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
 (function() {
     var NEAR_MAX_RADIUS = 1.0;
