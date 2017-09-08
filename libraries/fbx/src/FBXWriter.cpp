@@ -119,7 +119,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
 
         case QMetaType::QString:
         {
-            auto& bytes = prop.toString().toUtf8();
+            auto bytes = prop.toString().toUtf8();
             out << 'S';
             out << bytes.length();
             out << bytes;
@@ -130,7 +130,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
 
         case QMetaType::QByteArray:
             {
-                auto& bytes = prop.toByteArray();
+                auto bytes = prop.toByteArray();
                 out.device()->write("S", 1);
                 out << (int32_t)bytes.size();
                 out.writeRawData(bytes, bytes.size());
@@ -140,7 +140,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
             // TODO Delete? Do we ever use QList instead of QVector?
         case QVariant::Type::List:
             {
-                auto& list = prop.toList();
+                auto list = prop.toList();
                 auto listType = prop.userType();
 
                 switch (listType) {

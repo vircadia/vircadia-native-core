@@ -113,6 +113,7 @@ const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 /// A texture map in an FBX document.
 class FBXTexture {
 public:
+    QString id;
     QString name;
     QByteArray filename;
     QByteArray content;
