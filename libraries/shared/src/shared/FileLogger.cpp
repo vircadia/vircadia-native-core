@@ -48,7 +48,7 @@ static const QString LOGS_DIRECTORY = "Logs";
 static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
 static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[0,1][0-9]-[0-3][0-9]_[0-2][0-9].[0-6][0-9].[0-6][0-9]";
 static const QString FILENAME_WILDCARD = "hifi-log_" + IPADDR_WILDCARD + "_" + DATETIME_WILDCARD + ".txt";
-static QUuid& SESSION_ID = QUuid("{00000000-0000-0000-0000-000000000000}");
+QUuid& SESSION_ID = QUuid("{00000000-0000-0000-0000-000000000000}");
 
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
 // small so it doesn't go over the 2MB zipped limit for all of the files we send.
