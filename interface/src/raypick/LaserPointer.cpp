@@ -149,7 +149,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         } else {
             glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
             glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
-            endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.25f * dim.x, currentUpVector.y * 0.25f * dim.y, currentUpVector.z * 0.25f * dim.z)));
+            endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
         }
         if (_faceAvatar) {
             endProps.insert("rotation", quatToVariant(faceAvatarRotation));
