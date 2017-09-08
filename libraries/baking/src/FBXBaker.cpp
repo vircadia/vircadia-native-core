@@ -11,8 +11,6 @@
 
 #include <cmath> // need this include so we don't get an error looking for std::isnan
 
-#include <fbxsdk.h>
-
 #include <QtConcurrent>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
@@ -34,6 +32,9 @@
 #include "TextureBaker.h"
 
 #include "FBXBaker.h"
+
+#include <draco/mesh/triangle_soup_mesh_builder.h>
+#include <draco/compression/encode.h>
 
 FBXBaker::FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
                    const QString& bakedOutputDir, const QString& originalOutputDir) :
@@ -80,7 +81,8 @@ void FBXBaker::bakeSourceCopy() {
         return;
     }
 
-    // enumerate the textures found in the scene and start a bake for them
+    // enumerate the models and textures found in the scene and start a bake for them
+    rewriteAndBakeSceneModels();
     rewriteAndBakeSceneTextures();
 
     if (hasErrors()) {
@@ -212,7 +214,7 @@ void FBXBaker::importScene() {
 
     qCDebug(model_baking) << "Parsing" << _fbxURL;
     _rootNode = reader._rootNode = reader.parseFBX(&fbxFile);
-    _geometry = *reader.extractFBXGeometry({}, _fbxURL.toString());
+    _geometry = reader.extractFBXGeometry({}, _fbxURL.toString());
     _textureContent = reader._textureContent;
 }
 
@@ -278,12 +280,136 @@ QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeF
     return urlToTexture;
 }
 
+void FBXBaker::rewriteAndBakeSceneModels() {
+    unsigned int meshIndex = 0;
+    for (FBXNode& rootChild : _rootNode.children) {
+        if (rootChild.name == "Objects") {
+            for (FBXNode& objectChild : rootChild.children) {
+                if (objectChild.name == "Geometry") {
+
+                    // TODO Pull this out of _geometry instead so we don't have to reprocess it
+                    auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex);
+                    auto mesh = extractedMesh.mesh;
+
+                    Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
+                    Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
+                    Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
+
+                    int64_t numTriangles { 0 };
+                    for (auto& part : mesh.parts) {
+                        Q_ASSERT(part.quadTrianglesIndices.size() % 3 == 0);
+                        Q_ASSERT(part.triangleIndices.size() % 3 == 0);
+
+                        numTriangles += part.quadTrianglesIndices.size() / 3;
+                        numTriangles += part.triangleIndices.size() / 3;
+                    }
+
+                    draco::TriangleSoupMeshBuilder meshBuilder;
+
+                    meshBuilder.Start(numTriangles);
+
+                    bool hasNormals { mesh.normals.size() > 0 };
+                    bool hasColors { mesh.colors.size() > 0 };
+                    bool hasTexCoords { mesh.texCoords.size() > 0 };
+                    //bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
+
+                    int normalsAttributeID { -1 };
+                    int colorsAttributeID { -1 };
+                    int texCoordsAttributeID { -1 };
+                    //int texCoords1AttributeID { -1 };
+
+                    const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
+                                                                             3, draco::DT_FLOAT32);
+
+                    const int faceMaterialAttributeID = meshBuilder.AddAttribute(
+                        (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_MATERIAL_ID,
+                        1, draco::DT_INT64);
+
+                    if (hasNormals) {
+                        normalsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::NORMAL,
+                                                                     3, draco::DT_FLOAT32);
+                    }
+                    if (hasColors) {
+                        colorsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::COLOR,
+                                                                    3, draco::DT_FLOAT32);
+                    }
+                    if (hasTexCoords) {
+                        texCoordsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::TEX_COORD,
+                                                                        2, draco::DT_FLOAT32);
+                    }
+
+
+                    for (auto& part : mesh.parts) {
+                        //Q_ASSERT(part.quadTrianglesIndices % 3 == 0);
+                        //Q_ASSERT(part.triangleIndices % 3 == 0);
+
+                        int64_t materialID = 0;
+
+                        for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
+                            auto idx0 = part.quadTrianglesIndices[i];
+                            auto idx1 = part.quadTrianglesIndices[i + 1];
+                            auto idx2 = part.quadTrianglesIndices[i + 2];
+
+                            auto face = draco::FaceIndex(i / 3);
+
+                            meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &materialID);
+
+                            meshBuilder.SetAttributeValuesForFace(positionAttributeID, face,
+                                                                  &mesh.vertices[idx0], &mesh.vertices[idx1],
+                                                                  &mesh.vertices[idx2]);
+
+                            if (hasNormals) {
+                                meshBuilder.SetAttributeValuesForFace(normalsAttributeID, face,
+                                                                      &mesh.normals[idx0],&mesh.normals[idx1],
+                                                                      &mesh.normals[idx2]);
+                            }
+                            if (hasColors) {
+                                meshBuilder.SetAttributeValuesForFace(colorsAttributeID, face,
+                                                                      &mesh.colors[idx0], &mesh.colors[idx1],
+                                                                      &mesh.colors[idx2]);
+                            }
+                            if (hasTexCoords) {
+                                meshBuilder.SetAttributeValuesForFace(texCoordsAttributeID, face,
+                                                                      &mesh.texCoords[idx0], &mesh.texCoords[idx1],
+                                                                      &mesh.texCoords[idx2]);
+                            }
+                        }
+                    }
+
+                    auto dracoMesh = meshBuilder.Finalize();
+
+                    draco::Encoder encoder;
+                    draco::EncoderBuffer buffer;
+                    encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
+
+                    FBXNode dracoMeshNode;
+                    dracoMeshNode.name = "DracoMesh";
+                    auto value = QVariant::fromValue(QByteArray(buffer.data(), buffer.size()));
+                    dracoMeshNode.properties.append(value);
+
+
+                    QFile file("C:/Users/huffm/encodedFBX/" + this->_fbxURL.fileName() + "-" + QString::number(meshIndex) + ".drc");
+                    if (file.open(QIODevice::WriteOnly)) {
+                        file.write(buffer.data(), buffer.size());
+                        file.close();
+                    } else {
+                        qWarning() << "Failed to write to: " << file.fileName();
+
+                    }
+
+                    objectChild.children.push_back(dracoMeshNode);
+                }
+            }
+        }
+    }
+}
+
 void FBXBaker::rewriteAndBakeSceneTextures() {
     using namespace image::TextureUsage;
     QHash<QString, image::TextureUsage::Type> textureTypes;
 
     // enumerate the materials in the extracted geometry so we can determine the texture type for each texture ID
-    for (const auto& material : _geometry.materials) {
+    for (const auto& material : _geometry->materials) {
         if (material.normalTexture.isBumpmap) {
             textureTypes[material.normalTexture.id] = BUMP_TEXTURE;
         } else {

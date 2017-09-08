@@ -304,8 +304,9 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
                 } else if (subdata.name == "MappingInformationType") {
-                    if (subdata.properties.at(0) == BY_POLYGON)
+                    if (subdata.properties.at(0) == BY_POLYGON) {
                         isMaterialPerPolygon = true;
+                    }
                 } else {
                     isMaterialPerPolygon = false;
                 }

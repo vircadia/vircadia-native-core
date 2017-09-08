@@ -32,6 +32,13 @@ static const QByteArray FBX_BINARY_PROLOG = "Kaydara FBX Binary  ";
 static const int FBX_HEADER_BYTES_BEFORE_VERSION = 23;
 static const quint32 FBX_VERSION_2016 = 7500;
 
+
+// TODO Convert to GeometryAttribute type
+static const int DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES = 1000;
+static const int DRACO_ATTRIBUTE_MATERIAL_ID = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES;
+static const int DRACO_ATTRIBUTE_TEX_COORD_1 = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES + 1;
+
+
 class FBXNode;
 using FBXNodeList = QList<FBXNode>;
 

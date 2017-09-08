@@ -58,6 +58,7 @@ private:
     void loadSourceFBX();
 
     void importScene();
+    void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
     void exportScene();
     void removeEmbeddedMediaFolder();
@@ -73,7 +74,7 @@ private:
     QUrl _fbxURL;
 
     FBXNode _rootNode;
-    FBXGeometry _geometry;
+    FBXGeometry* _geometry;
     QHash<QByteArray, QByteArray> _textureContent;
     
     QString _bakedFBXFilePath;

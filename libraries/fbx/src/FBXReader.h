@@ -110,7 +110,7 @@ public:
 
     FBXGeometry* extractFBXGeometry(const QVariantHash& mapping, const QString& url);
 
-    ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
+    static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex);
     QHash<QString, ExtractedMesh> meshes;
     static void buildModelMesh(FBXMesh& extractedMesh, const QString& url);
 
