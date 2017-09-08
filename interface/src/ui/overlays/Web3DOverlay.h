@@ -38,7 +38,7 @@ public:
     virtual void update(float deltatime) override;
 
     Transform evalRenderTransform() const override;
-
+    void setRenderTransform(const Transform& transform);
 
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
@@ -95,6 +95,7 @@ private:
     std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
     QTouchDevice _touchDevice;
 
+    mutable Transform _updateTransform;
     mutable Transform _renderTransform;
 
     uint8_t _desiredMaxFPS { 10 };

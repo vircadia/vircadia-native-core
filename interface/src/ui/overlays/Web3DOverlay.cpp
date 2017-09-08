@@ -181,14 +181,15 @@ void Web3DOverlay::buildWebSurface() {
 
 void Web3DOverlay::update(float deltatime) {
     if (_renderTransformDirty) {
+        auto updateTransform = evalRenderTransform();
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<Overlay>(itemID, [](Overlay& data) {
+            transaction.updateItem<Overlay>(itemID, [updateTransform](Overlay& data) {
                 auto web3D = dynamic_cast<Web3DOverlay*>(&data);
                 if (web3D) {
-                    web3D->evalRenderTransform();
+                    web3D->setRenderTransform(updateTransform);//  evalRenderTransform();
                 }
             });
             scene->enqueueTransaction(transaction);
@@ -203,7 +204,7 @@ void Web3DOverlay::update(float deltatime) {
 
 Transform Web3DOverlay::evalRenderTransform() const {
     if (_renderTransformDirty) {
-         _renderTransform = getTransform();
+         _updateTransform = getTransform();
 
         // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
         // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
@@ -213,11 +214,15 @@ Transform Web3DOverlay::evalRenderTransform() const {
         */
 
         if (glm::length2(getDimensions()) != 1.0f) {
-            _renderTransform.postScale(vec3(getDimensions(), 1.0f));
+            _updateTransform.postScale(vec3(getDimensions(), 1.0f));
         }
         _renderTransformDirty = false;
     }
-    return _renderTransform;
+    return _updateTransform;
+}
+
+void Web3DOverlay::setRenderTransform(const Transform& transform) {
+    _renderTransform = transform;
 }
 
 QString Web3DOverlay::pickURL() {
