@@ -257,10 +257,10 @@ RSA* readPrivateKey(const char* filename) {
 static const unsigned char IVEC[16] = "IAmAnIVecYay123";
 
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
-    // first ivec
-    memcpy(ivec, IVEC, 16);
-    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Sha256);
-    memcpy(ckey, hash.data(), 32);
+    // use the ones in the wallet
+    auto wallet = DependencyManager::get<Wallet>();
+    memcpy(ivec, wallet->getIv(), 16);
+    memcpy(ckey, wallet->getCKey(), 32);
 }
 
 Wallet::~Wallet() {

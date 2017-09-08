@@ -35,6 +35,10 @@ public:
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }
+    void setIv(const QByteArray& iv) { _iv = iv; }
+    QByteArray getIv() { return _iv; }
+    void setCKey(const QByteArray& ckey) { _ckey = ckey; }
+    QByteArray getCKey() { return _ckey; }
 
     void setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
@@ -52,6 +56,8 @@ private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
     QByteArray _salt {"iamsalt!"};
+    QByteArray _iv;
+    QByteArray _ckey;
     QString* _passphrase { new QString("") };
 
     void updateImageProvider();

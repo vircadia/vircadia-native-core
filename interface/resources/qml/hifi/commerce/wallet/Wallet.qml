@@ -33,12 +33,19 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
 
+        onAccountResult: {
+            if(result.status === "success") {
+                commerce.getKeyFilePathIfExists();
+            } else {
+                // unsure how to handle a failure here. We definitely cannot proceed.
+            }
+        }
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
-                commerce.getKeyFilePathIfExists();
+                commerce.account();
             }
         }
 
