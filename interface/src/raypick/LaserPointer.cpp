@@ -143,14 +143,17 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
     }
     if (!renderState.getEndID().isNull()) {
         QVariantMap endProps;
+        glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
         if (_centerEndY) {
             endProps.insert("position", end);
         } else {
             glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
-            endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
+            //endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
+            glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
+            endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.x, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.z)));
         }
         if (_faceAvatar) {
-            endProps.insert("rotation", quatToVariant(DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)))));
+            endProps.insert("rotation", quatToVariant(faceAvatarRotation));
         }
         endProps.insert("visible", true);
         endProps.insert("ignoreRayIntersection", renderState.doesEndIgnoreRays());
