@@ -639,7 +639,7 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlContext->setBaseUrl(baseUrl);
 }
 
-QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f) {
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
@@ -662,32 +662,32 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext,
             [this, qmlComponent, targetContext, f](QQmlComponent::Status) {
             finishQmlLoad(qmlComponent, targetContext, f);
         });
-        return nullptr;
+        return;
     }
 
-    return finishQmlLoad(qmlComponent, targetContext, f);
+    finishQmlLoad(qmlComponent, targetContext, f);
 }
 
-QObject* OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    return load(qmlSource, true, f);
+void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
+    load(qmlSource, true, f);
 }
 
-QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    return load(qmlSource, false, f);
+void OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
+    load(qmlSource, false, f);
 }
 
 void OffscreenQmlSurface::clearCache() {
     _qmlContext->engine()->clearComponentCache();
 }
 
-QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f) {
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
             qCWarning(uiLogging) << error.url() << error.line() << error;
         }
         qmlComponent->deleteLater();
-        return nullptr;
+        return;
     }
 
 
@@ -700,7 +700,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
             qFatal("Unable to finish loading QML root");
         }
         qmlComponent->deleteLater();
-        return nullptr;
+        return;
     }
 
     qmlContext->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
@@ -726,19 +726,19 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     }
 
     // If we already have a root, just set a couple of flags and the ancestry
-    if (_rootItem) {
+    if (newItem && _rootItem) {
         // Allow child windows to be destroyed from JS
         QQmlEngine::setObjectOwnership(newObject, QQmlEngine::JavaScriptOwnership);
         newObject->setParent(_rootItem);
         if (newItem) {
             newItem->setParentItem(_rootItem);
         }
-        return newObject;
+        return;
     }
 
     if (!newItem) {
         qFatal("Could not load object as root item");
-        return nullptr;
+        return;
     }
 
     connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
@@ -747,7 +747,6 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
-    return _rootItem;
 }
 
 void OffscreenQmlSurface::updateQuick() {

@@ -35,7 +35,7 @@
 #include <QtCore/QDir>
 
 int OctreeServer::_clientCount = 0;
-const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
+const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000;
 
 float OctreeServer::SKIP_TIME = -1.0f; // use this for trackXXXTime() calls for non-times
 
@@ -136,18 +136,19 @@ void OctreeServer::trackEncodeTime(float time) {
 
     if (time == SKIP_TIME) {
         _noEncode++;
-        time = 0.0f;
-    } else if (time <= MAX_SHORT_TIME) {
-        _shortEncode++;
-        _averageShortEncodeTime.updateAverage(time);
-    } else if (time <= MAX_LONG_TIME) {
-        _longEncode++;
-        _averageLongEncodeTime.updateAverage(time);
     } else {
-        _extraLongEncode++;
-        _averageExtraLongEncodeTime.updateAverage(time);
+        if (time <= MAX_SHORT_TIME) {
+            _shortEncode++;
+            _averageShortEncodeTime.updateAverage(time);
+        } else if (time <= MAX_LONG_TIME) {
+            _longEncode++;
+            _averageLongEncodeTime.updateAverage(time);
+        } else {
+            _extraLongEncode++;
+            _averageExtraLongEncodeTime.updateAverage(time);
+        }
+        _averageEncodeTime.updateAverage(time);
     }
-    _averageEncodeTime.updateAverage(time);
 }
 
 void OctreeServer::trackTreeWaitTime(float time) {
@@ -155,18 +156,19 @@ void OctreeServer::trackTreeWaitTime(float time) {
     const float MAX_LONG_TIME = 100.0f;
     if (time == SKIP_TIME) {
         _noTreeWait++;
-        time = 0.0f;
-    } else if (time <= MAX_SHORT_TIME) {
-        _shortTreeWait++;
-        _averageTreeShortWaitTime.updateAverage(time);
-    } else if (time <= MAX_LONG_TIME) {
-        _longTreeWait++;
-        _averageTreeLongWaitTime.updateAverage(time);
     } else {
-        _extraLongTreeWait++;
-        _averageTreeExtraLongWaitTime.updateAverage(time);
+        if (time <= MAX_SHORT_TIME) {
+            _shortTreeWait++;
+            _averageTreeShortWaitTime.updateAverage(time);
+        } else if (time <= MAX_LONG_TIME) {
+            _longTreeWait++;
+            _averageTreeLongWaitTime.updateAverage(time);
+        } else {
+            _extraLongTreeWait++;
+            _averageTreeExtraLongWaitTime.updateAverage(time);
+        }
+        _averageTreeWaitTime.updateAverage(time);
     }
-    _averageTreeWaitTime.updateAverage(time);
 }
 
 void OctreeServer::trackCompressAndWriteTime(float time) {
@@ -174,26 +176,27 @@ void OctreeServer::trackCompressAndWriteTime(float time) {
     const float MAX_LONG_TIME = 100.0f;
     if (time == SKIP_TIME) {
         _noCompress++;
-        time = 0.0f;
-    } else if (time <= MAX_SHORT_TIME) {
-        _shortCompress++;
-        _averageShortCompressTime.updateAverage(time);
-    } else if (time <= MAX_LONG_TIME) {
-        _longCompress++;
-        _averageLongCompressTime.updateAverage(time);
     } else {
-        _extraLongCompress++;
-        _averageExtraLongCompressTime.updateAverage(time);
+        if (time <= MAX_SHORT_TIME) {
+            _shortCompress++;
+            _averageShortCompressTime.updateAverage(time);
+        } else if (time <= MAX_LONG_TIME) {
+            _longCompress++;
+            _averageLongCompressTime.updateAverage(time);
+        } else {
+            _extraLongCompress++;
+            _averageExtraLongCompressTime.updateAverage(time);
+        }
+        _averageCompressAndWriteTime.updateAverage(time);
     }
-    _averageCompressAndWriteTime.updateAverage(time);
 }
 
 void OctreeServer::trackPacketSendingTime(float time) {
     if (time == SKIP_TIME) {
         _noSend++;
-        time = 0.0f;
+    } else {
+        _averagePacketSendingTime.updateAverage(time);
     }
-    _averagePacketSendingTime.updateAverage(time);
 }
 
 
@@ -202,18 +205,19 @@ void OctreeServer::trackProcessWaitTime(float time) {
     const float MAX_LONG_TIME = 100.0f;
     if (time == SKIP_TIME) {
         _noProcessWait++;
-        time = 0.0f;
-    } else if (time <= MAX_SHORT_TIME) {
-        _shortProcessWait++;
-        _averageProcessShortWaitTime.updateAverage(time);
-    } else if (time <= MAX_LONG_TIME) {
-        _longProcessWait++;
-        _averageProcessLongWaitTime.updateAverage(time);
     } else {
-        _extraLongProcessWait++;
-        _averageProcessExtraLongWaitTime.updateAverage(time);
+        if (time <= MAX_SHORT_TIME) {
+            _shortProcessWait++;
+            _averageProcessShortWaitTime.updateAverage(time);
+        } else if (time <= MAX_LONG_TIME) {
+            _longProcessWait++;
+            _averageProcessLongWaitTime.updateAverage(time);
+        } else {
+            _extraLongProcessWait++;
+            _averageProcessExtraLongWaitTime.updateAverage(time);
+        }
+        _averageProcessWaitTime.updateAverage(time);
     }
-    _averageProcessWaitTime.updateAverage(time);
 }
 
 OctreeServer::OctreeServer(ReceivedMessage& message) :
