@@ -513,10 +513,13 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
 
-        QUuid fileLoggerSessionID = myAvatar->getSessionUUID();
-        if (!fileLoggerSessionID.isNull()) {
-            qApp->getLogger()->setSessionID(fileLoggerSessionID);
+        if (myAvatar) {
+            QUuid fileLoggerSessionID = myAvatar->getSessionUUID();
+            if (!fileLoggerSessionID.isNull()) {
+                qApp->getLogger()->setSessionID(fileLoggerSessionID);
+            }
         }
+
         qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
