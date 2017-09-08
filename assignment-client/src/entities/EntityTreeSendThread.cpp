@@ -308,8 +308,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                             return;
                         }
                         auto knownTimestamp = _knownState.find(entity.get());
-                        if (knownTimestamp == _knownState.end() ||
-                                (knownTimestamp != _knownState.end() && entity->getLastEdited() > knownTimestamp->second)) {
+                        if (knownTimestamp == _knownState.end() || entity->getLastEdited() > knownTimestamp->second) {
                             bool success = false;
                             AACube cube = entity->getQueryAACube(success);
                             if (success) {
@@ -345,8 +344,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                             return;
                         }
                         auto knownTimestamp = _knownState.find(entity.get());
-                        if (knownTimestamp == _knownState.end() ||
-                                (knownTimestamp != _knownState.end() && entity->getLastEdited() > knownTimestamp->second)) {
+                        if (knownTimestamp == _knownState.end() || entity->getLastEdited() > knownTimestamp->second) {
                             _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                             _entitiesInQueue.insert(entity.get());
                         }
@@ -368,8 +366,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         return;
                     }
                     auto knownTimestamp = _knownState.find(entity.get());
-                    if (knownTimestamp == _knownState.end() ||
-                            (knownTimestamp != _knownState.end() && entity->getLastEdited() > knownTimestamp->second)) {
+                    if (knownTimestamp == _knownState.end() || entity->getLastEdited() > knownTimestamp->second) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
