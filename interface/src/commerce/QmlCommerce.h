@@ -39,6 +39,7 @@ signals:
     void balanceResult(QJsonObject result);
     void inventoryResult(QJsonObject result);
     void historyResult(QJsonObject result);
+    void accountResult(QJsonObject result);
 
 protected:
     Q_INVOKABLE void getLoginStatus();
@@ -55,6 +56,7 @@ protected:
     Q_INVOKABLE void history();
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void reset();
+    Q_INVOKABLE void account();
 };
 
 #endif // hifi_QmlCommerce_h

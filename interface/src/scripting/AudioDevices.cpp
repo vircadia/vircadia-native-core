@@ -37,6 +37,20 @@ Setting::Handle<QString>& getSetting(bool contextIsHMD, QAudio::Mode mode) {
     }
 }
 
+enum AudioDeviceRole {
+    DisplayRole = Qt::DisplayRole,
+    CheckStateRole = Qt::CheckStateRole,
+    PeakRole = Qt::UserRole,
+    InfoRole = Qt::UserRole + 1
+};
+
+QHash<int, QByteArray> AudioDeviceList::_roles {
+    { DisplayRole, "display" },
+    { CheckStateRole, "selected" },
+    { PeakRole, "peak" },
+    { InfoRole, "info" }
+};
+
 static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
     QString deviceName;
     auto& setting = getSetting(hmd, mode);
@@ -52,26 +66,33 @@ static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
     return deviceName;
 }
 
-QHash<int, QByteArray> AudioDeviceList::_roles {
-    { Qt::DisplayRole, "display" },
-    { Qt::CheckStateRole, "selected" },
-    { Qt::UserRole, "info" }
-};
 Qt::ItemFlags AudioDeviceList::_flags { Qt::ItemIsSelectable | Qt::ItemIsEnabled };
 
 QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
-    if (!index.isValid() || index.row() >= _devices.size()) {
+    if (!index.isValid() || index.row() >= rowCount()) {
         return QVariant();
     }
 
-    if (role == Qt::DisplayRole) {
-        return _devices.at(index.row()).display;
-    } else if (role == Qt::CheckStateRole) {
-        return _devices.at(index.row()).selected;
-    } else if (role == Qt::UserRole) {
-        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row()).info);
+    if (role == DisplayRole) {
+        return _devices.at(index.row())->display;
+    } else if (role == CheckStateRole) {
+        return _devices.at(index.row())->selected;
+    } else if (role == InfoRole) {
+        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row())->info);
     } else {
         return QVariant();
+    }
+}
+
+QVariant AudioInputDeviceList::data(const QModelIndex& index, int role) const {
+    if (!index.isValid() || index.row() >= rowCount()) {
+        return QVariant();
+    }
+
+    if (role == PeakRole) {
+        return std::static_pointer_cast<AudioInputDevice>(_devices.at(index.row()))->peak;
+    } else {
+        return AudioDeviceList::data(index, role);
     }
 }
 
@@ -113,8 +134,9 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
     auto oldDevice = _selectedDevice;
     _selectedDevice = device;
 
-    for (auto i = 0; i < _devices.size(); ++i) {
-        AudioDevice& device = _devices[i];
+    for (auto i = 0; i < rowCount(); ++i) {
+        AudioDevice& device = *_devices[i];
+
         if (device.selected && device.info != _selectedDevice) {
             device.selected = false;
         } else if (device.info == _selectedDevice) {
@@ -139,10 +161,39 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
             .remove("Device")
             .replace(" )", ")");
         device.selected = (device.info == _selectedDevice);
-        _devices.push_back(device);
+        _devices.push_back(newDevice(device));
     }
 
     endResetModel();
+}
+
+bool AudioInputDeviceList::peakValuesAvailable() {
+    std::call_once(_peakFlag, [&] {
+        _peakValuesAvailable = DependencyManager::get<AudioClient>()->peakValuesAvailable();
+    });
+    return _peakValuesAvailable;
+}
+
+void AudioInputDeviceList::setPeakValuesEnabled(bool enable) {
+    if (peakValuesAvailable() && (enable != _peakValuesEnabled)) {
+        DependencyManager::get<AudioClient>()->enablePeakValues(enable);
+        _peakValuesEnabled = enable;
+        emit peakValuesEnabledChanged(_peakValuesEnabled);
+    }
+}
+
+void AudioInputDeviceList::onPeakValueListChanged(const QList<float>& peakValueList) {
+    assert(_mode == QAudio::AudioInput);
+
+    if (peakValueList.length() != rowCount()) {
+        qWarning() << "AudioDeviceList" << __FUNCTION__ << "length mismatch";
+    }
+
+    for (auto i = 0; i < rowCount(); ++i) {
+        std::static_pointer_cast<AudioInputDevice>(_devices[i])->peak = peakValueList[i];
+    }
+
+    emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0), { PeakRole });
 }
 
 AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
@@ -150,6 +201,7 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
 
     connect(client.data(), &AudioClient::deviceChanged, this, &AudioDevices::onDeviceChanged, Qt::QueuedConnection);
     connect(client.data(), &AudioClient::devicesChanged, this, &AudioDevices::onDevicesChanged, Qt::QueuedConnection);
+    connect(client.data(), &AudioClient::peakValueListChanged, &_inputs, &AudioInputDeviceList::onPeakValueListChanged, Qt::QueuedConnection);
 
     // connections are made after client is initialized, so we must also fetch the devices
     _inputs.onDeviceChanged(client->getActiveAudioDevice(QAudio::AudioInput));
