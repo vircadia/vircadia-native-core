@@ -27,7 +27,6 @@
         url: Script.resolvePath("assets/models/Bubble-v14.fbx"), // If you'd like to change the model, modify this line (and the dimensions below)
         dimensions: { x: 1.0, y: 0.75, z: 1.0 },
         position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, z: MyAvatar.position.z },
-        //rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
         rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
         scale: { x: 2 * MyAvatar.sensorToWorldScale, y: MyAvatar.scale * 0.5 + 0.2 * MyAvatar.sensorToWorldScale, z: 2 * MyAvatar.sensorToWorldScale },
         visible: false,
