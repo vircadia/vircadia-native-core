@@ -429,8 +429,11 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.shouldExit = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
+            var nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+            var nearGrabModule = getEnabledModuleByName(nearGrabName);
+            var status = nearGrabModule ? nearGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
             var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY);
-            return offOverlay;
+            return offOverlay || status.active;
         };
 
         this.exitModule = function() {

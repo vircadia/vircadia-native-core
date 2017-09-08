@@ -128,7 +128,8 @@ var GRAB_RADIUS = 0.35;
         };
 
         this.endNearParentingGrabOverlay = function () {
-            if (this.previousParentID[this.grabbedThingID] === NULL_UUID) {
+            var previousParentID = this.previousParentID[this.grabbedThingID];
+            if (previousParentID === NULL_UUID || previousParentID === null || previousParentID === undefined) {
                 Overlays.editOverlay(this.grabbedThingID, {
                     parentID: NULL_UUID,
                     parentJointIndex: -1

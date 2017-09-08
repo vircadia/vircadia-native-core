@@ -72,6 +72,7 @@ cloneEntity = function(props, worldEntityProps) {
     cloneableProps.name = cloneableProps.name + '-clone-' + cloneableProps.id;
     var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
     var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
+    var triggerable = grabInfo.triggerable ? grabInfo.triggerable : false;
     var cUserData = Object.assign({}, JSON.parse(cloneableProps.userData));
     var cProperties = Object.assign({}, cloneableProps);
 
@@ -85,7 +86,7 @@ cloneEntity = function(props, worldEntityProps) {
 
     cProperties.dynamic = dynamic;
     cProperties.locked = false;
-    cUserData.grabbableKey.triggerable = true;
+    cUserData.grabbableKey.triggerable = triggerable;
     cUserData.grabbableKey.grabbable = true;
     cProperties.lifetime = lifetime;
     cProperties.userData = JSON.stringify(cUserData);

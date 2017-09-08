@@ -167,7 +167,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.isReady = function (controllerData) {
             this.targetEntityID = null;
 
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                 return makeRunningValues(false, [], []);
             }
 
@@ -186,7 +186,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
         this.run = function (controllerData) {
             if (this.actionID) {
-                if (controllerData.triggerClicks[this.hand] === 0) {
+                if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
                     this.endNearGrabAction();
                     return makeRunningValues(false, [], []);
                 }
@@ -204,7 +204,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
                 var targetProps = this.getTargetProps(controllerData);
                 if (targetProps) {
-                    if (controllerData.triggerClicks[this.hand] === 1) {
+                    if (controllerData.triggerClicks[this.hand] === 1 || controllerData.secondaryValues[this.hand] === 1) {
                         // switch to grabbing
                         var targetCloneable = entityIsCloneable(targetProps);
                         if (targetCloneable) {
