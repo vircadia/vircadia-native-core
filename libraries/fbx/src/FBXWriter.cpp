@@ -13,6 +13,17 @@
 
 #include <QDebug>
 
+template <typename T>
+void writeVector(QDataStream& out, char ch,  QVector<T> list) {
+    out.device()->write(&ch, 1);
+    out << (int32_t)list.length();
+    out << (int32_t)0;
+    out << (int32_t)0;
+    for (auto& value : list) {
+        out << value;
+    }
+}
+
 
 QByteArray FBXWriter::encodeFBX(const FBXNode& root) {
     QByteArray data;
@@ -93,6 +104,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
         case QVariant::Type::Bool:
 
             out.device()->write("C", 1);
+            //out.device()->write(prop.toBool() ? 1 : 0, 1);
             out << prop.toBool();
             break;
 
@@ -200,50 +212,15 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
         default:
         {
             if (prop.canConvert<QVector<float>>()) {
-                auto list = prop.value<QVector<float>>();
-                out.device()->write("f", 1);
-                out << (int32_t)list.length();
-                out << (int32_t)0;
-                out << (int32_t)0;
-                for (auto& value : list) {
-                    out << value;
-                }
+                writeVector(out, 'f', prop.value<QVector<float>>());
             } else if (prop.canConvert<QVector<double>>()) {
-                auto list = prop.value<QVector<double>>();
-                out.device()->write("d", 1);
-                out << (int32_t)list.length();
-                out << (int32_t)0;
-                out << (int32_t)0;
-                for (auto& value : list) {
-                    out << value;
-                }
+                writeVector(out, 'd', prop.value<QVector<double>>());
             } else if (prop.canConvert<QVector<qint64>>()) {
-                auto list = prop.value<QVector<qint64>>();
-                out.device()->write("l", 1);
-                out << (int32_t)list.length();
-                out << (int32_t)0;
-                out << (int32_t)0;
-                for (auto& value : list) {
-                    out << value;
-                }
+                writeVector(out, 'l', prop.value<QVector<qint64>>());
             } else if (prop.canConvert<QVector<qint32>>()) {
-                auto list = prop.value<QVector<qint32>>();
-                out.device()->write("i", 1);
-                out << (int32_t)list.length();
-                out << (int32_t)0;
-                out << (int32_t)0;
-                for (auto& value : list) {
-                    out << value;
-                }
+                writeVector(out, 'i', prop.value<QVector<qint32>>());
             } else if (prop.canConvert<QVector<bool>>()) {
-                auto list = prop.value<QVector<bool>>();
-                out.device()->write("b", 1);
-                out << (int32_t)list.length();
-                out << (int32_t)0;
-                out << (int32_t)0;
-                for (auto& value : list) {
-                    out << value;
-                }
+                writeVector(out, 'b', prop.value<QVector<bool>>());
             } else {
                 qDebug() << "Unsupported property type in FBXWriter::encodeNode: " << type << prop;
             }
