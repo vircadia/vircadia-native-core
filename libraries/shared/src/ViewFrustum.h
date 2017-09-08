@@ -91,7 +91,6 @@ public:
     float getCenterRadius() const { return _centerSphereRadius; }
 
     void calculate();
-    void calculateProjection();
 
     typedef enum { OUTSIDE = 0, INTERSECT, INSIDE } intersection;
 

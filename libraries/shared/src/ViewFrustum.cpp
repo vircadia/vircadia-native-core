@@ -118,23 +118,6 @@ void ViewFrustum::calculate() {
     _ourModelViewProjectionMatrix = _projection * view; // Remember, matrix multiplication is the other way around
 }
 
-void ViewFrustum::calculateProjection() {
-    if (0.0f != _aspectRatio && 0.0f != _nearClip && 0.0f != _farClip && _nearClip != _farClip) {
-        // _projection is calculated from the frustum parameters
-        _projection = glm::perspective( glm::radians(_fieldOfView), _aspectRatio, _nearClip, _farClip);
-
-        // frustum corners are computed from inverseProjection
-        glm::mat4 inverseProjection = glm::inverse(_projection);
-        for (int i = 0; i < NUM_FRUSTUM_CORNERS; ++i) {
-            _corners[i] = inverseProjection * NDC_VALUES[i];
-            _corners[i] /= _corners[i].w;
-        }
-
-        // finally calculate planes and _ourModelViewProjectionMatrix
-        calculate();
-    }
-}
-
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
 const char* ViewFrustum::debugPlaneName (int plane) const {
     switch (plane) {
