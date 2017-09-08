@@ -510,16 +510,6 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
         OutputDebugStringA(logMessage.toLocal8Bit().constData());
         OutputDebugStringA("\n");
 #endif
-        auto avatarManager = DependencyManager::get<AvatarManager>();
-        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
-
-        if (myAvatar) {
-            QUuid fileLoggerSessionID = myAvatar->getSessionUUID();
-            if (!fileLoggerSessionID.isNull()) {
-                qApp->getLogger()->setSessionID(fileLoggerSessionID);
-            }
-        }
-
         qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
@@ -798,9 +788,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
-
+    
     qInstallMessageHandler(messageHandler);
+
+    _logger = new FileLogger(this);
+
+    connect(getMyAvatar().get(), &AvatarData::sessionUUIDChanged, _logger, [this] {
+        auto myAvatar = getMyAvatar();
+        if (myAvatar) {
+            _logger->setSessionID(myAvatar->getSessionUUID());
+        }
+    });
+
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("High Fidelity Interface");
@@ -2102,6 +2101,7 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
+    disconnect(getMyAvatar().get(), &AvatarData::sessionUUIDChanged, _logger, nullptr);
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
