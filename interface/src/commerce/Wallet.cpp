@@ -34,7 +34,9 @@
 // I know, right?  But per https://www.openssl.org/docs/faq.html
 // this avoids OPENSSL_Uplink(00007FF847238000,08): no OPENSSL_Applink
 // at runtime.
+#ifdef Q_OS_WIN
 #include <openssl/applink.c>
+#endif
 
 static const char* KEY_FILE = "hifikey";
 static const char* IMAGE_FILE = "hifi_image"; // eventually this will live in keyfile
