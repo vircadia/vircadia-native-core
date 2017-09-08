@@ -95,7 +95,13 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Select items that need to be outlined
-    const auto selectedMetas = task.addJob<SelectItems>("PassTestSelection", metas, "contextOverlayHighlightList");
+    const auto selectionName = "contextOverlayHighlightList";
+    const auto selectMetaInput = SelectItems::Inputs(metas, Varying()).asVarying();
+    const auto selectedMetas = task.addJob<SelectItems>("PassTestMetaSelection", selectMetaInput, selectionName);
+    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas).asVarying();
+    const auto selectedMetasAndOpaques = task.addJob<SelectItems>("PassTestOpaqueSelection", selectMetaAndOpaqueInput, selectionName);
+    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques).asVarying();
+    const auto selectedItems = task.addJob<SelectItems>("PassTestTransparentSelection", selectItemInput, selectionName);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).asVarying();
@@ -167,7 +173,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOutlineRangeTimer", "Outline");
-    const auto outlineInputs = DrawOutlineTask::Inputs(selectedMetas, shapePlumber, deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
+    const auto outlineInputs = DrawOutlineTask::Inputs(selectedItems, shapePlumber, deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
     task.addJob<DrawOutlineTask>("DrawOutline", outlineInputs);
     task.addJob<EndGPURangeTimer>("EndOutlineRangeTimer", outlineRangeTimer);
 
@@ -221,7 +227,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
         
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
-        task.addJob<DrawBounds>("DrawSelectionBounds", selectedMetas);
+        task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
 
     // AA job to be revisited

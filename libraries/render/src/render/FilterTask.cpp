@@ -51,13 +51,20 @@ void SliceItems::run(const RenderContextPointer& renderContext, const ItemBounds
 
 }
 
-void SelectItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+void SelectItems::run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems) {
     auto selection = renderContext->_scene->getSelection(_name);
     const auto& selectedItems = selection.getItems();
-    outItems.clear();
+    const auto& inItems = inputs.get0();
+    const auto itemsToAppend = inputs[1];
+
+    if (itemsToAppend.isNull()) {
+        outItems.clear();
+    } else {
+        outItems = itemsToAppend.get<ItemBounds>();
+    }
 
     if (!selectedItems.empty()) {
-        outItems.reserve(selectedItems.size());
+        outItems.reserve(outItems.size()+selectedItems.size());
 
         for (auto src : inItems) {
             if (selection.contains(src.id)) {

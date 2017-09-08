@@ -113,22 +113,23 @@ namespace render {
     // Keep items belonging to the job selection
     class SelectItems {
     public:
-        using JobModel = Job::ModelIO<SelectItems, ItemBounds, ItemBounds>;
+        using Inputs = VaryingSet2<ItemBounds, ItemBounds>;
+        using JobModel = Job::ModelIO<SelectItems, Inputs, ItemBounds>;
         
         std::string _name;
         SelectItems(const Selection::Name& name) : _name(name) {}
         
-        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+        void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
     };
 
     // Same as SelectItems but reorder the output to match the selection order
     class SelectSortItems {
     public:
         using JobModel = Job::ModelIO<SelectSortItems, ItemBounds, ItemBounds>;
-        
+
         std::string _name;
         SelectSortItems(const Selection::Name& name) : _name(name) {}
-        
+
         void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 
