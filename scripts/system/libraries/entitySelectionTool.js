@@ -1568,15 +1568,15 @@ SelectionDisplay = (function() {
         }
 
         if (spaceMode != newSpaceMode) {
-            if (wantDebug){
+            if (wantDebug) {
                 print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
             }
             spaceMode = newSpaceMode;
             that.updateHandles();
-        } else if(wantDebug){
+        } else if (wantDebug) {
             print("WARNING: entitySelectionTool.setSpaceMode - Can't update SpaceMode. CurrentMode: " + spaceMode + " DesiredMode: " + newSpaceMode);
         }
-        if(wantDebug) {
+        if (wantDebug) {
             print("====== SetSpaceMode called. <========");
         }
     };
@@ -1584,21 +1584,21 @@ SelectionDisplay = (function() {
     // FUNCTION: TOGGLE SPACE MODE
     that.toggleSpaceMode = function() {
         var wantDebug = false;
-        if (wantDebug){
+        if (wantDebug) {
             print("========> ToggleSpaceMode called. =========");
         }
         if (spaceMode == SPACE_WORLD && SelectionManager.selections.length > 1) {
-            if (wantDebug){
+            if (wantDebug) {
                 print("Local space editing is not available with multiple selections");
             }
             return;
         }
-        if(wantDebug) {
+        if (wantDebug) {
             print( "PreToggle: " + spaceMode);
         }
         spaceMode = spaceMode == SPACE_LOCAL ? SPACE_WORLD : SPACE_LOCAL;
         that.updateHandles();
-        if (wantDebug){
+        if (wantDebug) {
             print( "PostToggle: " + spaceMode);        
             print("======== ToggleSpaceMode called. <=========");
         }
@@ -1611,7 +1611,7 @@ SelectionDisplay = (function() {
     // FUNCTION: UPDATE HANDLES
     that.updateHandles = function() {
         var wantDebug = false;
-        if(wantDebug){
+        if (wantDebug) {
             print( "======> Update Handles =======" );
             print( "    Selections Count: " + SelectionManager.selections.length );
             print( "    SpaceMode: " + spaceMode );
@@ -1855,7 +1855,7 @@ SelectionDisplay = (function() {
         var stretchHandlesVisible = !(inModeRotate || inModeTranslate) && (spaceMode == SPACE_LOCAL);
         var extendedStretchHandlesVisible = (stretchHandlesVisible && showExtendedStretchHandles);
         var cloneHandleVisible = !(inModeRotate || inModeTranslate);
-        if(wantDebug){
+        if (wantDebug) {
             print("    Set Non-Light Grabbers Visible - Norm: " + stretchHandlesVisible + " Ext: " + extendedStretchHandlesVisible);
         }
         var isSingleSelection = (selectionManager.selections.length == 1);
@@ -1864,13 +1864,13 @@ SelectionDisplay = (function() {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
             var isLightSelection = (properties.type == "Light");
             if ( isLightSelection ) {
-                if(wantDebug){
+                if (wantDebug) {
                     print("    Light Selection revoking Non-Light Grabbers Visibility!");
                 }
                 stretchHandlesVisible = false;
                 extendedStretchHandlesVisible = false;
                 cloneHandleVisible = false;
-                if(properties.isSpotlight) {
+                if (properties.isSpotlight) {
                     that.setPointLightHandlesVisible( false );
 
                     var distance = (properties.dimensions.z / 2) * Math.sin(properties.cutoff * (Math.PI / 180));
@@ -2247,13 +2247,13 @@ SelectionDisplay = (function() {
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         });
 
-        if(wantDebug){
+        if (wantDebug) {
             print( "====== Update Handles <=======" );
         }
 
     };
 
-    function helperSetOverlaysVisibility( handleArray, isVisible ){
+    function helperSetOverlaysVisibility( handleArray, isVisible ) {
         var numHandles = handleArray.length;
         var visibilityUpdate = { visible: isVisible };
         for (var handleIndex = 0; handleIndex < numHandles; ++handleIndex) {
@@ -2289,7 +2289,7 @@ SelectionDisplay = (function() {
     that.setGrabberToolsVisible = function(isVisible) {
         var visibilityUpdate = { visible: isVisible };
         for ( var toolKey in grabberTools ) {
-            if ( ! grabberTools.hasOwnProperty( toolKey ) ){
+            if ( ! grabberTools.hasOwnProperty( toolKey ) ) {
                 //--EARLY ITERATION EXIT--( On to the next one )
                 continue;
             }
@@ -2327,7 +2327,7 @@ SelectionDisplay = (function() {
         startingElevation: 0.0,
         onBegin: function(event, pickRay, pickResult, doClone) {
             var wantDebug = false;
-            if(wantDebug){
+            if (wantDebug) {
                 print("================== TRANSLATE_XZ(Beg) -> =======================");
                 Vec3.print("    pickRay", pickRay);
                 Vec3.print("    pickRay.origin", pickRay.origin);
@@ -2377,7 +2377,7 @@ SelectionDisplay = (function() {
             }
 
             isConstrained = false;
-            if(wantDebug){
+            if (wantDebug) {
                 print("================== TRANSLATE_XZ(End) <- =======================");
             }
         },
@@ -3076,7 +3076,7 @@ SelectionDisplay = (function() {
     function cutoffStretchFunc(vector, change) {
         vector = change;
         var wantDebug = false;
-        if (wantDebug){
+        if (wantDebug) {
             Vec3.print("Radius stretch: ", vector);
         }
         var length = vector.x + vector.y + vector.z;
@@ -3533,7 +3533,7 @@ SelectionDisplay = (function() {
     // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
     function updateRotationDegreesOverlay(angleFromZero, handleRotation, centerPosition) {
         var wantDebug = false;
-        if(wantDebug){
+        if (wantDebug) {
             print( "---> updateRotationDegreesOverlay ---" );
             print("    AngleFromZero: " + angleFromZero );
             print("    HandleRotation - X: " + handleRotation.x + " Y: " + handleRotation.y + " Z: " + handleRotation.z );
@@ -3546,7 +3546,7 @@ SelectionDisplay = (function() {
             y: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
             z: 0,
         };
-        if(wantDebug){
+        if (wantDebug) {
             print("    Angle: " + angle );
             print("    InitialPos: " + position.x + ", " + position.y + ", " + position.z);
         }
@@ -3562,7 +3562,7 @@ SelectionDisplay = (function() {
             lineHeight: innerRadius * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
             text: normalizeDegrees(angleFromZero) + "°",
         };
-        if(wantDebug){
+        if (wantDebug) {
             print("    TranslatedPos: " + position.x + ", " + position.y + ", " + position.z);
             print("    OverlayDim - X: " + overlayProps.dimensions.x + " Y: " + overlayProps.dimensions.y + " Z: " + overlayProps.dimensions.z );
             print("    OverlayLineHeight: " + overlayProps.lineHeight );
@@ -3570,7 +3570,7 @@ SelectionDisplay = (function() {
         }
 
         Overlays.editOverlay(rotationDegreesDisplay, overlayProps);
-        if (wantDebug){
+        if (wantDebug) {
             print( "<--- updateRotationDegreesOverlay ---" );
         }
     }
@@ -3899,10 +3899,10 @@ SelectionDisplay = (function() {
         var intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludes, overlayExcludes);
 
         if (wantDebug) {
-            if ( ! overlayIncludes ){
+            if ( ! overlayIncludes ) {
                 print("testRayIntersect - no overlayIncludes provided.");
             }
-            if ( ! overlayExcludes ){
+            if ( ! overlayExcludes ) {
                 print("testRayIntersect - no overlayExcludes provided.");
             }
             print("testRayIntersect - Hit: " + intersectObj.intersects);
@@ -3940,7 +3940,7 @@ SelectionDisplay = (function() {
         activeTool = null;
 
         var results = testRayIntersect( pickRay, interactiveOverlays );
-        if ( results.intersects ){
+        if ( results.intersects ) {
             var hitOverlayID = results.overlayID;
             if ( (hitOverlayID == HMD.tabletID) || (hitOverlayID == HMD.tabletScreenID) || (hitOverlayID == HMD.homeButtonID) ) {
                 //--EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
@@ -3959,7 +3959,7 @@ SelectionDisplay = (function() {
                 }
             } else {
                 print("ERROR: entitySelectionTool.mousePressEvent - Hit unexpected object, check interactiveOverlays");
-            }//--End_if( hitTool )
+            }//--End_if ( hitTool )
         }//--End_If( results.intersects )
 
         if (wantDebug) {
@@ -3975,7 +3975,7 @@ SelectionDisplay = (function() {
     // FUNCTION: MOUSE MOVE EVENT
     that.mouseMoveEvent = function(event) {
         var wantDebug = false;
-        if(wantDebug){
+        if (wantDebug) {
             print( "=============== eST::MouseMoveEvent BEG =======================");
         }
         if (activeTool) {
@@ -4115,7 +4115,7 @@ SelectionDisplay = (function() {
             }
         }
 
-        if(wantDebug){
+        if (wantDebug) {
             print("=============== eST::MouseMoveEvent END =======================");
         }
         return false;
@@ -4124,24 +4124,24 @@ SelectionDisplay = (function() {
     // FUNCTION: MOUSE RELEASE EVENT
     that.mouseReleaseEvent = function(event) {
         var wantDebug = false;
-        if(wantDebug){
+        if (wantDebug) {
             print("=============== eST::MouseReleaseEvent BEG =======================");
         }
         var showHandles = false;
         if (activeTool) {
-            if( activeTool.onEnd ) {
-                if(wantDebug){
+            if ( activeTool.onEnd ) {
+                if (wantDebug) {
                     print("    Triggering ActiveTool( " + activeTool.mode + " )'s onEnd");
                 }
                 activeTool.onEnd(event);
-            }else if(wantDebug){
+            }else if (wantDebug) {
                 print("    ActiveTool( " + activeTool.mode + " )'s missing onEnd");
             }
         }
         
         // hide our rotation overlays..., and show our handles
         if ( isActiveTool(yawHandle) || isActiveTool(pitchHandle) || isActiveTool(rollHandle)) {
-            if(wantDebug){
+            if (wantDebug) {
                 print("    Triggering hide of RotateOverlays");
             }
             Overlays.editOverlay(rotateOverlayInner, {
@@ -4162,14 +4162,14 @@ SelectionDisplay = (function() {
         // if something is selected, then reset the "original" properties for any potential next click+move operation
         if (SelectionManager.hasSelection()) {
             if (showHandles) {
-                if(wantDebug){
+                if (wantDebug) {
                     print("    Triggering that.select");
                 }
                 that.select(SelectionManager.selections[0], event);
             }
         }
 
-        if(wantDebug){
+        if (wantDebug) {
             print("=============== eST::MouseReleaseEvent END =======================");
         }
     };
