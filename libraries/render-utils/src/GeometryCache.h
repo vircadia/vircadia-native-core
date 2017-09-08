@@ -32,6 +32,7 @@
 #include <model/Asset.h>
 
 class SimpleProgramKey;
+class ShapeEntityItem;
 
 typedef QPair<glm::vec2, float> Vec2FloatPair;
 typedef QPair<Vec2FloatPair, Vec2FloatPair> Vec2FloatPairPair;
@@ -146,6 +147,15 @@ public:
         Cylinder, 
         NUM_SHAPES,
     };
+
+    /// @param entityShapeEnum:  The entity::Shape enumeration for the shape
+    ///           whose GeometryCache::Shape is desired.
+    /// @return GeometryCache::NUM_SHAPES in the event of an error; otherwise,
+    ///         the GeometryCache::Shape enum which aligns with the 
+    ///         specified entityShapeEnum
+    static GeometryCache::Shape getShapeForEntityShape(int entityShapeEnum);
+
+    static void computeSimpleHullPointListForShape(const ShapeEntityItem * const shapePtr, QVector<glm::vec3> &outPointList);
 
     static uint8_t CUSTOM_PIPELINE_NUMBER;
     static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
@@ -355,15 +365,21 @@ public:
 
     using VShape = std::array<ShapeData, NUM_SHAPES>;
 
-    VShape _shapes;
+    /// returns ShapeData associated with the specified shape,
+    /// otherwise nullptr in the event of an error.
+    const ShapeData * getShapeData(Shape shape) const;
 
 private:
+
     GeometryCache();
     virtual ~GeometryCache();
     void buildShapes();
 
     typedef QPair<int, int> IntPair;
     typedef QPair<unsigned int, unsigned int> VerticesIndices;
+    
+    
+    VShape _shapes;
 
     gpu::PipelinePointer _standardDrawPipeline;
     gpu::PipelinePointer _standardDrawPipelineNoBlend;

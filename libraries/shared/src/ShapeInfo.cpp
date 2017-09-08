@@ -45,6 +45,10 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
                 _halfExtents = glm::vec3(radius);
             }
             break;
+        case SHAPE_TYPE_CIRCLE: {
+            _halfExtents = glm::vec3(_halfExtents.x, MIN_HALF_EXTENT, _halfExtents.z);
+        }
+        break;
         case SHAPE_TYPE_COMPOUND:
         case SHAPE_TYPE_STATIC_MESH:
             _url = QUrl(url);
@@ -75,9 +79,7 @@ void ShapeInfo::setSphere(float radius) {
 }
 
 void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollection) {
-    //TODO WL21389: May need to skip resetting type here.
     _pointCollection = pointCollection;
-    _type = (_pointCollection.size() > 0) ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
     _doubleHashKey.clear();
 }
 
@@ -124,7 +126,7 @@ int ShapeInfo::getLargestSubshapePointCount() const {
 }
 
 float ShapeInfo::computeVolume() const {
-    //TODO WL21389: Add support for other ShapeTypes( CYLINDER_X, CYLINDER_Y, etc).
+    //TODO WL21389: Add support for other ShapeTypes( CYLINDER_X, CYLINDER_Z, etc).
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;
     switch(_type) {
