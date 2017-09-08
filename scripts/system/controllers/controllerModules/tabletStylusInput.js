@@ -20,7 +20,7 @@ Script.include("/~/system/libraries/controllers.js");
     var HAPTIC_STYLUS_STRENGTH = 1.0;
     var HAPTIC_STYLUS_DURATION = 20.0;
 
-    var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
+    var WEB_DISPLAY_STYLUS_DISTANCE = 0.2;
     var WEB_STYLUS_LENGTH = 0.2;
     var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
 
