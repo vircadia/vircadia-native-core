@@ -71,6 +71,10 @@
             case 'maybeEnableHmdPreview':
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
+            case 'passphraseReset':
+                onButtonClicked();
+                onButtonClicked();
+                break;
             case 'walletReset':
                 onButtonClicked();
                 onButtonClicked();

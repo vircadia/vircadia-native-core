@@ -325,7 +325,7 @@ Rectangle {
                 onClicked: {
                     if (passphraseSelection.validateAndSubmitPassphrase()) {
                         root.lastPage = "choosePassphrase";
-                        commerce.balance(); // Do this here so that keys are generated. Order might change as backend changes?
+                        commerce.generateKeyPair();
                         choosePassphraseContainer.visible = false;
                         privateKeysReadyContainer.visible = true;
                     }

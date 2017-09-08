@@ -18,6 +18,7 @@ class AccountScriptingInterface : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(QString username READ getUsername NOTIFY usernameChanged)
+    Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
 
     /**jsdoc
      * @namespace Account
@@ -32,6 +33,7 @@ signals:
      * @return {Signal}
      */
     void usernameChanged();
+    void loggedInChanged(bool loggedIn);
 
 public slots:
     static AccountScriptingInterface* getInstance();
@@ -50,6 +52,20 @@ public slots:
      */
     bool isLoggedIn();
     bool checkAndSignalForAccessToken();
+    void logOut();
+
+public:
+    AccountScriptingInterface(QObject* parent = nullptr);
+    bool loggedIn() const {
+        return m_loggedIn;
+    }
+
+private slots:
+    void onUsernameChanged(QString username);
+
+private:
+    bool m_loggedIn { false };
+
 };
 
 #endif // hifi_AccountScriptingInterface_h

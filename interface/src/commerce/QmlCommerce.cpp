@@ -27,6 +27,7 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(wallet.data(), &Wallet::securityImageResult, this, &QmlCommerce::securityImageResult);
     connect(ledger.data(), &Ledger::historyResult, this, &QmlCommerce::historyResult);
     connect(wallet.data(), &Wallet::keyFilePathIfExistsResult, this, &QmlCommerce::keyFilePathIfExistsResult);
+    connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
 }
 
 void QmlCommerce::getLoginStatus() {
@@ -86,11 +87,17 @@ void QmlCommerce::history() {
 
 void QmlCommerce::setPassphrase(const QString& passphrase) {
     auto wallet = DependencyManager::get<Wallet>();
-    if (wallet->getPassphrase() && !wallet->getPassphrase()->isEmpty()) {
+    if(wallet->getPassphrase() && !wallet->getPassphrase()->isEmpty() && !passphrase.isEmpty()) {
         wallet->changePassphrase(passphrase);
     } else {
         wallet->setPassphrase(passphrase);
     }
+    getWalletAuthenticatedStatus();
+}
+
+void QmlCommerce::generateKeyPair() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->generateKeyPair();
     getWalletAuthenticatedStatus();
 }
 
@@ -99,4 +106,9 @@ void QmlCommerce::reset() {
     auto wallet = DependencyManager::get<Wallet>();
     ledger->reset();
     wallet->reset();
+}
+
+void QmlCommerce::account() {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->account();
 }

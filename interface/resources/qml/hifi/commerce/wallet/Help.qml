@@ -55,6 +55,7 @@ Item {
         text: "DEBUG: Clear Cached Passphrase";
         onClicked: {
             commerce.setPassphrase("");
+            sendSignalToWallet({method: 'passphraseReset'});
         }
     }
     HifiControlsUit.Button {
