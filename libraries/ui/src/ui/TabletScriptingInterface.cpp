@@ -22,12 +22,22 @@
 #include "../InfoView.h"
 #include "ToolbarScriptingInterface.h"
 #include "Logging.h"
+#include "SoundCache.h"
+
+#include "SettingHandle.h"
 
 // FIXME move to global app properties
 const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
+Setting::Handle<QString> tabletSoundsButtonClick("TabletSounds/buttonClick", "../../../sounds/Button06.wav");
+Setting::Handle<QString> tabletSoundsButtonHover("TabletSounds/buttonHover", "../../../sounds/Button04.wav");
+Setting::Handle<QString> tabletSoundsTabletOpen("TabletSounds/tabletOpen", "../../../sounds/Button07.wav");
+Setting::Handle<QString> tabletSoundsTabletHandsIn("TabletSounds/tabletHandsIn", "../../../sounds/Tab01.wav");
+Setting::Handle<QString> tabletSoundsTabletHandsOut("TabletSounds/tabletHandsOut", "../../../sounds/Tab02.wav");
+
 TabletScriptingInterface::TabletScriptingInterface() {
+
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
@@ -59,6 +69,13 @@ TabletProxy* TabletScriptingInterface::getTablet(const QString& tabletId) {
     // initialize new tablet
     tabletProxy->setToolbarMode(_toolbarMode);
     return tabletProxy;
+}
+
+void TabletScriptingInterface::playSound(QString soundId)
+{
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+    SharedSoundPointer _snapshotSound = DependencyManager::get<SoundCache>()->
+            getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
 }
 
 void TabletScriptingInterface::setToolbarMode(bool toolbarMode) {

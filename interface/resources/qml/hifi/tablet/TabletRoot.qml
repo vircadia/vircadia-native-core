@@ -1,6 +1,7 @@
 import QtQuick 2.0
 import Hifi 1.0
 import QtQuick.Controls 1.4
+
 import "../../dialogs"
 import "../../controls"
 
@@ -145,7 +146,7 @@ Item {
     SoundEffect {
         id: buttonClickSound
         volume: 0.1
-        source: "../../../sounds/Gamemaster-Audio-button-click.wav"
+        source: ""
     }
 
     function playButtonClickSound() {

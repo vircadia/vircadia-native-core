@@ -34,6 +34,10 @@ class TabletButtonProxy;
 class QmlWindowClass;
 class OffscreenQmlSurface;
 
+namespace Tablet
+{
+    enum AudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut };
+}
 /**jsdoc
  * @namespace Tablet
  */
@@ -41,7 +45,7 @@ class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
     TabletScriptingInterface();
-    ~TabletScriptingInterface();
+    virtual ~TabletScriptingInterface();
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 
@@ -53,6 +57,7 @@ public:
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
+    Q_INVOKABLE void playSound(QString soundId);
     void setToolbarMode(bool toolbarMode);
 
     void setQmlTabletRoot(QString tabletId, OffscreenQmlSurface* offscreenQmlSurface);
@@ -308,6 +313,7 @@ protected:
 };
 
 Q_DECLARE_METATYPE(TabletButtonProxy*);
+Q_DECLARE_METATYPE(Tablet::AudioEvents);
 
 /**jsdoc
  * @typedef TabletButtonProxy.ButtonProperties
