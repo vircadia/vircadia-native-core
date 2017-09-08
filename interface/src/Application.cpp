@@ -789,9 +789,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     
-    qInstallMessageHandler(messageHandler);
-
     _logger = new FileLogger(this);
+    qInstallMessageHandler(messageHandler);
 
     connect(getMyAvatar().get(), &AvatarData::sessionUUIDChanged, _logger, [this] {
         auto myAvatar = getMyAvatar();
