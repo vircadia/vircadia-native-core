@@ -510,6 +510,13 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
         OutputDebugStringA(logMessage.toLocal8Bit().constData());
         OutputDebugStringA("\n");
 #endif
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+
+        QUuid fileLoggerSessionID = myAvatar->getSessionUUID();
+        if (!fileLoggerSessionID.isNull()) {
+            qApp->getLogger()->setSessionID(fileLoggerSessionID);
+        }
         qApp->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
@@ -804,6 +811,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _deadlockWatchdogThread = new DeadlockWatchdogThread();
     _deadlockWatchdogThread->start();
 
+    // Set File Logger Session UUID
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
     }
@@ -919,8 +930,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // send a location update immediately
     discoverabilityManager->updateLocation();
-
-    auto myAvatar = getMyAvatar();
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
