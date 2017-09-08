@@ -29,6 +29,7 @@ public:
     void balance(const QStringList& keys);
     void inventory(const QStringList& keys);
     void history(const QStringList& keys);
+    void account();
     void reset();
 
 signals:
@@ -37,6 +38,7 @@ signals:
     void balanceResult(QJsonObject result);
     void inventoryResult(QJsonObject result);
     void historyResult(QJsonObject result);
+    void accountResult(QJsonObject result);
 
 public slots:
     void buySuccess(QNetworkReply& reply);
@@ -51,6 +53,8 @@ public slots:
     void historyFailure(QNetworkReply& reply);
     void resetSuccess(QNetworkReply& reply);
     void resetFailure(QNetworkReply& reply);
+    void accountSuccess(QNetworkReply& reply);
+    void accountFailure(QNetworkReply& reply);
 
 private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
