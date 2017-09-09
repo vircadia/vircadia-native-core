@@ -2095,8 +2095,6 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
-    disconnect(getMyAvatar().get(), &AvatarData::sessionUUIDChanged, _logger, nullptr);
-
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
