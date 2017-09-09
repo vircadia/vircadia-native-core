@@ -358,8 +358,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
         _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
             // NOTE: for Differential case: next.intersection is against completedView not currentView
             uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
-            if (next.element->getLastChangedContent() > startOfCompletedTraversal ||
-                    next.intersection != ViewFrustum::INSIDE) {
+            if (next.intersection != ViewFrustum::INSIDE ||
+                    next.element->getLastChangedContent() > startOfCompletedTraversal) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
