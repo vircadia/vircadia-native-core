@@ -29,7 +29,7 @@ Selection = function (side) {
         scaleRootOffset,
         scaleRootOrientation,
         ENTITY_TYPE = "entity",
-        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "ParticleEffect"];
+        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "ParticleEffect", "PolyLine", "PolyVox"];
 
 
     if (!this instanceof Selection) {
