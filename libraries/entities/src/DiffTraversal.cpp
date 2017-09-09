@@ -137,9 +137,9 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
                     ++_nextIndex;
                     if (nextElement) {
                         AACube cube = nextElement->getAACube();
-                        if ( view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
+                        if (view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
                             ViewFrustum::intersection lastIntersection = lastView.viewFrustum.calculateCubeKeyholeIntersection(cube);
-                            if (!(lastIntersection == ViewFrustum::INSIDE && nextElement->getLastChanged() < lastView.startTime)) {
+                            if (lastIntersection != ViewFrustum::INSIDE || nextElement->getLastChanged() > lastView.startTime) {
                                 next.element = nextElement;
                                 // NOTE: for differential case next.intersection is against the lastView
                                 // because this helps the "external scan" optimize its culling
@@ -153,7 +153,8 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
                                 distance2 = glm::distance2(lastView.viewFrustum.getPosition(), element->getAACube().calcCenter());
                                 if (distance2 >= visibleLimit * visibleLimit) {
                                     next.element = nextElement;
-                                    next.intersection = lastIntersection;
+                                    // element's intersection with lastView was effectively OUTSIDE
+                                    next.intersection = ViewFrustum::OUTSIDE;
                                     return;
                                 }
                             }
