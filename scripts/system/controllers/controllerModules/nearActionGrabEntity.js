@@ -151,7 +151,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 if (props.distance > NEAR_GRAB_RADIUS) {
                     break;
                 }
-                if (entityIsGrabbable(props)) {
+                if (entityIsGrabbable(props) || entityIsCloneable(props)) {
                     // if we've attempted to grab a child, roll up to the root of the tree
                     var groupRootProps = findGroupParent(controllerData, props);
                     if (entityIsGrabbable(groupRootProps)) {
@@ -172,7 +172,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
-                if (!propsArePhysical(targetProps) && !propsAreCloneDynamic) {
+                if (!propsArePhysical(targetProps) && !propsAreCloneDynamic(targetProps)) {
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;

@@ -137,7 +137,7 @@ Script.include("/~/system/libraries/controllers.js");
             var dim = {x: radius, y: radius, z: radius};
             var mode = "hold";
             if (!this.distanceHolding && !this.distanceRotating) {
-                if (controllerData.triggerClicks[this.hand]) {
+                if (controllerData.triggerValues[this.hand] === 1) {
                     mode = "full";
                 } else {
                     mode = "half";
@@ -367,8 +367,6 @@ Script.include("/~/system/libraries/controllers.js");
             otherFarGrabModule.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta,
                 otherFarGrabModule.offsetPosition);
 
-            this.updateLaserPointer();
-
             this.previousWorldControllerRotation = worldControllerRotation;
         };
 
@@ -433,6 +431,8 @@ Script.include("/~/system/libraries/controllers.js");
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);
             }
+
+            this.updateLaserPointer(controllerData);
 
             var otherModuleName =this.hand === RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
             var otherFarGrabModule = getEnabledModuleByName(otherModuleName);

@@ -36,7 +36,6 @@ entityIsCloneable = function(props) {
         var grabbableData = getGrabbableData(props);
         return grabbableData.cloneable;
     }
-
     return false;
 };
 
