@@ -192,6 +192,7 @@ Selection = function (side) {
 
     function doKick(entityID) {
         var properties,
+            NO_KICK_ENTITY_TYPES = ["Text", "Web"],  // These entities don't respond to gravity so don't kick them.
             DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.1, z: 0 };
 
@@ -200,8 +201,9 @@ Selection = function (side) {
             return;
         }
 
-        properties = Entities.getEntityProperties(entityID, ["velocity", "gravity", "parentID"]);
-        if (Vec3.length(properties.gravity) > 0 && Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
+        properties = Entities.getEntityProperties(entityID, ["type", "velocity", "gravity"]);
+        if (NO_KICK_ENTITY_TYPES.indexOf(properties.type) === -1
+                && Vec3.length(properties.gravity) > 0 && Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
             Entities.editEntity(entityID, { velocity: DYNAMIC_VELOCITY_KICK });
         }
     }
