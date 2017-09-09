@@ -792,14 +792,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _logger = new FileLogger(this);
     qInstallMessageHandler(messageHandler);
 
-    connect(getMyAvatar().get(), &AvatarData::sessionUUIDChanged, _logger, [this] {
-        auto myAvatar = getMyAvatar();
-        if (myAvatar) {
-            _logger->setSessionID(myAvatar->getSessionUUID());
-        }
-    });
-
-
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     _window->setWindowTitle("High Fidelity Interface");
 
@@ -815,6 +807,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Set File Logger Session UUID
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    _logger->setSessionID(accountManager->getSessionID());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -943,7 +938,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
 
     // connect to appropriate slots on AccountManager
-    auto accountManager = DependencyManager::get<AccountManager>();
+    // auto accountManager = DependencyManager::get<AccountManager>();
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);

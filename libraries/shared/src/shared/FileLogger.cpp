@@ -42,13 +42,13 @@ private:
 
 
 
-static const QString FILENAME_FORMAT = "hifi-log_%1_%2.txt";
+static const QString FILENAME_FORMAT = "hifi-log%1_%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
 static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
 static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[0,1][0-9]-[0-3][0-9]_[0-2][0-9].[0-6][0-9].[0-6][0-9]";
 static const QString FILENAME_WILDCARD = "hifi-log_" + IPADDR_WILDCARD + "_" + DATETIME_WILDCARD + ".txt";
-QUuid SESSION_ID = QUuid("{00000000-0000-0000-0000-000000000000}");
+QUuid SESSION_ID;
 
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
 // small so it doesn't go over the 2MB zipped limit for all of the files we send.
@@ -64,8 +64,11 @@ QString getLogRollerFilename() {
     QString result = FileUtils::standardPath(LOGS_DIRECTORY);
     QHostAddress clientAddress = getGuessedLocalAddress();
     QDateTime now = QDateTime::currentDateTime();
+    QString FILE_SESSION_ID;
 
-    auto FILE_SESSION_ID = SESSION_ID.toString().replace("{", "").replace("}", "");
+    if (!SESSION_ID.isNull()) {
+        FILE_SESSION_ID = "_" + SESSION_ID.toString().replace("{", "").replace("}", "");
+    }
 
     result.append(QString(FILENAME_FORMAT).arg(FILE_SESSION_ID, now.toString(DATETIME_FORMAT)));
     return result;
