@@ -648,7 +648,9 @@ void Avatar::render(RenderArgs* renderArgs) {
         return;
     }
 
-    fixupModelsInScene(renderArgs->_scene);
+    if (!isMyAvatar()) {
+        fixupModelsInScene(renderArgs->_scene);
+    }
 
     if (showCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
         PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
