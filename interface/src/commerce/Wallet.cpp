@@ -55,9 +55,12 @@ QString imageFilePath() {
 // use the cached _passphrase if it exists, otherwise we need to prompt
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     // just return a hardcoded pwd for now
-    auto passphrase = DependencyManager::get<Wallet>()->getPassphrase();
+    auto wallet = DependencyManager::get<Wallet>();
+    auto passphrase = wallet->getPassphrase();
     if (passphrase && !passphrase->isEmpty()) {
-        strcpy(password, passphrase->toLocal8Bit().constData());
+        QString saltedPassphrase(*passphrase);
+        saltedPassphrase.append(wallet->getSalt());
+        strcpy(password, saltedPassphrase.toUtf8().constData());
         return static_cast<int>(passphrase->size());
     } else {
         // this shouldn't happen - so lets log it to tell us we have
@@ -254,13 +257,12 @@ RSA* readPrivateKey(const char* filename) {
     }
     return key;
 }
-static const unsigned char IVEC[16] = "IAmAnIVecYay123";
 
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
-    // first ivec
-    memcpy(ivec, IVEC, 16);
-    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Sha256);
-    memcpy(ckey, hash.data(), 32);
+    // use the ones in the wallet
+    auto wallet = DependencyManager::get<Wallet>();
+    memcpy(ivec, wallet->getIv(), 16);
+    memcpy(ckey, wallet->getCKey(), 32);
 }
 
 Wallet::~Wallet() {
