@@ -690,7 +690,6 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
         return;
     }
 
-
     QObject* newObject = qmlComponent->beginCreate(qmlContext);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
@@ -704,7 +703,20 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     }
 
     qmlContext->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
-    f(qmlContext, newObject);
+
+    // All quick items should be focusable
+    QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
+    if (newItem) {
+        // Make sure we make items focusable (critical for
+        // supporting keyboard shortcuts)
+        newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
+    }
+
+    // Make sure we will call callback for this codepath
+    // Caal this before qmlComponent->completeCreate() otherwise ghost window appears
+    if (newItem && _rootItem) {
+        f(qmlContext, newObject);
+    }
 
     QObject* eventBridge = qmlContext->contextProperty("eventBridge").value<QObject*>();
     if (qmlContext != _qmlContext && eventBridge && eventBridge != this) {
@@ -715,15 +727,6 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
 
     qmlComponent->completeCreate();
     qmlComponent->deleteLater();
-
-
-    // All quick items should be focusable
-    QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
-    if (newItem) {
-        // Make sure we make items focusable (critical for
-        // supporting keyboard shortcuts)
-        newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
-    }
 
     // If we already have a root, just set a couple of flags and the ancestry
     if (newItem && _rootItem) {
@@ -747,6 +750,8 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
+    // Call this callback after rootitem is set, otherwise VrMenu wont work
+    f(qmlContext, newObject);
 }
 
 void OffscreenQmlSurface::updateQuick() {
