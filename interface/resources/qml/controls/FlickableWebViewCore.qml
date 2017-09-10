@@ -14,11 +14,14 @@ Flickable {
     property alias webViewCore: _webview
     property alias webViewCoreProfile: _webview.profile
 
+    interactive: true
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
+
+    property real previousHeight: height
 
     boundsBehavior: Flickable.StopAtBounds
 
@@ -26,13 +29,13 @@ Flickable {
         id: hifi
     }
 
-    onHeightChanged: {
-        if (height > 0) {
-            //reload page since window dimentions changed,
-            //so web engine should recalculate page render dimentions
-            reloadTimer.start()
-        }
-    }
+//    onHeightChanged: {
+//        if (height > 0) {
+//            //reload page since window dimentions changed,
+//            //so web engine should recalculate page render dimentions
+//            reloadTimer.start()
+//        }
+//    }
 
     ScrollBar.vertical: ScrollBar {
         id: scrollBar
@@ -48,8 +51,8 @@ Flickable {
 
     function onLoadingChanged(loadRequest) {
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
-            flick.contentWidth = flick.width
-            flick.contentHeight = flick.height
+//            flick.contentWidth = flick.width
+//            flick.contentHeight = flick.height
 
             // Required to support clicking on "hifi://" links
             var url = loadRequest.url.toString();
@@ -58,24 +61,47 @@ Flickable {
                     _webview.stop();
                 }
             }
+            heightTimer.stop()
         }
 
         if (WebEngineView.LoadFailedStatus === loadRequest.status) {
             console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
+            heightTimer.stop()
         }
 
         if (WebEngineView.LoadSucceededStatus === loadRequest.status) {
             //disable Chromium's scroll bars
-            _webview.runJavaScript("document.body.style.overflow = 'hidden';");
-            //calculate page height
-            _webview.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
-                if (i_actualPageHeight !== undefined) {
-                    flick.contentHeight = i_actualPageHeight
-                } else {
-                    flick.contentHeight = flick.height;
-                }
-            })
-            flick.contentWidth = flick.width
+//            _webview.runJavaScript("document.body.style.overflow = 'hidden';");
+//            //calculate page height
+//            _webview.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
+//                if (i_actualPageHeight !== undefined) {
+//                    flick.contentHeight = i_actualPageHeight
+//                } else {
+//                    flick.contentHeight = flick.height;
+//                }
+//            })
+//            previousHeight = flick.contentHeight
+//            flick.contentWidth = flick.width
+//            heightTimer.restart()
+        }
+    }
+
+    Timer {
+        id: heightTimer
+        interval: 100
+        repeat: true
+        onTriggered: {
+//            _webview.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
+//                if (i_actualPageHeight !== undefined) {
+//                    var newheight = i_actualPageHeight
+//                    if (newheight > 0 && newheight !== previousHeight) {
+//                        previousHeight = newheight
+//                        flick.contentHeight = previousHeight;
+//                        _webview.height =  newheight < flick.height ? newheight : flick.height
+//                        console.log("new height", previousHeight)
+//                    }
+//                }
+//            })
         }
     }
 
@@ -84,14 +110,15 @@ Flickable {
         interval: 100
         repeat: false
         onTriggered: {
-            _webview.reload()
+            //_webview.reload()
         }
     }
 
     WebEngineView {
         id: _webview
 
-        height: parent.height
+        anchors.fill: parent
+        //height: parent.height
 
         profile: HFWebEngineProfile;
 
@@ -139,10 +166,10 @@ Flickable {
             grantFeaturePermission(securityOrigin, feature, true);
         }
 
-        onContentsSizeChanged: {
-            flick.contentHeight = Math.max(contentsSize.height, flick.height);
-            flick.contentWidth = flick.width
-        }
+//        onContentsSizeChanged: {
+//            //flick.contentHeight = Math.max(contentsSize.height, flick.height);
+//            //flick.contentWidth = flick.width
+//        }
         //disable popup
         onContextMenuRequested: {
             request.accepted = true;

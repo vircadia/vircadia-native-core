@@ -1929,6 +1929,7 @@ var PropertiesTool = function (opts) {
                         data.properties.keyLight.direction.y * DEGREES_TO_RADIANS
                     );
                 }
+                print("data properties " + data.properties)
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name !== undefined || data.properties.modelURL !== undefined ||
                         data.properties.visible !== undefined || data.properties.locked !== undefined) {

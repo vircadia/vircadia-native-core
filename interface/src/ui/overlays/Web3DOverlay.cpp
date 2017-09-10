@@ -367,11 +367,11 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
 }
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
-    if (_inputMode == Touch) {
+    //if (_inputMode == Touch) {
         handlePointerEventAsTouch(event);
-    } else {
-        handlePointerEventAsMouse(event);
-    }
+//    } else {
+//        handlePointerEventAsMouse(event);
+//    }
 }
 
 void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
