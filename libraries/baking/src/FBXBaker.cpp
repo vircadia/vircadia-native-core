@@ -311,19 +311,17 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     bool hasNormals { mesh.normals.size() > 0 };
                     bool hasColors { mesh.colors.size() > 0 };
                     bool hasTexCoords { mesh.texCoords.size() > 0 };
-                    //bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
+                    bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
+                    bool hasPerFaceMaterials { mesh.parts.size() > 0 };
 
                     int normalsAttributeID { -1 };
                     int colorsAttributeID { -1 };
                     int texCoordsAttributeID { -1 };
-                    //int texCoords1AttributeID { -1 };
+                    int texCoords1AttributeID { -1 };
+                    int faceMaterialAttributeID { -1 };
 
                     const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
                                                                              3, draco::DT_FLOAT32);
-
-                    const int faceMaterialAttributeID = meshBuilder.AddAttribute(
-                        (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_MATERIAL_ID,
-                        1, draco::DT_INT64);
 
                     if (hasNormals) {
                         normalsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::NORMAL,
@@ -337,13 +335,25 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                         texCoordsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::TEX_COORD,
                                                                         2, draco::DT_FLOAT32);
                     }
+                    if (hasTexCoords1) {
+                        texCoords1AttributeID = meshBuilder.AddAttribute(
+                            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_TEX_COORD_1,
+                            2, draco::DT_FLOAT32);
+                    }
+                    if (hasPerFaceMaterials) {
+                        faceMaterialAttributeID = meshBuilder.AddAttribute(
+                            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_MATERIAL_ID,
+                            2, draco::DT_INT64);
+                    }
 
 
+                    auto partIndex = 0;
                     for (auto& part : mesh.parts) {
                         //Q_ASSERT(part.quadTrianglesIndices % 3 == 0);
                         //Q_ASSERT(part.triangleIndices % 3 == 0);
 
-                        int64_t materialID = 0;
+                        const auto matTex = extractedMesh.partMaterialTextures[partIndex];
+                        const int64_t matTexData[2] = { matTex.first, matTex.second };
 
                         for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
                             auto idx0 = part.quadTrianglesIndices[i];
@@ -352,7 +362,9 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                             auto face = draco::FaceIndex(i / 3);
 
-                            meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &materialID);
+                            if (hasPerFaceMaterials) {
+                                meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &matTexData);
+                            }
 
                             meshBuilder.SetAttributeValuesForFace(positionAttributeID, face,
                                                                   &mesh.vertices[idx0], &mesh.vertices[idx1],
@@ -373,7 +385,14 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                                                                       &mesh.texCoords[idx0], &mesh.texCoords[idx1],
                                                                       &mesh.texCoords[idx2]);
                             }
+                            if (hasTexCoords1) {
+                                meshBuilder.SetAttributeValuesForFace(texCoords1AttributeID, face,
+                                                                      &mesh.texCoords1[idx0], &mesh.texCoords1[idx1],
+                                                                      &mesh.texCoords1[idx2]);
+                            }
                         }
+
+                        partIndex++;
                     }
 
                     auto dracoMesh = meshBuilder.Finalize();
