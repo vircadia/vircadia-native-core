@@ -69,7 +69,7 @@ float Interpolate::simpleNonLinearBlend(float fraction) {
 }
 
 float Interpolate::calculateFadeRatio(quint64 start) {
-    const float FADE_TIME = 1.0f;
+    const float FADE_TIME = 0.5f;
     float t = 2.0f * std::min(((float)(usecTimestampNow() - start)) / ((float)(FADE_TIME * USECS_PER_SECOND)), 1.0f);
     float fadeRatio = (t < 1.0f) ? 0.5f * powf(2.0f, 10.0f * (t - 1.0f)) : 0.5f * (-powf(2.0f, -10.0f * (t - 1.0f)) + 2.0f);
 
