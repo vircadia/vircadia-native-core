@@ -339,7 +339,7 @@ bool ViewFrustum::isVerySimilar(const ViewFrustum& other) const {
         closeEnough(_aspectRatio, other._aspectRatio, MIN_RELATIVE_ERROR) &&
         closeEnough(_nearClip, other._nearClip, MIN_RELATIVE_ERROR) &&
         closeEnough(_farClip, other._farClip, MIN_RELATIVE_ERROR) &&
-        closeEnough(_focalLength, other._focalLength, MIN_RELATIVE_ERROR),
+        closeEnough(_focalLength, other._focalLength, MIN_RELATIVE_ERROR) &&
         closeEnough(_centerSphereRadius, other._centerSphereRadius, MIN_RELATIVE_ERROR);
 }
 
