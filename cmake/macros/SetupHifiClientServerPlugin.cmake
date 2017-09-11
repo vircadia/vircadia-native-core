@@ -9,11 +9,13 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
   set(${TARGET_NAME}_SHARED 1)
   setup_hifi_library(${ARGV})
 
-  if (NOT DEFINED SERVER_ONLY)
+  if (BUILD_CLIENT)
     add_dependencies(interface ${TARGET_NAME})
   endif()
 
-  add_dependencies(assignment-client ${TARGET_NAME})
+  if (BUILD_SERVER)
+    add_dependencies(assignment-client ${TARGET_NAME})
+  endif()
 
   set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Plugins")
 
