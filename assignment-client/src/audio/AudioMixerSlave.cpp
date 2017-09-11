@@ -558,7 +558,7 @@ float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const Positio
         
         // produce an oriented angle about the y-axis
         glm::vec3 direction = rotatedSourcePosition * (1.0f / fastSqrtf(rotatedSourcePositionLength2));
-		float angle = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f)); // UNIT_NEG_Z is "forward"
+        float angle = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f)); // UNIT_NEG_Z is "forward"
         return (direction.x < 0.0f) ? -angle : angle;
 
     } else {   

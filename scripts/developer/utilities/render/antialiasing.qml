@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
@@ -28,6 +28,7 @@ Rectangle {
     Column {
         id: antialiasing
         spacing: 20
+        padding: 10
 
         Column{
                 spacing: 10
@@ -125,16 +126,17 @@ Rectangle {
                             checked: Render.getConfig("RenderMainView.Antialiasing")["clipExactColor"]
                             onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["clipExactColor"] = checked }
                         }
-                        HifiControls.ConfigSlider {
-                            label: qsTr("Covariance gamma")
-                            integral: false
-                            config: Render.getConfig("RenderMainView.Antialiasing")
-                            property: "covarianceGamma"
-                            max: 1.5
-                            min: 0.5
-                        }
                     }
-                }                            
+                }  
+                HifiControls.ConfigSlider {
+                    label: qsTr("Covariance gamma")
+                    integral: false
+                    config: Render.getConfig("RenderMainView.Antialiasing")
+                    property: "covarianceGamma"
+                    max: 1.5
+                    min: 0.5
+                }                          
+                Separator {}          
                 HifiControls.CheckBox {
                     boxSize: 20
                     text: "Feedback history color"
@@ -152,6 +154,7 @@ Rectangle {
                 }
 
             }
+            Separator {}                      
             Row {
 
                 spacing: 10
@@ -176,23 +179,12 @@ Rectangle {
                 max: 1.0
                 min: 0.0
             }
-            HifiControls.ConfigSlider {
-                label: qsTr("FXAA Region >")
-                integral: false
-                config: Render.getConfig("RenderMainView.Antialiasing")
-                property: "debugFXAAX"
-                max: 1.0
-                min: 0.0
-            }
-            Row {
-
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Closest Fragment"
-                    checked: Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"] = checked }
-                }                
-            }            
+            HifiControls.CheckBox {
+                boxSize: 20
+                text: "Closest Fragment"
+                checked: Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"]
+                onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["showClosestFragment"] = checked }
+            }           
             HifiControls.ConfigSlider {
                 label: qsTr("Debug Velocity Threshold [pix]")
                 integral: false
