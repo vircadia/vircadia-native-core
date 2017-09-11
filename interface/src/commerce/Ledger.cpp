@@ -176,3 +176,28 @@ void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); 
 void Ledger::reset() {
     send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, QJsonObject());
 }
+
+void Ledger::accountSuccess(QNetworkReply& reply) {
+    // lets set the appropriate stuff in the wallet now
+    auto wallet = DependencyManager::get<Wallet>();
+    QByteArray response = reply.readAll();
+    QJsonObject data = QJsonDocument::fromJson(response).object()["data"].toObject();
+
+    auto salt = QByteArray::fromBase64(data["salt"].toString().toUtf8());
+    auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
+    auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
+
+    wallet->setSalt(salt);
+    wallet->setIv(iv);
+    wallet->setCKey(ckey);
+
+    // none of the hfc account info should be emitted
+    emit accountResult(QJsonObject{ {"status", "success"} });
+}
+
+void Ledger::accountFailure(QNetworkReply& reply) {
+    failResponse("account", reply);
+}
+void Ledger::account() {
+    send("hfc_account", "accountSuccess", "accountFailure", QNetworkAccessManager::PutOperation, QJsonObject());
+}
