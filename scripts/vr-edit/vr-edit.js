@@ -453,7 +453,7 @@
 
         function isCameraOutsideEntity(entityID) {
             var cameraPosition,
-                entityPosition,
+                grabPosition,
                 pickRay,
                 PRECISION_PICKING = true,
                 NO_EXCLUDE_IDS = [],
@@ -461,11 +461,11 @@
                 intersection;
 
             cameraPosition = Camera.position;
-            entityPosition = Entities.getEntityProperties(entityID, "position").position;
+            grabPosition = side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
             pickRay = {
                 origin: cameraPosition,
-                direction: Vec3.normalize(Vec3.subtract(entityPosition, cameraPosition)),
-                length: Vec3.distance(entityPosition, cameraPosition)
+                direction: Vec3.normalize(Vec3.subtract(grabPosition, cameraPosition)),
+                length: Vec3.distance(grabPosition, cameraPosition)
             };
             intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, [entityID], NO_EXCLUDE_IDS, VISIBLE_ONLY);
 
