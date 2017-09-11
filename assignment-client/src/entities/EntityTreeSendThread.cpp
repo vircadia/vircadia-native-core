@@ -414,8 +414,10 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
 #ifdef SEND_SORTED_ENTITIES
     //auto entityTree = std::static_pointer_cast<EntityTree>(_myServer->getOctree());
     if (_sendQueue.empty()) {
+        OctreeServer::trackEncodeTime(OctreeServer::SKIP_TIME);
         return false;
     }
+    quint64 encodeStart = usecTimestampNow();
     if (!_packetData.hasContent()) {
         // This is the beginning of a new packet.
         // We pack minimal data for this to be accepted as an OctreeElement payload for the root element.
@@ -450,6 +452,8 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
 
     LevelDetails entitiesLevel = _packetData.startLevel();
     uint64_t sendTime = usecTimestampNow();
+    auto nodeData = static_cast<OctreeQueryNode*>(params.nodeData);
+    nodeData->stats.encodeStarted();
     while(!_sendQueue.empty()) {
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
@@ -476,6 +480,7 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
         _sendQueue.pop();
         _entitiesInQueue.erase(entity.get());
     }
+    nodeData->stats.encodeStopped();
     if (_sendQueue.empty()) {
         assert(_entitiesInQueue.empty());
         params.stopReason = EncodeBitstreamParams::FINISHED;
@@ -484,10 +489,12 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
 
     if (_numEntities == 0) {
         _packetData.discardLevel(entitiesLevel);
+        OctreeServer::trackEncodeTime((float)(usecTimestampNow() - encodeStart));
         return false;
     }
     _packetData.endLevel(entitiesLevel);
     _packetData.updatePriorBytes(_numEntitiesOffset, (const unsigned char*)&_numEntities, sizeof(_numEntities));
+    OctreeServer::trackEncodeTime((float)(usecTimestampNow() - encodeStart));
     return true;
 
 #else // SEND_SORTED_ENTITIES
