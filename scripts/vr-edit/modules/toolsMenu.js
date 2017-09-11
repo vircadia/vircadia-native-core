@@ -2158,7 +2158,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
                     childProperties.dimensions = { x: properties.dimensions.x, y: properties.dimensions.y };
-                    imageOffset += IMAGE_OFFSET;
+                    imageOffset += 2 * IMAGE_OFFSET;  // Double offset to prevent clipping against background.
                     if (optionsItems[i].useBaseColor) {
                         childProperties.color = properties.color;
                     }
@@ -2209,7 +2209,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
                     childProperties.scale = properties.dimensions.x;
-                    imageOffset += IMAGE_OFFSET;
+                    imageOffset += 2 * IMAGE_OFFSET;  // Double offset to prevent clipping against background.
                     childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                     childProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
