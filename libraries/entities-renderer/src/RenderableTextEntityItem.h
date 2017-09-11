@@ -24,14 +24,13 @@ class TextEntityRenderer : public TypedEntityRenderer<TextEntityItem> {
     using Pointer = std::shared_ptr<TextEntityRenderer>;
 public:
     TextEntityRenderer(const EntityItemPointer& entity);
-
+    ~TextEntityRenderer();
 private:
-    virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
     int _geometryID{ 0 };
-    TextRenderer3D* _textRenderer;
+    std::shared_ptr<TextRenderer3D> _textRenderer;
     bool _faceCamera;
     glm::vec3 _dimensions;
     glm::vec3 _textColor;
