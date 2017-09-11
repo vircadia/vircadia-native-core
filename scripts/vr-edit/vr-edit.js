@@ -1470,16 +1470,20 @@
             break;
 
         case "setGravityOn":
+            // Dynamic is true if the entity has gravity or is grabbable.
             if (parameter) {
                 physicsToolPhysics.gravity = { x: 0, y: physicsToolGravity, z: 0 };
                 physicsToolPhysics.dynamic = true;
             } else {
                 physicsToolPhysics.gravity = Vec3.ZERO;
-                physicsToolPhysics.dynamic = false;
+                physicsToolPhysics.dynamic = physicsToolPhysics.userData.grabbableKey.grabbable === true;
             }
             break;
         case "setGrabOn":
+            // Dynamic is true if the entity has gravity or is grabbable.
             physicsToolPhysics.userData.grabbableKey.grabbable = parameter;
+            physicsToolPhysics.dynamic = parameter
+                || (physicsToolPhysics.gravity && Vec3.length(physicsToolPhysics.gravity) > 0);
             break;
         case "setCollideOn":
             if (parameter) {
