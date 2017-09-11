@@ -91,7 +91,12 @@ void entitiesScriptEngineDeleter(ScriptEngine* engine) {
     };
 
     // Wait for the scripting thread from the thread pool to avoid hanging the main thread
-    QThreadPool::globalInstance()->start(new WaitRunnable(engine));
+    auto threadPool = QThreadPool::globalInstance();
+    if (threadPool) {
+        threadPool->start(new WaitRunnable(engine));
+    } else {
+        delete engine;
+    }
 }
 
 void EntityTreeRenderer::resetEntitiesScriptEngine() {

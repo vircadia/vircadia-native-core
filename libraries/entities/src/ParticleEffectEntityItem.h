@@ -160,7 +160,9 @@ namespace particle {
         Properties() {};
         Properties(const Properties& other) { *this = other; }
         bool valid() const;
-
+        bool emitting() const;
+        uint64_t emitIntervalUsecs() const;
+        
         Properties& operator =(const Properties& other) {
             color = other.color;
             alpha = other.alpha;

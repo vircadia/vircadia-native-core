@@ -20,6 +20,7 @@ Flickable {
 
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
+    pressDelay: 300
 
     property real previousHeight: height
 
@@ -193,5 +194,12 @@ Flickable {
         visible: _webview.loading && /^(http.*|)$/i.test(_webview.url.toString())
         playing: visible
         z: 10000
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onWheel: {
+            flick.flick(0, wheel.angleDelta.y*10)
+        }
     }
 }

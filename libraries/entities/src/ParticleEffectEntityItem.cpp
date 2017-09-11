@@ -104,7 +104,7 @@ bool operator!=(const Properties& a, const Properties& b) {
     return !(a == b);
 }
 
-bool particle::Properties::valid() const {
+bool Properties::valid() const {
     if (glm::any(glm::isnan(emission.orientation))) {
         qCWarning(entities) << "Bad particle data";
         return false;
@@ -132,6 +132,19 @@ bool particle::Properties::valid() const {
         (radius.range.finish == glm::clamp(radius.range.finish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS)) &&
         (radius.gradient.spread == glm::clamp(radius.gradient.spread, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS));
 }
+
+bool Properties::emitting() const {
+    return emission.rate > 0.0f && lifespan > 0.0f && polar.start <= polar.finish;
+    
+}
+
+uint64_t Properties::emitIntervalUsecs() const {
+    if (emission.rate > 0.0f) {
+        return (uint64_t)(USECS_PER_SECOND / emission.rate);
+    }
+    return 0;
+}
+
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity { new ParticleEffectEntityItem(entityID) };
