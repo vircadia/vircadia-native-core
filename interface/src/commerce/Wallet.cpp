@@ -40,6 +40,8 @@
 
 static const char* KEY_FILE = "hifikey";
 static const char* IMAGE_FILE = "hifi_image"; // eventually this will live in keyfile
+static const char* IMAGE_HEADER = "-----BEGIN SECURITY IMAGE-----\n";
+static const char* IMAGE_FOOTER = "-----END SECURITY IMAGE-----\n";
 
 void initialize() {
     static bool initialized = false;
@@ -131,8 +133,6 @@ bool writeKeys(const char* filename, RSA* keys) {
     return retval;
 }
 
-
-// BEGIN copied code - this will be removed/changed at some point soon
 // copied (without emits for various signals) from libraries/networking/src/RSAKeypairGenerator.cpp.
 // We will have a different implementation in practice, but this gives us a start for now
 //
@@ -288,7 +288,7 @@ void Wallet::setPassphrase(const QString& passphrase) {
 }
 
 // encrypt some stuff
-bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFilePath) {
+bool Wallet::writeSecurityImageFile(const QString& inputFilePath, const QString& outputFilePath) {
     // aes requires a couple 128-bit keys (ckey and ivec).  For now, I'll just
     // use the md5 of the salt as the ckey (md5 is 128-bit), and ivec will be
     // a constant.  We can review this later - there are ways to generate keys
@@ -338,15 +338,18 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     qCDebug(commerce) << "encrypted buffer size" << outSize;
     QByteArray output((const char*)outputFileBuffer, outSize);
     QFile outputFile(outputFilePath);
-    outputFile.open(QIODevice::WriteOnly);
-    outputFile.write(output);
+    outputFile.open(QIODevice::WriteOnly| QIODevice::Text);
+    outputFile.write(IMAGE_HEADER);
+    outputFile.write(output.toBase64());
+    outputFile.write("\n");
+    outputFile.write(IMAGE_FOOTER);
     outputFile.close();
 
     delete[] outputFileBuffer;
     return true;
 }
 
-bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
+bool Wallet::readSecurityImageFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
     unsigned char ivec[16];
     unsigned char ckey[32];
     initializeAESKeys(ivec, ckey, _salt);
@@ -357,9 +360,31 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
         qCDebug(commerce) << "cannot decrypt file" << inputFilePath << "it doesn't exist";
         return false;
     }
-    inputFile.open(QIODevice::ReadOnly);
-    QByteArray encryptedBuffer = inputFile.readAll();
+    inputFile.open(QIODevice::ReadOnly|QIODevice::Text);
+    bool foundHeader = false;
+    bool foundFooter = false;
+
+    QByteArray base64EncryptedBuffer;
+
+    while(!inputFile.atEnd()) {
+        QString line(inputFile.readLine());
+        if (!foundHeader) {
+            foundHeader = (line == IMAGE_HEADER);
+        } else {
+            foundFooter = (line == IMAGE_FOOTER);
+            if (!foundFooter) {
+                base64EncryptedBuffer.append(line);
+            }
+        }
+    }
     inputFile.close();
+    if (! (foundHeader && foundFooter)) {
+        qCDebug(commerce) << "couldn't parse" << inputFilePath << foundHeader << foundFooter;
+        return false;
+    }
+
+    // convert to bytes
+    auto encryptedBuffer = QByteArray::fromBase64(base64EncryptedBuffer);
 
     // setup decrypted buffer
     unsigned char* outputBuffer = new unsigned char[encryptedBuffer.size()];
@@ -504,7 +529,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     _securityImage->load(path);
 
     // encrypt it and save.
-    if (encryptFile(path, imageFilePath())) {
+    if (writeSecurityImageFile(path, imageFilePath())) {
         qCDebug(commerce) << "emitting pixmap";
 
         updateImageProvider();
@@ -529,7 +554,7 @@ void Wallet::getSecurityImage() {
     // decrypt and return
     QString filePath(imageFilePath());
     QFileInfo fileInfo(filePath);
-    if (fileInfo.exists() && decryptFile(filePath, &data, &dataLen)) {
+    if (fileInfo.exists() && readSecurityImageFile(filePath, &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");

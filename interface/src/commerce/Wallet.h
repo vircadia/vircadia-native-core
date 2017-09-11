@@ -61,8 +61,8 @@ private:
     QString* _passphrase { new QString("") };
 
     void updateImageProvider();
-    bool encryptFile(const QString& inputFilePath, const QString& outputFilePath);
-    bool decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
+    bool writeSecurityImageFile(const QString& inputFilePath, const QString& outputFilePath);
+    bool readSecurityImageFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
 };
 
 #endif // hifi_Wallet_h
