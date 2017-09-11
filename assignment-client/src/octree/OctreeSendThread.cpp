@@ -47,7 +47,7 @@ OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePoint
 
 OctreeSendThread::~OctreeSendThread() {
     setIsShuttingDown();
-    
+
     QString safeServerName("Octree");
     if (_myServer) {
         safeServerName = _myServer->getMyServerName();
@@ -514,7 +514,7 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
     }
 
     bool somethingToSend = true; // assume we have something
-    bool bagHadSomething = hasSomethingToSend(nodeData);
+    bool hadSomething = hasSomethingToSend(nodeData);
     while (somethingToSend && _packetsSentThisInterval < maxPacketsPerInterval && !nodeData->isShuttingDown()) {
         float compressAndWriteElapsedUsec = OctreeServer::SKIP_TIME;
         float packetSendingElapsedUsec = OctreeServer::SKIP_TIME;
