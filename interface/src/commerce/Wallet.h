@@ -61,7 +61,7 @@ private:
     QString* _passphrase { new QString("") };
 
     void updateImageProvider();
-    bool writeSecurityImageFile(const QString& inputFilePath, const QString& outputFilePath);
+    bool writeSecurityImageFile(const QPixmap* pixmap, const QString& outputFilePath);
     bool readSecurityImageFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
 };
 
