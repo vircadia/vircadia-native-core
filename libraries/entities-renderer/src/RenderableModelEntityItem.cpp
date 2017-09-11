@@ -909,13 +909,6 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     QVector<JointData> jointsData;
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
-    QStringList animationJointNames = _animation->getGeometry().getJointNames();
-    auto& fbxJoints = _animation->getGeometry().joints;
-
-    auto& originalFbxJoints = _model->getFBXGeometry().joints;
-    auto& originalFbxIndices = _model->getFBXGeometry().jointIndices;
-
-    bool allowTranslation = entity->getAnimationAllowTranslation();
     int frameCount = frames.size();
     if (frameCount <= 0) {
         return;
@@ -950,6 +943,14 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
+    QStringList animationJointNames = _animation->getGeometry().getJointNames();
+    auto& fbxJoints = _animation->getGeometry().joints;
+
+    auto& originalFbxJoints = _model->getFBXGeometry().joints;
+    auto& originalFbxIndices = _model->getFBXGeometry().jointIndices;
+
+    bool allowTranslation = entity->getAnimationAllowTranslation();
+
     const QVector<glm::quat>& rotations = frames[_lastKnownCurrentFrame].rotations;
     const QVector<glm::vec3>& translations = frames[_lastKnownCurrentFrame].translations;
                 
@@ -960,9 +961,11 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         if (index >= 0) {
             glm::mat4 translationMat;
 
-            if (allowTranslation && index < translations.size()) {
-                translationMat = glm::translate(translations[index]);
-            } else if (!allowTranslation && index < animationJointNames.size()){
+            if (allowTranslation) {
+                if(index < translations.size()){
+                    translationMat = glm::translate(translations[index]);
+                }
+            } else if (index < animationJointNames.size()){
                 QString jointName = fbxJoints[index].name; // Pushing this here so its not done on every entity, with the exceptions of those allowing for translation
                 
                 if (originalFbxIndices.contains(jointName)) {
