@@ -301,3 +301,14 @@ findGroupParent = function (controllerData, targetProps) {
 
     return targetProps;
 };
+
+if (typeof module !== 'undefined') {
+    module.exports = {
+        makeDispatcherModuleParameters: makeDispatcherModuleParameters,
+        enableDispatcherModule: enableDispatcherModule,
+        disableDispatcherModule: disableDispatcherModule,
+        makeRunningValues: makeRunningValues,
+        LEFT_HAND: LEFT_HAND,
+        RIGHT_HAND: RIGHT_HAND
+    };
+}
