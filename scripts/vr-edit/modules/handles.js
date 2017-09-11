@@ -171,9 +171,9 @@ Handles = function (side) {
         // display smaller in order to give comfortable depth cue.
         cameraPosition = Camera.position;
         boundingBoxVector = Vec3.subtract(boundingBox.center, Camera.position);
-        distanceMultiplier = DISTANCE_MULTIPLIER_MULTIPLIER
-            * Vec3.dot(Quat.getForward(Camera.orientation), boundingBoxVector)
-            / Math.sqrt(Vec3.length(boundingBoxVector));
+        distanceMultiplier = DISTANCE_MULTIPLIER_MULTIPLIER * Math.sqrt(
+            Math.max(Vec3.length(boundingBoxVector, Vec3.length(boundingBox.dimensions) / 2))
+        );
 
         // Corner scale handles.
         // At right-most and opposite corners of bounding box.
