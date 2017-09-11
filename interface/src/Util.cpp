@@ -398,9 +398,9 @@ void runUnitTests() {
 void shapeInfoCalculator(const ShapeEntityItem * const shapeEntity, ShapeInfo &shapeInfo) {
     ShapeInfo::PointCollection pointCollection;
     ShapeInfo::PointList points;
-
-    GeometryCache::computeSimpleHullPointListForShape(shapeEntity, points);
     pointCollection.push_back(points);
+
+    GeometryCache::computeSimpleHullPointListForShape(shapeEntity, pointCollection.back());
     shapeInfo.setPointCollection(pointCollection);
 }
 
