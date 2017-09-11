@@ -205,6 +205,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         var entityID = nearbyEntityIDs[j];
                         var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         props.id = entityID;
+                        props.distance = Vec3.distance(props.position, controllerLocations[h].position)
                         nearbyEntityPropertiesByID[entityID] = props;
                         nearbyEntityProperties[h].push(props);
                     }
@@ -236,6 +237,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         var nearEntityID = rayPicks[h].objectID;
                         var nearbyProps = Entities.getEntityProperties(nearEntityID, DISPATCHER_PROPERTIES);
                         nearbyProps.id = nearEntityID;
+                        nearbyProps.distance = rayPicks[h].distance;
                         nearbyEntityPropertiesByID[nearEntityID] = nearbyProps;
                         nearbyEntityProperties[h].push(nearbyProps);
                     }
@@ -243,9 +245,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
                 // sort by distance from each hand
                 nearbyEntityProperties[h].sort(function (a, b) {
-                    var aDistance = Vec3.distance(a.position, controllerLocations[h].position);
-                    var bDistance = Vec3.distance(b.position, controllerLocations[h].position);
-                    return aDistance - bDistance;
+                    return a.distance - b.distance;
                 });
             }
 
