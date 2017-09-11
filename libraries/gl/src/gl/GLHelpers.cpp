@@ -40,8 +40,11 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
 
 int glVersionToInteger(QString glVersion) {
     QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
-    int majorNumber = versionParts[0].toInt();
-    int minorNumber = versionParts[1].toInt();
+    int majorNumber = 0, minorNumber = 0;
+    if (versionParts.size() >= 2) {
+        majorNumber = versionParts[0].toInt();
+        minorNumber = versionParts[1].toInt();
+    }
     return (majorNumber << 16) | minorNumber;
 }
 
