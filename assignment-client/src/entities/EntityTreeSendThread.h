@@ -30,7 +30,6 @@ public:
     EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
 
 protected:
-    void preDistributionProcessing() override;
     void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) override;
 
@@ -41,6 +40,12 @@ private:
 
     void startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum);
     bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) override;
+
+    void preDistributionProcessing() override;
+    bool hasSomethingToSend(OctreeQueryNode* nodeData) override { return !_sendQueue.empty(); }
+    bool shouldStartNewTraversal(OctreeQueryNode* nodeData, bool viewFrustumChanged) override { return viewFrustumChanged || _traversal.finished(); }
+    void preStartNewScene(OctreeQueryNode* nodeData, bool isFullScene) override {};
+    bool shouldTraverseAndSend(OctreeQueryNode* nodeData) override { return true; }
 
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
