@@ -29,7 +29,8 @@ Selection = function (side) {
         scaleRootOffset,
         scaleRootOrientation,
         ENTITY_TYPE = "entity",
-        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine", "PolyVox"];
+        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine", "PolyVox"],
+        ENTITY_TYPES_2D = ["Text", "Web"];
 
 
     if (!this instanceof Selection) {
@@ -41,14 +42,15 @@ Selection = function (side) {
         // The root entity is always the first entry.
         var children,
             properties,
-            SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "parentID", "localPosition",
-                "dynamic", "collisionless", "userData"],
+            SELECTION_PROPERTIES = ["type", "position", "registrationPoint", "rotation", "dimensions", "parentID",
+                "localPosition", "dynamic", "collisionless", "userData"],
             i,
             length;
 
         properties = Entities.getEntityProperties(id, SELECTION_PROPERTIES);
         result.push({
             id: id,
+            type: properties.type,
             position: properties.position,
             parentID: properties.parentID,
             localPosition: properties.localPosition,
@@ -190,6 +192,10 @@ Selection = function (side) {
         };
     }
 
+    function is2D() {
+        return selection.length === 1 && ENTITY_TYPES_2D.indexOf(selection[0].type) !== -1;
+    }
+
     function doKick(entityID) {
         var properties,
             NO_KICK_ENTITY_TYPES = ["Text", "Web"],  // These entities don't respond to gravity so don't kick them.
@@ -278,6 +284,7 @@ Selection = function (side) {
 
     function directScale(factor, rotation, center) {
         // Scale, position, and rotate selection.
+        // We can get away with scaling the z size of 2D entities - incongruities are barely noticeable and things recover.
         var i,
             length;
 
@@ -308,7 +315,7 @@ Selection = function (side) {
         // Update selection with final entity properties.
         var i,
             length;
-        // Final scale, position, and orientaation of root.
+        // Final scale, position, and orientation of root.
         rootPosition = Vec3.sum(scaleCenter, Vec3.multiply(scaleFactor, Vec3.multiplyQbyV(scaleRotation, scaleRootOffset)));
         rootOrientation = Quat.multiply(scaleRotation, scaleRootOrientation);
         selection[0].dimensions = Vec3.multiply(scaleFactor, selection[0].dimensions);
@@ -329,6 +336,7 @@ Selection = function (side) {
 
     function handleScale(factor, position, orientation) {
         // Scale and reposition and orient selection.
+        // We can get away with scaling the z size of 2D entities - incongruities are barely noticeable and things recover.
         var i,
             length;
 
@@ -526,6 +534,7 @@ Selection = function (side) {
         intersectedEntityIndex: getIntersectedEntityIndex,
         rootEntityID: getRootEntityID,
         boundingBox: getBoundingBox,
+        is2D: is2D,
         getPositionAndOrientation: getPositionAndOrientation,
         setPositionAndOrientation: setPositionAndOrientation,
         startEditing: startEditing,

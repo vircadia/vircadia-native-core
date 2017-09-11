@@ -129,7 +129,7 @@ Handles = function (side) {
         return FACE_HANDLE_OVERLAY_SCALE_AXES[faceHandleOverlays.indexOf(overlayID)];
     }
 
-    function display(rootEntityID, boundingBox, isMultipleEntities) {
+    function display(rootEntityID, boundingBox, isMultipleEntities, isSuppressZAxis) {
         var boundingBoxCenter,
             boundingBoxOrientation,
             cameraPosition,
@@ -217,20 +217,22 @@ Handles = function (side) {
             faceHandleDimensions = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_DIMENSIONS);
             faceHandleOffsets = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_OFFSETS);
             for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
-                faceHandleOverlays[i] = Overlays.addOverlay("shape", {
-                    parentID: rootEntityID,
-                    localPosition: Vec3.sum(boundingBoxLocalCenter,
-                        Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i], Vec3.sum(boundingBoxDimensions, faceHandleOffsets))),
-                    localRotation: FACE_HANDLE_OVERLAY_ROTATIONS[i],
-                    dimensions: faceHandleDimensions,
-                    shape: "Cone",
-                    color: HANDLE_NORMAL_COLOR,
-                    alpha: HANDLE_NORMAL_ALPHA,
-                    solid: true,
-                    drawInFront: true,
-                    ignoreRayIntersection: false,
-                    visible: true
-                });
+                if (!isSuppressZAxis || FACE_HANDLE_OVERLAY_AXES[i].z === 0) {
+                    faceHandleOverlays[i] = Overlays.addOverlay("shape", {
+                        parentID: rootEntityID,
+                        localPosition: Vec3.sum(boundingBoxLocalCenter,
+                            Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i], Vec3.sum(boundingBoxDimensions, faceHandleOffsets))),
+                        localRotation: FACE_HANDLE_OVERLAY_ROTATIONS[i],
+                        dimensions: faceHandleDimensions,
+                        shape: "Cone",
+                        color: HANDLE_NORMAL_COLOR,
+                        alpha: HANDLE_NORMAL_ALPHA,
+                        solid: true,
+                        drawInFront: true,
+                        ignoreRayIntersection: false,
+                        visible: true
+                    });
+                }
             }
         } else {
             faceHandleOverlays = [];

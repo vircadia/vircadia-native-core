@@ -719,7 +719,7 @@
                 laser.disable();
             }
             if (toolSelected === TOOL_SCALE) {
-                handles.display(rootEntityID, selection.boundingBox(), selection.count() > 1);
+                handles.display(rootEntityID, selection.boundingBox(), selection.count() > 1, selection.is2D());
                 otherEditor.setHandleOverlays(handles.overlays());
             }
             startEditing();
@@ -729,7 +729,7 @@
         function updateEditorGrabbing() {
             selection.select(intersectedEntityID);
             if (toolSelected === TOOL_SCALE) {
-                handles.display(rootEntityID, selection.boundingBox(), selection.count() > 1);
+                handles.display(rootEntityID, selection.boundingBox(), selection.count() > 1, selection.is2D());
                 otherEditor.setHandleOverlays(handles.overlays());
             } else {
                 handles.clear();
