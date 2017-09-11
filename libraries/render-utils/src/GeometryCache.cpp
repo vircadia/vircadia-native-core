@@ -96,7 +96,8 @@ void GeometryCache::computeSimpleHullPointListForShape(const ShapeEntityItem * c
     }
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    const GeometryCache::ShapeData * shapeData = geometryCache->getShapeData(MAPPING[shapePtr->getShape()]);
+    const GeometryCache::Shape entityGeometryShape = GeometryCache::getShapeForEntityShape(shapePtr->getShape());
+    const GeometryCache::ShapeData * shapeData = geometryCache->getShapeData( entityGeometryShape );
     if (!shapeData){
         //--EARLY EXIT--( data isn't ready for some reason... )
         return;
@@ -522,7 +523,7 @@ const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) 
 
 GeometryCache::Shape GeometryCache::getShapeForEntityShape(int entityShape) {
     if ((entityShape < 0) || (entityShape >= MAPPING.size())){
-        return NUM_SHAPES;
+        return GeometryCache::Sphere;
     }
 
     return MAPPING[entityShape];
