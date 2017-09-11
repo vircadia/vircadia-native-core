@@ -528,6 +528,12 @@ void OffscreenQmlSurface::create() {
 
     connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
 
+    // acquireEngine interrogates the GL context, so we need to have the context current here
+    if (!_canvas->makeCurrent()) {
+        qFatal("Failed to make context current for QML Renderer");
+        return;
+    }
+    
     // Create a QML engine.
     auto qmlEngine = acquireEngine(_quickWindow);
 
@@ -540,11 +546,6 @@ void OffscreenQmlSurface::create() {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
-
-    if (!_canvas->makeCurrent()) {
-        qWarning("Failed to make context current for QML Renderer");
-        return;
-    }
     _renderControl->initialize(_canvas->getContext());
 
     // When Quick says there is a need to render, we will not render immediately. Instead,
