@@ -304,6 +304,11 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                         numTriangles += part.triangleIndices.size() / 3;
                     }
 
+                    if (numTriangles == 0) {
+                        qDebug() << "Skipping compression of mesh because no triangles were found";
+                        continue;
+                    }
+
                     draco::TriangleSoupMeshBuilder meshBuilder;
 
                     meshBuilder.Start(numTriangles);
@@ -396,6 +401,11 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     }
 
                     auto dracoMesh = meshBuilder.Finalize();
+
+                    if (!dracoMesh) {
+                        qWarning() << "Failed to finalize the baking of a draco Geometry node";
+                        continue;
+                    }
 
                     draco::Encoder encoder;
                     draco::EncoderBuffer buffer;
