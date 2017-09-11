@@ -113,7 +113,7 @@ void GeometryCache::computeSimpleHullPointListForShape(const ShapeEntityItem * c
     qCDebug(entities) << "------------------ Begin Vert Info( ComputeShapeInfo )[FlatShapes] -----------------------------";
     qCDebug(entities) << " name:" << shapePtr->getName() << ": has " << numItems << " vert info pairs.";
 #endif
-    outPointList.reserve(numItems);
+    outPointList.reserve((int)numItems);
     for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
         const geometry::Vec &curNorm = shapeNorms.get<geometry::Vec>(i);
 #if DEBUG_SIMPLE_HULL_POINT_GENERATION
@@ -514,7 +514,7 @@ void GeometryCache::buildShapes() {
 }
 
 const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) const {
-    if (((int)shape < 0) || ((int)shape >= _shapes.size())){
+    if (((int)shape < 0) || ((int)shape >= (int)_shapes.size())){
         return nullptr;
     }
 
@@ -522,7 +522,7 @@ const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) 
 }
 
 GeometryCache::Shape GeometryCache::getShapeForEntityShape(int entityShape) {
-    if ((entityShape < 0) || (entityShape >= MAPPING.size())){
+    if ((entityShape < 0) || (entityShape >= (int)MAPPING.size())){
         return GeometryCache::Sphere;
     }
 
