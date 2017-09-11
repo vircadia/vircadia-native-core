@@ -67,7 +67,7 @@ Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
-
+    QWindowSystemInterface::registerTouchDevice(&_touchDevice);
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
     connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
     connect(this, &Web3DOverlay::releaseWebSurface, this, &Web3DOverlay::destroyWebSurface);
@@ -367,11 +367,18 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
 }
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
-    //if (_inputMode == Touch) {
+    if (_inputMode == Touch) {
         handlePointerEventAsTouch(event);
-//    } else {
-//        handlePointerEventAsMouse(event);
-//    }
+    } else {
+        handlePointerEventAsMouse(event);
+    }
+}
+
+static inline QRectF touchRectForPosition(QPointF centerPoint)
+{
+    QRectF touchRect(0, 0, 40, 40);
+    touchRect.moveCenter(centerPoint);
+    return touchRect;
 }
 
 void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
@@ -411,14 +418,35 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         touchType = QEvent::TouchEnd;
     } 
 
+    static QTouchEvent::TouchPoint oldTouchPoint;
     {
         QTouchEvent::TouchPoint point;
         point.setId(event.getID());
         point.setState(state);
         point.setPos(windowPoint);
         point.setScreenPos(windowPoint);
+
+
+        // Gesture recognition uses the screen position for the initial threshold
+        // but since the canvas translates touch events we actually need to pass
+        // the screen position as the scene position to deliver the appropriate
+        // coordinates to the target.
+        point.setRect(touchRectForPosition(windowPoint));
+        point.setSceneRect(touchRectForPosition(windowPoint));
+
+        if (point.state() == Qt::TouchPointPressed) {
+            point.setStartScenePos(windowPoint);
+            oldTouchPoint = point;
+        } else {
+            //const QTouchEvent::TouchPoint& oldTouchPoint = _activeTouchPoints[event.getID()];
+            point.setStartScenePos(oldTouchPoint.startScenePos());
+            point.setLastPos(oldTouchPoint.pos());
+            point.setLastScenePos(oldTouchPoint.scenePos());
+        }
         _activeTouchPoints[event.getID()] = point;
     }
+
+
 
     QTouchEvent touchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
     {

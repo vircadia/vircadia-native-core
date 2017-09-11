@@ -25,6 +25,8 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QUndoStack>
 
+#include <qpa/qwindowsysteminterface.h>
+
 #include <ThreadHelpers.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -516,6 +518,10 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
 
+    void updateTouchPoint(const QMouseEvent *event, QTouchEvent::TouchPoint, Qt::MouseButton);
+    bool sendTouchEvent(QQuickWindow* window, QEvent::Type, ulong timestamp);
+    //void updateVisualMockTouchPoints(QQuickWindow *window,const QList<QTouchEvent::TouchPoint> &touchPoints);
+
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
 
@@ -704,6 +710,20 @@ private:
 
     RayPickManager _rayPickManager;
     LaserPointerManager _laserPointerManager;
+
+    //touch mocking
+    bool m_realTouchEventReceived { false };
+    int m_pendingFakeTouchEventCount { 0 };
+
+    QPointF m_lastPos;
+    QPointF m_lastScreenPos;
+    QPointF m_startScreenPos;
+
+    QHash<int, QTouchEvent::TouchPoint> m_touchPoints;
+    QSet<int> m_heldTouchPoints;
+    QHash<int, QQuickItem*> m_activeMockComponents;
+
+    bool m_holdingControl { false };
 
     friend class RenderEventHandler;
 };
