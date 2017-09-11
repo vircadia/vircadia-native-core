@@ -37,7 +37,7 @@ const int NUMBER_OF_CHILDREN = 8;
 
 const int MAX_TREE_SLICE_BYTES = 26;
 
-const float VIEW_FRUSTUM_FOV_OVERSEND = 0.0f;
+const float VIEW_FRUSTUM_FOV_OVERSEND = 20.0f;
 
 // These are guards to prevent our voxel tree recursive routines from spinning out of control
 const int UNREASONABLY_DEEP_RECURSION = 29; // use this for something that you want to be shallow, but not spin out
