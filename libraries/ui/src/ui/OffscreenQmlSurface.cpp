@@ -639,7 +639,7 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlContext->setBaseUrl(baseUrl);
 }
 
-void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
@@ -659,28 +659,28 @@ void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this,
-            [this, qmlComponent, targetContext, f](QQmlComponent::Status) {
-            finishQmlLoad(qmlComponent, targetContext, f);
+            [this, qmlComponent, targetContext, onQmlLoadedCallback](QQmlComponent::Status) {
+            finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
         });
         return;
     }
 
-    finishQmlLoad(qmlComponent, targetContext, f);
+    finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
 }
 
-void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    load(qmlSource, true, f);
+void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+    load(qmlSource, true, onQmlLoadedCallback);
 }
 
-void OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    load(qmlSource, false, f);
+void OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+    load(qmlSource, false, onQmlLoadedCallback);
 }
 
 void OffscreenQmlSurface::clearCache() {
     _qmlContext->engine()->clearComponentCache();
 }
 
-void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
@@ -713,9 +713,9 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     }
 
     // Make sure we will call callback for this codepath
-    // Caal this before qmlComponent->completeCreate() otherwise ghost window appears
+    // Call this before qmlComponent->completeCreate() otherwise ghost window appears
     if (newItem && _rootItem) {
-        f(qmlContext, newObject);
+        onQmlLoadedCallback(qmlContext, newObject);
     }
 
     QObject* eventBridge = qmlContext->contextProperty("eventBridge").value<QObject*>();
@@ -751,7 +751,7 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
     // Call this callback after rootitem is set, otherwise VrMenu wont work
-    f(qmlContext, newObject);
+    onQmlLoadedCallback(qmlContext, newObject);
 }
 
 void OffscreenQmlSurface::updateQuick() {
