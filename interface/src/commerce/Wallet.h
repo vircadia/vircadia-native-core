@@ -60,9 +60,10 @@ private:
     QByteArray _ckey;
     QString* _passphrase { new QString("") };
 
+    bool writeWallet(const QString& newPassphrase = QString(""));
     void updateImageProvider();
-    bool writeSecurityImageFile(const QPixmap* pixmap, const QString& outputFilePath);
-    bool readSecurityImageFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
+    bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
+    bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
 };
 
 #endif // hifi_Wallet_h

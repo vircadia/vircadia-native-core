@@ -284,7 +284,7 @@ void Wallet::setPassphrase(const QString& passphrase) {
     _publicKeys.clear();
 }
 
-bool Wallet::writeSecurityImageFile(const QPixmap* pixmap, const QString& outputFilePath) {
+bool Wallet::writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath) {
     // aes requires a couple 128-bit keys (ckey and ivec).  For now, I'll just
     // use the md5 of the salt as the ckey (md5 is 128-bit), and ivec will be
     // a constant.  We can review this later - there are ways to generate keys
@@ -343,7 +343,7 @@ bool Wallet::writeSecurityImageFile(const QPixmap* pixmap, const QString& output
     return true;
 }
 
-bool Wallet::readSecurityImageFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
+bool Wallet::readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
     unsigned char ivec[16];
     unsigned char ckey[32];
     initializeAESKeys(ivec, ckey, _salt);
@@ -449,7 +449,7 @@ bool Wallet::generateKeyPair() {
     auto keyPair = generateRSAKeypair();
 
     // TODO: redo this soon -- need error checking and so on
-    writeSecurityImageFile(_securityImage, keyFilePath());
+    writeSecurityImage(_securityImage, keyFilePath());
     sendKeyFilePathIfExists();
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
@@ -515,10 +515,10 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     if (_securityImage) {
         delete _securityImage;
     }
-    // temporary...
     QString path = qApp->applicationDirPath();
     path.append("/resources/qml/hifi/commerce/wallet/");
     path.append(filename);
+
     // now create a new security image pixmap
     _securityImage = new QPixmap();
 
@@ -537,31 +537,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
         return;
     }
 
-    bool success = false;
-    RSA* keys = readKeys(keyFilePath().toStdString().c_str());
-    if (keys) {
-        QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
-        if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
-            if (writeSecurityImageFile(_securityImage, tempFileName)) {
-                // ok, now move the temp file to the correct spot
-                // TODO: error checking here!
-                QFile(QString(keyFilePath())).remove();
-                QFile(tempFileName).rename(QString(keyFilePath()));
-                qCDebug(commerce) << "passphrase changed successfully";
-                updateImageProvider();
-
-                success = true;
-            } else {
-                qCDebug(commerce) << "couldn't write security image to" << tempFileName;
-            }
-        } else {
-            qCDebug(commerce) << "couldn't write keys to" << tempFileName;
-        }
-    } else {
-        qCDebug(commerce) << "couldn't decrypt keys with current passphrase, clearing";
-        setPassphrase(QString(""));
-    }
-
+    bool success = writeWallet();
     emit securityImageResult(success);
 }
 
@@ -577,7 +553,7 @@ void Wallet::getSecurityImage() {
 
     // decrypt and return
     QFileInfo fileInfo(keyFilePath());
-    if (fileInfo.exists() && readSecurityImageFile(keyFilePath(), &data, &dataLen)) {
+    if (fileInfo.exists() && readSecurityImage(keyFilePath(), &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
@@ -616,31 +592,45 @@ void Wallet::reset() {
     QFile keyFile(keyFilePath());
     keyFile.remove();
 }
-
-bool Wallet::changePassphrase(const QString& newPassphrase) {
-    qCDebug(commerce) << "changing passphrase";
+bool Wallet::writeWallet(const QString& newPassphrase) {
     RSA* keys = readKeys(keyFilePath().toStdString().c_str());
     if (keys) {
         // we read successfully, so now write to a new temp file
-        // save old passphrase just in case
-        // TODO: force re-enter?
-        QString oldPassphrase = *_passphrase;
-        setPassphrase(newPassphrase);
         QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
-        if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
-            // ok, now move the temp file to the correct spot
-            QFile(QString(keyFilePath())).remove();
-            QFile(tempFileName).rename(QString(keyFilePath()));
-            qCDebug(commerce) << "passphrase changed successfully";
-            return true;
-        } else {
-            qCDebug(commerce) << "couldn't write keys";
-            QFile(tempFileName).remove();
-            setPassphrase(oldPassphrase);
-            return false;
+        QString oldPassphrase = *_passphrase;
+        if (!newPassphrase.isEmpty()) {
+            setPassphrase(newPassphrase);
         }
+        if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
+            if (writeSecurityImage(_securityImage, tempFileName)) {
+                // ok, now move the temp file to the correct spot
+                QFile(QString(keyFilePath())).remove();
+                QFile(tempFileName).rename(QString(keyFilePath()));
+                qCDebug(commerce) << "wallet written successfully";
+                return true;
+            } else {
+                qCDebug(commerce) << "couldn't write security image to temp wallet";
+            }
+        } else {
+            qCDebug(commerce) << "couldn't write keys to temp wallet";
+        }
+        // if we are here, we failed, so cleanup
+        QFile(tempFileName).remove();
+        if (!newPassphrase.isEmpty()) {
+            setPassphrase(oldPassphrase);
+        }
+
+    } else {
+        qCDebug(commerce) << "couldn't read wallet - bad passphrase?";
+        // TODO: review this, but it seems best to reset the passphrase
+        // since we couldn't decrypt the existing wallet (or is doesn't
+        // exist perhaps).
+        setPassphrase("");
     }
-    qCDebug(commerce) << "couldn't decrypt keys with current passphrase, clearing";
-    setPassphrase(QString(""));
     return false;
+}
+
+bool Wallet::changePassphrase(const QString& newPassphrase) {
+    qCDebug(commerce) << "changing passphrase";
+    return writeWallet(newPassphrase);
 }
