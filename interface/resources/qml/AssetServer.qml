@@ -561,7 +561,7 @@ ScrollingWindow {
                         case "Not Baked":
                             return hifi.glyphs.circleSlash;
                         case "Baked":
-                            return hifi.glyphs.placemark;
+                            return hifi.glyphs.check_2_01;
                         case "Error":
                             return hifi.glyphs.alert;
                         default:
