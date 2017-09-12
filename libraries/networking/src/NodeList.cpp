@@ -809,7 +809,7 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
-        eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
+        eachMatchingNode([](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
                 return true;
             } else {

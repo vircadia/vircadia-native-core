@@ -10,6 +10,7 @@
 //#include <gl/GLShaders.h>
 
 using namespace gpu;
+using namespace gpu::gl;
 using namespace gpu::gl45;
 
 // GLSL version
@@ -132,7 +133,7 @@ int GL45Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::Binding
     return ssboCount;*/
 }
 
-void GL45Backend::makeProgramBindings(gl::ShaderObject& shaderObject) {
+void GL45Backend::makeProgramBindings(ShaderObject& shaderObject) {
     if (!shaderObject.glprogram) {
         return;
     }

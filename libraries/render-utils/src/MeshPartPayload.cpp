@@ -14,7 +14,6 @@
 #include <PerfStat.h>
 
 #include "DeferredLightingEffect.h"
-#include "EntityItem.h"
 
 using namespace render;
 

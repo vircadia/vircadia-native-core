@@ -25,7 +25,7 @@ CharacterSweepResult::CharacterSweepResult(const CharacterGhostObject* character
 }
 
 btScalar CharacterSweepResult::addSingleResult(btCollisionWorld::LocalConvexResult& convexResult, bool useWorldFrame) {
-	// skip objects that we shouldn't collide with
+    // skip objects that we shouldn't collide with
     if (!convexResult.m_hitCollisionObject->hasContactResponse()) {
         return btScalar(1.0);
     }
@@ -37,6 +37,6 @@ btScalar CharacterSweepResult::addSingleResult(btCollisionWorld::LocalConvexResu
 }
 
 void CharacterSweepResult::resetHitHistory() {
-	m_hitCollisionObject = nullptr;
-	m_closestHitFraction = btScalar(1.0f);
+    m_hitCollisionObject = nullptr;
+    m_closestHitFraction = btScalar(1.0f);
 }

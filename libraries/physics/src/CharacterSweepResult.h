@@ -22,13 +22,13 @@ class CharacterSweepResult : public btCollisionWorld::ClosestConvexResultCallbac
 public:
     CharacterSweepResult(const CharacterGhostObject* character);
     virtual btScalar addSingleResult(btCollisionWorld::LocalConvexResult& convexResult, bool useWorldFrame) override;
-	void resetHitHistory();
+    void resetHitHistory();
 protected:
     const CharacterGhostObject* _character;
 
     // NOTE: Public data members inherited from ClosestConvexResultCallback:
     //
-    //	btVector3   m_convexFromWorld; // unused except by btClosestNotMeConvexResultCallback
+    //    btVector3   m_convexFromWorld; // unused except by btClosestNotMeConvexResultCallback
     //  btVector3   m_convexToWorld;   // unused except by btClosestNotMeConvexResultCallback
     //  btVector3   m_hitNormalWorld;
     //  btVector3   m_hitPointWorld;

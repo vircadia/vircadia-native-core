@@ -30,7 +30,7 @@ public:
         TOUCH_AXIS_Y_NEG,
     };
 
-	enum TouchGestureAxisChannel {
+    enum TouchGestureAxisChannel {
         TOUCH_GESTURE_PINCH_POS = TOUCH_AXIS_Y_NEG + 1,
         TOUCH_GESTURE_PINCH_NEG,
     };

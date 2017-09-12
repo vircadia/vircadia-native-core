@@ -1,3 +1,3 @@
 set(TARGET_NAME ktx)
 setup_hifi_library()
-include_hifi_library_headers(shared)
+link_hifi_libraries(shared)

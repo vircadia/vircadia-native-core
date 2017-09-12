@@ -18,19 +18,19 @@
 
 namespace render {
 
-	// Transition stage to set up Transition-related effects
-	class TransitionStage : public render::Stage {
-	public:
+    // Transition stage to set up Transition-related effects
+    class TransitionStage : public render::Stage {
+    public:
 
         static const std::string& getName() { return _name; }
 
-		using Index = indexed_container::Index;
-		static const Index INVALID_INDEX{ indexed_container::INVALID_INDEX };
+        using Index = indexed_container::Index;
+        static const Index INVALID_INDEX{ indexed_container::INVALID_INDEX };
         using TransitionIdList = indexed_container::Indices;
 
         static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
 
-		bool checkTransitionId(Index index) const { return _transitions.checkIndex(index); }
+        bool checkTransitionId(Index index) const { return _transitions.checkIndex(index); }
 
         const Transition& getTransition(Index TransitionId) const { return _transitions.get(TransitionId); }
 
@@ -48,10 +48,10 @@ namespace render {
 
         static std::string _name;
 
-		Transitions _transitions;
+        Transitions _transitions;
         TransitionIdList _activeTransitionIds;
-	};
-	using TransitionStagePointer = std::shared_ptr<TransitionStage>;
+    };
+    using TransitionStagePointer = std::shared_ptr<TransitionStage>;
 
     class TransitionStageSetup {
     public:

@@ -26,19 +26,19 @@ public:
 protected:
     const CharacterGhostObject* _character;
 
-	// Note: Public data members inherited from ClosestRayResultCallback
-	//
-	//   btVector3 m_rayFromWorld;//used to calculate hitPointWorld from hitFraction
-	//   btVector3 m_rayToWorld;
-	//   btVector3 m_hitNormalWorld;
-	//   btVector3 m_hitPointWorld;
-	//
-	// Note: Public data members inherited from RayResultCallback
-	//
-	//   btScalar m_closestHitFraction;
-	//   const btCollisionObject* m_collisionObject;
-	//   short int m_collisionFilterGroup;
-	//   short int m_collisionFilterMask;
+    // Note: Public data members inherited from ClosestRayResultCallback
+    //
+    //   btVector3 m_rayFromWorld;//used to calculate hitPointWorld from hitFraction
+    //   btVector3 m_rayToWorld;
+    //   btVector3 m_hitNormalWorld;
+    //   btVector3 m_hitPointWorld;
+    //
+    // Note: Public data members inherited from RayResultCallback
+    //
+    //   btScalar m_closestHitFraction;
+    //   const btCollisionObject* m_collisionObject;
+    //   short int m_collisionFilterGroup;
+    //   short int m_collisionFilterMask;
 };
 
 #endif // hifi_CharacterRayResult_h

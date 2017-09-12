@@ -16,7 +16,7 @@
 
 #include "Scene.h"
 #include "../task/Task.h"
-#include "gpu/Batch.h"
+#include <gpu/Batch.h>
 
 namespace render {
 

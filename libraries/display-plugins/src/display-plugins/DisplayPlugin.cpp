@@ -28,11 +28,14 @@ DisplayPluginList getDisplayPlugins() {
 #ifdef DEBUG
         new NullDisplayPlugin(),
 #endif
+
+#if !defined(Q_OS_ANDROID)
         // Stereo modes
         // SBS left/right
         new SideBySideStereoDisplayPlugin(),
         // Interleaved left/right
         new InterleavedStereoDisplayPlugin(),
+#endif        
         nullptr
     };
 

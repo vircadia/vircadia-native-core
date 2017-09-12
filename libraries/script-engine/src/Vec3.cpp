@@ -90,6 +90,6 @@ glm::vec3 Vec3::fromPolar(float elevation, float azimuth) {
 }
 
 float Vec3::getAngle(const glm::vec3& v1, const glm::vec3& v2) {
-	return glm::acos(glm::dot(glm::normalize(v1), glm::normalize(v2)));
+    return glm::acos(glm::dot(glm::normalize(v1), glm::normalize(v2)));
 }
 

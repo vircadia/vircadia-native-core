@@ -40,14 +40,6 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     return Parent::beginFrameRender(frameIndex);
 }
 
-// DLL based display plugins MUST initialize GLEW inside the DLL code.
-void DebugHmdDisplayPlugin::customizeContext() {
-    glewExperimental = true;
-    glewInit();
-    glGetError(); // clear the potential error from glewExperimental
-    Parent::customizeContext();
-}
-
 bool DebugHmdDisplayPlugin::internalActivate() {
     _ipd = 0.0327499993f * 2.0f;
     _eyeProjections[0][0] = vec4{ 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
@@ -61,7 +53,7 @@ bool DebugHmdDisplayPlugin::internalActivate() {
     _eyeInverseProjections[0] = glm::inverse(_eyeProjections[0]);
     _eyeInverseProjections[1] = glm::inverse(_eyeProjections[1]);
     _eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
-    _eyeOffsets[0][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+    _eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
     _renderTargetSize = { 3024, 1680 };
     _cullingProjection = _eyeProjections[0];
     // This must come after the initialization, so that the values calculated

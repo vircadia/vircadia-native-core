@@ -123,9 +123,9 @@ private:
     
     p_high_resolution_clock::time_point _lastRCTime = p_high_resolution_clock::now(); // last rate increase time
     
-    bool _slowStart { true };	// if in slow start phase
+    bool _slowStart { true };    // if in slow start phase
     SequenceNumber _lastACK; // last ACKed sequence number from previous
-    bool _loss { false };	// if loss happened since last rate increase
+    bool _loss { false };    // if loss happened since last rate increase
     SequenceNumber _lastDecreaseMaxSeq; // max pkt seq num sent out when last decrease happened
     double _lastDecreasePeriod { 1 }; // value of _packetSendPeriod when last decrease happened
     int _nakCount { 0 }; // number of NAKs in congestion epoch

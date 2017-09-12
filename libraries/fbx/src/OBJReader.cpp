@@ -28,6 +28,7 @@
 
 #include "FBXReader.h"
 #include "ModelFormatLogging.h"
+#include <shared/PlatformHacks.h>
 
 QHash<QString, float> COMMENT_SCALE_HINTS = {{"This file uses centimeters as units", 1.0f / 100.0f},
                                              {"This file uses millimeters as units", 1.0f / 1000.0f}};
@@ -49,6 +50,10 @@ OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToke
 
 const QByteArray OBJTokenizer::getLineAsDatum() {
     return _device->readLine().trimmed();
+}
+
+float OBJTokenizer::getFloat() {
+    return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data());
 }
 
 int OBJTokenizer::nextToken() {
@@ -125,7 +130,7 @@ glm::vec3 OBJTokenizer::getVec3() {
 }
 bool OBJTokenizer::getVertex(glm::vec3& vertex, glm::vec3& vertexColor) {
     // Used for vertices which may also have a vertex color (RGB [0,1]) to follow.
-    //	NOTE: Returns true if there is a vertex color.
+    //    NOTE: Returns true if there is a vertex color.
     auto x = getFloat(); // N.B.: getFloat() has side-effect
     auto y = getFloat(); // And order of arguments is different on Windows/Linux.
     auto z = getFloat();
@@ -168,7 +173,7 @@ void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
 }
 
 // OBJFace
-//	NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just
+//    NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just
 //                         pairing it with the vertices vector for consistency.
 bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors) {
     bool ok;
@@ -544,9 +549,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
 
                     fbxMeshParts.append(FBXMeshPart());
                     FBXMeshPart& meshPartNew = fbxMeshParts.last();
-                    meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);					// Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
+                    meshPartNew.quadIndices = QVector<int>(meshPart.quadIndices);                    // Copy over quad indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
                     meshPartNew.quadTrianglesIndices = QVector<int>(meshPart.quadTrianglesIndices); // Copy over quad triangulated indices [NOTE (trent/mittens, 4/3/17): Likely unnecessary since they go unused anyway].
-                    meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);			// Copy over triangle indices.
+                    meshPartNew.triangleIndices = QVector<int>(meshPart.triangleIndices);            // Copy over triangle indices.
 
                     // Do some of the material logic (which previously lived below) now.
                     // All the faces in the same group will have the same name and material.

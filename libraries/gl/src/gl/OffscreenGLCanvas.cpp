@@ -59,7 +59,7 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
 
 bool OffscreenGLCanvas::makeCurrent() {
     bool result = _context->makeCurrent(_offscreenSurface);
-    std::call_once(_reportOnce, [this]{
+    std::call_once(_reportOnce, []{
         qCDebug(glLogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(glLogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
         qCDebug(glLogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));

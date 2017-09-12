@@ -31,26 +31,26 @@ void PickItemsJob::run(const render::RenderContextPointer& renderContext, const 
 }
 
 render::ItemBound PickItemsJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
-	const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
-	const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
-	BoxFace face;
-	glm::vec3 normal;
-	float isectDistance;
-	render::ItemBound nearestItem( render::Item::INVALID_ITEM_ID );
-	const float minDistance = 0.2f;
-	const float maxDistance = 50.f;
+    const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
+    const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
+    BoxFace face;
+    glm::vec3 normal;
+    float isectDistance;
+    render::ItemBound nearestItem( render::Item::INVALID_ITEM_ID );
+    const float minDistance = 0.2f;
+    const float maxDistance = 50.f;
     render::ItemKey itemKey;
 
-	for (const auto& itemBound : inputs) {
-		if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
-			auto& item = renderContext->_scene->getItem(itemBound.id);
+    for (const auto& itemBound : inputs) {
+        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
+            auto& item = renderContext->_scene->getItem(itemBound.id);
             itemKey = item.getKey();
-			if (itemKey.isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance
+            if (itemKey.isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance
                 && (itemKey._flags & _validKeys)!=0 && (itemKey._flags & _excludeKeys)==0) {
-				nearestItem = itemBound;
-				minIsectDistance = isectDistance;
-			}
-		}
-	}
-	return nearestItem;
+                nearestItem = itemBound;
+                minIsectDistance = isectDistance;
+            }
+        }
+    }
+    return nearestItem;
 }

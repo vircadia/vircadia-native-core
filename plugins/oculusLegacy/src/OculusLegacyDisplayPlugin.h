@@ -17,7 +17,7 @@ const float TARGET_RATE_OculusLegacy = 75.0f;
 class GLWindow;
 
 class OculusLegacyDisplayPlugin : public HmdDisplayPlugin {
-	using Parent = HmdDisplayPlugin;
+    using Parent = HmdDisplayPlugin;
 public:
     OculusLegacyDisplayPlugin();
     bool isSupported() const override;

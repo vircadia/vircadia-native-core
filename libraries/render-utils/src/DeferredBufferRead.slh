@@ -90,7 +90,7 @@ DeferredFragment unpackDeferredFragmentNoPositionNoAmbient(vec2 texcoord) {
     vec4 diffuseVal;
 
     DeferredFragment frag;
-    frag.depthVal = -1;
+    frag.depthVal = -1.0;
     normalVal = texture(normalMap, texcoord);
     diffuseVal = texture(albedoMap, texcoord);
 

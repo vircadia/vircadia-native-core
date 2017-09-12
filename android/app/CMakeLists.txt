@@ -1,0 +1,8 @@
+set(TARGET_NAME native-lib)
+setup_hifi_library()
+link_hifi_libraries(shared networking gl gpu gpu-gles render-utils)
+autoscribe_shader_lib(gpu model render render-utils)
+target_opengl()
+target_link_libraries(native-lib android log m)
+target_include_directories(native-lib PRIVATE  "${GVR_ROOT}/libraries/headers")
+target_link_libraries(native-lib "C:/Users/bdavis/Git/hifi/android/libraries/jni/armeabi-v7a/libgvr.so")

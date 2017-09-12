@@ -23,7 +23,7 @@ void main(void) {
     );
     vec4 pos = UNIT_QUAD[gl_VertexID];
 
-    varTexCoord0 = (pos.xy + 1) * 0.5;
+    varTexCoord0 = (pos.xy + 1.0) * 0.5;
 
     gl_Position = pos;
 }

@@ -19,7 +19,7 @@ out vec4 outFragColor;
 void main(void) {
     float var = step(fract(varTexcoord.x * varTexcoord.y * 1.0), 0.5);
 
-    if (varColor.a == 0) {
+    if (varColor.a == 0.0) {
         outFragColor = vec4(mix(vec3(0.0), varColor.xyz, var), mix(0.0, 1.0, var));
         
     } else {

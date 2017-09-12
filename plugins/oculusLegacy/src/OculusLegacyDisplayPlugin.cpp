@@ -181,7 +181,7 @@ bool OculusLegacyDisplayPlugin::internalActivate() {
 }
 
 void OculusLegacyDisplayPlugin::internalDeactivate() {
-	Parent::internalDeactivate();
+    Parent::internalDeactivate();
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();

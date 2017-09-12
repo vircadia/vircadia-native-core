@@ -11,6 +11,10 @@
 
 using namespace gpu;
 
+Frame::Frame() {
+    batches.reserve(16);
+}
+
 Frame::~Frame() {
     if (framebuffer && framebufferRecycler) {
         framebufferRecycler(framebuffer);

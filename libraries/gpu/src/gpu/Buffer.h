@@ -159,6 +159,7 @@ protected:
     friend class gl::GLBuffer;
     friend class gl41::GL41Buffer;
     friend class gl45::GL45Buffer;
+    friend class gles::GLESBuffer;
 };
 
 using BufferUpdates = std::vector<Buffer::Update>;

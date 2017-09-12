@@ -45,8 +45,8 @@ void Query::triggerReturnHandler(uint64_t queryResult, uint64_t batchElapsedTime
 RangeTimer::RangeTimer(const std::string& name) :
     _name(name) {
     for (int i = 0; i < QUERY_QUEUE_SIZE; i++) {
-        _timerQueries.push_back(std::make_shared<gpu::Query>([&, i] (const Query& query) {
-            _tailIndex ++;
+        _timerQueries.push_back(std::make_shared<gpu::Query>([this] (const Query& query) {
+            _tailIndex++;
 
             _movingAverageGPU.addSample(query.getGPUElapsedTime());
             _movingAverageBatch.addSample(query.getBatchElapsedTime());

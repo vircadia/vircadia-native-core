@@ -659,22 +659,22 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const {
-	EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
+    EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
 
-	QVector<QUuid> result;
-	if (_entityTree) {
-		QVector<EntityItemPointer> entities;
-		_entityTree->withReadLock([&] {
-			_entityTree->findEntities(center, radius, entities);
-		});
+    QVector<QUuid> result;
+    if (_entityTree) {
+        QVector<EntityItemPointer> entities;
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
 
-		foreach(EntityItemPointer entity, entities) {
-			if (entity->getType() == type) {
-				result << entity->getEntityItemID();
-			}
-		}
-	}
-	return result;
+        foreach(EntityItemPointer entity, entities) {
+            if (entity->getType() == type) {
+                result << entity->getEntityItemID();
+            }
+        }
+    }
+    return result;
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 

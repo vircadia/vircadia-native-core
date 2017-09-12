@@ -20,7 +20,7 @@ void main(void) {
     float alpha = 1.0 - abs(inColor.a);
     
     // Convert from a linear alpha curve to a sharp peaked one
-	alpha = pow(alpha, 10); 
+	alpha = pow(alpha, 10.0); 
 	
 	// Drop everything where the curve falls off to nearly nothing
     if (alpha <= 0.05) {

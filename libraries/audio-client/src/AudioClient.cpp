@@ -1503,6 +1503,11 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
                 _inputRingBuffer.resizeForFrameSize(numFrameSamples);
 
+#if defined(Q_OS_ANDROID)
+                if (_audioInput) {
+                    connect(_audioInput, SIGNAL(stateChanged(QAudio::State)), this, SLOT(audioInputStateChanged(QAudio::State)));
+                }
+#endif
                 _inputDevice = _audioInput->start();
 
                 if (_inputDevice) {
@@ -1540,6 +1545,31 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
 
     return supportedFormat;
 }
+
+#if defined(Q_OS_ANDROID)
+void AudioClient::audioInputStateChanged(QAudio::State state) {
+    switch (state) {
+        case QAudio::StoppedState:
+            if (!_audioInput) {
+                break;
+            }
+                // Stopped on purpose
+            if (_shouldRestartInputSetup) {
+                Lock lock(_deviceMutex);
+                _inputDevice = _audioInput->start();
+                lock.unlock();
+                if (_inputDevice) {
+                    connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleMicAudioInput()));
+                }
+            }
+            break;
+        case QAudio::ActiveState:
+            break;
+        default:
+            break;
+    }
+}
+#endif
 
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();

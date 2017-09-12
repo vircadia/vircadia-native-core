@@ -162,5 +162,6 @@ macro(SET_PACKAGING_PARAMETERS)
   # create a header file our targets can use to find out the application version
   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/includes")
   configure_file("${HF_CMAKE_DIR}/templates/BuildInfo.h.in" "${CMAKE_BINARY_DIR}/includes/BuildInfo.h")
+  include_directories("${CMAKE_BINARY_DIR}/includes")
 
 endmacro(SET_PACKAGING_PARAMETERS)

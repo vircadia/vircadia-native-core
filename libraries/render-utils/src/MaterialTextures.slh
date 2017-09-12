@@ -66,7 +66,7 @@ vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
     vec2 t = 2.0 * (texture(normalMap, uv).rg - vec2(0.5, 0.5));
     vec2 t2 = t*t;
-    return vec3(t.x, sqrt(1 - t2.x - t2.y), t.y);
+    return vec3(t.x, sqrt(1.0 - t2.x - t2.y), t.y);
 }
 <@endif@>
 
@@ -163,7 +163,7 @@ vec3 fetchLightmapMap(vec2 uv) {
     vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
     // attenuate the normal map divergence from the mesh normal based on distance
     // THe attenuation range [20,100] meters from the eye is arbitrary for now
-    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(20, 100, (-<$fragPos$>).z));
+    vec3 localNormal = mix(<$fetchedNormal$>, vec3(0.0, 1.0, 0.0), smoothstep(20.0, 100.0, (-<$fragPos$>).z));
     <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedNormal * localNormal.y + normalizedBitangent * localNormal.z);
 }
 <@endfunc@>

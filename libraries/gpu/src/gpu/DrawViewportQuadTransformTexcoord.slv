@@ -28,7 +28,7 @@ void main(void) {
     vec4 pos = UNIT_QUAD[gl_VertexID];
 
     // standard transform but applied to the Texcoord
-    vec4 tc = vec4((pos.xy + 1) * 0.5, pos.zw);
+    vec4 tc = vec4((pos.xy + 1.0) * 0.5, pos.zw);
 
     TransformObject obj = getTransformObject();
     <$transformModelToWorldPos(obj, tc, tc)$>

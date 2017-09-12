@@ -20,8 +20,8 @@ namespace gpu {
         friend class Context;
 
     public:
+        Frame();
         virtual ~Frame();
-
         using Batches = std::vector<Batch>;
         using FramebufferRecycler = std::function<void(const FramebufferPointer&)>;
         using OverlayRecycler = std::function<void(const TexturePointer&)>;

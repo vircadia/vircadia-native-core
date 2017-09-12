@@ -22,7 +22,7 @@ public:
     glm::vec3 getVec3();
     bool getVertex(glm::vec3& vertex, glm::vec3& vertexColor);
     glm::vec2 getVec2();
-    float getFloat() { return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data()); }
+    float getFloat();
 
 private:
     QIODevice* _device;

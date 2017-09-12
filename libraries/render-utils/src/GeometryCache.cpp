@@ -18,9 +18,11 @@
 #include <QtCore/QFileInfo>
 #include <QtNetwork/QNetworkReply>
 
+#include <shared/Shapes.h>
+#include <shared/PlatformHacks.h>
+
 #include <FSTReader.h>
 #include <NumericalConstants.h>
-#include <shared/Shapes.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"

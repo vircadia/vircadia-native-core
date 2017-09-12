@@ -26,7 +26,6 @@ protected:
     void updatePresentPose() override;
     void hmdPresent() override {}
     bool isHmdMounted() const override { return true; }
-    void customizeContext() override;
     bool internalActivate() override;
 private:
     static const QString NAME;

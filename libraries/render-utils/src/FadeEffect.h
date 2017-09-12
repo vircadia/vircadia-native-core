@@ -47,8 +47,8 @@ private:
     glm::vec3 _lastBaseOffset { 0.f, 0.f, 0.f };
     glm::vec3 _lastBaseInvSize { 1.f, 1.f, 1.f };
 
-	explicit FadeEffect();
-	virtual ~FadeEffect() { }
+    explicit FadeEffect();
+    virtual ~FadeEffect() { }
 
 };
 #endif // hifi_render_utils_FadeEffect_h

@@ -11,7 +11,8 @@
 
 #include "Image.h"
 
-#include <nvtt/nvtt.h>
+#include <QtCore/QtGlobal>
+
 
 #include <QUrl>
 #include <QImage>
@@ -28,7 +29,13 @@
 
 using namespace gpu;
 
+#if defined(Q_OS_ANDROID)
+#define CPU_MIPMAPS 0
+#else
 #define CPU_MIPMAPS 1
+#include <nvtt/nvtt.h>
+#endif
+
 
 static std::mutex settingsMutex;
 static Setting::Handle<bool> compressColorTextures("hifi.graphics.compressColorTextures", false);
@@ -292,6 +299,7 @@ QImage processSourceImage(const QImage& srcImage, bool cubemap) {
     return srcImage;
 }
 
+#if defined(NVTT_API)
 struct MyOutputHandler : public nvtt::OutputHandler {
     MyOutputHandler(gpu::Texture* texture, int face) : _texture(texture), _face(face) {}
 
@@ -330,6 +338,7 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
         qCWarning(imagelogging) << "Texture compression error:" << nvtt::errorString(e);
     }
 };
+#endif
 
 void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
 #if CPU_MIPMAPS
@@ -450,7 +459,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     nvtt::Compressor compressor;
     compressor.process(inputOptions, compressionOptions, outputOptions);
 #else
-    texture->autoGenerateMips(-1);
+    texture->setAutoGenerateMips(true);
 #endif
 }
 
