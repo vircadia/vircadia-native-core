@@ -17,12 +17,12 @@
 var DEG_TO_RAD = Math.PI / 180;
 // If angle is closer to 0 from 25 degrees, then "clap" can happen;
 var COS_OF_TOLERANCE = Math.cos(25 * DEG_TO_RAD);
-
+var DISTANCE = 0.3;
 var CONTROL_MAP_PACKAGE = "com.highfidelity.avatar.clap.active";
 
 var CLAP_MENU = "Clap";
 var ENABLE_PARTICLE_MENU = "Enable Clap Particles";
-var ENABLE_DEBUG_MENU = "Enable Clap Debug";
+var ENABLE_DEBUG_MENU = "Enable Claping Helper";
 
 var sounds = [
     "clap1.wav",
@@ -34,9 +34,9 @@ var sounds = [
 ];
 
 
-var ClapParticle = Script.require(Script.resolvePath("../entities/ClapParticle.json?V2"));
-var ClapAnimation = Script.require(Script.resolvePath("../animations/ClapAnimation.json?V2"));
-var ClapDebugger = Script.require(Script.resolvePath("ClapDebugger.js?V2"));
+var ClapParticle = Script.require(Script.resolvePath("../entities/ClapParticle.json?V3"));
+var ClapAnimation = Script.require(Script.resolvePath("../animations/ClapAnimation.json?V3"));
+var ClapDebugger = Script.require(Script.resolvePath("ClapDebugger.js?V3"));
 
 var settingDebug = false;
 var settingParticlesOn = true;
@@ -190,7 +190,7 @@ function update(dt) {
     var angularVelocity = Vec3.length(Vec3.subtract(leftHand.angularVelocity, rightHand.angularVelocity));
     var velocity = Vec3.length(Vec3.subtract(leftHand.velocity, rightHand.velocity));
 
-    if (matchTolerance && distance < 0.3 && !animClap) {
+    if (matchTolerance && distance < DISTANCE && !animClap) {
         if (settingDebug) {
             ClapDebugger.debugClapLine(leftHandPositionOffset, rightHandPositionOffset, true);
         }
@@ -202,7 +202,7 @@ function update(dt) {
             Script.clearTimeout(animThrottle);
             animThrottle = false;
         }
-    } else if (animClap && distance > 0.3) {
+    } else if (animClap && distance > DISTANCE) {
         if (settingDebug) {
             ClapDebugger.debugClapLine(leftHandPositionOffset, rightHandPositionOffset, false);
         }
@@ -213,14 +213,14 @@ function update(dt) {
         }, 500);
     }
 
-    if (distance < 0.22 && matchTolerance && !clapOn) {
+    if (distance < DISTANCE && matchTolerance && !clapOn) {
         clapOn = true;
 
         var midClap = Vec3.mix(rightHandPositionOffset, leftHandPositionOffset, 0.5);
         var volume = velocity / 2 + angularVelocity / 5;
 
         clap(volume, midClap, Quat.lookAtSimple(rightHandPositionOffset, leftHandPositionOffset));
-    } else if (distance > 0.22 && !matchTolerance) {
+    } else if (distance > DISTANCE && !matchTolerance) {
         clapOn = false;
     }
 }
@@ -240,13 +240,20 @@ module.exports = {
                 isChecked: settingParticlesOn
             });
         }
-        if (!Menu.menuItemExists(CLAP_MENU, ENABLE_DEBUG_MENU)) {
-            Menu.addMenuItem({
-                menuName: CLAP_MENU,
-                menuItemName: ENABLE_DEBUG_MENU,
-                isCheckable: true,
-                isChecked: settingDebug
-            });
+        if (HMD.active) {
+            if (!Menu.menuItemExists(CLAP_MENU, ENABLE_DEBUG_MENU)) {
+                Menu.addMenuItem({
+                    menuName: CLAP_MENU,
+                    menuItemName: ENABLE_DEBUG_MENU,
+                    isCheckable: true,
+                    isChecked: settingDebug
+                });
+            }
+        } else {
+            ClapDebugger.disableDebug();
+            if (Menu.menuItemExists(CLAP_MENU, ENABLE_DEBUG_MENU)) {
+                Menu.removeMenuItem(CLAP_MENU, ENABLE_DEBUG_MENU);
+            }
         }
 
 
@@ -312,7 +319,7 @@ module.exports = {
         try {
             Script.update.disconnect(update);
         } catch (e) {
-            print("Script.update connection did not exist on disconnection. Skipping")
+            print("Script.update connection did not exist on disconnection. Skipping");
         }
     }
 };

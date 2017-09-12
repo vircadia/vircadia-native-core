@@ -42,7 +42,6 @@ module.exports = {
         Overlays.deleteOverlay(DEBUG_LEFT_HAND);
         Overlays.deleteOverlay(DEBUG_CLAP_LEFT);
         Overlays.deleteOverlay(DEBUG_CLAP_RIGHT);
-        Overlays.deleteOverlay(DEBUG_CLAP);
         Overlays.deleteOverlay(DEBUG_CLAP_DIRECTION);
     },
 
@@ -141,15 +140,6 @@ module.exports = {
             }
         });
 
-        DEBUG_CLAP = Overlays.addOverlay("sphere", {
-            position: MyAvatar.position,
-            color: DEBUG_VOLUME,
-            scale: {
-                x: 0.05,
-                y: 0.05,
-                z: 0.05
-            }
-        });
 
         DEBUG_CLAP_DIRECTION = Overlays.addOverlay("line3d", {
             color: DEBUG_VOLUME,
