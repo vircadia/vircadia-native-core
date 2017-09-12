@@ -266,6 +266,18 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _transferTaskPool(this),
     _bakingTaskPool(this)
 {
+    // store the current state of image compression so we can reset it when this assignment is complete
+    _wasColorTextureCompressionEnabled = image::isColorTexturesCompressionEnabled();
+    _wasGrayscaleTextureCompressionEnabled = image::isGrayscaleTexturesCompressionEnabled();
+    _wasNormalTextureCompressionEnabled = image::isNormalTexturesCompressionEnabled();
+    _wasCubeTextureCompressionEnabled = image::isCubeTexturesCompressionEnabled();
+
+    // enable compression in image library
+    image::setColorTexturesCompressionEnabled(true);
+    image::setGrayscaleTexturesCompressionEnabled(true);
+    image::setNormalTexturesCompressionEnabled(true);
+    image::setCubeTexturesCompressionEnabled(true);
+
     BAKEABLE_TEXTURE_EXTENSIONS = TextureBaker::getSupportedFormats();
     qDebug() << "Supported baking texture formats:" << BAKEABLE_MODEL_EXTENSIONS;
 
@@ -294,6 +306,14 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     timer->setTimerType(Qt::CoarseTimer);
     timer->start();
 #endif
+}
+
+void AssetServer::aboutToFinish() {
+    // re-set defaults in image library
+    image::setColorTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
+    image::setGrayscaleTexturesCompressionEnabled(_wasGrayscaleTextureCompressionEnabled);
+    image::setNormalTexturesCompressionEnabled(_wasNormalTextureCompressionEnabled);
+    image::setCubeTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
 }
 
 void AssetServer::run() {
@@ -1086,7 +1106,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
         _fileMappings.erase(it);
 
         // in case we're overwriting, keep the current destination mapping for potential rollback
-        auto oldDestinationMapping = _fileMappings.find(newPath)->second;
+        auto oldDestinationIt = _fileMappings.find(newPath);
 
         if (!oldSourceMapping.isEmpty()) {
             _fileMappings[newPath] = oldSourceMapping;
@@ -1100,9 +1120,9 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
                 // we couldn't persist the renamed mapping, rollback and return failure
                 _fileMappings[oldPath] = oldSourceMapping;
 
-                if (!oldDestinationMapping.isNull()) {
+                if (oldDestinationIt != _fileMappings.end()) {
                     // put back the overwritten mapping for the destination path
-                    _fileMappings[newPath] = oldDestinationMapping;
+                    _fileMappings[newPath] = oldDestinationIt->second;
                 } else {
                     // clear the new mapping
                     _fileMappings.erase(_fileMappings.find(newPath));
@@ -1322,7 +1342,8 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
 
             auto bakedMapping = getBakeMapping(hash, bakedFilename);
 
-            bool currentlyDisabled = (_fileMappings.value(bakedMapping) == hash);
+            auto it = _fileMappings.find(bakedMapping);
+            bool currentlyDisabled = (it != _fileMappings.end() && it->second == hash);
 
             if (enabled && currentlyDisabled) {
                 QStringList bakedMappings{ bakedMapping };

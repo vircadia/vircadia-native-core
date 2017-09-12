@@ -44,7 +44,7 @@ Oven::Oven(int argc, char* argv[]) :
     parser.addHelpOption();
     parser.process(*this);
 
-    // enable compression in image library, except for cube maps
+    // enable compression in image library
     image::setColorTexturesCompressionEnabled(true);
     image::setGrayscaleTexturesCompressionEnabled(true);
     image::setNormalTexturesCompressionEnabled(true);

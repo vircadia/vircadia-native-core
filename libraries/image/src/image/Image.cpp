@@ -22,7 +22,6 @@
 #include <Profile.h>
 #include <StatTracker.h>
 #include <GLMHelpers.h>
-#include <SettingHandle.h>
 
 #include "ImageLogging.h"
 
@@ -30,17 +29,16 @@ using namespace gpu;
 
 #define CPU_MIPMAPS 1
 
-static std::mutex settingsMutex;
-static Setting::Handle<bool> compressColorTextures("hifi.graphics.compressColorTextures", false);
-static Setting::Handle<bool> compressNormalTextures("hifi.graphics.compressNormalTextures", false);
-static Setting::Handle<bool> compressGrayscaleTextures("hifi.graphics.compressGrayscaleTextures", false);
-static Setting::Handle<bool> compressCubeTextures("hifi.graphics.compressCubeTextures", false);
-
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
 bool DEV_DECIMATE_TEXTURES = false;
 std::atomic<size_t> DECIMATED_TEXTURE_COUNT{ 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
+
+static std::atomic<bool> compressColorTextures { false };
+static std::atomic<bool> compressNormalTextures { false };
+static std::atomic<bool> compressGrayscaleTextures { false };
+static std::atomic<bool> compressCubeTextures { false };
 
 bool needsSparseRectification(const glm::uvec2& size) {
     // Don't attempt to rectify small textures (textures less than the sparse page size in any dimension)
@@ -150,8 +148,7 @@ gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(co
 
 bool isColorTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    return compressColorTextures.get();
+    return compressColorTextures.load();
 #else
     return false;
 #endif
@@ -159,8 +156,7 @@ bool isColorTexturesCompressionEnabled() {
 
 bool isNormalTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    return compressNormalTextures.get();
+    return compressNormalTextures.load();
 #else
     return false;
 #endif
@@ -168,8 +164,7 @@ bool isNormalTexturesCompressionEnabled() {
 
 bool isGrayscaleTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    return compressGrayscaleTextures.get();
+    return compressGrayscaleTextures.load();
 #else
     return false;
 #endif
@@ -177,31 +172,26 @@ bool isGrayscaleTexturesCompressionEnabled() {
 
 bool isCubeTexturesCompressionEnabled() {
 #if CPU_MIPMAPS
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    return compressCubeTextures.get();
+    return compressCubeTextures.load();
 #else
     return false;
 #endif
 }
 
 void setColorTexturesCompressionEnabled(bool enabled) {
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    compressColorTextures.set(enabled);
+    compressColorTextures.store(enabled);
 }
 
 void setNormalTexturesCompressionEnabled(bool enabled) {
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    compressNormalTextures.set(enabled);
+    compressNormalTextures.store(enabled);
 }
 
 void setGrayscaleTexturesCompressionEnabled(bool enabled) {
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    compressGrayscaleTextures.set(enabled);
+    compressGrayscaleTextures.store(enabled);
 }
 
 void setCubeTexturesCompressionEnabled(bool enabled) {
-    std::lock_guard<std::mutex> guard(settingsMutex);
-    compressCubeTextures.set(enabled);
+    compressCubeTextures.store(enabled);
 }
 
 
