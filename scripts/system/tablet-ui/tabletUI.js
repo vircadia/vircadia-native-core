@@ -120,7 +120,7 @@
             if (debugTablet) {
                 print("TABLET in showTabletUI, already rezzed");
             }
-            var tabletProperties = {};
+            var tabletProperties = { dimensions: Overlays.getProperty(HMD.tabletID, "dimensions") };
             UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
             tabletProperties.visible = true;
             Overlays.editOverlay(HMD.tabletID, tabletProperties);
