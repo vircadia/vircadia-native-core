@@ -368,7 +368,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
                     std::array<float, 3> positionValue;
                     positionAttribute->ConvertValue<float, 3>(mappedIndex, &positionValue[0]);
-                    data.extracted.mesh.vertices.append({ positionValue[0], positionValue[1], positionValue[2] });
+                    data.extracted.mesh.vertices.push_back({ positionValue[0], positionValue[1], positionValue[2] });
                 }
 
                 if (normalAttribute) {
@@ -377,7 +377,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
                     std::array<float, 3> normalValue;
                     normalAttribute->ConvertValue<float, 3>(mappedIndex, &normalValue[0]);
-                    data.extracted.mesh.normals.append({ normalValue[0], normalValue[1], normalValue[2] });
+                    data.extracted.mesh.normals.push_back({ normalValue[0], normalValue[1], normalValue[2] });
                 }
 
                 if (texCoordAttribute) {
@@ -386,7 +386,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
                     std::array<float, 2> texCoordValue;
                     texCoordAttribute->ConvertValue<float, 2>(mappedIndex, &texCoordValue[0]);
-                    data.extracted.mesh.texCoords.append({ texCoordValue[0], texCoordValue[1] });
+                    data.extracted.mesh.texCoords.push_back({ texCoordValue[0], texCoordValue[1] });
                 }
 
                 if (extraTexCoordAttribute) {
@@ -395,7 +395,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
                     std::array<float, 2> texCoordValue;
                     extraTexCoordAttribute->ConvertValue<float, 2>(mappedIndex, &texCoordValue[0]);
-                    data.extracted.mesh.texCoords1.append({ texCoordValue[0], texCoordValue[1] });
+                    data.extracted.mesh.texCoords1.push_back({ texCoordValue[0], texCoordValue[1] });
                 }
 
                 if (colorAttribute) {
@@ -405,7 +405,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                     std::array<float, 3> colorValue;
 
                     colorAttribute->ConvertValue<float, 3>(mappedIndex, &colorValue[0]);
-                    data.extracted.mesh.colors.append({ colorValue[0], colorValue[1], colorValue[2] });
+                    data.extracted.mesh.colors.push_back({ colorValue[0], colorValue[1], colorValue[2] });
                 }
 
                 int64_t matTexValue[2] = { 0, 0 };
