@@ -297,15 +297,16 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                     int64_t numTriangles { 0 };
                     for (auto& part : mesh.parts) {
-                        Q_ASSERT(part.quadTrianglesIndices.size() % 3 == 0);
-                        Q_ASSERT(part.triangleIndices.size() % 3 == 0);
-
+                        if ((part.quadTrianglesIndices.size() % 3) != 0 || (part.triangleIndices.size() % 3) != 0) {
+                            handleWarning("Found a mesh part with invalid index data, skipping");
+                            continue;
+                        }
                         numTriangles += part.quadTrianglesIndices.size() / 3;
                         numTriangles += part.triangleIndices.size() / 3;
                     }
 
                     if (numTriangles == 0) {
-                        qDebug() << "Skipping compression of mesh because no triangles were found";
+                        handleWarning("Skipping compression of mesh because no triangles were found");
                         continue;
                     }
 
@@ -317,7 +318,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     bool hasColors { mesh.colors.size() > 0 };
                     bool hasTexCoords { mesh.texCoords.size() > 0 };
                     bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
-                    bool hasPerFaceMaterials { mesh.parts.size() > 0 };
+                    bool hasPerFaceMaterials { mesh.parts.size() > 1 };
 
                     int normalsAttributeID { -1 };
                     int colorsAttributeID { -1 };
@@ -403,7 +404,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     auto dracoMesh = meshBuilder.Finalize();
 
                     if (!dracoMesh) {
-                        qWarning() << "Failed to finalize the baking of a draco Geometry node";
+                        handleWarning("Failed to finalize the baking of a draco Geometry node");
                         continue;
                     }
 
