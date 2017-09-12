@@ -15,7 +15,7 @@ var CONTOLLER_SCRIPTS = [
     "handControllerPointer.js",
     "grab.js",
     "toggleAdvancedMovementForHandControllers.js",
-    "ControllerDispatcher.js",
+    "controllerDispatcher.js",
     "controllerModules/nearParentGrabEntity.js",
     "controllerModules/nearParentGrabOverlay.js",
     "controllerModules/nearActionGrabEntity.js",
