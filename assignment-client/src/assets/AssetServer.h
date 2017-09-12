@@ -19,7 +19,6 @@
 #include <ThreadedAssignment.h>
 
 #include "AssetUtils.h"
-#include "AutoBaker.h"
 #include "ReceivedMessage.h"
 
 
