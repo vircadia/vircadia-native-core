@@ -421,15 +421,15 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 QPair<int, int> materialTexture(matTexValue[0], matTexValue[1]);
 
                 // grab or setup the FBXMeshPart for the part this face belongs to
-                int& partIndex = materialTextureParts[materialTexture];
-                if (partIndex == 0) {
+                int& partIndexPlusOne = materialTextureParts[materialTexture];
+                if (partIndexPlusOne == 0) {
                     data.extracted.partMaterialTextures.append(materialTexture);
                     data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
-                    partIndex = data.extracted.mesh.parts.size() - 1;
+                    partIndexPlusOne = data.extracted.mesh.parts.size();
                 }
 
                 // give the mesh part this index
-                FBXMeshPart& part = data.extracted.mesh.parts[partIndex];
+                FBXMeshPart& part = data.extracted.mesh.parts[partIndexPlusOne - 1];
                 part.triangleIndices.append(i);
 
                 data.extracted.newIndices.insert(i, i);
