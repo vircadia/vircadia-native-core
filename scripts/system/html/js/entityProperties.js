@@ -611,6 +611,7 @@ function loaded() {
         var elModelAnimationLastFrame = document.getElementById("property-model-animation-last-frame");
         var elModelAnimationLoop = document.getElementById("property-model-animation-loop");
         var elModelAnimationHold = document.getElementById("property-model-animation-hold");
+        var elModelAnimationAllowTranslation = document.getElementById("property-model-animation-allow-translation");
         var elModelTextures = document.getElementById("property-model-textures");
         var elModelOriginalTextures = document.getElementById("property-model-original-textures");
 
@@ -926,6 +927,7 @@ function loaded() {
                             elModelAnimationLastFrame.value = properties.animation.lastFrame;
                             elModelAnimationLoop.checked = properties.animation.loop;
                             elModelAnimationHold.checked = properties.animation.hold;
+                            elModelAnimationAllowTranslation.checked = properties.animation.allowTranslation;
                             elModelTextures.value = properties.textures;
                             setTextareaScrolling(elModelTextures);
                             elModelOriginalTextures.value = properties.originalTextures;
@@ -1276,6 +1278,7 @@ function loaded() {
         elModelAnimationLastFrame.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('animation', 'lastFrame'));
         elModelAnimationLoop.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'loop'));
         elModelAnimationHold.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'hold'));
+        elModelAnimationAllowTranslation.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('animation', 'allowTranslation'));
 
         elModelTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
 

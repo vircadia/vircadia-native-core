@@ -30,14 +30,11 @@ TextEntityRenderer::TextEntityRenderer(const EntityItemPointer& entity) :
 
 }
 
-
-void TextEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
+TextEntityRenderer::~TextEntityRenderer() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (_geometryID && geometryCache) {
         geometryCache->releaseID(_geometryID);
     }
-    delete _textRenderer;
-    _textRenderer = nullptr;
 }
 
 bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {

@@ -8,6 +8,7 @@ Item {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
+    property string usernameShort: "Unknown user"
     property var rootMenu;
     property var openModal: null;
     property var openMessage: null;
@@ -157,6 +158,11 @@ Item {
 
     function setUsername(newUsername) {
         username = newUsername;
+        usernameShort = newUsername.substring(0, 8);
+
+        if (newUsername.length > 8) {
+            usernameShort = usernameShort + "..."
+        }
     }
 
     ListModel {
