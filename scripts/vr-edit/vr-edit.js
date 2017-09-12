@@ -83,6 +83,7 @@
     Script.include("./modules/hand.js");
     Script.include("./modules/handles.js");
     Script.include("./modules/highlights.js");
+    Script.include("./modules/history.js");
     Script.include("./modules/laser.js");
     Script.include("./modules/selection.js");
     Script.include("./modules/toolIcon.js");
@@ -1532,6 +1533,23 @@
                 editors[LEFT_HAND].enableAutoGrab();
             } else {
                 editors[RIGHT_HAND].enableAutoGrab();
+            }
+            break;
+
+        case "undoAction":
+            if (History.hasUndo()) {
+                Feedback.play(dominantHand, Feedback.UNDO_ACTION)
+                History.undo();
+            } else {
+                Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
+            }
+            break;
+        case "redoAction":
+            if (History.hasRedo()) {
+                Feedback.play(dominantHand, Feedback.REDO_ACTION)
+                History.redo();
+            } else {
+                Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
             }
             break;
 
