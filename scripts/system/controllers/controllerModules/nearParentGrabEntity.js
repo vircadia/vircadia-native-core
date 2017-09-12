@@ -10,7 +10,7 @@
    getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE,
    makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
-   findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH, HAPTIC_STYLUS_DURATION
+   findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -195,7 +195,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
         this.run = function (controllerData, deltaTime) {
             if (this.grabbing) {
-                if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
+                if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] <  TRIGGER_OFF_VALUE) {
                     this.endNearParentingGrabEntity();
                     this.hapticTargetID = null;
                     return makeRunningValues(false, [], []);
@@ -217,7 +217,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 if (!readiness.active) {
                     return readiness;
                 }
-                if (controllerData.triggerClicks[this.hand] === 1 || controllerData.secondaryValues[this.hand] === 1) {
+                if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
                     // switch to grab
                     var targetProps = this.getTargetProps(controllerData);
                     var targetCloneable = entityIsCloneable(targetProps);

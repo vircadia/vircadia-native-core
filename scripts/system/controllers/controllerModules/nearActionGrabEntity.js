@@ -10,7 +10,7 @@
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
    TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
-   HAPTIC_PULSE_STRENGTH, HAPTIC_STYLUS_DURATION
+   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -63,7 +63,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             var grabbableData = getGrabbableData(targetProps);
             this.ignoreIK = grabbableData.ignoreIK;
-            this.kinematicGrab = grabbableData.kinematicGrab;
+            this.kinematicGrab = grabbableData.kinematic;
 
             var handRotation;
             var handPosition;
@@ -192,7 +192,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
         this.run = function (controllerData) {
             if (this.actionID) {
-                if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
+                if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                     this.endNearGrabAction();
                     this.hapticTargetID = null;
                     return makeRunningValues(false, [], []);
@@ -211,7 +211,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
                 var targetProps = this.getTargetProps(controllerData);
                 if (targetProps) {
-                    if (controllerData.triggerClicks[this.hand] === 1 || controllerData.secondaryValues[this.hand] === 1) {
+                    if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
                         // switch to grabbing
                         var targetCloneable = entityIsCloneable(targetProps);
                         if (targetCloneable) {

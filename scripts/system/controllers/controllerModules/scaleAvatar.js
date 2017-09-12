@@ -12,10 +12,9 @@
    setGrabCommunications, Menu, HMD, isInEditMode, AvatarList */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
-//Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 (function () {
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
-    var BUMPER_ON_VALUE = 0.5;
+
     function ScaleAvatar(hand) {
         this.hand = hand;
         this.scalingStartAvatarScale = 0;
@@ -38,7 +37,7 @@
         };
 
         this.triggersPressed = function(controllerData) {
-            if (controllerData.triggerClicks[this.hand] && controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
+            if (controllerData.triggerClicks[this.hand] && controllerData.secondaryValues[this.hand] > dispatcherUtils.BUMPER_ON_VALUE) {
                 return true;
             }
             return false;

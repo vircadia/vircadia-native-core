@@ -66,6 +66,7 @@ DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
 
 TRIGGER_OFF_VALUE = 0.1;
 TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; // Squeezed just enough to activate search or near grab
+BUMPER_ON_VALUE = 0.5;
 
 PICK_MAX_DISTANCE = 500; // max length of pick-ray
 DEFAULT_SEARCH_SPHERE_DISTANCE = 1000; // how far from camera to search intersection?
@@ -157,8 +158,8 @@ getGrabbableData = function (props) {
     if (!grabbableData.hasOwnProperty("ignoreIK")) {
         grabbableData.ignoreIK = true;
     }
-    if (!grabbableData.hasOwnProperty("kinematicGrab")) {
-        grabbableData.kinematicGrab = true;
+    if (!grabbableData.hasOwnProperty("kinematic")) {
+        grabbableData.kinematic = true;
     }
     if (!grabbableData.hasOwnProperty("wantsTrigger")) {
         grabbableData.wantsTrigger = false;
@@ -315,6 +316,7 @@ if (typeof module !== 'undefined') {
         disableDispatcherModule: disableDispatcherModule,
         makeRunningValues: makeRunningValues,
         LEFT_HAND: LEFT_HAND,
-        RIGHT_HAND: RIGHT_HAND
+        RIGHT_HAND: RIGHT_HAND,
+        BUMPER_ON_VALUE: BUMPER_ON_VALUE
     };
 }
