@@ -115,7 +115,11 @@ History = (function () {
         if (undoPosition > -1) {
             undoData = history[undoPosition].undoData;
 
-            // TODO
+            if (undoData.setProperties) {
+                for (i = 0, length = undoData.setProperties.length; i < length; i += 1) {
+                    Entities.editEntity(undoData.setProperties[i].entityID, undoData.setProperties[i].properties);
+                }
+            }
 
             if (undoData.createEntities) {
                 for (i = 0, length = undoData.createEntities.length; i < length; i += 1) {
@@ -144,7 +148,11 @@ History = (function () {
         if (undoPosition < history.length - 1) {
             redoData = history[undoPosition + 1].redoData;
 
-            // TODO
+            if (redoData.setProperties) {
+                for (i = 0, length = redoData.setProperties.length; i < length; i += 1) {
+                    Entities.editEntity(redoData.setProperties[i].entityID, redoData.setProperties[i].properties);
+                }
+            }
 
             if (redoData.createEntities) {
                 for (i = 0, length = redoData.createEntities.length; i < length; i += 1) {

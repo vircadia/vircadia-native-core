@@ -424,25 +424,36 @@ Selection = function (side) {
         // Entities without a color property simply ignore the edit.
         var properties,
             isOK = false,
+            undoData = [],
+            redoData = [],
             i,
             length;
 
         if (isApplyToAll) {
             for (i = 0, length = selection.length; i < length; i += 1) {
-                properties = Entities.getEntityProperties(selection[i].id, "color");
+                properties = Entities.getEntityProperties(selection[i].id, ["type", "color"]);
                 if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) !== -1) {
                     Entities.editEntity(selection[i].id, {
                         color: color
                     });
+                    undoData.push({ entityID: intersectedEntityID, properties: { color: properties.color } });
+                    redoData.push({ entityID: intersectedEntityID, properties: { color: color } });
                     isOK = true;
                 }
             }
+            if (undoData.length > 0) {
+                History.push(undoData, redoData);
+            }
         } else {
-            properties = Entities.getEntityProperties(intersectedEntityID, "type");
+            properties = Entities.getEntityProperties(intersectedEntityID, ["type", "color"]);
             if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) !== -1) {
                 Entities.editEntity(intersectedEntityID, {
                     color: color
                 });
+                History.push(
+                    { setProperties: [{ entityID: intersectedEntityID, properties: { color: properties.color } }] },
+                    { setProperties: [{ entityID: intersectedEntityID, properties: { color: color } }] }
+                );
                 isOK = true;
             }
         }
