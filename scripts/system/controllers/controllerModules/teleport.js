@@ -170,6 +170,11 @@ function Teleporter(hand) {
     this.currentTarget = TARGET.INVALID;
     this.currentResult = null;
 
+    this.getOtherModule = function() {
+        var otherModule = this.hand === RIGHT_HAND ? leftTeleporter : rightTeleporter;
+        return otherModule;
+    };
+
     this.teleportRayHandVisible = LaserPointers.createLaserPointer({
         joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
         filter: RayPick.PICK_ENTITIES,
@@ -231,15 +236,32 @@ function Teleporter(hand) {
         [],
         100);
 
+    this.enterTeleport = function() {
+        if (coolInTimeout !== null) {
+            Script.clearTimeout(coolInTimeout);
+        }
+
+        this.state = TELEPORTER_STATES.COOL_IN;
+        coolInTimeout = Script.setTimeout(function() {
+            if (_this.state === TELEPORTER_STATES.COOL_IN) {
+                _this.state = TELEPORTER_STATES.TARGETTING;
+            }
+        }, COOL_IN_DURATION);
+    };
+
+    
     this.isReady = function(controllerData, deltaTime) {
-        if (_this.buttonValue !== 0) {            
+        var otherModule = this.getOtherModule();
+        if (_this.buttonValue !== 0 && !otherModule.active) {
+            this.active = true;
+            this.enterTeleport();
             return makeRunningValues(true, [], []);
         }
         return makeRunningValues(false, [], []);
     };
     
     this.run = function(controllerData, deltaTime) {
-        _this.state = TELEPORTER_STATES.TARGETTING;
+        //_this.state = TELEPORTER_STATES.TARGETTING;
 
         // Get current hand pose information to see if the pose is valid
         var pose = Controller.getPoseValue(handInfo[(_this.hand === RIGHT_HAND) ? 'right' : 'left'].controllerInput);
@@ -306,7 +328,7 @@ function Teleporter(hand) {
             return makeRunningValues(true, [], []);
         }
         
-        if (target === TARGET.NONE || target === TARGET.INVALID) {
+        if (target === TARGET.NONE || target === TARGET.INVALID || this.state === TELEPORTER_STATES.COOL_IN) {
             // Do nothing
         } else if (target === TARGET.SEAT) {
             Entities.callEntityMethod(result.objectID, 'sit');
@@ -319,6 +341,7 @@ function Teleporter(hand) {
         }
 
         this.disableLasers();
+        this.active = false;
         return makeRunningValues(false, [], []);
     };
 

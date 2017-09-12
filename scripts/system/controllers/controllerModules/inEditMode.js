@@ -209,6 +209,15 @@ Script.include("/~/system/libraries/utils.js");
                     return this.exitModule();
                 }
             }
+
+            var teleport = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightTeleporter" : "LeftTeleporter");
+            if (teleport) {
+                var teleportReady = teleport.isReady(controllerData);
+                if (teleportReady.active) {
+                    return this.exitModule();
+                }
+            }
+
             this.processControllerTriggers(controllerData);
             this.updateLaserPointer(controllerData);
             this.sendPickData(controllerData);
@@ -251,4 +260,6 @@ Script.include("/~/system/libraries/utils.js");
         disableDispatcherModule("LeftHandInEditMode");
         disableDispatcherModule("RightHandInEditMode");
     };
+
+    Script.scriptEnding.connect(this.cleanup);
 }());
