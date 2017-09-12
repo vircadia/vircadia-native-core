@@ -29,6 +29,8 @@ Selection = function (side) {
         scaleOrientation,
         scaleRootOffset,
         scaleRootOrientation,
+        startPosition,
+        startOrientation,
         ENTITY_TYPE = "entity",
         ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine", "PolyVox"],
         ENTITY_TYPES_2D = ["Text", "Web"];
@@ -227,6 +229,10 @@ Selection = function (side) {
     function startEditing() {
         var i;
 
+        // Remember start properties for history entry.
+        startPosition = selection[0].position;
+        startOrientation = selection[0].rotation;
+
         // Disable entity set's physics.
         //for (i = 0, count = selection.length; i < count; i += 1) {
         for (i = selection.length - 1; i >= 0; i -= 1) {
@@ -253,6 +259,20 @@ Selection = function (side) {
                 collisionless: selection[i].collisionless
             });
         }
+
+        // Add history entry.
+        History.push(
+            {
+                setProperties: [
+                    { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
+                ]
+            },
+            {
+                setProperties: [
+                    { entityID: rootEntityID, properties: { position: rootPosition, rotation: rootOrientation } }
+                ]
+            }
+        );
 
         // Kick off physics if necessary.
         if (selection.length > 0 && selection[0].dynamic) {
