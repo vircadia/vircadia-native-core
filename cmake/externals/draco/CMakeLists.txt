@@ -9,8 +9,8 @@ set(EXTRA_CMAKE_FLAGS -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_EXE_LINKER_FLAGS=
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/draco-1.0.1.zip
-  URL_MD5 f1826d5ba1ffd413311d78346f4c114b
+  URL http://hifi-public.s3.amazonaws.com/dependencies/draco-1.1.0.zip
+  URL_MD5 208f8b04c91d5f1c73d731a3ea37c5bb
   CONFIGURE_COMMAND CMAKE_ARGS  ${ANDROID_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> ${EXTRA_CMAKE_FLAGS}
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
