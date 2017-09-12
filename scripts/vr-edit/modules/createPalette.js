@@ -317,7 +317,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             isTriggerClicked,
             properties,
             CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 },
-            INVERSE_HAND_BASIS_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 });
+            INVERSE_HAND_BASIS_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 }),
+            entityID,
+            createdEntities;
 
         itemIndex = paletteItemOverlays.indexOf(intersectionOverlayID);
 
@@ -350,7 +352,13 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Vec3.multiplyQbyV(controlHand.orientation(),
                     Vec3.sum({ x: 0, y: properties.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
             properties.rotation = Quat.multiply(controlHand.orientation(), INVERSE_HAND_BASIS_ROTATION);
-            Entities.addEntity(properties);
+            entityID = Entities.addEntity(properties);
+            if (entityID !== Uuid.NULL) {
+                createdEntities = [{ entityID: entityID, properties: properties }];
+                History.push({ deleteEntities: createdEntities }, { createEntities: createdEntities });
+            } else {
+                Feedback.play(otherSide, Feedback.GENERAL_ERROR);
+            }
 
             // Lower and unhighlight item.
             Overlays.editOverlay(paletteItemHoverOverlays[itemIndex], {
