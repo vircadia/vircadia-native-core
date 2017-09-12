@@ -283,15 +283,23 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
 
         }
         break;
-        // gons, ones, & angles built via GeometryCache::extrudePolygon
-        case entity::Shape::Triangle:
-        case entity::Shape::Hexagon:
-        case entity::Shape::Octagon:
         case entity::Shape::Cone: {
             if (shapeCalculator) {
                 shapeCalculator(this, info);
                 // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
-                // TODO: figure out how to support concave shapes
+                _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+            } else {
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
+        }
+        break;
+        // gons, ones, & angles built via GeometryCache::extrudePolygon
+        case entity::Shape::Triangle:
+        case entity::Shape::Hexagon:
+        case entity::Shape::Octagon: {
+            if (shapeCalculator) {
+                shapeCalculator(this, info);
+                // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
                 _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
             } else {
                 _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
@@ -306,12 +314,10 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
             if ( shapeCalculator ) {
                 shapeCalculator(this, info);
                 // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
-                // TODO: figure out how to support concave shapes
                 _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
             } else {
                 _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
             }
-
         }
         break;
         case entity::Shape::Torus: {

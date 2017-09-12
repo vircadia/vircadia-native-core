@@ -108,31 +108,12 @@ void GeometryCache::computeSimpleHullPointListForShape(const ShapeEntityItem * c
 
     const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
     const glm::vec3 halfExtents = shapePtr->getDimensions() * 0.5f;
-#if DEBUG_SIMPLE_HULL_POINT_GENERATION
-    shapePtr->debugDump();
-    qCDebug(entities) << "------------------ Begin Vert Info( ComputeShapeInfo )[FlatShapes] -----------------------------";
-    qCDebug(entities) << " name:" << shapePtr->getName() << ": has " << numItems << " vert info pairs.";
-#endif
+
     outPointList.reserve((int)numItems);
     for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
         const geometry::Vec &curNorm = shapeNorms.get<geometry::Vec>(i);
-#if DEBUG_SIMPLE_HULL_POINT_GENERATION
-        const geometry::Vec &curVert = shapeVerts.get<geometry::Vec>(i);
-        qCDebug(entities) << "    --------------------";
-        qCDebug(entities) << "         Vert( " << i << " ): " << debugTreeVector(curVert);
-        qCDebug(entities) << "         Norm( " << i << " ): " << debugTreeVector(curNorm);
-#endif
         outPointList.push_back(curNorm * halfExtents);
-
-#if DEBUG_SIMPLE_HULL_POINT_GENERATION
-        qCDebug(entities) << "         Point( " << i << " ): " << debugTreeVector((curNorm * halfExtents));
-#endif
     }
-
-#if DEBUG_SIMPLE_HULL_POINT_GENERATION
-    qCDebug(entities) << "-------------------- End Vert Info( ComputeShapeInfo ) -----------------------------";
-#endif
-
 }
 
 template <size_t SIDES>
