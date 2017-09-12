@@ -15,7 +15,8 @@ Selection = function (side) {
 
     "use strict";
 
-    var selection = [],
+    var selection = [],  // Subset of properties to provide externally.
+        selectionProperties = [],  // Full set of properties for history.
         intersectedEntityID = null,
         intersectedEntityIndex,
         rootEntityID = null,
@@ -37,18 +38,17 @@ Selection = function (side) {
         return new Selection(side);
     }
 
-    function traverseEntityTree(id, result) {
+    function traverseEntityTree(id, selection, selectionProperties) {
         // Recursively traverses tree of entities and their children, gather IDs and properties.
         // The root entity is always the first entry.
         var children,
             properties,
-            SELECTION_PROPERTIES = ["type", "position", "registrationPoint", "rotation", "dimensions", "parentID",
-                "localPosition", "dynamic", "collisionless", "userData"],
             i,
             length;
 
-        properties = Entities.getEntityProperties(id, SELECTION_PROPERTIES);
-        result.push({
+        properties = Entities.getEntityProperties(id);
+        delete properties.entityID;
+        selection.push({
             id: id,
             type: properties.type,
             position: properties.position,
@@ -61,15 +61,16 @@ Selection = function (side) {
             collisionless: properties.collisionless,
             userData: properties.userData
         });
+        selectionProperties.push({ entityID: id, properties: properties });
 
         if (id === intersectedEntityID) {
-            intersectedEntityIndex = result.length - 1;
+            intersectedEntityIndex = selection.length - 1;
         }
 
         children = Entities.getChildrenIDs(id);
         for (i = 0, length = children.length; i < length; i += 1) {
             if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
-                traverseEntityTree(children[i], result);
+                traverseEntityTree(children[i], selection, selectionProperties);
             }
         }
     }
@@ -90,7 +91,8 @@ Selection = function (side) {
 
         // Find all children.
         selection = [];
-        traverseEntityTree(rootEntityID, selection);
+        selectionProperties = [];
+        traverseEntityTree(rootEntityID, selection, selectionProperties);
     }
 
     function getIntersectedEntityID() {
@@ -517,6 +519,7 @@ Selection = function (side) {
 
     function deleteEntities() {
         if (rootEntityID) {
+            History.push({ createEntities: selectionProperties }, { deleteEntities: [{ entityID: rootEntityID }] });
             Entities.deleteEntity(rootEntityID);  // Children are automatically deleted.
             clear();
         }

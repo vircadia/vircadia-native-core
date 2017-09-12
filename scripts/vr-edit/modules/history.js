@@ -108,6 +108,7 @@ History = (function () {
 
     function undo() {
         var undoData,
+            entityID,
             i,
             length;
 
@@ -115,6 +116,13 @@ History = (function () {
             undoData = history[undoPosition].undoData;
 
             // TODO
+
+            if (undoData.createEntities) {
+                for (i = 0, length = undoData.createEntities.length; i < length; i += 1) {
+                    entityID = Entities.addEntity(undoData.createEntities[i].properties);
+                    updateEntityIDs(undoData.createEntities[i].entityID, entityID);
+                }
+            }
 
             if (undoData.deleteEntities) {
                 for (i = 0, length = undoData.deleteEntities.length; i < length; i += 1) {
@@ -142,6 +150,12 @@ History = (function () {
                 for (i = 0, length = redoData.createEntities.length; i < length; i += 1) {
                     entityID = Entities.addEntity(redoData.createEntities[i].properties);
                     updateEntityIDs(redoData.createEntities[i].entityID, entityID);
+                }
+            }
+
+            if (redoData.deleteEntities) {
+                for (i = 0, length = redoData.deleteEntities.length; i < length; i += 1) {
+                    Entities.deleteEntity(redoData.deleteEntities[i].entityID);
                 }
             }
 
