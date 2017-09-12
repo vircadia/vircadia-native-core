@@ -80,10 +80,6 @@ function clap(volume, position, rotation) {
     }
 
 
-    if (settingDebug) {
-        ClapDebugger.clapSphere(position, volume);
-    }
-
 }
 // Helper Functions
 function getHandFingerAnim(side) {
@@ -282,11 +278,9 @@ module.exports = {
         });
         Controller.enableMapping(CONTROL_MAP_PACKAGE);
 
-        // settingDebug STUFF
         if (settingDebug) {
             ClapDebugger.enableDebug();
         }
-
 
         Script.update.connect(update);
 
@@ -308,6 +302,7 @@ module.exports = {
         }
         restoreFingerRoleAnimation('left');
         restoreFingerRoleAnimation('right');
+
         Controller.disableMapping(CONTROL_MAP_PACKAGE);
         try {
             Script.update.disconnect(update);

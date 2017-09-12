@@ -78,17 +78,6 @@ module.exports = {
         });
     },
 
-    clapSphere: function (pos, vol) {
-        Overlays.editOverlay(DEBUG_CLAP, {
-            position: pos,
-            scale: {
-                x: vol,
-                y: vol,
-                z: vol
-            }
-        });
-    },
-
     enableDebug: function () {
         DEBUG_RIGHT_HAND = Overlays.addOverlay("line3d", {
             color: DEBUG_WRONG,

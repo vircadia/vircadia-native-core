@@ -21,7 +21,11 @@ var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 // Define Menu
 var blackIcon = Script.resolvePath("icons/tablet-icons/clap-a.svg?foxv2");
 var whiteIcon = Script.resolvePath("icons/tablet-icons/clap-i.svg?foxv2");
-var isActive = true;
+
+if ( Settings.getValue("clapAppEnabled") === undefined){
+    Settings.setValue("clapAppEnabled", true);
+}
+var isActive = Settings.getValue("clapAppEnabled");
 
 var activeButton = tablet.addButton({
     icon: whiteIcon,
@@ -38,6 +42,7 @@ if (isActive) {
 function onClick(enabled) {
 
     isActive = !isActive;
+    Settings.setValue("clapAppEnabled", isActive);
     activeButton.editProperties({
         isActive: isActive
     });
