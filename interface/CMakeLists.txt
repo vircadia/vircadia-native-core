@@ -17,9 +17,6 @@ endforeach()
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
 
-find_package(Qt5Gui)
-include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
-
 if (WIN32)
   set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -bigobj")
   add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h

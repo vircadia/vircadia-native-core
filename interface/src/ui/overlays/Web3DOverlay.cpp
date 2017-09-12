@@ -67,7 +67,6 @@ Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setType(QTouchDevice::TouchScreen);
     _touchDevice.setName("RenderableWebEntityItemTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
-    QWindowSystemInterface::registerTouchDevice(&_touchDevice);
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
     connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
     connect(this, &Web3DOverlay::releaseWebSurface, this, &Web3DOverlay::destroyWebSurface);
@@ -419,12 +418,14 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     } 
 
     static QTouchEvent::TouchPoint oldTouchPoint;
+
     {
         QTouchEvent::TouchPoint point;
         point.setId(event.getID());
         point.setState(state);
         point.setPos(windowPoint);
         point.setScreenPos(windowPoint);
+        point.setPressure(1);
 
 
         // Gesture recognition uses the screen position for the initial threshold
@@ -445,8 +446,6 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         }
         _activeTouchPoints[event.getID()] = point;
     }
-
-
 
     QTouchEvent touchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
     {
@@ -484,6 +483,9 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
     }
 #endif
+
+    touchEvent.setTimestamp((ulong)QDateTime::currentMSecsSinceEpoch());
+    touchEvent.setAccepted(false);
 
     if (touchType == QEvent::TouchBegin) {
         _touchBeginAccepted = QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);

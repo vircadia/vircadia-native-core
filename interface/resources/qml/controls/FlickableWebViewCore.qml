@@ -6,7 +6,7 @@ import QtQuick.Controls 2.2
 
 import "../styles-uit" as StylesUIt
 
-Flickable {
+Item {
     id: flick
 
     property alias url: _webview.url
@@ -14,17 +14,17 @@ Flickable {
     property alias webViewCore: _webview
     property alias webViewCoreProfile: _webview.profile
 
-    interactive: true
+    property bool interactive: false
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
-    pressDelay: 300
+    //pressDelay: 300
 
     property real previousHeight: height
 
-    boundsBehavior: Flickable.StopAtBounds
+    //boundsBehavior: Flickable.StopAtBounds
 
     StylesUIt.HifiConstants {
         id: hifi
@@ -38,17 +38,17 @@ Flickable {
 //        }
 //    }
 
-    ScrollBar.vertical: ScrollBar {
-        id: scrollBar
-        visible: flick.contentHeight > flick.height
+//    ScrollBar.vertical: ScrollBar {
+//        id: scrollBar
+//        visible: flick.contentHeight > flick.height
 
-        contentItem: Rectangle {
-            opacity: 0.75
-            implicitWidth: hifi.dimensions.scrollbarHandleWidth
-            radius: height / 2
-            color: hifi.colors.tableScrollHandleDark
-        }
-    }
+//        contentItem: Rectangle {
+//            opacity: 0.75
+//            implicitWidth: hifi.dimensions.scrollbarHandleWidth
+//            radius: height / 2
+//            color: hifi.colors.tableScrollHandleDark
+//        }
+//    }
 
     function onLoadingChanged(loadRequest) {
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
@@ -152,7 +152,7 @@ Flickable {
         property string newUrl: ""
 
         Component.onCompleted: {
-            width = Qt.binding(function() { return flick.width; });
+            //width = Qt.binding(function() { return flick.width; });
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
@@ -196,10 +196,10 @@ Flickable {
         z: 10000
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onWheel: {
-            flick.flick(0, wheel.angleDelta.y*10)
-        }
-    }
+//    MouseArea {
+//        anchors.fill: parent
+//        onWheel: {
+//            flick.flick(0, wheel.angleDelta.y*10)
+//        }
+//    }
 }
