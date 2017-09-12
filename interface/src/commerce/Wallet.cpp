@@ -18,6 +18,7 @@
 
 #include <PathUtils.h>
 #include <OffscreenUi.h>
+#include <AccountManager.h>
 
 #include <QFile>
 #include <QCryptographicHash>
@@ -54,7 +55,8 @@ void initialize() {
 }
 
 QString keyFilePath() {
-    return PathUtils::getAppDataFilePath(KEY_FILE);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return PathUtils::getAppDataFilePath(QString("%1.%2").arg(accountManager->getAccountInfo().getUsername(), KEY_FILE));
 }
 
 // use the cached _passphrase if it exists, otherwise we need to prompt
@@ -262,6 +264,15 @@ RSA* readPrivateKey(const char* filename) {
     return key;
 }
 
+// QT's QByteArray will convert to Base64 without any embedded newlines.  This just
+// writes it with embedded newlines, which is more readable.
+void outputBase64WithNewlines(QFile& file, const QByteArray& b64Array) {
+    for (int i = 0; i < b64Array.size(); i += 64) {
+        file.write(b64Array.mid(i, 64));
+        file.write("\n");
+    }
+}
+
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
     // use the ones in the wallet
     auto wallet = DependencyManager::get<Wallet>();
@@ -331,11 +342,11 @@ bool Wallet::writeSecurityImage(const QPixmap* pixmap, const QString& outputFile
     QByteArray output((const char*)outputFileBuffer, outSize);
 
     // now APPEND to the file,
+    QByteArray b64output = output.toBase64();
     QFile outputFile(outputFilePath);
     outputFile.open(QIODevice::Append);
     outputFile.write(IMAGE_HEADER);
-    outputFile.write(output.toBase64());
-    outputFile.write("\n");
+    outputBase64WithNewlines(outputFile, b64output);
     outputFile.write(IMAGE_FOOTER);
     outputFile.close();
 
@@ -551,9 +562,11 @@ void Wallet::getSecurityImage() {
         return;
     }
 
-    // decrypt and return
+    bool success = false;
+    // decrypt and return.  Don't bother if we have no file to decrypt, or
+    // no salt set yet.
     QFileInfo fileInfo(keyFilePath());
-    if (fileInfo.exists() && readSecurityImage(keyFilePath(), &data, &dataLen)) {
+    if (fileInfo.exists() && _salt.size() > 0 && readSecurityImage(keyFilePath(), &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
@@ -562,11 +575,9 @@ void Wallet::getSecurityImage() {
         updateImageProvider();
 
         delete[] data;
-        emit securityImageResult(true);
-    } else {
-        qCDebug(commerce) << "failed to decrypt security image (maybe none saved yet?)";
-        emit securityImageResult(false);
+        success = true;
     }
+    emit securityImageResult(success);
 }
 void Wallet::sendKeyFilePathIfExists() {
     QString filePath(keyFilePath());

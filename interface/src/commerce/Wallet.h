@@ -55,7 +55,7 @@ signals:
 private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
-    QByteArray _salt {"iamsalt!"};
+    QByteArray _salt;
     QByteArray _iv;
     QByteArray _ckey;
     QString* _passphrase { new QString("") };
