@@ -8,9 +8,9 @@
 /* jslint bitwise: true */
 
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
-   controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true, entityIsGrabbable:true,
+   controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
-   getGrabPointSphereOffset
+   getGrabPointSphereOffset, HMD, MyAvatar, Messages
 */
 
 controllerDispatcherPlugins = {};
@@ -26,8 +26,14 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
+    var PROFILE = false;
+
+    if (typeof Test !== "undefined") {
+        PROFILE = true;
+    }
+
     function ControllerDispatcher() {
-        var _this = this
+        var _this = this;
         this.lastInterval = Date.now();
         this.intervalCount = 0;
         this.totalDelta = 0;
@@ -141,6 +147,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.update = function () {
+            if (PROFILE) {
+                Script.beginProfileRange("dispatch.pre");
+            }
             var deltaTime = _this.updateTimings();
             _this.setIgnoreTablet();
 
@@ -156,7 +165,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         controllerDispatcherPlugins[b].parameters.priority;
                 });
 
-                // print("controllerDispatcher -- new plugin order: " + JSON.stringify(this.orderedPluginNames));
                 var output = "controllerDispatcher -- new plugin order: ";
                 for (var k = 0; k < _this.orderedPluginNames.length; k++) {
                     var dbgPluginName = _this.orderedPluginNames[k];
@@ -168,6 +176,14 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
 
                 controllerDispatcherPluginsNeedSort = false;
+            }
+
+            if (PROFILE) {
+                Script.endProfileRange("dispatch.pre");
+            }
+
+            if (PROFILE) {
+                Script.beginProfileRange("dispatch.gather");
             }
 
             var controllerLocations = [
@@ -205,7 +221,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         var entityID = nearbyEntityIDs[j];
                         var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         props.id = entityID;
-                        props.distance = Vec3.distance(props.position, controllerLocations[h].position)
+                        props.distance = Vec3.distance(props.position, controllerLocations[h].position);
                         nearbyEntityPropertiesByID[entityID] = props;
                         nearbyEntityProperties[h].push(props);
                     }
@@ -261,13 +277,22 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 rayPicks: rayPicks,
                 hudRayPicks: hudRayPicks
             };
+            if (PROFILE) {
+                Script.endProfileRange("dispatch.gather");
+            }
 
+            if (PROFILE) {
+                Script.beginProfileRange("dispatch.isReady");
+            }
             // check for plugins that would like to start.  ask in order of increasing priority value
             for (var pluginIndex = 0; pluginIndex < _this.orderedPluginNames.length; pluginIndex++) {
                 var orderedPluginName = _this.orderedPluginNames[pluginIndex];
                 var candidatePlugin = controllerDispatcherPlugins[orderedPluginName];
 
                 if (_this.slotsAreAvailableForPlugin(candidatePlugin)) {
+                    if (PROFILE) {
+                        Script.beginProfileRange("dispatch.isReady." + orderedPluginName);
+                    }
                     var readiness = candidatePlugin.isReady(controllerData, deltaTime);
                     if (readiness.active) {
                         // this plugin will start.  add it to the list of running plugins and mark the
@@ -275,11 +300,18 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
                     }
+                    if (PROFILE) {
+                        Script.endProfileRange("dispatch.isReady." + orderedPluginName);
+                    }
                 }
             }
+            if (PROFILE) {
+                Script.endProfileRange("dispatch.isReady");
+            }
 
-            // print("QQQ running plugins: " + JSON.stringify(_this.runningPluginNames));
-
+            if (PROFILE) {
+                Script.beginProfileRange("dispatch.run");
+            }
             // give time to running plugins
             for (var runningPluginName in _this.runningPluginNames) {
                 if (_this.runningPluginNames.hasOwnProperty(runningPluginName)) {
@@ -290,6 +322,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         delete _this.runningPluginNames[runningPluginName];
                         _this.unmarkSlotsForPluginName(runningPluginName);
                     } else {
+                        if (PROFILE) {
+                            Script.beginProfileRange("dispatch.run." + runningPluginName);
+                        }
                         var runningness = plugin.run(controllerData, deltaTime);
                         if (!runningness.active) {
                             // plugin is finished running, for now.  remove it from the list
@@ -297,8 +332,14 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
                         }
+                        if (PROFILE) {
+                            Script.endProfileRange("dispatch.run." + runningPluginName);
+                        }
                     }
                 }
+            }
+            if (PROFILE) {
+                Script.endProfileRange("dispatch.run");
             }
         };
 
