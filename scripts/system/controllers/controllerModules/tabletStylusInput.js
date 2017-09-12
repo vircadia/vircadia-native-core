@@ -20,7 +20,7 @@ Script.include("/~/system/libraries/controllers.js");
     var HAPTIC_STYLUS_STRENGTH = 1.0;
     var HAPTIC_STYLUS_DURATION = 20.0;
 
-    var WEB_DISPLAY_STYLUS_DISTANCE = 0.1;
+    var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
     var WEB_STYLUS_LENGTH = 0.2;
     var WEB_TOUCH_Y_OFFSET = 0.05; // how far forward (or back with a negative number) to slide stylus in hand
 
@@ -474,7 +474,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.processStylus = function(controllerData) {
             this.updateStylusTip();
 
-            if (!this.stylusTip.valid) {
+            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData)) {
                 this.pointFinger(false);
                 this.hideStylus();
                 return false;
@@ -644,6 +644,14 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 this.stylusTouchingTarget = false;
             }
+        };
+
+        this.overlayLaserActive = function(controllerData) {
+            var overlayLaserModule = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
+            if (overlayLaserModule) {
+                return overlayLaserModule.isReady(controllerData).active;
+            }
+            return false;
         };
 
         this.isReady = function (controllerData) {
