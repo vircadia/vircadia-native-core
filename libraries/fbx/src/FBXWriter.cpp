@@ -63,12 +63,6 @@ void FBXWriter::encodeNode(QDataStream& out, const FBXNode& node) {
     out << (quint8)node.name.size();
     out.writeRawData(node.name, node.name.size());
 
-    if (node.name == "Vertices") {
-        for (auto& prop : node.properties) {
-            qDebug() << "Properties: " << prop;
-        }
-    }
-
     auto nodePropertiesStartPos = device->pos();
 
     for (const auto& prop : node.properties) {
