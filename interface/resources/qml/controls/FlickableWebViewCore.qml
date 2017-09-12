@@ -6,57 +6,36 @@ import QtQuick.Controls 2.2
 
 import "../styles-uit" as StylesUIt
 
-Flickable {
+Item {
     id: flick
 
-    property alias url: _webview.url
-    property alias canGoBack: _webview.canGoBack
-    property alias webViewCore: _webview
-    property alias webViewCoreProfile: _webview.profile
+    property alias url: webViewCore.url
+    property alias canGoBack: webViewCore.canGoBack
+    property alias webViewCore: webViewCore
+    property alias webViewCoreProfile: webViewCore.profile
+    property string webViewCoreUserAgent
 
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
 
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
-    pressDelay: 300
 
-    boundsBehavior: Flickable.StopAtBounds
+    property bool interactive: false
 
     StylesUIt.HifiConstants {
         id: hifi
     }
 
-    onHeightChanged: {
-        if (height > 0) {
-            //reload page since window dimentions changed,
-            //so web engine should recalculate page render dimentions
-            reloadTimer.start()
-        }
-    }
-
-    ScrollBar.vertical: ScrollBar {
-        id: scrollBar
-        visible: flick.contentHeight > flick.height
-
-        contentItem: Rectangle {
-            opacity: 0.75
-            implicitWidth: hifi.dimensions.scrollbarHandleWidth
-            radius: height / 2
-            color: hifi.colors.tableScrollHandleDark
-        }
-    }
-
     function onLoadingChanged(loadRequest) {
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
-            flick.contentWidth = flick.width
-            flick.contentHeight = flick.height
 
             // Required to support clicking on "hifi://" links
             var url = loadRequest.url.toString();
+            url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
             if (urlHandler.canHandleUrl(url)) {
                 if (urlHandler.handleUrl(url)) {
-                    _webview.stop();
+                    webViewCore.stop();
                 }
             }
         }
@@ -67,34 +46,18 @@ Flickable {
 
         if (WebEngineView.LoadSucceededStatus === loadRequest.status) {
             //disable Chromium's scroll bars
-            _webview.runJavaScript("document.body.style.overflow = 'hidden';");
-            //calculate page height
-            _webview.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
-                if (i_actualPageHeight !== undefined) {
-                    flick.contentHeight = i_actualPageHeight
-                } else {
-                    flick.contentHeight = flick.height;
-                }
-            })
-            flick.contentWidth = flick.width
-        }
-    }
-
-    Timer {
-        id: reloadTimer
-        interval: 100
-        repeat: false
-        onTriggered: {
-            _webview.reload()
         }
     }
 
     WebEngineView {
-        id: _webview
+        id: webViewCore
 
-        height: parent.height
+        anchors.fill: parent
 
         profile: HFWebEngineProfile;
+        settings.pluginsEnabled: true
+        settings.touchIconsEnabled: true
+        settings.allowRunningInsecureContent: true
 
         // creates a global EventBridge object.
         WebEngineScript {
@@ -125,25 +88,23 @@ Flickable {
         property string newUrl: ""
 
         Component.onCompleted: {
-            width = Qt.binding(function() { return flick.width; });
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
-            _webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
             });
-            _webview.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
-
+            if (webViewCoreUserAgent !== undefined) {
+                webViewCore.profile.httpUserAgent = webViewCoreUserAgent
+            } else {
+                webViewCore.profile.httpUserAgent += " (HighFidelityInterface)";
+            }
         }
 
         onFeaturePermissionRequested: {
             grantFeaturePermission(securityOrigin, feature, true);
         }
 
-        onContentsSizeChanged: {
-            flick.contentHeight = Math.max(contentsSize.height, flick.height);
-            flick.contentWidth = flick.width
-        }
         //disable popup
         onContextMenuRequested: {
             request.accepted = true;
@@ -164,15 +125,8 @@ Flickable {
         x: flick.width/2 - width/2
         y: flick.height/2 - height/2
         source: "../../icons/loader-snake-64-w.gif"
-        visible: _webview.loading && /^(http.*|)$/i.test(_webview.url.toString())
+        visible: webViewCore.loading && /^(http.*|)$/i.test(webViewCore.url.toString())
         playing: visible
         z: 10000
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onWheel: {
-            flick.flick(0, wheel.angleDelta.y*10)
-        }
     }
 }
