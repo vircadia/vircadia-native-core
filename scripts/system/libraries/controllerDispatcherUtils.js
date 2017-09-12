@@ -19,6 +19,8 @@
    COLORS_GRAB_DISTANCE_HOLD:true,
    NEAR_GRAB_RADIUS:true,
    DISPATCHER_PROPERTIES:true,
+   HAPTIC_PULSE_STRENGTH:true,
+   HAPTIC_PULSE_DURATION:true,
    Entities,
    makeDispatcherModuleParameters:true,
    makeRunningValues:true,
@@ -41,6 +43,9 @@
 
 MSECS_PER_SEC = 1000.0;
 INCHES_TO_METERS = 1.0 / 39.3701;
+
+HAPTIC_PULSE_STRENGTH = 1.0;
+HAPTIC_PULSE_DURATION = 13.0;
 
 ZERO_VEC = { x: 0, y: 0, z: 0 };
 ONE_VEC = { x: 1, y: 1, z: 1 };

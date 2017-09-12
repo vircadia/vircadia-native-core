@@ -137,7 +137,7 @@ Script.include("/~/system/libraries/controllers.js");
             var dim = {x: radius, y: radius, z: radius};
             var mode = "hold";
             if (!this.distanceHolding && !this.distanceRotating) {
-                if (controllerData.triggerValues[this.hand] === 1) {
+                if (controllerData.triggerClicks[this.hand]) {
                     mode = "full";
                 } else {
                     mode = "half";

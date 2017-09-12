@@ -15,7 +15,7 @@
 //Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 (function () {
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
-
+    var BUMPER_ON_VALUE = 0.5;
     function ScaleAvatar(hand) {
         this.hand = hand;
         this.scalingStartAvatarScale = 0;
@@ -38,7 +38,7 @@
         };
 
         this.triggersPressed = function(controllerData) {
-            if (controllerData.triggerValues[this.hand] === 1 && controllerData.secondaryValues[this.hand] === 1) {
+            if (controllerData.triggerClicks[this.hand] && controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
                 return true;
             }
             return false;

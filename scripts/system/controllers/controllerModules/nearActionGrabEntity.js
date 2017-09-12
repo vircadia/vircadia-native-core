@@ -9,7 +9,8 @@
    getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
-   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity
+   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
+   HAPTIC_PULSE_STRENGTH, HAPTIC_STYLUS_DURATION
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -22,6 +23,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.hand = hand;
         this.targetEntityID = null;
         this.actionID = null; // action this script created...
+        this.hapticTargetID = null;
 
         this.parameters = makeDispatcherModuleParameters(
             500,
@@ -152,6 +154,10 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     break;
                 }
                 if (entityIsGrabbable(props) || entityIsCloneable(props)) {
+                    if (props.id !== this.hapticTargetID) {
+                        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+                        this.hapticTargetID = props.id;
+                    }
                     // if we've attempted to grab a child, roll up to the root of the tree
                     var groupRootProps = findGroupParent(controllerData, props);
                     if (entityIsGrabbable(groupRootProps)) {
@@ -166,11 +172,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.isReady = function (controllerData) {
             this.targetEntityID = null;
 
+            var targetProps = this.getTargetProps(controllerData);
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                 return makeRunningValues(false, [], []);
             }
 
-            var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
                 if (!propsArePhysical(targetProps) && !propsAreCloneDynamic(targetProps)) {
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
@@ -179,6 +185,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
+                this.hapticTargetID = null;
                 return makeRunningValues(false, [], []);
             }
         };
@@ -187,6 +194,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             if (this.actionID) {
                 if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
                     this.endNearGrabAction();
+                    this.hapticTargetID = null;
                     return makeRunningValues(false, [], []);
                 }
 

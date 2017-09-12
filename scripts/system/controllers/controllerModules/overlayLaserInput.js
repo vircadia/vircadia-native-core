@@ -433,7 +433,7 @@ Script.include("/~/system/libraries/controllers.js");
             var nearGrabModule = getEnabledModuleByName(nearGrabName);
             var status = nearGrabModule ? nearGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
             var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY);
-            var triggerOff = (controllerData.triggerValues[this.hand] === 0);
+            var triggerOff = (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE);
             return offOverlay || status.active || triggerOff;
         };
 
