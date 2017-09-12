@@ -408,6 +408,16 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                         continue;
                     }
 
+                    // we need to modify unique attribute IDs for custom attributes
+                    // so the attributes are easily retrievable on the other side
+                    if (hasPerFaceMaterials) {
+                        dracoMesh->attribute(faceMaterialAttributeID)->set_unique_id(DRACO_ATTRIBUTE_MATERIAL_ID);
+                    }
+
+                    if (hasTexCoords1) {
+                        dracoMesh->attribute(texCoords1AttributeID)->set_unique_id(DRACO_ATTRIBUTE_TEX_COORD_1);
+                    }
+
                     draco::Encoder encoder;
                     draco::EncoderBuffer buffer;
                     encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
