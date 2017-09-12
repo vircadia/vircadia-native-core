@@ -180,7 +180,7 @@ void Web3DOverlay::buildWebSurface() {
 
 
 void Web3DOverlay::update(float deltatime) {
-    if (_renderTransformDirty) {
+  /*  if (_renderTransformDirty) {
         auto updateTransform = evalRenderTransform();
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
@@ -194,17 +194,19 @@ void Web3DOverlay::update(float deltatime) {
             });
             scene->enqueueTransaction(transaction);
         }
-    }
+    }*/
 
     if (_webSurface) {
         // update globalPosition
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
+
+    Billboard3DOverlay::update(deltatime);
+
 }
 
 Transform Web3DOverlay::evalRenderTransform() const {
-    if (_renderTransformDirty) {
-         _updateTransform = getTransform();
+        auto transform = getTransform();
 
         // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
         // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
@@ -214,15 +216,10 @@ Transform Web3DOverlay::evalRenderTransform() const {
         */
 
         if (glm::length2(getDimensions()) != 1.0f) {
-            _updateTransform.postScale(vec3(getDimensions(), 1.0f));
+            transform.postScale(vec3(getDimensions(), 1.0f));
         }
-        _renderTransformDirty = false;
-    }
-    return _updateTransform;
-}
-
-void Web3DOverlay::setRenderTransform(const Transform& transform) {
-    _renderTransform = transform;
+        
+        return transform;
 }
 
 QString Web3DOverlay::pickURL() {

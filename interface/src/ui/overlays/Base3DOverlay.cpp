@@ -191,13 +191,14 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     // Communicate changes to the renderItem if needed
     if (needRenderItemUpdate) {
-        auto itemID = getRenderItemID();
+
+   /*     auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
             transaction.updateItem(itemID);
             scene->enqueueTransaction(transaction);
-        }
+        }*/
     }
 }
 
@@ -259,16 +260,39 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     // Force the actual update of the render transform now that we notify for the change
     // so it s captured for the time of rendering
     notifyRenderTransformChange();
-
+/*
     auto itemID = getRenderItemID();
     if (render::Item::isValidID(itemID)) {
         render::ScenePointer scene = qApp->getMain3DScene();
         render::Transaction transaction;
         transaction.updateItem(itemID);
         scene->enqueueTransaction(transaction);
-    }
+    }*/
 }
 
 void Base3DOverlay::parentDeleted() {
     qApp->getOverlays().deleteOverlay(getOverlayID());
+}
+
+void Base3DOverlay::update(float duration) {
+    if (_renderTransformDirty) {
+        setRenderTransform(evalRenderTransform());
+        auto itemID = getRenderItemID();
+        if (render::Item::isValidID(itemID)) {
+            render::ScenePointer scene = qApp->getMain3DScene();
+            render::Transaction transaction;
+
+            transaction.updateItem(itemID);
+            scene->enqueueTransaction(transaction);
+        }
+        _renderTransformDirty = false;
+    }
+}
+
+Transform Base3DOverlay::evalRenderTransform() const {
+    return getTransform();
+}
+
+void Base3DOverlay::setRenderTransform(const Transform& transform) {
+    _renderTransform = transform;
 }

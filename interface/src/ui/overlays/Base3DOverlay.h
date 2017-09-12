@@ -52,8 +52,11 @@ public:
 
     virtual AABox getBounds() const override = 0;
 
+    void update(float deltatime) override;
+
     void notifyRenderTransformChange() const { _renderTransformDirty = true; }
-    virtual Transform evalRenderTransform() const { return Transform(); }
+    virtual Transform evalRenderTransform() const;
+    void setRenderTransform(const Transform& transform);
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -69,6 +72,8 @@ public:
 protected:
     virtual void locationChanged(bool tellPhysics = true) override;
     virtual void parentDeleted() override;
+
+    mutable Transform _renderTransform;
 
     float _lineWidth;
     bool _isSolid;
