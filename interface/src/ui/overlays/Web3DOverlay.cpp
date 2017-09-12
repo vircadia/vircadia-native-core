@@ -180,22 +180,6 @@ void Web3DOverlay::buildWebSurface() {
 
 
 void Web3DOverlay::update(float deltatime) {
-  /*  if (_renderTransformDirty) {
-        auto updateTransform = evalRenderTransform();
-        auto itemID = getRenderItemID();
-        if (render::Item::isValidID(itemID)) {
-            render::ScenePointer scene = qApp->getMain3DScene();
-            render::Transaction transaction;
-            transaction.updateItem<Overlay>(itemID, [updateTransform](Overlay& data) {
-                auto web3D = dynamic_cast<Web3DOverlay*>(&data);
-                if (web3D) {
-                    web3D->setRenderTransform(updateTransform);//  evalRenderTransform();
-                }
-            });
-            scene->enqueueTransaction(transaction);
-        }
-    }*/
-
     if (_webSurface) {
         // update globalPosition
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
@@ -203,23 +187,6 @@ void Web3DOverlay::update(float deltatime) {
 
     Billboard3DOverlay::update(deltatime);
 
-}
-
-Transform Web3DOverlay::evalRenderTransform() const {
-        auto transform = getTransform();
-
-        // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
-        // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
-        /*
-        applyTransformTo(transform, true);
-        setTransform(transform);
-        */
-
-        if (glm::length2(getDimensions()) != 1.0f) {
-            transform.postScale(vec3(getDimensions(), 1.0f));
-        }
-        
-        return transform;
 }
 
 QString Web3DOverlay::pickURL() {
@@ -341,20 +308,6 @@ void Web3DOverlay::render(RenderArgs* args) {
 
     vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
-    /*
-    Transform transform = getTransform();
-
-    // FIXME: applyTransformTo causes tablet overlay to detach from tablet entity.
-    // Perhaps rather than deleting the following code it should be run only if isFacingAvatar() is true?
-    /*
-    applyTransformTo(transform, true);
-    setTransform(transform);
-    */
-    /*
-    if (glm::length2(getDimensions()) != 1.0f) {
-        transform.postScale(vec3(getDimensions(), 1.0f));
-    }
-    */
 
     if (!_texture) {
         _texture = gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda());
@@ -369,7 +322,6 @@ void Web3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setResourceTexture(0, _texture);
- //   batch.setModelTransform(transform);
     batch.setModelTransform(_renderTransform);
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {

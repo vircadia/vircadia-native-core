@@ -37,8 +37,6 @@ public:
 
     virtual void update(float deltatime) override;
 
-    Transform evalRenderTransform() const override;
-
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
     void handlePointerEvent(const PointerEvent& event);

@@ -59,20 +59,6 @@ void ModelOverlay::update(float deltatime) {
         _model->simulate(deltatime);
     }
     _isLoaded = _model->isActive();
-}
-
-bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
-    Volume3DOverlay::addToScene(overlay, scene, transaction);
-    _model->addToScene(scene, transaction);
-    return true;
-}
-
-void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
-    Volume3DOverlay::removeFromScene(overlay, scene, transaction);
-    _model->removeFromScene(scene, transaction);
-}
-
-void ModelOverlay::render(RenderArgs* args) {
 
     // check to see if when we added our model to the scene they were ready, if they were not ready, then
     // fix them up in the scene
@@ -87,6 +73,35 @@ void ModelOverlay::render(RenderArgs* args) {
     _model->setLayeredInFront(getDrawInFront(), scene);
 
     scene->enqueueTransaction(transaction);
+}
+
+bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
+    Volume3DOverlay::addToScene(overlay, scene, transaction);
+    _model->addToScene(scene, transaction);
+    return true;
+}
+
+void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
+    Volume3DOverlay::removeFromScene(overlay, scene, transaction);
+    _model->removeFromScene(scene, transaction);
+}
+
+void ModelOverlay::render(RenderArgs* args) {
+/*
+    // check to see if when we added our model to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    render::ScenePointer scene = qApp->getMain3DScene();
+    render::Transaction transaction;
+    if (_model->needsFixupInScene()) {
+        _model->removeFromScene(scene, transaction);
+        _model->addToScene(scene, transaction);
+    }
+
+    _model->setVisibleInScene(_visible, scene);
+    _model->setLayeredInFront(getDrawInFront(), scene);
+
+    scene->enqueueTransaction(transaction);
+    */
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
@@ -280,11 +295,12 @@ ModelOverlay* ModelOverlay::createClone() const {
 
 void ModelOverlay::locationChanged(bool tellPhysics) {
     Base3DOverlay::locationChanged(tellPhysics);
-
+/*
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
-    }
+    }*/
+    _updateModel = true;
 }
 
 QString ModelOverlay::getName() const {

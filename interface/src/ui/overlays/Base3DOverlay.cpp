@@ -191,8 +191,9 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     // Communicate changes to the renderItem if needed
     if (needRenderItemUpdate) {
+        notifyRenderTransformChange();
 
-   /*     auto itemID = getRenderItemID();
+        /*auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
