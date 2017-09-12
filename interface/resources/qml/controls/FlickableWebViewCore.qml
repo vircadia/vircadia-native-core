@@ -13,6 +13,7 @@ Item {
     property alias canGoBack: _webview.canGoBack
     property alias webViewCore: _webview
     property alias webViewCoreProfile: _webview.profile
+    property string webViewCoreUserAgent
 
     property string userScriptUrl: ""
     property string urlTag: "noDownload=false";
@@ -31,6 +32,7 @@ Item {
 
             // Required to support clicking on "hifi://" links
             var url = loadRequest.url.toString();
+            url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
             if (urlHandler.canHandleUrl(url)) {
                 if (urlHandler.handleUrl(url)) {
                     _webview.stop();
@@ -53,6 +55,9 @@ Item {
         anchors.fill: parent
 
         profile: HFWebEngineProfile;
+        settings.pluginsEnabled: true
+        settings.touchIconsEnabled: true
+        settings.allowRunningInsecureContent: true
 
         // creates a global EventBridge object.
         WebEngineScript {
@@ -89,8 +94,11 @@ Item {
             _webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
             });
-            _webview.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
-
+            if (webViewCoreUserAgent !== undefined) {
+                _webview.profile.httpUserAgent = webViewCoreUserAgent
+            } else {
+                _webview.profile.httpUserAgent += " (HighFidelityInterface)";
+            }
         }
 
         onFeaturePermissionRequested: {
