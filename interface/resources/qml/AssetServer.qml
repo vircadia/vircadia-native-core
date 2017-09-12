@@ -651,7 +651,7 @@ ScrollingWindow {
                         }
                         onAccepted:  {
                             if (acceptableInput && styleData.selected) {
-                                if (!modifyEl(selection.currentIndex, text)) {
+                                if (!treeView.modifyEl(treeView.selection.currentIndex, text)) {
                                     text = styleData.value;
                                 }
                                 unfocusHelper.forceActiveFocus();
