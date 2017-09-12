@@ -252,8 +252,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     // Relative to menuButton.
                     type: "image",
                     properties: {
-                        url: "../assets/tools/tool-label.svg",
-                        scale: 0.0152,
                         localPosition: {
                             x: 0,
                             y: UIT.dimensions.menuButtonSublabelYOffset,
@@ -1660,6 +1658,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         scale: 0.0241
                     }
                 },
+                sublabel: {
+                    properties: {
+                        url: "../assets/tools/tool-label.svg",
+                        scale: 0.0152
+                    }
+                },
                 title: {
                     url: "../assets/tools/color-tool-heading.svg",
                     scale: 0.0631
@@ -1691,6 +1695,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/stretch-label.svg",
                         scale: 0.0311
+                    }
+                },
+                sublabel: {
+                    properties: {
+                        url: "../assets/tools/tool-label.svg",
+                        scale: 0.0152
                     }
                 },
                 title: {
@@ -1725,6 +1735,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         scale: 0.0231
                     }
                 },
+                sublabel: {
+                    properties: {
+                        url: "../assets/tools/tool-label.svg",
+                        scale: 0.0152
+                    }
+                },
                 title: {
                     url: "../assets/tools/clone-tool-heading.svg",
                     scale: 0.0621
@@ -1755,6 +1771,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/group-label.svg",
                         scale: 0.0250
+                    }
+                },
+                sublabel: {
+                    properties: {
+                        url: "../assets/tools/tool-label.svg",
+                        scale: 0.0152
                     }
                 },
                 title: {
@@ -1789,6 +1811,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         scale: 0.0297
                     }
                 },
+                sublabel: {
+                    properties: {
+                        url: "../assets/tools/tool-label.svg",
+                        scale: 0.0152
+                    }
+                },
                 title: {
                     url: "../assets/tools/physics-tool-heading.svg",
                     scale: 0.0712
@@ -1821,6 +1849,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         scale: 0.0254
                     }
                 },
+                sublabel: {
+                    properties: {
+                        url: "../assets/tools/tool-label.svg",
+                        scale: 0.0152
+                    }
+                },
                 title: {
                     url: "../assets/tools/delete-tool-heading.svg",
                     scale: 0.0653
@@ -1828,6 +1862,58 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 toolOptions: "deleteOptions",
                 callback: {
                     method: "deleteTool"
+                }
+            },
+            {
+                id: "undoButton",
+                type: "menuButton",
+                properties: {
+                    localPosition: {
+                        x: MENU_ITEM_XS[2],
+                        y: MENU_ITEM_YS[2],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
+                },
+                icon: {
+                    properties: {
+                        url: "../assets/tools/undo-icon.svg",
+                        dimensions: { x: 0.0180, y: 0.0186 }
+                    }
+                },
+                label: {
+                    properties: {
+                        url: "../assets/tools/undo-label.svg",
+                        scale: 0.0205
+                    }
+                },
+                callback: {
+                    method: "undoAction"
+                }
+            },
+            {
+                id: "redoButton",
+                type: "menuButton",
+                properties: {
+                    localPosition: {
+                        x: MENU_ITEM_XS[3],
+                        y: MENU_ITEM_YS[2],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
+                },
+                icon: {
+                    properties: {
+                        url: "../assets/tools/redo-icon.svg",
+                        dimensions: { x: 0.0180, y: 0.0186 }
+                    }
+                },
+                label: {
+                    properties: {
+                        url: "../assets/tools/redo-label.svg",
+                        scale: 0.0192
+                    }
+                },
+                callback: {
+                    method: "redoAction"
                 }
             }
         ],
@@ -1917,10 +2003,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function getIconInfo(tool) {
         // Provides details of tool icon, label, and sublabel images for the specified tool.
+        var sublabelProperties;
+
+        sublabelProperties = Object.clone(UI_ELEMENTS.menuButton.sublabel);
+        sublabelProperties = Object.merge(sublabelProperties, MENU_ITEMS[tool].sublabel);
         return {
             icon: MENU_ITEMS[tool].icon,
             label: MENU_ITEMS[tool].label,
-            sublabel: UI_ELEMENTS.menuButton.sublabel
+            sublabel: sublabelProperties
         };
     }
 
@@ -1977,13 +2067,16 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             menuLabelOverlays.push(overlayID);
 
             // Sublabel.
-            properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].properties);
-            properties = Object.merge(properties, UI_ELEMENTS.menuButton.sublabel.properties);
-            properties.url = Script.resolvePath(properties.url);
-            properties.visible = isVisible;
-            properties.parentID = itemID;
-            overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].overlay, properties);
-            menuLabelOverlays.push(overlayID);
+            if (MENU_ITEMS[i].sublabel) {
+                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].properties);
+                properties = Object.merge(properties, UI_ELEMENTS.menuButton.sublabel.properties);
+                properties = Object.merge(properties, MENU_ITEMS[i].sublabel.properties);
+                properties.url = Script.resolvePath(properties.url);
+                properties.visible = isVisible;
+                properties.parentID = itemID;
+                overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].overlay, properties);
+                menuLabelOverlays.push(overlayID);
+            }
         }
     }
 
@@ -3086,7 +3179,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 };
 
                 // Button press actions.
-                if (intersectionOverlays === menuOverlays) {
+                if (intersectionOverlays === menuOverlays && intersectionItems[intersectedItem].toolOptions) {
                     openOptions(intersectionItems[intersectedItem]);
                 }
                 if (intersectionItems[intersectedItem].command) {
