@@ -240,20 +240,13 @@ module.exports = {
                 isChecked: settingParticlesOn
             });
         }
-        if (HMD.active) {
-            if (!Menu.menuItemExists(CLAP_MENU, ENABLE_DEBUG_MENU)) {
-                Menu.addMenuItem({
-                    menuName: CLAP_MENU,
-                    menuItemName: ENABLE_DEBUG_MENU,
-                    isCheckable: true,
-                    isChecked: settingDebug
-                });
-            }
-        } else {
-            ClapDebugger.disableDebug();
-            if (Menu.menuItemExists(CLAP_MENU, ENABLE_DEBUG_MENU)) {
-                Menu.removeMenuItem(CLAP_MENU, ENABLE_DEBUG_MENU);
-            }
+        if (!Menu.menuItemExists(CLAP_MENU, ENABLE_DEBUG_MENU)) {
+            Menu.addMenuItem({
+                menuName: CLAP_MENU,
+                menuItemName: ENABLE_DEBUG_MENU,
+                isCheckable: true,
+                isChecked: settingDebug
+            });
         }
 
 
