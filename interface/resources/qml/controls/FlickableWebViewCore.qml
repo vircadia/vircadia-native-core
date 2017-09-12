@@ -9,10 +9,10 @@ import "../styles-uit" as StylesUIt
 Item {
     id: flick
 
-    property alias url: _webview.url
-    property alias canGoBack: _webview.canGoBack
-    property alias webViewCore: _webview
-    property alias webViewCoreProfile: _webview.profile
+    property alias url: webViewCore.url
+    property alias canGoBack: webViewCore.canGoBack
+    property alias webViewCore: webViewCore
+    property alias webViewCoreProfile: webViewCore.profile
     property string webViewCoreUserAgent
 
     property string userScriptUrl: ""
@@ -35,7 +35,7 @@ Item {
             url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
             if (urlHandler.canHandleUrl(url)) {
                 if (urlHandler.handleUrl(url)) {
-                    _webview.stop();
+                    webViewCore.stop();
                 }
             }
         }
@@ -50,7 +50,7 @@ Item {
     }
 
     WebEngineView {
-        id: _webview
+        id: webViewCore
 
         anchors.fill: parent
 
@@ -91,13 +91,13 @@ Item {
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
-            _webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
             });
             if (webViewCoreUserAgent !== undefined) {
-                _webview.profile.httpUserAgent = webViewCoreUserAgent
+                webViewCore.profile.httpUserAgent = webViewCoreUserAgent
             } else {
-                _webview.profile.httpUserAgent += " (HighFidelityInterface)";
+                webViewCore.profile.httpUserAgent += " (HighFidelityInterface)";
             }
         }
 
@@ -125,7 +125,7 @@ Item {
         x: flick.width/2 - width/2
         y: flick.height/2 - height/2
         source: "../../icons/loader-snake-64-w.gif"
-        visible: _webview.loading && /^(http.*|)$/i.test(_webview.url.toString())
+        visible: webViewCore.loading && /^(http.*|)$/i.test(webViewCore.url.toString())
         playing: visible
         z: 10000
     }
