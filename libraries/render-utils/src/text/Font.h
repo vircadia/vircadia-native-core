@@ -63,7 +63,7 @@ private:
 
     // gpu structures
     gpu::PipelinePointer _pipeline;
-    gpu::PipelinePointer _layeredPipeline;
+    gpu::PipelinePointer _transparentPipeline;
     gpu::TexturePointer _texture;
     gpu::Stream::FormatPointer _format;
     gpu::BufferPointer _verticesBuffer;

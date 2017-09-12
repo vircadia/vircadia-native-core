@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  sdf_text.vert
+//  sdf_text3D.vert
 //  vertex shader
 //
 //  Created by Brad Davis on 10/14/13.
@@ -27,5 +27,6 @@ void main() {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal.xyz)$>
+    const vec3 normal = vec3(0, 0, 1);
+    <$transformModelToWorldDir(cam, obj, normal, _normal)$>
 }

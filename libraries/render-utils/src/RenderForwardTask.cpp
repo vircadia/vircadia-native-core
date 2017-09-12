@@ -17,6 +17,7 @@
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include "StencilMaskPass.h"
 
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -93,7 +94,7 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext,
             gpu::Framebuffer::BUFFER_COLOR0 |
             gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
+            vec4(vec3(0), 1), 1.0, 0, true);
     });
 
     framebuffer = _framebuffer;
@@ -130,11 +131,7 @@ const gpu::PipelinePointer Stencil::getPipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        const gpu::int8 STENCIL_OPAQUE = 1;
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS,
-                    gpu::State::STENCIL_OP_REPLACE,
-                    gpu::State::STENCIL_OP_REPLACE,
-                    gpu::State::STENCIL_OP_KEEP));
+        PrepareStencil::drawBackground(*state);
 
         _stencilPipeline = gpu::Pipeline::create(program, state);
     }
