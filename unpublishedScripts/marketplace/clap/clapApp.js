@@ -19,8 +19,8 @@ var ClapEngine = Script.require(Script.resolvePath("scripts/ClapEngine.js?v9"));
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
 // Define Menu
-var blackIcon = Script.resolvePath("http://mpassets.highfidelity.com/797180be-1d5d-4465-816e-fada92aa727a-v1/icons/clap-a.svg?foxv2");
-var whiteIcon = Script.resolvePath("http://mpassets.highfidelity.com/797180be-1d5d-4465-816e-fada92aa727a-v1/icons/clap-i.svg?foxv2");
+var blackIcon = Script.resolvePath("icons/tablet-icons/clap-a.svg?foxv2");
+var whiteIcon = Script.resolvePath("icons/tablet-icons/clap-i.svg?foxv2");
 var isActive = true;
 
 var activeButton = tablet.addButton({
