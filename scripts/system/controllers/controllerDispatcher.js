@@ -26,7 +26,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
-    var PROFILE = true;
+    var PROFILE = false;
+
+    if (typeof Test !== "undefined") {
+        PROFILE = true;
+    }
 
     function ControllerDispatcher() {
         var _this = this;
