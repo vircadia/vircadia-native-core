@@ -121,7 +121,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                                     float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                                    cube,
                                                                                    _traversal.getCurrentRootSizeScale(),
-                                                                                   lodLevelOffset);
+                                                                                   _traversal.getCurrentLODOffset());
 
                                     // Only send entities if they are large enough to see
                                     if (renderAccuracy > 0.0f) {
@@ -385,12 +385,12 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                         _entitiesInQueue.insert(entity.get());
                                     } else {
                                         // If this entity was skipped last time because it was too small, we still need to send it
-                                        float lastRenderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
-                                                                                           cube,
-                                                                                           _traversal.getCompletedRootSizeScale(),
-                                                                                           _traversal.getCompletedLODOffset());
+                                        renderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
+                                                                                 cube,
+                                                                                 _traversal.getCompletedRootSizeScale(),
+                                                                                 _traversal.getCompletedLODOffset());
 
-                                        if (lastRenderAccuracy <= 0.0f) {
+                                        if (renderAccuracy <= 0.0f) {
                                             float priority = _conicalView.computePriority(cube);
                                             _sendQueue.push(PrioritizedEntity(entity, priority));
                                             _entitiesInQueue.insert(entity.get());

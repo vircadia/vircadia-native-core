@@ -68,8 +68,8 @@ public:
     bool doesCurrentUseViewFrustum() const { return _currentView.usesViewFrustum; }
     float getCurrentRootSizeScale() const { return _currentView.rootSizeScale; }
     float getCompletedRootSizeScale() const { return _completedView.rootSizeScale; }
-    float getCurrentLODOffset() const { return _currentView.lodLevelOffset; }
-    float getCompletedLODOffset() const { return _completedView.lodLevelOffset; }
+    int32_t getCurrentLODOffset() const { return _currentView.lodLevelOffset; }
+    int32_t getCompletedLODOffset() const { return _completedView.lodLevelOffset; }
 
     uint64_t getStartOfCompletedTraversal() const { return _completedView.startTime; }
     bool finished() const { return _path.empty(); }

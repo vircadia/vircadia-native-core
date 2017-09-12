@@ -33,25 +33,22 @@ void DiffTraversal::Waypoint::getNextVisibleElementFirstTime(DiffTraversal::Visi
     } else if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
         if (element) {
-            // No LOD truncation if we aren't using the view frustum
-            if (!view.usesViewFrustum) {
-                while (_nextIndex < NUMBER_OF_CHILDREN) {
-                    EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
-                    ++_nextIndex;
-                    if (nextElement) {
+            while (_nextIndex < NUMBER_OF_CHILDREN) {
+                EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
+                ++_nextIndex;
+                if (nextElement) {
+                    if (!view.usesViewFrustum) {
+                        // No LOD truncation if we aren't using the view frustum
                         next.element = nextElement;
                         return;
-                    }
-                }
-            } else {
-                // check for LOD truncation
-                float visibleLimit = boundaryDistanceForRenderLevel(element->getLevel() + view.lodLevelOffset, view.rootSizeScale);
-                float distance2 = glm::distance2(view.viewFrustum.getPosition(), element->getAACube().calcCenter());
-                if (distance2 < visibleLimit * visibleLimit) {
-                    while (_nextIndex < NUMBER_OF_CHILDREN) {
-                        EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
-                        ++_nextIndex;
-                        if (nextElement && view.viewFrustum.cubeIntersectsKeyhole(nextElement->getAACube())) {
+                    } else if (view.viewFrustum.cubeIntersectsKeyhole(nextElement->getAACube())) {
+                        // check for LOD truncation
+                        float renderAccuracy = calculateRenderAccuracy(view.viewFrustum.getPosition(),
+                                                                       nextElement->getAACube(),
+                                                                       view.rootSizeScale,
+                                                                       view.lodLevelOffset);
+
+                        if (renderAccuracy > 0.0f) {
                             next.element = nextElement;
                             return;
                         }
@@ -78,28 +75,25 @@ void DiffTraversal::Waypoint::getNextVisibleElementRepeat(
     if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
         if (element) {
-            // No LOD truncation if we aren't using the view frustum
-            if (!view.usesViewFrustum) {
-                while (_nextIndex < NUMBER_OF_CHILDREN) {
-                    EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
-                    ++_nextIndex;
-                    if (nextElement && nextElement->getLastChanged() > lastTime) {
+            while (_nextIndex < NUMBER_OF_CHILDREN) {
+                EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
+                ++_nextIndex;
+                if (nextElement && nextElement->getLastChanged() > lastTime) {
+                    if (!view.usesViewFrustum) {
+                        // No LOD truncation if we aren't using the view frustum
                         next.element = nextElement;
                         next.intersection = ViewFrustum::INSIDE;
                         return;
-                    }
-                }
-            } else {
-                // check for LOD truncation
-                float visibleLimit = boundaryDistanceForRenderLevel(element->getLevel() + view.lodLevelOffset, view.rootSizeScale);
-                float distance2 = glm::distance2(view.viewFrustum.getPosition(), element->getAACube().calcCenter());
-                if (distance2 < visibleLimit * visibleLimit) {
-                    while (_nextIndex < NUMBER_OF_CHILDREN) {
-                        EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
-                        ++_nextIndex;
-                        if (nextElement && nextElement->getLastChanged() > lastTime) {
-                            ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
-                            if (intersection != ViewFrustum::OUTSIDE) {
+                    } else {
+                        ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
+                        if (intersection != ViewFrustum::OUTSIDE) {
+                            // check for LOD truncation
+                            float renderAccuracy = calculateRenderAccuracy(view.viewFrustum.getPosition(),
+                                                                           nextElement->getAACube(),
+                                                                           view.rootSizeScale,
+                                                                           view.lodLevelOffset);
+
+                            if (renderAccuracy > 0.0f) {
                                 next.element = nextElement;
                                 next.intersection = intersection;
                                 return;
@@ -123,21 +117,22 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
         next.element = element;
         next.intersection = ViewFrustum::INTERSECT;
         return;
-    }
-    if (_nextIndex < NUMBER_OF_CHILDREN) {
+    } else if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
         if (element) {
-            // check for LOD truncation
-            int32_t level = element->getLevel() + view.lodLevelOffset;
-            float visibleLimit = boundaryDistanceForRenderLevel(level, view.rootSizeScale);
-            float distance2 = glm::distance2(view.viewFrustum.getPosition(), element->getAACube().calcCenter());
-            if (distance2 < visibleLimit * visibleLimit) {
-                while (_nextIndex < NUMBER_OF_CHILDREN) {
-                    EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
-                    ++_nextIndex;
-                    if (nextElement) {
-                        AACube cube = nextElement->getAACube();
-                        if (view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
+            while (_nextIndex < NUMBER_OF_CHILDREN) {
+                EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
+                ++_nextIndex;
+                if (nextElement) {
+                    AACube cube = nextElement->getAACube();
+                    if (view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
+                        // check for LOD truncation
+                        float renderAccuracy = calculateRenderAccuracy(view.viewFrustum.getPosition(),
+                                                                       cube,
+                                                                       view.rootSizeScale,
+                                                                       view.lodLevelOffset);
+
+                        if (renderAccuracy > 0.0f) {
                             ViewFrustum::intersection lastIntersection = lastView.viewFrustum.calculateCubeKeyholeIntersection(cube);
                             if (lastIntersection != ViewFrustum::INSIDE || nextElement->getLastChanged() > lastView.startTime) {
                                 next.element = nextElement;
@@ -148,10 +143,12 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
                             } else {
                                 // check for LOD truncation in the last traversal because
                                 // we may need to traverse this element after all if the lastView skipped it for LOD
-                                int32_t lastLevel = element->getLevel() + lastView.lodLevelOffset;
-                                visibleLimit = boundaryDistanceForRenderLevel(lastLevel, lastView.rootSizeScale);
-                                distance2 = glm::distance2(lastView.viewFrustum.getPosition(), element->getAACube().calcCenter());
-                                if (distance2 >= visibleLimit * visibleLimit) {
+                                renderAccuracy = calculateRenderAccuracy(lastView.viewFrustum.getPosition(),
+                                                                         cube,
+                                                                         lastView.rootSizeScale,
+                                                                         lastView.lodLevelOffset);
+
+                                if (renderAccuracy <= 0.0f) {
                                     next.element = nextElement;
                                     // element's intersection with lastView was effectively OUTSIDE
                                     next.intersection = ViewFrustum::OUTSIDE;
