@@ -334,8 +334,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
 
+        
         // determine if avatar is in view, to determine how much data to include...
-        glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f;
+        glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f * otherAvatar->getSensorToWorldScale();
         AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
         bool isInView = nodeData->otherAvatarInView(otherNodeBox);
 
