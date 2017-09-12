@@ -54,7 +54,7 @@ public:
 
     void update(float deltatime) override;
 
-    void notifyRenderTransformChange() const { _renderTransformDirty = true; }
+    void notifyRenderTransformChange() const;
     virtual Transform evalRenderTransform() const;
     void setRenderTransform(const Transform& transform);
 

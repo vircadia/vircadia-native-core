@@ -235,18 +235,20 @@ void Model::updateRenderItems() {
 
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
-        Transform modelTransform = self->getTransform();
+     //   Transform modelTransform = self->getTransform();
    //     Transform modelTransform = model->getTransform();
-        modelTransform.setScale(glm::vec3(1.0f));
+    //    modelTransform.setScale(glm::vec3(1.0f));
 
         render::Transaction transaction;
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter /*, modelTransform*/](ModelMeshPartPayload& data) {
                 ModelPointer model = data._model.lock();
                 if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
 
+                        Transform modelTransform = model->getTransform();
+                        modelTransform.setScale(glm::vec3(1.0f));
 
                         const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
@@ -262,7 +264,7 @@ void Model::updateRenderItems() {
         // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
-  //      Transform modelTransform = self->getTransform();
+        Transform modelTransform = self->getTransform();
         foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
             transaction.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
