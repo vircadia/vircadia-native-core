@@ -428,6 +428,34 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     }
 
                     objectChild.children.push_back(dracoMeshNode);
+
+                    static const std::vector<QString> nodeNamesToDelete {
+                        // Node data that is packed into the draco mesh
+                        "Vertices",
+                        "PolygonVertexIndex",
+                        "LayerElementNormal",
+                        "LayerElementColor",
+                        "LayerElementUV",
+                        "LayerElementMaterial",
+                        "LayerElementTexture",
+
+                        // Node data that we don't support
+                        "Edges",
+                        "LayerElementTangent",
+                        "LayerElementBinormal",
+                        "LayerElementSmoothing"
+                    };
+                    auto& children = objectChild.children;
+                    auto it = children.begin();
+                    while (it != children.end()) {
+                        auto begin = nodeNamesToDelete.begin();
+                        auto end = nodeNamesToDelete.end();
+                        if (find(begin, end, it->name) != end) {
+                            it = children.erase(it);
+                        } else {
+                            ++it;
+                        }
+                    }
                 }
             }
         }
