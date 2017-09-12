@@ -50,10 +50,10 @@ public:
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
 
-    Q_INVOKABLE QObject* load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE QObject* loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
-    Q_INVOKABLE QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
+    Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    Q_INVOKABLE void load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    Q_INVOKABLE void load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         return load(QUrl(qmlSourceFile), f);
     }
     void clearCache();
@@ -120,7 +120,7 @@ protected:
 private:
     static QOpenGLContext* getSharedContext();
 
-    QObject* finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f);
+    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     void setupFbo();
     bool allowNewFrame(uint8_t fps);

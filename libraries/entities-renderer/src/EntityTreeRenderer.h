@@ -147,6 +147,7 @@ public slots:
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
     void setPrecisionPicking(bool value) { _setPrecisionPickingOperator(_mouseRayPickID, value); }
     EntityRendererPointer renderableForEntityId(const EntityItemID& id) const;
+    render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
 
 protected:
     virtual OctreePointer createTree() override {
@@ -156,7 +157,6 @@ protected:
     }
 
 private:
-    render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 

@@ -752,8 +752,28 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
 }
 
 void DomainServer::updateICEServerAddresses() {
-    if (_iceAddressLookupID == -1) {
+    if (_iceAddressLookupID == INVALID_ICE_LOOKUP_ID) {
         _iceAddressLookupID = QHostInfo::lookupHost(_iceServerAddr, this, SLOT(handleICEHostInfo(QHostInfo)));
+
+        // there seems to be a 5.9 bug where lookupHost never calls our slot
+        // so we add a single shot manual "timeout" to fire it off again if it hasn't called back yet
+        static const int ICE_ADDRESS_LOOKUP_TIMEOUT_MS = 5000;
+        QTimer::singleShot(ICE_ADDRESS_LOOKUP_TIMEOUT_MS, this, &DomainServer::timeoutICEAddressLookup);
+    }
+}
+
+void DomainServer::timeoutICEAddressLookup() {
+    if (_iceAddressLookupID != INVALID_ICE_LOOKUP_ID) {
+        // we waited 5s and didn't hear back for our ICE DNS lookup
+        // so time that one out and kick off another
+
+        qDebug() << "IP address lookup timed out for" << _iceServerAddr << "- retrying";
+
+        QHostInfo::abortHostLookup(_iceAddressLookupID);
+
+        _iceAddressLookupID = INVALID_ICE_LOOKUP_ID;
+
+        updateICEServerAddresses();
     }
 }
 

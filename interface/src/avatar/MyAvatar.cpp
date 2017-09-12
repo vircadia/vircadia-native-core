@@ -939,6 +939,9 @@ void MyAvatar::saveData() {
 
     settings.setValue("scale", _targetScale);
 
+    settings.setValue("yawSpeed", _yawSpeed);
+    settings.setValue("pitchSpeed", _pitchSpeed);
+
     // only save the fullAvatarURL if it has not been overwritten on command line
     // (so the overrideURL is not valid), or it was overridden _and_ we specified
     // --replaceAvatarURL (so _saveAvatarOverrideUrl is true)
@@ -1088,6 +1091,9 @@ void MyAvatar::loadData() {
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
+    _yawSpeed = loadSetting(settings, "yawSpeed", _yawSpeed);
+    _pitchSpeed = loadSetting(settings, "pitchSpeed", _pitchSpeed);
+
     _prefOverrideAnimGraphUrl.set(QUrl(settings.value("animGraphURL", "").toString()));
     _fullAvatarURLFromPreferences = settings.value("fullAvatarURL", AvatarData::defaultFullAvatarModelUrl()).toUrl();
     _fullAvatarModelName = settings.value("fullAvatarModelName", DEFAULT_FULL_AVATAR_MODEL_NAME).toString();
@@ -1210,6 +1216,15 @@ int MyAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return buffer.size();
 }
 
+ScriptAvatarData* MyAvatar::getTargetAvatar() const {
+    auto avatar = std::static_pointer_cast<Avatar>(_lookAtTargetAvatar.lock());
+    if (avatar) {
+        return new ScriptAvatar(avatar);
+    } else {
+        return nullptr;
+    }
+}
+
 void MyAvatar::updateLookAtTargetAvatar() {
     //
     //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
@@ -1238,9 +1253,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
             if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
-                smallestAngleTo = angleTo;
             }
-            if (isLookingAtMe(avatar)) {
+            if (_lookAtSnappingEnabled && avatar->getLookAtSnappingEnabled() && isLookingAtMe(avatar)) {
 
                 // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
                 glm::vec3 lookAtPosition = avatar->getHead()->getLookAtPosition(); // A position, in world space, on my avatar.
@@ -1257,14 +1271,19 @@ void MyAvatar::updateLookAtTargetAvatar() {
                  ViewFrustum viewFrustum;
                  qApp->copyViewFrustum(viewFrustum);
 
+                 glm::vec3 viewPosition = viewFrustum.getPosition();
+#if DEBUG_ALWAYS_LOOKAT_EYES_NOT_CAMERA
+                 viewPosition = (avatarLeftEye + avatarRightEye) / 2.0f;
+#endif
                 // scale gazeOffset by IPD, if wearing an HMD.
                 if (qApp->isHMDMode()) {
+                    glm::quat viewOrientation = viewFrustum.getOrientation();
                     glm::mat4 leftEye = qApp->getEyeOffset(Eye::Left);
                     glm::mat4 rightEye = qApp->getEyeOffset(Eye::Right);
                     glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
                     glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
-                    glm::vec3 humanLeftEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * leftEyeHeadLocal);
-                    glm::vec3 humanRightEye = viewFrustum.getPosition() + (viewFrustum.getOrientation() * rightEyeHeadLocal);
+                    glm::vec3 humanLeftEye = viewPosition + (viewOrientation * leftEyeHeadLocal);
+                    glm::vec3 humanRightEye = viewPosition + (viewOrientation * rightEyeHeadLocal);
 
                     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
                     float ipdScale = hmdInterface->getIPDScale();
@@ -1278,7 +1297,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 }
 
                 // And now we can finally add that offset to the camera.
-                glm::vec3 corrected = viewFrustum.getPosition() + gazeOffset;
+                glm::vec3 corrected = viewPosition + gazeOffset;
 
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
 
@@ -1893,6 +1912,17 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel->setEnableCauterization(!shouldDrawHead);
+
+        for (int i = 0; i < _attachmentData.size(); i++) {
+            if (_attachmentData[i].jointName.compare("Head", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("Neck", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("LeftEye", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
+                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene());
+            }
+        }
     }
     _prevShouldDrawHead = shouldDrawHead;
 }
@@ -2526,6 +2556,7 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
     setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
+    setProperty("lookAtSnappingEnabled", menu->isOptionChecked(MenuOption::EnableLookAtSnapping));
 }
 
 void MyAvatar::setFlyingEnabled(bool enabled) {

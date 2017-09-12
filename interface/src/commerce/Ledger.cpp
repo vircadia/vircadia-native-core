@@ -11,6 +11,7 @@
 
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QTimeZone>
 #include <QJsonDocument>
 #include "AccountManager.h"
 #include "Wallet.h"
@@ -107,3 +108,71 @@ void Ledger::inventory(const QStringList& keys) {
     keysQuery("inventory", "inventorySuccess", "inventoryFailure");
 }
 
+QString nameFromKey(const QString& key, const QStringList& publicKeys) {
+    if (key.isNull() || key.isEmpty()) {
+        return "<b>Marketplace</b>";
+    }
+    if (publicKeys.contains(key)) {
+        return "You";
+    }
+    return "<b>Someone</b>";
+}
+
+void Ledger::historySuccess(QNetworkReply& reply) {
+    // here we send a historyResult with some extra stuff in it
+    // Namely, the styled text we'd like to show.  The issue is the
+    // QML cannot do that easily since it doesn't know what the wallet
+    // public key(s) are.  Let's keep it that way
+    QByteArray response = reply.readAll();
+    QJsonObject data = QJsonDocument::fromJson(response).object();
+
+    // we will need the array of public keys from the wallet
+    auto wallet = DependencyManager::get<Wallet>();
+    auto keys = wallet->listPublicKeys();
+
+    // now we need to loop through the transactions and add fancy text...
+    auto historyArray = data.find("data").value().toObject().find("history").value().toArray();
+    QJsonArray newHistoryArray;
+
+    // TODO: do this with 0 copies if possible
+    for(auto it = historyArray.begin(); it != historyArray.end(); it++) {
+        auto valueObject = (*it).toObject();
+        QString from = nameFromKey(valueObject["sender_key"].toString(), keys);
+        QString to = nameFromKey(valueObject["recipient_key"].toString(), keys);
+        // turns out on my machine, toLocalTime convert to some weird timezone, yet the
+        // systemTimeZone is correct.  To avoid a strange bug with other's systems too, lets
+        // be explicit
+#ifdef Q_OS_MAC
+        QDateTime createdAt = QDateTime::fromTime_t(valueObject["created_at"].toInt(), Qt::UTC);
+#else
+        QDateTime createdAt = QDateTime::fromSecsSinceEpoch(valueObject["created_at"].toInt(), Qt::UTC);
+#endif
+        QDateTime localCreatedAt = createdAt.toTimeZone(QTimeZone::systemTimeZone());
+        valueObject["text"] = QString("%1 sent %2 <b>%3 %4</b> on %5 with message \"%6\"").
+            arg(from, to, QString::number(valueObject["quantity"].toInt()), valueObject["asset_title"].toString(), localCreatedAt.toString(Qt::SystemLocaleShortDate), valueObject["message"].toString());
+        newHistoryArray.push_back(valueObject);
+    }
+    // now copy the rest of the json -- this is inefficient
+    // TODO: try to do this without making copies
+    QJsonObject newData;
+    newData["status"] = "success";
+    QJsonObject newDataData;
+    newDataData["history"] = newHistoryArray;
+    newData["data"] = newDataData;
+    emit historyResult(newData);
+}
+
+void Ledger::historyFailure(QNetworkReply& reply) {
+    failResponse("history", reply);
+}
+
+void Ledger::history(const QStringList& keys) {
+    keysQuery("history", "historySuccess", "historyFailure");
+}
+
+// The api/failResponse is called just for the side effect of logging.
+void Ledger::resetSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
+void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); }
+void Ledger::reset() {
+    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, QJsonObject());
+}

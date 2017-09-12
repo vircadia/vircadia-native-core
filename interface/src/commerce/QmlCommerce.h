@@ -28,26 +28,33 @@ public:
     QmlCommerce(QQuickItem* parent = nullptr);
 
 signals:
+    void loginStatusResult(bool isLoggedIn);
+    void keyFilePathIfExistsResult(const QString& path);
+    void securityImageResult(bool exists);
+    void walletAuthenticatedStatusResult(bool isAuthenticated);
+
     void buyResult(QJsonObject result);
     // Balance and Inventory are NOT properties, because QML can't change them (without risk of failure), and
     // because we can't scalably know of out-of-band changes (e.g., another machine interacting with the block chain).
     void balanceResult(QJsonObject result);
     void inventoryResult(QJsonObject result);
-    void securityImageResult(bool exists);
-    void loginStatusResult(bool isLoggedIn);
-    void passphraseSetupStatusResult(bool passphraseIsSetup);
-    void keyFilePathIfExistsResult(const QString& path);
+    void historyResult(QJsonObject result);
 
 protected:
+    Q_INVOKABLE void getLoginStatus();
+    Q_INVOKABLE void getKeyFilePathIfExists();
+    Q_INVOKABLE void getSecurityImage();
+    Q_INVOKABLE void getWalletAuthenticatedStatus();
+
+    Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
+    Q_INVOKABLE void setPassphrase(const QString& passphrase);
+
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
     Q_INVOKABLE void balance();
     Q_INVOKABLE void inventory();
-    Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
-    Q_INVOKABLE void getSecurityImage();
-    Q_INVOKABLE void getLoginStatus();
-    Q_INVOKABLE void setPassphrase(const QString& passphrase);
-    Q_INVOKABLE void getPassphraseSetupStatus();
-    Q_INVOKABLE void getKeyFilePathIfExists();
+    Q_INVOKABLE void history();
+    Q_INVOKABLE void generateKeyPair();
+    Q_INVOKABLE void reset();
 };
 
 #endif // hifi_QmlCommerce_h

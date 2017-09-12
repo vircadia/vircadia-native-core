@@ -64,6 +64,8 @@ class AssetServer : public ThreadedAssignment {
 public:
     AssetServer(ReceivedMessage& message);
 
+    void aboutToFinish() override;
+
 public slots:
     void run() override;
 
@@ -137,6 +139,11 @@ private:
 
     QHash<AssetHash, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
+
+    bool _wasColorTextureCompressionEnabled { false };
+    bool _wasGrayscaleTextureCompressionEnabled { false  };
+    bool _wasNormalTextureCompressionEnabled { false };
+    bool _wasCubeTextureCompressionEnabled { false };
 };
 
 #endif

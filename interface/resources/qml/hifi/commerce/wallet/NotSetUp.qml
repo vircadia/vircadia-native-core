@@ -80,7 +80,7 @@ Item {
 
     // "Set Up" button
     HifiControlsUit.Button {
-        color: hifi.buttons.black;
+        color: hifi.buttons.blue;
         colorScheme: hifi.colorSchemes.dark;
         anchors.bottom: parent.bottom;
         anchors.bottomMargin: 150;
