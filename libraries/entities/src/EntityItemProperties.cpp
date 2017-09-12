@@ -1430,9 +1430,9 @@ QByteArray EntityItemProperties::packNormals(const QVector<glm::vec3>& normals) 
     int index = 1;
     for (int i = 0; i < normalsSize; i++) {
         unsigned char auxBuffer[6];
-        int numBytes = packFloatVec3ToSignedTwoByteFixed(auxBuffer, normals[i], 15);
+        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, normals[i], 15);
         qDebug() << "PACKINGNORMALS " << normals[i].x << " " << normals[i].y << " " << normals[i].z;
-        memcpy(packedNormals.data() + index, auxBuffer, numBytes);
+        //memcpy(packedNormals.data() + index, auxBuffer, numBytes);
         index += numBytes;
     }
     qDebug() << "----------------ENDPACKINGNORMALS--------------------";
@@ -1458,9 +1458,9 @@ QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& stro
         uint8_t b = strokeColors[i].b * 255;
 
         // add the color to the QByteArray
-        packedStrokeColors.push_back(r);
-        packedStrokeColors.push_back(g);
-        packedStrokeColors.push_back(b);
+        packedStrokeColors[i * 3] = strokeColors[i].r * 255;
+        packedStrokeColors[i * 3 + 1] = strokeColors[i].g * 255;
+        packedStrokeColors[i * 3 + 2] = strokeColors[i].b * 255;
 
         qDebug() << "PACKINGSTROKECOLORS" << strokeColors[i].r << " " << strokeColors[i].g << " " << strokeColors[i].b;
     }
@@ -1726,7 +1726,7 @@ QVector<glm::vec3> EntityItemProperties::unpackNormals(const QByteArray& normals
         for (int i = 1; i < normals.size();) {
             glm::vec3 aux = glm::vec3();
             i += unpackFloatVec3FromSignedTwoByteFixed((unsigned char*)normals.data() + i, aux, 15);
-            unpackedNormals.push_back(aux);
+            unpackedNormals[i] = aux;
             qDebug() << "UNPACKINGNORMALS::" << unpackedNormals.back().x << " " << unpackedNormals.back().y << " " << unpackedNormals.back().z;
         }
     }
@@ -1751,13 +1751,10 @@ QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& st
             float b = strokeColors[i++] / 255.0f;
             qDebug() << "UNPACKINGSTROKECOLORS " << r << " " << g << " " << b;
 
-            unpackedStrokeColors.push_back(glmVec3(r, g, b));
+            unpackedStrokeColors[i] = glmVec3(r, g, b);
         }
-
     }
-
     qDebug() << "-----------------ENDUNPACKINGSTROKECOLORS------------------";
-
     return unpackedStrokeColors;
 }
 
