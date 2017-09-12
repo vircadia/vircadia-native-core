@@ -137,8 +137,12 @@ void GetAllMappingsRequest::doStart() {
                 auto path = message->readString();
                 auto hash = message->read(SHA256_HASH_LENGTH).toHex();
                 BakingStatus status;
+                QString lastBakeErrors;
                 message->readPrimitive(&status);
-                _mappings[path] = { hash, status };
+                if (status == BakingStatus::Error) {
+                    lastBakeErrors = message->readString();
+                }
+                _mappings[path] = { hash, status, lastBakeErrors };
             }
         }
         emit finished(this);

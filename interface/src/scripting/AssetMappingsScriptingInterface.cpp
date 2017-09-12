@@ -261,6 +261,7 @@ void AssetMappingModel::refresh() {
                     // update status
                     auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                     lastItem->setData(statusString, Qt::UserRole + 5);
+                    lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
                 }
 
                 Q_ASSERT(fullPath == path);

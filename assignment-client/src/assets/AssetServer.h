@@ -40,7 +40,7 @@ public:
 
 signals:
     void bakeComplete(QString assetHash, QString assetPath, QVector<QString> outputFiles);
-    void bakeFailed(QString assetHash, QString assetPath);
+    void bakeFailed(QString assetHash, QString assetPath, QString errors);
 
 private:
     std::atomic<bool> _isBaking { false };
@@ -56,6 +56,7 @@ struct AssetMeta {
     int bakeVersion { 0 };
     int applicationVersion { 0 };
     bool failedLastBake { false };
+    QString lastBakeErrors;
 };
 
 class AssetServer : public ThreadedAssignment {
@@ -108,7 +109,7 @@ private:
 
     QString getPathToAssetHash(const AssetHash& assetHash);
 
-    BakingStatus getAssetStatus(const AssetPath& path, const AssetHash& hash);
+    std::pair<BakingStatus, QString> getAssetStatus(const AssetPath& path, const AssetHash& hash);
 
     void bakeAssets();
     void maybeBake(const AssetPath& path, const AssetHash& hash);
@@ -119,7 +120,7 @@ private:
 
     /// Move baked content for asset to baked directory and update baked status
     void handleCompletedBake(QString originalAssetHash, QString assetPath, QVector<QString> bakedFilePaths);
-    void handleFailedBake(QString originalAssetHash, QString assetPath);
+    void handleFailedBake(QString originalAssetHash, QString assetPath, QString errors);
 
     /// Create meta file to describe baked content for original asset
     std::pair<bool, AssetMeta> readMetaFile(AssetHash hash);

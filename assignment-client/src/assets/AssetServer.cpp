@@ -83,7 +83,8 @@ void BakeAssetTask::run() {
 
     if (baker->hasErrors()) {
         qDebug() << "Failed to bake: " << _assetHash << _assetPath << baker->getErrors();
-        emit bakeFailed(_assetHash, _assetPath);
+        auto errors = baker->getErrors().join('\n'); // Join error list into a single string for convenience
+        emit bakeFailed(_assetHash, _assetPath, errors);
     } else {
         auto vectorOutputFiles = QVector<QString>::fromStdVector(baker->getOutputFiles());
         qDebug() << "Finished baking: " << _assetHash << _assetPath << vectorOutputFiles;
@@ -112,19 +113,19 @@ QString AssetServer::getPathToAssetHash(const AssetHash& assetHash) {
     return _filesDirectory.absoluteFilePath(assetHash);
 }
 
-BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash& hash) {
+std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& path, const AssetHash& hash) {
     auto it = _pendingBakes.find(hash);
     if (it != _pendingBakes.end()) {
-        return (*it)->isBaking() ? Baking : Pending;
+        return { (*it)->isBaking() ? Baking : Pending, "" };
     }
 
     if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
-        return Baked;
+        return { Baked, "" };
     }
 
     auto dotIndex = path.lastIndexOf(".");
     if (dotIndex == -1) {
-        return Irrelevant;
+        return { Irrelevant, "" };
     }
 
     auto extension = path.mid(dotIndex + 1);
@@ -136,28 +137,28 @@ BakingStatus AssetServer::getAssetStatus(const AssetPath& path, const AssetHash&
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
     } else {
-        return Irrelevant;
+        return { Irrelevant, "" };
     }
 
     auto bakedPath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + bakedFilename;
     auto jt = _fileMappings.find(bakedPath);
     if (jt != _fileMappings.end()) {
         if (jt->second == hash) {
-            bool loaded;
-            AssetMeta meta;
-
-            std::tie(loaded, meta) = readMetaFile(hash);
-            if (loaded && meta.failedLastBake) {
-                return Error;
-            }
-
-            return NotBaked;
+            return { NotBaked, "" };
         } else {
-            return Baked;
+            return { Baked, "" };
+        }
+    } else {
+        bool loaded;
+        AssetMeta meta;
+
+        std::tie(loaded, meta) = readMetaFile(hash);
+        if (loaded && meta.failedLastBake) {
+            return { Error, meta.lastBakeErrors };
         }
     }
     
-    return Pending;
+    return { Pending, "" };
 }
 
 void AssetServer::bakeAssets() {
@@ -564,7 +565,14 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
         auto hash = it->second;
         replyPacket.writeString(mapping);
         replyPacket.write(QByteArray::fromHex(hash.toUtf8()));
-        replyPacket.writePrimitive(getAssetStatus(mapping, hash));
+
+        BakingStatus status;
+        QString lastBakeErrors;
+        std::tie(status, lastBakeErrors) = getAssetStatus(mapping, hash);
+        replyPacket.writePrimitive(status);
+        if (status == Error) {
+            replyPacket.writeString(lastBakeErrors);
+        }
     }
 }
 
@@ -1146,8 +1154,8 @@ QString getBakeMapping(const AssetHash& hash, const QString& relativeFilePath) {
     return HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
 }
 
-void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath) {
-    qDebug() << "Failed: " << originalAssetHash << assetPath;
+void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath, QString errors) {
+    qDebug() << "Failed: " << originalAssetHash << assetPath << errors;
 
     bool loaded;
     AssetMeta meta;
@@ -1155,6 +1163,7 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath)
     std::tie(loaded, meta) = readMetaFile(originalAssetHash);
 
     meta.failedLastBake = true;
+    meta.lastBakeErrors = errors;
 
     writeMetaFile(originalAssetHash, meta);
 }
@@ -1239,6 +1248,7 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
 static const QString BAKE_VERSION_KEY = "bake_version";
 static const QString APP_VERSION_KEY = "app_version";
 static const QString FAILED_LAST_BAKE_KEY = "failed_last_bake";
+static const QString LAST_BAKE_ERRORS_KEY = "last_bake_errors";
 
 std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetHash hash) {
     auto metaFilePath = HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + "meta.json";
@@ -1265,15 +1275,18 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetHash hash) {
             auto bakeVersion = root[BAKE_VERSION_KEY].toInt(-1);
             auto appVersion = root[APP_VERSION_KEY].toInt(-1);
             auto failedLastBake = root[FAILED_LAST_BAKE_KEY];
+            auto lastBakeErrors = root[LAST_BAKE_ERRORS_KEY];
 
             if (bakeVersion != -1
                 && appVersion != -1
-                && failedLastBake.isBool()) {
+                && failedLastBake.isBool()
+                && lastBakeErrors.isString()) {
 
                 AssetMeta meta;
                 meta.bakeVersion = bakeVersion;
                 meta.applicationVersion = appVersion;
                 meta.failedLastBake = failedLastBake.toBool();
+                meta.lastBakeErrors = failedLastBake.toString();
 
                 return { true, meta };
             } else {
@@ -1292,6 +1305,7 @@ bool AssetServer::writeMetaFile(AssetHash originalAssetHash, const AssetMeta& me
     metaFileObject[BAKE_VERSION_KEY] = meta.bakeVersion;
     metaFileObject[APP_VERSION_KEY] = meta.applicationVersion;
     metaFileObject[FAILED_LAST_BAKE_KEY] = meta.failedLastBake;
+    metaFileObject[LAST_BAKE_ERRORS_KEY] = meta.lastBakeErrors;
 
     QJsonDocument metaFileDoc;
     metaFileDoc.setObject(metaFileObject);
