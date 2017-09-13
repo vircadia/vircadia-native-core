@@ -84,8 +84,10 @@
     }
 
     function onSensorToWorldScaleChanged(sensorScaleFactor) {
-        var newTabletScalePercentage = getTabletScalePercentageFromSettings();
-        resizeTablet(DEFAULT_WIDTH * (newTabletScalePercentage / 100), undefined, sensorScaleFactor);
+        if (HMD.active) {
+            var newTabletScalePercentage = getTabletScalePercentageFromSettings();
+            resizeTablet(DEFAULT_WIDTH * (newTabletScalePercentage / 100), undefined, sensorScaleFactor);
+        }
     }
 
     function rezTablet() {
