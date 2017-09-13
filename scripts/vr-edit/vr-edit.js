@@ -522,8 +522,10 @@
 
         function stopDirectScaling() {
             // Called on grabbing hand by scaling hand.
-            selection.finishDirectScaling();
-            isDirectScaling = false;
+            if (isDirectScaling) {
+                selection.finishDirectScaling();
+                isDirectScaling = false;
+            }
         }
 
         function startHandleScaling(targetPosition, overlayID) {
@@ -557,10 +559,12 @@
 
         function stopHandleScaling() {
             // Called on grabbing hand by scaling hand.
-            handles.finishScaling();
-            selection.finishHandleScaling();
-            handles.grab(null);  // Stop highlighting grabbed handle and resume displaying all handles.
-            isHandleScaling = false;
+            if (isHandleScaling) {
+                handles.finishScaling();
+                selection.finishHandleScaling();
+                handles.grab(null);  // Stop highlighting grabbed handle and resume displaying all handles.
+                isHandleScaling = false;
+            }
         }
 
 
@@ -739,6 +743,8 @@
         }
 
         function exitEditorGrabbing() {
+            stopDirectScaling();
+            stopHandleScaling();
             finishEditing();
             handles.clear();
             otherEditor.setHandleOverlays([]);

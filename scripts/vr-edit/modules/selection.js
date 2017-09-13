@@ -262,7 +262,9 @@ Selection = function (side) {
         }
 
         // Add history entry.
-        if (selection.length > 0) {
+        if (selection.length > 0
+                && (!Vec3.equal(startPosition, rootPosition) || !Quat.equal(startOrientation, rootOrientation))) {
+            // Positions and orientations can be identical if change grabbing hands when finish scaling.
             History.push(
                 {
                     setProperties: [
