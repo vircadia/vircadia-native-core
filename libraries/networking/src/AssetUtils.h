@@ -66,6 +66,7 @@ enum BakingStatus {
 struct MappingInfo {
     AssetHash hash;
     BakingStatus status;
+    QString bakingErrors;
 };
 
 using AssetMapping = std::map<AssetPath, MappingInfo>;

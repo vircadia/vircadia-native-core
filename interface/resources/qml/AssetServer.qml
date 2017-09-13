@@ -561,7 +561,7 @@ ScrollingWindow {
                         case "Not Baked":
                             return hifi.glyphs.circleSlash;
                         case "Baked":
-                            return hifi.glyphs.placemark;
+                            return hifi.glyphs.check_2_01;
                         case "Error":
                             return hifi.glyphs.alert;
                         default:
@@ -606,6 +606,14 @@ ScrollingWindow {
                        
                         elide: Text.ElideRight
                         horizontalAlignment: TextInput.AlignHCenter
+
+                        HifiControls.ToolTip {
+                            anchors.fill: parent
+
+                            visible: styleData.value === "Error"
+
+                            toolTip: assetProxyModel.data(styleData.index, 0x106)
+                        }
                     }
                 }
                 Component {
@@ -651,7 +659,7 @@ ScrollingWindow {
                         }
                         onAccepted:  {
                             if (acceptableInput && styleData.selected) {
-                                if (!modifyEl(selection.currentIndex, text)) {
+                                if (!treeView.modifyEl(treeView.selection.currentIndex, text)) {
                                     text = styleData.value;
                                 }
                                 unfocusHelper.forceActiveFocus();
