@@ -1670,8 +1670,11 @@ function MyController(hand) {
 
         var nearestStylusTarget = calculateNearestStylusTarget(stylusTargets);
 
-        if (nearestStylusTarget && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
-            nearestStylusTarget.distance < TABLET_MAX_HOVER_DISTANCE) {
+        var SCALED_TABLET_MIN_TOUCH_DISTANCE = TABLET_MIN_TOUCH_DISTANCE * sensorScaleFactor;
+        var SCALED_TABLET_MAX_TOUCH_DISTANCE = TABLET_MAX_TOUCH_DISTANCE * sensorScaleFactor;
+        var SCALED_TABLET_MAX_HOVER_DISTANCE = TABLET_MAX_HOVER_DISTANCE * sensorScaleFactor;
+        if (nearestStylusTarget && nearestStylusTarget.distance > SCALED_TABLET_MIN_TOUCH_DISTANCE &&
+            nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE) {
 
             this.requestTouchFocus(nearestStylusTarget);
 
@@ -1685,8 +1688,8 @@ function MyController(hand) {
 
             // filter out presses when tip is moving away from tablet.
             // ensure that stylus is within bounding box by checking normalizedPosition
-            if (nearestStylusTarget.valid && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
-                nearestStylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE && Vec3.dot(this.stylusTip.velocity, nearestStylusTarget.normal) < 0 &&
+            if (nearestStylusTarget.valid && nearestStylusTarget.distance > SCALED_TABLET_MIN_TOUCH_DISTANCE &&
+                nearestStylusTarget.distance < SCALED_TABLET_MAX_TOUCH_DISTANCE && Vec3.dot(this.stylusTip.velocity, nearestStylusTarget.normal) < 0 &&
                 nearestStylusTarget.normalizedPosition.x >= 0 && nearestStylusTarget.normalizedPosition.x <= 1 &&
                 nearestStylusTarget.normalizedPosition.y >= 0 && nearestStylusTarget.normalizedPosition.y <= 1) {
 
