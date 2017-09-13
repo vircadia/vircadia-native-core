@@ -539,7 +539,7 @@ clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         activeHudPoint2dGamePad();
         var noHands = -1;
-        Messages.sendLocalMessage("toggleHand", noHands);
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
       }
 
       wantsMenu = clicked;

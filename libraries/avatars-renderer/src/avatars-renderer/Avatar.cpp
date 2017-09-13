@@ -557,8 +557,8 @@ void Avatar::postUpdate(float deltaTime) {
 
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;
-        const glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
-        const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const glm::vec4 BLUE(0.0f, 0.0f, _lookAtSnappingEnabled ? 1.0f : 0.25f, 1.0f);
+        const glm::vec4 RED(_lookAtSnappingEnabled ? 1.0f : 0.25f, 0.0f, 0.0f, 1.0f);
 
         int leftEyeJoint = getJointIndex("LeftEye");
         glm::vec3 leftEyePosition;
@@ -648,7 +648,9 @@ void Avatar::render(RenderArgs* renderArgs) {
         return;
     }
 
-    fixupModelsInScene(renderArgs->_scene);
+    if (!isMyAvatar()) {
+        fixupModelsInScene(renderArgs->_scene);
+    }
 
     if (showCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
         PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
