@@ -434,7 +434,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                     FBXNode dracoMeshNode;
                     dracoMeshNode.name = "DracoMesh";
-                    auto value = QVariant::fromValue(QByteArray(buffer.data(), buffer.size()));
+                    auto value = QVariant::fromValue(QByteArray(buffer.data(), (int) buffer.size()));
                     dracoMeshNode.properties.append(value);
 
 
@@ -653,13 +653,13 @@ void FBXBaker::handleBakedTexture() {
             } else {
                 // there was an error baking this texture - add it to our list of errors
                 _errorList.append(bakedTexture->getErrors());
-                
+
                 // we don't emit finished yet so that the other textures can finish baking first
                 _pendingErrorEmission = true;
-                
+
                 // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
                 _bakingTextures.remove(bakedTexture->getTextureURL());
-                
+
                 checkIfTexturesFinished();
             }
         } else {
