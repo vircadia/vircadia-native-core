@@ -606,6 +606,14 @@ ScrollingWindow {
                        
                         elide: Text.ElideRight
                         horizontalAlignment: TextInput.AlignHCenter
+
+                        HifiControls.ToolTip {
+                            anchors.fill: parent
+
+                            visible: styleData.value === "Error"
+
+                            toolTip: assetProxyModel.data(styleData.index, 0x106)
+                        }
                     }
                 }
                 Component {
