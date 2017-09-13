@@ -531,6 +531,8 @@ Selection = function (side) {
             intersectedEntityIndex = 0,
             parentID,
             properties,
+            undoData = [],
+            redoData = [],
             i,
             j,
             length;
@@ -556,10 +558,19 @@ Selection = function (side) {
                 properties.parentID = selection[parentIDIndexes[i]].id;
             }
             selection[i].id = Entities.addEntity(properties);
+            undoData.push({ entityID: selection[i].id });
+            redoData.push({ entityID: selection[i].id, properties: properties });
         }
 
+        // Update selection info.
         intersectedEntityID = selection[intersectedEntityIndex].id;
         rootEntityID = selection[0].id;
+
+        // Add history entry.
+        History.push(
+            { deleteEntities: undoData },
+            { createEntities: redoData }
+        );
     }
 
     function applyColor(color, isApplyToAll) {
