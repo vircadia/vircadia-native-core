@@ -4,7 +4,9 @@ if (ANDROID)
   set(ANDROID_CMAKE_ARGS "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DANDROID_NATIVE_API_LEVEL=19")
 endif ()
 
-set(EXTRA_CMAKE_FLAGS -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_EXE_LINKER_FLAGS=-stdlib=libc++)
+if (APPLE)
+  set(EXTRA_CMAKE_FLAGS -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_EXE_LINKER_FLAGS=-stdlib=libc++)
+endif ()
 
 include(ExternalProject)
 ExternalProject_Add(

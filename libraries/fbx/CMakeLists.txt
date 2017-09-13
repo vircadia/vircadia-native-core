@@ -6,5 +6,5 @@ include_hifi_library_headers(gpu image)
 
 add_dependency_external_projects(draco)
 find_package(Draco REQUIRED)
-include_directories(SYSTEM ${DRACO_INCLUDE_DIRS})
+target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${DRACO_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${DRACO_LIBRARY} ${DRACO_ENCODER_LIBRARY})
