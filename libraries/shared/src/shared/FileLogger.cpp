@@ -48,7 +48,7 @@ static const QString LOGS_DIRECTORY = "Logs";
 static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
 static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[0,1][0-9]-[0-3][0-9]_[0-2][0-9].[0-6][0-9].[0-6][0-9]";
 static const QString FILENAME_WILDCARD = "hifi-log_" + IPADDR_WILDCARD + "_" + DATETIME_WILDCARD + ".txt";
-QUuid SESSION_ID;
+QUuid _sessionId;
 
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
 // small so it doesn't go over the 2MB zipped limit for all of the files we send.
@@ -64,13 +64,13 @@ QString getLogRollerFilename() {
     QString result = FileUtils::standardPath(LOGS_DIRECTORY);
     QHostAddress clientAddress = getGuessedLocalAddress();
     QDateTime now = QDateTime::currentDateTime();
-    QString FILE_SESSION_ID;
+    QString fileSessionID;
 
-    if (!SESSION_ID.isNull()) {
-        FILE_SESSION_ID = "_" + SESSION_ID.toString().replace("{", "").replace("}", "");
+    if (!_sessionId.isNull()) {
+        fileSessionID = "_" + _sessionId.toString().replace("{", "").replace("}", "");
     }
 
-    result.append(QString(FILENAME_FORMAT).arg(FILE_SESSION_ID, now.toString(DATETIME_FORMAT)));
+    result.append(QString(FILENAME_FORMAT).arg(fileSessionID, now.toString(DATETIME_FORMAT)));
     return result;
 }
 
@@ -151,8 +151,10 @@ FileLogger::~FileLogger() {
 }
 
 void FileLogger::setSessionID(const QUuid& message) {
-    SESSION_ID = message; // This is for the output of log files. It will change if the Avatar enters a different domain.
-}
+    // This is for the output of log files. Once the application is first started, 
+    // this function runs and grabs the AccountManager Session ID and saves it here.
+    _sessionId = message;
+    }
 
 void FileLogger::addMessage(const QString& message) {
     _persistThreadInstance->queueItem(message);
