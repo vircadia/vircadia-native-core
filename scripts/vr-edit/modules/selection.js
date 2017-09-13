@@ -23,8 +23,6 @@ Selection = function (side) {
         rootPosition,
         rootOrientation,
         scaleFactor,
-        scaleRotation,
-        scaleCenter,
         scalePosition,
         scaleOrientation,
         scaleRootOffset,
@@ -327,10 +325,8 @@ Selection = function (side) {
             });
         }
 
-        // Save most recent scale parameters.
+        // Save most recent scale factor.
         scaleFactor = factor;
-        scaleRotation = rotation;
-        scaleCenter = center;
     }
 
     function finishDirectScaling() {
@@ -338,8 +334,6 @@ Selection = function (side) {
         var i,
             length;
         // Final scale, position, and orientation of root.
-        rootPosition = Vec3.sum(scaleCenter, Vec3.multiply(scaleFactor, Vec3.multiplyQbyV(scaleRotation, scaleRootOffset)));
-        rootOrientation = Quat.multiply(scaleRotation, scaleRootOrientation);
         selection[0].dimensions = Vec3.multiply(scaleFactor, selection[0].dimensions);
         selection[0].position = rootPosition;
         selection[0].rotation = rootOrientation;
@@ -394,8 +388,8 @@ Selection = function (side) {
 
         // Final scale and position of root.
         selection[0].dimensions = Vec3.multiplyVbyV(scaleFactor, selection[0].dimensions);
-        selection[0].position = scalePosition;
-        selection[0].rotation = scaleOrientation;
+        selection[0].position = rootPosition;
+        selection[0].rotation = rootOrientation;
 
         // Final scale and position of children.
         for (i = 1, length = selection.length; i < length; i += 1) {
@@ -462,7 +456,7 @@ Selection = function (side) {
                 }
             }
             if (undoData.length > 0) {
-                History.push(undoData, redoData);
+                History.push({ setProperties: undoData }, { setProperties: redoData });
             }
         } else {
             properties = Entities.getEntityProperties(intersectedEntityID, ["type", "color"]);

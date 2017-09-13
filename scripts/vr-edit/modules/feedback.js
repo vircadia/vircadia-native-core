@@ -37,8 +37,8 @@ Feedback = (function () {
             EQUIP_TOOL:      { sound: EQUIP_SOUND,  volume: 0.3, haptic: 0.6   },
             APPLY_PROPERTY:  { sound: null,         volume: 0,   haptic: 0.3   },
             APPLY_ERROR:     { sound: ERROR_SOUND,  volume: 0.2, haptic: 0.7   },
-            UNDO_ACTION:     { sound: UNDO_SOUND,   volume: 0.2, haptic: 0.2   },  // TODO
-            REDO_ACTION:     { sound: REDO_SOUND,   volume: 0.2, haptic: 0.2   },  // TODO
+            UNDO_ACTION:     { sound: UNDO_SOUND,   volume: 0.1, haptic: 0.2   },  // TODO
+            REDO_ACTION:     { sound: REDO_SOUND,   volume: 0.1, haptic: 0.2   },  // TODO
             GENERAL_ERROR:   { sound: ERROR_SOUND,  volume: 0.2, haptic: 0.7   }
         },
 

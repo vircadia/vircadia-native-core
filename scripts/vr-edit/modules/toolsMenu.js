@@ -1561,7 +1561,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "deleeteRule1",
+                    id: "deleteRule1",
                     type: "horizontalRule",
                     properties: {
                         localPosition: {
