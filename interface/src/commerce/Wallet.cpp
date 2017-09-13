@@ -371,7 +371,7 @@ bool Wallet::readSecurityImage(const QString& inputFilePath, unsigned char** out
 
     QByteArray base64EncryptedBuffer;
 
-    while(!inputFile.atEnd()) {
+    while (!inputFile.atEnd()) {
         QString line(inputFile.readLine());
         if (!foundHeader) {
             foundHeader = (line == IMAGE_HEADER);
