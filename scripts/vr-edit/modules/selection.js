@@ -31,7 +31,10 @@ Selection = function (side) {
         startOrientation,
         ENTITY_TYPE = "entity",
         ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine", "PolyVox"],
-        ENTITY_TYPES_2D = ["Text", "Web"];
+        ENTITY_TYPES_2D = ["Text", "Web"],
+        MIN_HISTORY_MOVE_DISTANCE = 0.005,
+        MIN_HISTORY_ROTATE_ANGLE = 0.017453;  // Radians = 1 degree.
+
 
 
     if (!this instanceof Selection) {
@@ -300,6 +303,26 @@ Selection = function (side) {
         // Save initial position and orientation so that can scale relative to these without accumulating float errors.
         scaleRootOffset = Vec3.subtract(rootPosition, center);
         scaleRootOrientation = rootOrientation;
+
+        // User is grabbing entity; add a history entry for movement up until the start of scaling and update start position and
+        // orientation; unless very small movement.
+        if (Vec3.distance(startPosition, rootPosition) >= MIN_HISTORY_MOVE_DISTANCE
+                || Quat.rotationBetween(startOrientation, rootOrientation) >= MIN_HISTORY_ROTATE_ANGLE) {
+            History.push(
+                {
+                    setProperties: [
+                        { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
+                    ]
+                },
+                {
+                    setProperties: [
+                        { entityID: rootEntityID, properties: { position: rootPosition, rotation: rootOrientation } }
+                    ]
+                }
+            );
+            startPosition = rootPosition;
+            startOrientation = rootOrientation;
+        }
     }
 
     function directScale(factor, rotation, center) {
@@ -331,23 +354,86 @@ Selection = function (side) {
 
     function finishDirectScaling() {
         // Update selection with final entity properties.
-        var i,
+        var undoData = [],
+            redoData = [],
+            i,
             length;
+
         // Final scale, position, and orientation of root.
+        undoData.push({
+            entityID: selection[0].id,
+            properties: {
+                dimensions: selection[0].dimensions,
+                position: startPosition,
+                rotation: startOrientation
+            }
+        });
         selection[0].dimensions = Vec3.multiply(scaleFactor, selection[0].dimensions);
         selection[0].position = rootPosition;
         selection[0].rotation = rootOrientation;
+        redoData.push({
+            entityID: selection[0].id,
+            properties: {
+                dimensions: selection[0].dimensions,
+                position: selection[0].position,
+                rotation: selection[0].rotation
+            }
+        });
 
         // Final scale and position of children.
         for (i = 1, length = selection.length; i < length; i += 1) {
+            undoData.push({
+                entityID: selection[i].id,
+                properties: {
+                    dimensions: selection[i].dimensions,
+                    localPosition: selection[i].localPosition
+                }
+            });
             selection[i].dimensions = Vec3.multiply(scaleFactor, selection[i].dimensions);
             selection[i].localPosition = Vec3.multiply(scaleFactor, selection[i].localPosition);
+            redoData.push({
+                entityID: selection[i].id,
+                properties: {
+                    dimensions: selection[i].dimensions,
+                    localPosition: selection[i].localPosition
+                }
+            });
         }
+
+        // Add history entry.
+        History.push(
+            { setProperties: undoData },
+            { setProperties: redoData }
+        );
+
+        // Update grab start data for its undo.
+        startPosition = rootPosition;
+        startOrientation = rootOrientation;
     }
 
     function startHandleScaling(position) {
         // Save initial offset from hand position to root position so that can scale without accumulating float errors.
         scaleRootOffset = Vec3.multiplyQbyV(Quat.inverse(rootOrientation), Vec3.subtract(rootPosition, position));
+
+        // User is grabbing entity; add a history entry for movement up until the start of scaling and update start position and
+        // orientation; unless very small movement.
+        if (Vec3.distance(startPosition, rootPosition) >= MIN_HISTORY_MOVE_DISTANCE
+                || Quat.rotationBetween(startOrientation, rootOrientation) >= MIN_HISTORY_ROTATE_ANGLE) {
+            History.push(
+                {
+                    setProperties: [
+                        { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
+                    ]
+                },
+                {
+                    setProperties: [
+                        { entityID: rootEntityID, properties: { position: rootPosition, rotation: rootOrientation } }
+                    ]
+                }
+            );
+            startPosition = rootPosition;
+            startOrientation = rootOrientation;
+        }
     }
 
     function handleScale(factor, position, orientation) {
@@ -383,19 +469,61 @@ Selection = function (side) {
 
     function finishHandleScaling() {
         // Update selection with final entity properties.
-        var i,
+        var undoData = [],
+            redoData = [],
+            i,
             length;
 
         // Final scale and position of root.
+        undoData.push({
+            entityID: selection[0].id,
+            properties: {
+                dimensions: selection[0].dimensions,
+                position: startPosition,
+                rotation: startOrientation
+            }
+        });
         selection[0].dimensions = Vec3.multiplyVbyV(scaleFactor, selection[0].dimensions);
         selection[0].position = rootPosition;
         selection[0].rotation = rootOrientation;
+        redoData.push({
+            entityID: selection[0].id,
+            properties: {
+                dimensions: selection[0].dimensions,
+                position: selection[0].position,
+                rotation: selection[0].rotation
+            }
+        });
 
         // Final scale and position of children.
         for (i = 1, length = selection.length; i < length; i += 1) {
+            undoData.push({
+                entityID: selection[i].id,
+                properties: {
+                    dimensions: selection[i].dimensions,
+                    localPosition: selection[i].localPosition
+                }
+            });
             selection[i].dimensions = Vec3.multiplyVbyV(scaleFactor, selection[i].dimensions);
             selection[i].localPosition = Vec3.multiplyVbyV(scaleFactor, selection[i].localPosition);
+            redoData.push({
+                entityID: selection[i].id,
+                properties: {
+                    dimensions: selection[i].dimensions,
+                    localPosition: selection[i].localPosition
+                }
+            });
         }
+
+        // Add history entry.
+        History.push(
+            { setProperties: undoData },
+            { setProperties: redoData }
+        );
+
+        // Update grab start data for its undo.
+        startPosition = rootPosition;
+        startOrientation = rootOrientation;
     }
 
     function cloneEntities() {
