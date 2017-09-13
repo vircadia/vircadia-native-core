@@ -34,8 +34,7 @@ public:
     public:
         ViewFrustum viewFrustum;
         uint64_t startTime { 0 };
-        float rootSizeScale { 1.0f };
-        int32_t lodLevelOffset { 0 };
+        float lodScaleFactor { 1.0f };
         bool usesViewFrustum { true };
     };
 
@@ -66,10 +65,8 @@ public:
     const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }
 
     bool doesCurrentUseViewFrustum() const { return _currentView.usesViewFrustum; }
-    float getCurrentRootSizeScale() const { return _currentView.rootSizeScale; }
-    float getCompletedRootSizeScale() const { return _completedView.rootSizeScale; }
-    int32_t getCurrentLODOffset() const { return _currentView.lodLevelOffset; }
-    int32_t getCompletedLODOffset() const { return _completedView.lodLevelOffset; }
+    float getCurrentLODScaleFactor() const { return _currentView.lodScaleFactor; }
+    float getCompletedLODScaleFactor() const { return _completedView.lodScaleFactor; }
 
     uint64_t getStartOfCompletedTraversal() const { return _completedView.startTime; }
     bool finished() const { return _path.empty(); }

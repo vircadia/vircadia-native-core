@@ -43,12 +43,9 @@ void DiffTraversal::Waypoint::getNextVisibleElementFirstTime(DiffTraversal::Visi
                         return;
                     } else if (view.viewFrustum.cubeIntersectsKeyhole(nextElement->getAACube())) {
                         // check for LOD truncation
-                        float renderAccuracy = calculateRenderAccuracy(view.viewFrustum.getPosition(),
-                                                                       nextElement->getAACube(),
-                                                                       view.rootSizeScale,
-                                                                       view.lodLevelOffset);
-
-                        if (renderAccuracy > 0.0f) {
+                        float distance = glm::distance(view.viewFrustum.getPosition(), nextElement->getAACube().calcCenter()) + MIN_VISIBLE_DISTANCE;
+                        float apparentAngle = nextElement->getAACube().getScale() / distance;
+                        if (apparentAngle > MIN_ELEMENT_APPARENT_ANGLE * view.lodScaleFactor) {
                             next.element = nextElement;
                             return;
                         }
@@ -85,15 +82,12 @@ void DiffTraversal::Waypoint::getNextVisibleElementRepeat(
                         next.intersection = ViewFrustum::INSIDE;
                         return;
                     } else {
-                        ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
-                        if (intersection != ViewFrustum::OUTSIDE) {
-                            // check for LOD truncation
-                            float renderAccuracy = calculateRenderAccuracy(view.viewFrustum.getPosition(),
-                                                                           nextElement->getAACube(),
-                                                                           view.rootSizeScale,
-                                                                           view.lodLevelOffset);
-
-                            if (renderAccuracy > 0.0f) {
+                        // check for LOD truncation
+                        float distance = glm::distance(view.viewFrustum.getPosition(), nextElement->getAACube().calcCenter()) + MIN_VISIBLE_DISTANCE;
+                        float apparentAngle = nextElement->getAACube().getScale() / distance;
+                        if (apparentAngle > MIN_ELEMENT_APPARENT_ANGLE * view.lodScaleFactor) {
+                            ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
+                            if (intersection != ViewFrustum::OUTSIDE) {
                                 next.element = nextElement;
                                 next.intersection = intersection;
                                 return;
@@ -125,36 +119,14 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
                 ++_nextIndex;
                 if (nextElement) {
                     AACube cube = nextElement->getAACube();
-                    if (view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
-                        // check for LOD truncation
-                        float renderAccuracy = calculateRenderAccuracy(view.viewFrustum.getPosition(),
-                                                                       cube,
-                                                                       view.rootSizeScale,
-                                                                       view.lodLevelOffset);
-
-                        if (renderAccuracy > 0.0f) {
-                            ViewFrustum::intersection lastIntersection = lastView.viewFrustum.calculateCubeKeyholeIntersection(cube);
-                            if (lastIntersection != ViewFrustum::INSIDE || nextElement->getLastChanged() > lastView.startTime) {
-                                next.element = nextElement;
-                                // NOTE: for differential case next.intersection is against the lastView
-                                // because this helps the "external scan" optimize its culling
-                                next.intersection = lastIntersection;
-                                return;
-                            } else {
-                                // check for LOD truncation in the last traversal because
-                                // we may need to traverse this element after all if the lastView skipped it for LOD
-                                renderAccuracy = calculateRenderAccuracy(lastView.viewFrustum.getPosition(),
-                                                                         cube,
-                                                                         lastView.rootSizeScale,
-                                                                         lastView.lodLevelOffset);
-
-                                if (renderAccuracy <= 0.0f) {
-                                    next.element = nextElement;
-                                    // element's intersection with lastView was effectively OUTSIDE
-                                    next.intersection = ViewFrustum::OUTSIDE;
-                                    return;
-                                }
-                            }
+                    // check for LOD truncation
+                    float distance = glm::distance(view.viewFrustum.getPosition(), cube.calcCenter()) + MIN_VISIBLE_DISTANCE;
+                    float apparentAngle = cube.getScale() / distance;
+                    if (apparentAngle > MIN_ELEMENT_APPARENT_ANGLE * view.lodScaleFactor) {
+                        if (view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
+                            next.element = nextElement;
+                            next.intersection = ViewFrustum::OUTSIDE;
+                            return;
                         }
                     }
                 }
@@ -187,18 +159,20 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
     // external code should update the _scanElementCallback after calling prepareNewTraversal
     //
     _currentView.usesViewFrustum = usesViewFrustum;
+    float lodScaleFactor = powf(2.0f, lodLevelOffset);
 
     Type type;
     // If usesViewFrustum changes, treat it as a First traversal
     if (_completedView.startTime == 0 || _currentView.usesViewFrustum != _completedView.usesViewFrustum) {
         type = Type::First;
         _currentView.viewFrustum = viewFrustum;
-        _currentView.lodLevelOffset = root->getLevel() + lodLevelOffset - 1; // -1 because true root has level=1
-        _currentView.rootSizeScale = root->getScale() * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
+        _currentView.lodScaleFactor = lodScaleFactor;
         _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementFirstTime(next, _currentView);
         };
-    } else if (!_currentView.usesViewFrustum || (_completedView.viewFrustum.isVerySimilar(viewFrustum) && lodLevelOffset == _completedView.lodLevelOffset)) {
+    } else if (!_currentView.usesViewFrustum ||
+               (_completedView.viewFrustum.isVerySimilar(viewFrustum) &&
+                lodScaleFactor == _completedView.lodScaleFactor)) {
         type = Type::Repeat;
         _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementRepeat(next, _completedView, _completedView.startTime);
@@ -206,8 +180,7 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
     } else {
         type = Type::Differential;
         _currentView.viewFrustum = viewFrustum;
-        _currentView.lodLevelOffset = root->getLevel() + lodLevelOffset - 1; // -1 because true root has level=1
-        _currentView.rootSizeScale = root->getScale() * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
+        _currentView.lodScaleFactor = lodScaleFactor;
         _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementDifferential(next, _currentView, _completedView);
         };

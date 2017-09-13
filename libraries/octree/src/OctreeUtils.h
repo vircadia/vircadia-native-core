@@ -27,4 +27,10 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 
 float getAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust);
 
+const float MIN_ELEMENT_APPARENT_ANGLE = 0.0087266f; // ~0.57 degrees in radians
+// NOTE: the entity bounding cube is larger than the smallest containing octree element by sqrt(3)
+const float SQRT_THREE = 1.73205080f;
+const float MIN_ENTITY_APPARENT_ANGLE = MIN_ELEMENT_APPARENT_ANGLE * SQRT_THREE;
+const float MIN_VISIBLE_DISTANCE = 0.0001f; // helps avoid divide-by-zero check
+
 #endif // hifi_OctreeUtils_h
