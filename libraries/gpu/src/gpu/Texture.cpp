@@ -698,7 +698,6 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
         assert(false);
         break;
     }
-    assert(mipFormat.getSemantic() == gpu::R11G11B10);
 
     const uint sqOrder = order*order;
 
