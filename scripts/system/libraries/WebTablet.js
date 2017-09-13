@@ -42,7 +42,7 @@ var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
-function calcSpawnInfo(hand, height, landscape) {
+function calcSpawnInfo(hand, landscape) {
     var finalPosition;
 
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
@@ -76,7 +76,12 @@ function calcSpawnInfo(hand, height, landscape) {
         var TABLET_RAKE_ANGLE = 30;
         rotation = Quat.multiply(Quat.angleAxis(TABLET_RAKE_ANGLE, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
 
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        var tabletWidth = getTabletWidthFromSettings() * sensorScaleFactor;
+        var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+        var height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
         var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.6 * height, z: 0.1 * height };
+
         position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RELATIVE_SPAWN_OFFSET));
 
         return {
@@ -320,7 +325,7 @@ WebTablet.prototype.destroy = function () {
 
 WebTablet.prototype.geometryChanged = function (geometry) {
     if (!HMD.active) {
-        var tabletProperties = { dimensions: Overlays.getProperty(HMD.tabletID, "dimensions") };
+        var tabletProperties = {};
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
         Overlays.editOverlay(HMD.tabletID, tabletProperties);
@@ -397,7 +402,7 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
         tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
 
         // compute the appropriate position of the tablet, near the hand controller that was used to spawn it.
-        var spawnInfo = calcSpawnInfo(hand, tabletProperties.dimensions.y, this.landscape);
+        var spawnInfo = calcSpawnInfo(hand, this.landscape);
         tabletProperties.position = spawnInfo.position;
         tabletProperties.rotation = spawnInfo.rotation;
     } else {
@@ -420,7 +425,7 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 };
 
 WebTablet.prototype.onHmdChanged = function () {
-    var tabletProperties = { dimensions: Overlays.getProperty(HMD.tabletID, "dimensions") };
+    var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
     Overlays.editOverlay(HMD.tabletID, tabletProperties);
