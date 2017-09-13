@@ -21,7 +21,7 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
 (function() {
-    var NEAR_MAX_RADIUS = 1.0;
+    var NEAR_MAX_RADIUS = 0.1;
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
