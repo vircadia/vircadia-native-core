@@ -532,7 +532,7 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
         }
 
         // If the bag had contents but is now empty then we know we've sent the entire scene.
-        bool completedScene = bagHadSomething && nodeData->elementBag.isEmpty();
+        bool completedScene = hadSomething && nodeData->elementBag.isEmpty();
         if (completedScene || lastNodeDidntFit) {
             // we probably want to flush what has accumulated in nodeData but:
             // do we have more data to send? and is there room?
