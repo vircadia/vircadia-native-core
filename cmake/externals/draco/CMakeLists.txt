@@ -26,11 +26,7 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-if (UNIX AND NOT APPLE)
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include/draco/src CACHE PATH "List of Draco include directories")
-else ()
-  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "List of Draco include directories")
-endif ()
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "List of Draco include directories")
 
 if (UNIX)
   set(LIB_PREFIX "lib")
