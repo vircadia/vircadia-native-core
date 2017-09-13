@@ -397,6 +397,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                         for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
                             addFace(part.quadTrianglesIndices, i, face++);
                         }
+
                         for (int i = 0; (i + 2) < part.triangleIndices.size(); i += 3) {
                             addFace(part.triangleIndices, i, face++);
                         }

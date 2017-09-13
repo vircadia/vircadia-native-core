@@ -201,7 +201,7 @@ void ModelBakeWidget::bakeButtonClicked() {
         };
 
         // move the baker to the FBX baker thread
-        baker->moveToThread(qApp->getFBXBakerThread());
+        baker->moveToThread(qApp->getNextWorkerThread());
 
         // invoke the bake method on the baker thread
         QMetaObject::invokeMethod(baker.get(), "bake");

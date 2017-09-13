@@ -214,7 +214,7 @@ void DomainBaker::enumerateEntities() {
 
                         // move the baker to the baker thread
                         // and kickoff the bake
-                        baker->moveToThread(qApp->getFBXBakerThread());
+                        baker->moveToThread(qApp->getNextWorkerThread());
                         QMetaObject::invokeMethod(baker.data(), "bake");
 
                         // keep track of the total number of baking entities
