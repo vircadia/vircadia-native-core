@@ -26,7 +26,6 @@ class FilePersistThread : public GenericQueueThread < QString > {
     Q_OBJECT
 public:
     FilePersistThread(const FileLogger& logger);
-
 signals:
     void rollingLogFile(QString newFilename);
 
@@ -48,7 +47,7 @@ static const QString LOGS_DIRECTORY = "Logs";
 static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
 static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[0,1][0-9]-[0-3][0-9]_[0-2][0-9].[0-6][0-9].[0-6][0-9]";
 static const QString FILENAME_WILDCARD = "hifi-log_" + IPADDR_WILDCARD + "_" + DATETIME_WILDCARD + ".txt";
-QUuid _sessionId;
+static QUuid SESSION_ID;
 
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
 // small so it doesn't go over the 2MB zipped limit for all of the files we send.
@@ -66,8 +65,8 @@ QString getLogRollerFilename() {
     QDateTime now = QDateTime::currentDateTime();
     QString fileSessionID;
 
-    if (!_sessionId.isNull()) {
-        fileSessionID = "_" + _sessionId.toString().replace("{", "").replace("}", "");
+    if (!SESSION_ID.isNull()) {
+        fileSessionID = "_" + SESSION_ID.toString().replace("{", "").replace("}", "");
     }
 
     result.append(QString(FILENAME_FORMAT).arg(fileSessionID, now.toString(DATETIME_FORMAT)));
@@ -153,7 +152,7 @@ FileLogger::~FileLogger() {
 void FileLogger::setSessionID(const QUuid& message) {
     // This is for the output of log files. Once the application is first started, 
     // this function runs and grabs the AccountManager Session ID and saves it here.
-    _sessionId = message;
+    SESSION_ID = message;
     }
 
 void FileLogger::addMessage(const QString& message) {
