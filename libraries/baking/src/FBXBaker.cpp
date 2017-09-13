@@ -424,13 +424,10 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                     draco::Encoder encoder;
 
-                    encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION,
-                                                     14);
-                    encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD,
-                                                     12);
-                    encoder.SetAttributeQuantization(draco::GeometryAttribute::NORMAL,
-                                                     10);
-                    encoder.SetSpeedOptions(0, 0);
+                    encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION, 14);
+                    encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD, 12);
+                    encoder.SetAttributeQuantization(draco::GeometryAttribute::NORMAL, 10);
+                    encoder.SetSpeedOptions(0, 5);
 
                     draco::EncoderBuffer buffer;
                     encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
