@@ -58,6 +58,7 @@ module.exports = {
         "RayPick": false,
         "LaserPointers": false,
         "ContextOverlay": false
+        "module": false
     },
     "rules": {
         "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
