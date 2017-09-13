@@ -17,6 +17,8 @@
 #include <QByteArray>
 #include <QDataStream>
 
+#define USE_FBX_2016_FORMAT
+
 class FBXWriter {
 public:
     static QByteArray encodeFBX(const FBXNode& root);

@@ -13,6 +13,16 @@
 
 #include <QDebug>
 
+#ifdef USE_FBX_2016_FORMAT
+    using FBXEndOffset = int64_t;
+    using FBXPropertyCount = uint64_t;
+    using FBXListLength = uint64_t;
+#else
+    using FBXEndOffset = int32_t;
+    using FBXPropertyCount = uint32_t;
+    using FBXListLength = uint32_t;
+#endif
+
 template <typename T>
 void writeVector(QDataStream& out, char ch,  QVector<T> list) {
     out.device()->write(&ch, 1);
@@ -34,7 +44,11 @@ QByteArray FBXWriter::encodeFBX(const FBXNode& root) {
     auto bytes = QByteArray(FBX_HEADER_BYTES_BEFORE_VERSION - FBX_BINARY_PROLOG.size(), '\0');
     out.writeRawData(bytes, bytes.size());
 
+#ifdef USE_FBX_2016_FORMAT
     out << FBX_VERSION_2016;
+#else
+    out << FBX_VERSION_2015;
+#endif
 
     for (auto& child : root.children) {
         encodeNode(out, child);
@@ -51,13 +65,13 @@ void FBXWriter::encodeNode(QDataStream& out, const FBXNode& node) {
     auto nodeStartPos = device->pos();
 
     // endOffset (temporary, updated later)
-    out << (qint64)0;
+    out << (FBXEndOffset)0;
 
     // Property count
-    out << (quint64)node.properties.size();
+    out << (FBXPropertyCount)node.properties.size();
 
     // Property list length (temporary, updated later)
-    out << (quint64)0;
+    out << (FBXListLength)0;
 
     out << (quint8)node.name.size();
     out.writeRawData(node.name, node.name.size());
@@ -70,8 +84,8 @@ void FBXWriter::encodeNode(QDataStream& out, const FBXNode& node) {
 
     // Go back and write property list length
     auto nodePropertiesEndPos = device->pos();
-    device->seek(nodeStartPos + sizeof(qint64) + sizeof(quint64));
-    out << (quint64)(nodePropertiesEndPos - nodePropertiesStartPos);
+    device->seek(nodeStartPos + sizeof(FBXEndOffset) + sizeof(FBXPropertyCount));
+    out << (FBXListLength)(nodePropertiesEndPos - nodePropertiesStartPos);
 
     device->seek(nodePropertiesEndPos);
 
@@ -86,7 +100,7 @@ void FBXWriter::encodeNode(QDataStream& out, const FBXNode& node) {
     // Go back and write actual endOffset
     auto nodeEndPos = device->pos();
     device->seek(nodeStartPos);
-    out << (qint64)(nodeEndPos);
+    out << (FBXEndOffset)(nodeEndPos);
 
     device->seek(nodeEndPos);
 }
