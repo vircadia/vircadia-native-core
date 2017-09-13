@@ -563,8 +563,8 @@ private:
     void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, const QVector<glm::vec3>& in_normals,
         QVector<int>& out_indices, QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
 
-    std::tuple<bool, QByteArray> GLTFReader::requestData(QUrl& url);
-    QNetworkReply* GLTFReader::request(QUrl& url, bool isTest);
+    std::tuple<bool, QByteArray> requestData(QUrl& url);
+    QNetworkReply* request(QUrl& url, bool isTest);
     bool doesResourceExist(const QString& url);
 
 
@@ -579,4 +579,4 @@ private:
 
 
 
-#endif hifi_GLTFReader_h
+#endif //hifi_GLTFReader_h

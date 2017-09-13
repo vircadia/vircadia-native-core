@@ -304,8 +304,9 @@ bool GLTFReader::addImage(const QJsonObject& object) {
 
 bool GLTFReader::getIndexFromObject(const QJsonObject& object, const QString& field, int& outidx, QMap<QString, bool>& defined) {
     QJsonObject subobject;
+    QMap<QString, bool> tmpdefined;
     if (getObjectVal(object, field, subobject, defined)) {
-        return getIntVal(subobject, "index", outidx, QMap<QString, bool>());
+        return getIntVal(subobject, "index", outidx, tmpdefined);
     }
     return false;
 }
