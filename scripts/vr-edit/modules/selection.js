@@ -262,18 +262,20 @@ Selection = function (side) {
         }
 
         // Add history entry.
-        History.push(
-            {
-                setProperties: [
-                    { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
-                ]
-            },
-            {
-                setProperties: [
-                    { entityID: rootEntityID, properties: { position: rootPosition, rotation: rootOrientation } }
-                ]
-            }
-        );
+        if (selection.length > 0) {
+            History.push(
+                {
+                    setProperties: [
+                        { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
+                    ]
+                },
+                {
+                    setProperties: [
+                        { entityID: rootEntityID, properties: { position: rootPosition, rotation: rootOrientation } }
+                    ]
+                }
+            );
+        }
 
         // Kick off physics if necessary.
         if (selection.length > 0 && selection[0].dynamic) {
