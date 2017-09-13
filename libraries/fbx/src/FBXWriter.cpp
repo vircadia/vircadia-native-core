@@ -143,7 +143,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                 break;
             }
 
-            // TODO Delete? Do we ever use QList instead of QVector?
+        // TODO Delete? Do we ever use QList instead of QVector?
         case QVariant::Type::List:
             {
                 auto list = prop.toList();
@@ -156,7 +156,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                         out << (int32_t)0;
                         out << (int32_t)0;
                         for (auto& innerProp : list) {
-                            out << prop.toFloat();
+                            out << innerProp.toFloat();
                         }
                         break;
 
@@ -166,7 +166,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                         out << (int32_t)0;
                         out << (int32_t)0;
                         for (auto& innerProp : list) {
-                            out << prop.toDouble();
+                            out << innerProp.toDouble();
                         }
                         break;
 
@@ -176,7 +176,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                         out << (int32_t)0;
                         out << (int32_t)0;
                         for (auto& innerProp : list) {
-                            out << prop.toLongLong();
+                            out << innerProp.toLongLong();
                         }
                         break;
 
@@ -186,7 +186,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                         out << (int32_t)0;
                         out << (int32_t)0;
                         for (auto& innerProp : list) {
-                            out << prop.toInt();
+                            out << innerProp.toInt();
                         }
                         break;
 
@@ -196,7 +196,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                         out << (int32_t)0;
                         out << (int32_t)0;
                         for (auto& innerProp : list) {
-                            out << prop.toBool();
+                            out << innerProp.toBool();
                         }
                         break;
                 }
