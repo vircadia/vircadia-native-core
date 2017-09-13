@@ -35,48 +35,9 @@
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
-std::function<bool()> EntityItem::_entitiesShouldFadeFunction = [](){ return true; };
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
-    SpatiallyNestable(NestableType::Entity, entityItemID),
-    _type(EntityTypes::Unknown),
-    _lastSimulated(0),
-    _lastUpdated(0),
-    _lastEdited(0),
-    _lastEditedBy(ENTITY_ITEM_DEFAULT_LAST_EDITED_BY),
-    _lastEditedFromRemote(0),
-    _lastEditedFromRemoteInRemoteTime(0),
-    _created(UNKNOWN_CREATED_TIME),
-    _changedOnServer(0),
-    _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
-    _density(ENTITY_ITEM_DEFAULT_DENSITY),
-    _volumeMultiplier(1.0f),
-    _gravity(ENTITY_ITEM_DEFAULT_GRAVITY),
-    _acceleration(ENTITY_ITEM_DEFAULT_ACCELERATION),
-    _damping(ENTITY_ITEM_DEFAULT_DAMPING),
-    _restitution(ENTITY_ITEM_DEFAULT_RESTITUTION),
-    _friction(ENTITY_ITEM_DEFAULT_FRICTION),
-    _lifetime(ENTITY_ITEM_DEFAULT_LIFETIME),
-    _script(ENTITY_ITEM_DEFAULT_SCRIPT),
-    _scriptTimestamp(ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
-    _collisionSoundURL(ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
-    _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
-    _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
-    _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
-    _collisionless(ENTITY_ITEM_DEFAULT_COLLISIONLESS),
-    _collisionMask(ENTITY_COLLISION_MASK_DEFAULT),
-    _dynamic(ENTITY_ITEM_DEFAULT_DYNAMIC),
-    _locked(ENTITY_ITEM_DEFAULT_LOCKED),
-    _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
-    _simulationOwner(),
-    _marketplaceID(ENTITY_ITEM_DEFAULT_MARKETPLACE_ID),
-    _name(ENTITY_ITEM_DEFAULT_NAME),
-    _href(""),
-    _description(""),
-    _dirtyFlags(0),
-    _element(nullptr),
-    _physicsInfo(nullptr),
-    _simulated(false)
+    SpatiallyNestable(NestableType::Entity, entityItemID) 
 {
     setLocalVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
     setLocalAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
@@ -133,7 +94,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
-    requestedProperties += PROP_SHOULD_HIGHLIGHT;
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
@@ -279,7 +239,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
-        APPEND_ENTITY_PROPERTY(PROP_SHOULD_HIGHLIGHT, getShouldHighlight());
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
@@ -829,10 +788,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
         READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-    }
-
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT) {
-        READ_ENTITY_PROPERTY(PROP_SHOULD_HIGHLIGHT, bool, setShouldHighlight);
     }
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
@@ -2331,11 +2286,13 @@ void EntityItem::locationChanged(bool tellPhysics) {
         }
     }
     SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
+    somethingChangedNotification();
 }
 
 void EntityItem::dimensionsChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::dimensionsChanged(); // Do what you have to do
+    somethingChangedNotification();
 }
 
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
@@ -2809,20 +2766,6 @@ void EntityItem::setMarketplaceID(const QString& value) {
     });
 }
 
-bool EntityItem::getShouldHighlight() const {
-    bool result;
-    withReadLock([&] {
-        result = _shouldHighlight;
-    });
-    return result;
-}
-
-void EntityItem::setShouldHighlight(const bool value) {
-    withWriteLock([&] {
-        _shouldHighlight = value;
-    });
-}
-
 uint32_t EntityItem::getDirtyFlags() const { 
     uint32_t result;
     withReadLock([&] {
@@ -2852,3 +2795,25 @@ float EntityItem::getDensity() const {
     return result;
 }
 
+EntityItem::ChangeHandlerId EntityItem::registerChangeHandler(const ChangeHandlerCallback& handler) {
+    ChangeHandlerId result = QUuid::createUuid();
+    withWriteLock([&] {
+        _changeHandlers[result] = handler;
+    });
+    return result;
+}
+
+void EntityItem::deregisterChangeHandler(const ChangeHandlerId& changeHandlerId) {
+    withWriteLock([&] {
+        _changeHandlers.remove(changeHandlerId);
+    });
+}
+
+void EntityItem::somethingChangedNotification() {
+    auto id = getEntityItemID();
+    withReadLock([&] {
+        for (const auto& handler : _changeHandlers.values()) {
+            handler(id);
+        }
+    });
+}

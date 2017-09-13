@@ -120,8 +120,10 @@ public:
     virtual bool isMyAvatar() const override { return false; }
 
     virtual QVector<glm::quat> getJointRotations() const override;
+    using AvatarData::getJointRotation;
     virtual glm::quat getJointRotation(int index) const override;
     virtual QVector<glm::vec3> getJointTranslations() const override;
+    using AvatarData::getJointTranslation;
     virtual glm::vec3 getJointTranslation(int index) const override;
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
@@ -240,6 +242,7 @@ public:
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     bool isInScene() const { return render::Item::isValidID(_renderItemID); }
+    render::ItemID getRenderItemID() { return _renderItemID; }
     bool isMoving() const { return _moving; }
 
     void setPhysicsCallback(AvatarPhysicsCallback cb);

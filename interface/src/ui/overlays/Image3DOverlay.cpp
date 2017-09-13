@@ -46,6 +46,11 @@ Image3DOverlay::~Image3DOverlay() {
 }
 
 void Image3DOverlay::update(float deltatime) {
+    if (!_isLoaded) {
+        _isLoaded = true;
+        _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
+        _textureIsLoaded = false;
+    }
 #if OVERLAY_PANELS
     if (usecTimestampNow() > _transformExpiry) {
         Transform transform = getTransform();
@@ -56,12 +61,6 @@ void Image3DOverlay::update(float deltatime) {
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
-    if (!_isLoaded) {
-        _isLoaded = true;
-        _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
-        _textureIsLoaded = false;
-    }
-
     if (!_visible || !getParentVisible() || !_texture || !_texture->isLoaded()) {
         return;
     }

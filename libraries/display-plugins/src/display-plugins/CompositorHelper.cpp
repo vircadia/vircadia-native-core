@@ -437,7 +437,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         mousePosition -= 1.0;
         mousePosition.y *= -1.0f;
 
-        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
+        vec2 mouseSize = CURSOR_PIXEL_SIZE * Cursor::Manager::instance().getScale() / canvasSize;
         result = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
     }
     return result;
@@ -450,4 +450,14 @@ QVariant ReticleInterface::getPosition() const {
 
 void ReticleInterface::setPosition(QVariant position) {
     _compositor->setReticlePosition(vec2FromVariant(position));
+}
+
+float ReticleInterface::getScale() const {
+    auto& cursorManager = Cursor::Manager::instance();
+    return cursorManager.getScale();
+}
+
+void ReticleInterface::setScale(float scale) {
+    auto& cursorManager = Cursor::Manager::instance();
+    cursorManager.setScale(scale);
 }

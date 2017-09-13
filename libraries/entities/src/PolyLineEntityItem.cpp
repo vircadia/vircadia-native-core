@@ -31,17 +31,7 @@ EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, cons
     return entity;
 }
 
-PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) :
-EntityItem(entityItemID),
-_lineWidth(DEFAULT_LINE_WIDTH),
-_pointsChanged(true),
-_normalsChanged(true),
-_strokeWidthsChanged(true),
-_points(QVector<glm::vec3>(0.0f)),
-_normals(QVector<glm::vec3>(0.0f)),
-_strokeWidths(QVector<float>(0.0f)),
-_textures("")
-{
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::PolyLine;
 }
 
@@ -142,10 +132,12 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 
         _points = points;
 
-        calculateScaleAndRegistrationPoint();
-
         result = true;
     });
+
+    if (result) {
+        calculateScaleAndRegistrationPoint();
+    }
 
     return result;
 }
@@ -153,54 +145,39 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
 void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
     glm::vec3 high(0.0f, 0.0f, 0.0f);
     glm::vec3 low(0.0f, 0.0f, 0.0f);
-    for (int i = 0; i < _points.size(); i++) {
-        glm::vec3 point = _points.at(i);
-
-        if (point.x > high.x) {
-            high.x = point.x;
-        } else if (point.x < low.x) {
-            low.x = point.x;
+    int pointCount = 0;
+    glm::vec3 firstPoint;
+    withReadLock([&] {
+        pointCount = _points.size();
+        if (pointCount > 0) {
+            firstPoint = _points.at(0);
         }
-
-        if (point.y > high.y) {
-            high.y = point.y;
-        } else if (point.y < low.y) {
-            low.y = point.y;
+        for (int i = 0; i < pointCount; i++) {
+            const glm::vec3& point = _points.at(i);
+            high = glm::max(point, high);
+            low = glm::min(point, low);
         }
+    });
 
-        if (point.z > high.z) {
-            high.z = point.z;
-        } else if (point.z < low.z) {
-            low.z = point.z;
-        }
-    }
+    float magnitudeSquared = glm::length2(low - high);
+    vec3 newScale { 1 };
+    vec3 newRegistrationPoint { 0.5f };
+
     const float EPSILON = 0.0001f;
-    if (_points.size() > 1) {
-        // if all the points in the Polyline are at the same place in space, use default dimension settings
-        if ((low - high).length() < EPSILON) {
-            SpatiallyNestable::setScale(glm::vec3(1.0f, 1.0f, 1.0f));
-            EntityItem::setRegistrationPoint(glm::vec3(0.5f));
-            return;
-        }
-
-        glm::vec3 result;
-        const float halfLineWidth = 0.075f; // sadly _strokeWidths() don't seem to correspond to reality, so just use a flat assumption of the stroke width
-        result.x = fabsf(high.x) + fabsf(low.x) + halfLineWidth;
-        result.y = fabsf(high.y) + fabsf(low.y) + halfLineWidth;
-        result.z = fabsf(high.z) + fabsf(low.z) + halfLineWidth;
-        SpatiallyNestable::setScale(result);
-
+    const float EPSILON_SQUARED = EPSILON * EPSILON;
+    const float HALF_LINE_WIDTH = 0.075f; // sadly _strokeWidths() don't seem to correspond to reality, so just use a flat assumption of the stroke width
+    const vec3 QUARTER_LINE_WIDTH { HALF_LINE_WIDTH * 0.5f };
+    if (pointCount > 1 && magnitudeSquared > EPSILON_SQUARED) {
+        newScale = glm::abs(high) + glm::abs(low) + vec3(HALF_LINE_WIDTH);
         // Center the poly line in the bounding box
-        glm::vec3 point = _points.at(0);
-        glm::vec3 startPointInScaleSpace = point - low;
-        startPointInScaleSpace += glm::vec3(halfLineWidth * 0.5f);
-        glm::vec3 newRegistrationPoint = startPointInScaleSpace / result;
-        EntityItem::setRegistrationPoint(newRegistrationPoint);
-    } else {
-        // if Polyline has only one or fewer points, use default dimension settings
-        SpatiallyNestable::setScale(glm::vec3(1.0f, 1.0f, 1.0f));
-        EntityItem::setRegistrationPoint(glm::vec3(0.5f));
-    }
+        glm::vec3 startPointInScaleSpace = firstPoint - low;
+        startPointInScaleSpace += QUARTER_LINE_WIDTH;
+        newRegistrationPoint = startPointInScaleSpace / newScale;
+    } 
+
+    // if Polyline has only one or fewer points, use default dimension settings
+    SpatiallyNestable::setScale(newScale);
+    EntityItem::setRegistrationPoint(newRegistrationPoint);
 }
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
