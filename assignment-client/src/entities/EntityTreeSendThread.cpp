@@ -120,7 +120,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                             if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                                 float priority = _conicalView.computePriority(cube);
                                 if (priority != PrioritizedEntity::DO_NOT_SEND) {
-                                    float distance = (glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE);
+                                    float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
                                     float apparentAngle = cube.getScale() / distance;
                                     if (apparentAngle > MIN_ENTITY_APPARENT_ANGLE * lodScaleFactor) {
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
