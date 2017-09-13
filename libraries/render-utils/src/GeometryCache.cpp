@@ -1877,7 +1877,7 @@ public:
         IS_UNLIT_FLAG,
         HAS_DEPTH_BIAS_FLAG,
         IS_FADING_FLAG,
-        IS_AA_FLAG,
+        IS_ANTIALIASED_FLAG,
 
         NUM_FLAGS,
     };
@@ -1889,7 +1889,7 @@ public:
         IS_UNLIT = (1 << IS_UNLIT_FLAG),
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
         IS_FADING = (1 << IS_FADING_FLAG),
-        IS_AA = (1 << IS_AA_FLAG),
+        IS_ANTIALIASED = (1 << IS_ANTIALIASED_FLAG),
     };
     typedef unsigned short Flags;
 
@@ -1901,7 +1901,7 @@ public:
     bool isUnlit() const { return isFlag(IS_UNLIT); }
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
     bool isFading() const { return isFlag(IS_FADING); }
-    bool isAA() const { return isFlag(IS_AA); }
+    bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
 
     Flags _flags = 0;
     short _spare = 0;
@@ -1910,9 +1910,9 @@ public:
 
 
     SimpleProgramKey(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool fading = false, bool isAA = true) {
+        bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true) {
         _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
-            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) | (isAA ? IS_AA : 0);
+            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) | (isAntiAliased ? IS_ANTIALIASED : 0);
     }
 
     SimpleProgramKey(int bitmask) : _flags(bitmask) {}
@@ -1961,8 +1961,8 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     return transparent ? _simpleTransparentWebBrowserPipelineNoAA : _simpleOpaqueWebBrowserPipelineNoAA;
 }
 
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAA) {
-    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAA));
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -1971,8 +1971,8 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool tra
     }
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading, bool isAA) {
-    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading, isAA };
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading, bool isAntiAliased) {
+    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased };
 
     // If the pipeline already exists, return it
     auto it = _simplePrograms.find(config);
@@ -2030,7 +2030,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-    if (config.isAA()) {
+    if (config.isAntiAliased()) {
         config.isTransparent() ? PrepareStencil::testMask(*state) : PrepareStencil::testMaskDrawShape(*state);
     } else {
         PrepareStencil::testMaskDrawShapeNoAA(*state);
