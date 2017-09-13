@@ -145,7 +145,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool hmdRollControlEnabled READ getHMDRollControlEnabled WRITE setHMDRollControlEnabled)
     Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
     Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
-
+    
+    Q_PROPERTY(float gravity WRITE updateGravity NOTIFY gravityChanged);
+    
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
@@ -540,6 +542,8 @@ public slots:
     float getDomainMinScale();
     float getDomainMaxScale();
 
+    void setGravity(float gravity);
+
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
                       bool shouldFaceLocation = false);
@@ -592,6 +596,7 @@ signals:
     void wentActive();
     void skeletonChanged();
     void dominantHandChanged(const QString& hand);
+    void gravityChanged(const float gravity);
 
 private:
 

@@ -20,6 +20,7 @@
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float JUMP_SPEED = 3.5f;
 const float MAX_FALL_HEIGHT = 20.0f;
+const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
 
 #ifdef DEBUG_STATE_CHANGE
 #define SET_STATE(desiredState, reason) setState(desiredState, reason)
@@ -371,18 +372,19 @@ void CharacterController::setState(State desiredState) {
     }
 }
 
-void CharacterController::updateGravity() {
+void CharacterController::updateGravity(float gravity = DEFAULT_CHARACTER_GRAVITY) {
     int16_t collisionGroup = computeCollisionGroup();
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         _gravity = 0.0f;
     } else {
-        const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
-        _gravity = DEFAULT_CHARACTER_GRAVITY;
+        _gravity = gravity;
     }
     if (_rigidBody) {
         _rigidBody->setGravity(_gravity * _currentUp);
     }
+    emit gravityChanged();
 }
+
 
 void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale) {
     float x = scale.x;
