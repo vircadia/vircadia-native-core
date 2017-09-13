@@ -1,6 +1,6 @@
 //
 //  GLTFReader.h
-//  interface/src/renderer
+//  libraries/fbx/src
 //
 //  Created by Luis Cuenca on 8/30/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -573,10 +573,4 @@ private:
     void fbxDebugDump(const FBXGeometry& fbxgeo);
 };
 
-
-
-
-
-
-
-#endif //hifi_GLTFReader_h
+#endif // hifi_GLTFReader_h
