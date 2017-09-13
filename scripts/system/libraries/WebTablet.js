@@ -359,10 +359,19 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
     windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
 
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
+
+    // scale factor of natural tablet dimensions.
+    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+    var tabletWidth = getTabletWidthFromSettings() * sensorScaleFactor;
+    var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+    var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    var tabletDepth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    var tabletDpi = DEFAULT_DPI * (DEFAULT_WIDTH / tabletWidth);
+
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / this.getTabletTextureResolution().y, MAX_PADDING_FACTOR);
-    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / this.dpi) * INCHES_TO_METERS;
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / tabletDpi) * INCHES_TO_METERS;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2);
 
     // calcualte distance from camera
     var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2) * (DESKTOP_TABLET_SCALE / 100)) - WEB_ENTITY_Z_OFFSET;
