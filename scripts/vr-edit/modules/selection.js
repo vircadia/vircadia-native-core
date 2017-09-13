@@ -652,6 +652,9 @@ Selection = function (side) {
         // - Requires child entities to be collisionless, otherwise the entity tree can become self-propelled.
         // See also: Groups.group() and ungroup().
         var properties,
+            property,
+            undoData = [],
+            redoData = [],
             i,
             length;
 
@@ -661,13 +664,60 @@ Selection = function (side) {
             collisionless: physicsProperties.dynamic || physicsProperties.collisionless
         };
         for (i = 1, length = selection.length; i < length; i += 1) {
+            undoData.push({
+                entityID: selection[i].id,
+                properties: {
+                    dynamic: selection[i].dynamic,
+                    collisionless: selection[i].collisionless
+                }
+            });
             Entities.editEntity(selection[i].id, properties);
+            undoData.push({
+                entityID: selection[i].id,
+                properties: properties
+            });
         }
+
+        // Undo data.
+        properties = {
+            position: selection[0].position,
+            rotation: selection[0].rotation,
+            velocity: Vec3.ZERO,
+            angularVelocity: Vec3.ZERO
+        };
+        for (property in physicsProperties) {
+            if (physicsProperties.hasOwnProperty(property)) {
+                properties[property] = selectionProperties[0].properties[property];
+            }
+        }
+        if (properties.userData === undefined) {
+            properties.userData = "";
+        }
+        undoData.push({
+            entityID: selection[0].id,
+            properties: properties
+        });
 
         // Set root per physicsProperties.
         properties = Object.clone(physicsProperties);
         properties.userData = updatePhysicsUserData(selection[intersectedEntityIndex].userData, physicsProperties.userData);
         Entities.editEntity(rootEntityID, properties);
+
+        // Redo data.
+        properties.position = selection[0].position;
+        properties.rotation = selection[0].rotation;
+        properties.velocity = Vec3.ZERO;
+        properties.angularVelocity = Vec3.ZERO;
+        redoData.push({
+            entityID: selection[0].id,
+            properties: properties
+        });
+
+        // Add history entry.
+        History.push(
+            { setProperties: undoData },
+            { setProperties: redoData }
+        );
 
         // Kick off physics if necessary.
         if (physicsProperties.dynamic) {
