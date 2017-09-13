@@ -33,8 +33,18 @@
 
 #include "FBXBaker.h"
 
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4267 )
+#endif
+
 #include <draco/mesh/triangle_soup_mesh_builder.h>
 #include <draco/compression/encode.h>
+
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
+
 
 FBXBaker::FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
                    const QString& bakedOutputDir, const QString& originalOutputDir) :

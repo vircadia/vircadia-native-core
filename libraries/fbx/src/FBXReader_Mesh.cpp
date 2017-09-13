@@ -9,7 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4267 )
+#endif
+
 #include <draco/compression/decode.h>
+
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
 
 #include <iostream>
 #include <QBuffer>
