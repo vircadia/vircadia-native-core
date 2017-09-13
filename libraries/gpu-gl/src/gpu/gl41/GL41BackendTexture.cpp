@@ -114,6 +114,7 @@ Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_RED_RGTC1:
             case GL_COMPRESSED_RG_RGTC2:
             case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+            case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
                 glCompressedTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
@@ -131,6 +132,7 @@ Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_RED_RGTC1:
             case GL_COMPRESSED_RG_RGTC2:
             case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+            case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
                 glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
