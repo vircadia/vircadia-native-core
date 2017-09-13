@@ -415,16 +415,16 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 // grab the material ID and texture ID for this face, if we have it
                 auto firstCorner = dracoMesh->face(draco::FaceIndex(i))[0];
 
-                int64_t matTexValue[2] = { 0, 0 };
+                uint16_t materialID { 0 };
 
                 if (matTexAttribute) {
                     // read material ID and texture ID mappings into materials and texture vectors
                     auto mappedIndex = matTexAttribute->mapped_index(firstCorner);
 
-                    matTexAttribute->ConvertValue<int64_t, 2>(mappedIndex, &matTexValue[0]);
+                    matTexAttribute->ConvertValue<uint16_t, 1>(mappedIndex, &materialID);
                 }
 
-                QPair<int, int> materialTexture(matTexValue[0], matTexValue[1]);
+                QPair<int, int> materialTexture(materialID, 0);
 
                 // grab or setup the FBXMeshPart for the part this face belongs to
                 int& partIndexPlusOne = materialTextureParts[materialTexture];

@@ -349,7 +349,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     if (hasPerFaceMaterials) {
                         faceMaterialAttributeID = meshBuilder.AddAttribute(
                             (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_MATERIAL_ID,
-                            2, draco::DT_INT64);
+                            1, draco::DT_UINT16);
                     }
 
 
@@ -357,7 +357,6 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     draco::FaceIndex face;
                     for (auto& part : mesh.parts) {
                         const auto matTex = extractedMesh.partMaterialTextures[partIndex];
-                        const int64_t matTexData[2] = { matTex.first, matTex.second };
 
                         auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
                             auto idx0 = indices[index];
@@ -365,7 +364,8 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                             auto idx2 = indices[index + 2];
 
                             if (hasPerFaceMaterials) {
-                                meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &matTexData);
+                                uint16_t materialID = matTex.first;
+                                meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &materialID);
                             }
 
                             meshBuilder.SetAttributeValuesForFace(positionAttributeID, face,
