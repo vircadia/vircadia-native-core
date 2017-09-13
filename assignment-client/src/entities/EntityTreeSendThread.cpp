@@ -142,20 +142,12 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     }
 
     if (!_traversal.finished()) {
-
 #ifdef DEBUG
-        uint64_t startTime = usecTimestampNow();
         const uint64_t TIME_BUDGET = 400; // usec
-        _traversal.traverse(TIME_BUDGET);
-
-        if (_sendQueue.size() > 0) {
-            uint64_t dt = usecTimestampNow() - startTime;
-            std::cout << "adebug  traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
-        }
 #else
         const uint64_t TIME_BUDGET = 200; // usec
-        _traversal.traverse(TIME_BUDGET);
 #endif
+        _traversal.traverse(TIME_BUDGET);
     }
 
 #ifndef SEND_SORTED_ENTITIES
