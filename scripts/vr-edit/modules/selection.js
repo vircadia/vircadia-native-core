@@ -571,7 +571,7 @@ Selection = function (side) {
         rootEntityID = selection[0].id;
 
         // Add history entry.
-        History.push(
+        History.prePush(
             { deleteEntities: undoData },
             { createEntities: redoData }
         );

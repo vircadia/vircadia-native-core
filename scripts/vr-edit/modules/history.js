@@ -46,7 +46,9 @@ History = (function () {
             */
         ],
         MAX_HISTORY_ITEMS = 100,
-        undoPosition = -1;  // The next history item to undo; the next history item to redo = undoIndex + 1.
+        undoPosition = -1,  // The next history item to undo; the next history item to redo = undoIndex + 1.
+        undoData = {},
+        redoData = {};
 
     function doKick(entityID) {
         var properties,
@@ -69,7 +71,17 @@ History = (function () {
         Script.setTimeout(function () { doKick(entityID); }, KICK_DELAY);
     }
 
-    function push(undoData, redoData) {
+    function prePush(undo, redo) {
+        // Stores undo and redo data to include in the next history entry.
+        undoData = undo;
+        redoData = redo;
+    }
+
+    function push(undo, redo) {
+        // Add a history entry.
+        undoData = Object.merge(undoData, undo);
+        redoData = Object.merge(redoData, redo);
+
         // Wipe any redo history after current undo position.
         if (undoPosition < history.length - 1) {
             history.splice(undoPosition + 1, history.length - undoPosition - 1);
@@ -82,6 +94,9 @@ History = (function () {
 
         history.push({ undoData: undoData, redoData: redoData });
         undoPosition += 1;
+
+        undoData = {};
+        redoData = {};
     }
 
     function updateEntityIDs(oldEntityID, newEntityID) {
@@ -136,19 +151,19 @@ History = (function () {
         if (undoPosition > -1) {
             undoData = history[undoPosition].undoData;
 
+            if (undoData.createEntities) {
+                for (i = 0, length = undoData.createEntities.length; i < length; i += 1) {
+                    entityID = Entities.addEntity(undoData.createEntities[i].properties);
+                    updateEntityIDs(undoData.createEntities[i].entityID, entityID);
+                }
+            }
+
             if (undoData.setProperties) {
                 for (i = 0, length = undoData.setProperties.length; i < length; i += 1) {
                     Entities.editEntity(undoData.setProperties[i].entityID, undoData.setProperties[i].properties);
                     if (undoData.setProperties[i].properties.gravity) {
                         kickPhysics(undoData.setProperties[i].entityID);
                     }
-                }
-            }
-
-            if (undoData.createEntities) {
-                for (i = 0, length = undoData.createEntities.length; i < length; i += 1) {
-                    entityID = Entities.addEntity(undoData.createEntities[i].properties);
-                    updateEntityIDs(undoData.createEntities[i].entityID, entityID);
                 }
             }
 
@@ -172,19 +187,19 @@ History = (function () {
         if (undoPosition < history.length - 1) {
             redoData = history[undoPosition + 1].redoData;
 
+            if (redoData.createEntities) {
+                for (i = 0, length = redoData.createEntities.length; i < length; i += 1) {
+                    entityID = Entities.addEntity(redoData.createEntities[i].properties);
+                    updateEntityIDs(redoData.createEntities[i].entityID, entityID);
+                }
+            }
+
             if (redoData.setProperties) {
                 for (i = 0, length = redoData.setProperties.length; i < length; i += 1) {
                     Entities.editEntity(redoData.setProperties[i].entityID, redoData.setProperties[i].properties);
                     if (redoData.setProperties[i].properties.gravity) {
                         kickPhysics(redoData.setProperties[i].entityID);
                     }
-                }
-            }
-
-            if (redoData.createEntities) {
-                for (i = 0, length = redoData.createEntities.length; i < length; i += 1) {
-                    entityID = Entities.addEntity(redoData.createEntities[i].properties);
-                    updateEntityIDs(redoData.createEntities[i].entityID, entityID);
                 }
             }
 
@@ -199,6 +214,7 @@ History = (function () {
     }
 
     return {
+        prePush: prePush,
         push: push,
         hasUndo: hasUndo,
         hasRedo: hasRedo,

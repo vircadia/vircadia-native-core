@@ -318,8 +318,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties,
             CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 },
             INVERSE_HAND_BASIS_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 }),
-            entityID,
-            createdEntities;
+            entityID;
 
         itemIndex = paletteItemOverlays.indexOf(intersectionOverlayID);
 
@@ -354,8 +353,10 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties.rotation = Quat.multiply(controlHand.orientation(), INVERSE_HAND_BASIS_ROTATION);
             entityID = Entities.addEntity(properties);
             if (entityID !== Uuid.NULL) {
-                createdEntities = [{ entityID: entityID, properties: properties }];
-                History.push({ deleteEntities: createdEntities }, { createEntities: createdEntities });
+                History.prePush(
+                    { deleteEntities: [{ entityID: entityID }] },
+                    { createEntities: [{ entityID: entityID, properties: properties }] }
+                );
             } else {
                 Feedback.play(otherSide, Feedback.GENERAL_ERROR);
             }
