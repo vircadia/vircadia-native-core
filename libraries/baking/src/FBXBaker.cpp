@@ -354,19 +354,15 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
 
                     auto partIndex = 0;
+                    draco::FaceIndex face;
                     for (auto& part : mesh.parts) {
-                        //Q_ASSERT(part.quadTrianglesIndices % 3 == 0);
-                        //Q_ASSERT(part.triangleIndices % 3 == 0);
-
                         const auto matTex = extractedMesh.partMaterialTextures[partIndex];
                         const int64_t matTexData[2] = { matTex.first, matTex.second };
 
-                        for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
-                            auto idx0 = part.quadTrianglesIndices[i];
-                            auto idx1 = part.quadTrianglesIndices[i + 1];
-                            auto idx2 = part.quadTrianglesIndices[i + 2];
-
-                            auto face = draco::FaceIndex(i / 3);
+                        auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
+                            auto idx0 = indices[index];
+                            auto idx1 = indices[index + 1];
+                            auto idx2 = indices[index + 2];
 
                             if (hasPerFaceMaterials) {
                                 meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &matTexData);
@@ -378,7 +374,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                             if (hasNormals) {
                                 meshBuilder.SetAttributeValuesForFace(normalsAttributeID, face,
-                                                                      &mesh.normals[idx0],&mesh.normals[idx1],
+                                                                      &mesh.normals[idx0], &mesh.normals[idx1],
                                                                       &mesh.normals[idx2]);
                             }
                             if (hasColors) {
@@ -396,6 +392,13 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                                                                       &mesh.texCoords1[idx0], &mesh.texCoords1[idx1],
                                                                       &mesh.texCoords1[idx2]);
                             }
+                        };
+
+                        for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
+                            addFace(part.quadTrianglesIndices, i, face++);
+                        }
+                        for (int i = 0; (i + 2) < part.triangleIndices.size(); i += 3) {
+                            addFace(part.triangleIndices, i, face++);
                         }
 
                         partIndex++;
