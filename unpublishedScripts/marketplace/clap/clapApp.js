@@ -22,7 +22,7 @@ var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var blackIcon = Script.resolvePath("icons/tablet-icons/clap-a.svg?foxv2");
 var whiteIcon = Script.resolvePath("icons/tablet-icons/clap-i.svg?foxv2");
 
-if ( Settings.getValue("clapAppEnabled") === undefined){
+if (Settings.getValue("clapAppEnabled") === undefined) {
     Settings.setValue("clapAppEnabled", true);
 }
 var isActive = Settings.getValue("clapAppEnabled");
