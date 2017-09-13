@@ -1166,6 +1166,8 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
     meta.lastBakeErrors = errors;
 
     writeMetaFile(originalAssetHash, meta);
+
+    _pendingBakes.remove(originalAssetHash);
 }
 
 void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath, QVector<QString> bakedFilePaths) {
@@ -1286,7 +1288,7 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetHash hash) {
                 meta.bakeVersion = bakeVersion;
                 meta.applicationVersion = appVersion;
                 meta.failedLastBake = failedLastBake.toBool();
-                meta.lastBakeErrors = failedLastBake.toString();
+                meta.lastBakeErrors = lastBakeErrors.toString();
 
                 return { true, meta };
             } else {
