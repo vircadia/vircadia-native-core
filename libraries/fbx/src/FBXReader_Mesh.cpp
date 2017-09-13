@@ -408,16 +408,22 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                     data.extracted.mesh.colors.push_back({ colorValue[0], colorValue[1], colorValue[2] });
                 }
 
+                data.extracted.newIndices.insert(i, i);
+            }
+
+            for (int i = 0; i < dracoMesh->num_faces(); ++i) {
+                // grab the material ID and texture ID for this face, if we have it
+                auto firstCorner = dracoMesh->face(draco::FaceIndex(i))[0];
+
                 int64_t matTexValue[2] = { 0, 0 };
 
                 if (matTexAttribute) {
                     // read material ID and texture ID mappings into materials and texture vectors
-                    auto mappedIndex = matTexAttribute->mapped_index(vertexIndex);
+                    auto mappedIndex = matTexAttribute->mapped_index(firstCorner);
 
                     matTexAttribute->ConvertValue<int64_t, 2>(mappedIndex, &matTexValue[0]);
                 }
 
-                // grab the material ID and texture ID for this face, if we have it
                 QPair<int, int> materialTexture(matTexValue[0], matTexValue[1]);
 
                 // grab or setup the FBXMeshPart for the part this face belongs to
@@ -430,9 +436,9 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
                 // give the mesh part this index
                 FBXMeshPart& part = data.extracted.mesh.parts[partIndexPlusOne - 1];
-                part.triangleIndices.append(i);
-
-                data.extracted.newIndices.insert(i, i);
+                part.triangleIndices.append(firstCorner.value());
+                part.triangleIndices.append(dracoMesh->face(draco::FaceIndex(i))[1].value());
+                part.triangleIndices.append(dracoMesh->face(draco::FaceIndex(i))[2].value());
             }
         }
     }
