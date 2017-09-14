@@ -90,6 +90,7 @@ History = (function () {
         // Limit the number of history items.
         if (history.length >= MAX_HISTORY_ITEMS) {
             history.splice(0, history.length - MAX_HISTORY_ITEMS + 1);
+            undoPosition = history.length - 1;
         }
 
         history.push({ undoData: undoData, redoData: redoData });
