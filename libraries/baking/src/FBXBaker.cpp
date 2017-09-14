@@ -292,6 +292,20 @@ QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeF
 
 void FBXBaker::rewriteAndBakeSceneModels() {
     unsigned int meshIndex = 0;
+    bool hasDeformers { false };
+    for (FBXNode& rootChild : _rootNode.children) {
+        if (rootChild.name == "Objects") {
+            for (FBXNode& objectChild : rootChild.children) {
+                if (objectChild.name == "Deformer") {
+                    hasDeformers = true;
+                    break;
+                }
+            }
+        }
+        if (hasDeformers) {
+            break;
+        }
+    }
     for (FBXNode& rootChild : _rootNode.children) {
         if (rootChild.name == "Objects") {
             for (FBXNode& objectChild : rootChild.children) {
@@ -329,18 +343,22 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     bool hasTexCoords { mesh.texCoords.size() > 0 };
                     bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
                     bool hasPerFaceMaterials { mesh.parts.size() > 1 };
+                    bool needsOriginalIndices { hasDeformers };
 
                     int normalsAttributeID { -1 };
                     int colorsAttributeID { -1 };
                     int texCoordsAttributeID { -1 };
                     int texCoords1AttributeID { -1 };
                     int faceMaterialAttributeID { -1 };
+                    int originalIndexAttributeID { -1 };
 
                     const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
                                                                              3, draco::DT_FLOAT32);
-                    const int originalIndexAttributeID = meshBuilder.AddAttribute(
-                        (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_ORIGINAL_INDEX,
-                        1, draco::DT_INT32);
+                    if (needsOriginalIndices) {
+                        originalIndexAttributeID = meshBuilder.AddAttribute(
+                            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_ORIGINAL_INDEX,
+                            1, draco::DT_INT32);
+                    }
 
                     if (hasNormals) {
                         normalsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::NORMAL,
@@ -385,7 +403,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                                                                   &mesh.vertices[idx0], &mesh.vertices[idx1],
                                                                   &mesh.vertices[idx2]);
 
-                            if (originalIndexAttributeID) {
+                            if (needsOriginalIndices) {
                                 meshBuilder.SetAttributeValuesForFace(originalIndexAttributeID, face,
                                                                       &mesh.originalIndex[idx0],
                                                                       &mesh.originalIndex[idx1],
@@ -441,7 +459,9 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                         dracoMesh->attribute(texCoords1AttributeID)->set_unique_id(DRACO_ATTRIBUTE_TEX_COORD_1);
                     }
 
-                    dracoMesh->attribute(originalIndexAttributeID)->set_unique_id(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
+                    if (needsOriginalIndices) {
+                        dracoMesh->attribute(originalIndexAttributeID)->set_unique_id(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
+                    }
 
                     draco::Encoder encoder;
 
