@@ -367,6 +367,20 @@ Menu::Menu() {
             QString("../../hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
     });
 
+    // Developer > UI >>>
+    MenuWrapper* uiOptionsMenu = developerMenu->addMenu("UI");
+    action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::DesktopTabletToToolbar, 0,
+                                                    qApp->getDesktopTabletBecomesToolbarSetting());
+    connect(action, &QAction::triggered, [action] {
+        qApp->setDesktopTabletBecomesToolbarSetting(action->isChecked());
+    });
+
+    action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::HMDTabletToToolbar, 0,
+                                                    qApp->getHmdTabletBecomesToolbarSetting());
+    connect(action, &QAction::triggered, [action] {
+        qApp->setHmdTabletBecomesToolbarSetting(action->isChecked());
+    });
+
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
