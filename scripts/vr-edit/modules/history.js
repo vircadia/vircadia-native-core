@@ -45,7 +45,7 @@ History = (function () {
             }
             */
         ],
-        MAX_HISTORY_ITEMS = 100,
+        MAX_HISTORY_ITEMS = 1000,
         undoPosition = -1,  // The next history item to undo; the next history item to redo = undoIndex + 1.
         undoData = {},
         redoData = {};
