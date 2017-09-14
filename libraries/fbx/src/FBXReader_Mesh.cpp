@@ -338,6 +338,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             }
         } else if (child.name == "DracoMesh") {
             isDracoMesh = true;
+            data.extracted.mesh.wasCompressed = true;
 
             // load the draco mesh from the FBX and create a draco::Mesh
             draco::Decoder decoder;
