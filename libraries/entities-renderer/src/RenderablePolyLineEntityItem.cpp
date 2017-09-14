@@ -121,14 +121,18 @@ bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
 }
 
 void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    static const QUrl DEFAULT_POLYLINE_TEXTURE = QUrl(PathUtils::resourcesPath() + "images/paintStroke.png");
+    QUrl entityTextures = DEFAULT_POLYLINE_TEXTURE;
     if (entity->texturesChanged()) {
         entity->resetTexturesChanged();
         auto textures = entity->getTextures();
-        QString path = textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : textures;
-        if (!_texture || _lastTextures != path) {
-            _lastTextures = path;
-            _texture = DependencyManager::get<TextureCache>()->getTexture(QUrl(path));
+        if (!textures.isEmpty()) {
+            entityTextures = QUrl(textures);
         }
+    }
+
+    if (!_texture || _texture->getURL() != entityTextures) {
+        _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
     }
 }
 
@@ -228,7 +232,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     if (_texture && _texture->isLoaded()) {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
 
     batch.setInputFormat(polylineFormat);

@@ -55,7 +55,6 @@ protected:
     gpu::BufferView _uniformBuffer;
     uint32_t _numVertices { 0 };
     bool _empty{ true };
-    QString _lastTextures;
     NetworkTexturePointer _texture;
 };
 
