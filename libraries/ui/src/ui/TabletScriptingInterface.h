@@ -57,7 +57,7 @@ public:
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
-    Q_INVOKABLE void playSound(QString soundId);
+    Q_INVOKABLE void playSound(Tablet::AudioEvents aevent);
     void setToolbarMode(bool toolbarMode);
 
     void setQmlTabletRoot(QString tabletId, OffscreenQmlSurface* offscreenQmlSurface);

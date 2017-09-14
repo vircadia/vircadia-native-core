@@ -71,8 +71,7 @@ TabletProxy* TabletScriptingInterface::getTablet(const QString& tabletId) {
     return tabletProxy;
 }
 
-void TabletScriptingInterface::playSound(QString soundId)
-{
+void TabletScriptingInterface::playSound(Tablet::AudioEvents aevent) {
     QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
     SharedSoundPointer _snapshotSound = DependencyManager::get<SoundCache>()->
             getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
