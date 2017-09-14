@@ -59,8 +59,6 @@ QByteArray FBXWriter::encodeFBX(const FBXNode& root) {
 }
 
 void FBXWriter::encodeNode(QDataStream& out, const FBXNode& node) {
-    qDebug() << "Encoding " << node.name;
-
     auto device = out.device();
     auto nodeStartPos = device->pos();
 
@@ -108,8 +106,12 @@ void FBXWriter::encodeNode(QDataStream& out, const FBXNode& node) {
 void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
     auto type = prop.userType();
     switch (type) {
-        case QVariant::Type::Bool:
+        case QMetaType::Short:
+            out.device()->write("Y", 1);
+            out << prop.value<int16_t>();
+            break;
 
+        case QVariant::Type::Bool:
             out.device()->write("C", 1);
             out << prop.toBool();
             break;
@@ -229,6 +231,7 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                 writeVector(out, 'b', prop.value<QVector<bool>>());
             } else {
                 qDebug() << "Unsupported property type in FBXWriter::encodeNode: " << type << prop;
+                throw("Unsupported property type in FBXWriter::encodeNode: " + QString::number(type) + " " + prop.toString());
             }
         }
 

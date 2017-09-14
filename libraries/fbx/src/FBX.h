@@ -38,6 +38,7 @@ static const quint32 FBX_VERSION_2016 = 7500;
 static const int DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES = 1000;
 static const int DRACO_ATTRIBUTE_MATERIAL_ID = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES;
 static const int DRACO_ATTRIBUTE_TEX_COORD_1 = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES + 1;
+static const int DRACO_ATTRIBUTE_ORIGINAL_INDEX = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES + 2;
 
 
 class FBXNode;
@@ -217,6 +218,7 @@ public:
     QVector<FBXMeshPart> parts;
 
     QVector<glm::vec3> vertices;
+    QVector<int32_t> originalIndex;
     QVector<glm::vec3> normals;
     QVector<glm::vec3> tangents;
     QVector<glm::vec3> colors;

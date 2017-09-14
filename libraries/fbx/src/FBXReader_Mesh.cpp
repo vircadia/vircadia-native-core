@@ -84,7 +84,7 @@ public:
 };
 
 
-void appendIndex(MeshData& data, QVector<int>& indices, int index) {
+void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplicate) {
     if (index >= data.polygonIndices.size()) {
         return;
     }
@@ -156,12 +156,13 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
 
     QHash<Vertex, int>::const_iterator it = data.indices.find(vertex);
-    if (it == data.indices.constEnd()) {
+    if (!deduplicate || it == data.indices.constEnd()) {
         int newIndex = data.extracted.mesh.vertices.size();
         indices.append(newIndex);
         data.indices.insert(vertex, newIndex);
         data.extracted.newIndices.insert(vertexIndex, newIndex);
         data.extracted.mesh.vertices.append(position);
+        data.extracted.mesh.originalIndices.append(vertexIndex);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
         if (hasColors) {
@@ -176,7 +177,7 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
 }
 
-ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIndex) {
+ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate) {
     MeshData data;
     data.extracted.mesh.meshIndex = meshIndex++;
 
@@ -355,6 +356,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             auto extraTexCoordAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_TEX_COORD_1);
             auto colorAttribute = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::COLOR);
             auto matTexAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_MATERIAL_ID);
+            auto originalIndexAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
 
             // setup extracted mesh data structures given number of points
             auto numVertices = dracoMesh->num_points();
@@ -423,7 +425,17 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                                                            reinterpret_cast<float*>(&data.extracted.mesh.colors[i]));
                 }
 
-                data.extracted.newIndices.insert(i, i);
+                if (originalIndexAttribute) {
+                    auto mappedIndex = originalIndexAttribute->mapped_index(vertexIndex);
+
+                    int32_t originalIndex;
+
+                    originalIndexAttribute->ConvertValue<int32_t, 1>(mappedIndex, &originalIndex);
+
+                    data.extracted.newIndices.insert(originalIndex, i);
+                } else {
+                    data.extracted.newIndices.insert(i, i);
+                }
             }
 
             for (int i = 0; i < dracoMesh->num_faces(); ++i) {
@@ -487,10 +499,10 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             FBXMeshPart& part = data.extracted.mesh.parts[partIndex - 1];
 
             if (endIndex - beginIndex == 4) {
-                appendIndex(data, part.quadIndices, beginIndex++);
-                appendIndex(data, part.quadIndices, beginIndex++);
-                appendIndex(data, part.quadIndices, beginIndex++);
-                appendIndex(data, part.quadIndices, beginIndex++);
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
 
                 int quadStartIndex = part.quadIndices.size() - 4;
                 int i0 = part.quadIndices[quadStartIndex + 0];
@@ -515,9 +527,9 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
             } else {
                 for (int nextIndex = beginIndex + 1;; ) {
-                    appendIndex(data, part.triangleIndices, beginIndex);
-                    appendIndex(data, part.triangleIndices, nextIndex++);
-                    appendIndex(data, part.triangleIndices, nextIndex);
+                    appendIndex(data, part.triangleIndices, beginIndex, deduplicate);
+                    appendIndex(data, part.triangleIndices, nextIndex++, deduplicate);
+                    appendIndex(data, part.triangleIndices, nextIndex, deduplicate);
                     if (nextIndex >= data.polygonIndices.size() || data.polygonIndices.at(nextIndex) < 0) {
                         break;
                     }

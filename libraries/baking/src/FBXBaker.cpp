@@ -298,7 +298,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                 if (objectChild.name == "Geometry") {
 
                     // TODO Pull this out of _geometry instead so we don't have to reprocess it
-                    auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex);
+                    auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex, false);
                     auto& mesh = extractedMesh.mesh;
 
                     Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
@@ -338,6 +338,9 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                     const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
                                                                              3, draco::DT_FLOAT32);
+                    const int originalIndexAttributeID = meshBuilder.AddAttribute(
+                        (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_ORIGINAL_INDEX,
+                        1, draco::DT_INT32);
 
                     if (hasNormals) {
                         normalsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::NORMAL,
@@ -367,14 +370,14 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     draco::FaceIndex face;
                     for (auto& part : mesh.parts) {
                         const auto& matTex = extractedMesh.partMaterialTextures[partIndex];
+                        uint16_t materialID = matTex.first;
 
                         auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
-                            auto idx0 = indices[index];
-                            auto idx1 = indices[index + 1];
-                            auto idx2 = indices[index + 2];
+                            int32_t idx0 = indices[index];
+                            int32_t idx1 = indices[index + 1];
+                            int32_t idx2 = indices[index + 2];
 
                             if (hasPerFaceMaterials) {
-                                uint16_t materialID = matTex.first;
                                 meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &materialID);
                             }
 
@@ -382,6 +385,12 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                                                                   &mesh.vertices[idx0], &mesh.vertices[idx1],
                                                                   &mesh.vertices[idx2]);
 
+                            if (originalIndexAttributeID) {
+                                meshBuilder.SetAttributeValuesForFace(originalIndexAttributeID, face,
+                                                                      &mesh.originalIndex[idx0],
+                                                                      &mesh.originalIndex[idx1],
+                                                                      &mesh.originalIndex[idx2]);
+                            }
                             if (hasNormals) {
                                 meshBuilder.SetAttributeValuesForFace(normalsAttributeID, face,
                                                                       &mesh.normals[idx0], &mesh.normals[idx1],
@@ -431,6 +440,8 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     if (hasTexCoords1) {
                         dracoMesh->attribute(texCoords1AttributeID)->set_unique_id(DRACO_ATTRIBUTE_TEX_COORD_1);
                     }
+
+                    dracoMesh->attribute(originalIndexAttributeID)->set_unique_id(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
 
                     draco::Encoder encoder;
 
