@@ -51,7 +51,6 @@ protected:
     virtual void postPreview() {};
     virtual void updatePresentPose();
 
-    bool beginFrameRender(uint32_t frameIndex) override;
     bool internalActivate() override;
     void internalDeactivate() override;
     void compositeOverlay() override;
@@ -87,7 +86,6 @@ private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
     float getLeftCenterPixel() const;
 
-    bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
     gpu::TexturePointer _previewTexture;

@@ -62,24 +62,9 @@ QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
     return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
 }
 
-bool HmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
-    if (!_vsyncEnabled && !_disablePreviewItemAdded) {
-        _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
-            [this](bool clicked) {
-                _disablePreview = clicked;
-                _container->setBoolSetting("disableHmdPreview", _disablePreview);
-                if (_disablePreview) {
-                    _clearPreviewFlag = true;
-                }
-            }, true, _disablePreview);
-        _disablePreviewItemAdded = true;
-    }
-    return Parent::beginFrameRender(frameIndex);
-}
-
+#define DISABLE_PREVIEW_MENU_ITEM_DELAY_MS 500
 
 bool HmdDisplayPlugin::internalActivate() {
-    _disablePreviewItemAdded = false;
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
     _clearPreviewFlag = true;
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
@@ -93,6 +78,19 @@ bool HmdDisplayPlugin::internalActivate() {
 #else
     _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || _vsyncEnabled);
 #endif
+
+    QTimer::singleShot(DISABLE_PREVIEW_MENU_ITEM_DELAY_MS, [this] {
+        if (isActive() && !_vsyncEnabled) {
+            _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
+                [this](bool clicked) {
+                _disablePreview = clicked;
+                _container->setBoolSetting("disableHmdPreview", _disablePreview);
+                if (_disablePreview) {
+                    _clearPreviewFlag = true;
+                }
+            }, true, _disablePreview);
+        }
+    });
 
     _container->removeMenu(FRAMERATE);
     for_each_eye([&](Eye eye) {

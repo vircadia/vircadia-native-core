@@ -41,9 +41,9 @@ protected:
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
 private:
-    void updateKeyZoneItemFromEntity(const TypedEntityPointer& entity);
-    void updateKeySunFromEntity(const TypedEntityPointer& entity);
-    void updateKeyAmbientFromEntity(const TypedEntityPointer& entity);
+    void updateKeyZoneItemFromEntity();
+    void updateKeySunFromEntity();
+    void updateKeyAmbientFromEntity();
     void updateKeyBackgroundFromEntity(const TypedEntityPointer& entity);
     void updateAmbientMap();
     void updateSkyboxMap();
@@ -88,6 +88,10 @@ private:
     bool _needSunUpdate{ true };
     bool _needAmbientUpdate{ true };
     bool _needBackgroundUpdate{ true };
+
+    KeyLightPropertyGroup _keyLightProperties;
+    StagePropertyGroup _stageProperties;
+    SkyboxPropertyGroup _skyboxProperties;
 
     // More attributes used for rendering:
     QString _ambientTextureURL;
