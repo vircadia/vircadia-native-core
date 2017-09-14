@@ -2635,17 +2635,8 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("postComposite");
         renderArgs._batch = &postCompositeBatch;
         renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
-        for_each_eye([&](Eye eye) {
-
-            // apply eye offset and IPD scale to the view matrix
-            mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
-            vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-            mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
-            renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView() * eyeOffsetTransform);
-
-            renderArgs._batch->setProjectionTransform(eyeProjections[eye]);
-            _overlays.render3DHUDOverlays(&renderArgs);
-        });
+        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
+        _overlays.render3DHUDOverlays(&renderArgs);
     }
 
     auto frame = _gpuContext->endFrame();

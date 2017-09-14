@@ -441,7 +441,7 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
         this->uniformsLocation = program->getUniformBuffers().findLocation("overlayBuffer");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(gpu::State::DepthTest(true, true, gpu::LESS_EQUAL));
+        state->setDepthTest(gpu::State::DepthTest(false, false, gpu::LESS_EQUAL));
         state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
