@@ -4,14 +4,6 @@ cmake_policy(SET CMP0046 OLD)
 
 include(ExternalProject)
 
-if (WIN32)
-    # windows shell does not like backslashes expanded on the command line,
-    # so convert all backslashes in the QT path to forward slashes
-    string(REPLACE \\ / QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
-elseif ($ENV{QT_CMAKE_PREFIX_PATH})
-    set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
-endif ()
-
 set(QUAZIP_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_PREFIX_PATH=${QT_CMAKE_PREFIX_PATH} -DCMAKE_INSTALL_NAME_DIR:PATH=<INSTALL_DIR>/lib -DZLIB_ROOT=${ZLIB_ROOT} -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
 
 if (APPLE)
@@ -34,9 +26,9 @@ add_dependencies(quazip zlib)
 
 # Hide this external target (for ide users)
 set_target_properties(${EXTERNAL_NAME} PROPERTIES 
-	FOLDER "hidden/externals"
-	INSTALL_NAME_DIR ${INSTALL_DIR}/lib
-	BUILD_WITH_INSTALL_RPATH True)
+    FOLDER "hidden/externals"
+    INSTALL_NAME_DIR ${INSTALL_DIR}/lib
+    BUILD_WITH_INSTALL_RPATH True)
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIR ${INSTALL_DIR}/include CACHE PATH "List of QuaZip include directories")

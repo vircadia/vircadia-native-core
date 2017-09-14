@@ -148,6 +148,9 @@ public:
     QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
     QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
 
+    void enablePeakValues(bool enable) { _enablePeakValues = enable; }
+    bool peakValuesAvailable() const;
+
     static const float CALLBACK_ACCELERATOR_RATIO;
 
     bool getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName);
@@ -224,6 +227,7 @@ signals:
 
     void deviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
     void devicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
+    void peakValueListChanged(const QList<float> peakValueList);
 
     void receivedFirstPacket();
     void disconnected();
@@ -242,9 +246,12 @@ private:
     friend class CheckDevicesThread;
     friend class LocalInjectorsThread;
 
+    // background tasks
+    void checkDevices();
+    void checkPeakValues();
+
     void outputFormatChanged();
     void handleAudioInput(QByteArray& audioBuffer);
-    void checkDevices();
     void prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock = nullptr);
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
@@ -298,6 +305,7 @@ private:
     std::atomic<bool> _localInjectorsAvailable { false };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
+    std::atomic<bool> _enablePeakValues { false };
 
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
@@ -396,6 +404,7 @@ private:
     RateCounter<> _audioInbound;
 
     QTimer* _checkDevicesTimer { nullptr };
+    QTimer* _checkPeakValuesTimer { nullptr };
 };
 
 

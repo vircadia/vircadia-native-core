@@ -176,6 +176,10 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     _lastRotation = entity->getRotation();
     _lastDimensions = entity->getDimensions();
 
+    _keyLightProperties = entity->getKeyLightProperties();
+    _stageProperties = entity->getStageProperties();
+    _skyboxProperties = entity->getSkyboxProperties();
+
 
 #if 0
     if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {
@@ -196,14 +200,14 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     }
 #endif
 
-    updateKeyZoneItemFromEntity(entity);
+    updateKeyZoneItemFromEntity();
 
     if (sunChanged) {
-        updateKeySunFromEntity(entity);
+        updateKeySunFromEntity();
     }
 
     if (sunChanged || skyboxChanged) {
-        updateKeyAmbientFromEntity(entity);
+        updateKeyAmbientFromEntity();
     }
     if (backgroundChanged || skyboxChanged) {
         updateKeyBackgroundFromEntity(entity);
@@ -265,19 +269,19 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
     return false;
 }
 
-void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity) {
+void ZoneEntityRenderer::updateKeySunFromEntity() {
     const auto& sunLight = editSunLight();
     sunLight->setType(model::Light::SUN);
     sunLight->setPosition(_lastPosition);
     sunLight->setOrientation(_lastRotation);
 
     // Set the keylight
-    sunLight->setColor(ColorUtils::toVec3(entity->getKeyLightProperties().getColor()));
-    sunLight->setIntensity(entity->getKeyLightProperties().getIntensity());
-    sunLight->setDirection(entity->getKeyLightProperties().getDirection());
+    sunLight->setColor(ColorUtils::toVec3(_keyLightProperties.getColor()));
+    sunLight->setIntensity(_keyLightProperties.getIntensity());
+    sunLight->setDirection(_keyLightProperties.getDirection());
 }
 
-void ZoneEntityRenderer::updateKeyAmbientFromEntity(const TypedEntityPointer& entity) {
+void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
     const auto& ambientLight = editAmbientLight();
     ambientLight->setType(model::Light::AMBIENT);
     ambientLight->setPosition(_lastPosition);
@@ -285,24 +289,24 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity(const TypedEntityPointer& en
 
 
     // Set the keylight
-    ambientLight->setAmbientIntensity(entity->getKeyLightProperties().getAmbientIntensity());
+    ambientLight->setAmbientIntensity(_keyLightProperties.getAmbientIntensity());
 
-    if (entity->getKeyLightProperties().getAmbientURL().isEmpty()) {
-        setAmbientURL(entity->getSkyboxProperties().getURL());
+    if (_keyLightProperties.getAmbientURL().isEmpty()) {
+        setAmbientURL(_skyboxProperties.getURL());
     } else {
-        setAmbientURL(entity->getKeyLightProperties().getAmbientURL());
+        setAmbientURL(_keyLightProperties.getAmbientURL());
     }
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
     editBackground();
     setBackgroundMode(entity->getBackgroundMode());
-    setSkyboxColor(entity->getSkyboxProperties().getColorVec3());
+    setSkyboxColor(_skyboxProperties.getColorVec3());
     setProceduralUserData(entity->getUserData());
-    setSkyboxURL(entity->getSkyboxProperties().getURL());
+    setSkyboxURL(_skyboxProperties.getURL());
 }
 
-void ZoneEntityRenderer::updateKeyZoneItemFromEntity(const TypedEntityPointer& entity) {
+void ZoneEntityRenderer::updateKeyZoneItemFromEntity() {
     /* TODO: Implement the sun model behavior / Keep this code here for reference, this is how we
     {
     // Set the stage
