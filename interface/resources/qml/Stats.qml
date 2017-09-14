@@ -208,7 +208,7 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Entity Mixer In: " + root.entityPacketsInKbps + " kbps";
+                        text: "Entity Servers In: " + root.entityPacketsInKbps + " kbps";
                     }
                     StatText {
                         visible: root.expanded;

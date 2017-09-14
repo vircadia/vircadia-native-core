@@ -142,12 +142,15 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     }
 
     if (!_traversal.finished()) {
+        quint64 startTime = usecTimestampNow();
+
 #ifdef DEBUG
         const uint64_t TIME_BUDGET = 400; // usec
 #else
         const uint64_t TIME_BUDGET = 200; // usec
 #endif
         _traversal.traverse(TIME_BUDGET);
+        OctreeServer::trackTreeTraverseTime((float)(usecTimestampNow() - startTime));
     }
 
 #ifndef SEND_SORTED_ENTITIES

@@ -60,6 +60,8 @@ int OctreeServer::_longTreeWait = 0;
 int OctreeServer::_shortTreeWait = 0;
 int OctreeServer::_noTreeWait = 0;
 
+SimpleMovingAverage OctreeServer::_averageTreeTraverseTime(MOVING_AVERAGE_SAMPLE_COUNTS);
+
 SimpleMovingAverage OctreeServer::_averageNodeWaitTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 
 SimpleMovingAverage OctreeServer::_averageCompressAndWriteTime(MOVING_AVERAGE_SAMPLE_COUNTS);
@@ -105,6 +107,8 @@ void OctreeServer::resetSendingStats() {
     _longTreeWait = 0;
     _shortTreeWait = 0;
     _noTreeWait = 0;
+
+    _averageTreeTraverseTime.reset();
 
     _averageNodeWaitTime.reset();
 
@@ -521,6 +525,10 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                                          "          %9.2f usecs (%6.2f%%) samples: %12d \r\n\r\n",
                                          (double)_averageTreeExtraLongWaitTime.getAverage(),
                                          (double)(extraLongVsTotal * AS_PERCENT), _extraLongTreeWait);
+
+        // traverse
+        float averageTreeTraverseTime = getAverageTreeTraverseTime();
+        statsString += QString().sprintf("                 Average tree traverse time:    %9.2f usecs\r\n", (double)averageTreeTraverseTime);
 
         // encode
         float averageEncodeTime = getAverageEncodeTime();
@@ -1590,7 +1598,7 @@ void OctreeServer::sendStatsPacket() {
     QJsonObject timingArray1;
     timingArray1["1. avgLoopTime"] = getAverageLoopTime();
     timingArray1["2. avgInsideTime"] = getAverageInsideTime();
-    timingArray1["3. avgTreeLockTime"] = getAverageTreeWaitTime();
+    timingArray1["3. avgTreeTraverseTime"] = getAverageTreeTraverseTime();
     timingArray1["4. avgEncodeTime"] = getAverageEncodeTime();
     timingArray1["5. avgCompressAndWriteTime"] = getAverageCompressAndWriteTime();
     timingArray1["6. avgSendTime"] = getAveragePacketSendingTime();
