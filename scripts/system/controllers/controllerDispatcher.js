@@ -369,28 +369,28 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
         this.leftControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_HUD,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
         this.rightControllerRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_RIGHTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
         });
         this.rightControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_RIGHTHAND",
             filter: RayPick.PICK_HUD,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
         });
 
         this.handleHandMessage = function(channel, message, sender) {
