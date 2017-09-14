@@ -458,84 +458,80 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     return _truePacketsSent;
 }
 
+bool OctreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params) {
+    bool somethingToSend = false;
+    OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(params.nodeData);
+    if (!nodeData->elementBag.isEmpty()) {
+        quint64 encodeStart = usecTimestampNow();
+        quint64 lockWaitStart = encodeStart;
+
+        _myServer->getOctree()->withReadLock([&]{
+            OctreeServer::trackTreeWaitTime((float)(usecTimestampNow() - lockWaitStart));
+
+            OctreeElementPointer subTree = nodeData->elementBag.extract();
+            if (subTree) {
+                // NOTE: this is where the tree "contents" are actually packed
+                nodeData->stats.encodeStarted();
+                _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
+                nodeData->stats.encodeStopped();
+
+                somethingToSend = true;
+            }
+        });
+
+        OctreeServer::trackEncodeTime((float)(usecTimestampNow() - encodeStart));
+    } else {
+        OctreeServer::trackTreeWaitTime(OctreeServer::SKIP_TIME);
+        OctreeServer::trackEncodeTime(OctreeServer::SKIP_TIME);
+    }
+    return somethingToSend;
+}
+
 void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged, bool isFullScene) {
     // calculate max number of packets that can be sent during this interval
     int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxQueryPacketsPerSecond() / INTERVALS_PER_SECOND));
     int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
 
     int extraPackingAttempts = 0;
-    bool completedScene = false;
+
+    // init params once outside the while loop
+    int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
+    int boundaryLevelAdjust = boundaryLevelAdjustClient +
+                            (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
+    float octreeSizeScale = nodeData->getOctreeSizeScale();
+    EncodeBitstreamParams params(INT_MAX, WANT_EXISTS_BITS, DONT_CHOP,
+                                viewFrustumChanged, boundaryLevelAdjust, octreeSizeScale,
+                                isFullScene, _myServer->getJurisdiction(), nodeData);
+    // Our trackSend() function is implemented by the server subclass, and will be called back
+    // during the encodeTreeBitstream() as new entities/data elements are sent
+    params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
+        _myServer->trackSend(dataID, dataEdited, _nodeUuid);
+    };
+    nodeData->copyCurrentViewFrustum(params.viewFrustum);
+    if (viewFrustumChanged) {
+        nodeData->copyLastKnownViewFrustum(params.lastViewFrustum);
+    }
 
     bool somethingToSend = true; // assume we have something
+    bool bagHadSomething = !nodeData->elementBag.isEmpty();
     while (somethingToSend && _packetsSentThisInterval < maxPacketsPerInterval && !nodeData->isShuttingDown()) {
-        float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
-        float encodeElapsedUsec = OctreeServer::SKIP_TIME;
         float compressAndWriteElapsedUsec = OctreeServer::SKIP_TIME;
         float packetSendingElapsedUsec = OctreeServer::SKIP_TIME;
 
         quint64 startInside = usecTimestampNow();
 
         bool lastNodeDidntFit = false; // assume each node fits
-        if (!nodeData->elementBag.isEmpty()) {
+        params.stopReason = EncodeBitstreamParams::UNKNOWN; // reset params.stopReason before traversal
 
-            quint64 lockWaitStart = usecTimestampNow();
-            _myServer->getOctree()->withReadLock([&]{
-                quint64 lockWaitEnd = usecTimestampNow();
-                lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-                quint64 encodeStart = usecTimestampNow();
+        somethingToSend = traverseTreeAndBuildNextPacketPayload(params);
 
-                OctreeElementPointer subTree = nodeData->elementBag.extract();
-                if (!subTree) {
-                    return;
-                }
-
-                float octreeSizeScale = nodeData->getOctreeSizeScale();
-                int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
-
-                int boundaryLevelAdjust = boundaryLevelAdjustClient +
-                                          (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
-
-                EncodeBitstreamParams params(INT_MAX, WANT_EXISTS_BITS, DONT_CHOP,
-                                             viewFrustumChanged, boundaryLevelAdjust, octreeSizeScale,
-                                             isFullScene, _myServer->getJurisdiction(), nodeData);
-                nodeData->copyCurrentViewFrustum(params.viewFrustum);
-                if (viewFrustumChanged) {
-                    nodeData->copyLastKnownViewFrustum(params.lastViewFrustum);
-                }
-
-                // Our trackSend() function is implemented by the server subclass, and will be called back
-                // during the encodeTreeBitstream() as new entities/data elements are sent
-                params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
-                    _myServer->trackSend(dataID, dataEdited, _nodeUuid);
-                };
-
-                // TODO: should this include the lock time or not? This stat is sent down to the client,
-                // it seems like it may be a good idea to include the lock time as part of the encode time
-                // are reported to client. Since you can encode without the lock
-                nodeData->stats.encodeStarted();
-
-                // NOTE: this is where the tree "contents" are actaully packed
-                _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
-
-                quint64 encodeEnd = usecTimestampNow();
-                encodeElapsedUsec = (float)(encodeEnd - encodeStart);
-
-                // If after calling encodeTreeBitstream() there are no nodes left to send, then we know we've
-                // sent the entire scene. We want to know this below so we'll actually write this content into
-                // the packet and send it
-                completedScene = nodeData->elementBag.isEmpty();
-
-                if (params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
-                    lastNodeDidntFit = true;
-                    extraPackingAttempts++;
-                }
-
-                nodeData->stats.encodeStopped();
-            });
-        } else {
-            somethingToSend = false; // this will cause us to drop out of the loop...
+        if (params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+            lastNodeDidntFit = true;
+            extraPackingAttempts++;
         }
 
+        // If the bag had contents but is now empty then we know we've sent the entire scene.
+        bool completedScene = bagHadSomething && nodeData->elementBag.isEmpty();
         if (completedScene || lastNodeDidntFit) {
             // we probably want to flush what has accumulated in nodeData but:
             // do we have more data to send? and is there room?
@@ -562,8 +558,7 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
             if (sendNow) {
                 quint64 packetSendingStart = usecTimestampNow();
                 _packetsSentThisInterval += handlePacketSend(node, nodeData);
-                quint64 packetSendingEnd = usecTimestampNow();
-                packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
+                packetSendingElapsedUsec = (float)(usecTimestampNow() - packetSendingStart);
 
                 targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
                 extraPackingAttempts = 0;
@@ -576,14 +571,9 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
             }
             _packetData.changeSettings(true, targetSize); // will do reset - NOTE: Always compressed
         }
-        OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
-        OctreeServer::trackEncodeTime(encodeElapsedUsec);
         OctreeServer::trackCompressAndWriteTime(compressAndWriteElapsedUsec);
         OctreeServer::trackPacketSendingTime(packetSendingElapsedUsec);
-
-        quint64 endInside = usecTimestampNow();
-        quint64 elapsedInsideUsecs = endInside - startInside;
-        OctreeServer::trackInsideTime((float)elapsedInsideUsecs);
+        OctreeServer::trackInsideTime((float)(usecTimestampNow() - startInside));
     }
 
     if (somethingToSend && _myServer->wantsVerboseDebug()) {

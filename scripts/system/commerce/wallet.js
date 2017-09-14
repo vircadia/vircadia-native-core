@@ -56,6 +56,7 @@
     var isHmdPreviewDisabled = true;
     function fromQml(message) {
         switch (message.method) {
+            case 'passphrasePopup_cancelClicked':
             case 'walletSetup_cancelClicked':
             case 'needsLogIn_cancelClicked':
                 tablet.gotoHomeScreen();
@@ -69,6 +70,10 @@
                 break;
             case 'maybeEnableHmdPreview':
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
+                break;
+            case 'passphraseReset':
+                onButtonClicked();
+                onButtonClicked();
                 break;
             case 'walletReset':
                 onButtonClicked();

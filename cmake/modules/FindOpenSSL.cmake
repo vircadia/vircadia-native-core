@@ -34,26 +34,11 @@ if (UNIX)
 endif ()
 
 if (WIN32)
-
-  file(TO_CMAKE_PATH "$ENV{PROGRAMFILES}" _programfiles)
-
-  if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
-    # http://www.slproweb.com/products/Win32OpenSSL.html
-    set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
-      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
-    )
-    set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win64" "C:/OpenSSL/" "C:/OpenSSL-Win64/")
+  if (("${CMAKE_SIZEOF_VOID_P}" EQUAL "8"))
+    set(_OPENSSL_ROOT_HINTS_AND_PATHS $ENV{VCPKG_ROOT}/installed/x64-windows)
   else()
-    # http://www.slproweb.com/products/Win32OpenSSL.html
-    set(_OPENSSL_ROOT_HINTS ${OPENSSL_ROOT_DIR} $ENV{OPENSSL_ROOT_DIR} $ENV{HIFI_LIB_DIR}/openssl
-      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
-    )
-    set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win32" "C:/OpenSSL/" "C:/OpenSSL-Win32/")
+    set(_OPENSSL_ROOT_HINTS_AND_PATHS $ENV{VCPKG_ROOT}/installed/x86-windows)
   endif()
-
-  unset(_programfiles)
-  set(_OPENSSL_ROOT_HINTS_AND_PATHS HINTS ${_OPENSSL_ROOT_HINTS} PATHS ${_OPENSSL_ROOT_PATHS})
-
 else ()
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
   hifi_library_search_hints("openssl")
@@ -67,47 +52,14 @@ find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AN
 
 if (WIN32 AND NOT CYGWIN)
   if (MSVC)
-
-    # In Visual C++ naming convention each of these four kinds of Windows libraries has it's standard suffix:
-    #   * MD for dynamic-release
-    #   * MDd for dynamic-debug
-    #   * MT for static-release
-    #   * MTd for static-debug
-
-    # Implementation details:
-    # We are using the libraries located in the VC subdir instead of the parent directory eventhough :
-    # libeay32MD.lib is identical to ../libeay32.lib, and
-    # ssleay32MD.lib is identical to ../ssleay32.lib
-
-    # The Kitware FindOpenSSL module has been modified here by High Fidelity to look specifically for static libraries
-
-    find_library(LIB_EAY_DEBUG NAMES libeay32MTd
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
-    )
-
-    find_library(LIB_EAY_RELEASE NAMES libeay32MT
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
-    )
-
-    find_library(SSL_EAY_DEBUG NAMES ssleay32MTd
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
-    )
-
-    find_library(SSL_EAY_RELEASE NAMES ssleay32MT
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
-    )
-
-    set(LIB_EAY_LIBRARY_DEBUG "${LIB_EAY_DEBUG}")
-    set(LIB_EAY_LIBRARY_RELEASE "${LIB_EAY_RELEASE}")
-    set(SSL_EAY_LIBRARY_DEBUG "${SSL_EAY_DEBUG}")
-    set(SSL_EAY_LIBRARY_RELEASE "${SSL_EAY_RELEASE}")
+    # Using vcpkg builds of openssl
+    find_library(LIB_EAY_LIBRARY_RELEASE NAMES libeay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib")
+    find_library(SSL_EAY_LIBRARY_RELEASE NAMES ssleay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib")
 
     include(SelectLibraryConfigurations)
     select_library_configurations(LIB_EAY)
     select_library_configurations(SSL_EAY)
-
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
-
     find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
   endif()
 else()

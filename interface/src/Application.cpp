@@ -604,6 +604,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     // Set dependencies
+    DependencyManager::set<Cursor::Manager>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
@@ -2802,35 +2803,18 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // Get controller availability
     bool hasHandControllers = false;
-    HandControllerType handControllerType = Vive;
-    if (PluginUtils::isViveControllerAvailable()) {
+    if (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable()) {
         hasHandControllers = true;
-        handControllerType = Vive;
-    } else if (PluginUtils::isOculusTouchControllerAvailable()) {
-        hasHandControllers = true;
-        handControllerType = Oculus;
     }
-
-    // Check tutorial content versioning
-    bool hasTutorialContent = contentVersion >= MIN_CONTENT_VERSION.at(handControllerType);
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
     bool isUsingHMD = _displayPlugin->isHmd();
     bool isUsingHMDAndHandControllers = hasHMD && hasHandControllers && isUsingHMD;
 
-    Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
-    const QString HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY = "--skipTutorial";
-    // Skips tutorial/help behavior, and does NOT clear firstRun setting.
-    bool skipTutorial = arguments().contains(HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY);
-    bool isTutorialComplete = tutorialComplete.get();
-    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete && !skipTutorial;
-
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
-    qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
-        ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
 
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
@@ -2840,58 +2824,31 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         addressLookupString = arguments().value(urlIndex + 1);
     }
 
-    const QString TUTORIAL_PATH = "/tutorial_begin";
-
-    static const QString SENT_TO_TUTORIAL = "tutorial";
     static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
     static const QString SENT_TO_ENTRY = "entry";
     static const QString SENT_TO_SANDBOX = "sandbox";
 
     QString sentTo;
 
-    if (shouldGoToTutorial) {
-        if (sandboxIsRunning) {
-            qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-            DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
-            sentTo = SENT_TO_TUTORIAL;
-        } else {
-            qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-            if (firstRun.get()) {
-                showHelp();
-            }
-            if (addressLookupString.isEmpty()) {
-                DependencyManager::get<AddressManager>()->goToEntry();
-                sentTo = SENT_TO_ENTRY;
-            } else {
-                DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
-                sentTo = SENT_TO_PREVIOUS_LOCATION;
-            }
-        }
-    } else {
-
         // If this is a first run we short-circuit the address passed in
-        if (firstRun.get() && !skipTutorial) {
+        if (firstRun.get()) {
             showHelp();
-            if (isUsingHMDAndHandControllers) {
-                if (sandboxIsRunning) {
-                    qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
-                    DependencyManager::get<AddressManager>()->goToLocalSandbox();
-                    sentTo = SENT_TO_SANDBOX;
-                } else {
-                    qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
-                    DependencyManager::get<AddressManager>()->goToEntry();
-                    sentTo = SENT_TO_ENTRY;
-                }
+            if (sandboxIsRunning) {
+                qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
+                DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                sentTo = SENT_TO_SANDBOX;
             } else {
+                qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                 DependencyManager::get<AddressManager>()->goToEntry();
                 sentTo = SENT_TO_ENTRY;
             }
+            firstRun.set(false);
+
         } else {
             qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
             DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
             sentTo = SENT_TO_PREVIOUS_LOCATION;
         }
-    }
 
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
@@ -2900,18 +2857,10 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         { "has_hand_controllers", hasHandControllers },
         { "is_using_hmd", isUsingHMD },
         { "is_using_hmd_and_hand_controllers", isUsingHMDAndHandControllers },
-        { "content_version", contentVersion },
-        { "is_tutorial_complete", isTutorialComplete },
-        { "has_tutorial_content", hasTutorialContent },
-        { "should_go_to_tutorial", shouldGoToTutorial }
+        { "content_version", contentVersion }
     });
 
     _connectionMonitor.init();
-
-    // After all of the constructor is completed, then set firstRun to false.
-    if (!skipTutorial) {
-        firstRun.set(false);
-    }
 }
 
 bool Application::importJSONFromURL(const QString& urlString) {
@@ -6352,11 +6301,11 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
 
 bool Application::askToReplaceDomainContent(const QString& url) {
     QString methodDetails;
+    const int MAX_CHARACTERS_PER_LINE = 90;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         QUrl originURL { url };
         if (originURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
-            const int MAX_CHARACTERS_PER_LINE = 90;
             static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
                 "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
                 "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
@@ -6392,7 +6341,9 @@ bool Application::askToReplaceDomainContent(const QString& url) {
         }
     } else {
             methodDetails = "UserDoesNotHavePermissionToReplaceContent";
-            OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content",
+            static const QString warningMessage = simpleWordWrap("The domain owner must enable 'Replace Content' "
+                "permissions for you in this domain's server settings before you can continue.", MAX_CHARACTERS_PER_LINE);
+            OffscreenUi::warning("You do not have permissions to replace domain content", warningMessage,
                                  QMessageBox::Ok, QMessageBox::Ok);
     }
     QJsonObject messageProperties = {
@@ -7468,7 +7419,10 @@ void Application::updateDisplayMode() {
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
         connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
-        offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
+        auto desktop = offscreenUi->getDesktop();
+        if (desktop) {
+            desktop->setProperty("repositionLocked", wasRepositionLocked);
+        }
     }
 
     bool isHmd = _displayPlugin->isHmd();
