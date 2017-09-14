@@ -6,15 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-EDIT_SETTING = "io.highfidelity.isEditing";  // Note: This constant is duplicated in edit.js.
-isInEditMode = function () {
+// note: this constant is currently duplicated in edit.js
+EDIT_SETTING = "io.highfidelity.isEditting";
+isInEditMode = function isInEditMode() {
     return Settings.getValue(EDIT_SETTING);
 };
-
-VR_EDIT_SETTING = "io.highfidelity.isVREditing";  // Note: This constant is duplicated in vr-edit.js.
-isInVREditMode = function () {
-    return HMD.active && Settings.getValue(VR_EDIT_SETTING);
-}
 
 if (!Function.prototype.bind) {
     Function.prototype.bind = function(oThis) {

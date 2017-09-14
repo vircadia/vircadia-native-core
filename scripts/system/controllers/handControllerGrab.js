@@ -14,7 +14,7 @@
 
 /* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
     Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset,
-   setGrabCommunications, Menu, HMD, isInEditMode, isInVREditMode, AvatarList */
+   setGrabCommunications, Menu, HMD, isInEditMode, AvatarList */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -369,8 +369,8 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         resolution.z = 1;  // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
         if (scale) {
-        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
-        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+            scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+            dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
         }
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
@@ -380,8 +380,8 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
     }
 
     if (position && rotation && dimensions) {
-    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
-}
+        return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+    }
 }
 
 function handLaserIntersectItem(position, rotation, start) {
@@ -539,7 +539,7 @@ function storeAttachPointForHotspotInSettings(hotspot, hand, offsetPosition, off
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
 
 function isEditing() {
-    return EXTERNALLY_MANAGED_2D_MINOR_MODE && (isInEditMode() || isInVREditMode());
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && isInEditMode();
 }
 
 function isIn2DMode() {
@@ -1313,7 +1313,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-        if (((isInEditMode() || isInVREditMode()) && this.grabbedThingID !== HMD.tabletID) &&
+        if ((isInEditMode() && this.grabbedThingID !== HMD.tabletID) &&
             (newState !== STATE_OFF &&
              newState !== STATE_SEARCHING &&
              newState !== STATE_STYLUS_TOUCHING &&
@@ -1752,7 +1752,7 @@ function MyController(hand) {
                 var nonTabletEntities = grabbableEntities.filter(function(entityID) {
                     return entityID != HMD.tabletID && entityID != HMD.homeButtonID;
                 });
-                if (nonTabletEntities.length > 0 && !isInEditMode() && !isInVREditMode()) {
+                if (nonTabletEntities.length > 0) {
                     Controller.triggerHapticPulse(1, 20, this.hand);
                 }
                 this.grabPointIntersectsEntity = true;
@@ -1765,9 +1765,9 @@ function MyController(hand) {
 
         this.processStylus();
 
-        if (isInEditMode() && !isInVREditMode() && !this.isNearStylusTarget && HMD.isHandControllerAvailable()) {
+        if (isInEditMode() && !this.isNearStylusTarget && HMD.isHandControllerAvailable()) {
             // Always showing lasers while in edit mode and hands/stylus is not active.
-            // But don't show lasers while in VR edit mode.
+
             var rayPickInfo = this.calcRayPickInfo(this.hand);
             if (rayPickInfo.isValid) {
                 this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
@@ -1827,16 +1827,16 @@ function MyController(hand) {
         var pickRay;
         var valid = true
 
-            var controllerLocation = getControllerWorldLocation(this.handToController(), true);
-            var worldHandPosition = controllerLocation.position;
-            var worldHandRotation = controllerLocation.orientation;
-            valid = !(worldHandPosition === undefined);
+        var controllerLocation = getControllerWorldLocation(this.handToController(), true);
+        var worldHandPosition = controllerLocation.position;
+        var worldHandRotation = controllerLocation.orientation;
+        valid = !(worldHandPosition === undefined);
 
-            pickRay = {
+        pickRay = {
             origin: PICK_WITH_HAND_RAY ? worldHandPosition : MyAvatar.getHeadPosition(),
             direction: PICK_WITH_HAND_RAY ? Quat.getUp(worldHandRotation) : Quat.getFront(Camera.orientation),
-                length: PICK_MAX_DISTANCE
-            };
+            length: PICK_MAX_DISTANCE
+        };
 
         var result = {
             entityID: null,
@@ -2289,7 +2289,7 @@ function MyController(hand) {
                 return aDistance - bDistance;
             });
             entity = grabbableEntities[0];
-            if ((!isInEditMode() && !isInVREditMode()) || entity == HMD.tabletID) { // tablet is grabbable, even when editing
+            if (!isInEditMode() || entity == HMD.tabletID) { // tablet is grabbable, even when editing
                 name = entityPropertiesCache.getProps(entity).name;
                 this.grabbedThingID = entity;
                 this.grabbedIsOverlay = false;
@@ -2389,7 +2389,7 @@ function MyController(hand) {
             equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
         }
 
-        if (farGrabEnabled && farSearching && !isInVREditMode()) {
+        if (farGrabEnabled && farSearching) {
             this.updateLaserPointer();
         }
         Reticle.setVisible(false);
@@ -3431,13 +3431,13 @@ function MyController(hand) {
         var intersection = LaserPointers.getPrevRayPickResult(laserPointerID);
         if (intersection.type != RayPick.INTERSECTED_NONE) {
             if (intersection.objectID != this.grabbedThingID) {
-                    this.callEntityMethodOnGrabbed("stopFarTrigger");
-                    this.grabbedThingID = null;
-                    this.setState(STATE_OFF, "laser moved off of entity");
-                    return;
-                }
+                this.callEntityMethodOnGrabbed("stopFarTrigger");
+                this.grabbedThingID = null;
+                this.setState(STATE_OFF, "laser moved off of entity");
+                return;
+            }
             this.intersectionDistance = intersection.distance;
-                if (farGrabEnabled) {
+            if (farGrabEnabled) {
                 this.updateLaserPointer();
             }
         }

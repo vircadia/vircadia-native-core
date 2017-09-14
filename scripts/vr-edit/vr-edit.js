@@ -18,7 +18,6 @@
         APP_ICON_DISABLED = "icons/tablet-icons/edit-disabled.svg",
         ENABLED_CAPTION_COLOR_OVERRIDE = "",
         DISABLED_CAPTION_COLOR_OVERRIDE = "#888888",
-        VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
         START_DELAY = 2000,  // ms
 
         // Application state
@@ -1392,7 +1391,7 @@
 
     function updateHandControllerGrab() {
         // Communicate app status to handControllerGrab.js.
-        Settings.setValue(VR_EDIT_SETTING, isAppActive);
+        // TODO
     }
 
     function onUICommand(command, parameter) {
