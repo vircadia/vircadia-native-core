@@ -2371,6 +2371,111 @@ void Application::initializeUi() {
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
+void Application::updateCamera(RenderArgs& renderArgs) {
+
+    glm::vec3 boomOffset;
+    {
+        PROFILE_RANGE(render, "/updateCamera");
+        {
+            PerformanceTimer perfTimer("CameraUpdates");
+
+            auto myAvatar = getMyAvatar();
+            boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
+
+            // The render mode is default or mirror if the camera is in mirror mode, assigned further below
+            renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
+            renderArgs._boomOffset = boomOffset;
+
+            // Always use the default eye position, not the actual head eye position.
+            // Using the latter will cause the camera to wobble with idle animations,
+            // or with changes from the face tracker
+            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+                if (isHMDMode()) {
+                    mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                    _myCamera.setPosition(extractTranslation(camMat));
+                    _myCamera.setOrientation(glm::quat_cast(camMat));
+                }
+                else {
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition());
+                    _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
+                }
+            }
+            else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+                if (isHMDMode()) {
+                    auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+                    _myCamera.setOrientation(glm::normalize(glm::quat_cast(hmdWorldMat)));
+                    _myCamera.setPosition(extractTranslation(hmdWorldMat) +
+                        myAvatar->getOrientation() * boomOffset);
+                }
+                else {
+                    _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                            + _myCamera.getOrientation() * boomOffset);
+                    }
+                    else {
+                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                            + myAvatar->getOrientation() * boomOffset);
+                    }
+                }
+            }
+            else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                if (isHMDMode()) {
+                    auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+
+                    glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
+                    // Mirror HMD yaw and roll
+                    glm::vec3 mirrorHmdEulers = glm::eulerAngles(hmdRotation);
+                    mirrorHmdEulers.y = -mirrorHmdEulers.y;
+                    mirrorHmdEulers.z = -mirrorHmdEulers.z;
+                    glm::quat mirrorHmdRotation = glm::quat(mirrorHmdEulers);
+
+                    glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
+
+                    _myCamera.setOrientation(worldMirrorRotation);
+
+                    glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                    // Mirror HMD lateral offsets
+                    hmdOffset.x = -hmdOffset.x;
+
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                        + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
+                        + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
+                        + mirrorBodyOrientation * hmdOffset);
+                }
+                else {
+                    _myCamera.setOrientation(myAvatar->getOrientation()
+                        * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                        + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
+                        + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                        glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+                }
+                renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+            }
+            else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
+                EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
+                if (cameraEntity != nullptr) {
+                    if (isHMDMode()) {
+                        glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
+                        _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
+                        glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                        _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
+                    }
+                    else {
+                        _myCamera.setOrientation(cameraEntity->getRotation());
+                        _myCamera.setPosition(cameraEntity->getPosition());
+                    }
+                }
+            }
+            // Update camera position
+            if (!isHMDMode()) {
+                _myCamera.update(1.0f / _frameCounter.rate());
+            }
+        }
+    }
+}
+
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
     if (_aboutToQuit || _window->isMinimized()) {
@@ -2457,7 +2562,9 @@ void Application::paintGL() {
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
-    glm::vec3 boomOffset;
+    updateCamera(renderArgs);
+
+   /* glm::vec3 boomOffset;
     {
         PROFILE_RANGE(render, "/updateCamera");
         {
@@ -2549,7 +2656,7 @@ void Application::paintGL() {
             }
         }
     }
-
+    */
     {
         PROFILE_RANGE(render, "/updateCompositor");
         getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
@@ -2570,7 +2677,6 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
-        renderArgs._boomOffset = boomOffset;
         // FIXME is this ever going to be different from the size previously set in the render args
         // in the overlay render?
         // Viewport is assigned to the size of the framebuffer

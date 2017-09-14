@@ -147,6 +147,8 @@ public:
 
     void initializeGL();
     void initializeUi();
+
+    void updateCamera(RenderArgs& renderArgs);
     void paintGL();
     void resizeGL();
 
