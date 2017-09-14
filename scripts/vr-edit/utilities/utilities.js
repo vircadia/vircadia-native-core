@@ -107,6 +107,11 @@ if (typeof Object.merge !== "function") {
     Object.merge = function (objectA, objectB) {
         var a = JSON.stringify(objectA),
             b = JSON.stringify(objectB);
+        if (a === "{}") {
+            return JSON.parse(b);  // Always return a new object.
+        } else if (b === "{}") {
+            return JSON.parse(a);  // ""
+        }
         return JSON.parse(a.slice(0, -1) + "," + b.slice(1));
     };
 }

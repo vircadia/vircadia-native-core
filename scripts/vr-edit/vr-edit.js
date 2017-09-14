@@ -71,7 +71,7 @@
         button,
         DOMAIN_CHANGED_MESSAGE = "Toolbar-DomainChanged",
 
-        DEBUG = false;
+        DEBUG = true;
 
     // Utilities
     Script.include("./utilities/utilities.js");
@@ -1544,7 +1544,7 @@
 
         case "undoAction":
             if (History.hasUndo()) {
-                Feedback.play(dominantHand, Feedback.UNDO_ACTION)
+                Feedback.play(dominantHand, Feedback.UNDO_ACTION);
                 History.undo();
             } else {
                 Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
@@ -1552,7 +1552,7 @@
             break;
         case "redoAction":
             if (History.hasRedo()) {
-                Feedback.play(dominantHand, Feedback.REDO_ACTION)
+                Feedback.play(dominantHand, Feedback.REDO_ACTION);
                 History.redo();
             } else {
                 Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
