@@ -761,6 +761,7 @@ QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResu
     obj.setProperty("distance", rayPickResult.distance);
     QScriptValue intersection = vec3toScriptValue(engine, rayPickResult.intersection);
     obj.setProperty("intersection", intersection);
+    obj.setProperty("intersects", rayPickResult.type != NONE);
     QScriptValue surfaceNormal = vec3toScriptValue(engine, rayPickResult.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     return obj;
