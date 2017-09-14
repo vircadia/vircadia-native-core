@@ -362,10 +362,22 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             QHash<QPair<int, int>, int> materialTextureParts;
 
             data.extracted.mesh.vertices.resize(numVertices);
-            data.extracted.mesh.normals.resize(numVertices);
-            data.extracted.mesh.texCoords.resize(numVertices);
-            data.extracted.mesh.texCoords1.resize(numVertices);
-            data.extracted.mesh.colors.resize(numVertices);
+
+            if (normalAttribute) {
+                data.extracted.mesh.normals.resize(numVertices);
+            }
+
+            if (texCoordAttribute) {
+                data.extracted.mesh.texCoords.resize(numVertices);
+            }
+
+            if (extraTexCoordAttribute) {
+                data.extracted.mesh.texCoords1.resize(numVertices);
+            }
+
+            if (colorAttribute) {
+                data.extracted.mesh.colors.resize(numVertices);
+            }
 
             // enumerate the vertices and construct the extracted mesh
             for (int i = 0; i < numVertices; ++i) {
