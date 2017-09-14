@@ -234,6 +234,7 @@ public:
     unsigned int meshIndex; // the order the meshes appeared in the object file
 
     model::MeshPointer _mesh;
+    bool wasCompressed { false };
 };
 
 class ExtractedMesh {

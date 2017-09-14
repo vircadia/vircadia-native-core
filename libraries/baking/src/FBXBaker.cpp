@@ -301,6 +301,11 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex);
                     auto& mesh = extractedMesh.mesh;
 
+                    if (mesh.wasCompressed) {
+                        handleError("Cannot re-bake a file that contains compressed mesh");
+                        return;
+                    }
+
                     Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
                     Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
                     Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
@@ -529,7 +534,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 if (textureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
                                     // re-baking an FBX that already references baked textures is a fail
                                     // so we add an error and return from here
-                                    handleError("Cannot re-bake a partially baked FBX file that references baked KTX textures");
+                                    handleError("Cannot re-bake a file that references compressed textures");
 
                                     return;
                                 }
