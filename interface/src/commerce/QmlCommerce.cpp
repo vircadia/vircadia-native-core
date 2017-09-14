@@ -27,6 +27,7 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(wallet.data(), &Wallet::securityImageResult, this, &QmlCommerce::securityImageResult);
     connect(ledger.data(), &Ledger::historyResult, this, &QmlCommerce::historyResult);
     connect(wallet.data(), &Wallet::keyFilePathIfExistsResult, this, &QmlCommerce::keyFilePathIfExistsResult);
+    connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
 }
 
 void QmlCommerce::getLoginStatus() {
@@ -105,4 +106,9 @@ void QmlCommerce::reset() {
     auto wallet = DependencyManager::get<Wallet>();
     ledger->reset();
     wallet->reset();
+}
+
+void QmlCommerce::account() {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->account();
 }
