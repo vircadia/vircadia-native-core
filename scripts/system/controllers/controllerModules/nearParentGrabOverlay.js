@@ -120,6 +120,11 @@ var GRAB_RADIUS = 0.35;
             }
             Overlays.editOverlay(this.grabbedThingID, reparentProps);
 
+            // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
+            if (this.grabbedThingID === HMD.tabletID) {
+                resizeTablet(getTabletWidthFromSettings(), reparentProps.parentJointIndex);
+            }
+
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'grab',
                 grabbedEntity: this.grabbedThingID,
@@ -140,6 +145,11 @@ var GRAB_RADIUS = 0.35;
                     parentID: this.previousParentID[this.grabbedThingID],
                     parentJointIndex: this.previousParentJointIndex[this.grabbedThingID]
                 });
+
+                // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
+                if (this.grabbedThingID === HMD.tabletID) {
+                    resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
+                }
             }
 
             this.grabbedThingID = null;

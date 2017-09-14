@@ -239,7 +239,7 @@ Script.include("/~/system/libraries/utils.js");
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
-            posOffset: getGrabPointSphereOffset(this.handToController()),
+            posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
             defaultRenderStates: defaultRenderStates
