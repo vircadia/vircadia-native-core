@@ -299,7 +299,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                     // TODO Pull this out of _geometry instead so we don't have to reprocess it
                     auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex);
-                    auto mesh = extractedMesh.mesh;
+                    auto& mesh = extractedMesh.mesh;
 
                     Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
                     Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
@@ -366,7 +366,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     auto partIndex = 0;
                     draco::FaceIndex face;
                     for (auto& part : mesh.parts) {
-                        const auto matTex = extractedMesh.partMaterialTextures[partIndex];
+                        const auto& matTex = extractedMesh.partMaterialTextures[partIndex];
 
                         auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
                             auto idx0 = indices[index];
@@ -446,16 +446,6 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     dracoMeshNode.name = "DracoMesh";
                     auto value = QVariant::fromValue(QByteArray(buffer.data(), (int) buffer.size()));
                     dracoMeshNode.properties.append(value);
-
-
-                    QFile file("C:/Users/huffm/encodedFBX/" + this->_fbxURL.fileName() + "-" + QString::number(meshIndex) + ".drc");
-                    if (file.open(QIODevice::WriteOnly)) {
-                        file.write(buffer.data(), buffer.size());
-                        file.close();
-                    } else {
-                        qWarning() << "Failed to write to: " << file.fileName();
-
-                    }
 
                     objectChild.children.push_back(dracoMeshNode);
 

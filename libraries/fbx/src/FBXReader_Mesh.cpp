@@ -361,11 +361,11 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
             QHash<QPair<int, int>, int> materialTextureParts;
 
-            data.extracted.mesh.vertices.reserve(numVertices);
-            data.extracted.mesh.normals.reserve(numVertices);
-            data.extracted.mesh.texCoords.reserve(numVertices);
-            data.extracted.mesh.texCoords1.reserve(numVertices);
-            data.extracted.mesh.colors.reserve(numVertices);
+            data.extracted.mesh.vertices.resize(numVertices);
+            data.extracted.mesh.normals.resize(numVertices);
+            data.extracted.mesh.texCoords.resize(numVertices);
+            data.extracted.mesh.texCoords1.resize(numVertices);
+            data.extracted.mesh.colors.resize(numVertices);
 
             // enumerate the vertices and construct the extracted mesh
             for (int i = 0; i < numVertices; ++i) {
@@ -375,46 +375,40 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                     // read position from draco mesh to extracted mesh
                     auto mappedIndex = positionAttribute->mapped_index(vertexIndex);
 
-                    std::array<float, 3> positionValue;
-                    positionAttribute->ConvertValue<float, 3>(mappedIndex, &positionValue[0]);
-                    data.extracted.mesh.vertices.push_back({ positionValue[0], positionValue[1], positionValue[2] });
+                    positionAttribute->ConvertValue<float, 3>(mappedIndex,
+                                                              reinterpret_cast<float*>(&data.extracted.mesh.vertices[i]));
                 }
 
                 if (normalAttribute) {
                     // read normals from draco mesh to extracted mesh
                     auto mappedIndex = normalAttribute->mapped_index(vertexIndex);
 
-                    std::array<float, 3> normalValue;
-                    normalAttribute->ConvertValue<float, 3>(mappedIndex, &normalValue[0]);
-                    data.extracted.mesh.normals.push_back({ normalValue[0], normalValue[1], normalValue[2] });
+                    normalAttribute->ConvertValue<float, 3>(mappedIndex,
+                                                            reinterpret_cast<float*>(&data.extracted.mesh.normals[i]));
                 }
 
                 if (texCoordAttribute) {
                     // read UVs from draco mesh to extracted mesh
                     auto mappedIndex = texCoordAttribute->mapped_index(vertexIndex);
 
-                    std::array<float, 2> texCoordValue;
-                    texCoordAttribute->ConvertValue<float, 2>(mappedIndex, &texCoordValue[0]);
-                    data.extracted.mesh.texCoords.push_back({ texCoordValue[0], texCoordValue[1] });
+                    texCoordAttribute->ConvertValue<float, 2>(mappedIndex,
+                                                              reinterpret_cast<float*>(&data.extracted.mesh.texCoords[i]));
                 }
 
                 if (extraTexCoordAttribute) {
                     // some meshes have a second set of UVs, read those to extracted mesh
                     auto mappedIndex = extraTexCoordAttribute->mapped_index(vertexIndex);
 
-                    std::array<float, 2> texCoordValue;
-                    extraTexCoordAttribute->ConvertValue<float, 2>(mappedIndex, &texCoordValue[0]);
-                    data.extracted.mesh.texCoords1.push_back({ texCoordValue[0], texCoordValue[1] });
+                    extraTexCoordAttribute->ConvertValue<float, 2>(mappedIndex,
+                                                                   reinterpret_cast<float*>(&data.extracted.mesh.texCoords1[i]));
                 }
 
                 if (colorAttribute) {
                     // read vertex colors from draco mesh to extracted mesh
                     auto mappedIndex = colorAttribute->mapped_index(vertexIndex);
 
-                    std::array<float, 3> colorValue;
-
-                    colorAttribute->ConvertValue<float, 3>(mappedIndex, &colorValue[0]);
-                    data.extracted.mesh.colors.push_back({ colorValue[0], colorValue[1], colorValue[2] });
+                    colorAttribute->ConvertValue<float, 3>(mappedIndex,
+                                                           reinterpret_cast<float*>(&data.extracted.mesh.colors[i]));
                 }
 
                 data.extracted.newIndices.insert(i, i);
@@ -422,7 +416,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
             for (int i = 0; i < dracoMesh->num_faces(); ++i) {
                 // grab the material ID and texture ID for this face, if we have it
-                auto firstCorner = dracoMesh->face(draco::FaceIndex(i))[0];
+                auto& firstCorner = dracoMesh->face(draco::FaceIndex(i))[0];
 
                 uint16_t materialID { 0 };
 

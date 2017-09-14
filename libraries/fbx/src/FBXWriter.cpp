@@ -19,9 +19,8 @@ void writeVector(QDataStream& out, char ch,  QVector<T> list) {
     out << (int32_t)list.length();
     out << (int32_t)0;
     out << (int32_t)0;
-    for (auto& value : list) {
-        out << value;
-    }
+
+    out.writeBytes(reinterpret_cast<const char*>(list.constData()), list.length() * sizeof(T));
 }
 
 
@@ -98,7 +97,6 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
         case QVariant::Type::Bool:
 
             out.device()->write("C", 1);
-            //out.device()->write(prop.toBool() ? 1 : 0, 1);
             out << prop.toBool();
             break;
 
