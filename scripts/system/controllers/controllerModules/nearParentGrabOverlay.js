@@ -8,12 +8,13 @@
 
 /* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
    getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   makeDispatcherModuleParameters, Overlays, makeRunningValues
+   Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, NEAR_GRAB_RADIUS
+   makeDispatcherModuleParameters, Overlays, makeRunningValues, resizeTablet,
+   getTabletWidthFromSettings
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
-var GRAB_RADIUS = 0.35;
+Script.include("/~/system/libraries/utils.js");
 
 (function() {
 
@@ -156,11 +157,12 @@ var GRAB_RADIUS = 0.35;
         };
 
         this.getTargetID = function(overlays, controllerData) {
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < overlays.length; i++) {
                 var overlayPosition = Overlays.getProperty(overlays[i], "position");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(overlayPosition, handPosition);
-                if (distance <= GRAB_RADIUS) {
+                if (distance <= NEAR_GRAB_RADIUS * sensorScaleFactor) {
                     return overlays[i];
                 }
             }
