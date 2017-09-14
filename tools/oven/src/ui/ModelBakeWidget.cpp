@@ -156,22 +156,6 @@ void ModelBakeWidget::outputDirectoryChanged(const QString& newDirectory) {
 }
 
 void ModelBakeWidget::bakeButtonClicked() {
-    // make sure we have a valid output directory
-    QDir outputDirectory(_outputDirLineEdit->text());
-
-    outputDirectory.mkdir(".");
-    if (!outputDirectory.exists()) {
-        QMessageBox::warning(this, "Unable to create directory", "Unable to create output directory. Please create it manually or choose a different directory.");
-        return;
-    }
-
-    QDir bakedOutputDirectory = outputDirectory.absoluteFilePath("baked");
-    QDir originalOutputDirectory = outputDirectory.absoluteFilePath("original");
-
-    bakedOutputDirectory.mkdir(".");
-    originalOutputDirectory.mkdir(".");
-
-
 
     // make sure we have a non empty URL to a model to bake
     if (_modelLineEdit->text().isEmpty()) {
@@ -193,6 +177,34 @@ void ModelBakeWidget::bakeButtonClicked() {
             qDebug() << "New url: " << modelToBakeURL;
         }
 
+        auto modelName = modelToBakeURL.fileName().left(modelToBakeURL.fileName().lastIndexOf('.'));
+
+        // make sure we have a valid output directory
+        QDir outputDirectory(_outputDirLineEdit->text());
+        QString subFolderName = modelName + "/";
+
+        // output in a sub-folder with the name of the fbx, potentially suffixed by a number to make it unique
+        int iteration = 0;
+
+        while (outputDirectory.exists(subFolderName)) {
+            subFolderName = modelName + "-" + QString::number(++iteration) + "/";
+        }
+
+        outputDirectory.mkdir(subFolderName);
+
+        if (!outputDirectory.exists()) {
+            QMessageBox::warning(this, "Unable to create directory", "Unable to create output directory. Please create it manually or choose a different directory.");
+            return;
+        }
+
+        outputDirectory.cd(subFolderName);
+
+        QDir bakedOutputDirectory = outputDirectory.absoluteFilePath("baked");
+        QDir originalOutputDirectory = outputDirectory.absoluteFilePath("original");
+        
+        bakedOutputDirectory.mkdir(".");
+        originalOutputDirectory.mkdir(".");
+
         // everything seems to be in place, kick off a bake for this model now
         auto baker = std::unique_ptr<FBXBaker> {
             new FBXBaker(modelToBakeURL, []() -> QThread* {
@@ -201,7 +213,7 @@ void ModelBakeWidget::bakeButtonClicked() {
         };
 
         // move the baker to the FBX baker thread
-        baker->moveToThread(qApp->getFBXBakerThread());
+        baker->moveToThread(qApp->getNextWorkerThread());
 
         // invoke the bake method on the baker thread
         QMetaObject::invokeMethod(baker.get(), "bake");

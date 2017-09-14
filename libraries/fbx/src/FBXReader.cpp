@@ -168,7 +168,8 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-const char* HUMANIK_JOINTS[] = {
+/// The names of the joints in the Maya HumanIK rig
+static const std::array<const char*, 16> HUMANIK_JOINTS = {{
     "RightHand",
     "RightForeArm",
     "RightArm",
@@ -184,9 +185,8 @@ const char* HUMANIK_JOINTS[] = {
     "RightLeg",
     "LeftLeg",
     "RightFoot",
-    "LeftFoot",
-    ""
-};
+    "LeftFoot"
+}};
 
 class FBXModel {
 public:
@@ -468,7 +468,7 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
 }
 
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
-    const FBXNode& node = _fbxNode;
+    const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -512,11 +512,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
 
     QVector<QString> humanIKJointNames;
-    for (int i = 0;; i++) {
+    for (int i = 0; i <  (int) HUMANIK_JOINTS.size(); i++) {
         QByteArray jointName = HUMANIK_JOINTS[i];
-        if (jointName.isEmpty()) {
-            break;
-        }
         humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
     }
     QVector<QString> humanIKJointIDs(humanIKJointNames.size());
@@ -942,7 +939,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     QByteArray content;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            filepath= subobject.properties.at(0).toByteArray();
+                            filepath = subobject.properties.at(0).toByteArray();
                             filepath = filepath.replace('\\', '/');
 
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
@@ -1842,7 +1839,7 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
-    reader._fbxNode = FBXReader::parseFBX(device);
+    reader._rootNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
 

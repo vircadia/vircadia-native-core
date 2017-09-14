@@ -1,6 +1,6 @@
 //
 //  FBXBaker.h
-//  tools/oven/src
+//  tools/baking/src
 //
 //  Created by Stephen Birarda on 3/30/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -24,15 +24,9 @@
 
 #include <gpu/Texture.h> 
 
-namespace fbxsdk {
-    class FbxManager;
-    class FbxProperty;
-    class FbxScene;
-    class FbxFileTexture;
-}
+#include <FBX.h>
 
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
-using FBXSDKManagerUniquePointer = std::unique_ptr<fbxsdk::FbxManager, std::function<void (fbxsdk::FbxManager *)>>;
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
 
@@ -64,6 +58,7 @@ private:
     void loadSourceFBX();
 
     void importScene();
+    void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
     void exportScene();
     void removeEmbeddedMediaFolder();
@@ -71,11 +66,16 @@ private:
     void checkIfTexturesFinished();
 
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
-    QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
+    QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName);
 
-    void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir);
+    void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir,
+                     const QByteArray& textureContent = QByteArray());
 
     QUrl _fbxURL;
+
+    FBXNode _rootNode;
+    FBXGeometry* _geometry;
+    QHash<QByteArray, QByteArray> _textureContent;
     
     QString _bakedFBXFilePath;
 
@@ -86,9 +86,6 @@ private:
 
     QDir _tempDir;
     QString _originalFBXFilePath;
-
-    static FBXSDKManagerUniquePointer _sdkManager;
-    fbxsdk::FbxScene* _scene { nullptr };
 
     QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;

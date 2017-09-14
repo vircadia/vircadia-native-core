@@ -25,8 +25,10 @@
 
 const QString BAKED_TEXTURE_EXT = ".ktx";
 
-TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDirectory) :
+TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
+                           const QDir& outputDirectory, const QByteArray& textureContent) :
     _textureURL(textureURL),
+    _originalTexture(textureContent),
     _textureType(textureType),
     _outputDirectory(outputDirectory)
 {
@@ -39,8 +41,13 @@ void TextureBaker::bake() {
     // once our texture is loaded, kick off a the processing
     connect(this, &TextureBaker::originalTextureLoaded, this, &TextureBaker::processTexture);
 
-    // first load the texture (either locally or remotely)
-    loadTexture();
+    if (_originalTexture.isEmpty()) {
+        // first load the texture (either locally or remotely)
+        loadTexture();
+    } else {
+        // we already have a texture passed to us, use that
+        emit originalTextureLoaded();
+    }
 }
 
 const QStringList TextureBaker::getSupportedFormats() {
