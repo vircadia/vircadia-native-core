@@ -416,7 +416,8 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
             for (int i = 0; i < dracoMesh->num_faces(); ++i) {
                 // grab the material ID and texture ID for this face, if we have it
-                auto& firstCorner = dracoMesh->face(draco::FaceIndex(i))[0];
+                auto& dracoFace = dracoMesh->face(draco::FaceIndex(i));
+                auto& firstCorner = dracoFace[0];
 
                 uint16_t materialID { 0 };
 
@@ -440,8 +441,8 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 // give the mesh part this index
                 FBXMeshPart& part = data.extracted.mesh.parts[partIndexPlusOne - 1];
                 part.triangleIndices.append(firstCorner.value());
-                part.triangleIndices.append(dracoMesh->face(draco::FaceIndex(i))[1].value());
-                part.triangleIndices.append(dracoMesh->face(draco::FaceIndex(i))[2].value());
+                part.triangleIndices.append(dracoFace[1].value());
+                part.triangleIndices.append(dracoFace[2].value());
             }
         }
     }
