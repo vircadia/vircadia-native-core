@@ -1389,9 +1389,12 @@
         updateTimer = Script.setTimeout(update, UPDATE_LOOP_TIMEOUT);
     }
 
-    function updateHandControllerGrab() {
-        // Communicate app status to handControllerGrab.js.
-        // TODO
+    function updateControllerDispatcher() {
+        // Communicate app status to controllerDispatcher.js.
+        var DISABLE_HANDS = "both",
+            ENABLE_HANDS = "none";
+        // TODO: Proper method to disable specific laser and grabbing functionality.
+        Messages.sendLocalMessage('Hifi-Hand-Disabler', isAppActive ? DISABLE_HANDS : ENABLE_HANDS);
     }
 
     function onUICommand(command, parameter) {
@@ -1598,7 +1601,7 @@
         }
 
         isAppActive = !isAppActive;
-        updateHandControllerGrab();
+        updateControllerDispatcher();
         button.editProperties({ isActive: isAppActive });
 
         if (isAppActive) {
@@ -1613,7 +1616,7 @@
         var hasRezPermissions = Entities.canRez() || Entities.canRezTmp();
         if (isAppActive && !hasRezPermissions) {
             isAppActive = false;
-            updateHandControllerGrab();
+            updateControllerDispatcher();
             stopApp();
         }
         button.editProperties({
@@ -1628,7 +1631,7 @@
         var hasRezPermissions = Entities.canRez() || Entities.canRezTmp();
         if (isAppActive && !hasRezPermissions) {
             isAppActive = false;
-            updateHandControllerGrab();
+            updateControllerDispatcher();
             stopApp();
         }
         button.editProperties({
@@ -1673,7 +1676,7 @@
             // Close the app because the new avatar may have different joint numbers meaning that the UI would be attached 
             // incorrectly. Let the user reopen the app because it can take some time for the new avatar to load.
             isAppActive = false;
-            updateHandControllerGrab();
+            updateControllerDispatcher();
             button.editProperties({ isActive: false });
             stopApp();
         }
@@ -1691,7 +1694,7 @@
 
         // Application state.
         isAppActive = false;
-        updateHandControllerGrab();
+        updateControllerDispatcher();
         dominantHand = MyAvatar.getDominantHand() === "left" ? LEFT_HAND : RIGHT_HAND;
 
         // Tablet/toolbar button.
@@ -1751,7 +1754,7 @@
         MyAvatar.skeletonChanged.disconnect(onSkeletonChanged);
 
         isAppActive = false;
-        updateHandControllerGrab();
+        updateControllerDispatcher();
 
         if (button) {
             button.clicked.disconnect(onAppButtonClicked);
