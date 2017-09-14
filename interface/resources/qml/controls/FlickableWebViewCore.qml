@@ -84,17 +84,32 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
 
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
+        WebEngineScript {
+            id: userCSSScript
+            property string css: "\nhtml > ::-webkit-scrollbar { width: 0px; height: 0px; }"
+            sourceCode: "(function() {
+            var css = document.createElement('style');
+            css.setAttribute('type', 'text/css');
+            css.appendChild(document.createTextNode('%1'));
+            document.getElementsByTagName('head')[0].appendChild(" + css + ");})()"
+            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
+            worldId: WebEngineScript.MainWorld
+        }
+
+        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript, userCSSScript ]
 
         property string newUrl: ""
+        onJavaScriptConsoleMessage: {
+            console.log("Web Entity JS message: " + sourceID + " at line: " + lineNumber + " " +  message);
+        }
 
         Component.onCompleted: {
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-            // Ensure the JS from the web-engine makes it to our logging
-            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
-            });
+//            // Ensure the JS from the web-engine makes it to our logging
+//            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+//                console.log("Web Entity JS message: " + sourceID + " at line: " + lineNumber + " " +  message);
+//            });
             if (webViewCoreUserAgent !== undefined) {
                 webViewCore.profile.httpUserAgent = webViewCoreUserAgent
             } else {
