@@ -88,7 +88,7 @@ private:
     void encodeFrameOfZeros(QByteArray& encodedZeros);
     void computeLoudness(const QByteArray* decodedBuffer, QSharedPointer<ScriptableAvatar>);
 
-    std::unique_ptr<ScriptEngine> _scriptEngine;
+    QSharedPointer<ScriptEngine> _scriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
 

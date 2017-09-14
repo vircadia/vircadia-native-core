@@ -18,7 +18,7 @@ class ScriptEngine;
 class AbstractScriptingServicesInterface {
 public:
     /// Registers application specific services with a script engine.
-    virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) = 0;
+    virtual void registerScriptEngineWithApplicationServices(QSharedPointer<ScriptEngine> scriptEngine) = 0;
 };
 
 

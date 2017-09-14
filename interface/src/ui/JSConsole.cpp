@@ -111,7 +111,7 @@ void JSConsole::setScriptEngine(const QSharedPointer<ScriptEngine>&  scriptEngin
 
     // if scriptEngine is NULL then create one and keep track of it using _ownScriptEngine
     if (scriptEngine.isNull()) {
-        _scriptEngine = QSharedPointer<ScriptEngine>(DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false), &QObject::deleteLater);
+        _scriptEngine = DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false);
     } else {
         _scriptEngine = scriptEngine;
     }

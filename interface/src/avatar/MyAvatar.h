@@ -19,6 +19,7 @@
 #include <SettingHandle.h>
 #include <Rig.h>
 #include <Sound.h>
+#include <BaseScriptEngine.h>
 
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
@@ -169,7 +170,7 @@ public:
     ~MyAvatar();
 
     void instantiableAvatar() override {};
-    void registerMetaTypes(QScriptEngine* engine);
+    void registerMetaTypes(QSharedPointer<BaseScriptEngine> engine);
 
     virtual void simulateAttachments(float deltaTime) override;
 
