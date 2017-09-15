@@ -10,6 +10,7 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
@@ -469,15 +470,6 @@ Rectangle {
                 height: 30
                 spacing: hifi.dimensions.contentSpacing.x
 
-                HifiControls.GlyphButton {
-                    glyph: hifi.glyphs.reload
-                    color: hifi.buttons.black
-                    colorScheme: root.colorScheme
-                    width: hifi.dimensions.controlLineHeight
-
-                    onClicked: root.reload()
-                }
-
                 HifiControls.Button {
                     text: "Add To World"
                     color: hifi.buttons.black
@@ -510,8 +502,193 @@ Rectangle {
                     onClicked: root.deleteFile()
                     enabled: treeView.selection.hasSelection
                 }
+                
+                HifiControls.GlyphButton {
+
+                    glyph: hifi.glyphs.reload
+                    color: hifi.buttons.black
+                    colorScheme: root.colorScheme
+                    width: hifi.dimensions.controlLineHeight
+
+                    onClicked: root.reload()
+                }
+            }
+        }
+
+        HifiControls.Tree {
+            id: treeView
+            anchors.top: assetDirectory.bottom
+            anchors.bottom: infoRow.top
+            anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
+            anchors.left: parent.left
+            anchors.right: parent.right
+            
+            treeModel: assetProxyModel
+            selectionMode: SelectionMode.ExtendedSelection
+            headerVisible: true
+            sortIndicatorVisible: true
+
+            colorScheme: root.colorScheme
+
+            modifyEl: renameEl
+
+            TableViewColumn {
+                id: nameColumn
+                title: "Name:"
+                role: "name"
+                width: treeView.width - bakedColumn.width;
+            }
+            TableViewColumn {
+                id: bakedColumn
+                title: "Use Baked?"
+                role: "baked"
+                width: 100
+            }
+    
+            itemDelegate: Loader {
+                id: itemDelegateLoader
+
+                anchors {
+                    left: parent ? parent.left : undefined
+                    leftMargin: (styleData.column === 0 ? (2 + styleData.depth) : 1) * hifi.dimensions.tablePadding
+                    right: parent ? parent.right : undefined
+                    rightMargin: hifi.dimensions.tablePadding
+                    verticalCenter: parent ? parent.verticalCenter : undefined
+                }
+
+                function convertToGlyph(text) {
+                    switch (text) {
+                        case "Not Baked":
+                            return hifi.glyphs.circleSlash;
+                        case "Baked":
+                            return hifi.glyphs.check_2_01;
+                        case "Error":
+                            return hifi.glyphs.alert;
+                        default:
+                            return "";
+                    }
+                }
+
+                function getComponent() {
+                    if ((styleData.column === 0) && styleData.selected) {
+                        return textFieldComponent;
+                    } else if (convertToGlyph(styleData.value) != "") {
+                        return glyphComponent;
+                    } else {
+                        return labelComponent;
+                    }
+
+                }
+                sourceComponent: getComponent()
+        
+                Component {
+                    id: labelComponent
+                    FiraSansSemiBold {
+                        text: styleData.value
+                        size: hifi.fontSizes.tableText
+                        color: colorScheme == hifi.colorSchemes.light
+                                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                                : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                       
+                        elide: Text.ElideRight
+                        horizontalAlignment: styleData.column === 1 ? TextInput.AlignHCenter : TextInput.AlignLeft
+                    }
+                }
+                Component {
+                    id: glyphComponent
+
+                    HiFiGlyphs {
+                        text: convertToGlyph(styleData.value)
+                        size: hifi.dimensions.frameIconSize
+                        color: colorScheme == hifi.colorSchemes.light
+                                ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                                : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                       
+                        elide: Text.ElideRight
+                        horizontalAlignment: TextInput.AlignHCenter
+
+                        HifiControls.ToolTip {
+                            anchors.fill: parent
+
+                            visible: styleData.value === "Error"
+
+                            toolTip: assetProxyModel.data(styleData.index, 0x106)
+                        }
+                    }
+                }
+                Component {
+                    id: textFieldComponent
+
+                    TextField {
+                        id: textField
+                        readOnly: !activeFocus
+
+                        text: styleData.value
+
+                        FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+                        font.family: firaSansSemiBold.name
+                        font.pixelSize: hifi.fontSizes.textFieldInput
+                        height: hifi.dimensions.tableRowHeight
+
+                        style: TextFieldStyle {
+                            textColor: readOnly
+                                        ? hifi.colors.black
+                                        : (treeView.isLightColorScheme ?  hifi.colors.black :  hifi.colors.white)
+                            background: Rectangle {
+                                visible: !readOnly
+                                color: treeView.isLightColorScheme ? hifi.colors.white : hifi.colors.black
+                                border.color: hifi.colors.primaryHighlight
+                                border.width: 1
+                            }
+                            selectedTextColor: hifi.colors.black
+                            selectionColor: hifi.colors.primaryHighlight
+                            padding.left: readOnly ? 0 : hifi.dimensions.textPadding
+                            padding.right: readOnly ? 0 : hifi.dimensions.textPadding
+                        }
+
+                        validator: RegExpValidator {
+                            regExp: /[^/]+/
+                        }
+
+                        Keys.onPressed: {
+                            if (event.key == Qt.Key_Escape) {
+                                text = styleData.value;
+                                unfocusHelper.forceActiveFocus();
+                                event.accepted = true;
+                            }
+                        }
+                        onAccepted:  {
+                            if (acceptableInput && styleData.selected) {
+                                if (!treeView.modifyEl(treeView.selection.currentIndex, text)) {
+                                    text = styleData.value;
+                                }
+                                unfocusHelper.forceActiveFocus();
+                            }
+                        }
+
+                        onReadOnlyChanged: {
+                            // Have to explicily set keyboardRaised because automatic setting fails because readOnly is true at the time.
+                            keyboardRaised = activeFocus;
+                        }
+                    }
+                }
             }
 
+            
+            MouseArea {
+                propagateComposedEvents: true
+                anchors.fill: parent
+                acceptedButtons: Qt.RightButton
+                onClicked: {
+                    if (!HMD.active) {  // Popup only displays properly on desktop
+                        var index = treeView.indexAt(mouse.x, mouse.y);
+                        treeView.selection.setCurrentIndex(index, 0x0002);
+                        contextMenu.currentIndex = index;
+                        contextMenu.popup();
+                    }
+                }
+            }
+                
             Menu {
                 id: contextMenu
                 title: "Edit"
@@ -539,38 +716,50 @@ Rectangle {
                     }
                 }
             }
-
         }
-        HifiControls.Tree {
-            id: treeView
-            height: 290
-            anchors.leftMargin: hifi.dimensions.contentMargin.x + 2  // Extra for border
-            anchors.rightMargin: hifi.dimensions.contentMargin.x + 2  // Extra for border
-            anchors.left: parent.left
-            anchors.right: parent.right
 
-            treeModel: assetProxyModel
-            canEdit: true
-            colorScheme: root.colorScheme
-            selectionMode: SelectionMode.ExtendedSelection
+        Row {
+            id: infoRow
+            anchors.left: treeView.left
+            anchors.right: treeView.right
+            anchors.bottom: uploadSection.top
+            anchors.bottomMargin: hifi.dimensions.contentSpacing.y
+            spacing: hifi.dimensions.contentSpacing.x
+            
+            RalewayRegular {
+                size: hifi.fontSizes.sectionName
+                font.capitalization: Font.AllUppercase
+                text: selectedItems + " items selected"
+                color: hifi.colors.lightGrayText
+            }
 
-            modifyEl: renameEl
+            HifiControls.CheckBox {
+                function isChecked() {
+                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    var bakingDisabled = (status === "Not Baked" || status === "--");
+                    return selectedItems === 1 && !bakingDisabled; 
+                }
 
-            MouseArea {
-                propagateComposedEvents: true
-                anchors.fill: parent
-                acceptedButtons: Qt.RightButton
+                text: "Use baked (optimized) versions"
+                colorScheme: root.colorScheme
+                enabled: selectedItems === 1 && assetProxyModel.data(treeView.selection.currentIndex, 0x105) !== "--"
+                checked: isChecked()
                 onClicked: {
-                    if (!HMD.active) {  // Popup only displays properly on desktop
-                        var index = treeView.indexAt(mouse.x, mouse.y);
-                        treeView.selection.setCurrentIndex(index, 0x0002);
-                        contextMenu.currentIndex = index;
-                        contextMenu.popup();
+                    var mappings = [];
+                    for (var i in treeView.selection.selectedIndexes) {
+                        var index = treeView.selection.selectedIndexes[i];
+                        var path = assetProxyModel.data(index, 0x100);
+                        mappings.push(path);
                     }
+                    print("Setting baking enabled:" + mappings + checked);
+                    Assets.setBakingEnabled(mappings, checked, function() {
+                        reload();
+                    });
+
+                    checked = Qt.binding(isChecked);
                 }
             }
         }
-
 
         HifiControls.TabletContentSection {
             id: uploadSection
