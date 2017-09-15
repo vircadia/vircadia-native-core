@@ -184,7 +184,7 @@ void Web3DOverlay::update(float deltatime) {
         // update globalPosition
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
-    Billboard3DOverlay::update(deltatime);
+    Parent::update(deltatime);
 }
 
 QString Web3DOverlay::pickURL() {

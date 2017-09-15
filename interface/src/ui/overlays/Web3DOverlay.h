@@ -21,6 +21,8 @@ class Web3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
 
 public:
+    using Parent = Billboard3DOverlay;
+
     static const QString QML;
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
