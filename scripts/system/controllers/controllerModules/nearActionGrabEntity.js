@@ -111,6 +111,9 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.targetEntityID, "startNearGrab", args);
         };
 
         // this is for when the action is going to time-out
@@ -182,8 +185,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
-                    var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-                    Entities.callEntityMethod(this.targetEntityID, "startNearGrab", args);
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
