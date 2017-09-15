@@ -43,19 +43,16 @@ const btScalar MIN_CHARACTER_MOTOR_TIMESCALE = 0.05f;
 
 class CharacterController : public btCharacterControllerInterface {
 
-    Q_PROPERTY(float gravity WRITE updateGravity NOTIFY gravityChanged);
-
-signals:
-    void gravityChanged();
-
 public:
     CharacterController();
     virtual ~CharacterController();
-    void updateGravity(float gravity);
     bool needsRemoval() const;
     bool needsAddition() const;
     virtual void setDynamicsWorld(btDynamicsWorld* world);
     btCollisionObject* getCollisionObject() { return _rigidBody; }
+
+    void setGravity(float gravity);
+    float getGravity();
 
     virtual void updateShapeIfNecessary() = 0;
 
@@ -136,7 +133,7 @@ protected:
 #endif
 
     virtual void updateMassProperties() = 0;
-    void updateGravity(float gravity);
+    void updateGravity();
     void updateUpAxis(const glm::quat& rotation);
     bool checkForSupport(btCollisionWorld* collisionWorld);
 

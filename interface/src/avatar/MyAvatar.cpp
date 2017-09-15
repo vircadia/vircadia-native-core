@@ -2262,7 +2262,11 @@ float MyAvatar::getDomainMaxScale() {
 }
 
 void MyAvatar::setGravity(float gravity) {
-    emit gravityChanged(gravity);
+    _characterController.setGravity(gravity);
+}
+
+float MyAvatar::getGravity() {
+    return _characterController.getGravity();
 }
 
 void MyAvatar::increaseSize() {
