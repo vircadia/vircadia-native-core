@@ -307,7 +307,8 @@ void Base3DOverlay::update(float duration) {
                 transaction.updateItem<Overlay>(itemID, [renderTransform](Overlay& data) {
                     auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
                     if (overlay3D) {
-                        overlay3D->setRenderTransform(renderTransform);//  evalRenderTransform();
+                        auto latestTransform = overlay3D->evalRenderTransform();
+                        overlay3D->setRenderTransform(latestTransform);//  evalRenderTransform();
                     }
                 });
 #endif

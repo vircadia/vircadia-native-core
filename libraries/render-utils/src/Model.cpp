@@ -234,21 +234,28 @@ void Model::updateRenderItems() {
         self->updateClusterMatrices();
 
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
-
-     //   Transform modelTransform = self->getTransform();
+#ifdef CAPTURE_TRANSFORM_IN_GAMEPLAY
+        Transform modelTransform = self->getTransform();
    //     Transform modelTransform = model->getTransform();
-    //    modelTransform.setScale(glm::vec3(1.0f));
-
+       modelTransform.setScale(glm::vec3(1.0f));
+#endif
         render::Transaction transaction;
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter /*, modelTransform*/](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter
+#ifdef CAPTURE_TRANSFORM_IN_GAMEPLAY
+                , modelTransform
+#endif
+            ](ModelMeshPartPayload& data) {
                 ModelPointer model = data._model.lock();
                 if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
 
+#ifdef CAPTURE_TRANSFORM_IN_GAMEPLAY
+#else
                         Transform modelTransform = model->getTransform();
                         modelTransform.setScale(glm::vec3(1.0f));
+#endif
 
                         const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
