@@ -20,17 +20,17 @@ function menuParameters(menuNameSelection, menuItemNameSelection) {
 }
 
 function setupMenu() {
-    if(!Menu.menuExists("Gravity")) {
+    if (!Menu.menuExists("Gravity")) {
         Menu.addMenu("Gravity");
-        for(var i = -5; i <= 5; i++) {
+        for (var i = -5; i <= 5; i++) {
             menuParameters("Gravity", i);
         }
     }   
 }
 
 function menuItemEvent(menuItem) {
-    for(var i = -5; i <= 5; i++) {
-        if(menuItem == i) {
+    for (var i = -5; i <= 5; i++) {
+        if (menuItem == i) {
             MyAvatar.setGravity(i);
         }
     }
@@ -41,7 +41,5 @@ function onScriptEnding() {
 }
 
 setupMenu();
-
 Menu.menuItemEvent.connect(menuItemEvent);
-
 Script.scriptEnding.connect(onScriptEnding);
