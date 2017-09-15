@@ -256,15 +256,74 @@ bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3
 void Base3DOverlay::locationChanged(bool tellPhysics) {
     SpatiallyNestable::locationChanged(tellPhysics);
 
-    auto itemID = getRenderItemID();
+    // Force the actual update of the render transform now that we notify for the change
+    // so it s captured for the time of rendering
+    notifyRenderTransformChange();
+
+ /*   auto itemID = getRenderItemID();
     if (render::Item::isValidID(itemID)) {
         render::ScenePointer scene = qApp->getMain3DScene();
         render::Transaction transaction;
         transaction.updateItem(itemID);
         scene->enqueueTransaction(transaction);
-    }
+    }*/
 }
 
 void Base3DOverlay::parentDeleted() {
     qApp->getOverlays().deleteOverlay(getOverlayID());
+}
+
+void Base3DOverlay::update(float duration) {
+    if (_renderTransformDirty) {
+        auto self = this;
+        // queue up this work for later processing, at the end of update and just before rendering.
+        // the application will ensure only the last lambda is actually invoked.
+        /*  void* key = (void*)this;
+                std::weak_ptr<SpatiallyNestable> weakSelf = shared_from_this();
+                AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
+                    // do nothing, if the model has already been destroyed.
+                    auto spatiallyNestableSelf = weakSelf.lock();
+                    if (!spatiallyNestableSelf) {
+                        return;
+                    }
+                    auto self = std::dynamic_pointer_cast<Base3DOverlay>(spatiallyNestableSelf);
+        */
+        #ifdef UpdateInMain
+            self->setRenderTransform(self->evalRenderTransform());
+        #else
+            auto renderTransform = self->evalRenderTransform();
+        #endif
+            auto itemID = self->getRenderItemID();
+         if (render::Item::isValidID(itemID)) {
+            render::ScenePointer scene = qApp->getMain3DScene();
+            render::Transaction transaction;
+            #ifdef UpdateInMain
+                transaction.updateItem(itemID);
+            #else
+                transaction.updateItem<Overlay>(itemID, [renderTransform](Overlay& data) {
+                auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
+                if (overlay3D) {
+                    auto latestTransform = overlay3D->evalRenderTransform();
+                    overlay3D->setRenderTransform(latestTransform);//  evalRenderTransform();
+                }
+            });
+            #endif
+                 scene->enqueueTransaction(transaction);
+            
+        }
+        //     });
+        _renderTransformDirty = false;
+    }
+}
+
+void Base3DOverlay::notifyRenderTransformChange() const {
+    _renderTransformDirty = true;
+}
+
+Transform Base3DOverlay::evalRenderTransform() const {
+    return getTransform();
+}
+
+void Base3DOverlay::setRenderTransform(const Transform& transform) {
+    _renderTransform = transform;
 }
