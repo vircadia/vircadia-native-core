@@ -517,8 +517,6 @@ Rectangle {
 
         HifiControls.Tree {
             id: treeView
-            anchors.top: assetDirectory.bottom
-            anchors.bottom: infoRow.top
             anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
             anchors.left: parent.left
             anchors.right: parent.right
@@ -722,7 +720,6 @@ Rectangle {
             id: infoRow
             anchors.left: treeView.left
             anchors.right: treeView.right
-            anchors.bottom: uploadSection.top
             anchors.bottomMargin: hifi.dimensions.contentSpacing.y
             spacing: hifi.dimensions.contentSpacing.x
             
