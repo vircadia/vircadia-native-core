@@ -963,7 +963,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    scriptEngines->registerScriptInitializer([this](QSharedPointer<ScriptEngine> engine){
+    scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
         registerScriptEngineWithApplicationServices(engine);
     });
 
@@ -5930,7 +5930,7 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 void Application::packetSent(quint64 length) {
 }
 
-void Application::registerScriptEngineWithApplicationServices(QSharedPointer<ScriptEngine> scriptEngine) {
+void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
 
     scriptEngine->setEmitScriptUpdatesFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -5944,7 +5944,7 @@ void Application::registerScriptEngineWithApplicationServices(QSharedPointer<Scr
     entityScriptingInterface->setEntityTree(getEntities()->getTree());
 
     // give the script engine to the RecordingScriptingInterface for its callbacks
-    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(QSharedPointer<ScriptEngine>(scriptEngine));
+    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(scriptEngine);
 
     if (property(hifi::properties::TEST).isValid()) {
         scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());

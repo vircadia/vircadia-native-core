@@ -137,14 +137,14 @@ void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
     _scriptInitializers.push_back(initializer);
 }
 
-void ScriptEngines::addScriptEngine(QSharedPointer<ScriptEngine> engine) {
+void ScriptEngines::addScriptEngine(ScriptEnginePointer engine) {
     if (!_isStopped) {
         QMutexLocker locker(&_allScriptsMutex);
         _allKnownScriptEngines.insert(engine);
     }
 }
 
-void ScriptEngines::removeScriptEngine(QSharedPointer<ScriptEngine> engine) {
+void ScriptEngines::removeScriptEngine(ScriptEnginePointer engine) {
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
@@ -159,9 +159,9 @@ void ScriptEngines::shutdownScripting() {
     QMutexLocker locker(&_allScriptsMutex);
     qCDebug(scriptengine) << "Stopping all scripts.... currently known scripts:" << _allKnownScriptEngines.size();
 
-    QMutableSetIterator<QSharedPointer<ScriptEngine>> i(_allKnownScriptEngines);
+    QMutableSetIterator<ScriptEnginePointer> i(_allKnownScriptEngines);
     while (i.hasNext()) {
-        QSharedPointer<ScriptEngine> scriptEngine = i.next();
+        ScriptEnginePointer scriptEngine = i.next();
         QString scriptName = scriptEngine->getFilename();
 
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
@@ -364,9 +364,9 @@ void ScriptEngines::stopAllScripts(bool restart) {
         _isReloading = true;
     }
 
-    for (QHash<QUrl, QSharedPointer<ScriptEngine>>::const_iterator it = _scriptEnginesHash.constBegin();
+    for (QHash<QUrl, ScriptEnginePointer>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
-        QSharedPointer<ScriptEngine> scriptEngine = it.value();
+        ScriptEnginePointer scriptEngine = it.value();
         // skip already stopped scripts
         if (scriptEngine->isFinished() || scriptEngine->isStopping()) {
             continue;
@@ -412,12 +412,12 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
 
         QReadLocker lock(&_scriptEnginesHashLock);
         if (_scriptEnginesHash.contains(scriptURL)) {
-            QSharedPointer<ScriptEngine> scriptEngine = _scriptEnginesHash[scriptURL];
+            ScriptEnginePointer scriptEngine = _scriptEnginesHash[scriptURL];
             if (restart) {
                 auto scriptCache = DependencyManager::get<ScriptCache>();
                 scriptCache->deleteScript(scriptURL);
                 connect(scriptEngine.data(), &ScriptEngine::finished,
-                        this, [this](QString scriptName, QSharedPointer<ScriptEngine> engine) {
+                        this, [this](QString scriptName, ScriptEnginePointer engine) {
                     reloadScript(scriptName);
                 });
             }
@@ -445,11 +445,11 @@ void ScriptEngines::reloadAllScripts() {
     stopAllScripts(true);
 }
 
-QSharedPointer<ScriptEngine> ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor,
+ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor,
                                         bool activateMainWindow, bool reload) {
     if (thread() != QThread::currentThread()) {
-        QSharedPointer<ScriptEngine> result { nullptr };
-        BLOCKING_INVOKE_METHOD(this, "loadScript", Q_RETURN_ARG(QSharedPointer<ScriptEngine>, result),
+        ScriptEnginePointer result { nullptr };
+        BLOCKING_INVOKE_METHOD(this, "loadScript", Q_RETURN_ARG(ScriptEnginePointer, result),
             Q_ARG(QUrl, scriptFilename),
             Q_ARG(bool, isUserLoaded),
             Q_ARG(bool, loadScriptFromEditor),
@@ -475,7 +475,7 @@ QSharedPointer<ScriptEngine> ScriptEngines::loadScript(const QUrl& scriptFilenam
         return scriptEngine;
     }
 
-    scriptEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(_context, NO_SCRIPT, "about:" + scriptFilename.fileName()));
+    scriptEngine = ScriptEnginePointer(new ScriptEngine(_context, NO_SCRIPT, "about:" + scriptFilename.fileName()));
     addScriptEngine(scriptEngine);
     scriptEngine->setUserLoaded(isUserLoaded);
 
@@ -493,8 +493,8 @@ QSharedPointer<ScriptEngine> ScriptEngines::loadScript(const QUrl& scriptFilenam
     return scriptEngine;
 }
 
-QSharedPointer<ScriptEngine> ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
-    QSharedPointer<ScriptEngine> result;
+ScriptEnginePointer ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
+    ScriptEnginePointer result;
     {
         QReadLocker lock(&_scriptEnginesHashLock);
         const QUrl scriptURL = normalizeScriptURL(rawScriptURL);
@@ -510,7 +510,7 @@ QSharedPointer<ScriptEngine> ScriptEngines::getScriptEngine(const QUrl& rawScrip
 void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
     UserActivityLogger::getInstance().loadedScript(rawScriptURL);
     QSharedPointer<BaseScriptEngine> baseScriptEngine = qobject_cast<ScriptEngine*>(sender())->sharedFromThis();
-    QSharedPointer<ScriptEngine> scriptEngine = qSharedPointerCast<ScriptEngine>(baseScriptEngine);
+    ScriptEnginePointer scriptEngine = qSharedPointerCast<ScriptEngine>(baseScriptEngine);
 
     launchScriptEngine(scriptEngine);
 
@@ -526,7 +526,7 @@ void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
     emit scriptCountChanged();
 }
 
-void ScriptEngines::launchScriptEngine(QSharedPointer<ScriptEngine> scriptEngine) {
+void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {
     connect(scriptEngine.data(), &ScriptEngine::finished, this, &ScriptEngines::onScriptFinished, Qt::DirectConnection);
     connect(scriptEngine.data(), &ScriptEngine::loadScript, [&](const QString& scriptName, bool userLoaded) {
         loadScript(scriptName, userLoaded);
@@ -552,7 +552,7 @@ void ScriptEngines::launchScriptEngine(QSharedPointer<ScriptEngine> scriptEngine
     }
 }
 
-void ScriptEngines::onScriptFinished(const QString& rawScriptURL, QSharedPointer<ScriptEngine> engine) {
+void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEnginePointer engine) {
     bool removed = false;
     {
         QWriteLocker lock(&_scriptEnginesHashLock);

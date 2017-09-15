@@ -262,7 +262,7 @@ void MyAvatar::setDominantHand(const QString& hand) {
     }
 }
 
-void MyAvatar::registerMetaTypes(QSharedPointer<BaseScriptEngine> engine) {
+void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);
 

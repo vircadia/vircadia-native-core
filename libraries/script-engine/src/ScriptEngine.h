@@ -244,7 +244,7 @@ signals:
     void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
-    void finished(const QString& fileNameString, QSharedPointer<ScriptEngine>);
+    void finished(const QString& fileNameString, ScriptEnginePointer);
     void cleanupMenuItem(const QString& menuItemString);
     void printedMessage(const QString& message, const QString& scriptName);
     void errorMessage(const QString& message, const QString& scriptName);
@@ -334,8 +334,8 @@ protected:
     QSharedPointer<ScriptEngines> _scriptEngines;
 };
 
-QSharedPointer<ScriptEngine> scriptEngineFactory(ScriptEngine::Context context,
-                                                 const QString& scriptContents,
-                                                 const QString& fileNameString);
+ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
+                                        const QString& scriptContents,
+                                        const QString& fileNameString);
 
 #endif // hifi_ScriptEngine_h

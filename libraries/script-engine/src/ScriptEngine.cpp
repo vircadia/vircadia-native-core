@@ -153,11 +153,11 @@ QString ScriptEngine::logException(const QScriptValue& exception) {
     return message;
 }
 
-QSharedPointer<ScriptEngine> scriptEngineFactory(ScriptEngine::Context context,
+ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
                                                  const QString& scriptContents,
                                                  const QString& fileNameString) {
     ScriptEngine* engine = new ScriptEngine(context, scriptContents, fileNameString);
-    QSharedPointer<ScriptEngine> engineSP = QSharedPointer<ScriptEngine>(engine);
+    ScriptEnginePointer engineSP = ScriptEnginePointer(engine);
     DependencyManager::get<ScriptEngines>()->addScriptEngine(qSharedPointerCast<ScriptEngine>(engineSP));
     return engineSP;
 }
@@ -537,7 +537,7 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
     resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
 }
 
-static QScriptValue createScriptableResourcePrototype(QSharedPointer<ScriptEngine> engine) {
+static QScriptValue createScriptableResourcePrototype(ScriptEnginePointer engine) {
     auto prototype = engine->newObject();
 
     // Expose enum State to JS/QML via properties

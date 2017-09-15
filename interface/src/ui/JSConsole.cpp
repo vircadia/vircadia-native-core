@@ -61,7 +61,7 @@ void _writeLines(const QString& filename, const QList<QString>& lines) {
     QTextStream(&file) << json;
 }
 
-JSConsole::JSConsole(QWidget* parent, const QSharedPointer<ScriptEngine>& scriptEngine) :
+JSConsole::JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine) :
     QWidget(parent),
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
@@ -97,7 +97,7 @@ JSConsole::~JSConsole() {
     delete _ui;
 }
 
-void JSConsole::setScriptEngine(const QSharedPointer<ScriptEngine>&  scriptEngine) {
+void JSConsole::setScriptEngine(const ScriptEnginePointer&  scriptEngine) {
     if (_scriptEngine == scriptEngine && scriptEngine != NULL) {
         return;
     }
