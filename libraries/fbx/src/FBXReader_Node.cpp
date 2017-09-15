@@ -48,9 +48,8 @@ QVariant readBinaryArray(QDataStream& in, int& position) {
     QVector<T> values;
     if ((int)QSysInfo::ByteOrder == (int)in.byteOrder()) {
         values.resize(arrayLength);
-        const unsigned int DEFLATE_ENCODING = 1;
         QByteArray arrayData;
-        if (encoding == DEFLATE_ENCODING) {
+        if (encoding == FBX_PROPERTY_COMPRESSED_FLAG) {
             // preface encoded data with uncompressed length
             QByteArray compressed(sizeof(quint32) + compressedLength, 0);
             *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
@@ -72,8 +71,7 @@ QVariant readBinaryArray(QDataStream& in, int& position) {
         }
     } else {
         values.reserve(arrayLength);
-        const unsigned int DEFLATE_ENCODING = 1;
-        if (encoding == DEFLATE_ENCODING) {
+        if (encoding == FBX_PROPERTY_COMPRESSED_FLAG) {
             // preface encoded data with uncompressed length
             QByteArray compressed(sizeof(quint32) + compressedLength, 0);
             *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
