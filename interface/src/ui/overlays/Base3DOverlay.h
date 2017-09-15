@@ -55,8 +55,6 @@ public:
     void update(float deltatime) override;
     
     void notifyRenderTransformChange() const;
-    virtual Transform evalRenderTransform() const;
-    void setRenderTransform(const Transform& transform);
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -74,6 +72,9 @@ protected:
     virtual void parentDeleted() override;
 
     mutable Transform _renderTransform;
+    virtual Transform evalRenderTransform() const;
+    virtual void setRenderTransform(const Transform& transform);
+    const Transform& getRenderTransform() const { return _renderTransform; }
 
     float _lineWidth;
     bool _isSolid;
