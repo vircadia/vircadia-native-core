@@ -62,7 +62,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.endNearTrigger = function (controllerData) {
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "endNearTrigger", args);
+            Entities.callEntityMethod(this.targetEntityID, "stopNearTrigger", args);
         };
 
         this.isReady = function (controllerData) {
