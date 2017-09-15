@@ -60,8 +60,6 @@
 #include "MovingEntitiesOperator.h"
 #include "SceneScriptingInterface.h"
 
-#include "CharacterController.h"
-
 using namespace std;
 
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
