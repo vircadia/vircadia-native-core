@@ -2413,10 +2413,18 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
     RenderArgs renderArgs;
+
+    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
     {
         PROFILE_RANGE(render, "/buildFrustrumAndArgs");
         {
             QMutexLocker viewLocker(&_viewMutex);
+            // adjust near clip plane to account for sensor scaling.
+            auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
+                                                       _viewFrustum.getAspectRatio(),
+                                                       DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                                                       _viewFrustum.getFarClip());
+            _viewFrustum.setProjection(adjustedProjection);
             _viewFrustum.calculate();
         }
         renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
@@ -2570,7 +2578,6 @@ void Application::paintGL() {
     float ipdScale = hmdInterface->getIPDScale();
 
     // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
-    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
     ipdScale *= sensorToWorldScale;
 
     mat4 eyeProjections[2];
@@ -2582,6 +2589,7 @@ void Application::paintGL() {
         // in the overlay render?
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
+        auto baseProjection = renderArgs.getViewFrustum().getProjection();
         if (displayPlugin->isStereo()) {
             // Stereo modes will typically have a larger projection matrix overall,
             // so we ask for the 'mono' projection matrix, which for stereo and HMD
@@ -2592,16 +2600,10 @@ void Application::paintGL() {
             // just relying on the left FOV in each case and hoping that the
             // overall culling margin of error doesn't cause popping in the
             // right eye.  There are FIXMEs in the relevant plugins
-            _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
+            _myCamera.setProjection(displayPlugin->getCullingProjection(baseProjection));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
-
-            // adjust near clip plane by sensorToWorldScale
-            auto baseProjection = glm::perspective(renderArgs.getViewFrustum().getFieldOfView(),
-                                                   renderArgs.getViewFrustum().getAspectRatio(),
-                                                   renderArgs.getViewFrustum().getNearClip() * sensorToWorldScale,
-                                                   renderArgs.getViewFrustum().getFarClip());
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
