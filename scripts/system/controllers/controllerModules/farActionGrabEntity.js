@@ -238,7 +238,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             if (this.actionID !== null) {
                 var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-                Entities.callEntityMethod(this.targetEntityID, "startDistanceGrab", args);
+                Entities.callEntityMethod(this.grabbedThingID, "startDistanceGrab", args);
             }
 
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
@@ -272,7 +272,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "continueDistanceGrab", args);
+            Entities.callEntityMethod(this.grabbedThingID, "continueDistanceGrab", args);
 
             //  Update radialVelocity
             var lastVelocity = Vec3.multiply(worldHandDelta, 1.0 / deltaObjectTime);
@@ -337,7 +337,7 @@ Script.include("/~/system/libraries/controllers.js");
             Entities.deleteAction(this.grabbedThingID, this.actionID);
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
+            Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
 
             this.actionID = null;
             this.grabbedThingID = null;
