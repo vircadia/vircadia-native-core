@@ -1415,6 +1415,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 }
 
 QByteArray EntityItemProperties::getPackedNormals() const {
+    qDebug() << "------------PACKINGNORMALS START-----------------";
+    qDebug() << "------------PACKINGNORMALS START SIZE-----------------" << getNormals().size();
     return packNormals(getNormals());
 }
 
@@ -1423,10 +1425,18 @@ QByteArray EntityItemProperties::packNormals(const QVector<glm::vec3>& normals) 
     int normalsSize = normals.size();
     QByteArray packedNormals = QByteArray(normalsSize * 6 + 1, '0');
     // add size of the array
-    packedNormals.push_back((byte)normalsSize);
+    packedNormals[0] = ((uint8_t)normalsSize);
+    qDebug() << "------------PACKINGNORMALS START SIZE-----------------" 
+        << (int)packedNormals[0] 
+        << " / "
+        << ((uint8_t)normalsSize) 
+        << " * " 
+        << normalsSize
+        << " = " 
+        << normals.count();
+
     int index = 1;
     for (int i = 0; i < normalsSize; i++) {
-        unsigned char auxBuffer[6];
         int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, normals[i], 15);
         qDebug() << "PACKINGNORMALS " << normals[i].x << " " << normals[i].y << " " << normals[i].z;
         //memcpy(packedNormals.data() + index, auxBuffer, numBytes);
@@ -1445,7 +1455,7 @@ QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& stro
     QByteArray packedStrokeColors = QByteArray(strokeColorsSize * 3 + 1, '0');
 
     // add size of the array
-    packedStrokeColors.push_back((uint8_t)strokeColorsSize);
+    packedStrokeColors[0] = ((uint8_t)strokeColorsSize);
 
 
     for (int i = 0; i < strokeColorsSize; i++) {
@@ -1455,9 +1465,9 @@ QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& stro
         uint8_t b = strokeColors[i].b * 255;
 
         // add the color to the QByteArray
-        packedStrokeColors[i * 3] = strokeColors[i].r * 255;
-        packedStrokeColors[i * 3 + 1] = strokeColors[i].g * 255;
-        packedStrokeColors[i * 3 + 2] = strokeColors[i].b * 255;
+        packedStrokeColors[i * 3 + 1] = strokeColors[i].r * 255;
+        packedStrokeColors[i * 3 + 2] = strokeColors[i].g * 255;
+        packedStrokeColors[i * 3 + 3] = strokeColors[i].b * 255;
 
         qDebug() << "PACKINGSTROKECOLORS" << strokeColors[i].r << " " << strokeColors[i].g << " " << strokeColors[i].b;
     }
@@ -1715,15 +1725,19 @@ void EntityItemProperties::setPackedNormals(const QByteArray& value) {
 QVector<glm::vec3> EntityItemProperties::unpackNormals(const QByteArray& normals) {
     qDebug() << "***************UNPACKINGNORMALS**********************";
     // the size of the vector is packed first
-    QVector<glm::vec3> unpackedNormals = QVector<glm::vec3>(normals[0]);
-    if (normals[0] == normals.size() / 6 - 1) {
+    QVector<glm::vec3> unpackedNormals = QVector<glm::vec3>((int)normals[0]);
+    qDebug() << "UNPACKINGNORMALS SIZE TEST " << (int)normals[0] << " " << (normals.size() / 6);
+
+    if ((int)normals[0] == normals.size() / 6) {
 
         qDebug() << "UNPACKINGNORMALS SIZE  " << normals[0];
+        int j = 0;
         for (int i = 1; i < normals.size();) {
             glm::vec3 aux = glm::vec3();
             i += unpackFloatVec3FromSignedTwoByteFixed((unsigned char*)normals.data() + i, aux, 15);
-            unpackedNormals[i] = aux;
-            qDebug() << "UNPACKINGNORMALS::" << unpackedNormals.back().x << " " << unpackedNormals.back().y << " " << unpackedNormals.back().z;
+            unpackedNormals[j] = aux;
+            qDebug() << "UNPACKINGNORMALS::" << unpackedNormals[j].x << " " << unpackedNormals[j].y << " " << unpackedNormals[j].z;
+            j++;
         }
     }
     qDebug() << "***************ENDUNPACKINGNORMALS**********************";
@@ -1737,17 +1751,20 @@ void EntityItemProperties::setPackedStrokeColors(const QByteArray& value) {
 QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
     qDebug() << "------------UNPACKINGSTROKECOLORS-----------------";
     // the size of the vector is packed first
-    QVector<glm::vec3> unpackedStrokeColors = QVector<glm::vec3>(strokeColors[0]);
-    if (strokeColors[0] == strokeColors.size() / 3 - 1) {
+    QVector<glm::vec3> unpackedStrokeColors = QVector<glm::vec3>((int)strokeColors[0]);
+    qDebug() << "UNPACKINGSTROKECOLORS SIZE TEST " << (int)strokeColors[0] << " " << (strokeColors.size() / 3);
+
+    if ((int)strokeColors[0] == strokeColors.size() / 3) {
         qDebug() << "UNPACKINGSTROKECOLORS SIZE  " << strokeColors[0];
+        int j = 0;
         for (int i = 1; i < strokeColors.size();) {
 
-            float r = strokeColors[i++] / 255.0f;
-            float g = strokeColors[i++] / 255.0f;
-            float b = strokeColors[i++] / 255.0f;
+            float r = (uint8_t)strokeColors[i++] / 255.0f;
+            float g = (uint8_t)strokeColors[i++] / 255.0f;
+            float b = (uint8_t)strokeColors[i++] / 255.0f;
             qDebug() << "UNPACKINGSTROKECOLORS " << r << " " << g << " " << b;
 
-            unpackedStrokeColors[i] = glmVec3(r, g, b);
+            unpackedStrokeColors[j++] = glmVec3(r, g, b);
         }
     }
     qDebug() << "-----------------ENDUNPACKINGSTROKECOLORS------------------";

@@ -77,7 +77,7 @@
             _isUvModeStretch = _savedSettings.currentTexture.brushType == "stretch",
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
-            MAX_POINTS_PER_LINE = 70;  // Quick fix for polyline points disappearing issue.
+            MAX_POINTS_PER_LINE = 60;  // Quick fix for polyline points disappearing issue.
                 
         function calculateStrokeNormal() {
             if (!_isMouseDrawing) {
@@ -453,17 +453,7 @@
             var LEFT_HUD_LASER = 1;
             var RIGHT_HUD_LASER = 2;
             var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
-            if (_isLeftHandDominant){
-                HMD.setHandLasers(RIGHT_HUD_LASER, true, LASER_TRIGGER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
-                
-                HMD.disableHandLasers(LEFT_HUD_LASER);
-            }else{
-                HMD.setHandLasers(LEFT_HUD_LASER, true, LASER_TRIGGER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
-                HMD.disableHandLasers(RIGHT_HUD_LASER);
-                
-            }
-            HMD.disableExtraLaser();
-            
+                       
             var wasTriggerPressed,
                 fingerTipPosition,
                 lineWidth;
