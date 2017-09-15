@@ -72,11 +72,11 @@ ScrollingWindow {
 
     function doRenameFile(oldPath, newPath) {
 
-        if (newPath[0] != "/") {
+        if (newPath[0] !== "/") {
             newPath = "/" + newPath;
         }
 
-        if (oldPath[oldPath.length - 1] == '/' && newPath[newPath.length - 1] != '/') {
+        if (oldPath[oldPath.length - 1] === '/' && newPath[newPath.length - 1] != '/') {
             // this is a folder rename but the user neglected to add a trailing slash when providing a new path
             newPath = newPath + "/";
         }
@@ -302,7 +302,7 @@ ScrollingWindow {
         object.selected.connect(function(destinationPath) {
             destinationPath = destinationPath.trim();
 
-            if (path == destinationPath) {
+            if (path === destinationPath) {
                 return;
             }
             if (fileExists(destinationPath)) {
@@ -363,7 +363,7 @@ ScrollingWindow {
         running: false
     }
 
-    property var uploadOpen: false;
+    property bool uploadOpen: false;
     Timer {
         id: timer
     }

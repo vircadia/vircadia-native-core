@@ -105,12 +105,12 @@ Rectangle {
 
     function askForOverwrite(path, callback) {
         var object = tabletRoot.messageBox({
-                                            icon: hifi.icons.question,
-                                            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-                                            defaultButton: OriginalDialogs.StandardButton.No,
-                                            title: "Overwrite File",
-                                            text: path + "\n" + "This file already exists. Do you want to overwrite it?"
-                                        });
+            icon: hifi.icons.question,
+            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+            defaultButton: OriginalDialogs.StandardButton.No,
+            title: "Overwrite File",
+            text: path + "\n" + "This file already exists. Do you want to overwrite it?"
+        });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
                 callback();
@@ -149,9 +149,9 @@ Rectangle {
 
     function handleGetMappingsError(errorString) {
         errorMessageBox(
-                    "There was a problem retreiving the list of assets from your Asset Server.\n"
-                    + errorString
-                    );
+            "There was a problem retreiving the list of assets from your Asset Server.\n"
+            + errorString
+        );
     }
 
     function addToWorld() {
@@ -179,25 +179,25 @@ Rectangle {
         var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
         var DYNAMIC_DEFAULT = false;
         var prompt = tabletRoot.customInputDialog({
-                                                   textInput: {
-                                                       label: "Model URL",
-                                                       text: defaultURL
-                                                   },
-                                                   comboBox: {
-                                                       label: "Automatic Collisions",
-                                                       index: SHAPE_TYPE_DEFAULT,
-                                                       items: SHAPE_TYPES
-                                                   },
-                                                   checkBox: {
-                                                       label: "Dynamic",
-                                                       checked: DYNAMIC_DEFAULT,
-                                                       disableForItems: [
-                                                           SHAPE_TYPE_STATIC_MESH
-                                                       ],
-                                                       checkStateOnDisable: false,
-                                                       warningOnDisable: "Models with 'Exact' automatic collisions cannot be dynamic, and should not be used as floors"
-                                                   }
-                                               });
+            textInput: {
+                label: "Model URL",
+                text: defaultURL
+            },
+            comboBox: {
+                label: "Automatic Collisions",
+                index: SHAPE_TYPE_DEFAULT,
+                items: SHAPE_TYPES
+            },
+            checkBox: {
+                label: "Dynamic",
+                checked: DYNAMIC_DEFAULT,
+                disableForItems: [
+                    SHAPE_TYPE_STATIC_MESH
+                ],
+                checkStateOnDisable: false,
+                warningOnDisable: "Models with 'Exact' automatic collisions cannot be dynamic, and should not be used as floors"
+            }
+        });
 
         prompt.selected.connect(function (jsonResult) {
             if (jsonResult) {
@@ -205,23 +205,23 @@ Rectangle {
                 var url = result.textInput.trim();
                 var shapeType;
                 switch (result.comboBox) {
-                case SHAPE_TYPE_SIMPLE_HULL:
-                    shapeType = "simple-hull";
-                    break;
-                case SHAPE_TYPE_SIMPLE_COMPOUND:
-                    shapeType = "simple-compound";
-                    break;
-                case SHAPE_TYPE_STATIC_MESH:
-                    shapeType = "static-mesh";
-                    break;
-                case SHAPE_TYPE_BOX:
-                    shapeType = "box";
-                    break;
-                case SHAPE_TYPE_SPHERE:
-                    shapeType = "sphere";
-                    break;
-                default:
-                    shapeType = "none";
+                    case SHAPE_TYPE_SIMPLE_HULL:
+                        shapeType = "simple-hull";
+                        break;
+                    case SHAPE_TYPE_SIMPLE_COMPOUND:
+                        shapeType = "simple-compound";
+                        break;
+                    case SHAPE_TYPE_STATIC_MESH:
+                        shapeType = "static-mesh";
+                        break;
+                    case SHAPE_TYPE_BOX:
+                        shapeType = "box";
+                        break;
+                    case SHAPE_TYPE_SPHERE:
+                        shapeType = "sphere";
+                        break;
+                    default:
+                        shapeType = "none";
                 }
 
                 var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
@@ -230,7 +230,7 @@ Rectangle {
                     print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
                 } else if (url) {
                     var name = assetProxyModel.data(treeView.selection.currentIndex);
-                    var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
+                    var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
                     var gravity;
                     if (dynamic) {
                         // Create a vector <0, -10, 0>.  { x: 0, y: -10, z: 0 } won't work because Qt is dumb and this is a
@@ -293,10 +293,10 @@ Rectangle {
         }
 
         var object = tabletRoot.inputDialog({
-                                             label: "Enter new path:",
-                                             current: path,
-                                             placeholderText: "Enter path here"
-                                         });
+            label: "Enter new path:",
+            current: path,
+            placeholderText: "Enter path here"
+        });
         object.selected.connect(function(destinationPath) {
             destinationPath = destinationPath.trim();
 
@@ -339,12 +339,12 @@ Rectangle {
         }
 
         var object = tabletRoot.messageBox({
-                                            icon: hifi.icons.question,
-                                            buttons: OriginalDialogs.StandardButton.Yes + OriginalDialogs.StandardButton.No,
-                                            defaultButton: OriginalDialogs.StandardButton.Yes,
-                                            title: "Delete",
-                                            text: modalMessage
-                                        });
+            icon: hifi.icons.question,
+            buttons: OriginalDialogs.StandardButton.Yes + OriginalDialogs.StandardButton.No,
+            defaultButton: OriginalDialogs.StandardButton.Yes,
+            title: "Delete",
+            text: modalMessage
+        });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
                 doDeleteFile(path);
@@ -379,38 +379,38 @@ Rectangle {
             var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
             Assets.uploadFile(fileUrl, directory + filename,
-                              function() {
-                                  // Upload started
-                                  uploadSpinner.visible = true;
-                                  uploadButton.enabled = false;
-                                  uploadProgressLabel.text = "In progress...";
-                              },
-                              function(err, path) {
-                                  print(err, path);
-                                  if (err === "") {
-                                      uploadProgressLabel.text = "Upload Complete";
-                                      timer.interval = 1000;
-                                      timer.repeat = false;
-                                      timer.triggered.connect(function() {
-                                          uploadSpinner.visible = false;
-                                          uploadButton.enabled = true;
-                                          uploadOpen = false;
-                                      });
-                                      timer.start();
-                                      console.log("Asset Browser - finished uploading: ", fileUrl);
-                                      reload();
-                                  } else {
-                                      uploadSpinner.visible = false;
-                                      uploadButton.enabled = true;
-                                      uploadOpen = false;
+                function() {
+                    // Upload started
+                    uploadSpinner.visible = true;
+                    uploadButton.enabled = false;
+                    uploadProgressLabel.text = "In progress...";
+                },
+                function(err, path) {
+                    print(err, path);
+                    if (err === "") {
+                        uploadProgressLabel.text = "Upload Complete";
+                        timer.interval = 1000;
+                        timer.repeat = false;
+                        timer.triggered.connect(function() {
+                            uploadSpinner.visible = false;
+                            uploadButton.enabled = true;
+                            uploadOpen = false;
+                        });
+                        timer.start();
+                        console.log("Asset Browser - finished uploading: ", fileUrl);
+                        reload();
+                    } else {
+                        uploadSpinner.visible = false;
+                        uploadButton.enabled = true;
+                        uploadOpen = false;
 
-                                      if (err !== -1) {
-                                          console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
-                                          var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
-                                          box.selected.connect(reload);
-                                      }
-                                  }
-                              }, dropping);
+                        if (err !== -1) {
+                            console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
+                            var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
+                            box.selected.connect(reload);
+                        }
+                    }
+            }, dropping);
         }
 
         function initiateUpload(url) {
@@ -421,9 +421,9 @@ Rectangle {
             doUpload(fileUrl, true);
         } else {
             var browser = tabletRoot.fileDialog({
-                                                 selectDirectory: false,
-                                                 dir: currentDirectory
-                                             });
+                selectDirectory: false,
+                dir: currentDirectory
+            });
 
             browser.canceled.connect(function() {
                 uploadOpen = false;
@@ -445,11 +445,11 @@ Rectangle {
 
     function errorMessageBox(message) {
         return tabletRoot.messageBox({
-                                      icon: hifi.icons.warning,
-                                      defaultButton: OriginalDialogs.StandardButton.Ok,
-                                      title: "Error",
-                                      text: message
-                                  });
+            icon: hifi.icons.warning,
+            defaultButton: OriginalDialogs.StandardButton.Ok,
+            title: "Error",
+            text: message
+        });
     }
 
     Column {
