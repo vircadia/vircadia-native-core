@@ -386,6 +386,7 @@
             otherTargetPosition,
             handleUnitScaleAxis,
             handleScaleDirections,
+            handleTargetOffset,
             initialHandleDistance,
             laserOffset,
             MIN_SCALE = 0.001,
@@ -544,7 +545,10 @@
             handleUnitScaleAxis = handles.scalingAxis(overlayID);  // Unit vector in direction of scaling.
             handleScaleDirections = handles.scalingDirections(overlayID);  // Which axes to scale the selection on.
             scaleAxis = Vec3.multiplyQbyV(selectionPositionAndOrientation.orientation, handleUnitScaleAxis);
+            handleTargetOffset = handles.handleOffset(overlayID)
+                + Vec3.dot(Vec3.subtract(otherTargetPosition, Overlays.getProperty(overlayID, "position")), scaleAxis);
             initialHandleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, initialTargetPosition), scaleAxis));
+            initialHandleDistance -= handleTargetOffset;
 
             selection.startHandleScaling(initialTargetPosition);
             handles.startScaling();
@@ -624,10 +628,12 @@
             // Desired distance of handle from other hand
             targetPosition = getScaleTargetPosition();
             scaleAxis = Vec3.multiplyQbyV(selection.getPositionAndOrientation().orientation, handleUnitScaleAxis);
-            handleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, targetPosition), scaleAxis));
+            handleDistance = Vec3.dot(Vec3.subtract(otherTargetPosition, targetPosition), scaleAxis);
+            handleDistance -= handleTargetOffset;
 
             // Scale selection relative to initial dimensions.
             scale = handleDistance / initialHandleDistance;
+            scale = Math.max(scale, MIN_SCALE);
             scale3D = Vec3.multiply(scale, handleScaleDirections);
             scale3D = {
                 x: handleScaleDirections.x !== 0 ? scale3D.x : 1,

@@ -89,11 +89,11 @@ Handles = function (side) {
     ];
 
     FACE_HANDLE_OVERLAY_SCALE_AXES = [
+        Vec3.UNIT_NEG_X,
         Vec3.UNIT_X,
-        Vec3.UNIT_X,
+        Vec3.UNIT_NEG_Y,
         Vec3.UNIT_Y,
-        Vec3.UNIT_Y,
-        Vec3.UNIT_Z,
+        Vec3.UNIT_NEG_Z,
         Vec3.UNIT_Z
     ];
 
@@ -107,6 +107,14 @@ Handles = function (side) {
 
     function isHandle(overlayID) {
         return isAxisHandle(overlayID) || isCornerHandle(overlayID);
+    }
+
+    function handleOffset(overlayID) {
+        // Distance from overlay position to entity surface.
+        if (isCornerHandle(overlayID)) {
+            return 0;  // Corner overlays are centered on the corner.
+        }
+        return faceHandleOffsets.y / 2;
     }
 
     function getOverlays() {
@@ -126,7 +134,7 @@ Handles = function (side) {
         if (isCornerHandle(overlayID)) {
             return Vec3.ONE;
         }
-        return FACE_HANDLE_OVERLAY_SCALE_AXES[faceHandleOverlays.indexOf(overlayID)];
+        return Vec3.abs(FACE_HANDLE_OVERLAY_SCALE_AXES[faceHandleOverlays.indexOf(overlayID)]);
     }
 
     function display(rootEntityID, boundingBox, isMultipleEntities, isSuppressZAxis) {
@@ -348,6 +356,7 @@ Handles = function (side) {
         display: display,
         overlays: getOverlays,
         isHandle: isHandle,
+        handleOffset: handleOffset,
         scalingAxis: scalingAxis,
         scalingDirections: scalingDirections,
         startScaling: startScaling,

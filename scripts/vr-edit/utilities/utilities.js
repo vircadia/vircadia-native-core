@@ -20,6 +20,12 @@ if (typeof Vec3.max !== "function") {
     };
 }
 
+if (typeof Vec3.abs !== "function") {
+    Vec3.abs = function (a) {
+        return { x: Math.abs(a.x), y: Math.abs(a.y), z: Math.abs(a.z) };
+    };
+}
+
 if (typeof Quat.ZERO !== "object") {
     Quat.ZERO = Quat.fromVec3Radians(Vec3.ZERO);
 }

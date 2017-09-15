@@ -111,6 +111,7 @@ Hand = function (side) {
             overlayID,
             overlayIDs,
             overlayDistance,
+            intersectionPosition,
             distance,
             entityID,
             entityIDs,
@@ -169,8 +170,11 @@ Hand = function (side) {
                     }
                 }
             }
-            if (handleOverlayIDs.indexOf(overlayID) === -1) {
+            if (overlayID && handleOverlayIDs.indexOf(overlayID) === -1) {
                 overlayID = null;
+            }
+            if (overlayID) {
+                intersectionPosition = Overlays.getProperty(overlayID, "position");
             }
         }
 
@@ -198,6 +202,9 @@ Hand = function (side) {
                     }
                 }
             }
+            if (entityID) {
+                intersectionPosition = Entities.getEntityProperties(entityID, "position").position;
+            }
         }
 
         intersection = {
@@ -205,7 +212,8 @@ Hand = function (side) {
             overlayID: overlayID,
             entityID: entityID,
             handIntersected: overlayID !== null || entityID !== null,
-            editableEntity: entityID !== null
+            editableEntity: entityID !== null,
+            intersection: intersectionPosition
         };
     }
 
