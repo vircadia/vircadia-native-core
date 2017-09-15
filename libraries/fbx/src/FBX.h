@@ -33,13 +33,13 @@ static const int FBX_HEADER_BYTES_BEFORE_VERSION = 23;
 static const quint32 FBX_VERSION_2015 = 7400;
 static const quint32 FBX_VERSION_2016 = 7500;
 
-
-// TODO Convert to GeometryAttribute type
 static const int DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES = 1000;
 static const int DRACO_ATTRIBUTE_MATERIAL_ID = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES;
 static const int DRACO_ATTRIBUTE_TEX_COORD_1 = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES + 1;
 static const int DRACO_ATTRIBUTE_ORIGINAL_INDEX = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES + 2;
 
+static const int32_t FBX_PROPERTY_UNCOMPRESSED_FLAG = 0;
+static const int32_t FBX_PROPERTY_COMPRESSED_FLAG = 1;
 
 class FBXNode;
 using FBXNodeList = QList<FBXNode>;
@@ -218,7 +218,6 @@ public:
     QVector<FBXMeshPart> parts;
 
     QVector<glm::vec3> vertices;
-    QVector<int32_t> originalIndex;
     QVector<glm::vec3> normals;
     QVector<glm::vec3> tangents;
     QVector<glm::vec3> colors;
@@ -226,6 +225,7 @@ public:
     QVector<glm::vec2> texCoords1;
     QVector<uint16_t> clusterIndices;
     QVector<uint8_t> clusterWeights;
+    QVector<int32_t> originalIndices;
 
     QVector<FBXCluster> clusters;
 

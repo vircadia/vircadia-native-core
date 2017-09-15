@@ -24,13 +24,34 @@
 #endif
 
 template <typename T>
-void writeVector(QDataStream& out, char ch,  QVector<T> list) {
-    out.device()->write(&ch, 1);
-    out << (int32_t)list.length();
-    out << (int32_t)0;
-    out << (int32_t)0;
+void writeVector(QDataStream& out, char ch, QVector<T> vec) {
+    // Minimum number of bytes to consider compressing
+    const int ATTEMPT_COMPRESSION_THRESHOLD_BYTES = 2000;
 
-    out.writeBytes(reinterpret_cast<const char*>(list.constData()), list.length() * sizeof(T));
+    out.device()->write(&ch, 1);
+    out << (int32_t)vec.length();
+
+    auto data { QByteArray::fromRawData((const char*)vec.constData(), vec.length() * sizeof(T)) };
+
+    if (data.size() >= ATTEMPT_COMPRESSION_THRESHOLD_BYTES) {
+        auto compressedDataWithLength { qCompress(data) };
+
+        // qCompress packs a length uint32 at the beginning of the buffer, but the FBX format
+        // does not expect it. This removes it.
+        auto compressedData = QByteArray::fromRawData(
+            compressedDataWithLength.constData() + sizeof(uint32_t), compressedDataWithLength.size() - sizeof(uint32_t));
+
+        if (compressedData.size() < data.size()) {
+            out << (int32_t)1;
+            out << (int32_t)compressedData.size();
+            out.writeRawData(compressedData.constData(), compressedData.size());
+            return;
+        }
+    }
+
+    out << FBX_PROPERTY_UNCOMPRESSED_FLAG;
+    out << (int32_t)0;
+    out.writeRawData(data.constData(), data.size());
 }
 
 

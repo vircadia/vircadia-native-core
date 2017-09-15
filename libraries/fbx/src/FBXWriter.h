@@ -17,7 +17,7 @@
 #include <QByteArray>
 #include <QDataStream>
 
-#define USE_FBX_2016_FORMAT
+//#define USE_FBX_2016_FORMAT
 
 class FBXWriter {
 public:

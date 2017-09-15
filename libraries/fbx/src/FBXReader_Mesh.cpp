@@ -355,7 +355,7 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
             auto texCoordAttribute = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::TEX_COORD);
             auto extraTexCoordAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_TEX_COORD_1);
             auto colorAttribute = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::COLOR);
-            auto matTexAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_MATERIAL_ID);
+            auto materialIDAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_MATERIAL_ID);
             auto originalIndexAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
 
             // setup extracted mesh data structures given number of points
@@ -445,11 +445,11 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
 
                 uint16_t materialID { 0 };
 
-                if (matTexAttribute) {
+                if (materialIDAttribute) {
                     // read material ID and texture ID mappings into materials and texture vectors
-                    auto mappedIndex = matTexAttribute->mapped_index(firstCorner);
+                    auto mappedIndex = materialIDAttribute->mapped_index(firstCorner);
 
-                    matTexAttribute->ConvertValue<uint16_t, 1>(mappedIndex, &materialID);
+                    materialIDAttribute->ConvertValue<uint16_t, 1>(mappedIndex, &materialID);
                 }
 
                 QPair<int, int> materialTexture(materialID, 0);

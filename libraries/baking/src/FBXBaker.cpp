@@ -405,9 +405,9 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                             if (needsOriginalIndices) {
                                 meshBuilder.SetAttributeValuesForFace(originalIndexAttributeID, face,
-                                                                      &mesh.originalIndex[idx0],
-                                                                      &mesh.originalIndex[idx1],
-                                                                      &mesh.originalIndex[idx2]);
+                                                                      &mesh.originalIndices[idx0],
+                                                                      &mesh.originalIndices[idx1],
+                                                                      &mesh.originalIndices[idx2]);
                             }
                             if (hasNormals) {
                                 meshBuilder.SetAttributeValuesForFace(normalsAttributeID, face,
