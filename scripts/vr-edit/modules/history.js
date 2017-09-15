@@ -52,7 +52,7 @@ History = (function () {
 
     function doKick(entityID) {
         var properties,
-            NO_KICK_ENTITY_TYPES = ["Text", "Web"],  // These entities don't respond to gravity so don't kick them.
+            NO_KICK_ENTITY_TYPES = ["Text", "Web", "PolyLine"],  // These entities don't respond to gravity so don't kick them.
             DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.1, z: 0 };
 
