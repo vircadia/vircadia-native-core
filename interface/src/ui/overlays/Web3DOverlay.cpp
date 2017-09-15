@@ -184,9 +184,7 @@ void Web3DOverlay::update(float deltatime) {
         // update globalPosition
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
-
-    Billboard3DOverlay::update(deltatime);
-
+    Parent::update(deltatime);
 }
 
 QString Web3DOverlay::pickURL() {
@@ -322,7 +320,8 @@ void Web3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setResourceTexture(0, _texture);
-    batch.setModelTransform(_renderTransform);
+    batch.setModelTransform(getRenderTransform());
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
         geometryCache->bindWebBrowserProgram(batch, true);
