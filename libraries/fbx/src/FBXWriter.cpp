@@ -42,7 +42,7 @@ void writeVector(QDataStream& out, char ch, QVector<T> vec) {
             compressedDataWithLength.constData() + sizeof(uint32_t), compressedDataWithLength.size() - sizeof(uint32_t));
 
         if (compressedData.size() < data.size()) {
-            out << (int32_t)1;
+            out << FBX_PROPERTY_COMPRESSED_FLAG;
             out << (int32_t)compressedData.size();
             out.writeRawData(compressedData.constData(), compressedData.size());
             return;
