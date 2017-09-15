@@ -39,6 +39,7 @@ public:
     const QString getName() const override { return NAME; }
 
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
+    glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override;
 
     void init() override;
 

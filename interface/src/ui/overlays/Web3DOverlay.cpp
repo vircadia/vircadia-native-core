@@ -187,15 +187,6 @@ void Web3DOverlay::update(float deltatime) {
     Parent::update(deltatime);
 }
 
-Transform Web3DOverlay::evalRenderTransform() const {
-    Transform transform = getTransform();
-    transform.setScale(1.0f); // ignore inherited scale factor from parents
-    if (glm::length2(getDimensions()) != 1.0f) {
-        transform.postScale(vec3(getDimensions(), 1.0f));
-    }
-    return transform;
-}
-
 QString Web3DOverlay::pickURL() {
     QUrl sourceUrl(_url);
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||

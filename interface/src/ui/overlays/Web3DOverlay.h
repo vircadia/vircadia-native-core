@@ -38,7 +38,6 @@ public:
     virtual const render::ShapeKey getShapeKey() override;
 
     virtual void update(float deltatime) override;
-    virtual Transform Web3DOverlay::evalRenderTransform() const override;
 
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);

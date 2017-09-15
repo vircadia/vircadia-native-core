@@ -76,6 +76,20 @@ glm::mat4 OculusBaseDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& ba
     }
 }
 
+glm::mat4 OculusBaseDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
+    if (_session) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        auto combinedFov = _eyeFovs[0];
+        combinedFov.LeftTan = combinedFov.RightTan = std::max(combinedFov.LeftTan, combinedFov.RightTan);
+        return toGlm(ovrMatrix4f_Projection(combinedFov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_ClipRangeOpenGL));
+    } else {
+        return baseProjection;
+    }
+}
+
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;

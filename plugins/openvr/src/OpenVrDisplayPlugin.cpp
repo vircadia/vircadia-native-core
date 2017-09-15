@@ -370,6 +370,19 @@ glm::mat4 OpenVrDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& basePr
     }
 }
 
+glm::mat4 OpenVrDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
+    if (_system) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        // FIXME Calculate the proper combined projection by using GetProjectionRaw values from both eyes
+        return toGlm(_system->GetProjectionMatrix((vr::EVREye)0, baseNearClip, baseFarClip));
+    } else {
+        return baseProjection;
+    }
+}
+
 float OpenVrDisplayPlugin::getTargetFrameRate() const {
     if (forceInterleavedReprojection && !_asyncReprojectionActive) {
         return TARGET_RATE_OpenVr / 2.0f;
