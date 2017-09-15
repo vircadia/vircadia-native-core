@@ -5209,7 +5209,7 @@ void Application::update(float deltaTime) {
         }
     }
 
-    avatarManager->postUpdate(deltaTime);
+    avatarManager->postUpdate(deltaTime, getMain3DScene());
 
     {
         PROFILE_RANGE_EX(app, "PreRenderLambdas", 0xffff0000, (uint64_t)0);

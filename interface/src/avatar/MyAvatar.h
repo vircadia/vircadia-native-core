@@ -196,7 +196,7 @@ public:
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 
     void update(float deltaTime);
-    virtual void postUpdate(float deltaTime) override;
+    virtual void postUpdate(float deltaTime, const render::ScenePointer& scene) override;
     void preDisplaySide(RenderArgs* renderArgs);
 
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
