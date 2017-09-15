@@ -66,6 +66,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
+        // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
         Transform transform;
         transform.setTranslation(position);
         transform.setRotation(rotation);
