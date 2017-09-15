@@ -271,11 +271,12 @@ void Base3DOverlay::update(float duration) {
     // TODO: Fix the value to be computed in main thread now and passed by value to the render item.
     //       This is the simplest fix for the web overlay of the tablet for now
     if (_renderTransformDirty) {
+        _renderTransformDirty = false;
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
-                transaction.updateItem<Overlay>(itemID, [](Overlay& data) {
+            transaction.updateItem<Overlay>(itemID, [](Overlay& data) {
                 auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
                 if (overlay3D) {
                     auto latestTransform = overlay3D->evalRenderTransform();
@@ -284,7 +285,6 @@ void Base3DOverlay::update(float duration) {
             });
             scene->enqueueTransaction(transaction);       
         }
-        _renderTransformDirty = false;
     }
 }
 
