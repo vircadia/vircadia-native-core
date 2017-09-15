@@ -29,6 +29,7 @@ Selection = function (side) {
         scaleRootOrientation,
         startPosition,
         startOrientation,
+        isEditing = false,
         ENTITY_TYPE = "entity",
         ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine", "PolyVox"],
         ENTITY_TYPES_2D = ["Text", "Web"],
@@ -207,7 +208,7 @@ Selection = function (side) {
             DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.1, z: 0 };
 
-        if (entityID === rootEntityID) {
+        if (entityID === rootEntityID && isEditing) {
             // Don't kick if have started editing entity again.
             return;
         }
@@ -247,6 +248,8 @@ Selection = function (side) {
 
         // Stop moving.
         Entities.editEntity(rootEntityID, { velocity: Vec3.ZERO, angularVelocity: Vec3.ZERO });
+
+        isEditing = true;
     }
 
     function finishEditing() {
@@ -283,6 +286,8 @@ Selection = function (side) {
         if (selection.length > 0 && selection[0].dynamic) {
             kickPhysics(selection[0].id);
         }
+
+        isEditing = false;
     }
 
     function getPositionAndOrientation() {
