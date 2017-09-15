@@ -181,7 +181,7 @@ private:
     QVector<EntityItemID> _currentEntitiesInside;
 
     bool _wantScripts;
-    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
+    ScriptEnginePointer _entitiesScriptEngine;
 
     void playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision);
 

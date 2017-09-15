@@ -262,7 +262,7 @@ void MyAvatar::setDominantHand(const QString& hand) {
     }
 }
 
-void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
+void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);
 
@@ -273,8 +273,8 @@ void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
     }
     engine->globalObject().setProperty("DriveKeys", driveKeys);
 
-    qScriptRegisterMetaType(engine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
-    qScriptRegisterMetaType(engine, driveKeysToScriptValue, driveKeysFromScriptValue);
+    qScriptRegisterMetaType(engine.data(), audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    qScriptRegisterMetaType(engine.data(), driveKeysToScriptValue, driveKeysFromScriptValue);
 }
 
 void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
