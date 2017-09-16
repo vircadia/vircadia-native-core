@@ -272,8 +272,6 @@ void WindowScriptingInterface::browseAsync(const QString& title, const QString& 
         }
         emit openFileChanged(result);
     });
-
-
 }
 
 /// Display a save file dialog.  If `directory` is an invalid file or directory the browser will start at the current
