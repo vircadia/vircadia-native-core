@@ -303,8 +303,29 @@ public:
     uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
     void rememberHasSimulationOwnershipBid() const;
 
+    // Certifiable Properties
+    QString getItemName() const;
+    void setItemName(const QString& value);
+    QString getItemDescription() const;
+    void setItemDescription(const QString& value);
+    QStringList getItemCategories() const;
+    void setItemCategories(const QStringList& value);
+    QString getItemArtist() const;
+    void setItemArtist(const QString& value);
+    QString getItemLicense() const;
+    void setItemLicense(const QString& value);
+    int getLimitedRun() const;
+    void setLimitedRun(int);
     QString getMarketplaceID() const;
     void setMarketplaceID(const QString& value);
+    int getEditionNumber() const;
+    void setEditionNumber(int);
+    QString getCertificateID() const;
+    void setCertificateID(const QString& value);
+    QString getStaticCertificateJSON() const;
+    QString getStaticCertificateHash() const;
+    bool verifyStaticCertificateProperties() const;
+    QString getVerifiedCertificateId();
 
     bool getShouldHighlight() const;
     void setShouldHighlight(const bool value);
@@ -525,11 +546,22 @@ protected:
     bool _locked { ENTITY_ITEM_DEFAULT_LOCKED };
     QString _userData { ENTITY_ITEM_DEFAULT_USER_DATA };
     SimulationOwner _simulationOwner;
-    QString _marketplaceID { ENTITY_ITEM_DEFAULT_MARKETPLACE_ID };
     bool _shouldHighlight { false };
     QString _name { ENTITY_ITEM_DEFAULT_NAME };
     QString _href; //Hyperlink href
     QString _description; //Hyperlink description
+
+    // Certificate Properties
+    QString _itemName { ENTITY_ITEM_DEFAULT_ITEM_NAME };
+    QString _itemDescription { ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION };
+    QStringList _itemCategories { ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES };
+    QString _itemArtist { ENTITY_ITEM_DEFAULT_ITEM_ARTIST };
+    QString _itemLicense { ENTITY_ITEM_DEFAULT_ITEM_LICENSE };
+    int _limitedRun { ENTITY_ITEM_DEFAULT_LIMITED_RUN };
+    QString _marketplaceID { ENTITY_ITEM_DEFAULT_MARKETPLACE_ID };
+    int _editionNumber { ENTITY_ITEM_DEFAULT_EDITION_NUMBER };
+    QString _marketplaceID { ENTITY_ITEM_DEFAULT_CERTIFICATE_ID };
+
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //

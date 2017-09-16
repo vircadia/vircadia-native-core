@@ -26,8 +26,18 @@ const glm::vec3 ENTITY_ITEM_HALF_VEC3 = glm::vec3(0.5f);
 
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
-const QString ENTITY_ITEM_DEFAULT_MARKETPLACE_ID = QString("");
 const QUuid ENTITY_ITEM_DEFAULT_SIMULATOR_ID = QUuid();
+
+// Certificate Properties
+const QString ENTITY_ITEM_DEFAULT_ITEM_NAME = QString("");
+const QString ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION = QString("");
+const QStringList ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES = QStringList();
+const QString ENTITY_ITEM_DEFAULT_ITEM_ARTIST = QString("");
+const QString ENTITY_ITEM_DEFAULT_ITEM_LICENSE = QString("");
+const int ENTITY_ITEM_DEFAULT_LIMITED_RUN = -1;
+const QString ENTITY_ITEM_DEFAULT_MARKETPLACE_ID = QString("");
+const int ENTITY_ITEM_DEFAULT_EDITION_NUMBER = -1;
+const QString ENTITY_ITEM_DEFAULT_CERTIFICATE_ID = QString("");
 
 const float ENTITY_ITEM_DEFAULT_ALPHA = 1.0f;
 const float ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
