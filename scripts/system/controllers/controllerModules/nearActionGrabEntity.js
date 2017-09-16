@@ -111,6 +111,9 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.targetEntityID, "startNearGrab", args);
         };
 
         // this is for when the action is going to time-out
@@ -149,7 +152,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
-                var handPosition = controllerData.controllerLocations[this.hand].position;
                 if (props.distance > NEAR_GRAB_RADIUS) {
                     break;
                 }
@@ -173,7 +175,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             this.targetEntityID = null;
 
             var targetProps = this.getTargetProps(controllerData);
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE &&
+                controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                 return makeRunningValues(false, [], []);
             }
 
@@ -192,7 +195,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
         this.run = function (controllerData) {
             if (this.actionID) {
-                if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
+                if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
+                    controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                     this.endNearGrabAction();
                     this.hapticTargetID = null;
                     return makeRunningValues(false, [], []);
