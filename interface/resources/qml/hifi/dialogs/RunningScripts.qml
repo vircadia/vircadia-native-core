@@ -387,9 +387,9 @@ ScrollingWindow {
                 readOnly: true
 
                 Connections {
-                    target: treeView
+                    target: treeView.selection
                     onCurrentIndexChanged: {
-                        var path = scriptsModel.data(treeView.currentIndex, 0x100)
+                        var path = scriptsModel.data(treeView.selection.currentIndex, 0x100)
                         if (path) {
                             selectedScript.text = path
                         } else {

@@ -72,7 +72,7 @@ private:
     bool _shuttingDown { false };
 
     static int _entitiesScriptEngineCount;
-    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
+    ScriptEnginePointer _entitiesScriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
 

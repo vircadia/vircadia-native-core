@@ -153,6 +153,15 @@ QString ScriptEngine::logException(const QScriptValue& exception) {
     return message;
 }
 
+ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
+                                                 const QString& scriptContents,
+                                                 const QString& fileNameString) {
+    ScriptEngine* engine = new ScriptEngine(context, scriptContents, fileNameString);
+    ScriptEnginePointer engineSP = ScriptEnginePointer(engine);
+    DependencyManager::get<ScriptEngines>()->addScriptEngine(qSharedPointerCast<ScriptEngine>(engineSP));
+    return engineSP;
+}
+
 int ScriptEngine::processLevelMaxRetries { ScriptRequest::MAX_RETRIES };
 ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const QString& fileNameString) :
     BaseScriptEngine(),
@@ -160,10 +169,10 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     _scriptContents(scriptContents),
     _timerFunctionMap(),
     _fileNameString(fileNameString),
-    _arrayBufferClass(new ArrayBufferClass(this))
+    _arrayBufferClass(new ArrayBufferClass(this)),
+    // don't delete `ScriptEngines` until all `ScriptEngine`s are gone
+    _scriptEngines(DependencyManager::get<ScriptEngines>())
 {
-    DependencyManager::get<ScriptEngines>()->addScriptEngine(this);
-
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
         if (hasUncaughtException()) {
             // the engine's uncaughtException() seems to produce much better stack traces here
@@ -208,22 +217,9 @@ QString ScriptEngine::getContext() const {
 }
 
 ScriptEngine::~ScriptEngine() {
-    // FIXME: are these scriptInfoMessage/scriptWarningMessage segfaulting anybody else at app shutdown?
-#if !defined(Q_OS_LINUX)
-    scriptInfoMessage("Script Engine shutting down:" + getFilename());
-#else
-    qCDebug(scriptengine) << "~ScriptEngine()" << this;
-#endif
-
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (scriptEngines) {
-        scriptEngines->removeScriptEngine(this);
-    } else {
-#if !defined(Q_OS_LINUX)
-        scriptWarningMessage("Script destroyed after ScriptEngines!");
-#else
-        qCWarning(scriptengine) << ("Script destroyed after ScriptEngines!");
-#endif
+        scriptEngines->removeScriptEngine(qSharedPointerCast<ScriptEngine>(sharedFromThis()));
     }
 }
 
@@ -294,7 +290,7 @@ void ScriptEngine::runDebuggable() {
             stopAllTimers(); // make sure all our timers are stopped if the script is ending
 
             emit scriptEnding();
-            emit finished(_fileNameString, this);
+            emit finished(_fileNameString, qSharedPointerCast<ScriptEngine>(sharedFromThis()));
             _isRunning = false;
 
             emit runningStateChanged();
@@ -503,7 +499,8 @@ static void animVarMapFromScriptValue(const QScriptValue& value, AnimVariantMap&
     parameters.animVariantMapFromScriptValue(value);
 }
 // ... while these two are not. But none of the four are ever used.
-static QScriptValue resultHandlerToScriptValue(QScriptEngine* engine, const AnimVariantResultHandler& resultHandler) {
+static QScriptValue resultHandlerToScriptValue(QScriptEngine* engine,
+                                               const AnimVariantResultHandler& resultHandler) {
     qCCritical(scriptengine) << "Attempt to marshall result handler to javascript";
     assert(false);
     return QScriptValue();
@@ -516,7 +513,8 @@ static void resultHandlerFromScriptValue(const QScriptValue& value, AnimVariantR
 // Templated qScriptRegisterMetaType fails to compile with raw pointers
 using ScriptableResourceRawPtr = ScriptableResource*;
 
-static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine, const ScriptableResourceRawPtr& resource) {
+static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine,
+                                                    const ScriptableResourceRawPtr& resource) {
     // The first script to encounter this resource will track its memory.
     // In this way, it will be more likely to GC.
     // This fails in the case that the resource is used across many scripts, but
@@ -539,11 +537,11 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
     resource = static_cast<ScriptableResourceRawPtr>(value.toQObject());
 }
 
-static QScriptValue createScriptableResourcePrototype(QScriptEngine* engine) {
+static QScriptValue createScriptableResourcePrototype(ScriptEnginePointer engine) {
     auto prototype = engine->newObject();
 
     // Expose enum State to JS/QML via properties
-    QObject* state = new QObject(engine);
+    QObject* state = new QObject(engine.data());
     state->setObjectName("ResourceState");
     auto metaEnum = QMetaEnum::fromType<ScriptableResource::State>();
     for (int i = 0; i < metaEnum.keyCount(); ++i) {
@@ -693,7 +691,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
 
     // Scriptable cache access
-    auto resourcePrototype = createScriptableResourcePrototype(this);
+    auto resourcePrototype = createScriptableResourcePrototype(qSharedPointerCast<ScriptEngine>(sharedFromThis()));
     globalObject().setProperty("Resource", resourcePrototype);
     setDefaultPrototype(qMetaTypeId<ScriptableResource*>(), resourcePrototype);
     qScriptRegisterMetaType(this, scriptableResourceToScriptValue, scriptableResourceFromScriptValue);
@@ -1178,7 +1176,7 @@ void ScriptEngine::run() {
         }
     }
 
-    emit finished(_fileNameString, this);
+    emit finished(_fileNameString, qSharedPointerCast<ScriptEngine>(sharedFromThis()));
 
     _isRunning = false;
     emit runningStateChanged();

@@ -99,7 +99,7 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
-    void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine);
+    void setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
     float calculateCost(float mass, float oldVelocity, float newVelocity);
 
     void resetActivityTracking();
@@ -405,7 +405,7 @@ signals:
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 protected:
-    void withEntitiesScriptEngine(std::function<void(EntitiesScriptEngineProvider*)> function) {
+    void withEntitiesScriptEngine(std::function<void(QSharedPointer<EntitiesScriptEngineProvider>)> function) {
         std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
         function(_entitiesScriptEngine);
     };
@@ -427,7 +427,7 @@ private:
     EntityTreePointer _entityTree;
 
     std::recursive_mutex _entitiesScriptEngineLock;
-    EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
+    QSharedPointer<EntitiesScriptEngineProvider> _entitiesScriptEngine;
 
     bool _bidOnSimulationOwnership { false };
     float _currentAvatarEnergy = { FLT_MAX };
