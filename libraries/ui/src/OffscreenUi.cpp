@@ -94,6 +94,7 @@ QObject* OffscreenUi::getFlags() {
 void OffscreenUi::removeModalDialog(QObject* modal) {
     if (modal) {
         _modalDialogListeners.removeOne(modal);
+        modal->deleteLater();
     }
 }
 

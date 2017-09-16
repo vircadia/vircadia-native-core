@@ -132,8 +132,6 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
         disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         emit promptTextChanged(result.toString());
     });
-
-
 }
 
 CustomPromptResult WindowScriptingInterface::customPrompt(const QVariant& config) {
@@ -319,8 +317,6 @@ void WindowScriptingInterface::saveAsync(const QString& title, const QString& di
         }
         emit saveFileChanged(result);
     });
-
-
 }
 
 /// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid
