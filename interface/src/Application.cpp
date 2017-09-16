@@ -6146,13 +6146,13 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     bool agreeToLicense = true; // assume true
     //create set avatar callback
     auto setAvatar = [=] (QString url, QString modelName) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Set Avatar",
+                                                              "Would you like to use '" + modelName + "' for your avatar?",
+                                                              QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
 
-        QObject::connect(offscreenUi.data(), &OffscreenUi::response, this, [=] (QMessageBox::StandardButton answer) {
-            auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            QObject::disconnect(offscreenUi.data(), &OffscreenUi::response, this, nullptr);
-
-            bool ok = (QMessageBox::Ok == answer);
+            bool ok = (QMessageBox::Ok == static_cast<QMessageBox::StandardButton>(answer.toInt()));
             if (ok) {
                 getMyAvatar()->useFullAvatarURL(url, modelName);
                 emit fullAvatarURLChanged(url, modelName);
@@ -6160,9 +6160,6 @@ bool Application::askToSetAvatarUrl(const QString& url) {
                 qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
             }
         });
-        OffscreenUi::asyncQuestion("Set Avatar",
-                              "Would you like to use '" + modelName + "' for your avatar?",
-                               QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
     };
 
     if (!modelLicense.isEmpty()) {
@@ -6170,12 +6167,13 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         const int MAX_CHARACTERS_PER_LINE = 90;
         modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
 
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        QObject::connect(offscreenUi.data(), &OffscreenUi::response, this, [=, &agreeToLicense] (QMessageBox::StandardButton answer) {
-            auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            QObject::disconnect(offscreenUi.data(), &OffscreenUi::response, this, nullptr);
+        ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Avatar Usage License",
+                                                              modelLicense + "\nDo you agree to these terms?",
+                                                              QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=, &agreeToLicense] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
 
-            agreeToLicense = (answer == QMessageBox::Yes);
+            agreeToLicense = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
             if (agreeToLicense) {
                 switch (modelType) {
                     case FSTReader::HEAD_AND_BODY_MODEL: {
@@ -6192,10 +6190,6 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
             //auto offscreenUi = DependencyManager::get<OffscreenUi>();
         });
-
-        OffscreenUi::asyncQuestion("Avatar Usage License",
-            modelLicense + "\nDo you agree to these terms?",
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
     } else {
         setAvatar(url, modelName);
     }
@@ -6215,22 +6209,20 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
         shortName = shortName.mid(startIndex, endIndex - startIndex);
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QObject::connect(offscreenUi.data(), &OffscreenUi::response, this, [=] (QMessageBox::StandardButton answer) {
+    QString message = "Would you like to run this script:\n" + shortName;
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion(getWindow(), "Run Script", message,
+                                                           QMessageBox::Yes | QMessageBox::No);
+
+    QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
         const QString& fileName = scriptFilenameOrURL;
-        if (answer == QMessageBox::Yes) {
+        if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
             qCDebug(interfaceapp) << "Chose to run the script: " << fileName;
             DependencyManager::get<ScriptEngines>()->loadScript(fileName);
         } else {
             qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
         }
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        QObject::disconnect(offscreenUi.data(), &OffscreenUi::response, this, nullptr);
+        QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
     });
-
-    QString message = "Would you like to run this script:\n" + shortName;
-
-    OffscreenUi::asyncQuestion(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
 
     return true;
 }
@@ -6268,11 +6260,14 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
                     name = nameValue.toString();
                 }
 
-                auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                QObject::connect(offscreenUi.data(), &OffscreenUi::response, this, [=] (QMessageBox::StandardButton answer) {
-                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                    QObject::disconnect(offscreenUi.data(), &OffscreenUi::response, this, nullptr);
-                    if (answer == QMessageBox::Yes) {
+                auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
+                auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?").arg(name);
+                ModalDialogListener* dlg = OffscreenUi::asyncQuestion(avatarAttachmentConfirmationTitle,
+                                           avatarAttachmentConfirmationMessage,
+                                           QMessageBox::Ok | QMessageBox::Cancel);
+                QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+                    QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+                    if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                         // add attachment to avatar
                         auto myAvatar = getMyAvatar();
                         assert(myAvatar);
@@ -6285,12 +6280,6 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
                         qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
                     }
                 });
-
-                auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
-                auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?").arg(name);
-                OffscreenUi::asyncQuestion(avatarAttachmentConfirmationTitle,
-                                           avatarAttachmentConfirmationMessage,
-                                           QMessageBox::Ok | QMessageBox::Cancel);
             } else {
                 // json parse error
                 auto avatarAttachmentParseErrorString = tr("Error parsing attachment JSON from url: \"%1\"");
@@ -6933,17 +6922,17 @@ void Application::openUrl(const QUrl& url) const {
 
 void Application::loadDialog() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse, this, [=] (QString response) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        disconnect(offscreenUi.data(), &OffscreenUi::fileDialogResponse, this, nullptr);
+    ModalDialogListener* dlg = OffscreenUi::getOpenFileNameAsync(_glWidget, tr("Open Script"),
+                                                                 getPreviousScriptLocation(),
+                                                                 tr("JavaScript Files (*.js)"));
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        const QString& response = answer.toString();
         if (!response.isEmpty() && QFile(response).exists()) {
             setPreviousScriptLocation(QFileInfo(response).absolutePath());
             DependencyManager::get<ScriptEngines>()->loadScript(response, true, false, false, true);  // Don't load from cache
         }
     });
-    OffscreenUi::getOpenFileNameAsync(_glWidget, tr("Open Script"), getPreviousScriptLocation(),
-                                      tr("JavaScript Files (*.js)"));
 }
 
 QString Application::getPreviousScriptLocation() {
@@ -6956,10 +6945,9 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, [=] (QVariant response) {
-        disconnect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, nullptr);
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         const QString& newScript = response.toString();
         if (QUrl(newScript).scheme() == "atp") {
             OffscreenUi::asyncWarning("Error Loading Script", "Cannot load client script over ATP");
@@ -6967,7 +6955,6 @@ void Application::loadScriptURLDialog() const {
             DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
         }
     });
-    OffscreenUi::getTextAsync(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
 }
 
 void Application::loadLODToolsDialog() {

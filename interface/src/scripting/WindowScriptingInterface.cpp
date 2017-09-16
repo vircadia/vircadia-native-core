@@ -127,16 +127,13 @@ QScriptValue WindowScriptingInterface::prompt(const QString& message, const QStr
 /// \param const QString& message message to display
 /// \param const QString& defaultText default text in the text box
 void WindowScriptingInterface::promptAsync(const QString& message, const QString& defaultText) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::inputDialogResponse,
-            this, [=] (QVariant result) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        disconnect(offscreenUi.data(), &OffscreenUi::inputDialogResponse,
-                this, nullptr);
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(nullptr, "", message, QLineEdit::Normal, defaultText);
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant result) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         emit promptTextChanged(result.toString());
     });
 
-    OffscreenUi::getTextAsync(nullptr, "", message, QLineEdit::Normal, defaultText);
+
 }
 
 CustomPromptResult WindowScriptingInterface::customPrompt(const QVariant& config) {
@@ -221,19 +218,15 @@ void WindowScriptingInterface::browseDirAsync(const QString& title, const QStrin
 #ifndef Q_OS_WIN
     path = fixupPathForMac(directory);
 #endif
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
-            this, [=] (QString result) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        disconnect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
-                this, nullptr);
+    ModalDialogListener* dlg = OffscreenUi::getExistingDirectoryAsync(nullptr, title, path);
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        const QString& result = response.toString();
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         if (!result.isEmpty()) {
             setPreviousBrowseLocation(QFileInfo(result).absolutePath());
         }
         emit browseDirChanged(result);
     });
-
-    OffscreenUi::getExistingDirectoryAsync(nullptr, title, path);
 }
 
 /// \param const QString& title title of the window
@@ -270,19 +263,17 @@ void WindowScriptingInterface::browseAsync(const QString& title, const QString& 
 #ifndef Q_OS_WIN
     path = fixupPathForMac(directory);
 #endif
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
-            this, [=] (QString result) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        disconnect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
-                this, nullptr);
+    ModalDialogListener* dlg = OffscreenUi::getOpenFileNameAsync(nullptr, title, path, nameFilter);
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        const QString& result = response.toString();
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         if (!result.isEmpty()) {
             setPreviousBrowseLocation(QFileInfo(result).absolutePath());
         }
         emit openFileChanged(result);
     });
 
-    OffscreenUi::getOpenFileNameAsync(nullptr, title, path, nameFilter);
+
 }
 
 /// Display a save file dialog.  If `directory` is an invalid file or directory the browser will start at the current
@@ -321,19 +312,17 @@ void WindowScriptingInterface::saveAsync(const QString& title, const QString& di
 #ifndef Q_OS_WIN
     path = fixupPathForMac(directory);
 #endif
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
-            this, [=] (QString result) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        disconnect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
-                this, nullptr);
+    ModalDialogListener* dlg = OffscreenUi::getSaveFileNameAsync(nullptr, title, path, nameFilter);
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        const QString& result = response.toString();
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         if (!result.isEmpty()) {
             setPreviousBrowseLocation(QFileInfo(result).absolutePath());
         }
         emit saveFileChanged(result);
     });
 
-    OffscreenUi::getSaveFileNameAsync(nullptr, title, path, nameFilter);
+
 }
 
 /// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid
@@ -379,19 +368,15 @@ void WindowScriptingInterface::browseAssetsAsync(const QString& title, const QSt
         path = path + "/";
     }
 
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::assetDialogResponse,
-            this, [=] (QString result) {
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        disconnect(offscreenUi.data(), &OffscreenUi::assetDialogResponse,
-                this, nullptr);
+    ModalDialogListener* dlg = OffscreenUi::getOpenAssetNameAsync(nullptr, title, path, nameFilter);
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        const QString& result = response.toString();
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         if (!result.isEmpty()) {
             setPreviousBrowseAssetLocation(QFileInfo(result).absolutePath());
         }
         emit assetsDirChanged(result);
     });
-
-    OffscreenUi::getOpenAssetNameAsync(nullptr, title, path, nameFilter);
 }
 
 void WindowScriptingInterface::showAssetServer(const QString& upload) {

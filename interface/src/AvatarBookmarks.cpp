@@ -106,10 +106,9 @@ void AvatarBookmarks::changeToBookmarkedAvatar() {
 }
 
 void AvatarBookmarks::addBookmark() {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    connect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, [=] (QVariant response) {
-        disconnect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, nullptr);
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_PLACEMARK, "Bookmark Avatar", "Name", QString());
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
         auto bookmarkName = response.toString();
         bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
         if (bookmarkName.length() == 0) {
@@ -130,7 +129,7 @@ void AvatarBookmarks::addBookmark() {
 
         Bookmarks::addBookmarkToFile(bookmarkName, *bookmark);
     });
-    OffscreenUi::getTextAsync(OffscreenUi::ICON_PLACEMARK, "Bookmark Avatar", "Name", QString());
+
 }
 
 void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {

@@ -30,6 +30,27 @@ class VrMenu;
 
 #define OFFSCREEN_VISIBILITY_PROPERTY "shown"
 
+class ModalDialogListener : public QObject {
+    Q_OBJECT
+    friend class OffscreenUi;
+
+protected:
+    ModalDialogListener(QQuickItem* dialog);
+    virtual ~ModalDialogListener();
+    virtual QVariant waitForResult();
+
+signals:
+    void response(const QVariant& value);
+
+protected slots:
+    void onDestroyed();
+
+protected:
+    QQuickItem* _dialog;
+    bool _finished { false };
+    QVariant _result;
+};
+
 class OffscreenUi : public OffscreenQmlSurface, public Dependency {
     Q_OBJECT
 
@@ -71,7 +92,7 @@ public:
 
     // Message box compatibility
     Q_INVOKABLE QMessageBox::StandardButton messageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
-    Q_INVOKABLE void asyncMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    Q_INVOKABLE ModalDialogListener* asyncMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
     // Must be called from the main thread
     QQuickItem* createMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
     // Must be called from the main thread
@@ -89,12 +110,12 @@ public:
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return information(title, text, buttons, defaultButton);
     }
-    static void asyncCritical(void* ignored, const QString& title, const QString& text,
+    static ModalDialogListener* asyncCritical(void* ignored, const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return asyncCritical(title, text, buttons, defaultButton);
     }
-    static void asyncInformation(void* ignored, const QString& title, const QString& text,
+    static ModalDialogListener* asyncInformation(void* ignored, const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return asyncInformation(title, text, buttons, defaultButton);
@@ -106,7 +127,7 @@ public:
         return question(title, text, buttons, defaultButton);
     }
 
-    static void asyncQuestion(void* ignored, const QString& title, const QString& text,
+    static ModalDialogListener* asyncQuestion(void* ignored, const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return asyncQuestion(title, text, buttons, defaultButton);
@@ -117,7 +138,7 @@ public:
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return warning(title, text, buttons, defaultButton);
     }
-    static void asyncWarning(void* ignored, const QString& title, const QString& text,
+    static ModalDialogListener* asyncWarning(void* ignored, const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return asyncWarning(title, text, buttons, defaultButton);
@@ -129,53 +150,55 @@ public:
     static QMessageBox::StandardButton information(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
-    static void asyncCritical(const QString& title, const QString& text,
+    static ModalDialogListener* asyncCritical(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
-    static void asyncInformation(const QString& title, const QString& text,
+    static ModalDialogListener *asyncInformation(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton question(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
-    static void asyncQuestion (const QString& title, const QString& text,
+    static ModalDialogListener* asyncQuestion (const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton warning(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
-    static void asyncWarning(const QString& title, const QString& text,
+    static ModalDialogListener *asyncWarning(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
 
     Q_INVOKABLE QString fileOpenDialog(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-    Q_INVOKABLE void fileOpenDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    Q_INVOKABLE ModalDialogListener* fileOpenDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+
     Q_INVOKABLE QString fileSaveDialog(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-    Q_INVOKABLE void fileSaveDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    Q_INVOKABLE ModalDialogListener* fileSaveDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+
     Q_INVOKABLE QString existingDirectoryDialog(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-    Q_INVOKABLE void existingDirectoryDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    Q_INVOKABLE ModalDialogListener* existingDirectoryDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     Q_INVOKABLE QString assetOpenDialog(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-    Q_INVOKABLE void assetOpenDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    Q_INVOKABLE ModalDialogListener* assetOpenDialogAsync(const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     // Compatibility with QFileDialog::getOpenFileName
     static QString getOpenFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);    
-    static void getOpenFileNameAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    static ModalDialogListener* getOpenFileNameAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     // Compatibility with QFileDialog::getSaveFileName
     static QString getSaveFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-    static void getSaveFileNameAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    static ModalDialogListener* getSaveFileNameAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
     // Compatibility with QFileDialog::getExistingDirectory
     static QString getExistingDirectory(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-    static void getExistingDirectoryAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    static ModalDialogListener* getExistingDirectoryAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     static QString getOpenAssetName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-    static void getOpenAssetNameAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+    static ModalDialogListener* getOpenAssetNameAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     Q_INVOKABLE QVariant inputDialog(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
-    Q_INVOKABLE void inputDialogAsync(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
+    Q_INVOKABLE ModalDialogListener* inputDialogAsync(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
     Q_INVOKABLE QVariant customInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
-    Q_INVOKABLE void customInputDialogAsync(const Icon icon, const QString& title, const QVariantMap& config);
+    Q_INVOKABLE ModalDialogListener* customInputDialogAsync(const Icon icon, const QString& title, const QVariantMap& config);
     QQuickItem* createInputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current);
     QQuickItem* createCustomInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
     QVariant waitForInputDialogResult(QQuickItem* inputDialog);
@@ -194,13 +217,13 @@ public:
     }
 
     // Compatibility with QInputDialog::getText
-    static void getTextAsync(void* ignored, const QString & title, const QString & label,
+    static ModalDialogListener* getTextAsync(void* ignored, const QString & title, const QString & label,
         QLineEdit::EchoMode mode = QLineEdit::Normal, const QString & text = QString(), bool * ok = 0,
         Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone) {
         return getTextAsync(OffscreenUi::ICON_NONE, title, label, text);
     }
     // Compatibility with QInputDialog::getItem
-    static void getItemAsync(void *ignored, const QString & title, const QString & label, const QStringList & items,
+    static ModalDialogListener* getItemAsync(void *ignored, const QString & title, const QString & label, const QStringList & items,
         int current = 0, bool editable = true, bool * ok = 0, Qt::WindowFlags flags = 0,
         Qt::InputMethodHints inputMethodHints = Qt::ImhNone) {
         return getItemAsync(OffscreenUi::ICON_NONE, title, label, items, current, editable);
@@ -209,27 +232,27 @@ public:
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
     static QVariant getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok = 0);
-    static void getTextAsync(const Icon icon, const QString & title, const QString & label, const QString & text = QString());
-    static void getItemAsync(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true);
-    static void getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config);
+    static ModalDialogListener* getTextAsync(const Icon icon, const QString & title, const QString & label, const QString & text = QString());
+    static ModalDialogListener* getItemAsync(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true);
+    static ModalDialogListener* getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config);
 
     unsigned int getMenuUserDataId() const;
     QList<QObject *> &getModalDialogListeners();
 
 signals:
     void showDesktop();
-    void response(QMessageBox::StandardButton response);
-    void fileDialogResponse(QString response);
-    void assetDialogResponse(QString response);
-    void inputDialogResponse(QVariant response);
+//    void response(QMessageBox::StandardButton response);
+//    void fileDialogResponse(QString response);
+//    void assetDialogResponse(QString response);
+//    void inputDialogResponse(QVariant response);
 public slots:
     void removeModalDialog(QObject* modal);
 
 private:
     QString fileDialog(const QVariantMap& properties);
-    void fileDialogAsync(const QVariantMap &properties);
+    ModalDialogListener *fileDialogAsync(const QVariantMap &properties);
     QString assetDialog(const QVariantMap& properties);
-    void assetDialogAsync(const QVariantMap& properties);
+    ModalDialogListener* assetDialogAsync(const QVariantMap& properties);
 
     QQuickItem* _desktop { nullptr };
     QQuickItem* _toolWindow { nullptr };
