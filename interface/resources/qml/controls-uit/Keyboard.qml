@@ -9,6 +9,7 @@
 //
 
 import QtQuick 2.0
+import "."
 
 Item {
     id: keyboardBase
@@ -16,9 +17,15 @@ Item {
     property bool raised: false
     property bool numeric: false
 
+    readonly property int keyboardRowHeight: 50
+    readonly property int keyboardWidth: 480
+
+    readonly property int mirrorTextHeight: keyboardRowHeight
+
+    property bool showMirrorText: true
     readonly property int raisedHeight: 200
 
-    height: enabled && raised ? raisedHeight : 0
+    height: enabled && raised ? raisedHeight + (showMirrorText ? keyboardRowHeight : 0) : 0
     visible: enabled && raised
 
     property bool shiftMode: false
@@ -93,24 +100,35 @@ Item {
     }
 
     Rectangle {
-        id: leftRect
         y: 0
-        height: 200
+        x: 0
+        height: showMirrorText ? mirrorTextHeight : 0
+        width: keyboardWidth
         color: "#252525"
-        anchors.right: keyboardRect.left
-        anchors.rightMargin: 0
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
+
+        TextEdit {
+            id: mirrorText
+            visible: showMirrorText
+            size: 13.5
+            horizontalAlignment: Text.AlignHCenter
+            color: "#FFFFFF";
+            anchors.fill: parent
+            wrapMode: Text.WordWrap
+            readOnly: false // we need to leave this property read-only to allow control to accept QKeyEvent
+            selectByMouse: false
+        }
+
+        MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus
+            anchors.fill: parent
+        }
     }
 
     Rectangle {
         id: keyboardRect
-        x: 206
-        y: 0
-        width: 480
-        height: 200
+        x: 0
+        y: showMirrorText ? mirrorTextHeight : 0
+        width: keyboardWidth
+        height: raisedHeight
         color: "#252525"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
@@ -118,13 +136,13 @@ Item {
 
         Column {
             id: columnAlpha
-            width: 480
-            height: 200
+            width: keyboardWidth
+            height: raisedHeight
             visible: !numeric
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -142,8 +160,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 20
 
@@ -160,8 +178,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -185,8 +203,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -205,13 +223,13 @@ Item {
 
         Column {
             id: columnNumeric
-            width: 480
-            height: 200
+            width: keyboardWidth
+            height: raisedHeight
             visible: numeric
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -229,8 +247,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -248,8 +266,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -273,8 +291,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -290,32 +308,5 @@ Item {
                 Key { width: 43; glyph: "\u276D"; }
             }
         }
-    }
-
-    Rectangle {
-        id: rightRect
-        y: 280
-        height: 200
-        color: "#252525"
-        border.width: 0
-        anchors.left: keyboardRect.right
-        anchors.leftMargin: 0
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 0
-    }
-
-    Rectangle {
-        id: rectangle1
-        color: "#ffffff"
-        anchors.bottom: keyboardRect.top
-        anchors.bottomMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.top: parent.top
-        anchors.topMargin: 0
     }
 }
