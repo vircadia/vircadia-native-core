@@ -14,6 +14,8 @@ import "../../windows" as Windows
 import QtQuick 2.0
 import Hifi 1.0
 
+import Qt.labs.settings 1.0
+
 Windows.ScrollingWindow {
     id: tabletRoot
     objectName: "tabletRoot"
@@ -25,7 +27,31 @@ Windows.ScrollingWindow {
     shown: false
     resizable: false
 
+    Settings {
+        id: settings
+        category: "WindowRoot.Windows"
+        property real width: 480
+        property real height: 706
+    }
+
+    onResizableChanged: {
+        if (!resizable) {
+            // restore default size
+            settings.width = tabletRoot.width
+            settings.height = tabletRoot.height
+            tabletRoot.width = 480
+            tabletRoot.height = 706
+        } else {
+            tabletRoot.width = settings.width
+            tabletRoot.height = settings.height
+        }
+    }
+
     signal showDesktop();
+
+    function setResizable(value) {
+        tabletRoot.resizable = value;
+    }
 
     function setMenuProperties(rootMenu, subMenu) {
         tabletRoot.rootMenu = rootMenu;
