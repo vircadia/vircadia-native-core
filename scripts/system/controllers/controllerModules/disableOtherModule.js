@@ -1,6 +1,6 @@
 "use strict";
 
-//  nearTrigger.js
+//  disableOtherModule.js
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -37,11 +37,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
             if (teleportModule) {
                 var ready = teleportModule.isReady(controllerData);
-                if (ready) {
+                if (ready.active) {
                     return makeRunningValues(false, [], []);
                 }
             }
-            if (!this.disablemodules) {
+            if (!this.disableModules) {
                 return makeRunningValues(false, [], []);
             }
             return makeRunningValues(true, [], []);
