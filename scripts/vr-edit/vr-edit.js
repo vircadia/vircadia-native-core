@@ -1399,8 +1399,7 @@
         // Communicate app status to controllerDispatcher.js.
         var DISABLE_HANDS = "both",
             ENABLE_HANDS = "none";
-        // TODO: Proper method to disable specific laser and grabbing functionality.
-        Messages.sendLocalMessage('Hifi-Hand-Disabler', isAppActive ? DISABLE_HANDS : ENABLE_HANDS);
+        Messages.sendLocalMessage("Hifi-InVREdit-Disabler", isAppActive ? DISABLE_HANDS : ENABLE_HANDS);
     }
 
     function onUICommand(command, parameter) {

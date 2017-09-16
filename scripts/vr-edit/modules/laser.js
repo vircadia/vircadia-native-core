@@ -169,18 +169,27 @@ Laser = function (side) {
             // Normal laser operation with trigger.
             intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                 VISIBLE_ONLY);
-            if (!intersection.intersects) {
-                intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                    VISIBLE_ONLY);
-                intersection.editableEntity = intersection.intersects && Entities.hasEditableRoot(intersection.entityID);
-                intersection.overlayID = null;
+            if (Reticle.pointingAtSystemOverlay || (intersection.overlayID
+                    && [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID].indexOf(intersection.overlayID) !== -1)) {
+                // No laser if pointing at HUD overlay or tablet; system provides lasers for these cases.
+                if (isLaserOn) {
+                    isLaserOn = false;
+                    hide();
+                }
+            } else {
+                if (!intersection.intersects) {
+                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                        VISIBLE_ONLY);
+                    intersection.editableEntity = intersection.intersects && Entities.hasEditableRoot(intersection.entityID);
+                    intersection.overlayID = null;
+                }
+                intersection.laserIntersected = intersection.intersects;
+                laserLength = (specifiedLaserLength !== null)
+                    ? specifiedLaserLength
+                    : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+                isLaserOn = true;
+                display(pickRay.origin, pickRay.direction, laserLength, true, hand.triggerClicked());
             }
-            intersection.laserIntersected = intersection.intersects;
-            laserLength = (specifiedLaserLength !== null)
-                ? specifiedLaserLength
-                : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
-            isLaserOn = true;
-            display(pickRay.origin, pickRay.direction, laserLength, true, hand.triggerClicked());
 
         } else if (uiOverlayIDs.length > 0) {
 
