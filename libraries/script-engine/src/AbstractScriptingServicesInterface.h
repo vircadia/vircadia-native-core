@@ -12,13 +12,13 @@
 #ifndef hifi_AbstractScriptingServicesInterface_h
 #define hifi_AbstractScriptingServicesInterface_h
 
-class ScriptEngine;
+#include <BaseScriptEngine.h>
 
 /// Interface provided by Application to other objects that need access to scripting services of the application
 class AbstractScriptingServicesInterface {
 public:
     /// Registers application specific services with a script engine.
-    virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) = 0;
+    virtual void registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) = 0;
 };
 
 

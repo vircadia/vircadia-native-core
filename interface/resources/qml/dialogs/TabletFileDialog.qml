@@ -484,9 +484,9 @@ TabletModalWindow {
             model: filesModel
 
             function updateSort() {
-                model.sortOrder = sortIndicatorOrder;
-                model.sortColumn = sortIndicatorColumn;
-                model.update();
+                fileTableModel.sortOrder = sortIndicatorOrder;
+                fileTableModel.sortColumn = sortIndicatorColumn;
+                fileTableModel.update();
             }
 
             onSortIndicatorColumnChanged: { updateSort(); }

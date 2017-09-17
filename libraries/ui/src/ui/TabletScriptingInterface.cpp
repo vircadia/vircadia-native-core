@@ -441,6 +441,9 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
         emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
         _currentPathLoaded = VRMENU_SOURCE_URL;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        if (_toolbarMode && _desktopWindow) {
+            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
+        }
     }
 }
 
@@ -460,6 +463,9 @@ void TabletProxy::loadQMLOnTop(const QVariant& path) {
     if (root) {
         QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, path));
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        if (_toolbarMode && _desktopWindow) {
+            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
+        }
     } else {
         qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
@@ -486,9 +492,9 @@ void TabletProxy::returnToPreviousApp() {
     }
 }
     
-void TabletProxy::loadQMLSource(const QVariant& path) {
+void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "loadQMLSource", Q_ARG(QVariant, path));
+        QMetaObject::invokeMethod(this, "loadQMLSource", Q_ARG(QVariant, path), Q_ARG(bool, resizable));
         return;
     }
 
@@ -508,6 +514,10 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
         }
         _currentPathLoaded = path;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        if (_toolbarMode && _desktopWindow) {
+            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(resizable)));
+        }
+
     } else {
         qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
@@ -538,6 +548,9 @@ bool TabletProxy::pushOntoStack(const QVariant& path) {
             QMetaObject::invokeMethod(stack, "pushSource", Q_ARG(const QVariant&, path));
         } else {
             loadQMLSource(path);
+        }
+        if (_toolbarMode && _desktopWindow) {
+            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
         }
     } else {
         qCDebug(uiLogging) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
@@ -615,6 +628,9 @@ void TabletProxy::loadWebScreenOnTop(const QVariant& url, const QString& injectJ
     if (root) {
         QMetaObject::invokeMethod(root, "loadQMLOnTop", Q_ARG(const QVariant&, QVariant(WEB_VIEW_SOURCE_URL)));
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        if (_toolbarMode && _desktopWindow) {
+            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
+        }
         QMetaObject::invokeMethod(root, "loadWebOnTop", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectJavaScriptUrl)));
     }
     _state = State::Web;
@@ -641,6 +657,9 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
             QMetaObject::invokeMethod(root, "loadWebBase");
         }
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
+        if (_toolbarMode && _desktopWindow) {
+            QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
+        }
         QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
     }
     _state = State::Web;

@@ -16,6 +16,9 @@
 #include <QtCore/QDebug>
 #include <QtScript/QScriptEngine>
 
+class ScriptEngine;
+using ScriptEnginePointer = QSharedPointer<ScriptEngine>;
+
 // common base class for extending QScriptEngine itself
 class BaseScriptEngine : public QScriptEngine, public QEnableSharedFromThis<BaseScriptEngine> {
     Q_OBJECT

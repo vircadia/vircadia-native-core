@@ -262,7 +262,7 @@ void MyAvatar::setDominantHand(const QString& hand) {
     }
 }
 
-void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
+void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);
 
@@ -273,8 +273,8 @@ void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
     }
     engine->globalObject().setProperty("DriveKeys", driveKeys);
 
-    qScriptRegisterMetaType(engine, audioListenModeToScriptValue, audioListenModeFromScriptValue);
-    qScriptRegisterMetaType(engine, driveKeysToScriptValue, driveKeysFromScriptValue);
+    qScriptRegisterMetaType(engine.data(), audioListenModeToScriptValue, audioListenModeFromScriptValue);
+    qScriptRegisterMetaType(engine.data(), driveKeysToScriptValue, driveKeysFromScriptValue);
 }
 
 void MyAvatar::setOrientationVar(const QVariant& newOrientationVar) {
@@ -1814,11 +1814,11 @@ void MyAvatar::destroyAnimGraph() {
     _skeletonModel->getRig().destroyAnimGraph();
 }
 
-void MyAvatar::postUpdate(float deltaTime) {
+void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
-    Avatar::postUpdate(deltaTime);
+    Avatar::postUpdate(deltaTime, scene);
 
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderAvatars() && _skeletonModel->initWhenReady(qApp->getMain3DScene())) {
+    if (_skeletonModel->isLoaded() && !_skeletonModel->getRig().getAnimNode()) {
         initHeadBones();
         _skeletonModel->setCauterizeBoneSet(_headBoneSet);
         _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
