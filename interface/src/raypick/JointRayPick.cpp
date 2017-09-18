@@ -36,7 +36,7 @@ const PickRay JointRayPick::getPickRay(bool& valid) const {
         glm::quat rot = useAvatarHead ? jointRot * glm::angleAxis(-PI / 2.0f, Vectors::RIGHT) : avatarRot * jointRot;
 
         // Apply offset
-        pos = pos + (rot * _posOffset);
+        pos = pos + (rot * (myAvatar->getSensorToWorldScale() * _posOffset));
         glm::vec3 dir = rot * glm::normalize(_dirOffset);
 
         valid = true;

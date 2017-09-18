@@ -357,7 +357,7 @@ Script.include("/~/system/libraries/controllers.js");
                 this.stylusTip = getControllerWorldLocation(this.handToController(), true);
 
                 // translate tip forward according to constant.
-                var TIP_OFFSET = {x: 0, y: WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, z: 0};
+                var TIP_OFFSET = Vec3.multiply(MyAvatar.sensorToWorldScale, {x: 0, y: WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, z: 0});
                 this.stylusTip.position = Vec3.sum(this.stylusTip.position,
                     Vec3.multiplyQbyV(this.stylusTip.orientation, TIP_OFFSET));
             }
@@ -381,17 +381,17 @@ Script.include("/~/system/libraries/controllers.js");
                 return;
             }
 
+            var X_ROT_NEG_90 = { x: -0.70710678, y: 0, z: 0, w: 0.70710678 };
+            var modelOrientation = Quat.multiply(this.stylusTip.orientation, X_ROT_NEG_90);
+            var modelPositionOffset = Vec3.multiplyQbyV(modelOrientation, { x: 0, y: 0, z: MyAvatar.sensorToWorldScale * -WEB_STYLUS_LENGTH / 2 });
+
             var stylusProperties = {
                 name: "stylus",
                 url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
                 loadPriority: 10.0,
-                localPosition: Vec3.sum({
-                    x: 0.0,
-                    y: WEB_TOUCH_Y_OFFSET,
-                    z: 0.0
-                }, getGrabPointSphereOffset(this.handToController())),
-                localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
-                dimensions: { x: 0.01, y: 0.01, z: WEB_STYLUS_LENGTH },
+                position: Vec3.sum(this.stylusTip.position, modelPositionOffset),
+                rotation: modelOrientation,
+                dimensions: Vec3.multiply(MyAvatar.sensorToWorldScale, { x: 0.01, y: 0.01, z: WEB_STYLUS_LENGTH }),
                 solid: true,
                 visible: true,
                 ignoreRayIntersection: true,
@@ -528,9 +528,11 @@ Script.include("/~/system/libraries/controllers.js");
                 hysteresisOffset = 0.05;
             }
 
-            this.isNearStylusTarget = isNearStylusTarget(stylusTargets, EDGE_BORDER + hysteresisOffset,
-                TABLET_MIN_TOUCH_DISTANCE - hysteresisOffset,
-                WEB_DISPLAY_STYLUS_DISTANCE + hysteresisOffset);
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+            this.isNearStylusTarget = isNearStylusTarget(stylusTargets,
+                                                         (EDGE_BORDER + hysteresisOffset) * sensorScaleFactor,
+                                                         (TABLET_MIN_TOUCH_DISTANCE - hysteresisOffset) * sensorScaleFactor,
+                                                         (WEB_DISPLAY_STYLUS_DISTANCE + hysteresisOffset) * sensorScaleFactor);
 
             if (this.isNearStylusTarget) {
                 if (!this.useFingerInsteadOfStylus) {
@@ -545,8 +547,12 @@ Script.include("/~/system/libraries/controllers.js");
 
             var nearestStylusTarget = calculateNearestStylusTarget(stylusTargets);
 
-            if (nearestStylusTarget && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
-                nearestStylusTarget.distance < TABLET_MAX_HOVER_DISTANCE) {
+            var SCALED_TABLET_MIN_TOUCH_DISTANCE = TABLET_MIN_TOUCH_DISTANCE * sensorScaleFactor;
+            var SCALED_TABLET_MAX_TOUCH_DISTANCE = TABLET_MAX_TOUCH_DISTANCE * sensorScaleFactor;
+            var SCALED_TABLET_MAX_HOVER_DISTANCE = TABLET_MAX_HOVER_DISTANCE * sensorScaleFactor;
+
+            if (nearestStylusTarget && nearestStylusTarget.distance > SCALED_TABLET_MIN_TOUCH_DISTANCE &&
+                nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE) {
 
                 this.requestTouchFocus(nearestStylusTarget);
 
@@ -560,8 +566,8 @@ Script.include("/~/system/libraries/controllers.js");
 
                 // filter out presses when tip is moving away from tablet.
                 // ensure that stylus is within bounding box by checking normalizedPosition
-                if (nearestStylusTarget.valid && nearestStylusTarget.distance > TABLET_MIN_TOUCH_DISTANCE &&
-                    nearestStylusTarget.distance < TABLET_MAX_TOUCH_DISTANCE &&
+                if (nearestStylusTarget.valid && nearestStylusTarget.distance > SCALED_TABLET_MIN_TOUCH_DISTANCE &&
+                    nearestStylusTarget.distance < SCALED_TABLET_MAX_TOUCH_DISTANCE &&
                     Vec3.dot(this.stylusTip.velocity, nearestStylusTarget.normal) < 0 &&
                     nearestStylusTarget.normalizedPosition.x >= 0 && nearestStylusTarget.normalizedPosition.x <= 1 &&
                     nearestStylusTarget.normalizedPosition.y >= 0 && nearestStylusTarget.normalizedPosition.y <= 1) {

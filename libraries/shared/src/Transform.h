@@ -38,6 +38,7 @@ inline bool isValidScale(float scale) {
 
 class Transform {
 public:
+    friend QDebug& operator<<(QDebug& debug, const Transform& transform);
     using Pointer = std::shared_ptr<Transform>;
     typedef glm::mat4 Mat4;
     typedef glm::mat3 Mat3;
@@ -170,7 +171,6 @@ protected:
     };
     typedef std::bitset<NUM_FLAGS> Flags;
 
-
     // TRS
     Quat _rotation;
     Vec3 _scale;
@@ -201,6 +201,8 @@ protected:
     void updateCache() const;
     Mat4& getCachedMatrix(Mat4& result) const;
 };
+
+QDebug& operator<<(QDebug& debug, const Transform& transform);
 
 inline Transform& Transform::setIdentity() {
     _translation = Vec3(0.0f);
