@@ -47,9 +47,7 @@ void ModelOverlay::update(float deltatime) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
         Transform transform = getTransform();
-#ifndef USE_SN_SCALE
         transform.setScale(1.0f); // disable inherited scale
-#endif
         if (_scaleToFit) {
             _model->setScaleToFit(true, transform.getScale() * getDimensions());
         } else {
