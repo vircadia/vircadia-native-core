@@ -1828,6 +1828,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         _rayPickManager.setPrecisionPicking(rayPickID, value);
     });
 
+    // Preload Tablet sounds
+    DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
+
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 

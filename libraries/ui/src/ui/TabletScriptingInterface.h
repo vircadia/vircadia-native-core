@@ -23,7 +23,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
-
+#include "SoundCache.h"
 #include <DependencyManager.h>
 
 class ToolbarProxy;
@@ -34,18 +34,21 @@ class TabletButtonProxy;
 class QmlWindowClass;
 class OffscreenQmlSurface;
 
-namespace Tablet
-{
-    enum AudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut };
-}
 /**jsdoc
  * @namespace Tablet
  */
+
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
+
+
 public:
+    enum TabletAudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut, Last};
+    Q_ENUM(TabletAudioEvents)
+
     TabletScriptingInterface();
     virtual ~TabletScriptingInterface();
+
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 
@@ -57,7 +60,9 @@ public:
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
-    Q_INVOKABLE void playSound(Tablet::AudioEvents aevent);
+    void preloadSounds();
+    Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
+
     void setToolbarMode(bool toolbarMode);
 
     void setQmlTabletRoot(QString tabletId, OffscreenQmlSurface* offscreenQmlSurface);
@@ -81,6 +86,7 @@ private:
     void processTabletEvents(QObject* object, const QKeyEvent* event);
     ToolbarProxy* getSystemToolbarProxy();
 
+    QMap<TabletAudioEvents, SharedSoundPointer> _audioEvents;
 protected:
     std::map<QString, TabletProxy*> _tabletProxies;
     ToolbarScriptingInterface* _toolbarScriptingInterface { nullptr };
@@ -313,7 +319,6 @@ protected:
 };
 
 Q_DECLARE_METATYPE(TabletButtonProxy*);
-Q_DECLARE_METATYPE(Tablet::AudioEvents);
 
 /**jsdoc
  * @typedef TabletButtonProxy.ButtonProperties

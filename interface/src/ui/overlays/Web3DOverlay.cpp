@@ -167,10 +167,27 @@ void Web3DOverlay::buildWebSurface() {
         if (!self) {
             return;
         }
+        auto tabletScreenID = DependencyManager::get<HMDScriptingInterface>()->getCurrentTabletScreenID();
+        if (overlayID == tabletScreenID) { //play only on Tablet border crossing
+            DependencyManager::get<TabletScriptingInterface>()->playSound(TabletScriptingInterface::TabletHandsOut);
+        }
         if (overlayID == selfOverlayID && (self->_pressed || (!self->_activeTouchPoints.empty() && self->_touchBeginAccepted))) {
             PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
                 event.getButton(), event.getButtons(), event.getKeyboardModifiers());
             forwardPointerEvent(overlayID, endEvent);
+        }
+    });
+
+    QObject::connect(overlays, &Overlays::hoverEnterOverlay, this, [=](OverlayID overlayID, const PointerEvent& event) {
+        Q_UNUSED(event)
+        auto self = weakSelf.lock();
+        if (!self) {
+            return;
+        }
+
+        auto tabletScreenID = DependencyManager::get<HMDScriptingInterface>()->getCurrentTabletScreenID();
+        if (overlayID == tabletScreenID) { //play only on Tablet border crossing
+            DependencyManager::get<TabletScriptingInterface>()->playSound(TabletScriptingInterface::TabletHandsIn);
         }
     });
 
@@ -245,6 +262,8 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
             _webSurface->getSurfaceContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
             _webSurface->getSurfaceContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+            // Tablet inteference with Tablet.qml. Need to avoid this in QML space
+            _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
             _webSurface->getSurfaceContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
             _webSurface->getSurfaceContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
             _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
