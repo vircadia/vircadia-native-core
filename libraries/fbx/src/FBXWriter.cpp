@@ -178,66 +178,6 @@ void FBXWriter::encodeFBXProperty(QDataStream& out, const QVariant& prop) {
                 break;
             }
 
-        // TODO Delete? Do we ever use QList instead of QVector?
-        case QVariant::Type::List:
-            {
-                auto list = prop.toList();
-                auto listType = prop.userType();
-
-                switch (listType) {
-                    case QMetaType::Float:
-                        out.device()->write("f", 1);
-                        out << (int32_t)list.length();
-                        out << (int32_t)0;
-                        out << (int32_t)0;
-                        for (auto& innerProp : list) {
-                            out << innerProp.toFloat();
-                        }
-                        break;
-
-                    case QMetaType::Double:
-                        out.device()->write("d", 1);
-                        out << (int32_t)list.length();
-                        out << (int32_t)0;
-                        out << (int32_t)0;
-                        for (auto& innerProp : list) {
-                            out << innerProp.toDouble();
-                        }
-                        break;
-
-                    case QMetaType::LongLong:
-                        out.device()->write("l", 1);
-                        out << (int32_t)list.length();
-                        out << (int32_t)0;
-                        out << (int32_t)0;
-                        for (auto& innerProp : list) {
-                            out << innerProp.toLongLong();
-                        }
-                        break;
-
-                    case QMetaType::Int:
-                        out.device()->write("i", 1);
-                        out << (int32_t)list.length();
-                        out << (int32_t)0;
-                        out << (int32_t)0;
-                        for (auto& innerProp : list) {
-                            out << innerProp.toInt();
-                        }
-                        break;
-
-                    case QMetaType::Bool:
-                        out.device()->write("b", 1);
-                        out << (int32_t)list.length();
-                        out << (int32_t)0;
-                        out << (int32_t)0;
-                        for (auto& innerProp : list) {
-                            out << innerProp.toBool();
-                        }
-                        break;
-                }
-            }
-            break;
-
         default:
         {
             if (prop.canConvert<QVector<float>>()) {
