@@ -5,7 +5,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global entityIsCloneable:true, getGrabbableData:true, cloneEntity:true propsAreCloneDynamic:true */
+/* global entityIsCloneable:true, getGrabbableData:true, cloneEntity:true, propsAreCloneDynamic:true, Script,
+   propsAreCloneDynamic:true, Entities*/
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
@@ -72,6 +73,7 @@ cloneEntity = function(props, worldEntityProps) {
     var lifetime = grabInfo.cloneLifetime ? grabInfo.cloneLifetime : 300;
     var dynamic = grabInfo.cloneDynamic ? grabInfo.cloneDynamic : false;
     var triggerable = grabInfo.triggerable ? grabInfo.triggerable : false;
+    var avatarEntity = grabInfo.cloneAvatarEntity ? grabInfo.cloneAvatarEntity : false;
     var cUserData = Object.assign({}, JSON.parse(cloneableProps.userData));
     var cProperties = Object.assign({}, cloneableProps);
 
@@ -80,6 +82,7 @@ cloneEntity = function(props, worldEntityProps) {
     delete cUserData.grabbableKey.cloneable;
     delete cUserData.grabbableKey.cloneDynamic;
     delete cUserData.grabbableKey.cloneLimit;
+    delete cUserData.grabbableKey.cloneAvatarEntity;
     delete cProperties.id;
 
 
@@ -90,6 +93,6 @@ cloneEntity = function(props, worldEntityProps) {
     cProperties.lifetime = lifetime;
     cProperties.userData = JSON.stringify(cUserData);
 
-    var cloneID = Entities.addEntity(cProperties);
+    var cloneID = Entities.addEntity(cProperties, avatarEntity);
     return cloneID;
 };

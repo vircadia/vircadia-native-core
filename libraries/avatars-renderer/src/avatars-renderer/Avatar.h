@@ -98,7 +98,7 @@ public:
 
     void updateRenderItem(render::Transaction& transaction);
 
-    virtual void postUpdate(float deltaTime);
+    virtual void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
     //setters
     void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }

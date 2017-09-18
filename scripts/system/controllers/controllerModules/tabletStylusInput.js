@@ -8,7 +8,8 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
-   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
+   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
+   getEnabledModuleByName
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -653,7 +654,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.overlayLaserActive = function(controllerData) {
-            var overlayLaserModule = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
+            var overlayLaserModule =
+                getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
             if (overlayLaserModule) {
                 return overlayLaserModule.isReady(controllerData).active;
             }

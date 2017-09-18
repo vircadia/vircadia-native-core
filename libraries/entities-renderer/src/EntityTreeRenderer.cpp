@@ -70,45 +70,21 @@ EntityRendererPointer EntityTreeRenderer::renderableForEntityId(const EntityItem
     return itr->second;
 }
 
-render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& id) const { 
-    auto renderable = renderableForEntityId(id);  
-    return renderable ? renderable->getRenderItemID() : render::Item::INVALID_ITEM_ID; 
+render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& id) const {
+    auto renderable = renderableForEntityId(id);
+    return renderable ? renderable->getRenderItemID() : render::Item::INVALID_ITEM_ID;
 }
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 
-void entitiesScriptEngineDeleter(ScriptEngine* engine) {
-    class WaitRunnable : public QRunnable {
-        public:
-            WaitRunnable(ScriptEngine* engine) : _engine(engine) {}
-            virtual void run() override {
-                _engine->waitTillDoneRunning();
-                _engine->deleteLater();
-            }
-
-        private:
-            ScriptEngine* _engine;
-    };
-
-    // Wait for the scripting thread from the thread pool to avoid hanging the main thread
-    auto threadPool = QThreadPool::globalInstance();
-    if (threadPool) {
-        threadPool->start(new WaitRunnable(engine));
-    } else {
-        delete engine;
-    }
-}
-
 void EntityTreeRenderer::resetEntitiesScriptEngine() {
-    // Keep a ref to oldEngine until newEngine is ready so EntityScriptingInterface has something to use
     auto oldEngine = _entitiesScriptEngine;
-
-    auto newEngine = new ScriptEngine(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT, QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
-    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
-
-    _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
+    _entitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
+                                                QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
+    _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
     _entitiesScriptEngine->runInThread();
-    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
+    auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_entitiesScriptEngine);
+    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(entitiesScriptEngineProvider);
 }
 
 void EntityTreeRenderer::clear() {

@@ -665,7 +665,7 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.disable();
             tablet.landscape = false;
         } else {
-            tablet.loadQMLSource("Edit.qml");
+            tablet.loadQMLSource("Edit.qml", true);
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
             gridTool.setVisible(true);
