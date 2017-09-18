@@ -736,20 +736,11 @@ void FBXBaker::exportScene() {
 }
 
 
-void FBXBaker::removeEmbeddedMediaFolder() {
-    // now that the bake is complete, remove the embedded media folder produced by the FBX SDK when it imports an FBX
-    //auto embeddedMediaFolderName = _fbxURL.fileName().replace(".fbx", ".fbm");
-    //QDir(_bakedOutputDir + ORIGINAL_OUTPUT_SUBFOLDER + embeddedMediaFolderName).removeRecursively();
-}
-
 void FBXBaker::checkIfTexturesFinished() {
     // check if we're done everything we need to do for this FBX
     // and emit our finished signal if we're done
 
     if (_bakingTextures.isEmpty()) {
-        // remove the embedded media folder that the FBX SDK produces when reading the original
-        removeEmbeddedMediaFolder();
-
         if (hasErrors()) {
             // if we're checking for completion but we have errors
             // that means one or more of our texture baking operations failed
