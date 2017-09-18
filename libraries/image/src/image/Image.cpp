@@ -213,10 +213,14 @@ uint32 packR11G11B10F(const glm::vec3& color) {
     // Denormalize else unpacking gives high and incorrect values
     // See https://www.khronos.org/opengl/wiki/Small_Float_Formats for this min value
     static const auto minValue = 6.10e-5f;
+    static const auto maxValue = 6.50e4f;
     glm::vec3 ucolor;
     ucolor.r = denormalize(color.r, minValue);
     ucolor.g = denormalize(color.g, minValue);
     ucolor.b = denormalize(color.b, minValue);
+    ucolor.r = std::min(ucolor.r, maxValue);
+    ucolor.g = std::min(ucolor.g, maxValue);
+    ucolor.b = std::min(ucolor.b, maxValue);
     return glm::packF2x11_1x10(ucolor);
 }
 
@@ -1072,15 +1076,27 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 };
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
+//#define DEBUG_COLOR_PACKING
+
 QImage convertToHDRFormat(QImage srcImage, gpu::Element format) {
     QImage hdrImage(srcImage.width(), srcImage.height(), (QImage::Format)QIMAGE_HDR_FORMAT);
     std::function<uint32(const glm::vec3&)> packFunc;
+#ifdef DEBUG_COLOR_PACKING
+    std::function<glm::vec3(uint32)> unpackFunc;
+#endif
+
     switch (format.getSemantic()) {
     case gpu::R11G11B10:
         packFunc = packR11G11B10F;
+#ifdef DEBUG_COLOR_PACKING
+        unpackFunc = glm::unpackF2x11_1x10;
+#endif
         break;
     case gpu::RGB9E5:
         packFunc = glm::packF3x9_E1x5;
+#ifdef DEBUG_COLOR_PACKING
+        unpackFunc = glm::unpackF3x9_E1x5;
+#endif
         break;
     default:
         qCWarning(imagelogging) << "Unsupported HDR format";
@@ -1105,6 +1121,10 @@ QImage convertToHDRFormat(QImage srcImage, gpu::Element format) {
             color.g = powf(color.g, 2.2f);
             color.b = powf(color.b, 2.2f);
             *hdrLineIt = packFunc(color);
+#ifdef DEBUG_COLOR_PACKING
+            glm::vec3 ucolor = unpackFunc(*hdrLineIt);
+            assert(glm::distance(color, ucolor) <= 5e-2);
+#endif
             ++srcLineIt;
             ++hdrLineIt;
         }
@@ -1119,7 +1139,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
 
-        const auto cubeMapHDRFormat = gpu::Element::COLOR_RGB9E5;
+        const auto cubeMapHDRFormat = gpu::Element::COLOR_R11G11B10;
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (isCubeTexturesCompressionEnabled()) {
