@@ -39,7 +39,8 @@
    projectOntoOverlayXYPlane:true,
    entityHasActions:true,
    ensureDynamic:true,
-   findGroupParent:true
+   findGroupParent:true,
+   BUMPER_ON_VALUE:true
 */
 
 MSECS_PER_SEC = 1000.0;

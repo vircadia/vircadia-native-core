@@ -184,6 +184,16 @@ void Web3DOverlay::update(float deltatime) {
         // update globalPosition
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
+    Parent::update(deltatime);
+}
+
+Transform Web3DOverlay::evalRenderTransform() const {
+    Transform transform = getTransform();
+    transform.setScale(1.0f); // ignore inherited scale factor from parents
+    if (glm::length2(getDimensions()) != 1.0f) {
+        transform.postScale(vec3(getDimensions(), 1.0f));
+    }
+    return transform;
 }
 
 QString Web3DOverlay::pickURL() {
@@ -304,14 +314,6 @@ void Web3DOverlay::render(RenderArgs* args) {
     vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
-    Transform transform = getTransform();
-#ifndef USE_SN_SCALE
-    transform.setScale(1.0f); // ignore inherited scale factor from parents
-#endif
-    if (glm::length2(getDimensions()) != 1.0f) {
-        transform.postScale(vec3(getDimensions(), 1.0f));
-    }
-
     if (!_texture) {
         _texture = gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda());
         _texture->setSource(__FUNCTION__);
@@ -325,7 +327,9 @@ void Web3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setResourceTexture(0, _texture);
-    batch.setModelTransform(transform);
+    auto renderTransform = getRenderTransform();
+    batch.setModelTransform(getRenderTransform());
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
         geometryCache->bindWebBrowserProgram(batch, true);
