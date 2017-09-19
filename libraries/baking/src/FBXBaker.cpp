@@ -56,7 +56,19 @@ FBXBaker::FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGet
 
 }
 
+void FBXBaker::abort() {
+    Baker::abort();
+
+    // tell our underlying TextureBaker instances to abort
+    // the FBXBaker will wait until all are aborted before emitting its own abort signal
+    for (auto& textureBaker : _bakingTextures) {
+        textureBaker->abort();
+    }
+}
+
 void FBXBaker::bake() {
+    qDebug() << "FBXBaker" << _fbxURL << "bake starting";
+    
     auto tempDir = PathUtils::generateTemporaryDir();
 
     if (tempDir.isEmpty()) {
@@ -73,7 +85,7 @@ void FBXBaker::bake() {
     // setup the output folder for the results of this bake
     setupOutputFolder();
 
-    if (hasErrors()) {
+    if (shouldStop()) {
         return;
     }
 
@@ -87,22 +99,27 @@ void FBXBaker::bakeSourceCopy() {
     // load the scene from the FBX file
     importScene();
 
-    if (hasErrors()) {
+    if (shouldStop()) {
         return;
     }
 
     // enumerate the models and textures found in the scene and start a bake for them
-    rewriteAndBakeSceneModels();
     rewriteAndBakeSceneTextures();
 
-    if (hasErrors()) {
+    if (shouldStop()) {
+        return;
+    }
+
+    rewriteAndBakeSceneModels();
+
+    if (shouldStop()) {
         return;
     }
 
     // export the FBX with re-written texture references
     exportScene();
 
-    if (hasErrors()) {
+    if (shouldStop()) {
         return;
     }
 
@@ -164,7 +181,6 @@ void FBXBaker::loadSourceFBX() {
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-
 
         networkRequest.setUrl(_fbxURL);
 
@@ -553,6 +569,11 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
             while (object != rootChild.children.end()) {
                 if (object->name == "Texture") {
 
+                    // double check that we didn't get an abort while baking the last texture
+                    if (shouldStop()) {
+                        return;
+                    }
+
                     // enumerate the texture children
                     for (FBXNode& textureChild : object->children) {
 
@@ -630,8 +651,9 @@ void FBXBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type tex
         &TextureBaker::deleteLater
     };
 
-    // make sure we hear when the baking texture is done
+    // make sure we hear when the baking texture is done or aborted
     connect(bakingTexture.data(), &Baker::finished, this, &FBXBaker::handleBakedTexture);
+    connect(bakingTexture.data(), &TextureBaker::aborted, this, &FBXBaker::handleAbortedTexture);
 
     // keep a shared pointer to the baking texture
     _bakingTextures.insert(textureURL, bakingTexture);
@@ -646,7 +668,7 @@ void FBXBaker::handleBakedTexture() {
 
     // make sure we haven't already run into errors, and that this is a valid texture
     if (bakedTexture) {
-        if (!hasErrors()) {
+        if (!shouldStop()) {
             if (!bakedTexture->hasErrors()) {
                 if (!_originalOutputDir.isEmpty()) {
                     // we've been asked to make copies of the originals, so we need to make copies of this if it is a linked texture
@@ -698,6 +720,11 @@ void FBXBaker::handleBakedTexture() {
                 // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
                 _bakingTextures.remove(bakedTexture->getTextureURL());
 
+                // abort any other ongoing texture bakes since we know we'll end up failing
+                for (auto& bakingTexture : _bakingTextures) {
+                    bakingTexture->abort();
+                }
+
                 checkIfTexturesFinished();
             }
         } else {
@@ -709,6 +736,25 @@ void FBXBaker::handleBakedTexture() {
             checkIfTexturesFinished();
         }
     }
+}
+
+void FBXBaker::handleAbortedTexture() {
+    // grab the texture bake that was aborted and remove it from our hash since we don't need to track it anymore
+    TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
+
+    if (bakedTexture) {
+        _bakingTextures.remove(bakedTexture->getTextureURL());
+    }
+
+    // since a texture we were baking aborted, our status is also aborted
+    _shouldAbort.store(true);
+
+    // abort any other ongoing texture bakes since we know we'll end up failing
+    for (auto& bakingTexture : _bakingTextures) {
+        bakingTexture->abort();
+    }
+
+    checkIfTexturesFinished();
 }
 
 void FBXBaker::exportScene() {
@@ -735,25 +781,34 @@ void FBXBaker::exportScene() {
     qCDebug(model_baking) << "Exported" << _fbxURL << "with re-written paths to" << _bakedFBXFilePath;
 }
 
-
 void FBXBaker::checkIfTexturesFinished() {
     // check if we're done everything we need to do for this FBX
     // and emit our finished signal if we're done
 
     if (_bakingTextures.isEmpty()) {
-        if (hasErrors()) {
+        if (shouldStop()) {
             // if we're checking for completion but we have errors
             // that means one or more of our texture baking operations failed
 
             if (_pendingErrorEmission) {
-                emit finished();
+                setIsFinished(true);
             }
 
             return;
         } else {
             qCDebug(model_baking) << "Finished baking, emitting finsihed" << _fbxURL;
 
-            emit finished();
+            setIsFinished(true);
+        }
+    }
+}
+
+void FBXBaker::setWasAborted(bool wasAborted) {
+    if (wasAborted != _wasAborted.load()) {
+        Baker::setWasAborted(wasAborted);
+
+        if (wasAborted) {
+            qCDebug(model_baking) << "Aborted baking" << _fbxURL;
         }
     }
 }

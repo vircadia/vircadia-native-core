@@ -264,7 +264,7 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
-    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
+    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString(), false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,

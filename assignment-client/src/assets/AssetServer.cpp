@@ -35,6 +35,7 @@
 #include <PathUtils.h>
 
 #include "AssetServerLogging.h"
+#include "BakeAssetTask.h"
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
 
@@ -53,45 +54,6 @@ static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 
-BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath)
-    : _assetHash(assetHash), _assetPath(assetPath), _filePath(filePath) {
-}
-
-void BakeAssetTask::run() {
-    _isBaking.store(true);
-
-    qRegisterMetaType<QVector<QString> >("QVector<QString>");
-    TextureBakerThreadGetter fn = []() -> QThread* { return QThread::currentThread();  };
-
-    std::unique_ptr<Baker> baker;
-
-    if (_assetPath.endsWith(".fbx")) {
-        baker = std::unique_ptr<FBXBaker> {
-            new FBXBaker(QUrl("file:///" + _filePath), fn, PathUtils::generateTemporaryDir())
-        };
-    } else {
-        baker = std::unique_ptr<TextureBaker> {
-            new TextureBaker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE,
-                             PathUtils::generateTemporaryDir())
-        };
-    }
-
-    QEventLoop loop;
-    connect(baker.get(), &Baker::finished, &loop, &QEventLoop::quit);
-    QMetaObject::invokeMethod(baker.get(), "bake", Qt::QueuedConnection);
-    loop.exec();
-
-    if (baker->hasErrors()) {
-        qDebug() << "Failed to bake: " << _assetHash << _assetPath << baker->getErrors();
-        auto errors = baker->getErrors().join('\n'); // Join error list into a single string for convenience
-        emit bakeFailed(_assetHash, _assetPath, errors);
-    } else {
-        auto vectorOutputFiles = QVector<QString>::fromStdVector(baker->getOutputFiles());
-        qDebug() << "Finished baking: " << _assetHash << _assetPath << vectorOutputFiles;
-        emit bakeComplete(_assetHash, _assetPath, vectorOutputFiles);
-    }
-}
-
 void AssetServer::bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) {
     qDebug() << "Starting bake for: " << assetPath << assetHash;
     auto it = _pendingBakes.find(assetHash);
@@ -102,6 +64,7 @@ void AssetServer::bakeAsset(const AssetHash& assetHash, const AssetPath& assetPa
 
         connect(task.get(), &BakeAssetTask::bakeComplete, this, &AssetServer::handleCompletedBake);
         connect(task.get(), &BakeAssetTask::bakeFailed, this, &AssetServer::handleFailedBake);
+        connect(task.get(), &BakeAssetTask::bakeAborted, this, &AssetServer::handleAbortedBake);
 
         _bakingTaskPool.start(task.get());
     } else {
@@ -310,6 +273,28 @@ AssetServer::AssetServer(ReceivedMessage& message) :
 }
 
 void AssetServer::aboutToFinish() {
+
+    // remove pending transfer tasks
+    _transferTaskPool.clear();
+
+    // abort each of our still running bake tasks, remove pending bakes that were never put on the thread pool
+    auto it = _pendingBakes.begin();
+    while (it != _pendingBakes.end()) {
+        auto pendingRunnable =  _bakingTaskPool.tryTake(it->get());
+
+        if (pendingRunnable) {
+            it = _pendingBakes.erase(it);
+        } else {
+            it.value()->abort();
+            ++it;
+        }
+    }
+
+    // make sure all bakers are finished or aborted
+    while (_pendingBakes.size() > 0) {
+        QCoreApplication::processEvents();
+    }
+
     // re-set defaults in image library
     image::setColorTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
     image::setGrayscaleTexturesCompressionEnabled(_wasGrayscaleTextureCompressionEnabled);
@@ -1244,6 +1229,11 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
         qWarning() << "Could not complete bake for" << originalAssetHash;
     }
 
+    _pendingBakes.remove(originalAssetHash);
+}
+
+void AssetServer::handleAbortedBake(QString originalAssetHash, QString assetPath) {
+    // for an aborted bake we don't do anything but remove the BakeAssetTask from our pending bakes
     _pendingBakes.remove(originalAssetHash);
 }
 

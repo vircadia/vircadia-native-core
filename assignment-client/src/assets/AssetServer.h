@@ -29,26 +29,6 @@ namespace std {
     };
 }
 
-class BakeAssetTask : public QObject, public QRunnable {
-    Q_OBJECT
-public:
-    BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath);
-
-    bool isBaking() { return _isBaking.load(); }
-
-    void run() override;
-
-signals:
-    void bakeComplete(QString assetHash, QString assetPath, QVector<QString> outputFiles);
-    void bakeFailed(QString assetHash, QString assetPath, QString errors);
-
-private:
-    std::atomic<bool> _isBaking { false };
-    AssetHash _assetHash;
-    AssetPath _assetPath;
-    QString _filePath;
-};
-
 struct AssetMeta {
     AssetMeta() {
     }
@@ -58,6 +38,8 @@ struct AssetMeta {
     bool failedLastBake { false };
     QString lastBakeErrors;
 };
+
+class BakeAssetTask;
 
 class AssetServer : public ThreadedAssignment {
     Q_OBJECT
@@ -121,6 +103,7 @@ private:
     /// Move baked content for asset to baked directory and update baked status
     void handleCompletedBake(QString originalAssetHash, QString assetPath, QVector<QString> bakedFilePaths);
     void handleFailedBake(QString originalAssetHash, QString assetPath, QString errors);
+    void handleAbortedBake(QString originalAssetHash, QString assetPath);
 
     /// Create meta file to describe baked content for original asset
     std::pair<bool, AssetMeta> readMetaFile(AssetHash hash);
