@@ -617,7 +617,6 @@ MessageID AssetClient::setBakingEnabled(const AssetPathList& paths, bool enabled
             _pendingMappingRequests[assetServer][messageID] = callback;
 
             return messageID;
-
         }
     }
 

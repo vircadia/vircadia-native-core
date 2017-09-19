@@ -194,7 +194,6 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
     if (type == image::TextureUsage::CUBE_TEXTURE) {
         QUrlQuery query { url.query() };
         query.addQueryItem("skybox", "");
-        qDebug() << "Updating cubemap texture query from" << url.query() << "to" << query.toString();
         modifiedUrl.setQuery(query.toString());
     }
     TextureExtra extra = { type, content, maxNumPixels };
