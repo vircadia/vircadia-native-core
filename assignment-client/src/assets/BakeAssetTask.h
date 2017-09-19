@@ -12,6 +12,8 @@
 #ifndef hifi_BakeAssetTask_h
 #define hifi_BakeAssetTask_h
 
+#include <memory>
+
 #include <QtCore/QDebug>
 #include <QtCore/QObject>
 #include <QtCore/QRunnable>
