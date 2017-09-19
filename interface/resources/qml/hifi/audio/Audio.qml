@@ -194,12 +194,13 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width - inputLevel.width
                     clip: true
+                    checkable: !checked
                     checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
                     boxSize: margins.sizeCheckBox / 2
                     isRound: true
                     text: devicename
-                    onClicked: {
-                        if (checked) {
+                    onPressed: {
+                        if (!checked) {
                             Audio.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
@@ -265,9 +266,10 @@ Rectangle {
                     boxSize: margins.sizeCheckBox / 2
                     isRound: true
                     checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
+                    checkable: !checked
                     text: devicename
-                    onClicked: {
-                        if (checked) {
+                    onPressed: {
+                        if (!checked) {
                             Audio.setOutputDevice(info, bar.currentIndex === 1);
                         }
                     }
