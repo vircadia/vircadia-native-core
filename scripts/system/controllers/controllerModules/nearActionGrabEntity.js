@@ -150,9 +150,10 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.getTargetProps = function (controllerData) {
             // nearbyEntityProperties is already sorted by distance from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
-                if (props.distance > NEAR_GRAB_RADIUS) {
+                if (props.distance > NEAR_GRAB_RADIUS * sensorScaleFactor) {
                     break;
                 }
                 if (entityIsGrabbable(props) || entityIsCloneable(props)) {

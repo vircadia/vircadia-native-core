@@ -55,6 +55,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     type: "static",
                     modelURL: BASE_URL + "Oculus-Labels-L.fbx",
                     naturalPosition: { x: -0.022335469722747803, y: 0.00022516027092933655, z: 0.020340695977211 },
+                    naturalDimensions: { x: 0.132063, y: 0.0856, z: 0.130282 },
 
                     textureName: "blank",
                     defaultTextureLayer: "blank",
@@ -84,6 +85,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     type: "rotational",
                     modelURL: BASE_URL + "touch_l_trigger.fbx",
                     naturalPosition: { x: 0.0008544912561774254, y: -0.019867943599820137, z: 0.018800459802150726 },
+                    naturalDimensions: { x: 0.027509, y: 0.025211, z: 0.018443 },
 
                     // rotational 
                     input: Controller.Standard.LT,
@@ -109,6 +111,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     type: "linear",
                     modelURL: BASE_URL + "touch_l_bumper.fbx",
                     naturalPosition: { x: 0.00008066371083259583, y: -0.02715788595378399, z: -0.02448512241244316 },
+                    naturalDimensions: { x: 0.017444, y: 0.020297, z: 0.026003 },
 
                     // linear properties
                     // Offset from origin = 0.36470, 0.11048, 0.11066
@@ -132,6 +135,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     type: "joystick",
                     modelURL: BASE_URL + "touch_l_joystick.fbx",
                     naturalPosition: { x: 0.0075613949447870255, y: -0.008225866593420506, z: 0.004792703315615654 },
+                    naturalDimensions: { x: 0.027386, y: 0.033254, z: 0.027272 },
 
                     // joystick
                     xInput: "OculusTouch.LX",
@@ -156,6 +160,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     type: "linear",
                     modelURL: BASE_URL + "touch_l_button_x.fbx",
                     naturalPosition: { x: -0.009307309985160828, y: -0.00005015172064304352, z: -0.012594521045684814 },
+                    naturalDimensions: { x: 0.009861, y: 0.004345, z: 0.00982 },
 
                     input: "OculusTouch.X",
                     axis: { x: 0, y: -1, z: 0 },
@@ -177,6 +182,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
                     type: "linear",
                     modelURL: BASE_URL + "touch_l_button_y.fbx",
                     naturalPosition: { x: -0.01616849936544895, y: -0.000050364527851343155, z: 0.0017703399062156677 },
+                    naturalDimensions: { x: 0.010014, y: 0.004412, z: 0.009972 },
 
                     input: "OculusTouch.Y",
                     axis: { x: 0, y: -1, z: 0 },
@@ -214,6 +220,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     type: "static",
                     modelURL: BASE_URL + "Oculus-Labels-R.fbx",
                     naturalPosition: { x: 0.009739525616168976, y: -0.0017818436026573181, z: 0.016794726252555847 },
+                    naturalDimensions: { x: 0.129049, y: 0.078297, z: 0.139492 },
 
                     textureName: "blank",
                     defaultTextureLayer: "blank",
@@ -243,6 +250,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     type: "rotational",
                     modelURL: BASE_URL + "touch_r_trigger.fbx",
                     naturalPosition: { x: -0.0008544912561774254, y: -0.019867943599820137, z: 0.018800459802150726 },
+                    naturalDimensions: { x: 0.027384, y: 0.025201, z: 0.018425 },
 
                     // rotational 
                     input: "OculusTouch.RT",
@@ -268,6 +276,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     type: "linear",
                     modelURL: BASE_URL + "touch_r_bumper.fbx",
                     naturalPosition: { x: -0.0000806618481874466, y: -0.027157839387655258, z: -0.024485092610120773 },
+                    naturalDimensions: { x: 0.017268, y: 0.020366, z: 0.02599 },
 
                     // linear properties
                     // Offset from origin = 0.36470, 0.11048, 0.11066
@@ -292,6 +301,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     type: "joystick",
                     modelURL: BASE_URL + "touch_r_joystick.fbx",
                     naturalPosition: { x: -0.007561382371932268, y: -0.008225853554904461, z: 0.00479268841445446 },
+                    naturalDimensions: { x: 0.027272, y: 0.033254, z: 0.027272 },
 
                     // joystick
                     xInput: "OculusTouch.RX",
@@ -316,6 +326,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     type: "linear",
                     modelURL: BASE_URL + "touch_r_button_a.fbx",
                     naturalPosition: { x: 0.009307296946644783, y: -0.00005015172064304352, z: -0.012594504281878471 },
+                    naturalDimensions: { x: 0.00982, y: 0.004345, z: 0.00982 },
 
                     input: "OculusTouch.A",
                     axis: { x: 0, y: -1, z: 0 },
@@ -337,6 +348,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
                     type: "linear",
                     modelURL: BASE_URL + "touch_r_button_b.fbx",
                     naturalPosition: { x: 0.01616847701370716, y: -0.000050364527851343155, z: 0.0017703361809253693 },
+                    naturalDimensions: { x: 0.009972, y: 0.004412, z: 0.009972 },
 
                     input: "OculusTouch.B",
                     axis: { x: 0, y: -1, z: 0 },
