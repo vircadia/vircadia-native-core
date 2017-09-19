@@ -963,7 +963,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    scriptEngines->registerScriptInitializer([this](ScriptEngine* engine){
+    scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
         registerScriptEngineWithApplicationServices(engine);
     });
 
@@ -2413,10 +2413,18 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
     RenderArgs renderArgs;
+
+    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
     {
         PROFILE_RANGE(render, "/buildFrustrumAndArgs");
         {
             QMutexLocker viewLocker(&_viewMutex);
+            // adjust near clip plane to account for sensor scaling.
+            auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
+                                                       _viewFrustum.getAspectRatio(),
+                                                       DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                                                       _viewFrustum.getFarClip());
+            _viewFrustum.setProjection(adjustedProjection);
             _viewFrustum.calculate();
         }
         renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
@@ -2570,7 +2578,6 @@ void Application::paintGL() {
     float ipdScale = hmdInterface->getIPDScale();
 
     // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
-    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
     ipdScale *= sensorToWorldScale;
 
     mat4 eyeProjections[2];
@@ -2582,6 +2589,7 @@ void Application::paintGL() {
         // in the overlay render?
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
+        auto baseProjection = renderArgs.getViewFrustum().getProjection();
         if (displayPlugin->isStereo()) {
             // Stereo modes will typically have a larger projection matrix overall,
             // so we ask for the 'mono' projection matrix, which for stereo and HMD
@@ -2592,16 +2600,10 @@ void Application::paintGL() {
             // just relying on the left FOV in each case and hoping that the
             // overall culling margin of error doesn't cause popping in the
             // right eye.  There are FIXMEs in the relevant plugins
-            _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
+            _myCamera.setProjection(displayPlugin->getCullingProjection(baseProjection));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
-
-            // adjust near clip plane by sensorToWorldScale
-            auto baseProjection = glm::perspective(renderArgs.getViewFrustum().getFieldOfView(),
-                                                   renderArgs.getViewFrustum().getAspectRatio(),
-                                                   renderArgs.getViewFrustum().getNearClip() * sensorToWorldScale,
-                                                   renderArgs.getViewFrustum().getFarClip());
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
@@ -5217,7 +5219,7 @@ void Application::update(float deltaTime) {
         }
     }
 
-    avatarManager->postUpdate(deltaTime);
+    avatarManager->postUpdate(deltaTime, getMain3DScene());
 
     {
         PROFILE_RANGE_EX(app, "PreRenderLambdas", 0xffff0000, (uint64_t)0);
@@ -5938,7 +5940,7 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 void Application::packetSent(quint64 length) {
 }
 
-void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
+void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
 
     scriptEngine->setEmitScriptUpdatesFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -5973,29 +5975,31 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
-    connect(scriptEngine, &ScriptEngine::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
+    connect(scriptEngine.data(), &ScriptEngine::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
-    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue,
+    qScriptRegisterMetaType(scriptEngine.data(), OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("OffscreenFlags", DependencyManager::get<OffscreenUi>()->getFlags());
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
 
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarButtonProxy>, wrapperFromScriptValue<ToolbarButtonProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(),
+                            wrapperToScriptValue<ToolbarButtonProxy>, wrapperFromScriptValue<ToolbarButtonProxy>);
     scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(),
+                            wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
     scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
 
-
-    DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(DependencyManager::get<ToolbarScriptingInterface>().data());
+    auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>().data();
+    DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    qScriptRegisterMetaType(scriptEngine, CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.
@@ -6027,7 +6031,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
-    qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
 
@@ -6055,11 +6059,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine, steamClient.get()));
+        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine.data(), steamClient.get()));
     }
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
-    UserInputMapper::registerControllerTypes(scriptEngine);
+    UserInputMapper::registerControllerTypes(scriptEngine.data());
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
@@ -6070,14 +6074,19 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
-    qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
-    connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
-    connect(scriptEngine, &ScriptEngine::errorMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
-    connect(scriptEngine, &ScriptEngine::warningMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
-    connect(scriptEngine, &ScriptEngine::infoMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
-    connect(scriptEngine, &ScriptEngine::clearDebugWindow, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
+    connect(scriptEngine.data(), &ScriptEngine::printedMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
+    connect(scriptEngine.data(), &ScriptEngine::errorMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
+    connect(scriptEngine.data(), &ScriptEngine::warningMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
+    connect(scriptEngine.data(), &ScriptEngine::infoMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
+    connect(scriptEngine.data(), &ScriptEngine::clearDebugWindow,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
 
 }
 
@@ -6412,7 +6421,12 @@ void Application::addAssetToWorldFromURL(QString url) {
     }
     if (url.contains("vr.google.com/downloads")) {
         filename = url.section('/', -1);
-        filename.remove(".zip");
+        if (url.contains("noDownload")) {
+            filename.remove(".zip?noDownload=false");
+        } else {
+            filename.remove(".zip");
+        }
+        
     }
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
@@ -6442,7 +6456,11 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     }
     if (url.contains("vr.google.com/downloads")) {
         filename = url.section('/', -1);
-        filename.remove(".zip");
+        if (url.contains("noDownload")) {
+            filename.remove(".zip?noDownload=false");
+        } else {
+            filename.remove(".zip");
+        }
         isBlocks = true;
     }
 

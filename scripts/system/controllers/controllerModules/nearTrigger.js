@@ -6,9 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   enableDispatcherModule, disableDispatcherModule, getGrabbableData, Vec3,
-   TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, makeRunningValues, NEAR_GRAB_RADIUS
+/* global Script, Entities, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, getGrabbableData,
+   Vec3, TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, makeRunningValues, NEAR_GRAB_RADIUS
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -64,7 +63,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.endNearTrigger = function (controllerData) {
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "endNearTrigger", args);
+            Entities.callEntityMethod(this.targetEntityID, "stopNearTrigger", args);
         };
 
         this.isReady = function (controllerData) {

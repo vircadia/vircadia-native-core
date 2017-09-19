@@ -47,9 +47,7 @@ void ModelOverlay::update(float deltatime) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
         Transform transform = getTransform();
-#ifndef USE_SN_SCALE
         transform.setScale(1.0f); // disable inherited scale
-#endif
         if (_scaleToFit) {
             _model->setScaleToFit(true, transform.getScale() * getDimensions());
         } else {
@@ -285,6 +283,7 @@ ModelOverlay* ModelOverlay::createClone() const {
 void ModelOverlay::locationChanged(bool tellPhysics) {
     Base3DOverlay::locationChanged(tellPhysics);
 
+    // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
