@@ -217,7 +217,6 @@ QString Web3DOverlay::pickURL() {
     }
 }
 
-
 void Web3DOverlay::loadSourceURL() {
     if (!_webSurface) {
         return;
@@ -322,7 +321,6 @@ void Web3DOverlay::render(RenderArgs* args) {
         emit resizeWebSurface();
     }
 
-
     vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
@@ -339,6 +337,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setResourceTexture(0, _texture);
+    auto renderTransform = getRenderTransform();
     batch.setModelTransform(getRenderTransform());
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
