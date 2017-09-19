@@ -460,6 +460,8 @@ void generateMips(gpu::Texture* texture, QImage& image, const std::atomic<bool>&
             for (int i = 0; i < count; i++) {
                 if (!_abortProcessing.load()) {
                     task(context, i);
+                } else {
+                    break;
                 }
             }
         }

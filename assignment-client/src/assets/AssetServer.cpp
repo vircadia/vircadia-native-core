@@ -280,10 +280,10 @@ void AssetServer::aboutToFinish() {
     // abort each of our still running bake tasks, remove pending bakes that were never put on the thread pool
     auto it = _pendingBakes.begin();
     while (it != _pendingBakes.end()) {
-        auto pendingRunnable =  _bakingTaskPool.tryTake(it.value().get());
+        auto pendingRunnable =  _bakingTaskPool.tryTake(it->get());
 
         if (pendingRunnable) {
-            _pendingBakes.erase(it);
+            it = _pendingBakes.erase(it);
         } else {
             it.value()->abort();
             ++it;
