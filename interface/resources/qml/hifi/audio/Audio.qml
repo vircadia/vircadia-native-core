@@ -207,6 +207,7 @@ Rectangle {
                 InputPeak {
                     id: inputLevel
                     anchors.right: parent.right
+                    peak: model.peak;
                     anchors.verticalCenter: parent.verticalCenter
                     visible: (bar.currentIndex === 1 && selectedHMD && isVR) ||
                              (bar.currentIndex === 0 && selectedDesktop && !isVR) &&
