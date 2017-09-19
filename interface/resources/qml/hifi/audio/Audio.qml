@@ -36,6 +36,7 @@ Rectangle {
         return (root.parent !== null) && root.parent.objectName == "loader";
     }
 
+
     property bool isVR: Audio.context === "VR"
     property real rightMostInputLevelPos: 0
     //placeholder for control sizes and paddings
@@ -67,6 +68,24 @@ Rectangle {
             text: qsTr("VR")
         }
     }
+
+    property bool showPeaks: true;
+    function enablePeakValues() {
+        Audio.devices.input.peakValuesEnabled = true;
+        Audio.devices.input.peakValuesEnabledChanged.connect(function(enabled) {
+            if (!enabled && root.showPeaks) {
+                Audio.devices.input.peakValuesEnabled = true;
+            }
+        });
+    }
+    function disablePeakValues() {
+        root.showPeaks = false;
+        Audio.devices.input.peakValuesEnabled = false;
+    }
+
+    Component.onCompleted: enablePeakValues();
+    Component.onDestruction: disablePeakValues();
+    onVisibleChanged: visible ? enablePeakValues() : disablePeakValues();
 
     Column {
         spacing: 12;
@@ -144,11 +163,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 30;
             }
-
             RalewayRegular {
-                width: margins.sizeText + margins.sizeLevel
-                anchors.left: parent.left
-                anchors.leftMargin: margins.sizeCheckBox
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 16;
                 color: hifi.colors.lightGrayText;

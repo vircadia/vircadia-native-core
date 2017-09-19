@@ -18,10 +18,12 @@
 
 #include <PathUtils.h>
 #include <OffscreenUi.h>
+#include <AccountManager.h>
 
 #include <QFile>
 #include <QCryptographicHash>
 #include <QQmlContext>
+#include <QBuffer>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -31,8 +33,16 @@
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 
+// I know, right?  But per https://www.openssl.org/docs/faq.html
+// this avoids OPENSSL_Uplink(00007FF847238000,08): no OPENSSL_Applink
+// at runtime.
+#ifdef Q_OS_WIN
+#include <openssl/applink.c>
+#endif
+
 static const char* KEY_FILE = "hifikey";
-static const char* IMAGE_FILE = "hifi_image"; // eventually this will live in keyfile
+static const char* IMAGE_HEADER = "-----BEGIN SECURITY IMAGE-----\n";
+static const char* IMAGE_FOOTER = "-----END SECURITY IMAGE-----\n";
 
 void initialize() {
     static bool initialized = false;
@@ -45,19 +55,19 @@ void initialize() {
 }
 
 QString keyFilePath() {
-    return PathUtils::getAppDataFilePath(KEY_FILE);
-}
-
-QString imageFilePath() {
-    return PathUtils::getAppDataFilePath(IMAGE_FILE);
+    auto accountManager = DependencyManager::get<AccountManager>();
+    return PathUtils::getAppDataFilePath(QString("%1.%2").arg(accountManager->getAccountInfo().getUsername(), KEY_FILE));
 }
 
 // use the cached _passphrase if it exists, otherwise we need to prompt
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     // just return a hardcoded pwd for now
-    auto passphrase = DependencyManager::get<Wallet>()->getPassphrase();
+    auto wallet = DependencyManager::get<Wallet>();
+    auto passphrase = wallet->getPassphrase();
     if (passphrase && !passphrase->isEmpty()) {
-        strcpy(password, passphrase->toLocal8Bit().constData());
+        QString saltedPassphrase(*passphrase);
+        saltedPassphrase.append(wallet->getSalt());
+        strcpy(password, saltedPassphrase.toUtf8().constData());
         return static_cast<int>(passphrase->size());
     } else {
         // this shouldn't happen - so lets log it to tell us we have
@@ -121,13 +131,12 @@ bool writeKeys(const char* filename, RSA* keys) {
     return retval;
 }
 
-
-// BEGIN copied code - this will be removed/changed at some point soon
 // copied (without emits for various signals) from libraries/networking/src/RSAKeypairGenerator.cpp.
 // We will have a different implementation in practice, but this gives us a start for now
 //
-// NOTE: we don't really use the private keys returned - we can see how this evolves, but probably
+// TODO: we don't really use the private keys returned - we can see how this evolves, but probably
 // we should just return a list of public keys?
+// or perhaps return the RSA* instead?
 QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
 
     RSA* keyPair = RSA_new();
@@ -245,6 +254,8 @@ RSA* readPrivateKey(const char* filename) {
 
         } else {
             qCDebug(commerce) << "couldn't parse" << filename;
+            // if the passphrase is wrong, then let's not cache it
+            DependencyManager::get<Wallet>()->setPassphrase("");
         }
         fclose(fp);
     } else {
@@ -252,13 +263,21 @@ RSA* readPrivateKey(const char* filename) {
     }
     return key;
 }
-static const unsigned char IVEC[16] = "IAmAnIVecYay123";
+
+// QT's QByteArray will convert to Base64 without any embedded newlines.  This just
+// writes it with embedded newlines, which is more readable.
+void outputBase64WithNewlines(QFile& file, const QByteArray& b64Array) {
+    for (int i = 0; i < b64Array.size(); i += 64) {
+        file.write(b64Array.mid(i, 64));
+        file.write("\n");
+    }
+}
 
 void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
-    // first ivec
-    memcpy(ivec, IVEC, 16);
-    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Sha256);
-    memcpy(ckey, hash.data(), 32);
+    // use the ones in the wallet
+    auto wallet = DependencyManager::get<Wallet>();
+    memcpy(ivec, wallet->getIv(), 16);
+    memcpy(ckey, wallet->getCKey(), 32);
 }
 
 Wallet::~Wallet() {
@@ -273,13 +292,10 @@ void Wallet::setPassphrase(const QString& passphrase) {
     }
     _passphrase = new QString(passphrase);
 
-    // no matter what, we now need to clear the keys as they
-    // need to be read using this passphrase
     _publicKeys.clear();
 }
 
-// encrypt some stuff
-bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFilePath) {
+bool Wallet::writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath) {
     // aes requires a couple 128-bit keys (ckey and ivec).  For now, I'll just
     // use the md5 of the salt as the ckey (md5 is 128-bit), and ivec will be
     // a constant.  We can review this later - there are ways to generate keys
@@ -290,16 +306,12 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     initializeAESKeys(ivec, ckey, _salt);
 
     int tempSize, outSize;
+    QByteArray inputFileBuffer;
+    QBuffer buffer(&inputFileBuffer);
+    buffer.open(QIODevice::WriteOnly);
 
-    // read entire unencrypted file into memory
-    QFile inputFile(inputFilePath);
-    if (!inputFile.exists()) {
-        qCDebug(commerce) << "cannot encrypt" << inputFilePath << "file doesn't exist";
-        return false;
-    }
-    inputFile.open(QIODevice::ReadOnly);
-    QByteArray inputFileBuffer = inputFile.readAll();
-    inputFile.close();
+    // another spot where we are assuming only jpgs
+    pixmap->save(&buffer, "jpg");
 
     // reserve enough capacity for encrypted bytes
     unsigned char* outputFileBuffer = new unsigned char[inputFileBuffer.size() + AES_BLOCK_SIZE];
@@ -328,16 +340,21 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     EVP_CIPHER_CTX_free(ctx);
     qCDebug(commerce) << "encrypted buffer size" << outSize;
     QByteArray output((const char*)outputFileBuffer, outSize);
+
+    // now APPEND to the file,
+    QByteArray b64output = output.toBase64();
     QFile outputFile(outputFilePath);
-    outputFile.open(QIODevice::WriteOnly);
-    outputFile.write(output);
+    outputFile.open(QIODevice::Append);
+    outputFile.write(IMAGE_HEADER);
+    outputBase64WithNewlines(outputFile, b64output);
+    outputFile.write(IMAGE_FOOTER);
     outputFile.close();
 
     delete[] outputFileBuffer;
     return true;
 }
 
-bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
+bool Wallet::readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
     unsigned char ivec[16];
     unsigned char ckey[32];
     initializeAESKeys(ivec, ckey, _salt);
@@ -348,9 +365,31 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
         qCDebug(commerce) << "cannot decrypt file" << inputFilePath << "it doesn't exist";
         return false;
     }
-    inputFile.open(QIODevice::ReadOnly);
-    QByteArray encryptedBuffer = inputFile.readAll();
+    inputFile.open(QIODevice::ReadOnly | QIODevice::Text);
+    bool foundHeader = false;
+    bool foundFooter = false;
+
+    QByteArray base64EncryptedBuffer;
+
+    while (!inputFile.atEnd()) {
+        QString line(inputFile.readLine());
+        if (!foundHeader) {
+            foundHeader = (line == IMAGE_HEADER);
+        } else {
+            foundFooter = (line == IMAGE_FOOTER);
+            if (!foundFooter) {
+                base64EncryptedBuffer.append(line);
+            }
+        }
+    }
     inputFile.close();
+    if (! (foundHeader && foundFooter)) {
+        qCDebug(commerce) << "couldn't parse" << inputFilePath << foundHeader << foundFooter;
+        return false;
+    }
+
+    // convert to bytes
+    auto encryptedBuffer = QByteArray::fromBase64(base64EncryptedBuffer);
 
     // setup decrypted buffer
     unsigned char* outputBuffer = new unsigned char[encryptedBuffer.size()];
@@ -413,30 +452,15 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
     return false;
 }
 
-bool Wallet::createIfNeeded() {
-    if (_publicKeys.count() > 0) return false;
-
+bool Wallet::generateKeyPair() {
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
 
-    // try to read existing keys if they exist...
-    auto publicKey = readPublicKey(keyFilePath().toStdString().c_str());
-    if (publicKey.size() > 0) {
-        if (auto key = readPrivateKey(keyFilePath().toStdString().c_str()) ) {
-            qCDebug(commerce) << "read private key";
-            RSA_free(key);
-            // K -- add the public key since we have a legit private key associated with it
-            _publicKeys.push_back(publicKey.toBase64());
-            return false;
-        }
-    }
-    qCInfo(commerce) << "Creating wallet.";
-    return generateKeyPair();
-}
-
-bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateRSAKeypair();
+
+    // TODO: redo this soon -- need error checking and so on
+    writeSecurityImage(_securityImage, keyFilePath());
     sendKeyFilePathIfExists();
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
@@ -453,7 +477,6 @@ bool Wallet::generateKeyPair() {
 
 QStringList Wallet::listPublicKeys() {
     qCInfo(commerce) << "Enumerating public keys.";
-    createIfNeeded();
     return _publicKeys;
 }
 
@@ -503,27 +526,30 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     if (_securityImage) {
         delete _securityImage;
     }
-    // temporary...
     QString path = qApp->applicationDirPath();
     path.append("/resources/qml/hifi/commerce/wallet/");
     path.append(filename);
+
     // now create a new security image pixmap
     _securityImage = new QPixmap();
 
     qCDebug(commerce) << "loading data for pixmap from" << path;
     _securityImage->load(path);
 
-    // encrypt it and save.
-    if (encryptFile(path, imageFilePath())) {
-        qCDebug(commerce) << "emitting pixmap";
+    // update the image now
+    updateImageProvider();
 
-        updateImageProvider();
-
+    // we could be choosing the _inital_ security image.  If so, there
+    // will be no hifikey file yet.  If that is the case, we are done.  If
+    // there _is_ a keyfile, we need to update it (similar to changing the
+    // passphrase, we need to do so into a temp file and move it).
+    if (!QFile(keyFilePath()).exists()) {
         emit securityImageResult(true);
-    } else {
-        qCDebug(commerce) << "failed to encrypt security image";
-        emit securityImageResult(false);
+        return;
     }
+
+    bool success = writeWallet();
+    emit securityImageResult(success);
 }
 
 void Wallet::getSecurityImage() {
@@ -536,10 +562,11 @@ void Wallet::getSecurityImage() {
         return;
     }
 
-    // decrypt and return
-    QString filePath(imageFilePath());
-    QFileInfo fileInfo(filePath);
-    if (fileInfo.exists() && decryptFile(filePath, &data, &dataLen)) {
+    bool success = false;
+    // decrypt and return.  Don't bother if we have no file to decrypt, or
+    // no salt set yet.
+    QFileInfo fileInfo(keyFilePath());
+    if (fileInfo.exists() && _salt.size() > 0 && readSecurityImage(keyFilePath(), &data, &dataLen)) {
         // create the pixmap
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
@@ -548,11 +575,9 @@ void Wallet::getSecurityImage() {
         updateImageProvider();
 
         delete[] data;
-        emit securityImageResult(true);
-    } else {
-        qCDebug(commerce) << "failed to decrypt security image (maybe none saved yet?)";
-        emit securityImageResult(false);
+        success = true;
     }
+    emit securityImageResult(success);
 }
 void Wallet::sendKeyFilePathIfExists() {
     QString filePath(keyFilePath());
@@ -572,42 +597,51 @@ void Wallet::reset() {
 
     // tell the provider we got nothing
     updateImageProvider();
-    delete _passphrase;
+    _passphrase->clear();
 
-    // for now we need to maintain the hard-coded passphrase.
-    // FIXME: remove this line as part of wiring up the passphrase
-    // and probably set it to nullptr
-    _passphrase = new QString("pwd");
 
     QFile keyFile(keyFilePath());
-    QFile imageFile(imageFilePath());
     keyFile.remove();
-    imageFile.remove();
+}
+bool Wallet::writeWallet(const QString& newPassphrase) {
+    RSA* keys = readKeys(keyFilePath().toStdString().c_str());
+    if (keys) {
+        // we read successfully, so now write to a new temp file
+        QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
+        QString oldPassphrase = *_passphrase;
+        if (!newPassphrase.isEmpty()) {
+            setPassphrase(newPassphrase);
+        }
+        if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
+            if (writeSecurityImage(_securityImage, tempFileName)) {
+                // ok, now move the temp file to the correct spot
+                QFile(QString(keyFilePath())).remove();
+                QFile(tempFileName).rename(QString(keyFilePath()));
+                qCDebug(commerce) << "wallet written successfully";
+                return true;
+            } else {
+                qCDebug(commerce) << "couldn't write security image to temp wallet";
+            }
+        } else {
+            qCDebug(commerce) << "couldn't write keys to temp wallet";
+        }
+        // if we are here, we failed, so cleanup
+        QFile(tempFileName).remove();
+        if (!newPassphrase.isEmpty()) {
+            setPassphrase(oldPassphrase);
+        }
+
+    } else {
+        qCDebug(commerce) << "couldn't read wallet - bad passphrase?";
+        // TODO: review this, but it seems best to reset the passphrase
+        // since we couldn't decrypt the existing wallet (or is doesn't
+        // exist perhaps).
+        setPassphrase("");
+    }
+    return false;
 }
 
 bool Wallet::changePassphrase(const QString& newPassphrase) {
     qCDebug(commerce) << "changing passphrase";
-    RSA* keys = readKeys(keyFilePath().toStdString().c_str());
-    if (keys) {
-        // we read successfully, so now write to a new temp file
-        // save old passphrase just in case
-        // TODO: force re-enter?
-        QString oldPassphrase = *_passphrase;
-        setPassphrase(newPassphrase);
-        QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
-        if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
-            // ok, now move the temp file to the correct spot
-            QFile(QString(keyFilePath())).remove();
-            QFile(tempFileName).rename(QString(keyFilePath()));
-            qCDebug(commerce) << "passphrase changed successfully";
-            return true;
-        } else {
-            qCDebug(commerce) << "couldn't write keys";
-            QFile(tempFileName).remove();
-            setPassphrase(oldPassphrase);
-            return false;
-        }
-    }
-    qCDebug(commerce) << "couldn't read keys";
-    return false;
+    return writeWallet(newPassphrase);
 }

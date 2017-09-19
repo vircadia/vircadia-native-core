@@ -52,6 +52,10 @@ public:
 
     virtual AABox getBounds() const override = 0;
 
+    void update(float deltatime) override;
+    
+    void notifyRenderTransformChange() const;
+
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
@@ -67,12 +71,18 @@ protected:
     virtual void locationChanged(bool tellPhysics = true) override;
     virtual void parentDeleted() override;
 
+    mutable Transform _renderTransform;
+    virtual Transform evalRenderTransform() const;
+    virtual void setRenderTransform(const Transform& transform);
+    const Transform& getRenderTransform() const { return _renderTransform; }
+
     float _lineWidth;
     bool _isSolid;
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
     bool _isGrabbable { false };
+    mutable bool _renderTransformDirty{ true };
 
     QString _name;
 };

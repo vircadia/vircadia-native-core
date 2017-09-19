@@ -387,6 +387,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(glm::mat4 controllerLeftHandMatrix READ getControllerLeftHandMatrix)
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
+    Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
+
 public:
 
     virtual QString getName() const override { return QString("Avatar:") + _displayName; }
@@ -621,6 +623,7 @@ public:
 
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+    Q_INVOKABLE float getSensorToWorldScale() const;
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 

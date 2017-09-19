@@ -150,3 +150,10 @@ QJsonObject Transform::toJson(const Transform& transform) {
     }
     return result;
 }
+
+QDebug& operator<<(QDebug& debug, const Transform& transform) {
+    debug << "Transform, trans = (" << transform._translation.x << transform._translation.y << transform._translation.z << "), rot = ("
+          << transform._rotation.x << transform._rotation.y << transform._rotation.z << transform._rotation.w << "), scale = ("
+          << transform._scale.x << transform._scale.y << transform._scale.z << ")";
+    return debug;
+}

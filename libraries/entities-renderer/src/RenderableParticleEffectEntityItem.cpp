@@ -91,20 +91,27 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
             qCWarning(entitiesrenderer) << "Bad particle properties";
         }
     }
-    if (_particleProperties != newParticleProperties) {
+    
+    if (resultWithReadLock<bool>([&]{ return _particleProperties != newParticleProperties; })) {
         _timeUntilNextEmit = 0;
-        _particleProperties = newParticleProperties;
+        withWriteLock([&]{
+            _particleProperties = newParticleProperties;
+        });
     }
     _emitting = entity->getIsEmitting();
 
-    if (_particleProperties.textures.isEmpty()) {
+    bool hasTexture = resultWithReadLock<bool>([&]{ return _particleProperties.textures.isEmpty(); });
+    if (hasTexture) {
         if (_networkTexture) {
             withWriteLock([&] { 
                 _networkTexture.reset();
             });
         }
     } else {
-        if (!_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures)) {
+        bool textureNeedsUpdate = resultWithReadLock<bool>([&]{
+            return !_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures);
+        });
+        if (textureNeedsUpdate) {
             withWriteLock([&] { 
                 _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
             });
@@ -115,15 +122,17 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
 void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     // Fill in Uniforms structure
     ParticleUniforms particleUniforms;
-    particleUniforms.radius.start = _particleProperties.radius.range.start;
-    particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
-    particleUniforms.radius.finish = _particleProperties.radius.range.finish;
-    particleUniforms.radius.spread = _particleProperties.radius.gradient.spread;
-    particleUniforms.color.start = _particleProperties.getColorStart();
-    particleUniforms.color.middle = _particleProperties.getColorMiddle();
-    particleUniforms.color.finish = _particleProperties.getColorFinish();
-    particleUniforms.color.spread = _particleProperties.getColorSpread();
-    particleUniforms.lifespan = _particleProperties.lifespan;
+    withReadLock([&]{
+        particleUniforms.radius.start = _particleProperties.radius.range.start;
+        particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
+        particleUniforms.radius.finish = _particleProperties.radius.range.finish;
+        particleUniforms.radius.spread = _particleProperties.radius.gradient.spread;
+        particleUniforms.color.start = _particleProperties.getColorStart();
+        particleUniforms.color.middle = _particleProperties.getColorMiddle();
+        particleUniforms.color.finish = _particleProperties.getColorFinish();
+        particleUniforms.color.spread = _particleProperties.getColorSpread();
+        particleUniforms.lifespan = _particleProperties.lifespan;
+    });
     // Update particle uniforms
     memcpy(&_uniformBuffer.edit<ParticleUniforms>(), &particleUniforms, sizeof(ParticleUniforms));
 }
@@ -146,35 +155,26 @@ Item::Bound ParticleEffectEntityRenderer::getBound() {
 
 static const size_t VERTEX_PER_PARTICLE = 4;
 
-bool ParticleEffectEntityRenderer::emitting() const {
-    return (
-        _emitting &&
-        _particleProperties.emission.rate > 0.0f &&
-        _particleProperties.lifespan > 0.0f &&
-        _particleProperties.polar.start <= _particleProperties.polar.finish
-    );
-}
-
-void ParticleEffectEntityRenderer::createParticle(uint64_t now) {
+ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties) {
     CpuParticle particle;
 
-    const auto& accelerationSpread = _particleProperties.emission.acceleration.spread;
-    const auto& azimuthStart = _particleProperties.azimuth.start;
-    const auto& azimuthFinish = _particleProperties.azimuth.finish;
-    const auto& emitDimensions = _particleProperties.emission.dimensions;
-    const auto& emitAcceleration = _particleProperties.emission.acceleration.target;
-    auto emitOrientation = _particleProperties.emission.orientation;
-    const auto& emitRadiusStart = glm::max(_particleProperties.radiusStart, EPSILON); // Avoid math complications at center
-    const auto& emitSpeed = _particleProperties.emission.speed.target;
-    const auto& speedSpread = _particleProperties.emission.speed.spread;
-    const auto& polarStart = _particleProperties.polar.start;
-    const auto& polarFinish = _particleProperties.polar.finish;
+    const auto& accelerationSpread = particleProperties.emission.acceleration.spread;
+    const auto& azimuthStart = particleProperties.azimuth.start;
+    const auto& azimuthFinish = particleProperties.azimuth.finish;
+    const auto& emitDimensions = particleProperties.emission.dimensions;
+    const auto& emitAcceleration = particleProperties.emission.acceleration.target;
+    auto emitOrientation = particleProperties.emission.orientation;
+    const auto& emitRadiusStart = glm::max(particleProperties.radiusStart, EPSILON); // Avoid math complications at center
+    const auto& emitSpeed = particleProperties.emission.speed.target;
+    const auto& speedSpread = particleProperties.emission.speed.spread;
+    const auto& polarStart = particleProperties.polar.start;
+    const auto& polarFinish = particleProperties.polar.finish;
 
     particle.seed = randFloatInRange(-1.0f, 1.0f);
-    particle.expiration = now + (uint64_t)(_particleProperties.lifespan * USECS_PER_SECOND);
-    if (_particleProperties.emission.shouldTrail) {
-        particle.position = _modelTransform.getTranslation();
-        emitOrientation = _modelTransform.getRotation() * emitOrientation;
+    particle.expiration = now + (uint64_t)(particleProperties.lifespan * USECS_PER_SECOND);
+    if (particleProperties.emission.shouldTrail) {
+        particle.position = baseTransform.getTranslation();
+        emitOrientation = baseTransform.getRotation() * emitOrientation;
     }
 
     // Position, velocity, and acceleration
@@ -232,7 +232,7 @@ void ParticleEffectEntityRenderer::createParticle(uint64_t now) {
         particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
     }
 
-    _cpuParticles.push_back(particle);
+    return particle;
 }
 
 void ParticleEffectEntityRenderer::stepSimulation() {
@@ -244,14 +244,19 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     const auto now = usecTimestampNow();
     const auto interval = std::min<uint64_t>(USECS_PER_SECOND / 60, now - _lastSimulated);
     _lastSimulated = now;
+    
+    particle::Properties particleProperties;
+    withReadLock([&]{
+        particleProperties = _particleProperties;
+    });
 
-    if (emitting()) {
-        uint64_t emitInterval = (uint64_t)(USECS_PER_SECOND / _particleProperties.emission.rate);
-        if (interval >= _timeUntilNextEmit) {
+    if (_emitting && particleProperties.emitting()) {
+        uint64_t emitInterval = particleProperties.emitIntervalUsecs();
+        if (emitInterval > 0 && interval >= _timeUntilNextEmit) {
             auto timeRemaining = interval;
             while (timeRemaining > _timeUntilNextEmit) {
                 // emit particle
-                createParticle(now);
+                _cpuParticles.push_back(createParticle(now, _modelTransform, particleProperties));
                 _timeUntilNextEmit = emitInterval;
                 if (emitInterval < timeRemaining) {
                     timeRemaining -= emitInterval;
@@ -263,7 +268,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     }
 
     // Kill any particles that have expired or are over the max size
-    while (_cpuParticles.size() > _particleProperties.maxParticles || (!_cpuParticles.empty() && _cpuParticles.front().expiration <= now)) {
+    while (_cpuParticles.size() > particleProperties.maxParticles || (!_cpuParticles.empty() && _cpuParticles.front().expiration <= now)) {
         _cpuParticles.pop_front();
     }
 

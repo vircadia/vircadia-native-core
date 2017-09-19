@@ -27,11 +27,20 @@ Go to `Control Panel > System > Advanced System Settings > Environment Variables
 * Set "Variable name": `QT_CMAKE_PREFIX_PATH`
 * Set "Variable value": `C:\Qt\5.9.1\msvc2017_64\lib\cmake` 
 
-### Step 5. Installing OpenSSL
+### Step 5. Installing [vcpkg](https://github.com/Microsoft/vcpkg)
 
-Download and install the Win64 OpenSSL v1.0.2 Installer[https://slproweb.com/products/Win32OpenSSL.html].  
+ * Clone the VCPKG [repository](https://github.com/Microsoft/vcpkg)
+ * Follow the instructions in the [readme](https://github.com/Microsoft/vcpkg/blob/master/README.md) to bootstrap vcpkg
+   * Note, you may need to do these in a _Developer Command Prompt_
+ * Set an environment variable VCPKG_ROOT to the location of the cloned repository
+   * Close and re-open any command prompts after setting the environment variable so that they will pick up the change
 
-### Step 6. Running CMake to Generate Build Files
+### Step 6. Installing OpenSSL via vcpkg
+
+ * In the vcpkg directory, install the 64 bit OpenSSL package with the command `vcpkg install openssl:x64-windows`
+ * Once the build completes you should have a file `ssl.h` in `${VCPKG_ROOT}/installed/x64-windows/include/openssl`
+  
+### Step 7. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:
 ```
@@ -43,7 +52,7 @@ cmake .. -G "Visual Studio 15 Win64"
     
 Where `%HIFI_DIR%` is the directory for the highfidelity repository.     
 
-### Step 7. Making a Build
+### Step 8. Making a Build
 
 Open `%HIFI_DIR%\build\hifi.sln` using Visual Studio.
 
@@ -51,7 +60,7 @@ Change the Solution Configuration (next to the green play button) from "Debug" t
 
 Run `Build > Build Solution`.
 
-### Step 8. Testing Interface
+### Step 9. Testing Interface
 
 Create another environment variable (see Step #4)
 * Set "Variable name": `_NO_DEBUG_HEAP`
@@ -65,15 +74,19 @@ Note: You can also run Interface by launching it from command line or File Explo
 
 ## Troubleshooting
 
-For any problems after Step #6, first try this: 
+For any problems after Step #7, first try this: 
 * Delete your locally cloned copy of the highfidelity repository
 * Restart your computer
 * Redownload the [repository](https://github.com/highfidelity/hifi) 
-* Restart directions from Step #6
+* Restart directions from Step #7
 
 #### CMake gives you the same error message repeatedly after the build fails
 
 Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.
+
+#### CMake can't find OpenSSL
+
+Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.  Verify that your VCPKG_ROOT environment variable is set and pointing to the correct location.  Verify that the file `${VCPKG_ROOT}/installed/x64-windows/include/openssl/ssl.h` exists.
 
 #### Qt is throwing an error
 
