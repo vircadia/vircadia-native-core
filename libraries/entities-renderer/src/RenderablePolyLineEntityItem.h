@@ -58,6 +58,7 @@ protected:
                                               const bool isUVModeStretch,
                                               const float textureAspectRatio);
 
+    Transform _polylineTransform;
     QVector<glm::vec3> _lastPoints;
     QVector<glm::vec3> _lastNormals;
     QVector<glm::vec3> _lastStrokeColors;
@@ -67,7 +68,6 @@ protected:
     
     uint32_t _numVertices { 0 };
     bool _empty{ true };
-    QString _lastTextures;
     NetworkTexturePointer _texture;
     float _textureAspectRatio { 1.0f };
     QVector<glm::vec3> _vertices;

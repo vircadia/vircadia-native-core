@@ -123,14 +123,20 @@ bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
 }
 
 void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    static const QUrl DEFAULT_POLYLINE_TEXTURE = QUrl(PathUtils::resourcesPath() + "images/paintStroke.png");
+    QUrl entityTextures = DEFAULT_POLYLINE_TEXTURE;
     if (entity->texturesChanged()) {
         entity->resetTexturesChanged();
         auto textures = entity->getTextures();
-        QString path = textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : textures;
-        if (!_texture || _lastTextures != path) {
-            _lastTextures = path;
-            _texture = DependencyManager::get<TextureCache>()->getTexture(QUrl(path));
+        if (!textures.isEmpty()) {
+            entityTextures = QUrl(textures);
         }
+        _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
+    }
+    
+    
+    if (!_texture) {
+        _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
     }
 }
 
@@ -144,6 +150,10 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     auto strokeColorsChanged = entity->strokeColorsChanged();
     bool isUVModeStretch = entity->getIsUVModeStretch();
     entity->resetPolyLineChanged();
+
+    _polylineTransform = Transform();
+    _polylineTransform.setTranslation(entity->getPosition());
+    _polylineTransform.setRotation(entity->getRotation());
 
     if (pointsChanged) {
         _lastPoints = entity->getLinePoints();
@@ -274,17 +284,13 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
 
     gpu::Batch& batch = *args->_batch;
-    Transform transform = Transform();
-    
-    transform.setTranslation(getEntity().get()->getPosition());
-    transform.setRotation(getEntity().get()->getRotation());
-    batch.setModelTransform(Transform{ transform }.setScale(vec3(1)));
+    batch.setModelTransform(_polylineTransform);
     batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
 
     if (_texture && _texture->isLoaded()) {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
 
     float textureWidth = (float)_texture->getOriginalWidth();

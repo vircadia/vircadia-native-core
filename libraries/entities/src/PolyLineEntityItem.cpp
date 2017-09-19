@@ -22,7 +22,7 @@
 #include "PolyLineEntityItem.h"
 
 const float PolyLineEntityItem::DEFAULT_LINE_WIDTH = 0.1f;
-const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 70;
+const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 60;
 
 
 EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -191,7 +191,7 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
     } 
 
     // if Polyline has only one or fewer points, use default dimension settings
-    SpatiallyNestable::setScale(newScale);
+    setDimensions(newScale);
     EntityItem::setRegistrationPoint(newRegistrationPoint);
 }
 

@@ -77,7 +77,7 @@
             _isUvModeStretch = _savedSettings.currentTexture.brushType == "stretch",
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
-            MAX_POINTS_PER_LINE = 60;  // Quick fix for polyline points disappearing issue.
+            MAX_POINTS_PER_LINE = 52;  // Quick fix for polyline points disappearing issue.
                 
         function calculateStrokeNormal() {
             if (!_isMouseDrawing) {
