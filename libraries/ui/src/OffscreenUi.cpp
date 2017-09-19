@@ -675,7 +675,7 @@ class FileDialogListener : public ModalDialogListener {
 
 private slots:
     void onSelectedFile(QVariant file) {
-        _result = file;
+        _result = file.toUrl().toLocalFile();
         _finished = true;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         emit response(_result);
