@@ -151,7 +151,7 @@ glm::vec3 HMDScriptingInterface::getPosition() const {
 
 glm::quat HMDScriptingInterface::getOrientation() const {
     if (qApp->getActiveDisplayPlugin()->isHmd()) {
-        return glm::normalize(glm::quat_cast(getWorldHMDMatrix()));
+        return glmExtractRotation(getWorldHMDMatrix());
     }
     return glm::quat();
 }

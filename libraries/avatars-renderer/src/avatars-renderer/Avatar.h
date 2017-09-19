@@ -108,7 +108,6 @@ public:
     SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
     const SkeletonModelPointer getSkeletonModel() const { return _skeletonModel; }
     glm::vec3 getChestPosition() const;
-    float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
 
@@ -151,6 +150,7 @@ public:
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
+    virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
@@ -232,6 +232,7 @@ public:
 
     void animateScaleChanges(float deltaTime);
     void setTargetScale(float targetScale) override;
+    float getTargetScale() const { return _targetScale; }
 
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
@@ -253,6 +254,16 @@ public:
     void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
+
+    /**jsdoc
+     * Provides read only access to the current eye height of the avatar.
+     * @function Avatar.getEyeHeight
+     * @returns {number} eye height of avatar in meters
+     */
+    Q_INVOKABLE float getEyeHeight() const;
+
+    virtual float getModelScale() const { return _modelScale; }
+    virtual void setModelScale(float scale) { _modelScale = scale; }
 
 public slots:
 
@@ -356,6 +367,7 @@ private:
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
+    float _modelScale { 1.0f };
 
     static int _jointConesID;
 
@@ -365,7 +377,6 @@ private:
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
-
 };
 
 #endif // hifi_Avatar_h

@@ -1045,6 +1045,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
             AABox overlayFrameBox(low, dimensions);
 
             Transform overlayToWorldMatrix = overlay->getTransform();
+            overlayToWorldMatrix.setScale(1.0f);  // ignore inherited scale factor from parents
             glm::mat4 worldToOverlayMatrix = glm::inverse(overlayToWorldMatrix.getMatrix());
             glm::vec3 overlayFrameSearchPosition = glm::vec3(worldToOverlayMatrix * glm::vec4(center, 1.0f));
             glm::vec3 penetration;

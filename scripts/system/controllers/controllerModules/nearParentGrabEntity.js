@@ -146,11 +146,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.getTargetProps = function (controllerData) {
             // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(props.position, handPosition);
-                if (distance > NEAR_GRAB_RADIUS) {
+                if (distance > NEAR_GRAB_RADIUS * sensorScaleFactor) {
                     continue;
                 }
                 if (entityIsGrabbable(props)) {

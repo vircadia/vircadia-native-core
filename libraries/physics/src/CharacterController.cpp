@@ -12,14 +12,13 @@
 #include "CharacterController.h"
 
 #include <NumericalConstants.h>
+#include <AvatarConstants.h>
 
 #include "ObjectMotionState.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
-const float JUMP_SPEED = 3.5f;
-const float MAX_FALL_HEIGHT = 20.0f;
 
 #ifdef DEBUG_STATE_CHANGE
 #define SET_STATE(desiredState, reason) setState(desiredState, reason)
@@ -62,12 +61,11 @@ CharacterController::CharacterMotor::CharacterMotor(const glm::vec3& vel, const 
 }
 
 CharacterController::CharacterController() {
-    _floorDistance = MAX_FALL_HEIGHT;
+    _floorDistance = _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
 
     _targetVelocity.setValue(0.0f, 0.0f, 0.0f);
     _followDesiredBodyTransform.setIdentity();
     _followTimeRemaining = 0.0f;
-    _jumpSpeed = JUMP_SPEED;
     _state = State::Hover;
     _isPushingUp = false;
     _rayHitStartTime = 0;
@@ -265,13 +263,13 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         btVector3 endPos = startPos + linearDisplacement;
 
         btQuaternion startRot = bodyTransform.getRotation();
-        glm::vec2 currentFacing = getFacingDir2D(bulletToGLM(startRot));
-        glm::vec2 currentRight(currentFacing.y, -currentFacing.x);
-        glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
-        float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
-        float angularSpeed = deltaAngle / _followTimeRemaining;
-        float sign = copysignf(1.0f, glm::dot(desiredFacing, currentRight));
-        btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularSpeed * dt);
+        btQuaternion desiredRot = _followDesiredBodyTransform.getRotation();
+        if (desiredRot.dot(startRot) < 0.0f) {
+            desiredRot = -desiredRot;
+        }
+        btQuaternion deltaRot = desiredRot * startRot.inverse();
+        float angularSpeed = deltaRot.getAngle() / _followTimeRemaining;
+        btQuaternion angularDisplacement = btQuaternion(deltaRot.getAxis(), angularSpeed * dt);
         btQuaternion endRot = angularDisplacement * startRot;
 
         // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
@@ -376,8 +374,7 @@ void CharacterController::updateGravity() {
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         _gravity = 0.0f;
     } else {
-        const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
-        _gravity = DEFAULT_CHARACTER_GRAVITY;
+        _gravity = DEFAULT_AVATAR_GRAVITY;
     }
     if (_rigidBody) {
         _rigidBody->setGravity(_gravity * _currentUp);
@@ -653,7 +650,7 @@ void CharacterController::updateState() {
     const btScalar FLY_TO_GROUND_THRESHOLD = 0.1f * _radius;
     const btScalar GROUND_TO_FLY_THRESHOLD = 0.8f * _radius + _halfHeight;
     const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
-    const btScalar MIN_HOVER_HEIGHT = 2.5f;
+    const btScalar MIN_HOVER_HEIGHT = _scaleFactor * DEFAULT_AVATAR_MIN_HOVER_HEIGHT;
     const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
 
     // scan for distant floor
@@ -663,7 +660,7 @@ void CharacterController::updateState() {
     btScalar rayLength = _radius;
     int16_t collisionGroup = computeCollisionGroup();
     if (collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
-        rayLength += MAX_FALL_HEIGHT;
+        rayLength += _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
     } else {
         rayLength += MIN_HOVER_HEIGHT;
     }
@@ -717,11 +714,15 @@ void CharacterController::updateState() {
                 SET_STATE(State::Hover, "no ground");
             } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
                 SET_STATE(State::InAir, "takeoff done");
-                velocity += _jumpSpeed * _currentUp;
+
+                // compute jumpSpeed based on the scaled jump height for the default avatar in default gravity.
+                float jumpSpeed = sqrtf(2.0f * DEFAULT_AVATAR_GRAVITY * _scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT);
+                velocity += jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);
             }
             break;
         case State::InAir: {
+            const float JUMP_SPEED = _scaleFactor * DEFAULT_AVATAR_JUMP_SPEED;
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
             } else {
