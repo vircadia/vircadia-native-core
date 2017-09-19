@@ -467,7 +467,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
@@ -662,8 +662,6 @@ private:
     quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
-
-    bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
 

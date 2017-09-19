@@ -528,7 +528,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         // traverse
         float averageTreeTraverseTime = getAverageTreeTraverseTime();
-        statsString += QString().sprintf("                 Average tree traverse time:    %9.2f usecs\r\n", (double)averageTreeTraverseTime);
+        statsString += QString().sprintf("          Average tree traverse time:    %9.2f usecs\r\n\r\n", (double)averageTreeTraverseTime);
 
         // encode
         float averageEncodeTime = getAverageEncodeTime();

@@ -4696,12 +4696,8 @@ void Application::resetPhysicsReadyInformation() {
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
-        _viewFrustum.setOrientation(glm::quat());
-    }
-    // Clear entities out of view frustum
+    // Query the octree to refresh everything in view
+    _lastQueriedTime = 0;
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
     DependencyManager::get<AssetClient>()->clearCache();
@@ -5299,7 +5295,7 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
@@ -5704,8 +5700,6 @@ void Application::clearDomainOctreeDetails() {
 
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
-    _recentlyClearedDomain = true;
-
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
@@ -5752,14 +5746,10 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
-    // If we get a new EntityServer activated, do a "forceRedraw" query. This will send a degenerate
-    // query so that the server will think our next non-degenerate query is "different enough" to send
-    // us a full scene
-    if (_recentlyClearedDomain && node->getType() == NodeType::EntityServer) {
-        _recentlyClearedDomain = false;
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-            queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions, true);
-        }
+    // If we get a new EntityServer activated, reset lastQueried time
+    // so we will do a proper query during update
+    if (node->getType() == NodeType::EntityServer) {
+        _lastQueriedTime = 0;
     }
 
     if (node->getType() == NodeType::AudioMixer) {
