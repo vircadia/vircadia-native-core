@@ -39,10 +39,11 @@ public:
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
 
+    virtual void setWasAborted(bool wasAborted) override;
+
 public slots:
-    // all calls to FBXBaker::bake for FBXBaker instances must be from the same thread
-    // because the Autodesk SDK will cause a crash if it is called from multiple threads
     virtual void bake() override;
+    virtual void abort() override;
 
 signals:
     void sourceCopyReadyToLoad();
@@ -51,6 +52,7 @@ private slots:
     void bakeSourceCopy();
     void handleFBXNetworkReply();
     void handleBakedTexture();
+    void handleAbortedTexture();
 
 private:
     void setupOutputFolder();

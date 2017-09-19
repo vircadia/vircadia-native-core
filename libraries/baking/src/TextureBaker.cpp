@@ -50,6 +50,13 @@ void TextureBaker::bake() {
     }
 }
 
+void TextureBaker::abort() {
+    Baker::abort();
+
+    // flip our atomic bool so any ongoing texture processing is stopped
+    _abortProcessing.store(true);
+}
+
 const QStringList TextureBaker::getSupportedFormats() {
     auto formats = QImageReader::supportedImageFormats();
     QStringList stringFormats;
@@ -111,7 +118,11 @@ void TextureBaker::handleTextureNetworkReply() {
 
 void TextureBaker::processTexture() {
     auto processedTexture = image::processImage(_originalTexture, _textureURL.toString().toStdString(),
-                                                ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType);
+                                                ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, _abortProcessing);
+
+    if (shouldStop()) {
+        return;
+    }
 
     if (!processedTexture) {
         handleError("Could not process texture " + _textureURL.toString());
@@ -145,5 +156,11 @@ void TextureBaker::processTexture() {
     }
 
     qCDebug(model_baking) << "Baked texture" << _textureURL;
-    emit finished();
+    setIsFinished(true);
+}
+
+void TextureBaker::setWasAborted(bool wasAborted) {
+    Baker::setWasAborted(wasAborted);
+
+    qCDebug(model_baking) << "Aborted baking" << _textureURL;
 }

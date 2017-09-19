@@ -39,8 +39,11 @@ public:
     QString getDestinationFilePath() const { return _outputDirectory.absoluteFilePath(_bakedTextureFileName); }
     QString getBakedTextureFileName() const { return _bakedTextureFileName; }
 
+    virtual void setWasAborted(bool wasAborted) override;
+
 public slots:
     virtual void bake() override;
+    virtual void abort() override; 
 
 signals:
     void originalTextureLoaded();
@@ -58,6 +61,8 @@ private:
 
     QDir _outputDirectory;
     QString _bakedTextureFileName;
+
+    std::atomic<bool> _abortProcessing { false };
 };
 
 #endif // hifi_TextureBaker_h
