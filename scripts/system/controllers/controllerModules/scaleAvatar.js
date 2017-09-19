@@ -1,4 +1,4 @@
-//  handControllerGrab.js
+//  scaleAvatar.js
 //
 //  Created by Dante Ruiz on  9/11/17
 //
@@ -80,4 +80,5 @@
         dispatcherUtils.disableDispatcherModule("LeftScaleAvatar");
         dispatcherUtils.disableDispatcherModule("RightScaleAvatar");
     };
+    Script.scriptEnding.connect(this.cleanup);
 })();

@@ -29,7 +29,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/disableOtherModule.js",
     "controllerModules/farTrigger.js",
     "controllerModules/teleport.js",
-    "controllerModules/scaleAvatar.js"
+    "controllerModules/scaleAvatar.js",
+    "controllerModules/scaleEntity.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
