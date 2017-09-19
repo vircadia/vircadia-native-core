@@ -70,6 +70,7 @@ Rectangle {
     }
 
     property bool showPeaks: true;
+
     function enablePeakValues() {
         Audio.devices.input.peakValuesEnabled = true;
         Audio.devices.input.peakValuesEnabledChanged.connect(function(enabled) {
@@ -78,6 +79,7 @@ Rectangle {
             }
         });
     }
+
     function disablePeakValues() {
         root.showPeaks = false;
         Audio.devices.input.peakValuesEnabled = false;
@@ -202,12 +204,13 @@ Rectangle {
                         }
                     }
                 }
-                InputLevel {
+                InputPeak {
                     id: inputLevel
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     visible: (bar.currentIndex === 1 && selectedHMD && isVR) ||
-                             (bar.currentIndex === 0 && selectedDesktop && !isVR);
+                             (bar.currentIndex === 0 && selectedDesktop && !isVR) &&
+                             Audio.devices.input.peakValuesAvailable;
                 }
             }
         }

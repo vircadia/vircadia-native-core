@@ -105,14 +105,14 @@ AudioDeviceList::~AudioDeviceList() {
     auto& settingHMD = getSetting(true, _mode);
     auto& settingDesktop = getSetting(false, _mode);
     // store the selected device
-    foreach(AudioDevice adevice, _devices) {
-        if (adevice.selectedDesktop) {
-            qDebug() << "Saving Desktop for" << _mode << "name" << adevice.info.deviceName();
-            settingDesktop.set(adevice.info.deviceName());
+    foreach(std::shared_ptr<AudioDevice> adevice, _devices) {
+        if (adevice->selectedDesktop) {
+            qDebug() << "Saving Desktop for" << _mode << "name" << adevice->info.deviceName();
+            settingDesktop.set(adevice->info.deviceName());
         }
-        if (adevice.selectedHMD) {
-            qDebug() << "Saving HMD for" << _mode << "name" << adevice.info.deviceName();
-            settingHMD.set(adevice.info.deviceName());
+        if (adevice->selectedHMD) {
+            qDebug() << "Saving HMD for" << _mode << "name" << adevice->info.deviceName();
+            settingHMD.set(adevice->info.deviceName());
         }
     }
 }
@@ -123,15 +123,27 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
     }
 
     if (role == DeviceNameRole) {
-        return _devices.at(index.row()).display;
+        return _devices.at(index.row())->display;
     } else if (role == SelectedDesktopRole) {
-        return _devices.at(index.row()).selectedDesktop;
+        return _devices.at(index.row())->selectedDesktop;
     } else if (role == SelectedHMDRole) {
-        return _devices.at(index.row()).selectedHMD;
-    } else if (role == DeviceInfoRole) {
-        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row()).info);
+        return _devices.at(index.row())->selectedHMD;
+    } else if (role == InfoRole) {
+        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row())->info);
     } else {
         return QVariant();
+    }
+}
+
+QVariant AudioInputDeviceList::data(const QModelIndex& index, int role) const {
+    if (!index.isValid() || index.row() >= rowCount()) {
+        return QVariant();
+    }
+
+    if (role == PeakRole) {
+        return std::static_pointer_cast<AudioInputDevice>(_devices.at(index.row()))->peak;
+    } else {
+        return AudioDeviceList::data(index, role);
     }
 }
 
@@ -175,11 +187,11 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD
     selectedDevice = device;
 
     for (auto i = 0; i < _devices.size(); ++i) {
-        AudioDevice& device = _devices[i];
-        bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
-        if (isSelected && device.info != selectedDevice) {
+        std::shared_ptr<AudioDevice> device = _devices[i];
+        bool &isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
+        if (isSelected && device->info != selectedDevice) {
             isSelected = false;
-        } else if (device.info == selectedDevice) {
+        } else if (device->info == selectedDevice) {
             isSelected = true;
         }
     }
@@ -211,7 +223,7 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices, b
             isSelected = (device.info.deviceName() == savedDeviceName);
         }
         qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
-        _devices.push_back(device);
+        _devices.push_back(newDevice(device));
     }
 
     endResetModel();

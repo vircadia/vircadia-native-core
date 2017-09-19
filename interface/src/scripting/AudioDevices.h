@@ -33,8 +33,8 @@ class AudioDeviceList : public QAbstractListModel {
     Q_OBJECT
 
 public:
-    AudioDeviceList(QAudio::Mode mode = QAudio::AudioOutput) : _mode(mode) {}
-    ~AudioDeviceList() = default;
+    AudioDeviceList(QAudio::Mode mode = QAudio::AudioOutput);
+    virtual ~AudioDeviceList();
 
     virtual std::shared_ptr<AudioDevice> newDevice(const AudioDevice& device)
         { return std::make_shared<AudioDevice>(device); }
