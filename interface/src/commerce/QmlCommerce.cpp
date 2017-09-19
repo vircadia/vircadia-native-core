@@ -27,6 +27,31 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(wallet.data(), &Wallet::securityImageResult, this, &QmlCommerce::securityImageResult);
     connect(ledger.data(), &Ledger::historyResult, this, &QmlCommerce::historyResult);
     connect(wallet.data(), &Wallet::keyFilePathIfExistsResult, this, &QmlCommerce::keyFilePathIfExistsResult);
+    connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
+}
+
+void QmlCommerce::getLoginStatus() {
+    emit loginStatusResult(DependencyManager::get<AccountManager>()->isLoggedIn());
+}
+
+void QmlCommerce::getKeyFilePathIfExists() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->sendKeyFilePathIfExists();
+}
+
+void QmlCommerce::getWalletAuthenticatedStatus() {
+    auto wallet = DependencyManager::get<Wallet>();
+    emit walletAuthenticatedStatusResult(wallet->walletIsAuthenticatedWithPassphrase());
+}
+
+void QmlCommerce::getSecurityImage() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->getSecurityImage();
+}
+
+void QmlCommerce::chooseSecurityImage(const QString& imageFile) {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->chooseSecurityImage(imageFile);
 }
 
 void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
@@ -60,30 +85,20 @@ void QmlCommerce::history() {
     ledger->history(wallet->listPublicKeys());
 }
 
-void QmlCommerce::chooseSecurityImage(const QString& imageFile) {
-    auto wallet = DependencyManager::get<Wallet>();
-    wallet->chooseSecurityImage(imageFile);
-}
-
-void QmlCommerce::getSecurityImage() {
-    auto wallet = DependencyManager::get<Wallet>();
-    wallet->getSecurityImage();
-}
-
-void QmlCommerce::getLoginStatus() {
-    emit loginStatusResult(DependencyManager::get<AccountManager>()->isLoggedIn());
-}
-
 void QmlCommerce::setPassphrase(const QString& passphrase) {
-    emit passphraseSetupStatusResult(true);
+    auto wallet = DependencyManager::get<Wallet>();
+    if(wallet->getPassphrase() && !wallet->getPassphrase()->isEmpty() && !passphrase.isEmpty()) {
+        wallet->changePassphrase(passphrase);
+    } else {
+        wallet->setPassphrase(passphrase);
+    }
+    getWalletAuthenticatedStatus();
 }
 
-void QmlCommerce::getPassphraseSetupStatus() {
-    emit passphraseSetupStatusResult(false);
-}
-void QmlCommerce::getKeyFilePathIfExists() {
+void QmlCommerce::generateKeyPair() {
     auto wallet = DependencyManager::get<Wallet>();
-    wallet->sendKeyFilePathIfExists();
+    wallet->generateKeyPair();
+    getWalletAuthenticatedStatus();
 }
 
 void QmlCommerce::reset() {
@@ -91,4 +106,9 @@ void QmlCommerce::reset() {
     auto wallet = DependencyManager::get<Wallet>();
     ledger->reset();
     wallet->reset();
+}
+
+void QmlCommerce::account() {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->account();
 }

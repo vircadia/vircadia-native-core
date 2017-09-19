@@ -731,7 +731,7 @@ void SpatiallyNestable::setScale(float value) {
     }
 }
 
-const Transform SpatiallyNestable::getLocalTransform() const {
+Transform SpatiallyNestable::getLocalTransform() const {
     Transform result;
     _transformLock.withReadLock([&] {
         result =_transform;

@@ -36,6 +36,24 @@ Rectangle {
         return (root.parent !== null) && root.parent.objectName == "loader";
     }
 
+    property bool showPeaks: true;
+    function enablePeakValues() {
+        Audio.devices.input.peakValuesEnabled = true;
+        Audio.devices.input.peakValuesEnabledChanged.connect(function(enabled) {
+            if (!enabled && root.showPeaks) {
+                Audio.devices.input.peakValuesEnabled = true;
+            }
+        });
+    }
+    function disablePeakValues() {
+        root.showPeaks = false;
+        Audio.devices.input.peakValuesEnabled = false;
+    }
+
+    Component.onCompleted: enablePeakValues();
+    Component.onDestruction: disablePeakValues();
+    onVisibleChanged: visible ? enablePeakValues() : disablePeakValues();
+
     Column {
         y: 16; // padding does not work
         spacing: 16;
@@ -133,12 +151,13 @@ Rectangle {
                     onClicked: Audio.setInputDevice(info);
                 }
 
-                InputLevel {
-                    id: level;
+                InputPeak {
+                    id: inputPeak;
+                    visible: Audio.devices.input.peakValuesAvailable;
+                    peak: model.peak;
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.right: parent.right
                     anchors.rightMargin: 30
-                    visible: selected;
                 }
             }
         }

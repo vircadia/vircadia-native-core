@@ -553,7 +553,7 @@ void Avatar::updateRenderItem(render::Transaction& transaction) {
     }
 }
 
-void Avatar::postUpdate(float deltaTime) {
+void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
     if (isMyAvatar() ? showMyLookAtVectors : showOtherLookAtVectors) {
         const float EYE_RAY_LENGTH = 10.0;
@@ -577,6 +577,8 @@ void Avatar::postUpdate(float deltaTime) {
             DebugDraw::getInstance().drawRay(rightEyePosition, rightEyePosition + rightEyeRotation * Vectors::UNIT_Z * EYE_RAY_LENGTH, RED);
         }
     }
+
+    fixupModelsInScene(scene);
 }
 
 void Avatar::render(RenderArgs* renderArgs) {
@@ -647,8 +649,6 @@ void Avatar::render(RenderArgs* renderArgs) {
     if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
         return;
     }
-
-    fixupModelsInScene(renderArgs->_scene);
 
     if (showCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
         PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");

@@ -29,7 +29,6 @@ Rectangle {
     property bool purchasesReceived: false;
     property bool balanceReceived: false;
     property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     property string itemId: "";
     property string itemHref: "";
     property double balanceAfterPurchase: 0;
@@ -41,15 +40,28 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
 
+        onAccountResult: {
+            if (result.status === "success") {
+                commerce.getKeyFilePathIfExists();
+            } else {
+                // unsure how to handle a failure here. We definitely cannot proceed.
+            }
+        }
+
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
                 root.activeView = "initialize";
+                commerce.account();
+            }
+        }
+
+        onKeyFilePathIfExistsResult: {
+            if (path === "" && root.activeView !== "notSetUp") {
+                root.activeView = "notSetUp";
+            } else if (path !== "" && root.activeView === "initialize") {
                 commerce.getSecurityImage();
-                commerce.getKeyFilePathIfExists();
-                commerce.balance();
-                commerce.inventory();
             }
         }
 
@@ -57,8 +69,8 @@ Rectangle {
             securityImageResultReceived = true;
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
-                root.activeView = "checkoutMain";
+            } else if (exists && root.activeView === "initialize") {
+                commerce.getWalletAuthenticatedStatus();
             } else if (exists) {
                 // just set the source again (to be sure the change was noticed)
                 securityImage.source = "";
@@ -66,12 +78,17 @@ Rectangle {
             }
         }
 
-        onKeyFilePathIfExistsResult: {
-            keyFilePathIfExistsResultReceived = true;
-            if (path === "" && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
+        onWalletAuthenticatedStatusResult: {
+            if (!isAuthenticated && !passphraseModal.visible) {
+                passphraseModal.visible = true;
+            } else if (isAuthenticated) {
                 root.activeView = "checkoutMain";
+                if (!balanceReceived) {
+                    commerce.balance();
+                }
+                if (!purchasesReceived) {
+                    commerce.inventory();
+                }
             }
         }
 
@@ -89,8 +106,8 @@ Rectangle {
                 console.log("Failed to get balance", result.data.message);
             } else {
                 root.balanceReceived = true;
-                hfcBalanceText.text = (parseFloat(result.data.balance/100).toFixed(2)) + " HFC";
-                balanceAfterPurchase = parseFloat(result.data.balance/100) - root.itemPriceFull/100;
+                hfcBalanceText.text = result.data.balance + " HFC";
+                balanceAfterPurchase = result.data.balance - root.itemPriceFull;
                 root.setBuyText();
             }
         }
@@ -108,10 +125,6 @@ Rectangle {
                 root.setBuyText();
             }
         }
-    }
-
-    HifiWallet.SecurityImageModel {
-        id: securityImageModel;
     }
 
     //
@@ -195,11 +208,10 @@ Rectangle {
             securityImageResultReceived = false;
             purchasesReceived = false;
             balanceReceived = false;
-            keyFilePathIfExistsResultReceived = false;
             commerce.getLoginStatus();
         }
     }
-        
+
     HifiWallet.NeedsLogIn {
         id: needsLogIn;
         visible: root.activeView === "needsLogIn";
@@ -221,8 +233,21 @@ Rectangle {
         }
     }
 
+    HifiWallet.PassphraseModal {
+        id: passphraseModal;
+        visible: false;
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: parent.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
 
-    
+        Connections {
+            onSendSignalToParent: {
+                sendToScript(msg);
+            }
+        }
+    }
+
     //
     // "WALLET NOT SET UP" START
     //
@@ -233,7 +258,7 @@ Rectangle {
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         RalewayRegular {
             id: notSetUpText;
             text: "<b>Your wallet isn't set up.</b><br><br>Set up your Wallet (no credit card necessary) to claim your <b>free HFC</b> " +
@@ -264,7 +289,7 @@ Rectangle {
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: 24;
-        
+
             // "Cancel" button
             HifiControlsUit.Button {
                 id: cancelButton;
@@ -553,7 +578,7 @@ Rectangle {
                 }
                 RalewayRegular {
                     id: balanceAfterPurchaseText;
-                    text: balanceAfterPurchase.toFixed(2) + " HFC";
+                    text: balanceAfterPurchase + " HFC";
                     // Text size
                     size: balanceAfterPurchaseTextLabel.size;
                     // Anchors
@@ -648,7 +673,7 @@ Rectangle {
                     sendToScript({method: 'checkout_goToPurchases'});
                 }
             }
-        
+
             RalewayRegular {
                 id: buyText;
                 // Text size
@@ -687,7 +712,7 @@ Rectangle {
         anchors.bottom: root.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         RalewayRegular {
             id: completeText;
             text: "<b>Purchase Complete!</b><br><br>You bought <b>" + (itemNameText.text) + "</b> by <b>" + (itemAuthorText.text) + "</b>";
@@ -706,7 +731,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        
+
         Item {
             id: checkoutSuccessActionButtonsContainer;
             // Size
@@ -756,7 +781,7 @@ Rectangle {
                 }
             }
         }
-        
+
         Item {
             id: continueShoppingButtonContainer;
             // Size
@@ -799,7 +824,7 @@ Rectangle {
         anchors.bottom: root.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        
+
         RalewayRegular {
             id: failureHeaderText;
             text: "<b>Purchase Failed.</b><br>Your Purchases and HFC balance haven't changed.";
@@ -818,7 +843,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        
+
         RalewayRegular {
             id: failureErrorText;
             // Text size
@@ -836,7 +861,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        
+
         Item {
             id: backToMarketplaceButtonContainer;
             // Size
@@ -892,7 +917,7 @@ Rectangle {
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 root.itemPriceFull = message.params.itemPrice;
-                itemPriceText.text = root.itemPriceFull === 0 ? "Free" : "<b>" + (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC</b>";
+                itemPriceText.text = root.itemPriceFull === 0 ? "Free" : "<b>" + root.itemPriceFull + " HFC</b>";
                 itemHref = message.params.itemHref;
                 if (itemHref.indexOf('.json') === -1) {
                     root.itemIsJson = false;

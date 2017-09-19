@@ -47,11 +47,27 @@ Item {
     HifiControlsUit.Button {
         color: hifi.buttons.black;
         colorScheme: hifi.colorSchemes.dark;
-        anchors.bottom: helpText.bottom;
+        anchors.bottom: resetButton.top;
+        anchors.bottomMargin: 15;
         anchors.horizontalCenter: parent.horizontalCenter;
         height: 50;
         width: 250;
-        text: "Testing: Reset Wallet!";
+        text: "DEBUG: Clear Cached Passphrase";
+        onClicked: {
+            commerce.setPassphrase("");
+            sendSignalToWallet({method: 'passphraseReset'});
+        }
+    }
+    HifiControlsUit.Button {
+        id: resetButton;
+        color: hifi.buttons.red;
+        colorScheme: hifi.colorSchemes.dark;
+        anchors.bottom: helpText.bottom;
+        anchors.bottomMargin: 15;
+        anchors.horizontalCenter: parent.horizontalCenter;
+        height: 50;
+        width: 250;
+        text: "DEBUG: Reset Wallet!";
         onClicked: {
             commerce.reset();
             sendSignalToWallet({method: 'walletReset'});

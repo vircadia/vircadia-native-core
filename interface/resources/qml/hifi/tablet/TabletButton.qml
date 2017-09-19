@@ -3,6 +3,8 @@ import QtGraphicalEffects 1.0
 
 Item {
     id: tabletButton
+
+    property string captionColorOverride: ""
     property var uuid;
     property string icon: "icons/tablet-icons/edit-i.svg"
     property string hoverIcon: tabletButton.icon
@@ -102,7 +104,7 @@ Item {
 
     Text {
         id: text
-        color: "#ffffff"
+        color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
         text: tabletButton.text
         font.bold: true
         font.pixelSize: 18

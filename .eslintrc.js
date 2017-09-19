@@ -54,7 +54,8 @@ module.exports = {
         "Window": false,
         "XMLHttpRequest": false,
         "location": false,
-        "print": false
+        "print": false,
+        "module": false
     },
     "rules": {
         "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
