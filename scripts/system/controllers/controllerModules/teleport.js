@@ -8,11 +8,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+/* jslint bitwise: true */
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
-   Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+   enableDispatcherModule, disableDispatcherModule, Messages, makeDispatcherModuleParameters, makeRunningValues, Vec3,
+   LaserPointers, RayPick, HMD, Uuid, AvatarList
 */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
@@ -111,7 +111,7 @@ var seatEnd = {
     url: SEAT_MODEL_URL,
     dimensions: TARGET_MODEL_DIMENSIONS,
     ignoreRayIntersection: true
-}
+};
 
 var teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
                             {name: "teleport", path: teleportPath, end: teleportEnd},
@@ -228,8 +228,8 @@ function Teleporter(hand) {
 
     this.buttonPress = function(value) {
         _this.buttonValue = value;
-    }
-    
+    };
+
     this.parameters = makeDispatcherModuleParameters(
         80,
         this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
@@ -247,9 +247,36 @@ function Teleporter(hand) {
                 _this.state = TELEPORTER_STATES.TARGETTING;
             }
         }, COOL_IN_DURATION);
+
+        // pad scale with avatar size
+        var AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS = Vec3.multiply(MyAvatar.sensorToWorldScale, TARGET_MODEL_DIMENSIONS);
+
+        if (!Vec3.equal(AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS, cancelEnd.dimensions)) {
+            cancelEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
+            teleportEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
+            seatEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
+
+            teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
+                                    {name: "teleport", path: teleportPath, end: teleportEnd},
+                                    {name: "seat", path: seatPath, end: seatEnd}];
+
+            LaserPointers.editRenderState(this.teleportRayHandVisible, "cancel", teleportRenderStates[0]);
+            LaserPointers.editRenderState(this.teleportRayHandInvisible, "cancel", teleportRenderStates[0]);
+            LaserPointers.editRenderState(this.teleportRayHeadVisible, "cancel", teleportRenderStates[0]);
+            LaserPointers.editRenderState(this.teleportRayHeadInvisible, "cancel", teleportRenderStates[0]);
+
+            LaserPointers.editRenderState(this.teleportRayHandVisible, "teleport", teleportRenderStates[1]);
+            LaserPointers.editRenderState(this.teleportRayHandInvisible, "teleport", teleportRenderStates[1]);
+            LaserPointers.editRenderState(this.teleportRayHeadVisible, "teleport", teleportRenderStates[1]);
+            LaserPointers.editRenderState(this.teleportRayHeadInvisible, "teleport", teleportRenderStates[1]);
+
+            LaserPointers.editRenderState(this.teleportRayHandVisible, "seat", teleportRenderStates[2]);
+            LaserPointers.editRenderState(this.teleportRayHandInvisible, "seat", teleportRenderStates[2]);
+            LaserPointers.editRenderState(this.teleportRayHeadVisible, "seat", teleportRenderStates[2]);
+            LaserPointers.editRenderState(this.teleportRayHeadInvisible, "seat", teleportRenderStates[2]);
+        }
     };
 
-    
     this.isReady = function(controllerData, deltaTime) {
         var otherModule = this.getOtherModule();
         if (_this.buttonValue !== 0 && !otherModule.active) {
@@ -259,7 +286,7 @@ function Teleporter(hand) {
         }
         return makeRunningValues(false, [], []);
     };
-    
+
     this.run = function(controllerData, deltaTime) {
         //_this.state = TELEPORTER_STATES.TARGETTING;
 
@@ -301,7 +328,6 @@ function Teleporter(hand) {
             } else {
                 result = LaserPointers.getPrevRayPickResult(_this.teleportRayHandVisible);
             }
-            
             teleportLocationType = getTeleportTargetType(result);
         }
 
@@ -327,7 +353,7 @@ function Teleporter(hand) {
         if (_this.buttonValue !== 0) {
             return makeRunningValues(true, [], []);
         }
-        
+
         if (target === TARGET.NONE || target === TARGET.INVALID || this.state === TELEPORTER_STATES.COOL_IN) {
             // Do nothing
         } else if (target === TARGET.SEAT) {
@@ -362,7 +388,7 @@ function Teleporter(hand) {
         }
     };
 }
-    
+
     // related to repositioning the avatar after you teleport
     var FOOT_JOINT_NAMES = ["RightToe_End", "RightToeBase", "RightFoot"];
     var DEFAULT_ROOT_TO_FOOT_OFFSET = 0.5;
@@ -475,7 +501,7 @@ function Teleporter(hand) {
         disableDispatcherModule("RightTeleporter");
     }
     Script.scriptEnding.connect(cleanup);
-    
+
     var setIgnoreEntities = function() {
         LaserPointers.setIgnoreEntities(teleporter.teleportRayRightVisible, ignoredEntities);
         LaserPointers.setIgnoreEntities(teleporter.teleportRayRightInvisible, ignoredEntities);
@@ -483,8 +509,8 @@ function Teleporter(hand) {
         LaserPointers.setIgnoreEntities(teleporter.teleportRayLeftInvisible, ignoredEntities);
         LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadVisible, ignoredEntities);
         LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadInvisible, ignoredEntities);
-    }
-    
+    };
+
     var isDisabled = false;
     var handleTeleportMessages = function(channel, message, sender) {
         if (sender === MyAvatar.sessionUUID) {
@@ -501,7 +527,9 @@ function Teleporter(hand) {
                 if (message === 'none') {
                     isDisabled = false;
                 }
-            } else if (channel === 'Hifi-Teleport-Ignore-Add' && !Uuid.isNull(message) && ignoredEntities.indexOf(message) === -1) {
+            } else if (channel === 'Hifi-Teleport-Ignore-Add' &&
+                       !Uuid.isNull(message) &&
+                       ignoredEntities.indexOf(message) === -1) {
                 ignoredEntities.push(message);
                 setIgnoreEntities();
             } else if (channel === 'Hifi-Teleport-Ignore-Remove' && !Uuid.isNull(message)) {
@@ -513,7 +541,7 @@ function Teleporter(hand) {
             }
         }
     };
-    
+
     Messages.subscribe('Hifi-Teleport-Disabler');
     Messages.subscribe('Hifi-Teleport-Ignore-Add');
     Messages.subscribe('Hifi-Teleport-Ignore-Remove');

@@ -602,11 +602,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.isTargetIDValid = function() {
-            var entityProperties = Entities.getEntityProperties(this.targetEntityID);
-            for (var propertry in entityProperties) {
-                return true;
-            }
-            return false;
+            var entityProperties = Entities.getEntityProperties(this.targetEntityID, ["type"]);
+            return "type" in entityProperties;
         };
 
         this.isReady = function (controllerData, deltaTime) {
