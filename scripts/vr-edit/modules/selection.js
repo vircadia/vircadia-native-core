@@ -8,9 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Selection */
+/* global SelectionManager */
 
-Selection = function (side) {
+SelectionManager = function (side) {
     // Manages set of selected entities. Currently supports just one set of linked entities.
 
     "use strict";
@@ -38,8 +38,8 @@ Selection = function (side) {
 
 
 
-    if (!this instanceof Selection) {
-        return new Selection(side);
+    if (!this instanceof SelectionManager) {
+        return new SelectionManager(side);
     }
 
     function traverseEntityTree(id, selection, selectionProperties) {
@@ -781,4 +781,4 @@ Selection = function (side) {
     };
 };
 
-Selection.prototype = {};
+SelectionManager.prototype = {};

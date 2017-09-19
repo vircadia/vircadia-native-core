@@ -59,7 +59,7 @@
         Handles,
         Highlights,
         Laser,
-        Selection,
+        SelectionManager,
         ToolIcon,
         ToolsMenu,
 
@@ -400,7 +400,7 @@
             return new Editor();
         }
 
-        selection = new Selection(side);
+        selection = new SelectionManager(side);
         highlights = new Highlights(side);
         handles = new Handles(side);
 
