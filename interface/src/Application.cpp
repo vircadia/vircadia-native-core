@@ -6687,9 +6687,8 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
 
     // Delete temporary directories created from downloads
     if (filePath.contains(".fbx")) {
-        qCDebug(interfaceapp) << "gonna try to remove the temp dir: " << filePath;
         QString tempPath = filePath.remove(filePath.section("/", -1));
-        qCDebug(interfaceapp) << tempPath;
+        qCDebug(interfaceapp) << "Removing temporary path: " << tempPath;
         qCDebug(interfaceapp) << QDir(tempPath).removeRecursively();
     }
 }
