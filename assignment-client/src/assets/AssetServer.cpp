@@ -530,7 +530,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
             bool isSkybox = query.hasQueryItem("skybox");
             if (isSkybox) {
                 writeMetaFile(originalAssetHash);
-                maybeBake(originalAssetHash, assetPath);
+                maybeBake(assetPath, originalAssetHash);
             }
         }
     } else {
