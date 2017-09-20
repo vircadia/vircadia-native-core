@@ -393,9 +393,6 @@ void CharacterController::setState(State desiredState) {
     }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 void CharacterController::updateGravity() {
     int16_t collisionGroup = computeCollisionGroup();
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
@@ -408,9 +405,6 @@ void CharacterController::updateGravity() {
     }
 }
 
->>>>>>> 5e5b77fbaaeff61a26144a240329eca70765c1a9
-=======
->>>>>>> 4d904bd5ce7d7b1a805c2f8fbdda630afc27576f
 void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale) {
     float x = scale.x;
     float z = scale.z;
