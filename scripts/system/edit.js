@@ -1463,7 +1463,6 @@ function onFileSaveChanged(filename) {
 }
 
 function onFileOpenChanged(filename) {
-    Window.openFileChanged.disconnect(onFileOpenChanged);
     var importURL = null;
     if (filename !== "") {
         importURL = "file:///" + filename;
