@@ -59,7 +59,8 @@ createControllerDisplay = function(config) {
         },
 
         setPartVisible: function(partName, visible) {
-            return;
+            // Disabled
+            /*
             if (partName in this.partOverlays) {
                 for (var i = 0; i < this.partOverlays[partName].length; ++i) {
                     Overlays.editOverlay(this.partOverlays[partName][i], {
@@ -67,6 +68,7 @@ createControllerDisplay = function(config) {
                     });
                 }
             }
+            */
         },
 
         setLayerForPart: function(partName, layerName) {
@@ -85,12 +87,45 @@ createControllerDisplay = function(config) {
                     }
                 }
             }
+        },
+
+        resize: function(sensorScaleFactor) {
+            if (this.overlays.length >= 0) {
+                var controller = config.controllers[0];
+                var position = controller.position;
+
+                // first overlay is main body.
+                var overlayID = this.overlays[0];
+                var localPosition = Vec3.multiply(sensorScaleFactor, Vec3.sum(Vec3.multiplyQbyV(controller.rotation, controller.naturalPosition), position));
+                var dimensions = Vec3.multiply(sensorScaleFactor, controller.dimensions);
+
+                Overlays.editOverlay(overlayID, {
+                    dimensions: dimensions,
+                    localPosition: localPosition
+                });
+
+                if (controller.parts) {
+                    var i = 1;
+                    for (var partName in controller.parts) {
+                        overlayID = this.overlays[i++];
+                        var part = controller.parts[partName];
+                        var partPosition = Vec3.multiply(sensorScaleFactor, Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition)));
+                        var partDimensions = Vec3.multiply(sensorScaleFactor, part.naturalDimensions);
+                        Overlays.editOverlay(overlayID, {
+                            dimensions: partDimensions,
+                            localPosition: partPosition
+                        });
+                    }
+                }
+            }
         }
     };
+
     var mapping = Controller.newMapping(controllerDisplay.mappingName);
     for (var i = 0; i < config.controllers.length; ++i) {
         var controller = config.controllers[i];
         var position = controller.position;
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
 
         if (controller.naturalPosition) {
             position = Vec3.sum(Vec3.multiplyQbyV(controller.rotation, controller.naturalPosition), position);
@@ -98,9 +133,9 @@ createControllerDisplay = function(config) {
 
         var overlayID = Overlays.addOverlay("model", {
             url: controller.modelURL,
-            dimensions: controller.dimensions,
+            dimensions: Vec3.multiply(sensorScaleFactor, controller.dimensions),
             localRotation: controller.rotation,
-            localPosition: position,
+            localPosition: Vec3.multiply(sensorScaleFactor, position),
             parentID: PARENT_ID,
             parentJointIndex: controller.jointIndex,
             ignoreRayIntersection: true
@@ -176,8 +211,8 @@ createControllerDisplay = function(config) {
                     });
                 } else if (part.type === "joystick") {
                     (function(controller, overlayID, part) {
-                        const xInput = resolveHardware(part.xInput);
-                        const yInput = resolveHardware(part.yInput);
+                        var xInput = resolveHardware(part.xInput);
+                        var yInput = resolveHardware(part.yInput);
 
                         var xvalue = 0;
                         var yvalue = 0;
@@ -190,21 +225,20 @@ createControllerDisplay = function(config) {
                                 offset = Vec3.multiplyQbyV(rotation, part.originOffset);
                                 offset = Vec3.subtract(part.originOffset, offset);
                             }
-                            
+
                             var partPosition = Vec3.sum(controller.position,
                                     Vec3.multiplyQbyV(controller.rotation, Vec3.sum(offset, part.naturalPosition)));
 
-                            var partRotation = Quat.multiply(controller.rotation, rotation)
+                            var partRotation = Quat.multiply(controller.rotation, rotation);
 
                             return {
                                 position: partPosition,
                                 rotation: partRotation
-                            }
+                            };
                         }
 
                         mapping.from([xInput]).peek().to(function(value) {
                             xvalue = value;
-                            //print(overlayID, xvalue.toFixed(3), yvalue.toFixed(3));
                             var posRot = calculatePositionAndRotation(xvalue, yvalue);
                             Overlays.editOverlay(overlayID, {
                                 localPosition: posRot.position,
@@ -224,10 +258,9 @@ createControllerDisplay = function(config) {
 
                 } else if (part.type === "linear") {
                     (function(controller, overlayID, part) {
-                        const input = resolveHardware(part.input);
+                        var input = resolveHardware(part.input);
 
                         mapping.from([input]).peek().to(function(value) {
-                            //print(value);
                             var axis = Vec3.multiplyQbyV(controller.rotation, part.axis);
                             var offset = Vec3.multiply(part.maxTranslation * value, axis);
 
@@ -256,6 +289,7 @@ createControllerDisplay = function(config) {
         }
     }
     Controller.enableMapping(controllerDisplay.mappingName);
+    controllerDisplay.resize(MyAvatar.sensorToWorldScale);
     return controllerDisplay;
 };
 

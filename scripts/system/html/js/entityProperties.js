@@ -554,6 +554,7 @@ function loaded() {
 
         var elCloneable = document.getElementById("property-cloneable");
         var elCloneableDynamic = document.getElementById("property-cloneable-dynamic");
+        var elCloneableAvatarEntity = document.getElementById("property-cloneable-avatarEntity");
         var elCloneableGroup = document.getElementById("group-cloneable-group");
         var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
         var elCloneableLimit = document.getElementById("property-cloneable-limit");
@@ -844,25 +845,29 @@ function loaded() {
                             parsedUserData = JSON.parse(properties.userData);
 
                             if ("grabbableKey" in parsedUserData) {
-                                if ("grabbable" in parsedUserData["grabbableKey"]) {
-                                    elGrabbable.checked = parsedUserData["grabbableKey"].grabbable;
+                                var grabbableData = parsedUserData["grabbableKey"];
+                                if ("grabbable" in grabbableData) {
+                                    elGrabbable.checked = grabbableData.grabbable;
                                 }
-                                if ("wantsTrigger" in parsedUserData["grabbableKey"]) {
-                                    elWantsTrigger.checked = parsedUserData["grabbableKey"].wantsTrigger;
+                                if ("wantsTrigger" in grabbableData) {
+                                    elWantsTrigger.checked = grabbableData.wantsTrigger;
                                 }
-                                if ("ignoreIK" in parsedUserData["grabbableKey"]) {
-                                    elIgnoreIK.checked = parsedUserData["grabbableKey"].ignoreIK;
+                                if ("ignoreIK" in grabbableData) {
+                                    elIgnoreIK.checked = grabbableData.ignoreIK;
                                 }
-                                if ("cloneable" in parsedUserData["grabbableKey"]) {
-                                    elCloneable.checked = parsedUserData["grabbableKey"].cloneable;
+                                if ("cloneable" in grabbableData) {
+                                    elCloneable.checked = grabbableData.cloneable;
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                                    elCloneableDynamic.checked = parsedUserData["grabbableKey"].cloneDynamic ? parsedUserData["grabbableKey"].cloneDynamic : properties.dynamic;
+                                    elCloneableDynamic.checked = grabbableData.cloneDynamic ? grabbableData.cloneDynamic : properties.dynamic;
                                     if (elCloneable.checked) {
-                                      if ("cloneLifetime" in parsedUserData["grabbableKey"]) {
-                                          elCloneableLifetime.value = parsedUserData["grabbableKey"].cloneLifetime ? parsedUserData["grabbableKey"].cloneLifetime : 300;
+                                      if ("cloneLifetime" in grabbableData) {
+                                          elCloneableLifetime.value = grabbableData.cloneLifetime ? grabbableData.cloneLifetime : 300;
                                       }
-                                      if ("cloneLimit" in parsedUserData["grabbableKey"]) {
-                                          elCloneableLimit.value = parsedUserData["grabbableKey"].cloneLimit ? parsedUserData["grabbableKey"].cloneLimit : 0;
+                                      if ("cloneLimit" in grabbableData) {
+                                          elCloneableLimit.value = grabbableData.cloneLimit ? grabbableData.cloneLimit : 0;
+                                      }
+                                      if ("cloneAvatarEntity" in grabbableData) {
+                                          elCloneableAvatarEntity.checked = grabbableData.cloneAvatarEntity ? grabbableData.cloneAvatarEntity : false;
                                       }
                                     }
                                 }
@@ -1114,9 +1119,14 @@ function loaded() {
             }
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, properties.dynamic);
         });
-        elCloneableDynamic.addEventListener('change', function (event){
+        elCloneableDynamic.addEventListener('change', function(event) {
             userDataChanger("grabbableKey", "cloneDynamic", event.target, elUserData, -1);
         });
+
+        elCloneableAvatarEntity.addEventListener('change', function(event) {
+            userDataChanger("grabbableKey", "cloneAvatarEntity", event.target, elUserData, -1);
+        });
+
         elCloneable.addEventListener('change', function (event) {
             var checked = event.target.checked;
             if (checked) {
@@ -1124,6 +1134,7 @@ function loaded() {
                         cloneLifetime: elCloneableLifetime,
                         cloneLimit: elCloneableLimit,
                         cloneDynamic: elCloneableDynamic,
+                        cloneAvatarEntity: elCloneableAvatarEntity,
                         cloneable: event.target,
                         grabbable: null
                     }, elUserData, {});
@@ -1134,6 +1145,7 @@ function loaded() {
                         cloneLifetime: null,
                         cloneLimit: null,
                         cloneDynamic: null,
+                        cloneAvatarEntity: null,
                         cloneable: false
                     }, elUserData, {});
                 elCloneableGroup.style.display = "none";

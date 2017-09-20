@@ -121,13 +121,18 @@ bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
 }
 
 void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    static const QUrl DEFAULT_POLYLINE_TEXTURE = QUrl(PathUtils::resourcesPath() + "images/paintStroke.png");
+    QUrl entityTextures = DEFAULT_POLYLINE_TEXTURE;
     if (entity->texturesChanged()) {
         entity->resetTexturesChanged();
         auto textures = entity->getTextures();
-        QString path = textures.isEmpty() ? PathUtils::resourcesPath() + "images/paintStroke.png" : textures;
-        if (!_texture || _lastTextures != path) {
-            _texture = DependencyManager::get<TextureCache>()->getTexture(QUrl(path));
+        if (!textures.isEmpty()) {
+            entityTextures = QUrl(textures);
         }
+    }
+
+    if (!_texture || _texture->getURL() != entityTextures) {
+        _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
     }
 }
 
@@ -139,6 +144,10 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     auto strokeWidthsChanged = entity->strokeWidthsChanged();
     auto normalsChanged = entity->normalsChanged();
     entity->resetPolyLineChanged();
+
+    _polylineTransform = Transform();
+    _polylineTransform.setTranslation(entity->getPosition());
+    _polylineTransform.setRotation(entity->getRotation());
 
     if (pointsChanged) {
         _lastPoints = entity->getLinePoints();
@@ -217,13 +226,13 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
 
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(Transform{ _modelTransform }.setScale(vec3(1)));
+    batch.setModelTransform(_polylineTransform);
     batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
 
-    if (_texture->isLoaded()) {
+    if (_texture && _texture->isLoaded()) {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
 
     batch.setInputFormat(polylineFormat);

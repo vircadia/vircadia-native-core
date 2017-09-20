@@ -137,48 +137,11 @@ Item {
             }
         }
     }
-    // Left gray MouseArea
     MouseArea {
-        anchors.left: parent.left;
-        anchors.right: textContainer.left;
-        anchors.top: textContainer.top;
-        anchors.bottom: textContainer.bottom;
+        anchors.fill: parent
         acceptedButtons: Qt.LeftButton
         onClicked: {
-            letterbox.visible = false
-        }
-    }
-    // Right gray MouseArea
-    MouseArea {
-        anchors.left: textContainer.left;
-        anchors.right: parent.left;
-        anchors.top: textContainer.top;
-        anchors.bottom: textContainer.bottom;
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false
-        }
-    }
-    // Top gray MouseArea
-    MouseArea {
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: parent.top;
-        anchors.bottom: textContainer.top;
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false
-        }
-    }
-    // Bottom gray MouseArea
-    MouseArea {
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: textContainer.bottom;
-        anchors.bottom: parent.bottom;
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false
+            letterbox.visible = false;
         }
     }
 }

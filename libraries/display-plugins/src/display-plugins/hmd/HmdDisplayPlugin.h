@@ -27,8 +27,8 @@ public:
     bool isHmd() const override final { return true; }
     float getIPD() const override final { return _ipd; }
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
-    glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override final { return _eyeProjections[eye]; }
-    glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override final { return _cullingProjection; }
+    glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override { return _eyeProjections[eye]; }
+    glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override { return _cullingProjection; }
     glm::uvec2 getRecommendedUiSize() const override final;
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
     bool isDisplayVisible() const override { return isHmdMounted(); }
@@ -51,7 +51,6 @@ protected:
     virtual void postPreview() {};
     virtual void updatePresentPose();
 
-    bool beginFrameRender(uint32_t frameIndex) override;
     bool internalActivate() override;
     void internalDeactivate() override;
     void compositeOverlay() override;
@@ -87,7 +86,6 @@ private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
     float getLeftCenterPixel() const;
 
-    bool _disablePreviewItemAdded { false };
     bool _monoPreview { true };
     bool _clearPreviewFlag { false };
     gpu::TexturePointer _previewTexture;

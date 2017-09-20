@@ -528,6 +528,12 @@ void OffscreenQmlSurface::create() {
 
     connect(_quickWindow, &QQuickWindow::focusObjectChanged, this, &OffscreenQmlSurface::onFocusObjectChanged);
 
+    // acquireEngine interrogates the GL context, so we need to have the context current here
+    if (!_canvas->makeCurrent()) {
+        qFatal("Failed to make context current for QML Renderer");
+        return;
+    }
+    
     // Create a QML engine.
     auto qmlEngine = acquireEngine(_quickWindow);
 
@@ -540,11 +546,6 @@ void OffscreenQmlSurface::create() {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
-
-    if (!_canvas->makeCurrent()) {
-        qWarning("Failed to make context current for QML Renderer");
-        return;
-    }
     _renderControl->initialize(_canvas->getContext());
 
     // When Quick says there is a need to render, we will not render immediately. Instead,
@@ -639,7 +640,7 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlContext->setBaseUrl(baseUrl);
 }
 
-QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
@@ -659,37 +660,36 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext,
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this,
-            [this, qmlComponent, targetContext, f](QQmlComponent::Status) {
-            finishQmlLoad(qmlComponent, targetContext, f);
+            [this, qmlComponent, targetContext, onQmlLoadedCallback](QQmlComponent::Status) {
+            finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
         });
-        return nullptr;
+        return;
     }
 
-    return finishQmlLoad(qmlComponent, targetContext, f);
+    finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
 }
 
-QObject* OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    return load(qmlSource, true, f);
+void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+    load(qmlSource, true, onQmlLoadedCallback);
 }
 
-QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
-    return load(qmlSource, false, f);
+void OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+    load(qmlSource, false, onQmlLoadedCallback);
 }
 
 void OffscreenQmlSurface::clearCache() {
     _qmlContext->engine()->clearComponentCache();
 }
 
-QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f) {
+void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
             qCWarning(uiLogging) << error.url() << error.line() << error;
         }
         qmlComponent->deleteLater();
-        return nullptr;
+        return;
     }
-
 
     QObject* newObject = qmlComponent->beginCreate(qmlContext);
     if (qmlComponent->isError()) {
@@ -700,11 +700,24 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
             qFatal("Unable to finish loading QML root");
         }
         qmlComponent->deleteLater();
-        return nullptr;
+        return;
     }
 
     qmlContext->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
-    f(qmlContext, newObject);
+
+    // All quick items should be focusable
+    QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
+    if (newItem) {
+        // Make sure we make items focusable (critical for
+        // supporting keyboard shortcuts)
+        newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
+    }
+
+    // Make sure we will call callback for this codepath
+    // Call this before qmlComponent->completeCreate() otherwise ghost window appears
+    if (newItem && _rootItem) {
+        onQmlLoadedCallback(qmlContext, newObject);
+    }
 
     QObject* eventBridge = qmlContext->contextProperty("eventBridge").value<QObject*>();
     if (qmlContext != _qmlContext && eventBridge && eventBridge != this) {
@@ -716,29 +729,20 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     qmlComponent->completeCreate();
     qmlComponent->deleteLater();
 
-
-    // All quick items should be focusable
-    QQuickItem* newItem = qobject_cast<QQuickItem*>(newObject);
-    if (newItem) {
-        // Make sure we make items focusable (critical for
-        // supporting keyboard shortcuts)
-        newItem->setFlag(QQuickItem::ItemIsFocusScope, true);
-    }
-
     // If we already have a root, just set a couple of flags and the ancestry
-    if (_rootItem) {
+    if (newItem && _rootItem) {
         // Allow child windows to be destroyed from JS
         QQmlEngine::setObjectOwnership(newObject, QQmlEngine::JavaScriptOwnership);
         newObject->setParent(_rootItem);
         if (newItem) {
             newItem->setParentItem(_rootItem);
         }
-        return newObject;
+        return;
     }
 
     if (!newItem) {
         qFatal("Could not load object as root item");
-        return nullptr;
+        return;
     }
 
     connect(newItem, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(QVariant)));
@@ -747,7 +751,8 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
-    return _rootItem;
+    // Call this callback after rootitem is set, otherwise VrMenu wont work
+    onQmlLoadedCallback(qmlContext, newObject);
 }
 
 void OffscreenQmlSurface::updateQuick() {

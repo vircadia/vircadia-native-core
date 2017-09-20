@@ -51,5 +51,9 @@ QPixmap ImageProvider::requestPixmap(const QString& id, QSize* size, const QSize
             return _securityImage->copy();
         }
     }
-    return QPixmap();
+    // otherwise just return a grey pixmap.  This avoids annoying error messages in qml we would get
+    // when sending a 'null' pixmap (QPixmap())
+    QPixmap greyPixmap(200, 200);
+    greyPixmap.fill(QColor("darkGrey"));
+    return greyPixmap;
 }

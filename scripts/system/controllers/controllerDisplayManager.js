@@ -56,7 +56,6 @@ ControllerDisplayManager = function() {
             }
 
             if (leftConfig !== null && rightConfig !== null) {
-                print("Loading controllers");
                 if (controllerLeft === null) {
                     controllerLeft = createControllerDisplay(leftConfig);
                     controllerLeft.setVisible(true);
@@ -70,6 +69,7 @@ ControllerDisplayManager = function() {
                     Script.clearInterval(controllerCheckerIntervalID);
                     controllerCheckerIntervalID = null;
                 }
+
             } else {
                 self.deleteControllerDisplays();
                 if (!controllerCheckerIntervalID) {
@@ -85,6 +85,15 @@ ControllerDisplayManager = function() {
             self.deleteControllerDisplays();
         }
     }
+
+    function resizeControllers(sensorScaleFactor) {
+        if (controllerLeft) {
+            controllerLeft.resize(sensorScaleFactor);
+        }
+        if (controllerRight) {
+            controllerRight.resize(sensorScaleFactor);
+        }
+    };
 
     var handleMessages = function(channel, message, sender) {
         var i, data, name, visible;
@@ -171,6 +180,7 @@ ControllerDisplayManager = function() {
 
     HMD.displayModeChanged.connect(updateControllers);
     HMD.shouldShowHandControllersChanged.connect(updateControllers);
+    MyAvatar.sensorToWorldScaleChanged.connect(resizeControllers);
 
     updateControllers();
 };
