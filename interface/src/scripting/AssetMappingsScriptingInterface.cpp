@@ -21,6 +21,10 @@
 #include <NetworkLogging.h>
 #include <OffscreenUi.h>
 
+static const int AUTO_REFRESH_INTERVAL = 1000;
+
+const int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
+
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
     _proxyModel.setSortRole(Qt::DisplayRole);
@@ -189,6 +193,25 @@ void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool e
 
 AssetMappingModel::AssetMappingModel() {
     setupRoles();
+
+    connect(&_autoRefreshTimer, &QTimer::timeout, this, [this] {
+        refresh();
+    });
+    _autoRefreshTimer.setInterval(AUTO_REFRESH_INTERVAL);
+}
+
+bool AssetMappingModel::isAutoRefreshEnabled() {
+    return _autoRefreshTimer.isActive();
+}
+
+void AssetMappingModel::setAutoRefreshEnabled(bool enabled) {
+    if (enabled != _autoRefreshTimer.isActive()) {
+        if (enabled) {
+            _autoRefreshTimer.start();
+        } else {
+            _autoRefreshTimer.stop();
+        }
+    }
 }
 
 bool AssetMappingModel::isKnownFolder(QString path) const {
@@ -205,10 +228,7 @@ bool AssetMappingModel::isKnownFolder(QString path) const {
     return false;
 }
 
-int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
-
 void AssetMappingModel::refresh() {
-    qDebug() << "Refreshing asset mapping model";
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
