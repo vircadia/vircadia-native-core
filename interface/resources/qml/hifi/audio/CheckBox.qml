@@ -13,6 +13,6 @@ import QtQuick 2.7
 
 import "../../controls-uit" as HifiControls
 
-HifiControls.CheckBox2 {
+HifiControls.CheckBoxQQC2 {
     color: "white"
 }
