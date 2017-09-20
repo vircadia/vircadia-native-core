@@ -21,7 +21,8 @@
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float JUMP_SPEED = 3.5f;
 const float MAX_FALL_HEIGHT = 20.0f;
-float DEFAULT_CHARACTER_GRAVITY = -5.0f;
+const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
+float currentAvatarGravity = DEFAULT_CHARACTER_GRAVITY;
 
 #ifdef DEBUG_STATE_CHANGE
 #define SET_STATE(desiredState, reason) setState(desiredState, reason)
@@ -359,7 +360,7 @@ void CharacterController::updateGravity() {
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         _gravity = 0.0f;
     } else {
-        _gravity = DEFAULT_CHARACTER_GRAVITY;
+        _gravity = currentAvatarGravity;
     }
     if (_rigidBody) {
         _rigidBody->setGravity(_gravity * _currentUp);
@@ -368,11 +369,11 @@ void CharacterController::updateGravity() {
 
 
 void CharacterController::setGravity(float gravity) {
-    DEFAULT_CHARACTER_GRAVITY = gravity;
+    currentAvatarGravity = gravity;
 }
 
 float CharacterController::getGravity() {
-    return DEFAULT_CHARACTER_GRAVITY;
+    return currentAvatarGravity;
 }
 
 #ifdef DEBUG_STATE_CHANGE
@@ -390,18 +391,6 @@ void CharacterController::setState(State desiredState) {
 #endif
         _state = desiredState;
         updateGravity();
-    }
-}
-
-void CharacterController::updateGravity() {
-    int16_t collisionGroup = computeCollisionGroup();
-    if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
-        _gravity = 0.0f;
-    } else {
-        _gravity = DEFAULT_AVATAR_GRAVITY;
-    }
-    if (_rigidBody) {
-        _rigidBody->setGravity(_gravity * _currentUp);
     }
 }
 
