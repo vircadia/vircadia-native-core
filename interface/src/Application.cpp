@@ -341,7 +341,8 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
     { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
-    { ZIP_EXTENSION, &Application::importFromZIP }
+    { ZIP_EXTENSION, &Application::importFromZIP },
+    { FBX_EXTENSION, &Application::importFromFBX }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -2889,6 +2890,18 @@ bool Application::importFromZIP(const QString& filePath) {
         addAssetToWorldFromURL(filePath);
     } else {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
+    }
+    return true;
+}
+
+bool Application::importFromFBX(const QString& filePath) {
+    qDebug() << "An fbx file has been dropped in: " << filePath;
+    QUrl empty;
+    // handle Blocks download from Marketplace
+    if (filePath.contains("vr.google.com/downloads")) {
+        addAssetToWorldFromURL(filePath);
+    } else {
+        addAssetToWorld(filePath, "", false, false);
     }
     return true;
 }
@@ -6412,7 +6425,11 @@ void Application::addAssetToWorldFromURL(QString url) {
     if (url.contains("vr.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
-            filename.remove(".zip?noDownload=false");
+            if (url.contains(".fbx")) {
+                filename.remove("?noDownload=false");
+            } else {
+                filename.remove(".zip?noDownload=false");
+            }
         } else {
             filename.remove(".zip");
         }
@@ -6439,7 +6456,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     auto result = request->getResult();
 
     QString filename;
-    bool isBlocks = false;
+    bool isBlocksOBJ = false;
 
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
@@ -6447,11 +6464,15 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     if (url.contains("vr.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
-            filename.remove(".zip?noDownload=false");
+            if (url.contains(".fbx")) {
+                filename.remove("?noDownload=false");
+            } else {
+                filename.remove(".zip?noDownload=false");
+            }
         } else {
             filename.remove(".zip");
         }
-        isBlocks = true;
+        isBlocksOBJ = true;
     }
 
     if (result == ResourceRequest::Success) {
@@ -6468,7 +6489,11 @@ void Application::addAssetToWorldFromURLRequestFinished() {
                 tempFile.write(request->getData());
                 addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
                 tempFile.close();
-                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false, isBlocks);
+                if (url.contains(".fbx")) {
+                    addAssetToWorld(downloadPath, "", false, false);
+                } else {
+                    qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false, isBlocksOBJ);
+                }
             } else {
                 QString errorInfo = "Couldn't open temporary file for download";
                 qWarning(interfaceapp) << errorInfo;
@@ -6498,7 +6523,7 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks) {
+void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocksOBJ) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
     QString path = filePath;
@@ -6507,7 +6532,7 @@ void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip,
         QString assetFolder = zipFile.section("/", -1);
         assetFolder.remove(".zip");
         mapping = "/" + assetFolder + "/" + filename;
-    } else if (isBlocks) {
+    } else if (isBlocksOBJ) {
         qCDebug(interfaceapp) << "Path to asset folder: " << zipFile;
         QString assetFolder = zipFile.section('/', -1);
         assetFolder.remove(".zip?noDownload=false");
@@ -6637,6 +6662,14 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
 
         // Close progress message box.
         addAssetToWorldInfoDone(filenameFromPath(filePath));
+    }
+
+    // Delete temporary directories created from downloads
+    if (filePath.contains(".fbx")) {
+        qCDebug(interfaceapp) << "gonna try to remove the temp dir: " << filePath;
+        QString tempPath = filePath.remove(filePath.section("/", -1));
+        qCDebug(interfaceapp) << tempPath;
+        qCDebug(interfaceapp) << QDir(tempPath).removeRecursively();
     }
 }
 
@@ -6891,12 +6924,12 @@ void Application::onAssetToWorldMessageBoxClosed() {
 }
 
 
-void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip, bool isBlocks) {
+void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip, bool isBlocksOBJ) {
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
             for (int i = 0; i < unzipFile.length(); i++) {
                 qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
-                addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocks);
+                addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocksOBJ);
             }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
