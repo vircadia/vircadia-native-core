@@ -276,14 +276,30 @@ Script.include("/~/system/libraries/controllers.js");
             return true;
         };
 
+        this.grabModuleWantsNearbyOverlay = function(controllerData) {
+            if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                var nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+                var nearGrabModule = getEnabledModuleByName(nearGrabName);
+                if (nearGrabModule) {
+                    var candidateOverlays = controllerData.nearbyOverlayIDs[this.hand];
+                    var grabbableOverlays = candidateOverlays.filter(function(overlayID) {
+                        return Overlays.getProperty(overlayID, "grabbable");
+                    });
+                    var target = nearGrabModule.getTargetID(grabbableOverlays, controllerData);
+                    if (target) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
         this.shouldExit = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
-            var nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
-            var nearGrabModule = getEnabledModuleByName(nearGrabName);
-            var status = nearGrabModule ? nearGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
             var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY);
             var triggerOff = (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE);
-            return offOverlay || status.active || triggerOff;
+            var grabbingOverlay = this.grabModuleWantsNearbyOverlay(controllerData);
+            return offOverlay || grabbingOverlay || triggerOff;
         };
 
         this.exitModule = function() {
