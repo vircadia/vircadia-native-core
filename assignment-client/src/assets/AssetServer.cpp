@@ -26,7 +26,7 @@
 #include <QtCore/QString>
 #include <QtGui/QImageReader>
 #include <QtCore/QVector>
-#include <qurlquery.h>
+#include <QtCore/QUrlQuery>
 
 #include <ClientServerUtils.h>
 #include <FBXBaker.h>
