@@ -58,20 +58,25 @@ void Bookmarks::addBookmarkToFile(const QString& bookmarkName, const QVariant& b
     Menu* menubar = Menu::getInstance();
     if (contains(bookmarkName)) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(OffscreenUi::ICON_WARNING, "Duplicate Bookmark",
-            "The bookmark name you entered already exists in your list.",
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-        duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");
-        auto result = offscreenUi->waitForMessageBoxResult(duplicateBookmarkMessage);
-        if (result != QMessageBox::Yes) {
-            return;
-        }
-        removeBookmarkFromMenu(menubar, bookmarkName);
-    }
+        ModalDialogListener* dlg = OffscreenUi::asyncWarning("Duplicate Bookmark",
+                                  "The bookmark name you entered already exists in your list.",
+                                  QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        dlg->setProperty("informativeText", "Would you like to overwrite it?");
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
 
-    addBookmarkToMenu(menubar, bookmarkName, bookmark);
-    insert(bookmarkName, bookmark);  // Overwrites any item with the same bookmarkName.
-    enableMenuItems(true);
+            if (QMessageBox::Yes == static_cast<QMessageBox::StandardButton>(answer.toInt())) {
+                removeBookmarkFromMenu(menubar, bookmarkName);
+                addBookmarkToMenu(menubar, bookmarkName, bookmark);
+                insert(bookmarkName, bookmark);  // Overwrites any item with the same bookmarkName.
+                enableMenuItems(true);
+            }
+        });
+    } else {
+        addBookmarkToMenu(menubar, bookmarkName, bookmark);
+        insert(bookmarkName, bookmark);  // Overwrites any item with the same bookmarkName.
+        enableMenuItems(true);
+    }
 }
 
 void Bookmarks::insert(const QString& name, const QVariant& bookmark) {
