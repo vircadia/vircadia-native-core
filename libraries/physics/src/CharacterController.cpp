@@ -393,18 +393,6 @@ void CharacterController::setState(State desiredState) {
     }
 }
 
-void CharacterController::updateGravity() {
-    int16_t collisionGroup = computeCollisionGroup();
-    if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
-        _gravity = 0.0f;
-    } else {
-        _gravity = DEFAULT_AVATAR_GRAVITY;
-    }
-    if (_rigidBody) {
-        _rigidBody->setGravity(_gravity * _currentUp);
-    }
-}
-
 void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale) {
     float x = scale.x;
     float z = scale.z;
