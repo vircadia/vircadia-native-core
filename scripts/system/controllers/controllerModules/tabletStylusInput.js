@@ -16,7 +16,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-    var touchEvent = Script.require("/~/system/libraries/touchEventUtils.js");
+    var TouchEventUtils = Script.require("/~/system/libraries/touchEventUtils.js");
     // triggered when stylus presses a web overlay/entity
     var HAPTIC_STYLUS_STRENGTH = 1.0;
     var HAPTIC_STYLUS_DURATION = 20.0;
@@ -206,12 +206,12 @@ Script.include("/~/system/libraries/controllers.js");
                 stylusTarget.entityID !== this.hoverEntity &&
                 stylusTarget.entityID !== this.getOtherHandController().hoverEntity) {
                 this.hoverEntity = stylusTarget.entityID;
-                touchEvent.sendHoverEnterEventToTouchTarget(this.hand, stylusTarget);
+                TouchEventUtils.sendHoverEnterEventToTouchTarget(this.hand, stylusTarget);
             } else if (stylusTarget.overlayID &&
                        stylusTarget.overlayID !== this.hoverOverlay &&
                        stylusTarget.overlayID !== this.getOtherHandController().hoverOverlay) {
                 this.hoverOverlay = stylusTarget.overlayID;
-                touchEvent.sendHoverEnterEventToTouchTarget(this.hand, stylusTarget);
+                TouchEventUtils.sendHoverEnterEventToTouchTarget(this.hand, stylusTarget);
             }
         };
 
@@ -268,7 +268,7 @@ Script.include("/~/system/libraries/controllers.js");
             for (i = 0; i < candidateEntities.length; i++) {
                 props = candidateEntities[i];
                 if (props && props.type === "Web") {
-                    stylusTarget = touchEvent.calculateTouchTargetFromEntity(this.stylusTip, candidateEntities[i]);
+                    stylusTarget = TouchEventUtils.calculateTouchTargetFromEntity(this.stylusTip, candidateEntities[i]);
                     if (stylusTarget) {
                         stylusTargets.push(stylusTarget);
                     }
@@ -278,7 +278,7 @@ Script.include("/~/system/libraries/controllers.js");
             // add the tabletScreen, if it is valid
             if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID &&
                 Overlays.getProperty(HMD.tabletScreenID, "visible")) {
-                stylusTarget = touchEvent.calculateTouchTargetFromOverlay(this.stylusTip, HMD.tabletScreenID);
+                stylusTarget = TouchEventUtils.calculateTouchTargetFromOverlay(this.stylusTip, HMD.tabletScreenID);
                 if (stylusTarget) {
                     stylusTargets.push(stylusTarget);
                 }
@@ -287,7 +287,7 @@ Script.include("/~/system/libraries/controllers.js");
             // add the tablet home button.
             if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID &&
                 Overlays.getProperty(HMD.homeButtonID, "visible")) {
-                stylusTarget = touchEvent.calculateTouchTargetFromOverlay(this.stylusTip, HMD.homeButtonID);
+                stylusTarget = TouchEventUtils.calculateTouchTargetFromOverlay(this.stylusTip, HMD.homeButtonID);
                 if (stylusTarget) {
                     stylusTargets.push(stylusTarget);
                 }
@@ -332,12 +332,12 @@ Script.include("/~/system/libraries/controllers.js");
 
                 this.requestTouchFocus(nearestStylusTarget);
 
-                if (!touchEvent.touchTargetHasKeyboardFocus(nearestStylusTarget)) {
-                    touchEvent.setKeyboardFocusOnTouchTarget(nearestStylusTarget);
+                if (!TouchEventUtils.touchTargetHasKeyboardFocus(nearestStylusTarget)) {
+                    TouchEventUtils.setKeyboardFocusOnTouchTarget(nearestStylusTarget);
                 }
 
                 if (this.hasTouchFocus(nearestStylusTarget) && !this.stylusTouchingTarget) {
-                    touchEvent.sendHoverOverEventToTouchTarget(this.hand, nearestStylusTarget);
+                    TouchEventUtils.sendHoverOverEventToTouchTarget(this.hand, nearestStylusTarget);
                 }
 
                 // filter out presses when tip is moving away from tablet.
@@ -368,7 +368,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.stylusTouchingEnter = function () {
             this.stealTouchFocus(this.stylusTarget);
-            touchEvent.sendTouchStartEventToTouchTarget(this.hand, this.stylusTarget);
+            TouchEventUtils.sendTouchStartEventToTouchTarget(this.hand, this.stylusTarget);
             Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
 
             this.touchingEnterTimer = 0;
@@ -392,9 +392,9 @@ Script.include("/~/system/libraries/controllers.js");
 
             // send press event
             if (this.deadspotExpired) {
-                touchEvent.sendTouchEndEventToTouchTarget(this.hand, this.stylusTarget);
+                TouchEventUtils.sendTouchEndEventToTouchTarget(this.hand, this.stylusTarget);
             } else {
-                touchEvent.sendTouchEndEventToTouchTarget(this.hand, this.touchingEnterStylusTarget);
+                TouchEventUtils.sendTouchEndEventToTouchTarget(this.hand, this.touchingEnterStylusTarget);
             }
         };
 
@@ -403,9 +403,9 @@ Script.include("/~/system/libraries/controllers.js");
             this.touchingEnterTimer += dt;
 
             if (this.stylusTarget.entityID) {
-                this.stylusTarget = touchEvent.calculateTouchTargetFromEntity(this.stylusTip, this.stylusTarget.entityProps);
+                this.stylusTarget = TouchEventUtils.calculateTouchTargetFromEntity(this.stylusTip, this.stylusTarget.entityProps);
             } else if (this.stylusTarget.overlayID) {
-                this.stylusTarget = touchEvent.calculateTouchTargetFromOverlay(this.stylusTip, this.stylusTarget.overlayID);
+                this.stylusTarget = TouchEventUtils.calculateTouchTargetFromOverlay(this.stylusTip, this.stylusTarget.overlayID);
             }
 
             var TABLET_MIN_TOUCH_DISTANCE = -0.1;
@@ -418,7 +418,7 @@ Script.include("/~/system/libraries/controllers.js");
                     if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
                         distance2D(this.stylusTarget.position2D,
                             this.touchingEnterStylusTarget.position2D) > this.deadspotRadius) {
-                        touchEvent.sendTouchMoveEventToTouchTarget(this.hand, this.stylusTarget);
+                        TouchEventUtils.sendTouchMoveEventToTouchTarget(this.hand, this.stylusTarget);
                         this.deadspotExpired = true;
                     }
                 } else {
@@ -430,12 +430,11 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.overlayLaserActive = function(controllerData) {
-            var overlayLaserModule =
-                getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightOverlayLaserInput" : "LeftOverlayLaserInput");
-            if (overlayLaserModule) {
-                return !overlayLaserModule.shouldExit(controllerData);
-            }
-            return false;
+            var rightOverlayLaserModule = getEnabledModuleByName("RightOverlayLaserInput");
+            var leftOverlayLaserModule = getEnabledModuleByName("LeftOverlayLaserInput");
+            var rightModuleRunning = rightOverlayLaserModule ? !rightOverlayLaserModule.shouldExit(controllerData) : false;
+            var leftModuleRunning = leftOverlayLaserModule ? !leftOverlayLaserModule.shouldExit(controllerData) : false;
+            return leftModuleRunning || rightModuleRunning;
         };
 
         this.isReady = function (controllerData) {

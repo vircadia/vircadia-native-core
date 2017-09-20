@@ -16,7 +16,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-    var touchEvent = Script.require("/~/system/libraries/touchEventUtils.js");
+    var TouchEventUtils = Script.require("/~/system/libraries/touchEventUtils.js");
     var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
@@ -131,7 +131,7 @@ Script.include("/~/system/libraries/controllers.js");
             if (laserTarget.overlayID &&
                 laserTarget.overlayID !== this.hoverOverlay) {
                 this.hoverOverlay = laserTarget.overlayID;
-                touchEvent.sendHoverEnterEventToTouchTarget(this.hand, laserTarget);
+                TouchEventUtils.sendHoverEnterEventToTouchTarget(this.hand, laserTarget);
             }
         };
 
@@ -146,10 +146,26 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.relinquishStylusTargetTouchFocus = function(laserTarget) {
+            var stylusModuleNames = ["LeftTabletStylusInput", "RightTabletStylusError"];
+            for (var i = 0; i < stylusModuleNames.length; i++) {
+                var stylusModule = getEnabledModuleByName(stylusModuleNames[i]);
+                if (stylusModule) {
+                    if (stylusModule.hoverOverlay === laserTarget.overlayID) {
+                        stylusModule.relinquishTouchFocus();
+                    }
+                }
+            }
+        };
+
         this.stealTouchFocus = function(laserTarget) {
             if (laserTarget.overlayID === this.getOtherModule().hoverOverlay) {
                 this.getOtherModule().relinquishTouchFocus();
             }
+
+            // If the focus target we want to request is the same of one of the stylus
+            // tell the stylus to relinquish it focus on out target
+            this.relinquishStylusTargetTouchFocus(laserTarget);
 
             this.requestTouchFocus(laserTarget);
         };
@@ -182,7 +198,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.laserPressEnter = function () {
             this.stealTouchFocus(this.laserTarget);
-            touchEvent.sendTouchStartEventToTouchTarget(this.hand, this.laserTarget);
+            TouchEventUtils.sendTouchStartEventToTouchTarget(this.hand, this.laserTarget);
             Controller.triggerHapticPulse(HAPTIC_STYLUS_STRENGTH, HAPTIC_STYLUS_DURATION, this.hand);
 
             this.touchingEnterTimer = 0;
@@ -205,9 +221,9 @@ Script.include("/~/system/libraries/controllers.js");
 
             // send press event
             if (this.deadspotExpired) {
-                touchEvent.sendTouchEndEventToTouchTarget(this.hand, this.laserTarget);
+                TouchEventUtils.sendTouchEndEventToTouchTarget(this.hand, this.laserTarget);
             } else {
-                touchEvent.sendTouchEndEventToTouchTarget(this.hand, this.pressEnterLaserTarget);
+                TouchEventUtils.sendTouchEndEventToTouchTarget(this.hand, this.pressEnterLaserTarget);
             }
         };
 
@@ -219,8 +235,8 @@ Script.include("/~/system/libraries/controllers.js");
                     var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
                     if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
                         distance2D(this.laserTarget.position2D,
-                            this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
-                        touchEvent.sendTouchMoveEventToTouchTarget(this.hand, this.laserTarget);
+                                   this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
+                        TouchEventUtils.sendTouchMoveEventToTouchTarget(this.hand, this.laserTarget);
                         this.deadspotExpired = true;
                     }
                 } else {
@@ -237,7 +253,7 @@ Script.include("/~/system/libraries/controllers.js");
                 return false;
             }
             var intersection = controllerData.rayPicks[this.hand];
-            var laserTarget = touchEvent.composeTouchTargetFromIntersection(intersection);
+            var laserTarget = TouchEventUtils.composeTouchTargetFromIntersection(intersection);
 
             if (controllerData.triggerClicks[this.hand]) {
                 this.laserTarget = laserTarget;
@@ -245,12 +261,12 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 this.requestTouchFocus(laserTarget);
 
-                if (!touchEvent.touchTargetHasKeyboardFocus(laserTarget)) {
-                    touchEvent.setKeyboardFocusOnTouchTarget(laserTarget);
+                if (!TouchEventUtils.touchTargetHasKeyboardFocus(laserTarget)) {
+                    TouchEventUtils.setKeyboardFocusOnTouchTarget(laserTarget);
                 }
-                
+
                 if (this.hasTouchFocus(laserTarget) && !this.laserPressingTarget) {
-                    touchEvent.sendHoverOverEventToTouchTarget(this.hand, laserTarget);
+                    TouchEventUtils.sendHoverOverEventToTouchTarget(this.hand, laserTarget);
                 }
             }
 
