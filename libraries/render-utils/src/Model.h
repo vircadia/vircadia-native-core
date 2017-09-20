@@ -87,7 +87,6 @@ public:
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
-    bool initWhenReady(const render::ScenePointer& scene);
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction) {
         auto getters = render::Item::Status::Getters(0);
