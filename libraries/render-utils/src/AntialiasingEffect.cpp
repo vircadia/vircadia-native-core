@@ -510,20 +510,43 @@ void JitterSample::run(const render::RenderContextPointer& renderContext, Jitter
     auto viewFrustum = renderContext->args->getViewFrustum();
     auto projMat = viewFrustum.getProjection();
     auto theNear = viewFrustum.getNearClip();
-    
+
+
     auto jit = jitterBuffer.get().offsets[(current < 0 ? SampleSequence::SEQUENCE_LENGTH : current)];
-    auto width = (float) renderContext->args->_viewport.z;
-    auto height = (float) renderContext->args->_viewport.w;
+    auto width = (float)renderContext->args->_viewport.z;
+    auto height = (float)renderContext->args->_viewport.w;
 
     auto jx = 2.0 * jit.x / width;
     auto jy = 2.0 * jit.y / height;
 
-    projMat[2][0] += jx;
-    projMat[2][1] += jy;
+
+    bool isStereo = renderContext->args->isStereo();
+    if (!isStereo) {
+        projMat[2][0] += jx;
+        projMat[2][1] += jy;
+
+        viewFrustum.setProjection(projMat);
+        renderContext->args->pushViewFrustum(viewFrustum);
+
+    }
+    else {
+
+        mat4 projMats[2];
+        renderContext->args->_context->getStereoProjections(projMats);
+
+        auto sjx = jx * 2.0f;
+ 
+ 
+        for (int i = 0; i < 2; i++) {
+            projMats[i][2][0] += sjx;
+            projMats[i][2][1] += jy;
+        }
+
+        renderContext->args->_context->setStereoProjections(projMats);
+
+    }
+
     
-    viewFrustum.setProjection(projMat);
-    
-    renderContext->args->pushViewFrustum(viewFrustum);
     
     jitterBuffer = _jitterBuffer;
 }

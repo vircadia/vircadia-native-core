@@ -23,7 +23,8 @@ void main() {
     
 
 
-    vec2 texelSize = getInvWidthHeight();
+    vec2 texelSize = taa_getTexelSize();
+
     vec2 fragJitterPix = taa_getCurrentJitterSample();
     if (taa_unjitter()) {
         fragUV -= fragJitterPix * texelSize;

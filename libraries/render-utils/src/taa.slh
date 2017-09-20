@@ -164,9 +164,25 @@ float taa_fetchDepth(vec2 uv) {
 
 #define ZCMP_GT(a, b) (a > b)
 
+vec2 taa_getImageSize() {
+    vec2 imageSize = getWidthHeight(0);
+    if (isStereo()) {
+        imageSize.x *= 2.0;
+    }
+    return imageSize;
+}
+
+vec2 taa_getTexelSize() {
+    vec2 texelSize = getInvWidthHeight();
+    if (isStereo()) {
+        texelSize.x *= 0.5;
+    }
+    return texelSize;
+}
+
 vec3 taa_findClosestFragment3x3(vec2 uv)
 {
-	vec2 dd = abs(getInvWidthHeight());
+	vec2 dd = abs(taa_getTexelSize());
 	vec2 du = vec2(dd.x, 0.0);
 	vec2 dv = vec2(0.0, dd.y);
 
@@ -215,7 +231,7 @@ float Luminance(vec3 rgb) {
 #define MINMAX_3X3_ROUNDED 1
 
 mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix) {
-    vec2 texelSize = getInvWidthHeight();
+    vec2 texelSize = taa_getTexelSize();
  
 
 	vec2 du = vec2(texelSize.x, 0.0);
@@ -269,8 +285,8 @@ mat3 taa_evalNeighbourColorVariance(vec3 sourceColor, vec2 fragUV, vec2 fragVelo
 }
 
 mat3 taa_evalNeighbourColorRegion(vec3 sourceColor, vec2 fragUV, vec2 fragVelocity, float fragZe, vec2 fragJitterPix) {
-    vec2 imageSize = getWidthHeight(0);
-    vec2 texelSize = getInvWidthHeight();
+    vec2 imageSize = taa_getImageSize();
+    vec2 texelSize = taa_getTexelSize();
     vec3 cmin, cmax, cavg;
 
     #if MINMAX_3X3_ROUNDED
@@ -453,7 +469,8 @@ vec3 taa_getVelocityColorAboveThreshold(float velocityPixLength) {
 
 vec3 taa_evalFXAA(vec2 fragUV) {
 
-    vec2 texelSize = getInvWidthHeight();
+   // vec2 texelSize = getInvWidthHeight();
+    vec2 texelSize = taa_getTexelSize();
 
     // filter width limit for dependent "two-tap" texture samples
     float FXAA_SPAN_MAX = 8.0;

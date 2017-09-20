@@ -78,11 +78,12 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     fadeEffect->build(task, opaques);
 
+    const auto jitterBuffer = task.addJob<JitterSample>("JitterCam");
+
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
     
-    const auto jitterBuffer = task.addJob<JitterSample>("JitterCam");
 
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
