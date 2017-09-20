@@ -415,8 +415,7 @@ void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
 
 void EntityScriptServer::resetEntitiesScriptEngine() {
     auto engineName = QString("about:Entities %1").arg(++_entitiesScriptEngineCount);
-    auto newEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(ScriptEngine::ENTITY_SERVER_SCRIPT, NO_SCRIPT, engineName),
-                                                  &ScriptEngine::deleteLater);
+    auto newEngine = scriptEngineFactory(ScriptEngine::ENTITY_SERVER_SCRIPT, NO_SCRIPT, engineName);
 
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
@@ -437,11 +436,14 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
 
 
     newEngine->runInThread();
-    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngine.data());
+    auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
+    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);
 
-    disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated, this, &EntityScriptServer::updateEntityPPS);
+    disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
+               this, &EntityScriptServer::updateEntityPPS);
     _entitiesScriptEngine.swap(newEngine);
-    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated, this, &EntityScriptServer::updateEntityPPS);
+    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
+            this, &EntityScriptServer::updateEntityPPS);
 }
 
 
