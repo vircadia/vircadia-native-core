@@ -2,7 +2,7 @@
 
 - [cmake](https://cmake.org/download/):  3.9
 - [Qt](https://www.qt.io/download-open-source):   5.9.1
-- [OpenSSL](https://www.openssl.org/): Use the latest available version of OpenSSL to avoid security vulnerabilities.
+- [OpenSSL](https://www.openssl.org/): Use the latest available 1.0 version (**NOT** 1.1) of OpenSSL to avoid security vulnerabilities.
 - [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
 ### CMake External Project Dependencies
