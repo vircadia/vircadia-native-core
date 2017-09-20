@@ -6689,7 +6689,7 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     if (filePath.contains(".fbx")) {
         QString tempPath = filePath.remove(filePath.section("/", -1));
         qCDebug(interfaceapp) << "Removing temporary path: " << tempPath;
-        qCDebug(interfaceapp) << QDir(tempPath).removeRecursively();
+        QDir(tempPath).removeRecursively();
     }
 }
 
