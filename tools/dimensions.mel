@@ -1,0 +1,30 @@
+//
+//  dimensions.mel
+//
+//  Created by Anthony J. Thibault on September 5th, 2017.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+//  Maya Mel script to determine the High Fidelity "naturalDimensions" of a model.
+
+// get a list of all mesh objects
+string $meshes[] = `ls -type mesh`;
+
+// compute the bounding box
+float $boundingBox[] = `polyEvaluate -boundingBox $meshes`;
+
+// copy values into variables for readability
+float $xmin = $boundingBox[0];
+float $xmax = $boundingBox[1];
+float $ymin = $boundingBox[2];
+float $ymax = $boundingBox[3];
+float $zmin = $boundingBox[4];
+float $zmax = $boundingBox[5];
+
+// compute dimensions, and convert from cm to meters
+vector $dim = <<($xmax - $xmin) / 100.0, ($ymax - $ymin) / 100.0, ($zmax - $zmin) / 100.0>>;
+
+// print result
+print $dim;

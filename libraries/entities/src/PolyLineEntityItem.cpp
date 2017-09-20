@@ -176,7 +176,7 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
     } 
 
     // if Polyline has only one or fewer points, use default dimension settings
-    SpatiallyNestable::setScale(newScale);
+    setDimensions(newScale);
     EntityItem::setRegistrationPoint(newRegistrationPoint);
 }
 
