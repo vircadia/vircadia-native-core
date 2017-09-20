@@ -19,7 +19,9 @@
 #include "PhysicsLogging.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
-float DEFAULT_CHARACTER_GRAVITY = -5.0f;
+
+const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
+float currentAvatarGravity = DEFAULT_CHARACTER_GRAVITY;
 
 #ifdef DEBUG_STATE_CHANGE
 #define SET_STATE(desiredState, reason) setState(desiredState, reason)
@@ -357,7 +359,7 @@ void CharacterController::updateGravity() {
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         _gravity = 0.0f;
     } else {
-        _gravity = DEFAULT_CHARACTER_GRAVITY;
+        _gravity = currentAvatarGravity;
     }
     if (_rigidBody) {
         _rigidBody->setGravity(_gravity * _currentUp);
@@ -366,11 +368,11 @@ void CharacterController::updateGravity() {
 
 
 void CharacterController::setGravity(float gravity) {
-    DEFAULT_CHARACTER_GRAVITY = gravity;
+    currentAvatarGravity = gravity;
 }
 
 float CharacterController::getGravity() {
-    return DEFAULT_CHARACTER_GRAVITY;
+    return currentAvatarGravity;
 }
 
 #ifdef DEBUG_STATE_CHANGE
@@ -392,6 +394,7 @@ void CharacterController::setState(State desiredState) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 void CharacterController::updateGravity() {
     int16_t collisionGroup = computeCollisionGroup();
@@ -406,6 +409,8 @@ void CharacterController::updateGravity() {
 }
 
 >>>>>>> 5e5b77fbaaeff61a26144a240329eca70765c1a9
+=======
+>>>>>>> 4d904bd5ce7d7b1a805c2f8fbdda630afc27576f
 void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale) {
     float x = scale.x;
     float z = scale.z;
