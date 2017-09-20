@@ -187,7 +187,7 @@ void EntityRenderer::render(RenderArgs* args) {
 // Methods called by the EntityTreeRenderer
 //
 
-EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene) {
+EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene, Transaction& transaction) {
     EntityRenderer::Pointer result;
     if (!entity) {
         return result;
@@ -245,9 +245,7 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
     }
 
     if (result) {
-        Transaction transaction;
         result->addToScene(scene, transaction);
-        scene->enqueueTransaction(transaction);
     }
 
     return result;

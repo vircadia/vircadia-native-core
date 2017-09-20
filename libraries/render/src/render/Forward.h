@@ -28,6 +28,7 @@ namespace render {
     class Scene;
     using ScenePointer = std::shared_ptr<Scene>;
     class ShapePipeline;
+    class Transaction;
 }
 
 using RenderArgs = render::Args;
