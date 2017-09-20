@@ -6,14 +6,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   makeDispatcherModuleParameters, Overlays, makeRunningValues
+/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+   enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+   makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
+   NEAR_GRAB_RADIUS
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
-var GRAB_RADIUS = 0.35;
+Script.include("/~/system/libraries/utils.js");
 
 (function() {
 
@@ -120,6 +120,11 @@ var GRAB_RADIUS = 0.35;
             }
             Overlays.editOverlay(this.grabbedThingID, reparentProps);
 
+            // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
+            if (this.grabbedThingID === HMD.tabletID) {
+                resizeTablet(getTabletWidthFromSettings(), reparentProps.parentJointIndex);
+            }
+
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'grab',
                 grabbedEntity: this.grabbedThingID,
@@ -140,17 +145,23 @@ var GRAB_RADIUS = 0.35;
                     parentID: this.previousParentID[this.grabbedThingID],
                     parentJointIndex: this.previousParentJointIndex[this.grabbedThingID]
                 });
+
+                // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
+                if (this.grabbedThingID === HMD.tabletID) {
+                    resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
+                }
             }
 
             this.grabbedThingID = null;
         };
 
         this.getTargetID = function(overlays, controllerData) {
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < overlays.length; i++) {
                 var overlayPosition = Overlays.getProperty(overlays[i], "position");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(overlayPosition, handPosition);
-                if (distance <= GRAB_RADIUS) {
+                if (distance <= NEAR_GRAB_RADIUS * sensorScaleFactor) {
                     return overlays[i];
                 }
             }

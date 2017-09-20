@@ -6,11 +6,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE,
-   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
-   findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+   enableDispatcherModule, disableDispatcherModule, propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+   TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGroupParent,
+   Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -147,11 +146,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.getTargetProps = function (controllerData) {
             // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(props.position, handPosition);
-                if (distance > NEAR_GRAB_RADIUS) {
+                if (distance > NEAR_GRAB_RADIUS * sensorScaleFactor) {
                     continue;
                 }
                 if (entityIsGrabbable(props)) {
@@ -176,7 +176,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             this.grabbing = false;
 
             var targetProps = this.getTargetProps(controllerData);
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE &&
+                controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                 return makeRunningValues(false, [], []);
             }
 
@@ -195,7 +196,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
         this.run = function (controllerData, deltaTime) {
             if (this.grabbing) {
-                if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE && controllerData.secondaryValues[this.hand] <  TRIGGER_OFF_VALUE) {
+                if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
+                    controllerData.secondaryValues[this.hand] <  TRIGGER_OFF_VALUE) {
                     this.endNearParentingGrabEntity();
                     this.hapticTargetID = null;
                     return makeRunningValues(false, [], []);

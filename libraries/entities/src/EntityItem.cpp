@@ -42,7 +42,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     setLocalVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
     setLocalAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     // explicitly set transform parts to set dirty flags used by batch rendering
-    setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
+    locationChanged();
+    dimensionsChanged();
     quint64 now = usecTimestampNow();
     _lastSimulated = now;
     _lastUpdated = now;
@@ -1376,7 +1377,11 @@ void EntityItem::setDimensions(const glm::vec3& value) {
     if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
         return;
     }
-    setScale(value);
+    if (_dimensions != value) {
+        _dimensions = value;
+        locationChanged();
+        dimensionsChanged();
+    }
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
