@@ -2580,7 +2580,6 @@ void Application::paintGL() {
     // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
     ipdScale *= sensorToWorldScale;
 
-    mat4 eyeProjections[2];
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
