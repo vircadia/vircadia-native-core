@@ -47,7 +47,6 @@ public:
 
     QString searchUrlTemplate() const;
     void setSearchUrlTemplate(const QString &searchUrl);
-    QUrl searchUrl(const QString &searchTerm) const;
 
     QByteArray getPostData(const QString &searchTerm) const;
 
@@ -89,6 +88,7 @@ public:
     bool operator<(const OpenSearchEngine &other) const;
 
 public slots:
+    QUrl searchUrl(const QString &searchTerm) const;
     void requestSuggestions(const QString &searchTerm);
     void requestSearchResults(const QString &searchTerm);
 

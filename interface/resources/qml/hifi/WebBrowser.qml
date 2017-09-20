@@ -39,7 +39,7 @@ Rectangle {
         id: searchEngine
         name: "Google";
         //icon: ":icons/sites/google.png"
-        searchUrlTemplate: "https://www.google.com/search?client=qupzilla&q=%s";
+        searchUrlTemplate: "https://www.google.com/search?client=hifibrowser&q={searchTerms}";
         suggestionsUrlTemplate: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
         suggestionsUrl: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
 
@@ -73,11 +73,14 @@ Rectangle {
     color: hifi.colors.baseGray;
 
     function goTo(url) {
-        if (url.indexOf("http") !== 0) {
+        //must be valid attempt to open an site with dot
+        if (url.indexOf("http") <= 0 && url.indexOf(".") > 0) {
             url = "http://" + url;
+        } else {
+            url = searchEngine.searchUrl(url)
         }
+
         webEngineView.url = url
-        event.accepted = true;
         suggestionRequestTimer.stop()
         addressBar.popup.close()
     }
@@ -125,6 +128,14 @@ Rectangle {
                     goTo(textAt(index))
                 }
 
+                popup.bottomPadding: keyboard.height
+
+                onFocusChanged: {
+                    if (focus) {
+                        addressBarInput.selectAll()
+                    }
+                }
+
                 contentItem: QQControls.TextField {
                     id: addressBarInput
                     leftPadding: 26
@@ -132,8 +143,25 @@ Rectangle {
                     text: addressBar.editText
                     placeholderText: qsTr("Enter URL")
                     font: addressBar.font
+                    selectByMouse: true
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
+                    onFocusChanged: {
+                        if (focus) {
+                            selectAll()
+                        }
+                    }
+
+                    Keys.onDeletePressed: {
+                        editText = ""
+                    }
+
+                    Keys.onPressed: {
+                        if (event.key === Qt.Key_Return) {
+                            goTo(editText)
+                            event.accepted = true;
+                        }
+                    }
 
                     Image {
                         anchors.verticalCenter: parent.verticalCenter;
@@ -167,6 +195,7 @@ Rectangle {
                 Keys.onPressed: {
                     if (event.key === Qt.Key_Return) {
                         goTo(editText)
+                        event.accepted = true;
                     }
                 }
 
@@ -177,7 +206,7 @@ Rectangle {
 
                 Layout.fillWidth: true
                 editText: webEngineView.url
-                onAccepted: webEngineView.url = editText
+                onAccepted: goTo(editText)
             }
 
             HifiControls.WebGlyphButton {
