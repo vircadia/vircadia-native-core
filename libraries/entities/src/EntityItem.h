@@ -179,7 +179,7 @@ public:
     void setDescription(const QString& value);
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
-    inline const glm::vec3 getDimensions() const { return getScale(); }
+    inline const glm::vec3 getDimensions() const { return _dimensions; }
     virtual void setDimensions(const glm::vec3& value);
 
     float getLocalRenderAlpha() const;
@@ -470,6 +470,7 @@ protected:
 
     virtual void dimensionsChanged() override;
 
+    glm::vec3 _dimensions { ENTITY_ITEM_DEFAULT_DIMENSIONS };
     EntityTypes::EntityType _type { EntityTypes::Unknown };
     quint64 _lastSimulated { 0 }; // last time this entity called simulate(), this includes velocity, angular velocity,
                             // and physics changes

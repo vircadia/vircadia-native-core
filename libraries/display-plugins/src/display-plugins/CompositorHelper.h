@@ -109,7 +109,10 @@ public:
     void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
 
     void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
-    void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; }
+    void setFrameInfo(uint32_t frame, const glm::mat4& camera, const glm::mat4& sensorToWorldMatrix) {
+        _currentCamera = camera;
+        _sensorToWorldMatrix = sensorToWorldMatrix;
+    }
 
 signals:
     void allowMouseCaptureChanged();
@@ -124,6 +127,7 @@ private:
 
     DisplayPluginPointer _currentDisplayPlugin;
     glm::mat4 _currentCamera;
+    glm::mat4 _sensorToWorldMatrix;
     QWidget* _renderingWidget{ nullptr };
 
     //// Support for hovering and tooltips
