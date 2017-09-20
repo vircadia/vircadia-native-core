@@ -164,7 +164,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // If the focus target we want to request is the same of one of the stylus
-            // tell the stylus to relinquish it focus on out target
+            // tell the stylus to relinquish it focus on our target
             this.relinquishStylusTargetTouchFocus(laserTarget);
 
             this.requestTouchFocus(laserTarget);
