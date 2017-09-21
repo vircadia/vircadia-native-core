@@ -140,10 +140,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setIgnoreTablet = function() {
-            if (HMD.tabletID !== _this.tabletID) {
-                RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
-                RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
-            }
+            RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
+            RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
         };
 
         this.update = function () {

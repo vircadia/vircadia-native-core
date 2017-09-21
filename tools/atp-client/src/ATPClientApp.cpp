@@ -332,7 +332,7 @@ void ATPClientApp::listAssets() {
         } else if (result == GetAllMappingsRequest::NoError) {
             auto mappings = request->getMappings();
             for (auto& kv : mappings ) {
-                qDebug() << kv.first << kv.second;
+                qDebug() << kv.first << kv.second.hash;
             }
         } else {
             qDebug() << "error -- " << request->getError() << " -- " << request->getErrorString();
