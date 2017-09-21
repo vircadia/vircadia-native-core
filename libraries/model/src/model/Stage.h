@@ -15,6 +15,7 @@
 
 #include "Light.h"
 #include "Skybox.h"
+#include "Haze.h"
 
 namespace model {
 
@@ -174,11 +175,27 @@ public:
     void setSkybox(const SkyboxPointer& skybox);
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
+    // Haze
+    enum HazeMode {
+        NO_HAZE,
+        YES_HAZE,
+
+        NUM_HAZE_MODES
+    };
+
+    void setHazeMode(HazeMode mode);
+    HazeMode gethazeMode() const { return _hazeMode; }
+
+    void setHaze(const HazePointer& haze);
+    const HazePointer& getHaze() const { valid(); return _haze; }
+
 protected:
     BackgroundMode _backgroundMode = SKY_DEFAULT;
+    HazeMode _hazeMode = NO_HAZE;
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;
+    mutable HazePointer _haze;
 
     float _dayTime = 12.0f;
     int _yearTime = 0;

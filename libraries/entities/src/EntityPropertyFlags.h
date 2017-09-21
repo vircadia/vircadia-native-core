@@ -221,6 +221,8 @@ enum EntityPropertyList {
     PROP_BACKGROUND_MODE = PROP_MODEL_URL,
     PROP_SKYBOX_COLOR = PROP_ANIMATION_URL,
     PROP_SKYBOX_URL = PROP_ANIMATION_FPS,
+    PROP_HAZE_COLOR = PROP_ANIMATION_URL,
+    PROP_HAZE_URL = PROP_ANIMATION_FPS,
     PROP_KEYLIGHT_AMBIENT_URL = PROP_ANIMATION_PLAYING,
     
     // Aliases/Piggyback properties for Web. These properties intentionally reuse the enum values for

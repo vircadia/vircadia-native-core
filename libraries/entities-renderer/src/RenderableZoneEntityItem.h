@@ -14,6 +14,7 @@
 
 #include <ZoneEntityItem.h>
 #include <model/Skybox.h>
+#include <model/Haze.h>
 #include <model/Stage.h>
 #include <LightStage.h>
 #include <BackgroundStage.h>
@@ -57,7 +58,7 @@ private:
     model::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
     model::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
     model::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
-
+    model::HazePointer editHaze() { return editBackground()->getHaze(); }
 
     bool _needsInitialSimulation{ true };
     glm::vec3 _lastPosition;

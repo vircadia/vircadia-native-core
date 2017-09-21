@@ -71,6 +71,7 @@ void EntityItemProperties::debugDump() const {
 
     getAnimation().debugDump();
     getSkybox().debugDump();
+    getHaze().debugDump();
     getKeyLight().debugDump();
 
     qCDebug(entities) << "   changed properties...";
@@ -1588,7 +1589,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
-        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
@@ -2153,6 +2155,7 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
+    getHaze().listChangedProperties(out);
     getStage().listChangedProperties(out);
 
     return out;

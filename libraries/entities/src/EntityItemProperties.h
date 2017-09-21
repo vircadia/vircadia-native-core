@@ -40,6 +40,7 @@
 #include "PolyVoxEntityItem.h"
 #include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
+#include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
@@ -179,6 +180,7 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
+    DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
