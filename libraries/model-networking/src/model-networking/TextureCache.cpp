@@ -21,6 +21,7 @@
 #include <QThreadPool>
 #include <QNetworkReply>
 #include <QPainter>
+#include <QUrlQuery>
 
 #if DEBUG_DUMP_TEXTURE_LOADS
 #include <QtCore/QFile>
@@ -189,8 +190,14 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
     if (url.scheme() == RESOURCE_SCHEME) {
         return getResourceTexture(url);
     }
+    auto modifiedUrl = url;
+    if (type == image::TextureUsage::CUBE_TEXTURE) {
+        QUrlQuery query { url.query() };
+        query.addQueryItem("skybox", "");
+        modifiedUrl.setQuery(query.toString());
+    }
     TextureExtra extra = { type, content, maxNumPixels };
-    return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
+    return ResourceCache::getResource(modifiedUrl, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
 gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {
@@ -257,7 +264,7 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
-    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString()));
+    return gpu::TexturePointer(loader(image, QUrl::fromLocalFile(path).fileName().toStdString(), false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -290,6 +297,8 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
 {
     _textureSource = std::make_shared<gpu::TextureSource>();
     _lowestRequestedMipLevel = 0;
+
+    _shouldFailOnRedirect = !_sourceIsKTX;
 
     if (type == image::TextureUsage::CUBE_TEXTURE) {
         setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
@@ -420,6 +429,21 @@ void NetworkTexture::makeRequest() {
 
 }
 
+bool NetworkTexture::handleFailedRequest(ResourceRequest::Result result) {
+    if (!_sourceIsKTX && result == ResourceRequest::Result::RedirectFail) {
+        auto newPath = _request->getRelativePathUrl();
+        if (newPath.fileName().endsWith(".ktx")) {
+            qDebug() << "Redirecting to" << newPath << "from" << _url;
+            _sourceIsKTX = true;
+            _activeUrl = newPath;
+            _shouldFailOnRedirect = false;
+            makeRequest();
+            return true;
+        }
+    }
+    return Resource::handleFailedRequest(result);
+}
+
 void NetworkTexture::startRequestForNextMipLevel() {
     auto self = _self.lock();
     if (!self) {
@@ -519,7 +543,7 @@ void NetworkTexture::ktxInitialDataRequestFinished() {
         _ktxHighMipData = _ktxMipRequest->getData();
         handleFinishedInitialLoad();
     } else {
-        if (handleFailedRequest(result)) {
+        if (Resource::handleFailedRequest(result)) {
             _ktxResourceState = PENDING_INITIAL_LOAD;
         } else {
             _ktxResourceState = FAILED_TO_LOAD;
@@ -608,7 +632,7 @@ void NetworkTexture::ktxMipRequestFinished() {
             finishedLoading(false);
         }
     } else {
-        if (handleFailedRequest(result)) {
+        if (Resource::handleFailedRequest(result)) {
             _ktxResourceState = PENDING_MIP_REQUEST;
         } else {
             _ktxResourceState = FAILED_TO_LOAD;
