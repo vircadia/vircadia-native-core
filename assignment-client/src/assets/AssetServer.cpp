@@ -494,6 +494,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         QString redirectedAssetHash;
         QString bakedAssetPath;
         quint8 wasRedirected = false;
+        bool bakingDisabled = false;
 
         if (!bakedRootFile.isEmpty()) {
             // we ran into an asset for which we could have a baked version, let's check if it's ready
@@ -501,10 +502,15 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
             auto bakedIt = _fileMappings.find(bakedAssetPath);
 
             if (bakedIt != _fileMappings.end()) {
-                qDebug() << "Did find baked version for: " << originalAssetHash << assetPath;
-                // we found a baked version of the requested asset to serve, redirect to that
-                redirectedAssetHash = bakedIt->second;
-                wasRedirected = true;
+                if (bakedIt->second != originalAssetHash) {
+                    qDebug() << "Did find baked version for: " << originalAssetHash << assetPath;
+                    // we found a baked version of the requested asset to serve, redirect to that
+                    redirectedAssetHash = bakedIt->second;
+                    wasRedirected = true;
+                } else {
+                    qDebug() << "Did not find baked version for: " << originalAssetHash << assetPath << " (disabled)";
+                    bakingDisabled = true;
+                }
             } else {
                 qDebug() << "Did not find baked version for: " << originalAssetHash << assetPath;
             }
@@ -530,7 +536,9 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
             bool isSkybox = query.hasQueryItem("skybox");
             if (isSkybox) {
                 writeMetaFile(originalAssetHash);
-                maybeBake(assetPath, originalAssetHash);
+                if (!bakingDisabled) {
+                    maybeBake(assetPath, originalAssetHash);
+                }
             }
         }
     } else {
