@@ -29,10 +29,11 @@
         TOOL_SCALE = 1,
         TOOL_CLONE = 2,
         TOOL_GROUP = 3,
-        TOOL_COLOR = 4,
-        TOOL_PICK_COLOR = 5,
-        TOOL_PHYSICS = 6,
-        TOOL_DELETE = 7,
+        TOOL_GROUP_BOX = 4,
+        TOOL_COLOR = 5,
+        TOOL_PICK_COLOR = 6,
+        TOOL_PHYSICS = 7,
+        TOOL_DELETE = 8,
         toolSelected = TOOL_NONE,
         colorToolColor = { red: 128, green: 128, blue: 128 },
         physicsToolPhysics = { userData: { grabbableKey: {} } },
@@ -816,8 +817,17 @@
             if (!grouping.includes(rootEntityID)) {
                 highlights.display(false, selection.selection(), null, highlights.GROUP_COLOR);
             }
-            Feedback.play(side, Feedback.SELECT_ENTITY);
-            grouping.toggle(selection.selection());
+            if (toolSelected === TOOL_GROUP_BOX) {
+                if (!grouping.includes(rootEntityID)) {
+                    Feedback.play(side, Feedback.SELECT_ENTITY);
+                    grouping.selectInBox(selection.selection());
+                } else {
+                    Feedback.play(side, Feedback.GENERAL_ERROR);
+                }
+            } else {
+                Feedback.play(side, Feedback.SELECT_ENTITY);
+                grouping.toggle(selection.selection());
+            }
         }
 
         function exitEditorGrouping() {
@@ -954,7 +964,7 @@
                         }
                     } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
-                    } else if (toolSelected === TOOL_GROUP) {
+                    } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         setState(EDITOR_HIGHLIGHTING);
@@ -1043,7 +1053,7 @@
                         }
                     } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
-                    } else if (toolSelected === TOOL_GROUP) {
+                    } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         if (selection.applyColor(colorToolColor, false)) {
@@ -1181,6 +1191,7 @@
                 }
                 break;
             case EDITOR_GROUPING:
+                // Immediate transition out of state after updating group data during state entry.
                 if (hand.valid() && isTriggerClicked) {
                     // No transition.
                     break;
@@ -1270,6 +1281,7 @@
         // Grouping highlights and functions.
 
         var groups,
+            isSelectInBox = false,
             highlights,
             exludedLeftRootEntityID = null,
             exludedrightRootEntityID = null,
@@ -1293,6 +1305,33 @@
                 hasHighlights = true;
                 hasSelectionChanged = true;
             }
+        }
+
+        function updateSelectInBox() {
+            // TODO: Calculate bounding box.
+
+            // TODO: Select further entities per bounding box.
+
+            // TODO: Update bounding box overlay.
+        }
+
+        function startSelectInBox() {
+            isSelectInBox = true;
+
+            // TODO: Create bounding box overlay.
+
+            updateSelectInBox();
+        }
+
+        function selectInBox(selection) {
+            toggle(selection);
+            updateSelectInBox();
+        }
+
+        function stopSelectInBox() {
+            isSelectInBox = false;
+
+            // TODO: Delete bounding box overlay.
         }
 
         function includes(rootEntityID) {
@@ -1360,6 +1399,9 @@
 
         return {
             toggle: toggle,
+            startSelectInBox: startSelectInBox,
+            selectInBox: selectInBox,
+            stopSelectInBox: stopSelectInBox,
             includes: includes,
             groupsCount: groupsCount,
             entitiesCount: entitiesCount,
@@ -1481,6 +1523,24 @@
             toolSelected = TOOL_NONE;
             ui.clearTool();
             ui.updateUIOverlays();
+            break;
+        case "toggleGroupSelectionBoxTool":
+            toolSelected = parameter ? TOOL_GROUP_BOX : TOOL_GROUP;
+            if (toolSelected === TOOL_GROUP_BOX) {
+                grouping.startSelectInBox();
+            } else {
+                grouping.stopSelectInBox();
+            }
+            break;
+        case "cancelGroupSelectionBoxTool":
+            if (grouping.groupsCount() > 0) {
+                Feedback.play(dominantHand, Feedback.SELECT_ENTITY);
+            }
+            if (toolSelected === TOOL_GROUP_BOX) {
+                grouping.stopSelectInBox();
+            }
+            grouping.clear();
+            toolSelected = TOOL_GROUP;
             break;
 
         case "setColor":
