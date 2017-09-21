@@ -66,6 +66,10 @@ public:
 
     static QString nestableTypeToString(NestableType nestableType);
 
+
+    virtual bool isParentPathComplete() const;
+
+
     // world frame
     virtual const Transform getTransform(bool& success, int depth = 0) const;
     virtual const Transform getTransform() const;

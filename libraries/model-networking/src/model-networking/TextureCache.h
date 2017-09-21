@@ -75,6 +75,8 @@ protected:
 
     virtual void downloadFinished(const QByteArray& data) override;
 
+    bool handleFailedRequest(ResourceRequest::Result result) override;
+
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 

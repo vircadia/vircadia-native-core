@@ -449,11 +449,13 @@ protected:
     Q_INVOKABLE void allReferencesCleared();
 
     /// Return true if the resource will be retried
-    bool handleFailedRequest(ResourceRequest::Result result);
+    virtual bool handleFailedRequest(ResourceRequest::Result result);
 
     QUrl _url;
+    QUrl _effectiveBaseURL{ _url };
     QUrl _activeUrl;
     ByteRange _requestByteRange;
+    bool _shouldFailOnRedirect { false };
 
     // _loaded == true means we are in a loaded and usable state. It is possible that there may still be
     // active requests/loading while in this state. Example: Progressive KTX downloads, where higher resolution
