@@ -299,7 +299,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         // activity-slots which this plugin consumes as "in use"
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
-                        print("QQQQ running " + orderedPluginName);
                     }
                     if (PROFILE) {
                         Script.endProfileRange("dispatch.isReady." + orderedPluginName);
@@ -332,7 +331,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
-                            print("QQQQ stopping " + runningPluginName);
                         }
                         if (PROFILE) {
                             Script.endProfileRange("dispatch.run." + runningPluginName);
