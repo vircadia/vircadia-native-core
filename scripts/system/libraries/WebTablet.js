@@ -49,9 +49,9 @@ function calcSpawnInfo(hand, landscape) {
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
     var forward = Quat.getForward(headRot);
-    var FORWARD_OFFSET = 0.6 * MyAvatar.sensorToWorldScale;
+    var FORWARD_OFFSET = 0.5 * MyAvatar.sensorToWorldScale;
     finalPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
-    var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, {x: 0, y: 1, z: 0});
+    var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
     return {
         position: finalPosition,
         rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
