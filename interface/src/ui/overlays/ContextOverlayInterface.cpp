@@ -38,11 +38,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
 
-    // initially, set _enabled to match the switch.  Later we enable/disable via the getter/setters
-    // if we are in edit or pal (for instance).  Note this is temporary, as we expect to enable this all
-    // the time after getting edge highlighting, etc...
-    _enabled = _settingSwitch.get();
-
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
     connect(entityTreeRenderer, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverEnterEntity(const EntityItemID&, const PointerEvent&)));
@@ -81,13 +76,7 @@ static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
 static const float CONTEXT_OVERLAY_FAR_OFFSET = 0.1f;
 
 void ContextOverlayInterface::setEnabled(bool enabled) {
-    // only enable/disable if the setting in 'on'.   If it is 'off',
-    // make sure _enabled is always false.
-    if (_settingSwitch.get()) {
-        _enabled = enabled;
-    } else {
-        _enabled = false;
-    }
+    _enabled = enabled;
 }
 
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
