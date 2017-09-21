@@ -96,6 +96,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
 
+    // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
     Transform transform = getTransform();
     applyTransformTo(transform, true);
     setTransform(transform);

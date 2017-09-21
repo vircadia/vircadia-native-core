@@ -6,14 +6,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   makeDispatcherModuleParameters, Overlays, makeRunningValues
+/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+   enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+   makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
+   NEAR_GRAB_RADIUS
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
-var GRAB_RADIUS = 0.35;
+Script.include("/~/system/libraries/utils.js");
 
 (function() {
 
@@ -26,6 +26,7 @@ var GRAB_RADIUS = 0.35;
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
+        this.robbed = false;
 
         this.parameters = makeDispatcherModuleParameters(
             90,
@@ -111,14 +112,19 @@ var GRAB_RADIUS = 0.35;
             } else if (this.otherHandIsParent(grabbedProperties)) {
                 // the other hand is parent. Steal the object and information
                 var otherModule = this.getOtherModule();
-                this.previousParentID[this.grabbedThingID] = otherModule.previousParentID[this.garbbedThingID];
+                this.previousParentID[this.grabbedThingID] = otherModule.previousParentID[this.grabbedThingID];
                 this.previousParentJointIndex[this.grabbedThingID] = otherModule.previousParentJointIndex[this.grabbedThingID];
-
+                otherModule.robbed = true;
             } else {
                 this.previousParentID[this.grabbedThingID] = grabbedProperties.parentID;
                 this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
             }
             Overlays.editOverlay(this.grabbedThingID, reparentProps);
+
+            // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
+            if (this.grabbedThingID === HMD.tabletID) {
+                resizeTablet(getTabletWidthFromSettings(), reparentProps.parentJointIndex);
+            }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'grab',
@@ -129,28 +135,34 @@ var GRAB_RADIUS = 0.35;
 
         this.endNearParentingGrabOverlay = function () {
             var previousParentID = this.previousParentID[this.grabbedThingID];
-            if (previousParentID === NULL_UUID || previousParentID === null || previousParentID === undefined) {
+            if ((previousParentID === NULL_UUID || previousParentID === null) && !this.robbed) {
                 Overlays.editOverlay(this.grabbedThingID, {
                     parentID: NULL_UUID,
                     parentJointIndex: -1
                 });
-            } else {
+            } else if (!this.robbed){
                 // before we grabbed it, overlay was a child of something; put it back.
                 Overlays.editOverlay(this.grabbedThingID, {
                     parentID: this.previousParentID[this.grabbedThingID],
                     parentJointIndex: this.previousParentJointIndex[this.grabbedThingID]
                 });
+
+                // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
+                if (this.grabbedThingID === HMD.tabletID) {
+                    resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
+                }
             }
 
             this.grabbedThingID = null;
         };
 
         this.getTargetID = function(overlays, controllerData) {
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < overlays.length; i++) {
                 var overlayPosition = Overlays.getProperty(overlays[i], "position");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(overlayPosition, handPosition);
-                if (distance <= GRAB_RADIUS) {
+                if (distance <= NEAR_GRAB_RADIUS * sensorScaleFactor) {
                     return overlays[i];
                 }
             }
@@ -159,7 +171,9 @@ var GRAB_RADIUS = 0.35;
 
 
         this.isReady = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
+            if ((controllerData.triggerClicks[this.hand] === 0 &&
+                 controllerData.secondaryValues[this.hand] === 0)) {
+                this.robbed = false;
                 return makeRunningValues(false, [], []);
             }
 
@@ -171,7 +185,7 @@ var GRAB_RADIUS = 0.35;
             });
 
             var targetID = this.getTargetID(grabbableOverlays, controllerData);
-            if (targetID) {
+            if (targetID && !this.robbed) {
                 this.grabbedThingID = targetID;
                 this.startNearParentingGrabOverlay(controllerData);
                 return makeRunningValues(true, [this.grabbedThingID], []);
@@ -183,6 +197,7 @@ var GRAB_RADIUS = 0.35;
         this.run = function (controllerData) {
             if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
                 this.endNearParentingGrabOverlay();
+                this.robbed = false;
                 return makeRunningValues(false, [], []);
             } else {
                 // check if someone stole the target from us

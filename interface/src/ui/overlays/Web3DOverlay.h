@@ -19,8 +19,10 @@ class OffscreenQmlSurface;
 
 class Web3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
+    using Parent = Billboard3DOverlay;
 
 public:
+
     static const QString QML;
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }

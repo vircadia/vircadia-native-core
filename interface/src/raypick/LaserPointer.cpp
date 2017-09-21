@@ -86,7 +86,9 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
 
 void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
     if (!id.isNull() && props.isValid()) {
-        qApp->getOverlays().editOverlay(id, props);
+        QVariantMap propMap = props.toMap();
+        propMap.remove("visible");
+        qApp->getOverlays().editOverlay(id, propMap);
     }
 }
 
@@ -143,15 +145,16 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
     }
     if (!renderState.getEndID().isNull()) {
         QVariantMap endProps;
+        glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
         if (_centerEndY) {
             endProps.insert("position", end);
         } else {
             glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
-            endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
+            glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
+            endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
         }
         if (_faceAvatar) {
-            glm::quat rotation = glm::inverse(glm::quat_cast(glm::lookAt(endVec, DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), Vectors::UP)));
-            endProps.insert("rotation", quatToVariant(glm::quat(glm::radians(glm::vec3(0, glm::degrees(safeEulerAngles(rotation)).y, 0)))));
+            endProps.insert("rotation", quatToVariant(faceAvatarRotation));
         }
         endProps.insert("visible", true);
         endProps.insert("ignoreRayIntersection", renderState.doesEndIgnoreRays());

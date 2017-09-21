@@ -39,7 +39,11 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
+        // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
         Transform transform = getTransform();
+#ifndef USE_SN_SCALE
+        transform.setScale(1.0f);  // ignore inherited scale from SpatiallyNestable
+#endif
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
         batch->setModelTransform(transform);
 

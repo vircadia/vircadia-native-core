@@ -7,9 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
-    Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset,
-   setGrabCommunications, Menu, HMD, isInEditMode, AvatarList */
+/* global Script, Vec3, MyAvatar, RIGHT_HAND */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function () {
@@ -37,7 +35,8 @@
         };
 
         this.triggersPressed = function(controllerData) {
-            if (controllerData.triggerClicks[this.hand] && controllerData.secondaryValues[this.hand] > dispatcherUtils.BUMPER_ON_VALUE) {
+            if (controllerData.triggerClicks[this.hand] &&
+                controllerData.secondaryValues[this.hand] > dispatcherUtils.BUMPER_ON_VALUE) {
                 return true;
             }
             return false;
@@ -58,7 +57,8 @@
             var otherModule = this.getOtherModule();
             if (this.triggersPressed(controllerData) && otherModule.triggersPressed(controllerData)) {
                 if (this.hand === dispatcherUtils.RIGHT_HAND) {
-                    var scalingCurrentDistance = Vec3.length(Vec3.subtract(controllerData.controllerLocations[this.hand].position,
+                    var scalingCurrentDistance =
+                        Vec3.length(Vec3.subtract(controllerData.controllerLocations[this.hand].position,
                         controllerData.controllerLocations[this.otherHand()].position));
 
                     var newAvatarScale = (scalingCurrentDistance / this.scalingStartDistance) * this.scalingStartAvatarScale;

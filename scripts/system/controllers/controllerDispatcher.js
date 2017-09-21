@@ -140,16 +140,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setIgnoreTablet = function() {
-            if (HMD.tabletID !== _this.tabletID) {
-                RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
-                RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
-            }
+            RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
+            RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
         };
 
         this.update = function () {
             if (PROFILE) {
                 Script.beginProfileRange("dispatch.pre");
             }
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             var deltaTime = _this.updateTimings();
             _this.setIgnoreTablet();
 
@@ -196,7 +195,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             var h;
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
                 if (controllerLocations[h].valid) {
-                    var nearbyOverlays = Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS);
+                    var nearbyOverlays = Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS * sensorScaleFactor);
                     nearbyOverlays.sort(function (a, b) {
                         var aPosition = Overlays.getProperty(a, "position");
                         var aDistance = Vec3.distance(aPosition, controllerLocations[h].position);
@@ -216,7 +215,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
                 if (controllerLocations[h].valid) {
                     var controllerPosition = controllerLocations[h].position;
-                    var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MAX_RADIUS);
+                    var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MAX_RADIUS * sensorScaleFactor);
                     for (var j = 0; j < nearbyEntityIDs.length; j++) {
                         var entityID = nearbyEntityIDs[j];
                         var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
@@ -249,7 +248,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
                 if (rayPicks[h].type === RayPick.INTERSECTED_ENTITY) {
                     // XXX check to make sure this one isn't already in nearbyEntityProperties?
-                    if (rayPicks[h].distance < NEAR_GRAB_PICK_RADIUS) {
+                    if (rayPicks[h].distance < NEAR_GRAB_PICK_RADIUS * sensorScaleFactor) {
                         var nearEntityID = rayPicks[h].objectID;
                         var nearbyProps = Entities.getEntityProperties(nearEntityID, DISPATCHER_PROPERTIES);
                         nearbyProps.id = nearEntityID;
@@ -368,28 +367,28 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
         this.leftControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_HUD,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
         this.rightControllerRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_RIGHTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
         });
         this.rightControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_RIGHTHAND",
             filter: RayPick.PICK_HUD,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand)
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
         });
 
         this.handleHandMessage = function(channel, message, sender) {

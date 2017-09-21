@@ -84,3 +84,20 @@ bool isValidHash(const AssetHash& hash) {
     QRegExp hashRegex { ASSET_HASH_REGEX_STRING };
     return hashRegex.exactMatch(hash);
 }
+
+QString bakingStatusToString(BakingStatus status) {
+    switch (status) {
+        case NotBaked:
+            return "Not Baked";
+        case Pending:
+            return "Pending";
+        case Baking:
+            return "Baking";
+        case Baked:
+            return "Baked";
+        case Error:
+            return "Error";
+        default:
+            return "--";
+    }
+}

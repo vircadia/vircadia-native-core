@@ -117,6 +117,7 @@ void Image3DOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     float alpha = getAlpha();
     
+    // FIXME Start using the _renderTransform instead of calling for Transform from here, do the custom things needed in evalRenderTransform()
     Transform transform = getTransform();
     bool transformChanged = applyTransformTo(transform, true);
     // If the transform is not modified, setting the transform to

@@ -79,6 +79,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
             position += glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z);
         }
 
+        // FIXME Start using the _renderTransform instead of calling for Transform from here, do the custom things needed in evalRenderTransform()
         Transform transform;
         transform.setRotation(getRotation());
         transform.setScale(glm::vec3(getDimensions(), 1.0f));

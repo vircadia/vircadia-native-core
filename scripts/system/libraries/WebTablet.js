@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /* global getControllerWorldLocation, Tablet, WebTablet:true, HMD, Settings, Script,
-   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4 */
+   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4, resizeTablet */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
@@ -42,56 +42,20 @@ var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
-function calcSpawnInfo(hand, tabletHeight, landscape) {
+function calcSpawnInfo(hand, landscape) {
     var finalPosition;
 
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
-    if (!hand) {
-        hand = NO_HANDS;
-    }
-
-    var handController = null;
-    if (HMD.active && hand !== NO_HANDS) {
-        handController = getControllerWorldLocation(hand, true);
-    }
-
-    if (handController && handController.valid) {
-        // Orient tablet per hand pitch and yaw.
-        // Angle it back similar to holding it like a book.
-        // Move tablet up so that hand is at bottom.
-        // Move tablet back so that hand is in front.
-
-        var position = handController.position;
-        var rotation = handController.rotation;
-
-        if (hand === Controller.Standard.LeftHand) {
-            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0));
-        } else {
-            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, -90, 0));
-        }
-        var normal = Vec3.multiplyQbyV(rotation, Vec3.UNIT_NEG_Y);
-        var lookAt = Quat.lookAt(Vec3.ZERO, normal, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
-        var TABLET_RAKE_ANGLE = 30;
-        rotation = Quat.multiply(Quat.angleAxis(TABLET_RAKE_ANGLE, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
-
-        var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.6, z: 0.1 };
-        position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, Vec3.multiply(tabletHeight, RELATIVE_SPAWN_OFFSET)));
-
-        return {
-            position: position,
-            rotation: landscape ? Quat.multiply(rotation, { x: 0.0, y: 0.0, z: 0.707, w: 0.707 }) : rotation
-        };
-    } else {
-        var forward = Quat.getForward(headRot);
-        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, forward));
-        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, {x: 0, y: 1, z: 0});
-        return {
-            position: finalPosition,
-            rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
-        };
-    }
+    var forward = Quat.getForward(headRot);
+    var FORWARD_OFFSET = 0.5 * MyAvatar.sensorToWorldScale;
+    finalPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
+    var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+    return {
+        position: finalPosition,
+        rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
+    };
 }
 
 /**
@@ -106,19 +70,22 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     var _this = this;
 
+    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+
     // scale factor of natural tablet dimensions.
-    this.width = width || DEFAULT_WIDTH;
-    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
-    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
-    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    var tabletWidth = (width || DEFAULT_WIDTH) * sensorScaleFactor;
+    var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+    var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    var tabletDepth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
     this.landscape = false;
 
     visible = visible === true;
 
+    var tabletDpi;
     if (dpi) {
-        this.dpi = dpi;
+        tabletDpi = dpi;
     } else {
-        this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
+        tabletDpi = DEFAULT_DPI * (DEFAULT_WIDTH / tabletWidth);
     }
 
     var modelURL = LOCAL_TABLET_MODEL_PATH;
@@ -132,7 +99,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
-        dimensions: this.getDimensions(),
+        dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
         parentID: AVATAR_SELF_ID,
         visible: visible
     };
@@ -152,8 +119,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var WEB_ENTITY_Y_OFFSET = 0.004;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2) * (1 / sensorScaleFactor);
+    var WEB_ENTITY_Y_OFFSET = 0.004 * (1 / sensorScaleFactor);
 
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
@@ -161,7 +128,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
         resolution: this.getTabletTextureResolution(),
-        dpi: this.dpi,
+        dpi: tabletDpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
         parentID: this.tabletEntityID,
@@ -170,7 +137,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: visible
     });
 
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
+    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * (1 / sensorScaleFactor);
     this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
@@ -247,10 +214,6 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     Camera.modeUpdated.connect(this.myCameraModeChanged);
 };
 
-WebTablet.prototype.getDimensions = function() {
-    return { x: this.width, y: this.height, z: this.depth };
-};
-
 WebTablet.prototype.getTabletTextureResolution = function() {
     if (this.landscape) {
         return { x: TABLET_TEXTURE_RESOLUTION.y , y: TABLET_TEXTURE_RESOLUTION.x };
@@ -301,31 +264,8 @@ WebTablet.prototype.getOverlayObject = function () {
 };
 
 WebTablet.prototype.setWidth = function (width) {
-
-    // scale factor of natural tablet dimensions.
-    this.width = width || DEFAULT_WIDTH;
-    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
-    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
-    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
-    this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
-
-    // update tablet model dimensions
-    Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
-
-    // update webOverlay
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var WEB_ENTITY_Y_OFFSET = 0.004;
-    Overlays.editOverlay(this.webOverlayID, {
-        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
-        dpi: this.dpi
-    });
-
-    // update homeButton
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
-    Overlays.editOverlay(this.homeButtonID, {
-        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
-        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
-    });
+    // imported from libraries/utils.js
+    resizeTablet(width);
 };
 
 WebTablet.prototype.destroy = function () {
@@ -345,11 +285,9 @@ WebTablet.prototype.destroy = function () {
 WebTablet.prototype.geometryChanged = function (geometry) {
     if (!HMD.active) {
         var tabletProperties = {};
-
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        // TODO -- is this still needed?
-        // Entities.editEntity(this.tabletEntityID, tabletProperties);
+        Overlays.editOverlay(HMD.tabletID, tabletProperties);
     }
 };
 
@@ -380,10 +318,19 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
     windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
 
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
+
+    // scale factor of natural tablet dimensions.
+    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+    var tabletWidth = getTabletWidthFromSettings() * sensorScaleFactor;
+    var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+    var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    var tabletDepth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    var tabletDpi = DEFAULT_DPI * (DEFAULT_WIDTH / tabletWidth);
+
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / this.getTabletTextureResolution().y, MAX_PADDING_FACTOR);
-    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / this.dpi) * INCHES_TO_METERS;
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / tabletDpi) * INCHES_TO_METERS;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2);
 
     // calcualte distance from camera
     var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2) * (DESKTOP_TABLET_SCALE / 100)) - WEB_ENTITY_Z_OFFSET;
@@ -423,7 +370,7 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
         tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
 
         // compute the appropriate position of the tablet, near the hand controller that was used to spawn it.
-        var spawnInfo = calcSpawnInfo(hand, this.height, this.landscape);
+        var spawnInfo = calcSpawnInfo(hand, this.landscape);
         tabletProperties.position = spawnInfo.position;
         tabletProperties.rotation = spawnInfo.rotation;
     } else {
@@ -446,12 +393,10 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 };
 
 WebTablet.prototype.onHmdChanged = function () {
-
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-    // TODO -- is this still needed?
-    // Entities.editEntity(this.tabletEntityID, tabletProperties);
+    Overlays.editOverlay(HMD.tabletID, tabletProperties);
 };
 
 WebTablet.prototype.pickle = function () {
@@ -531,16 +476,7 @@ WebTablet.prototype.mousePressEvent = function (event) {
 };
 
 WebTablet.prototype.cameraModeChanged = function (newMode) {
-    // reposition the tablet.
-    // This allows HMD.position to reflect the new camera mode.
-    if (HMD.active) {
-        var self = this;
-        var tabletProperties = {};
-        // compute position, rotation & parentJointIndex of the tablet
-        self.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        // TODO -- is this still needed?
-        // Entities.editEntity(self.tabletEntityID, tabletProperties);
-    }
+    ;
 };
 
 function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {

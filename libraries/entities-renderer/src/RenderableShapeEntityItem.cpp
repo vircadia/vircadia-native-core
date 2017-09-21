@@ -98,15 +98,15 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     }
 
     _shape = entity->getShape();
+    _position = entity->getPosition();
+    _dimensions = entity->getDimensions();
+    _orientation = entity->getOrientation();
 
     if (_shape == entity::Sphere) {
         _modelTransform.postScale(SPHERE_ENTITY_SCALE);
     }
 
-
-    _position = entity->getPosition();
-    _dimensions = entity->getDimensions();
-    _orientation = entity->getOrientation();
+    _modelTransform.postScale(_dimensions);
 }
 
 bool ShapeEntityRenderer::isTransparent() const {

@@ -54,6 +54,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
     glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     // TODO: handle registration point??
+    // FIXME Start using the _renderTransform instead of calling for Transform from here, do the custom things needed in evalRenderTransform()
     glm::vec3 position = getPosition();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();

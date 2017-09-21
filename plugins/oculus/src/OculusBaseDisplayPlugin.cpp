@@ -60,6 +60,36 @@ bool OculusBaseDisplayPlugin::isSupported() const {
     return oculusAvailable();
 }
 
+glm::mat4 OculusBaseDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
+    if (_session) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        ovrEyeType ovrEye = (eye == Left) ? ovrEye_Left : ovrEye_Right;
+        ovrFovPort fovPort = _hmdDesc.DefaultEyeFov[eye];
+        ovrEyeRenderDesc& erd = ovr_GetRenderDesc(_session, ovrEye, fovPort);
+        ovrMatrix4f ovrPerspectiveProjection = ovrMatrix4f_Projection(erd.Fov, baseNearClip, baseFarClip, ovrProjection_ClipRangeOpenGL);
+        return toGlm(ovrPerspectiveProjection);
+    } else {
+        return baseProjection;
+    }
+}
+
+glm::mat4 OculusBaseDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
+    if (_session) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        auto combinedFov = _eyeFovs[0];
+        combinedFov.LeftTan = combinedFov.RightTan = std::max(combinedFov.LeftTan, combinedFov.RightTan);
+        return toGlm(ovrMatrix4f_Projection(combinedFov, baseNearClip, baseFarClip, ovrProjection_ClipRangeOpenGL));
+    } else {
+        return baseProjection;
+    }
+}
+
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;
