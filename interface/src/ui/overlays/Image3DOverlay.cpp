@@ -58,6 +58,7 @@ void Image3DOverlay::update(float deltatime) {
         setTransform(transform);
     }
 #endif
+    Parent::update(deltatime);
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
