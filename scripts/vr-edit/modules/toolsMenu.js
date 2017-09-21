@@ -824,7 +824,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.currentColor",
                         property: "color",
-                        defaultValue: { red: 128, green: 128, blue: 128 },
+                        defaultValue: { red: 255, green: 255, blue: 255 },
                         command: "setPickColor"
                     }
                 }
