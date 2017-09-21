@@ -182,7 +182,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             }
 
             if (targetProps) {
-                if (!propsArePhysical(targetProps) && !propsAreCloneDynamic(targetProps)) {
+                if ((!propsArePhysical(targetProps) && !propsAreCloneDynamic(targetProps)) ||
+                    targetProps.parentID != NULL_UUID) {
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;

@@ -197,7 +197,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             var h;
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
                 if (controllerLocations[h].valid) {
-                    var nearbyOverlays = Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS * sensorScaleFactor);
+                    var nearbyOverlays =
+                        Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS * sensorScaleFactor);
                     nearbyOverlays.sort(function (a, b) {
                         var aPosition = Overlays.getProperty(a, "position");
                         var aDistance = Vec3.distance(aPosition, controllerLocations[h].position);

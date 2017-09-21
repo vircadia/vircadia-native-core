@@ -8,8 +8,10 @@
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
    enableDispatcherModule, disableDispatcherModule, propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGroupParent,
-   Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE
+   TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
+   findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
+   HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
+   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -28,6 +30,9 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
         this.hapticTargetID = null;
+        this.lastUnequipCheckTime = 0;
+        this.autoUnequipCounter = 0;
+        this.lastUnexpectedChildrenCheckTime = 0;
 
         this.parameters = makeDispatcherModuleParameters(
             500,
@@ -40,15 +45,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
         this.controllerJointIndex = getControllerJointIndex(this.hand);
 
-        this.getOtherModule = function() {
-            return (this.hand === RIGHT_HAND) ? leftNearParentingGrabEntity : rightNearParentingGrabEntity;
-        };
-
-        this.otherHandIsParent = function(props) {
-            return this.getOtherModule().thisHandIsParent(props);
-        };
-
         this.thisHandIsParent = function(props) {
+            if (!props) {
+                return false;
+            }
+
             if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
                 return false;
             }
@@ -97,14 +98,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             if (this.thisHandIsParent(targetProps)) {
                 // this should never happen, but if it does, don't set previous parent to be this hand.
-                // this.previousParentID[targetProps.id] = NULL;
-                // this.previousParentJointIndex[targetProps.id] = -1;
-            } else if (this.otherHandIsParent(targetProps)) {
-                // the other hand is parent. Steal the object and information
-                var otherModule = this.getOtherModule();
-                this.previousParentID[targetProps.id] = otherModule.previousParentID[targetProps.id];
-                this.previousParentJointIndex[targetProps.id] = otherModule.previousParentJointIndex[targetProps.id];
-                otherModule.endNearParentingGrabEntity();
+                this.previousParentID[targetProps.id] = null;
+                this.previousParentJointIndex[targetProps.id] = -1;
             } else {
                 this.previousParentID[targetProps.id] = targetProps.parentID;
                 this.previousParentJointIndex[targetProps.id] = targetProps.parentJointIndex;
@@ -121,26 +116,95 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             this.grabbing = true;
         };
 
-        this.endNearParentingGrabEntity = function () {
-            if (this.previousParentID[this.targetEntityID] === NULL_UUID || this.previousParentID === undefined) {
-                Entities.editEntity(this.targetEntityID, {
-                    parentID: this.previousParentID[this.targetEntityID],
-                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
-                });
-            } else {
-                // we're putting this back as a child of some other parent, so zero its velocity
-                Entities.editEntity(this.targetEntityID, {
-                    parentID: this.previousParentID[this.targetEntityID],
-                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
-                    localVelocity: {x: 0, y: 0, z: 0},
-                    localAngularVelocity: {x: 0, y: 0, z: 0}
-                });
+        this.endNearParentingGrabEntity = function (controllerData) {
+            this.hapticTargetID = null;
+            var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
+            if (this.thisHandIsParent(props)) {
+                if (this.previousParentID[this.targetEntityID] === NULL_UUID || this.previousParentID === undefined) {
+                    Entities.editEntity(this.targetEntityID, {
+                        parentID: this.previousParentID[this.targetEntityID],
+                        parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
+                    });
+                } else {
+                    // we're putting this back as a child of some other parent, so zero its velocity
+                    Entities.editEntity(this.targetEntityID, {
+                        parentID: this.previousParentID[this.targetEntityID],
+                        parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
+                        localVelocity: {x: 0, y: 0, z: 0},
+                        localAngularVelocity: {x: 0, y: 0, z: 0}
+                    });
+                }
             }
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
             this.grabbing = false;
             this.targetEntityID = null;
+        };
+
+        this.checkForChildTooFarAway = function (controllerData) {
+            var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
+            var now = Date.now();
+            if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * TEAR_AWAY_CHECK_TIME) {
+                this.lastUnequipCheckTime = now;
+                if (props.parentID == AVATAR_SELF_ID) {
+                    var handPosition = controllerData.controllerLocations[this.hand].position;
+                    var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
+                    if (dist > TEAR_AWAY_DISTANCE) {
+                        this.autoUnequipCounter++;
+                    } else {
+                        this.autoUnequipCounter = 0;
+                    }
+                    if (this.autoUnequipCounter >= TEAR_AWAY_COUNT) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+
+        this.checkForUnexpectedChildren = function (controllerData) {
+            // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
+            // unhook them.
+
+            var now = Date.now();
+            var UNEXPECTED_CHILDREN_CHECK_TIME = 0.1; // seconds
+            if (now - this.lastUnexpectedChildrenCheckTime > MSECS_PER_SEC * UNEXPECTED_CHILDREN_CHECK_TIME) {
+                this.lastUnexpectedChildrenCheckTime = now;
+
+                var children = findHandChildEntities(this.hand);
+                var _this = this;
+
+                children.forEach(function(childID) {
+                    // we appear to be holding something and this script isn't in a state that would be holding something.
+                    // unhook it.  if we previously took note of this entity's parent, put it back where it was.  This
+                    // works around some problems that happen when more than one hand or avatar is passing something around.
+                    if (_this.previousParentID[childID]) {
+                        var previousParentID = _this.previousParentID[childID];
+                        var previousParentJointIndex = _this.previousParentJointIndex[childID];
+
+                        // The main flaw with keeping track of previous parantage in individual scripts is:
+                        // (1) A grabs something (2) B takes it from A (3) A takes it from B (4) A releases it
+                        // now A and B will take turns passing it back to the other.  Detect this and stop the loop here...
+                        var UNHOOK_LOOP_DETECT_MS = 200;
+                        if (_this.previouslyUnhooked[childID]) {
+                            if (now - _this.previouslyUnhooked[childID] < UNHOOK_LOOP_DETECT_MS) {
+                                previousParentID = NULL_UUID;
+                                previousParentJointIndex = -1;
+                            }
+                        }
+                        _this.previouslyUnhooked[childID] = now;
+
+                        Entities.editEntity(childID, {
+                            parentID: previousParentID,
+                            parentJointIndex: previousParentJointIndex
+                        });
+                    } else {
+                        Entities.editEntity(childID, { parentID: NULL_UUID });
+                    }
+                });
+            }
         };
 
         this.getTargetProps = function (controllerData) {
@@ -178,11 +242,13 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             var targetProps = this.getTargetProps(controllerData);
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE &&
                 controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
+                this.checkForUnexpectedChildren(controllerData);
                 return makeRunningValues(false, [], []);
             }
 
             if (targetProps) {
-                if (propsArePhysical(targetProps) || propsAreCloneDynamic(targetProps)) {
+                if ((propsArePhysical(targetProps) || propsAreCloneDynamic(targetProps)) &&
+                    targetProps.parentID == NULL_UUID) {
                     return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
@@ -198,16 +264,23 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             if (this.grabbing) {
                 if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
                     controllerData.secondaryValues[this.hand] <  TRIGGER_OFF_VALUE) {
-                    this.endNearParentingGrabEntity();
+                    this.endNearParentingGrabEntity(controllerData);
+                    return makeRunningValues(false, [], []);
+                }
+
+                var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
+                if (!props) {
+                    // entity was deleted
+                    this.grabbing = false;
+                    this.targetEntityID = null;
                     this.hapticTargetID = null;
                     return makeRunningValues(false, [], []);
                 }
 
-                var props = Entities.getEntityProperties(this.targetEntityID);
-                if (!this.thisHandIsParent(props)) {
-                    this.grabbing = false;
-                    this.targetEntityID = null;
-                    this.hapticTargetID = null;
+                if (this.checkForChildTooFarAway(controllerData)) {
+                    // if the held entity moves too far from the hand, release it
+                    print("nearParentGrabEntity -- autoreleasing held item because it is far from hand");
+                    this.endNearParentingGrabEntity(controllerData);
                     return makeRunningValues(false, [], []);
                 }
 
@@ -215,7 +288,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
             } else {
                 // still searching / highlighting
-                var readiness = this.isReady (controllerData);
+                var readiness = this.isReady(controllerData);
                 if (!readiness.active) {
                     return readiness;
                 }
@@ -227,7 +300,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     if (targetCloneable) {
                         var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
                         var cloneID = cloneEntity(targetProps, worldEntityProps);
-                        var cloneProps = Entities.getEntityProperties(cloneID);
+                        var cloneProps = controllerData.nearbyEntityPropertiesByID[cloneID];
 
                         this.grabbing = true;
                         this.targetEntityID = cloneID;
