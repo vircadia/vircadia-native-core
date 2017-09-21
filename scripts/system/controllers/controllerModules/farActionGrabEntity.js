@@ -13,7 +13,7 @@
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays
 
 */
 
@@ -236,10 +236,10 @@ Script.include("/~/system/libraries/controllers.js");
                 this.actionID = null;
             }
 
-            // XXX
-            // if (this.actionID !== null) {
-            //     this.callEntityMethodOnGrabbed("startDistanceGrab");
-            // }
+            if (this.actionID !== null) {
+                var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                Entities.callEntityMethod(this.grabbedThingID, "startDistanceGrab", args);
+            }
 
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
             this.previousRoomControllerPosition = roomControllerPosition;
@@ -271,8 +271,8 @@ Script.include("/~/system/libraries/controllers.js");
             var handMoved = Vec3.multiply(worldHandDelta, radius);
             this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
 
-            // XXX
-            // this.callEntityMethodOnGrabbed("continueDistantGrab");
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.grabbedThingID, "continueDistanceGrab", args);
 
             //  Update radialVelocity
             var lastVelocity = Vec3.multiply(worldHandDelta, 1.0 / deltaObjectTime);
@@ -335,6 +335,10 @@ Script.include("/~/system/libraries/controllers.js");
             this.distanceHolding = false;
             this.distanceRotating = false;
             Entities.deleteAction(this.grabbedThingID, this.actionID);
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
+
             this.actionID = null;
             this.grabbedThingID = null;
         };
@@ -343,7 +347,8 @@ Script.include("/~/system/libraries/controllers.js");
             var intersection = controllerData.rayPicks[this.hand];
             var entityProperty = Entities.getEntityProperties(intersection.objectID);
             var entityType = entityProperty.type;
-            if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web") || intersection.type === RayPick.INTERSECTED_OVERLAY) {
+            if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web") ||
+                intersection.type === RayPick.INTERSECTED_OVERLAY) {
                 return true;
             }
             return false;
@@ -354,7 +359,8 @@ Script.include("/~/system/libraries/controllers.js");
             this.distanceHolding = false;
 
             var worldControllerRotation = getControllerWorldLocation(this.handToController(), true).orientation;
-            var controllerRotationDelta = Quat.multiply(worldControllerRotation, Quat.inverse(this.previousWorldControllerRotation));
+            var controllerRotationDelta =
+                Quat.multiply(worldControllerRotation, Quat.inverse(this.previousWorldControllerRotation));
             // Rotate entity by twice the delta rotation.
             controllerRotationDelta = Quat.multiply(controllerRotationDelta, controllerRotationDelta);
 
@@ -426,7 +432,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.notPointingAtEntity(controllerData) || this.isPointingAtUI(controllerData)) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
+                this.notPointingAtEntity(controllerData) || this.isPointingAtUI(controllerData)) {
                 this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);
@@ -471,6 +478,7 @@ Script.include("/~/system/libraries/controllers.js");
                 for (var j = 0; j < nearGrabReadiness.length; j++) {
                     if (nearGrabReadiness[j].active) {
                         this.laserPointerOff();
+                        this.endNearGrabAction();
                         return makeRunningValues(false, [], []);
                     }
                 }
@@ -555,7 +563,7 @@ Script.include("/~/system/libraries/controllers.js");
             joint: (this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
-            posOffset: getGrabPointSphereOffset(this.handToController()),
+            posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
             defaultRenderStates: defaultRenderStates

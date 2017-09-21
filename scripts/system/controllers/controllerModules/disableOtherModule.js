@@ -1,15 +1,13 @@
 "use strict";
 
-//  nearTrigger.js
+//  disableOtherModule.js
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   enableDispatcherModule, disableDispatcherModule, getGrabbableData, Vec3,
-   TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, makeRunningValues, NEAR_GRAB_RADIUS,
-   getEnabledModuleByName
+/* global Script, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
+   makeDispatcherModuleParameters, makeRunningValues, getEnabledModuleByName, Messages
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -20,7 +18,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.disableModules = false;
         this.parameters = makeDispatcherModuleParameters(
             90,
-            this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
+            this.hand === RIGHT_HAND ?
+                ["rightHand", "rightHandEquip", "rightHandTrigger"] :
+                ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100);
 
@@ -37,11 +37,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
             if (teleportModule) {
                 var ready = teleportModule.isReady(controllerData);
-                if (ready) {
+                if (ready.active) {
                     return makeRunningValues(false, [], []);
                 }
             }
-            if (!this.disablemodules) {
+            if (!this.disableModules) {
                 return makeRunningValues(false, [], []);
             }
             return makeRunningValues(true, [], []);
@@ -61,7 +61,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
                 if (message === 'right') {
                     rightDisableModules.disableModules = true;
-                   
                 }
                 if (message === 'both' || message === 'none') {
                     if (message === 'both') {
@@ -75,7 +74,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         }
     };
-        
+
     Messages.subscribe('Hifi-Hand-Disabler');
     this.cleanup = function() {
         disableDispatcherModule("LeftDisableModules");

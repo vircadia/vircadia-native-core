@@ -1725,14 +1725,6 @@ int AudioClient::setOutputBufferSize(int numFrames, bool persist) {
         if (persist) {
             _outputBufferSizeFrames.set(numFrames);
         }
-
-        if (_audioOutput) {
-            // The buffer size can't be adjusted after QAudioOutput::start() has been called, so
-            // recreate the device by switching to the default.
-            QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
-            qCDebug(audioclient) << __FUNCTION__ << "about to send changeDevice signal outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
-            emit changeDevice(outputDeviceInfo);  // On correct thread, please, as setOutputBufferSize can be called from main thread.
-        }
     }
     return numFrames;
 }

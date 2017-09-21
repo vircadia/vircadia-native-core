@@ -193,7 +193,7 @@ void setupPreferences() {
         preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
     }
     {
-        auto getter = [=]()->float { return myAvatar->getUniformScale(); };
+        auto getter = [=]()->float { return myAvatar->getTargetScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
         preference->setStep(0.05f);
@@ -204,6 +204,16 @@ void setupPreferences() {
         // causing the myAvatar->getDomainMinScale() and myAvatar->getDomainMaxScale() to get set to incorrect values
         // which can't be changed across domain switches. Having these values loaded up when you load the Dialog each time
         // is a way around this, therefore they're not specified here but in the QML.
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getUserHeight(); };
+        auto setter = [=](float value) { myAvatar->setUserHeight(value); };
+        auto preference = new SpinnerPreference(AVATAR_TUNING, "User height (meters)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(2.2f);
+        preference->setDecimals(3);
+        preference->setStep(0.001f);
+        preferences->addPreference(preference);
     }
     {
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
@@ -332,30 +342,6 @@ void setupPreferences() {
                 preference->setItems(mainViewShadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
-        }
-        {
-            auto getter = []()->bool { return image::isColorTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setColorTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Color Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isNormalTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setNormalTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Normal Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isGrayscaleTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setGrayscaleTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Grayscale Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isCubeTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setCubeTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Cube Textures", getter, setter);
-            preferences->addPreference(preference);
         }
     }
     {

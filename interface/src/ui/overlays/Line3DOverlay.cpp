@@ -132,6 +132,7 @@ void Line3DOverlay::render(RenderArgs* args) {
     glm::vec4 colorv4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
     auto batch = args->_batch;
     if (batch) {
+        // FIXME Start using the _renderTransform instead of calling for Transform and start and end from here, do the custom things needed in evalRenderTransform()
         batch->setModelTransform(Transform());
         glm::vec3 start = getStart();
         glm::vec3 end = getEnd();

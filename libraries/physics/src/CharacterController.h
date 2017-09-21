@@ -73,6 +73,7 @@ public:
     void setStepUpEnabled(bool enabled) { _stepUpEnabled = enabled; }
     void computeNewVelocity(btScalar dt, btVector3& velocity);
     void computeNewVelocity(btScalar dt, glm::vec3& velocity);
+    void setScaleFactor(btScalar scaleFactor) { _scaleFactor = scaleFactor; }
 
     // HACK for legacy 'thrust' feature
     void setLinearAcceleration(const glm::vec3& acceleration) { _linearAcceleration = glmToBullet(acceleration); }
@@ -185,7 +186,6 @@ protected:
 
     btScalar _gravity { 0.0f };
 
-    btScalar _jumpSpeed;
     btScalar _followTime;
     btVector3 _followLinearDisplacement;
     btQuaternion _followAngularDisplacement;
@@ -203,6 +203,8 @@ protected:
     bool _flyingAllowed { true };
     bool _collisionlessAllowed { true };
     bool _collisionless { false };
+
+    btScalar _scaleFactor { 1.0f };
 };
 
 #endif // hifi_CharacterController_h

@@ -46,13 +46,17 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
+        Transform transform = getTransform();
+#ifndef USE_SN_SCALE
+        transform.setScale(1.0f); // disable inherited scale
+#endif
         if (_scaleToFit) {
-            _model->setScaleToFit(true, getScale() * getDimensions());
+            _model->setScaleToFit(true, transform.getScale() * getDimensions());
         } else {
-            _model->setScale(getScale());
+            _model->setScale(transform.getScale());
         }
-        _model->setRotation(getRotation());
-        _model->setTranslation(getPosition());
+        _model->setRotation(transform.getRotation());
+        _model->setTranslation(transform.getTranslation());
         _model->setURL(_url);
         _model->simulate(deltatime, true);
     } else {
@@ -108,13 +112,13 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto origPosition = getPosition();
     auto origRotation = getRotation();
     auto origDimensions = getDimensions();
-    auto origScale = getScale();
+    auto origScale = getSNScale();
 
     Base3DOverlay::setProperties(properties);
 
     auto scale = properties["scale"];
     if (scale.isValid()) {
-        setScale(vec3FromVariant(scale));
+        setSNScale(vec3FromVariant(scale));
     }
 
     auto dimensions = properties["dimensions"];
@@ -127,7 +131,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _scaleToFit = false;
     }
 
-    if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getScale()) {
+    if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getSNScale()) {
         _updateModel = true;
     }
 
@@ -209,7 +213,7 @@ QVariant ModelOverlay::getProperty(const QString& property) {
         return vec3toVariant(getDimensions());
     }
     if (property == "scale") {
-        return vec3toVariant(getScale());
+        return vec3toVariant(getSNScale());
     }
     if (property == "textures") {
         if (_modelTextures.size() > 0) {
@@ -295,11 +299,11 @@ ModelOverlay* ModelOverlay::createClone() const {
 
 void ModelOverlay::locationChanged(bool tellPhysics) {
     Base3DOverlay::locationChanged(tellPhysics);
-/*
+
     if (_model && _model->isActive()) {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
-    }*/
+    }
     _updateModel = true;
 }
 

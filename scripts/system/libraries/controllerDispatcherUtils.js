@@ -39,7 +39,8 @@
    projectOntoOverlayXYPlane:true,
    entityHasActions:true,
    ensureDynamic:true,
-   findGroupParent:true
+   findGroupParent:true,
+   BUMPER_ON_VALUE:true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -317,6 +318,8 @@ if (typeof module !== 'undefined') {
         makeRunningValues: makeRunningValues,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
-        BUMPER_ON_VALUE: BUMPER_ON_VALUE
+        BUMPER_ON_VALUE: BUMPER_ON_VALUE,
+        projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
+        projectOntoEntityXYPlane: projectOntoEntityXYPlane
     };
 }

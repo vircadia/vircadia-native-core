@@ -987,8 +987,8 @@ static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
     return ptr[i] == 0x00;
 }
 
-void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
-    auto eventHandler = getEventHandler();
+void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverride) {
+    auto eventHandler = targetOverride ? targetOverride : getEventHandler();
     if (eventHandler) {
         auto utf8Key = key.toUtf8();
 

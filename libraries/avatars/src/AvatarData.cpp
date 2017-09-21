@@ -2346,6 +2346,11 @@ glm::mat4 AvatarData::getSensorToWorldMatrix() const {
 }
 
 // thread-safe
+float AvatarData::getSensorToWorldScale() const {
+    return extractUniformScale(_sensorToWorldMatrixCache.get());
+}
+
+// thread-safe
 glm::mat4 AvatarData::getControllerLeftHandMatrix() const {
     return _controllerLeftHandMatrixCache.get();
 }

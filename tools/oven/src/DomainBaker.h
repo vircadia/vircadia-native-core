@@ -55,6 +55,8 @@ private:
     QString _baseOutputPath;
     QString _uniqueOutputPath;
     QString _contentOutputPath;
+    QString _bakedOutputPath;
+    QString _originalOutputPath;
     QUrl _destinationPath;
 
     QJsonArray _entities;

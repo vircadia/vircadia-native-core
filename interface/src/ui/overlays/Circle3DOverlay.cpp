@@ -85,6 +85,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
     }
 
     // FIXME: THe line width of _lineWidth is not supported anymore, we ll need a workaround
+    // FIXME Start using the _renderTransform instead of calling for Transform from here, do the custom things needed in evalRenderTransform()
 
     auto transform = getTransform();
     transform.postScale(glm::vec3(getDimensions(), 1.0f));

@@ -233,30 +233,19 @@ void Model::updateRenderItems() {
         // We need to update them here so we can correctly update the bounding box.
         self->updateClusterMatrices();
 
-        uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
-#ifdef CAPTURE_TRANSFORM_IN_GAMEPLAY
         Transform modelTransform = self->getTransform();
-   //     Transform modelTransform = model->getTransform();
-       modelTransform.setScale(glm::vec3(1.0f));
-#endif
+        Transform physicsTransform = modelTransform;
+        modelTransform.setScale(glm::vec3(1.0f));
+
+        uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
+
         render::Transaction transaction;
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter
-#ifdef CAPTURE_TRANSFORM_IN_GAMEPLAY
-                , modelTransform
-#endif
-            ](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform](ModelMeshPartPayload& data) {
                 ModelPointer model = data._model.lock();
                 if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
-
-#ifdef CAPTURE_TRANSFORM_IN_GAMEPLAY
-#else
-                        Transform modelTransform = model->getTransform();
-                        modelTransform.setScale(glm::vec3(1.0f));
-#endif
-
                         const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
                         if (state.clusterMatrices.size() == 1) {
@@ -271,11 +260,10 @@ void Model::updateRenderItems() {
         // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
-        Transform modelTransform = self->getTransform();
         foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
-            transaction.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
+            transaction.updateItem<MeshPartPayload>(itemID, [physicsTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
-                data.updateTransform(modelTransform, collisionMeshOffset);
+                data.updateTransform(physicsTransform, collisionMeshOffset);
             });
         }
 
@@ -1321,55 +1309,6 @@ void Model::createCollisionRenderItemSet() {
 
 bool Model::isRenderable() const {
     return !_meshStates.isEmpty() || (isLoaded() && _renderGeometry->getMeshes().empty());
-}
-
-bool Model::initWhenReady(const render::ScenePointer& scene) {
-    // NOTE: this only called by SkeletonModel
-    if (_addedToScene || !isRenderable()) {
-        return false;
-    }
-
-    createRenderItemSet();
-
-    render::Transaction transaction;
-
-    bool addedTransaction = false;
-    if (_collisionGeometry) {
-        foreach (auto renderItem, _collisionRenderItems) {
-            auto item = scene->allocateID();
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-            _collisionRenderItemsMap.insert(item, renderPayload);
-            transaction.resetItem(item, renderPayload);
-        }
-        addedTransaction = !_collisionRenderItems.empty();
-    } else {
-        bool hasTransparent = false;
-        size_t verticesCount = 0;
-        foreach (auto renderItem, _modelMeshRenderItems) {
-            auto item = scene->allocateID();
-            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-
-            hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
-            verticesCount += renderItem.get()->getVerticesCount();
-            _modelMeshRenderItemsMap.insert(item, renderPayload);
-            transaction.resetItem(item, renderPayload);
-        }
-        addedTransaction = !_modelMeshRenderItemsMap.empty();
-        _renderInfoVertexCount = verticesCount;
-        _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
-        _renderInfoHasTransparent = hasTransparent;
-    }
-    _addedToScene = addedTransaction;
-    if (addedTransaction) {
-        scene->enqueueTransaction(transaction);
-        // NOTE: updateRender items enqueues identical transaction (using a lambda)
-        // so it looks like we're doing double work here, but I don't want to remove the call
-        // for fear there is some side effect we'll miss. -- Andrew 2016.07.21
-        // TODO: figure out if we really need this call to updateRenderItems() or not.
-        updateRenderItems();
-    }
-
-    return true;
 }
 
 class CollisionRenderGeometry : public Geometry {
