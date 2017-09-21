@@ -237,13 +237,13 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID&
 }
 
 void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (contextOverlayFilterPassed(entityID)) {
+    if (contextOverlayFilterPassed(entityID) && _enabled) {
         enableEntityHighlight(entityID);
     }
 }
 
 void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (_currentEntityWithContextOverlay != entityID) {
+    if (_currentEntityWithContextOverlay != entityID && _enabled) {
         disableEntityHighlight(entityID);
     }
 }
