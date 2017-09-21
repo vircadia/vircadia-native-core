@@ -35,10 +35,7 @@
         };
 
         this.bumperPressed = function(controllerData) {
-            if ( controllerData.secondaryValues[this.hand] > dispatcherUtils.BUMPER_ON_VALUE) {
-                return true;
-            }
-            return false;
+            return ( controllerData.secondaryValues[this.hand] > dispatcherUtils.BUMPER_ON_VALUE);
         };
 
         this.getTargetProps = function(controllerData) {
