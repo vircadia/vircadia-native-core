@@ -106,6 +106,14 @@
 
     addColors();
 
+    function clampColors(colorArray){
+        colorArray[0] = Math.min(Math.max(colorArray[0], 0), 255);
+        colorArray[1] = Math.min(Math.max(colorArray[1], 0), 255);
+        colorArray[2] = Math.min(Math.max(colorArray[2], 0), 255);
+
+        $('#colorpicker').colpickSetColor({'r': colorArray[0], 'g': colorArray[1], 'b': colorArray[2]}, true);  
+    }
+
     function update(colorArray) {
         // 'jscolor' instance can be used as a string
         var changedColorEvent = {
@@ -120,6 +128,13 @@
     }
 
     function updateFromCustomPicker(colorArray) {
+        if (colorArray[0] != Math.min(Math.max(colorArray[0], 0), 255)
+            || colorArray[1] != Math.min(Math.max(colorArray[1], 0), 255) 
+            || colorArray[2] != Math.min(Math.max(colorArray[2], 0), 255)) {
+            clampColors(colorArray);
+            
+            return;
+        }
         var tableColor = document.getElementById("table(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")");
         var userColor  = document.getElementById("user(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")");
         if (tableColor) {
