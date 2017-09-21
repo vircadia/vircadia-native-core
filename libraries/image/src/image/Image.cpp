@@ -43,6 +43,8 @@ bool DEV_DECIMATE_TEXTURES = false;
 std::atomic<size_t> DECIMATED_TEXTURE_COUNT{ 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
 
+static const auto HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
+
 bool needsSparseRectification(const glm::uvec2& size) {
     // Don't attempt to rectify small textures (textures less than the sparse page size in any dimension)
     if (glm::any(glm::lessThan(size, SPARSE_PAGE_SIZE))) {
@@ -423,14 +425,22 @@ void generateHDRMips(gpu::Texture* texture, const QImage& image, int face) {
         compressionOptions.setFormat(nvtt::Format_RGB);
         compressionOptions.setPixelType(nvtt::PixelType_Float);
         compressionOptions.setPixelFormat(32, 32, 32, 0);
-        unpackFunc = glm::unpackF3x9_E1x5;
     } else if (mipFormat == gpu::Element::COLOR_R11G11B10) {
         compressionOptions.setFormat(nvtt::Format_RGB);
         compressionOptions.setPixelType(nvtt::PixelType_Float);
         compressionOptions.setPixelFormat(32, 32, 32, 0);
-        unpackFunc = glm::unpackF2x11_1x10;
     } else {
         qCWarning(imagelogging) << "Unknown mip format";
+        Q_UNREACHABLE();
+        return;
+    }
+
+    if (HDR_FORMAT == gpu::Element::COLOR_RGB9E5) {
+        unpackFunc = glm::unpackF3x9_E1x5;
+    } else if (HDR_FORMAT == gpu::Element::COLOR_R11G11B10) {
+        unpackFunc = glm::unpackF2x11_1x10;
+    } else {
+        qCWarning(imagelogging) << "Unknown HDR encoding format in QImage";
         Q_UNREACHABLE();
         return;
     }
@@ -1144,19 +1154,18 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
     if ((srcImage.width() > 0) && (srcImage.height() > 0)) {
         QImage image = processSourceImage(srcImage, true);
 
-        const auto cubeMapHDRFormat = gpu::Element::COLOR_R11G11B10;
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (isCubeTexturesCompressionEnabled()) {
             formatMip = gpu::Element::COLOR_COMPRESSED_HDR_RGB;
             formatGPU = gpu::Element::COLOR_COMPRESSED_HDR_RGB;
         } else {
-            formatMip = cubeMapHDRFormat;
-            formatGPU = cubeMapHDRFormat;
+            formatMip = HDR_FORMAT;
+            formatGPU = HDR_FORMAT;
         }
 
         if (image.format() != QIMAGE_HDR_FORMAT) {
-            image = convertToHDRFormat(image, cubeMapHDRFormat);
+            image = convertToHDRFormat(image, HDR_FORMAT);
         }
 
         // Find the layout of the cubemap in the 2D image
@@ -1204,9 +1213,9 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             // Generate irradiance while we are at it
             if (generateIrradiance) {
                 PROFILE_RANGE(resource_parse, "generateIrradiance");
-                auto irradianceTexture = gpu::Texture::createCube(cubeMapHDRFormat, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+                auto irradianceTexture = gpu::Texture::createCube(HDR_FORMAT, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
                 irradianceTexture->setSource(srcImageName);
-                irradianceTexture->setStoredMipFormat(cubeMapHDRFormat);
+                irradianceTexture->setStoredMipFormat(HDR_FORMAT);
                 for (uint8 face = 0; face < faces.size(); ++face) {
                     irradianceTexture->assignStoredMipFace(0, face, faces[face].byteCount(), faces[face].constBits());
                 }
