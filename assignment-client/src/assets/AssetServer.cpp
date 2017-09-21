@@ -1165,10 +1165,11 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
 
 void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath, QVector<QString> bakedFilePaths) {
     bool errorCompletingBake { false };
+    QString errorReason;
 
     qDebug() << "Completing bake for " << originalAssetHash;
 
-    for (auto& filePath: bakedFilePaths) {
+    for (auto& filePath : bakedFilePaths) {
         // figure out the hash for the contents of this file
         QFile file(filePath);
 
@@ -1184,6 +1185,7 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             } else {
                 // stop handling this bake, couldn't hash the contents of the file
                 errorCompletingBake = true;
+                errorReason = "Failed to finalize bake";
                 break;
             }
 
@@ -1194,6 +1196,7 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
                 if (!file.copy(_filesDirectory.absoluteFilePath(bakedFileHash))) {
                     // stop handling this bake, couldn't copy the bake file into our files directory
                     errorCompletingBake = true;
+                    errorReason = "Failed to copy baked assets to asset server";
                     break;
                 }
             }
@@ -1220,12 +1223,14 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
                 qDebug() << "Failed to set mapping";
                 // stop handling this bake, couldn't add a mapping for this bake file
                 errorCompletingBake = true;
+                errorReason = "Failed to finalize bake";
                 break;
             }
         } else {
             qDebug() << "Failed to open baked file: " << filePath;
             // stop handling this bake, we couldn't open one of the files for reading
             errorCompletingBake = true;
+            errorReason = "Failed to finalize bake";
             break;
         }
     }
@@ -1235,6 +1240,10 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
         writeMetaFile(originalAssetHash);
     } else {
         qWarning() << "Could not complete bake for" << originalAssetHash;
+        AssetMeta meta;
+        meta.failedLastBake = true;
+        meta.lastBakeErrors = errorReason;
+        writeMetaFile(originalAssetHash, meta);
     }
 
     _pendingBakes.remove(originalAssetHash);
@@ -1246,7 +1255,6 @@ void AssetServer::handleAbortedBake(QString originalAssetHash, QString assetPath
 }
 
 static const QString BAKE_VERSION_KEY = "bake_version";
-static const QString APP_VERSION_KEY = "app_version";
 static const QString FAILED_LAST_BAKE_KEY = "failed_last_bake";
 static const QString LAST_BAKE_ERRORS_KEY = "last_bake_errors";
 
@@ -1273,18 +1281,15 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetHash hash) {
             auto root = doc.object();
 
             auto bakeVersion = root[BAKE_VERSION_KEY].toInt(-1);
-            auto appVersion = root[APP_VERSION_KEY].toInt(-1);
             auto failedLastBake = root[FAILED_LAST_BAKE_KEY];
             auto lastBakeErrors = root[LAST_BAKE_ERRORS_KEY];
 
             if (bakeVersion != -1
-                && appVersion != -1
                 && failedLastBake.isBool()
                 && lastBakeErrors.isString()) {
 
                 AssetMeta meta;
                 meta.bakeVersion = bakeVersion;
-                meta.applicationVersion = appVersion;
                 meta.failedLastBake = failedLastBake.toBool();
                 meta.lastBakeErrors = lastBakeErrors.toString();
 
@@ -1303,7 +1308,6 @@ bool AssetServer::writeMetaFile(AssetHash originalAssetHash, const AssetMeta& me
     QJsonObject metaFileObject;
 
     metaFileObject[BAKE_VERSION_KEY] = meta.bakeVersion;
-    metaFileObject[APP_VERSION_KEY] = meta.applicationVersion;
     metaFileObject[FAILED_LAST_BAKE_KEY] = meta.failedLastBake;
     metaFileObject[LAST_BAKE_ERRORS_KEY] = meta.lastBakeErrors;
 

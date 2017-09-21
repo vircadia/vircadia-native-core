@@ -34,7 +34,6 @@ struct AssetMeta {
     }
 
     int bakeVersion { 0 };
-    int applicationVersion { 0 };
     bool failedLastBake { false };
     QString lastBakeErrors;
 };
