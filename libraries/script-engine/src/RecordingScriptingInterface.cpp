@@ -58,7 +58,7 @@ void RecordingScriptingInterface::playClip(NetworkClipLoaderPointer clipLoader, 
     _player->queueClip(clipLoader->getClip());
 
     if (callback.isFunction()) {
-        QScriptValueList args{ true, url };
+        QScriptValueList args { true, url };
         callback.call(_scriptEngine->globalObject(), args);
     }
 }
