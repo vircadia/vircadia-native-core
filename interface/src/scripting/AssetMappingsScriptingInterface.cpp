@@ -19,11 +19,12 @@
 #include <AssetUpload.h>
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
+#include <NodeList.h>
 #include <OffscreenUi.h>
 
 static const int AUTO_REFRESH_INTERVAL = 1000;
 
-const int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
+int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
 
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
@@ -195,7 +196,11 @@ AssetMappingModel::AssetMappingModel() {
     setupRoles();
 
     connect(&_autoRefreshTimer, &QTimer::timeout, this, [this] {
-        refresh();
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+        if (assetServer) {
+            refresh();
+        }
     });
     _autoRefreshTimer.setInterval(AUTO_REFRESH_INTERVAL);
 }
