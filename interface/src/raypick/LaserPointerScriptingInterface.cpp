@@ -95,6 +95,7 @@ const RenderState LaserPointerScriptingInterface::buildRenderState(const QVarian
     if (propMap["start"].isValid()) {
         QVariantMap startMap = propMap["start"].toMap();
         if (startMap["type"].isValid()) {
+            startMap.remove("visible");
             startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
         }
     }
@@ -104,6 +105,7 @@ const RenderState LaserPointerScriptingInterface::buildRenderState(const QVarian
         QVariantMap pathMap = propMap["path"].toMap();
         // right now paths must be line3ds
         if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
+            pathMap.remove("visible");
             pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
         }
     }
@@ -112,6 +114,7 @@ const RenderState LaserPointerScriptingInterface::buildRenderState(const QVarian
     if (propMap["end"].isValid()) {
         QVariantMap endMap = propMap["end"].toMap();
         if (endMap["type"].isValid()) {
+            endMap.remove("visible");
             endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
         }
     }

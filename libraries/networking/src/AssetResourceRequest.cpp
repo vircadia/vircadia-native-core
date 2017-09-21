@@ -63,7 +63,7 @@ void AssetResourceRequest::doSend() {
         // This is an ATP path, we'll need to figure out what the mapping is.
         // This may incur a roundtrip to the asset-server, or it may return immediately from the cache in AssetClient.
 
-        auto path = _url.path();
+        auto path = _url.path() + (_url.hasQuery() ? "?" + _url.query() : "");
         requestMappingForPath(path);
     }
 }
@@ -82,14 +82,26 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
 
+        bool failed = false;
+
         switch (request->getError()) {
             case MappingRequest::NoError:
                 // we have no error, we should have a resulting hash - use that to send of a request for that asset
                 qCDebug(networking) << "Got mapping for:" << path << "=>" << request->getHash();
 
-                requestHash(request->getHash());
-
                 statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_SUCCESS);
+
+                // if we got a redirected path we need to store that with the resource request as relative path URL
+                if (request->wasRedirected()) {
+                    _relativePathURL = ATP_SCHEME + request->getRedirectedPath();
+                }
+
+                if (request->wasRedirected() && _failOnRedirect) {
+                    _result = RedirectFail;
+                    failed = true;
+                } else {
+                    requestHash(request->getHash());
+                }
 
                 break;
             default: {
@@ -107,15 +119,18 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                         break;
                 }
 
-                // since we've failed we know we are finished
-                _state = Finished;
-                emit finished();
-
-                statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_FAILED);
-                statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
+                failed = true;
 
                 break;
             }
+        }
+
+        if (failed) {
+            _state = Finished;
+            emit finished();
+
+            statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_FAILED);
+            statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
         }
 
         _assetMappingRequest->deleteLater();

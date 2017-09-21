@@ -14,7 +14,7 @@
 
 #include <QtWidgets/QWidget>
 
-#include "../Baker.h"
+#include <Baker.h>
 
 class BakeWidget : public QWidget {
     Q_OBJECT

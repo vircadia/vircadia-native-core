@@ -321,6 +321,9 @@ if (typeof module !== 'undefined') {
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
         propsArePhysical: propsArePhysical,
         entityIsGrabbable: entityIsGrabbable,
-        NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS
+        NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
+        projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
+        projectOntoEntityXYPlane: projectOntoEntityXYPlane
+
     };
 }
