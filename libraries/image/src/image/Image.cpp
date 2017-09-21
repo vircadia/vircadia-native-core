@@ -67,6 +67,10 @@ glm::uvec2 rectifyToSparseSize(const glm::uvec2& size) {
 
 namespace image {
 
+enum {
+    QIMAGE_HDR_FORMAT = QImage::Format_RGB30
+};
+
 TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
     switch (type) {
         case ALBEDO_TEXTURE:
@@ -206,7 +210,7 @@ void setCubeTexturesCompressionEnabled(bool enabled) {
 }
 
 static float denormalize(float value, const float minValue) {
-    return value < minValue ? 0.f : value;
+    return value < minValue ? 0.0f : value;
 }
 
 uint32 packR11G11B10F(const glm::vec3& color) {
@@ -319,17 +323,18 @@ struct OutputHandler : public nvtt::OutputHandler {
         _data = static_cast<gpu::Byte*>(malloc(size));
         _current = _data;
     }
+
     virtual bool writeData(const void* data, int size) override {
         assert(_current + size <= _data + _size);
         memcpy(_current, data, size);
         _current += size;
         return true;
     }
+
     virtual void endImage() override {
         if (_face >= 0) {
             _texture->assignStoredMipFace(_miplevel, _face, _size, static_cast<const gpu::Byte*>(_data));
-        }
-        else {
+        } else {
             _texture->assignStoredMip(_miplevel, _size, static_cast<const gpu::Byte*>(_data));
         }
         free(_data);
@@ -433,11 +438,11 @@ void generateHDRMips(gpu::Texture* texture, const QImage& image, int face) {
     data.resize(width*height);
     dataIt = data.begin();
     for (auto lineNb = 0; lineNb < height; lineNb++) {
-        const uint32* srcPixelIt = (const uint32*)image.constScanLine(lineNb);
+        const uint32* srcPixelIt = reinterpret_cast<const uint32*>( image.constScanLine(lineNb) );
         const uint32* srcPixelEnd = srcPixelIt + width;
 
         while (srcPixelIt < srcPixelEnd) {
-            *dataIt = glm::vec4(unpackFunc(*srcPixelIt), 1.f);
+            *dataIt = glm::vec4(unpackFunc(*srcPixelIt), 1.0f);
             ++srcPixelIt;
             ++dataIt;
         }
@@ -446,7 +451,7 @@ void generateHDRMips(gpu::Texture* texture, const QImage& image, int face) {
 
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader(false);
-    std::auto_ptr<nvtt::OutputHandler> outputHandler;
+    std::unique_ptr<nvtt::OutputHandler> outputHandler;
     MyErrorHandler errorHandler;
     outputOptions.setErrorHandler(&errorHandler);
     nvtt::Context context;
@@ -1086,29 +1091,29 @@ QImage convertToHDRFormat(QImage srcImage, gpu::Element format) {
 #endif
 
     switch (format.getSemantic()) {
-    case gpu::R11G11B10:
-        packFunc = packR11G11B10F;
+        case gpu::R11G11B10:
+            packFunc = packR11G11B10F;
 #ifdef DEBUG_COLOR_PACKING
-        unpackFunc = glm::unpackF2x11_1x10;
+            unpackFunc = glm::unpackF2x11_1x10;
 #endif
-        break;
-    case gpu::RGB9E5:
-        packFunc = glm::packF3x9_E1x5;
+            break;
+        case gpu::RGB9E5:
+            packFunc = glm::packF3x9_E1x5;
 #ifdef DEBUG_COLOR_PACKING
-        unpackFunc = glm::unpackF3x9_E1x5;
+            unpackFunc = glm::unpackF3x9_E1x5;
 #endif
-        break;
-    default:
-        qCWarning(imagelogging) << "Unsupported HDR format";
-        Q_UNREACHABLE();
-        return srcImage;
+            break;
+        default:
+            qCWarning(imagelogging) << "Unsupported HDR format";
+            Q_UNREACHABLE();
+            return srcImage;
     }
 
     srcImage = srcImage.convertToFormat(QImage::Format_ARGB32);
     for (auto y = 0; y < srcImage.height(); y++) {
-        const QRgb* srcLineIt = (const QRgb*) srcImage.constScanLine(y);
+        const QRgb* srcLineIt = reinterpret_cast<const QRgb*>( srcImage.constScanLine(y) );
         const QRgb* srcLineEnd = srcLineIt + srcImage.width();
-        uint32* hdrLineIt = (uint32*) hdrImage.scanLine(y);
+        uint32* hdrLineIt = reinterpret_cast<uint32*>( hdrImage.scanLine(y) );
         glm::vec3 color;
 
         while (srcLineIt < srcLineEnd) {
@@ -1116,7 +1121,7 @@ QImage convertToHDRFormat(QImage srcImage, gpu::Element format) {
             color.g = qGreen(*srcLineIt);
             color.b = qBlue(*srcLineIt);
             // Normalize and apply gamma
-            color /= 255.f;
+            color /= 255.0f;
             color.r = powf(color.r, 2.2f);
             color.g = powf(color.g, 2.2f);
             color.b = powf(color.b, 2.2f);

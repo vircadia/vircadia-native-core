@@ -508,14 +508,12 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
             case gpu::R11G11B10:
                 texel.format = GL_RGB;
                 texel.type = GL_UNSIGNED_INT_10F_11F_11F_REV;
-                // the type should be float
                 texel.internalFormat = GL_R11F_G11F_B10F;
                 break;
 
             case gpu::RGB9E5:
                 texel.format = GL_RGB;
                 texel.type = GL_UNSIGNED_INT_5_9_9_9_REV;
-                // the type should be float
                 texel.internalFormat = GL_RGB9_E5;
                 break;
 

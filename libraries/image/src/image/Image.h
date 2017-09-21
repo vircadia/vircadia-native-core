@@ -13,11 +13,11 @@
 #define hifi_image_Image_h
 
 #include <QVariant>
-#include <QImage>
 
 #include <gpu/Texture.h>
 
 class QByteArray;
+class QImage;
 
 namespace image {
 
@@ -73,11 +73,6 @@ void setColorTexturesCompressionEnabled(bool enabled);
 void setNormalTexturesCompressionEnabled(bool enabled);
 void setGrayscaleTexturesCompressionEnabled(bool enabled);
 void setCubeTexturesCompressionEnabled(bool enabled);
-
-enum
-{
-    QIMAGE_HDR_FORMAT = QImage::Format_RGB30
-};
 
 gpu::TexturePointer processImage(const QByteArray& content, const std::string& url, int maxNumPixels, TextureUsage::Type textureType);
 

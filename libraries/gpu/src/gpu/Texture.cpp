@@ -686,17 +686,17 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
     auto mipFormat = cubeTexture.getStoredMipFormat();
     std::function<glm::vec3(uint32)> unpackFunc;
-    switch (mipFormat.getSemantic())
-    {
-    case gpu::R11G11B10:
-        unpackFunc = glm::unpackF2x11_1x10;
-        break;
-    case gpu::RGB9E5:
-        unpackFunc = glm::unpackF3x9_E1x5;
-        break;
-    default:
-        assert(false);
-        break;
+
+    switch (mipFormat.getSemantic()) {
+        case gpu::R11G11B10:
+            unpackFunc = glm::unpackF2x11_1x10;
+            break;
+        case gpu::RGB9E5:
+            unpackFunc = glm::unpackF3x9_E1x5;
+            break;
+        default:
+            assert(false);
+            break;
     }
 
     const uint sqOrder = order*order;
@@ -732,7 +732,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
         PROFILE_RANGE(render_gpu, "ProcessFace");
 
-        auto data = (const uint32*)cubeTexture.accessStoredMipFace(0, face)->readData();
+        auto data = reinterpret_cast<const uint32*>( cubeTexture.accessStoredMipFace(0, face)->readData() );
         if (data == nullptr) {
             continue;
         }
@@ -813,7 +813,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
                 // index of texel in texture
 
                 // get color from texture
-                glm::vec3 color{ 0.f, 0.f, 0.f };
+                glm::vec3 color{ 0.0f, 0.0f, 0.0f };
                 for (int i = 0; i < stride; ++i) {
                     for (int j = 0; j < stride; ++j) {
                         int k = (int)(x + i - halfStride + (y + j - halfStride) * width);
