@@ -30,7 +30,7 @@ class EntityRenderer : public QObject, public std::enable_shared_from_this<Entit
 
 public:
     static void initEntityRenderers();
-    static Pointer addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene);
+    static Pointer addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene, Transaction& transaction);
 
     // Allow classes to override this to interact with the user
     virtual bool wantsHandControllerPointerEvents() const { return false; }

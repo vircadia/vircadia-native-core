@@ -1182,3 +1182,19 @@ void SpatiallyNestable::dump(const QString& prefix) const {
         parent->dump(prefix + "    ");
     }
 }
+
+bool SpatiallyNestable::isParentPathComplete() const {
+    static const QUuid IDENTITY;
+    QUuid parentID = getParentID();
+    if (parentID.isNull() || parentID == IDENTITY) {
+        return true;
+    }
+
+    bool success = false;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (!success || !parent) {
+        return false;
+    }
+
+    return parent->isParentPathComplete();
+}
