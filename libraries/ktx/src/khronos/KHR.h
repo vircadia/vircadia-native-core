@@ -225,6 +225,7 @@ namespace khronos {
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
                     case InternalFormat::COMPRESSED_RED_RGTC1: // BC4
                     case InternalFormat::COMPRESSED_RG_RGTC2: // BC5
+                    case InternalFormat::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: // BC6
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
                         return evalAlignedCompressedBlockCount<4>(value);
 
@@ -241,6 +242,7 @@ namespace khronos {
                         return 8;
 
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+                    case InternalFormat::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
                     case InternalFormat::COMPRESSED_RG_RGTC2:
                         return 16;
