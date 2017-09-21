@@ -953,16 +953,15 @@ void AssetServer::removeBakedPathsForDeletedAsset(AssetHash hash) {
     deleteMappings(hiddenBakedFolder);
 }
 
-bool AssetServer::deleteMappings(AssetPathList& paths) {
+bool AssetServer::deleteMappings(const AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
 
     QSet<QString> hashesToCheckForDeletion;
 
     // enumerate the paths to delete and remove them all
-    for (auto& path : paths) {
-
-        path = path.trimmed();
+    for (const auto& rawPath : paths) {
+        auto path = rawPath.trimmed();
 
         // figure out if this path will delete a file or folder
         if (pathIsFolder(path)) {
@@ -991,12 +990,12 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
         } else {
             auto it = _fileMappings.find(path);
             if (it != _fileMappings.end()) {
-                _fileMappings.erase(it);
-
                 // add this hash to the list we need to check for asset removal from server
                 hashesToCheckForDeletion << it->second;
 
                 qCDebug(asset_server) << "Deleted a mapping:" << path << "=>" << it->second;
+                
+                _fileMappings.erase(it);
             } else {
                 qCDebug(asset_server) << "Unable to delete a mapping that was not found:" << path;
             }
