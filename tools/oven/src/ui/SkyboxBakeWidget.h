@@ -16,7 +16,7 @@
 
 #include <SettingHandle.h>
 
-#include "../TextureBaker.h"
+#include <TextureBaker.h>
 
 #include "BakeWidget.h"
 

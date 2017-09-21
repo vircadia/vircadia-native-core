@@ -23,7 +23,6 @@ using DataOffset = int64_t;
 
 using AssetPath = QString;
 using AssetHash = QString;
-using AssetMapping = std::map<AssetPath, AssetHash>;
 using AssetPathList = QStringList;
 
 const size_t SHA256_HASH_LENGTH = 32;
@@ -33,6 +32,8 @@ const uint64_t MAX_UPLOAD_SIZE = 1000 * 1000 * 1000; // 1GB
 const QString ASSET_FILE_PATH_REGEX_STRING = "^(\\/[^\\/\\0]+)+$";
 const QString ASSET_PATH_REGEX_STRING = "^\\/([^\\/\\0]+(\\/)?)+$";
 const QString ASSET_HASH_REGEX_STRING = QString("^[a-fA-F0-9]{%1}$").arg(SHA256_HASH_HEX_LENGTH);
+
+const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
 
 enum AssetServerError : uint8_t {
     NoError = 0,
@@ -49,8 +50,26 @@ enum AssetMappingOperationType : uint8_t {
     GetAll,
     Set,
     Delete,
-    Rename
+    Rename,
+    SetBakingEnabled
 };
+
+enum BakingStatus {
+    Irrelevant,
+    NotBaked,
+    Pending,
+    Baking,
+    Baked,
+    Error
+};
+
+struct MappingInfo {
+    AssetHash hash;
+    BakingStatus status;
+    QString bakingErrors;
+};
+
+using AssetMapping = std::map<AssetPath, MappingInfo>;
 
 QUrl getATPUrl(const QString& hash);
 
@@ -62,5 +81,7 @@ bool saveToCache(const QUrl& url, const QByteArray& file);
 bool isValidFilePath(const AssetPath& path);
 bool isValidPath(const AssetPath& path);
 bool isValidHash(const QString& hashString);
+
+QString bakingStatusToString(BakingStatus status);
 
 #endif // hifi_AssetUtils_h

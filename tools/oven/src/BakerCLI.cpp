@@ -41,8 +41,8 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString outputPath) {
 
     // create our appropiate baker
     if (isFBX) {
-        _baker = std::unique_ptr<Baker> { new FBXBaker(inputUrl, outputPath, []() -> QThread* { return qApp->getNextWorkerThread(); }) };
-        _baker->moveToThread(qApp->getFBXBakerThread());
+        _baker = std::unique_ptr<Baker> { new FBXBaker(inputUrl, []() -> QThread* { return qApp->getNextWorkerThread(); }, outputPath) };
+        _baker->moveToThread(qApp->getNextWorkerThread());
     } else if (isSupportedImage) {
         _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath) };
         _baker->moveToThread(qApp->getNextWorkerThread());

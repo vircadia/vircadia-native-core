@@ -75,6 +75,8 @@ public:
      * @param {string} error
      */
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
+    
+    Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, QScriptValue callback);
 
 #if (PR_BUILD || DEV_BUILD)
     Q_INVOKABLE void sendFakedHandshake();

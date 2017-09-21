@@ -50,6 +50,7 @@ void ResultsWindow::setupUI() {
     // strech the last column of the table (that holds the results) to fill up the remaining available size
     _resultsTable->horizontalHeader()->resizeSection(0, 0.25 * FIXED_WINDOW_WIDTH);
     _resultsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    _resultsTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     // make sure we hear about cell clicks so that we can show the output directory for the given row
     connect(_resultsTable, &QTableWidget::cellClicked, this, &ResultsWindow::handleCellClicked);

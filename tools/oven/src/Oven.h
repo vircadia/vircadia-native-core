@@ -34,7 +34,6 @@ public:
 
     OvenMainWindow* getMainWindow() const { return _mainWindow; }
 
-    QThread* getFBXBakerThread();
     QThread* getNextWorkerThread();
 
 private:
@@ -42,7 +41,6 @@ private:
     void setupFBXBakerThread();
 
     OvenMainWindow* _mainWindow;
-    QThread* _fbxBakerThread;
     QList<QThread*> _workerThreads;
 
     std::atomic<uint> _nextWorkerThreadIndex;

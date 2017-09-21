@@ -78,6 +78,20 @@ Doppleganger.prototype = {
         return this.active;
     },
 
+    // @private @method - get an avatar's "absolute joint translations in object frame" as local translations
+    // @param {AvatarData} - avatar to read translations from
+    // @return {glm::vec3[]} - the adapted translations
+    _getLocalAvatarJointTranslations: function(avatar) {
+        // NOTE: avatar.getJointTranslations() seems to return meters and avatar.getJointTranslation(jointIndex) centimeters...
+        //  adapting meters -> centimeters on this side seems to fix the "scrunching into ball" problem (~Beta 54)
+        //  and perform slightly faster than calling getJointTranslation(jointIndex) N times.
+        const CENTIMETERS_PER_METER = 100.0;
+        function scaleToMeters(v) {
+            return Vec3.multiply(CENTIMETERS_PER_METER, v);
+        }
+        return avatar.getJointTranslations().map(scaleToMeters);
+    },
+
     // @public @method - synchronize the joint data between Avatar / doppleganger
     update: function() {
         this.frame++;
@@ -91,7 +105,7 @@ Doppleganger.prototype = {
             }
 
             var rotations = this.avatar.getJointRotations();
-            var translations = this.avatar.getJointTranslations();
+            var translations = this._getLocalAvatarJointTranslations(this.avatar);
             var size = rotations.length;
 
             // note: this mismatch can happen when the avatar's model is actively changing

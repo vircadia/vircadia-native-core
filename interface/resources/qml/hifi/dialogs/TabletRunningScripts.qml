@@ -426,6 +426,13 @@ Rectangle {
                             }
                         }
                     }
+
+                    onActivated: {
+                        var path = scriptsModel.data(index, 0x100)
+                        if (path) {
+                            loadScript(path)
+                        }
+                    }
                 }
 
                 Item {
