@@ -24,8 +24,8 @@ public:
     virtual glm::vec2 getSize() const { return _dimensions; };
     
     glm::vec2 getDimensions() const { return _dimensions; }
-    void setDimensions(float value) { _dimensions = glm::vec2(value); }
-    void setDimensions(const glm::vec2& value) { _dimensions = value; }
+    void setDimensions(float value) { setDimensions(glm::vec2(value)); }
+    void setDimensions(const glm::vec2& value);
     
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;

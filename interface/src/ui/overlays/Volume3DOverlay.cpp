@@ -26,6 +26,11 @@ AABox Volume3DOverlay::getBounds() const {
     return AABox(extents);
 }
 
+void Volume3DOverlay::setDimensions(const glm::vec3& value) {
+    _localBoundingBox.setBox(-value / 2.0f, value);
+    notifyRenderTransformChange();
+}
+
 void Volume3DOverlay::setProperties(const QVariantMap& properties) {
     Base3DOverlay::setProperties(properties);
 
