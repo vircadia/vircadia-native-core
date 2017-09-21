@@ -417,7 +417,11 @@
         if (e.value > 1) {
             document.getElementById("lineWidthText").value = 1;
         }
+        if (e.value < 0) {
+            document.getElementById("lineWidthText").value = 0;
+        }
         document.getElementById("lineWidthRange").value = e.value > 1 ? 1 : e.value;
+        document.getElementById("lineWidthRange").value = e.value < 0 ? 0 : e.value;
         notifyLineWidthChanged(e);
     }
 
