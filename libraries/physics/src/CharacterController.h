@@ -24,6 +24,7 @@
 
 #include "BulletUtil.h"
 #include "CharacterGhostObject.h"
+#include "AvatarConstants.h" 
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -134,7 +135,7 @@ protected:
 #endif
 
     virtual void updateMassProperties() = 0;
-    void updateGravity();
+    void updateCurrentGravity();
     void updateUpAxis(const glm::quat& rotation);
     bool checkForSupport(btCollisionWorld* collisionWorld);
 
@@ -187,7 +188,8 @@ protected:
     bool _stepUpEnabled { true };
     bool _hasSupport;
 
-    btScalar _gravity { 0.0f };
+    btScalar _currentGravity { 0.0f };
+    btScalar _gravity { DEFAULT_AVATAR_GRAVITY };
 
     btScalar _followTime;
     btVector3 _followLinearDisplacement;
