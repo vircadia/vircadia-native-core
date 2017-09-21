@@ -990,12 +990,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         dimensions: {
                             x: UIT.dimensions.buttonDimensions.x,
-                            y: 0.0680,
+                            y: 0.0400,
                             z: UIT.dimensions.buttonDimensions.z
                         },
                         localPosition: {
                             x: 0,
-                            y: UIT.dimensions.panel.y / 2 - 0.0280 - 0.0680 / 2,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - 0.0400 / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         },
                         color: UIT.colors.baseGrayShadow
@@ -1018,16 +1018,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         dimensions: {
                             x: UIT.dimensions.buttonDimensions.x,
-                            y: 0.0680,
+                            y: 0.0400,
                             z: UIT.dimensions.buttonDimensions.z
                         },
                         localPosition: {
                             x: 0,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0120 + 0.0680 / 2,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - 0.0400 - 0.0040 - 0.0400 / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         },
                         color: UIT.colors.baseGrayShadow
-
                     },
                     enabledColor: UIT.colors.redHighlight,
                     highlightColor: UIT.colors.redAccent,
@@ -1039,6 +1038,60 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     labelEnabledColor: UIT.colors.white,
                     callback: {
                         method: "ungroupButton"
+                    }
+                },
+                {
+                    id: "groupRule2",
+                    type: "horizontalRule",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0603,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                        }
+                    }
+                },
+                {
+                    id: "groupSelectionBoxButton",
+                    type: "toggleButton",
+                    properties: {
+                        dimensions: { x: 0.1042, y: 0.0400, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: {
+                            x: -0.0040 - 0.1042 / 2,
+                            y: -0.0900 + 0.0120 + 0.0400 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        }
+                    },
+                    label: {
+                        url: "../assets/tools/group/selection-box-label.svg",
+                        scale: 0.0161
+                    },
+                    command: {
+                        method: "toggleGroupSelectionBox"
+                    }
+                },
+                {
+                    id: "groupsSelectionBoxCancelButton",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.1042, y: 0.0400, z: UIT.dimensions.buttonDimensions.z },
+                        localPosition: {
+                            x: 0.0040 + 0.1042 / 2,
+                            y: -0.0900 + 0.0120 + 0.0400 / 2,
+                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
+                        },
+                        color: UIT.colors.baseGrayShadow
+                    },
+                    enabledColor: UIT.colors.greenHighlight,
+                    highlightColor: UIT.colors.greenShadow,
+                    label: {
+                        url: "../assets/tools/group/cancel-label.svg",
+                        scale: 0.0380,
+                        color: UIT.colors.baseGray
+                    },
+                    labelEnabledColor: UIT.colors.white,
+                    command: {
+                        method: "cancelGroupSelectionBox"
                     }
                 }
             ],
