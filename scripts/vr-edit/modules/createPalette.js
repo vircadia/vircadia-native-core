@@ -219,8 +219,34 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: ENTITY_CREATION_COLOR
                 }
             },
-            // TODO: "Dodecahedron" shape type per edit.js.
-            // TODO: "Hexagon" shape type per edit.js.
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/dodecahedron.fbx"
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Dodecahedron",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/hexagon.fbx",
+                        dimensions: { x: 0.02078, y: 0.024, z: 0.024 },
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Hexagon",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
             {
                 icon: {
                     properties: {
@@ -235,7 +261,21 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: ENTITY_CREATION_COLOR
                 }
             },
-            // TODO: "Octagon" shape type per edit.js.
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/octagon.fbx",
+                        dimensions: { x: 0.023805, y: 0.024, z: 0.024 },
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Octagon",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
             {
                 icon: {
                     properties: {
@@ -263,8 +303,22 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: ENTITY_CREATION_DIMENSIONS,
                     color: ENTITY_CREATION_COLOR
                 }
+            },
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/circle.fbx",
+                        dimensions: { x: 0.024, y: 0.0005, z: 0.024 },
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Circle",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
             }
-            // TODO: "Circle" shape type per edit.js.
         ],
 
         isDisplaying = false,
