@@ -33,10 +33,10 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
   
-    Transform evalRenderTransform() const override;
-
 protected:
     glm::vec2 _dimensions;
+
+    Transform evalRenderTransform() override;
 };
 
  

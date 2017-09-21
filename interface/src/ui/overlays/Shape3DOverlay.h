@@ -37,6 +37,9 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
+protected:
+    Transform evalRenderTransform() override;
+
 private:
     float _borderSize;
     GeometryCache::Shape _shape { GeometryCache::Hexagon };

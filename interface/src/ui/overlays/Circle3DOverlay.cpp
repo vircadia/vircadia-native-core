@@ -438,3 +438,7 @@ bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
 Circle3DOverlay* Circle3DOverlay::createClone() const {
     return new Circle3DOverlay(this);
 }
+
+Transform Circle3DOverlay::evalRenderTransform() {
+    return getTransform();
+}

@@ -268,3 +268,7 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
 Line3DOverlay* Line3DOverlay::createClone() const {
     return new Line3DOverlay(this);
 }
+
+Transform Line3DOverlay::evalRenderTransform() {
+    return getTransform();
+}

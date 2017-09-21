@@ -69,3 +69,11 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
     // and testing intersection there.
     return _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face, surfaceNormal);
 }
+
+Transform Volume3DOverlay::evalRenderTransform() {
+    Transform transform = getTransform();
+#ifndef USE_SN_SCALE
+    transform.setScale(1.0f);  // ignore any inherited scale from SpatiallyNestable
+#endif
+    return transform;
+}

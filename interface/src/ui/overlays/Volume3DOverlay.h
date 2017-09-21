@@ -15,6 +15,7 @@
 
 class Volume3DOverlay : public Base3DOverlay {
     Q_OBJECT
+    using Parent = Base3DOverlay;
 
 public:
     Volume3DOverlay() {}
@@ -35,6 +36,8 @@ public:
 protected:
     // Centered local bounding box
     AABox _localBoundingBox{ vec3(0.0f), 1.0f };
+
+    Transform evalRenderTransform() override;
 };
 
 

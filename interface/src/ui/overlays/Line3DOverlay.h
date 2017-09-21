@@ -56,6 +56,9 @@ public:
     QUuid getEndParentID() const { return _endParentID; }
     quint16 getEndJointIndex() const { return _endParentJointIndex; }
 
+protected:
+    Transform evalRenderTransform() override;
+
 private:
     QUuid _endParentID;
     quint16 _endParentJointIndex { INVALID_JOINT_INDEX };

@@ -96,10 +96,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
 
-    // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
-    Transform transform = getTransform();
-    applyTransformTo(transform, true);
-    setTransform(transform);
+    auto transform = getRenderTransform();
     batch.setModelTransform(transform);
 
     const float MAX_COLOR = 255.0f;
@@ -249,3 +246,8 @@ bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3
     setTransform(transform);
     return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
 }
+
+Transform Text3DOverlay::evalRenderTransform() {
+    return Parent::evalRenderTransform();
+}
+

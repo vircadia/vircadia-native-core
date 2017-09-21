@@ -88,6 +88,8 @@ protected:
     int _minorTicksVerticesID { 0 };
 
     bool _dirty { true };
+
+    Transform evalRenderTransform() override;
 };
 
  
