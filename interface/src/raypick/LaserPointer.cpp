@@ -86,7 +86,9 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
 
 void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
     if (!id.isNull() && props.isValid()) {
-        qApp->getOverlays().editOverlay(id, props);
+        QVariantMap propMap = props.toMap();
+        propMap.remove("visible");
+        qApp->getOverlays().editOverlay(id, propMap);
     }
 }
 
