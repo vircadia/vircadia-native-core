@@ -192,10 +192,18 @@ void DomainBaker::enumerateEntities() {
 
                     // setup an FBXBaker for this URL, as long as we don't already have one
                     if (!_modelBakers.contains(modelURL)) {
+                        auto filename = modelURL.fileName();
+                        auto baseName = filename.left(filename.lastIndexOf('.'));
+                        auto subDirName = "/" + baseName;
+                        int i = 0;
+                        while (QDir(_contentOutputPath + subDirName).exists()) {
+                            subDirName = "/" + baseName + "-" + i++;
+                        }
                         QSharedPointer<FBXBaker> baker {
-                            new FBXBaker(modelURL, _contentOutputPath, []() -> QThread* {
+                            new FBXBaker(modelURL, []() -> QThread* {
                                 return qApp->getNextWorkerThread();
-                            }), &FBXBaker::deleteLater
+                            }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
+                            &FBXBaker::deleteLater
                         };
 
                         // make sure our handler is called when the baker is done
@@ -206,7 +214,7 @@ void DomainBaker::enumerateEntities() {
 
                         // move the baker to the baker thread
                         // and kickoff the bake
-                        baker->moveToThread(qApp->getFBXBakerThread());
+                        baker->moveToThread(qApp->getNextWorkerThread());
                         QMetaObject::invokeMethod(baker.data(), "bake");
 
                         // keep track of the total number of baking entities
@@ -309,7 +317,11 @@ void DomainBaker::handleFinishedModelBaker() {
                 QUrl oldModelURL { entity[ENTITY_MODEL_URL_KEY].toString() };
 
                 // setup a new URL using the prefix we were passed
-                QUrl newModelURL = _destinationPath.resolved(baker->getBakedFBXRelativePath());
+                auto relativeFBXFilePath = baker->getBakedFBXFilePath().remove(_contentOutputPath);
+                if (relativeFBXFilePath.startsWith("/")) {
+                    relativeFBXFilePath = relativeFBXFilePath.right(relativeFBXFilePath.length() - 1);
+                }
+                QUrl newModelURL = _destinationPath.resolved(relativeFBXFilePath);
 
                 // copy the fragment and query, and user info from the old model URL
                 newModelURL.setQuery(oldModelURL.query());
@@ -335,7 +347,7 @@ void DomainBaker::handleFinishedModelBaker() {
                         if (oldAnimationURL.matches(oldModelURL, QUrl::RemoveQuery | QUrl::RemoveFragment)) {
                             // the animation URL matched the old model URL, so make the animation URL point to the baked FBX
                             // with its original query and fragment
-                            auto newAnimationURL = _destinationPath.resolved(baker->getBakedFBXRelativePath());
+                            auto newAnimationURL = _destinationPath.resolved(relativeFBXFilePath);
                             newAnimationURL.setQuery(oldAnimationURL.query());
                             newAnimationURL.setFragment(oldAnimationURL.fragment());
                             newAnimationURL.setUserInfo(oldAnimationURL.userInfo());

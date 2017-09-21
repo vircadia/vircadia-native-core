@@ -185,6 +185,14 @@ RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& o
     return request;
 }
 
+SetBakingEnabledRequest* AssetClient::createSetBakingEnabledRequest(const AssetPathList& path, bool enabled) {
+    auto bakingEnabledRequest = new SetBakingEnabledRequest(path, enabled);
+
+    bakingEnabledRequest->moveToThread(thread());
+
+    return bakingEnabledRequest;
+}
+
 AssetRequest* AssetClient::createRequest(const AssetHash& hash, const ByteRange& byteRange) {
     auto request = new AssetRequest(hash, byteRange);
 
@@ -578,6 +586,37 @@ MessageID AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetP
 
             return messageID;
 
+        }
+    }
+
+    callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+    return INVALID_MESSAGE_ID;
+}
+
+MessageID AssetClient::setBakingEnabled(const AssetPathList& paths, bool enabled, MappingOperationCallback callback) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+    if (assetServer) {
+        auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
+
+        auto messageID = ++_currentID;
+        packetList->writePrimitive(messageID);
+
+        packetList->writePrimitive(AssetMappingOperationType::SetBakingEnabled);
+
+        packetList->writePrimitive(enabled);
+
+        packetList->writePrimitive(int(paths.size()));
+
+        for (auto& path : paths) {
+            packetList->writeString(path);
+        }
+
+        if (nodeList->sendPacketList(std::move(packetList), *assetServer) != -1) {
+            _pendingMappingRequests[assetServer][messageID] = callback;
+
+            return messageID;
         }
     }
 

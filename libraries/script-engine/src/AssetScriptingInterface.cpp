@@ -55,7 +55,6 @@ void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValu
 
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
-    const QString ATP_SCHEME { "atp:" };
 
     if (!urlString.startsWith(ATP_SCHEME)) {
         return;
@@ -87,6 +86,20 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
     });
 
     assetRequest->start();
+}
+
+void AssetScriptingInterface::setBakingEnabled(QString path, bool enabled, QScriptValue callback) {
+    auto setBakingEnabledRequest = DependencyManager::get<AssetClient>()->createSetBakingEnabledRequest({ path }, enabled);
+
+    QObject::connect(setBakingEnabledRequest, &SetBakingEnabledRequest::finished, this, [this, callback](SetBakingEnabledRequest* request) mutable {
+        if (callback.isFunction()) {
+            QString error = request->getErrorString();
+            QScriptValueList args{ error };
+            callback.call(_engine->currentContext()->thisObject(), args);
+        }
+        request->deleteLater();
+    });
+    setBakingEnabledRequest->start();
 }
 
 #if (PR_BUILD || DEV_BUILD)
