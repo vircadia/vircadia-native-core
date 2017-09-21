@@ -1090,6 +1090,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: UIT.colors.baseGray
                     },
                     labelEnabledColor: UIT.colors.white,
+                    enabled: false,
                     command: {
                         method: "cancelGroupSelectionBox"
                     }
@@ -2423,7 +2424,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 swatchHighlightOverlay = Overlays.addOverlay(UI_ELEMENTS.swatchHighlight.overlay, properties);
             }
 
-            optionsEnabled.push(true);
+            optionsEnabled.push(optionsItems[i].enabled === undefined || optionsItems[i].enabled);
         }
 
         // Special handling for Group options.
@@ -2701,6 +2702,54 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             });
             setCurrentColor(parameter);
             setColorPicker(parameter);
+            break;
+
+        case "toggleGroupSelectionBox":
+            optionsToggles.groupSelectionBoxButton = !optionsToggles.groupSelectionBoxButton;
+
+            index = optionsOverlaysIDs.indexOf("groupSelectionBoxButton");
+            Overlays.editOverlay(optionsOverlays[index], {
+                color: optionsToggles.groupSelectionBoxButton
+                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
+                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
+            });
+
+            index = optionsOverlaysIDs.indexOf("groupsSelectionBoxCancelButton");
+            Overlays.editOverlay(optionsOverlays[index], {
+                color: optionsToggles.groupSelectionBoxButton
+                    ? optionsItems[index].enabledColor
+                    : optionsItems[index].properties.color
+            });
+            Overlays.editOverlay(optionsOverlaysLabels[index], {
+                color: optionsToggles.groupSelectionBoxButton
+                    ? optionsItems[index].labelEnabledColor
+                    : optionsItems[index].label.color
+            });
+            optionsEnabled[index] = optionsToggles.groupSelectionBoxButton;
+
+            uiCommandCallback("toggleGroupSelectionBoxTool", optionsToggles.groupSelectionBoxButton);
+            break;
+
+        case "cancelGroupSelectionBox":
+            optionsToggles.groupSelectionBoxButton = false;
+
+            index = optionsOverlaysIDs.indexOf("groupSelectionBoxButton");
+            Overlays.editOverlay(optionsOverlays[index], {
+                color : optionsToggles.groupSelectionBoxButton
+                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
+                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
+            });
+
+            index = optionsOverlaysIDs.indexOf("groupsSelectionBoxCancelButton");
+            Overlays.editOverlay(optionsOverlays[index], {
+                color: optionsItems[index].properties.color
+            });
+            Overlays.editOverlay(optionsOverlaysLabels[index], {
+                color: optionsItems[index].label.color
+            });
+            optionsEnabled[index] = false;
+
+            uiCommandCallback("cancelGroupSelectionBoxTool");
             break;
 
         case "setGravityOn":
@@ -3209,7 +3258,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (pressedItem) {
                 // Unpress previous button.
                 Overlays.editOverlay(pressedSource[pressedItem.index], {
-                    localPosition: isHoveringButtonElement && hoveredItem === pressedItem.index
+                    localPosition:
+                        isHoveringButtonElement && hoveredItem === pressedItem.index && optionsEnabled[pressedItem.index]
                         ? Vec3.sum(pressedItem.localPosition, OPTION_HOVER_DELTA)
                         : pressedItem.localPosition
                 });
