@@ -300,7 +300,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     if (targetCloneable) {
                         var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
                         var cloneID = cloneEntity(targetProps, worldEntityProps);
-                        var cloneProps = controllerData.nearbyEntityPropertiesByID[cloneID];
+                        var cloneProps = Entities.getEntityProperties(cloneID);
                         this.grabbing = true;
                         this.targetEntityID = cloneID;
                         this.startNearParentingGrabEntity(controllerData, cloneProps);
