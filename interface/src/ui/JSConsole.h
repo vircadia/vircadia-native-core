@@ -30,10 +30,10 @@ const int CONSOLE_HEIGHT = 200;
 class JSConsole : public QWidget {
     Q_OBJECT
 public:
-    JSConsole(QWidget* parent, const QSharedPointer<ScriptEngine>& scriptEngine = QSharedPointer<ScriptEngine>());
+    JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine = ScriptEnginePointer());
     ~JSConsole();
 
-    void setScriptEngine(const QSharedPointer<ScriptEngine>& scriptEngine = QSharedPointer<ScriptEngine>());
+    void setScriptEngine(const ScriptEnginePointer& scriptEngine = ScriptEnginePointer());
     void clear();
 
 public slots:
@@ -66,7 +66,7 @@ private:
     QString _savedHistoryFilename;
     QList<QString> _commandHistory;
     QString _rootCommand;
-    QSharedPointer<ScriptEngine> _scriptEngine;
+    ScriptEnginePointer _scriptEngine;
     static const QString _consoleFileName;
 };
 

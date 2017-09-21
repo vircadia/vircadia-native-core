@@ -55,7 +55,7 @@ public:
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
 
-    void postUpdate(float deltaTime);
+    void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
     void clearOtherAvatars();
     void deleteAllAvatars();

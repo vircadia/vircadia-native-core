@@ -16,6 +16,7 @@
 
     var request = Script.require('request').request;
 
+    var WANT_DEBUG = Settings.getValue('MAKE_USER_CONNECTION_DEBUG', false);
     var LABEL = "makeUserConnection";
     var MAX_AVATAR_DISTANCE = 0.2; // m
     var GRIP_MIN = 0.75; // goes from 0-1, so 75% pressed is pressed
@@ -120,6 +121,9 @@
     var successfulHandshakeSound;
 
     function debug() {
+        if (!WANT_DEBUG) {
+            return;
+        }
         var stateString = "<" + STATE_STRINGS[state] + ">";
         var connecting = "[" + connectingId + "/" + connectingHandJointIndex + "]";
         var current = "[" + currentHand + "/" + currentHandJointIndex + "]"
@@ -372,7 +376,7 @@
             var myHeadIndex = MyAvatar.getJointIndex("Head");
             var otherHeadIndex = avatar.getJointIndex("Head");
             var diff = (avatar.getJointPosition(otherHeadIndex).y - MyAvatar.getJointPosition(myHeadIndex).y) / 2;
-            print("head height difference: " + diff);
+            debug("head height difference: " + diff);
             updateAnimationData(diff);
         }
     }

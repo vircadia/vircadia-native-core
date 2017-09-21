@@ -24,7 +24,7 @@ TestingDialog::TestingDialog(QWidget* parent) :
     _console->setFixedHeight(TESTING_CONSOLE_HEIGHT);
 
     auto _engines = DependencyManager::get<ScriptEngines>();
-    _engine.reset(_engines->loadScript(qApp->applicationDirPath() + testRunnerRelativePath));
+    _engine = _engines->loadScript(qApp->applicationDirPath() + testRunnerRelativePath);
     _console->setScriptEngine(_engine);
     connect(_engine.data(), &ScriptEngine::finished, this, &TestingDialog::onTestingFinished);
 }
