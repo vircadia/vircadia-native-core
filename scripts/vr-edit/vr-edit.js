@@ -1469,10 +1469,18 @@
         case "groupButton":
             Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
             grouping.group();
+            grouping.clear();
+            toolSelected = TOOL_NONE;
+            ui.clearTool();
+            ui.updateUIOverlays();
             break;
         case "ungroupButton":
             Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
             grouping.ungroup();
+            grouping.clear();
+            toolSelected = TOOL_NONE;
+            ui.clearTool();
+            ui.updateUIOverlays();
             break;
 
         case "setColor":
