@@ -180,7 +180,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         MENU_PANEL_PROPERTIES = {
             dimensions: UIT.dimensions.panel,
-            localPosition: { x: 0, y: UIT.dimensions.panel.y / 2 - UIT.dimensions.canvas.y / 2, z: UIT.dimensions.panel.z / 2 },
+            localPosition: { x: 0, y: (UIT.dimensions.panel.y - UIT.dimensions.canvas.y) / 2, z: UIT.dimensions.panel.z / 2 },
             localRotation: Quat.ZERO,
             color: UIT.colors.baseGray,
             alpha: 1.0,
@@ -612,7 +612,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0935,
-                            y: 0.0513,
+                            y: 0.0513 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -633,7 +633,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0561,
-                            y: 0.0513,
+                            y: 0.0513 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -654,7 +654,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0935,
-                            y: 0.0153,
+                            y: 0.0153 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -675,7 +675,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0561,
-                            y: 0.0153,
+                            y: 0.0153 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -696,7 +696,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0935,
-                            y: -0.0207,
+                            y: -0.0207 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -717,7 +717,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0561,
-                            y: -0.0207,
+                            y: -0.0207 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -739,7 +739,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.001 },
                         localPosition: {
                             x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0668 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0481,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0481 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         }
                     }
@@ -750,7 +750,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: 0.04675,
-                            y: 0.01655,
+                            y: 0.01655 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -766,7 +766,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: 0.04675,
-                            y: -0.0620,
+                            y: -0.0620 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         },
                         localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 })
@@ -786,7 +786,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.1229, y: 0.001 },
                         localPosition: {
                             x: 0.04675,
-                            y: -0.0781,
+                            y: -0.0781 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         }
                     }
@@ -798,7 +798,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0935,
-                            y: -0.064,
+                            y: -0.064 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -817,7 +817,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.imageOverlayOffset },
                         localPosition: {
                             x: -0.0561,
-                            y: -0.064,
+                            y: -0.064 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -892,7 +892,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0321, y: 0.0320 },
                         localPosition: {
                             x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0321 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white  // Icon SVG is already lightGray color.
@@ -904,9 +904,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/stretch/info-text.svg",
                         scale: 0.1340,
-                        localPosition: {
+                        localPosition: {  // Vertically center on info icon.
                             x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,  // Center on info icon.
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white
@@ -1023,7 +1023,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         },
                         localPosition: {
                             x: 0,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0120 + 0.0680 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0120 + 0.0680 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         },
                         color: UIT.colors.baseGrayShadow
@@ -1076,7 +1076,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0748,
-                            y: 0.0480,
+                            y: 0.0480 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1124,7 +1124,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0748,
-                            y: 0.0120,
+                            y: 0.0120 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1172,7 +1172,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0748,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1376,7 +1376,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: UIT.dimensions.panel.x / 2 - UIT.dimensions.rightMargin - 0.1416 / 2,
-                            y: 0.0480,
+                            y: 0.0480 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1435,7 +1435,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0187,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1464,7 +1464,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0.0187,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1493,7 +1493,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0.0561,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1522,7 +1522,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0.0935,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1608,7 +1608,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0321, y: 0.0320 },
                         localPosition: {
                             x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0321 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white  // Icon SVG is already lightGray color.
@@ -1620,9 +1620,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/delete/info-text.svg",
                         scale: 0.1416,
-                        localPosition: {
+                        localPosition: {  // Vertically off-center w.r.t. info icon.
                             x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0240 / 2 + 0.0063 / 2,  // Off-center w.r.t. info icon.
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0240 / 2 + 0.0063 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white
@@ -1632,7 +1632,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         MENU_ITEM_XS = [-0.08415, -0.02805, 0.02805, 0.08415],
-        MENU_ITEM_YS = [0.058, 0.002, -0.054],
+        MENU_ITEM_YS = [0.086, 0.030, -0.026],
 
         MENU_ITEMS = [
             {
@@ -1998,7 +1998,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     setHand(side);
 
     function getOverlayIDs() {
-        return [menuPanelOverlay, menuHeaderOverlay].concat(menuOverlays).concat(optionsOverlays);
+        return [menuHeaderOverlay, menuPanelOverlay].concat(menuOverlays).concat(optionsOverlays);
     }
 
     function getIconInfo(tool) {
