@@ -65,14 +65,18 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         PALETTE_HEADER_BAR_PROPERTIES = {
-            dimensions: UIT.dimensions.headerBar,
+            url: Script.resolvePath("../assets/blue-header-bar.fbx"),
+            dimensions: {  // FBX model is in rotated coordinate system.
+                x: UIT.dimensions.headerBar.z,
+                y: UIT.dimensions.headerBar.x,
+                z: UIT.dimensions.headerBar.y
+            },
             localPosition: {
                 x: 0,
                 y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.headerHeading.y - UIT.dimensions.headerBar.y / 2,
                 z: UIT.dimensions.headerBar.z / 2
             },
-            localRotation: Quat.ZERO,
-            color: UIT.colors.blueHighlight,
+            localRotation: Quat.fromVec3Degrees({ x: 0, y: 90, z: 90 }),  // FBX model is in rotated coordinate system.
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
@@ -479,7 +483,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         paletteHeaderHeadingOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(PALETTE_HEADER_BAR_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
-        paletteHeaderBarOverlay = Overlays.addOverlay("cube", properties);
+        paletteHeaderBarOverlay = Overlays.addOverlay("model", properties);
         properties = Object.clone(PALETTE_TITLE_PROPERTIES);
         properties.parentID = paletteHeaderHeadingOverlay;
         properties.url = Script.resolvePath(properties.url);

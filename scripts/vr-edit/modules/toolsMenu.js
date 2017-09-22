@@ -111,10 +111,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         MENU_HEADER_BAR_PROPERTIES = {
-            dimensions: UIT.dimensions.headerBar,
+            url: Script.resolvePath("../assets/green-header-bar.fbx"),
+            dimensions: {  // FBX model is in rotated coordinate system.
+                x: UIT.dimensions.headerBar.z,
+                y: UIT.dimensions.headerBar.x,
+                z: UIT.dimensions.headerBar.y
+            },
             localPosition: { x: 0, y: -UIT.dimensions.headerHeading.y / 2 - UIT.dimensions.headerBar.y / 2, z: 0 },
-            localRotation: Quat.ZERO,
-            color: UIT.colors.greenHighlight,
+            localRotation: Quat.fromVec3Degrees({ x: 0, y: 90, z: 90 }),  // FBX model is in rotated coordinate system.
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: true,
@@ -3371,7 +3375,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuHeaderHeadingOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(MENU_HEADER_BAR_PROPERTIES);
         properties.parentID = menuHeaderHeadingOverlay;
-        menuHeaderBarOverlay = Overlays.addOverlay("cube", properties);
+        menuHeaderBarOverlay = Overlays.addOverlay("model", properties);
 
         // Heading content.
         properties = Object.clone(MENU_HEADER_BACK_PROPERTIES);
