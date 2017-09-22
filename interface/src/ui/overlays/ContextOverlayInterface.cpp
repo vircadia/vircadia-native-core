@@ -15,6 +15,10 @@
 #include <EntityTreeRenderer.h>
 #include <NetworkingConstants.h>
 
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
 static const float CONTEXT_OVERLAY_TABLET_OFFSET = 30.0f; // Degrees
 static const float CONTEXT_OVERLAY_TABLET_ORIENTATION = 210.0f; // Degrees
 static const float CONTEXT_OVERLAY_TABLET_DISTANCE = 0.65F; // Meters
@@ -66,7 +70,7 @@ static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
 static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
 static const float CONTEXT_OVERLAY_OFFSET_DISTANCE = 0.1f;
-static const float CONTEXT_OVERLAY_OFFSET_ANGLE = 10.0f;
+static const float CONTEXT_OVERLAY_OFFSET_ANGLE = 5.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_ALPHA = 0.85f;
 static const float CONTEXT_OVERLAY_HOVERED_ALPHA = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMIN = 0.6f;
@@ -135,7 +139,8 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 if (event.getID() == LEFT_HAND_HW_ID) {
                     offsetAngle *= -1;
                 }
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) * ((cameraPosition + direction * distance) - direction * CONTEXT_OVERLAY_OFFSET_DISTANCE);
+                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) *
+                    ((cameraPosition + direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE)));
                 contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
 
