@@ -12,14 +12,14 @@
 var CONTOLLER_SCRIPTS = [
     "squeezeHands.js",
     "controllerDisplayManager.js",
-    "handControllerPointer.js",
+    //"handControllerPointer.js",
     "grab.js",
     "toggleAdvancedMovementForHandControllers.js",
     "controllerDispatcher.js",
     "controllerModules/nearParentGrabEntity.js",
     "controllerModules/nearParentGrabOverlay.js",
     "controllerModules/nearActionGrabEntity.js",
-    "controllerModules/farActionGrabEntity.js",
+    //"controllerModules/farActionGrabEntity.js",
     "controllerModules/tabletStylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
@@ -29,7 +29,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/disableOtherModule.js",
     "controllerModules/farTrigger.js",
     "controllerModules/teleport.js",
-    "controllerModules/scaleAvatar.js"
+    "controllerModules/scaleAvatar.js",
+    "controllerModules/hudOverlayPointer.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

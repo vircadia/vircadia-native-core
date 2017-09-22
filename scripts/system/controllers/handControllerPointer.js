@@ -314,7 +314,7 @@ function activeHudPoint2dGamePad() {
     var hudPoint2d = overlayFromWorldPoint(hudPoint3d);
 
     // We don't know yet if we'll want to make the cursor or laser visble, but we need to move it to see if
-    // it's pointing at a QML tool (aka system overlay).
+    // it's pointing at aQML tool (aka system overlay).
     setReticlePosition(hudPoint2d);
 
     return hudPoint2d;
@@ -328,7 +328,7 @@ function activeHudPoint2d(activeHand) { // if controller is valid, update reticl
     }
     var controllerPosition = controllerPose.position;
     var controllerDirection = Quat.getUp(controllerPose.rotation);
-
+    
     var hudPoint3d = calculateRayUICollisionPoint(controllerPosition, controllerDirection, true);
     if (!hudPoint3d) {
         if (Menu.isOptionChecked("Overlays")) { // With our hud resetting strategy, hudPoint3d should be valid here
@@ -523,21 +523,21 @@ var wantsMenu = 0;
 clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
 clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
     if (clicked) {
-        activeHudPoint2d(Controller.Standard.RightHand);
+        //activeHudPoint2d(Controller.Standard.RightHand);
         Messages.sendLocalMessage("toggleHand", Controller.Standard.RightHand);
     }
     wantsMenu = clicked;
 });
 clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
     if (clicked) {
-        activeHudPoint2d(Controller.Standard.LeftHand);
+        //activeHudPoint2d(Controller.Standard.LeftHand);
         Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
     }
     wantsMenu = clicked;
 });
 clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
-        activeHudPoint2dGamePad();
+        //activeHudPoint2dGamePad();
         var noHands = -1;
         Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
       }

@@ -106,6 +106,7 @@ public:
 
     /// if the reticle is pointing to a system overlay (a dialog box for example) then the function returns true otherwise false
     bool getReticleOverDesktop() const;
+    bool isPositionOverDesktop(glm::vec2 position) const;
     void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
 
     void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
@@ -195,6 +196,7 @@ public:
     Q_INVOKABLE void setAllowMouseCapture(bool value) { return _compositor->setAllowMouseCapture(value); }
 
     Q_INVOKABLE bool isPointingAtSystemOverlay() { return !_compositor->getReticleOverDesktop(); }
+    Q_INVOKABLE bool isPointOnSystemOverlay(QVariant position);
 
     Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }
     Q_INVOKABLE void setVisible(bool visible) { _compositor->setReticleVisible(visible); }

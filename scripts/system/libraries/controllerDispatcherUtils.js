@@ -40,7 +40,8 @@
    entityHasActions:true,
    ensureDynamic:true,
    findGroupParent:true,
-   BUMPER_ON_VALUE:true
+   BUMPER_ON_VALUE:true,
+   isPointingAtUI: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -310,6 +311,18 @@ findGroupParent = function (controllerData, targetProps) {
     return targetProps;
 };
 
+isPointingAtUI = function(intersection) {
+    var MARGIN = 25;
+    var reticleMinX = MARGIN, reticleMaxX, reticleMinY = MARGIN, reticleMaxY;
+    var dims = Controller.getViewportDimensions();
+    reticleMaxX = dims.x - MARGIN;
+    reticleMaxY = dims.y - MARGIN;
+    var point2d = HMD.overlayFromWorldPoint(intersection.intersection);
+    point2d.x = Math.max(reticleMinX, Math.min(point2d.x, reticleMaxX));
+    point2d.y = Math.max(reticleMinY, Math.min(point2d.y, reticleMaxY));
+    return point2d;
+}
+
 if (typeof module !== 'undefined') {
     module.exports = {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,
@@ -318,8 +331,11 @@ if (typeof module !== 'undefined') {
         makeRunningValues: makeRunningValues,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
+        isPointingAtUI: isPointingAtUI,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
-        projectOntoEntityXYPlane: projectOntoEntityXYPlane
+        projectOntoEntityXYPlane: projectOntoEntityXYPlane,
+        TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
+        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE
     };
 }
