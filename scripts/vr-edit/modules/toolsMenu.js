@@ -1071,7 +1071,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "groupsSelectionBoxCancelButton",
+                    id: "clearGroupingButton",
                     type: "button",
                     properties: {
                         dimensions: { x: 0.1042, y: 0.0400, z: UIT.dimensions.buttonDimensions.z },
@@ -1085,14 +1085,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     enabledColor: UIT.colors.greenHighlight,
                     highlightColor: UIT.colors.greenShadow,
                     label: {
-                        url: "../assets/tools/group/cancel-label.svg",
-                        scale: 0.0380,
+                        url: "../assets/tools/group/clear-label.svg",
+                        scale: 0.0314,
                         color: UIT.colors.baseGray
                     },
                     labelEnabledColor: UIT.colors.white,
                     enabled: false,
                     command: {
-                        method: "cancelGroupSelectionBox"
+                        method: "clearGroupSelection"
                     }
                 }
             ],
@@ -1999,8 +1999,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         isGroupButtonEnabled,
         isUngroupButtonEnabled,
+        isClearGroupingButtonEnabled,
         groupButtonIndex,
         ungroupButtonIndex,
+        clearGroupingButtonIndex,
 
         hsvControl = {
             hsv: { h: 0, s: 0, v: 0 },
@@ -2431,6 +2433,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (menuItem.toolOptions === "groupOptions") {
             optionsEnabled[groupButtonIndex] = false;
             optionsEnabled[ungroupButtonIndex] = false;
+            optionsEnabled[clearGroupingButtonIndex] = false;
         }
 
         isOptionsOpen = true;
@@ -2706,41 +2709,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         case "toggleGroupSelectionBox":
             optionsToggles.groupSelectionBoxButton = !optionsToggles.groupSelectionBoxButton;
-
             index = optionsOverlaysIDs.indexOf("groupSelectionBoxButton");
             Overlays.editOverlay(optionsOverlays[index], {
                 color: optionsToggles.groupSelectionBoxButton
                     ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
                     : UI_ELEMENTS[optionsItems[index].type].offHoverColor
             });
-
-            index = optionsOverlaysIDs.indexOf("groupsSelectionBoxCancelButton");
-            Overlays.editOverlay(optionsOverlays[index], {
-                color: optionsToggles.groupSelectionBoxButton
-                    ? optionsItems[index].enabledColor
-                    : optionsItems[index].properties.color
-            });
-            Overlays.editOverlay(optionsOverlaysLabels[index], {
-                color: optionsToggles.groupSelectionBoxButton
-                    ? optionsItems[index].labelEnabledColor
-                    : optionsItems[index].label.color
-            });
-            optionsEnabled[index] = optionsToggles.groupSelectionBoxButton;
-
             uiCommandCallback("toggleGroupSelectionBoxTool", optionsToggles.groupSelectionBoxButton);
             break;
 
-        case "cancelGroupSelectionBox":
+        case "clearGroupSelection":
             optionsToggles.groupSelectionBoxButton = false;
-
-            index = optionsOverlaysIDs.indexOf("groupSelectionBoxButton");
-            Overlays.editOverlay(optionsOverlays[index], {
-                color : optionsToggles.groupSelectionBoxButton
-                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
-                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
-            });
-
-            index = optionsOverlaysIDs.indexOf("groupsSelectionBoxCancelButton");
+            index = clearGroupingButtonIndex;
             Overlays.editOverlay(optionsOverlays[index], {
                 color: optionsItems[index].properties.color
             });
@@ -2748,8 +2728,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 color: optionsItems[index].label.color
             });
             optionsEnabled[index] = false;
-
-            uiCommandCallback("cancelGroupSelectionBoxTool");
+            uiCommandCallback("clearGroupSelectionTool");
             break;
 
         case "setGravityOn":
@@ -2974,6 +2953,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             parameterValue,
             enableGroupButton,
             enableUngroupButton,
+            enableClearGroupingButton,
             sliderProperties,
             overlayDimensions,
             basePoint,
@@ -3412,7 +3392,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         ? OPTONS_PANELS.groupOptions[groupButtonIndex].labelEnabledColor
                         : OPTONS_PANELS.groupOptions[groupButtonIndex].label.color
                 });
-                optionsEnabled[groupButtonIndex] = enableGroupButton;
+                optionsEnabled[groupButtonIndex] = isGroupButtonEnabled;
             }
 
             enableUngroupButton = groupsCount === 1 && entitiesCount > 1;
@@ -3430,7 +3410,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         ? OPTONS_PANELS.groupOptions[ungroupButtonIndex].labelEnabledColor
                         : OPTONS_PANELS.groupOptions[ungroupButtonIndex].label.color
                 });
-                optionsEnabled[ungroupButtonIndex] = enableUngroupButton;
+                optionsEnabled[ungroupButtonIndex] = isUngroupButtonEnabled;
+            }
+
+            enableClearGroupingButton = groupsCount > 0;
+            if (enableClearGroupingButton !== isClearGroupingButtonEnabled) {
+                isClearGroupingButtonEnabled = enableClearGroupingButton;
+                Overlays.editOverlay(optionsOverlays[clearGroupingButtonIndex], {
+                    color: isClearGroupingButtonEnabled
+                        ? optionsItems[clearGroupingButtonIndex].enabledColor
+                        : optionsItems[clearGroupingButtonIndex].properties.color
+                });
+                Overlays.editOverlay(optionsOverlaysLabels[clearGroupingButtonIndex], {
+                    color: isClearGroupingButtonEnabled
+                        ? optionsItems[clearGroupingButtonIndex].labelEnabledColor
+                        : optionsItems[clearGroupingButtonIndex].label.color
+                });
+                optionsEnabled[clearGroupingButtonIndex] = isClearGroupingButtonEnabled;
             }
         }
 
@@ -3522,6 +3518,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Special handling for Group options.
         isGroupButtonEnabled = false;
         isUngroupButtonEnabled = false;
+        isClearGroupingButtonEnabled = false;
         for (i = 0, length = OPTONS_PANELS.groupOptions.length; i < length; i += 1) {
             id = OPTONS_PANELS.groupOptions[i].id;
             if (id === "groupButton") {
@@ -3529,6 +3526,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
             if (id === "ungroupButton") {
                 ungroupButtonIndex = i;
+            }
+            if (id === "clearGroupingButton") {
+                clearGroupingButtonIndex = i;
             }
         }
 

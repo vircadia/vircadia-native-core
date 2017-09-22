@@ -1532,15 +1532,11 @@
                 grouping.stopSelectInBox();
             }
             break;
-        case "cancelGroupSelectionBoxTool":
+        case "clearGroupSelectionTool":
             if (grouping.groupsCount() > 0) {
                 Feedback.play(dominantHand, Feedback.SELECT_ENTITY);
             }
-            if (toolSelected === TOOL_GROUP_BOX) {
-                grouping.stopSelectInBox();
-            }
             grouping.clear();
-            toolSelected = TOOL_GROUP;
             break;
 
         case "setColor":
