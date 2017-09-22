@@ -492,7 +492,6 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties = Object.clone(PALETTE_ITEM.properties);
             properties.parentID = palettePanelOverlay;
             properties.localPosition = itemPosition(i);
-
             paletteItemOverlays[i] = Overlays.addOverlay(PALETTE_ITEM.overlay, properties);
             paletteItemPositions[i] = properties.localPosition;
 
