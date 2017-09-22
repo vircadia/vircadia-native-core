@@ -82,6 +82,10 @@ void ContextOverlayInterface::setEnabled(bool enabled) {
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
         if (contextOverlayFilterPassed(entityItemID)) {
+            if (event.getID() == 0) {
+                enableEntityHighlight(entityItemID);
+            }
+
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
 
             // Add all necessary variables to the stack
@@ -165,6 +169,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
         }
     } else {
         if (!_currentEntityWithContextOverlay.isNull()) {
+            disableEntityHighlight(_currentEntityWithContextOverlay);
             return destroyContextOverlay(_currentEntityWithContextOverlay, event);
         }
         return false;
@@ -226,13 +231,13 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID&
 }
 
 void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (contextOverlayFilterPassed(entityID) && _enabled) {
+    if (contextOverlayFilterPassed(entityID) && _enabled && event.getID() != 0) {
         enableEntityHighlight(entityID);
     }
 }
 
 void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (_currentEntityWithContextOverlay != entityID && _enabled) {
+    if (_currentEntityWithContextOverlay != entityID && _enabled && event.getID() != 0) {
         disableEntityHighlight(entityID);
     }
 }
