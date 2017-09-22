@@ -27,8 +27,8 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 
 float getAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust);
 
-// MIN_ELEMENT_ANGULAR_DIAMETER = angular diameter of 1x1x1m cube at 400m = sqrt(3) / 400 = 0.0043301f
-const float MIN_ELEMENT_ANGULAR_DIAMETER = 0.0043301f;
+// MIN_ELEMENT_ANGULAR_DIAMETER = angular diameter of 1x1x1m cube at 400m = sqrt(3) / 400 = 0.0043301 radians ~= 0.25 degrees
+const float MIN_ELEMENT_ANGULAR_DIAMETER = 0.0043301f; // radians
 // NOTE: the entity bounding cube is larger than the smallest possible containing octree element by sqrt(3)
 const float SQRT_THREE = 1.73205080f;
 const float MIN_ENTITY_ANGULAR_DIAMETER = MIN_ELEMENT_ANGULAR_DIAMETER * SQRT_THREE;
