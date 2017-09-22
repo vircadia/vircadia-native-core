@@ -554,7 +554,7 @@ protected:
     QString _href; //Hyperlink href
     QString _description; //Hyperlink description
 
-    // Certificate Properties
+    // Certifiable Properties
     QString _itemName { ENTITY_ITEM_DEFAULT_ITEM_NAME };
     QString _itemDescription { ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION };
     QString _itemCategories { ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES };

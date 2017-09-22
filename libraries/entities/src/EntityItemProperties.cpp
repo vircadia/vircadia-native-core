@@ -289,7 +289,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
 
-    // Certifiable properties
+    // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
     CHECK_PROPERTY_CHANGE(PROP_ITEM_DESCRIPTION, itemDescription);
     CHECK_PROPERTY_CHANGE(PROP_ITEM_CATEGORIES, itemCategories);
@@ -418,7 +418,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
 
-    // Certifiable properties
+    // Certifiable Properties
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_NAME, itemName);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_DESCRIPTION, itemDescription);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_CATEGORIES, itemCategories);
@@ -696,7 +696,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
 
-    // Certifiable properties
+    // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemDescription, QString, setItemDescription);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemCategories, QString, setItemCategories);
@@ -846,7 +846,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(radiusStart);
     COPY_PROPERTY_IF_CHANGED(radiusFinish);
 
-    // Certifiable properties
+    // Certifiable Properties
     COPY_PROPERTY_IF_CHANGED(itemName);
     COPY_PROPERTY_IF_CHANGED(itemDescription);
     COPY_PROPERTY_IF_CHANGED(itemCategories);
@@ -1030,7 +1030,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
 
-        // Certifiable properties
+        // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
         ADD_PROPERTY_TO_MAP(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString);
         ADD_PROPERTY_TO_MAP(PROP_ITEM_CATEGORIES, ItemCategories, itemCategories, QString);
@@ -1394,7 +1394,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
-            // certifiable properties
+            // Certifiable Properties
             APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, properties.getItemName());
             APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, properties.getItemDescription());
             APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, properties.getItemCategories());
@@ -1703,7 +1703,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
     }
 
-    // certifiable properties
+    // Certifiable Properties
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_NAME, QString, setItemName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_CATEGORIES, QString, setItemCategories);
@@ -1828,7 +1828,7 @@ void EntityItemProperties::markAllChanged() {
     //_alphaStartChanged = true;
     //_alphaFinishChanged = true;
 
-    // Certifiable properties
+    // Certifiable Properties
     _itemNameChanged = true;
     _itemDescriptionChanged = true;
     _itemCategoriesChanged = true;
@@ -2146,7 +2146,7 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "radiusFinish";
     }
 
-    // Certifiable properties
+    // Certifiable Properties
     if (itemNameChanged()) {
         out += "itemName";
     }

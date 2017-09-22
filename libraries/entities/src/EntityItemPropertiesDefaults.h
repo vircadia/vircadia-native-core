@@ -28,7 +28,7 @@ const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
 const QUuid ENTITY_ITEM_DEFAULT_SIMULATOR_ID = QUuid();
 
-// Certificate Properties
+// Certifiable Properties
 const QString ENTITY_ITEM_DEFAULT_ITEM_NAME = QString("");
 const QString ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION = QString("");
 const QString ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES = QString("");

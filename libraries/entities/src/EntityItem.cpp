@@ -1350,7 +1350,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
-    // Certifiable properties
+    // Certifiable Properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemName, setItemName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemDescription, setItemDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemCategories, setItemCategories);
@@ -2816,7 +2816,7 @@ void EntityItem::setUserData(const QString& value) {
     });
 }
 
-// Certificate Properties
+// Certifiable Properties
 #define DEFINE_PROPERTY_GETTER(type, accessor, var) \
 type EntityItem::get##accessor() const {            \
     type result;         \
