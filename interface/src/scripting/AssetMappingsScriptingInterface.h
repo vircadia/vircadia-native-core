@@ -26,6 +26,8 @@
 class AssetMappingModel : public QStandardItemModel {
     Q_OBJECT
 public:
+    AssetMappingModel();
+
     Q_INVOKABLE void refresh();
 
     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
@@ -36,8 +38,11 @@ public slots:
 
 signals:
     void errorGettingMappings(QString errorString);
+    void updated();
 
 private:
+    void setupRoles();
+
     QHash<QString, QStandardItem*> _pathToItemMap;
 };
 
@@ -61,10 +66,11 @@ public:
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback = QJSValue());
     Q_INVOKABLE void getMapping(QString path, QJSValue callback = QJSValue());
     Q_INVOKABLE void uploadFile(QString path, QString mapping, QJSValue startedCallback = QJSValue(), QJSValue completedCallback = QJSValue(), bool dropEvent = false);
-    Q_INVOKABLE void deleteMappings(QStringList paths, QJSValue callback);
+    Q_INVOKABLE void deleteMappings(QStringList paths, QJSValue callback = QJSValue());
     Q_INVOKABLE void deleteMapping(QString path, QJSValue callback) { deleteMappings(QStringList(path), callback = QJSValue()); }
     Q_INVOKABLE void getAllMappings(QJSValue callback = QJSValue());
     Q_INVOKABLE void renameMapping(QString oldPath, QString newPath, QJSValue callback = QJSValue());
+    Q_INVOKABLE void setBakingEnabled(QStringList paths, bool enabled, QJSValue callback = QJSValue());
 
 protected:
     QSet<AssetRequest*> _pendingRequests;
