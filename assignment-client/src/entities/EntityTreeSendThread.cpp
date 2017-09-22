@@ -120,8 +120,8 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                                 float priority = _conicalView.computePriority(cube);
                                 if (priority != PrioritizedEntity::DO_NOT_SEND) {
                                     float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
-                                    float apparentAngle = cube.getScale() / distance;
-                                    if (apparentAngle > MIN_ENTITY_APPARENT_ANGLE * lodScaleFactor) {
+                                    float angularDiameter = cube.getScale() / distance;
+                                    if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
                                         _entitiesInQueue.insert(entity.get());
                                     }
@@ -241,8 +241,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                             // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
                             // before we consider including it.
                             float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
-                            float apparentAngle = cube.getScale() / distance;
-                            if (apparentAngle > MIN_ENTITY_APPARENT_ANGLE * lodScaleFactor) {
+                            float angularDiameter = cube.getScale() / distance;
+                            if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
                                 float priority = _conicalView.computePriority(cube);
                                 _sendQueue.push(PrioritizedEntity(entity, priority));
                                 _entitiesInQueue.insert(entity.get());
@@ -287,8 +287,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 if (next.intersection == ViewFrustum::INSIDE || _traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                                     // See the DiffTraversal::First case for an explanation of the "entity is too small" check
                                     float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
-                                    float apparentAngle = cube.getScale() / distance;
-                                    if (apparentAngle > MIN_ENTITY_APPARENT_ANGLE * lodScaleFactor) {
+                                    float angularDiameter = cube.getScale() / distance;
+                                    if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
                                         float priority = _conicalView.computePriority(cube);
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
                                         _entitiesInQueue.insert(entity.get());
@@ -346,8 +346,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                             // See the DiffTraversal::First case for an explanation of the "entity is too small" check
                             float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
-                            float apparentAngle = cube.getScale() / distance;
-                            if (apparentAngle > MIN_ENTITY_APPARENT_ANGLE * lodScaleFactor) {
+                            float angularDiameter = cube.getScale() / distance;
+                            if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
                                 if (!_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
                                     float priority = _conicalView.computePriority(cube);
                                     _sendQueue.push(PrioritizedEntity(entity, priority));
@@ -355,8 +355,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 } else {
                                     // If this entity was skipped last time because it was too small, we still need to send it
                                     distance = glm::distance(cube.calcCenter(), completedViewPosition) + MIN_VISIBLE_DISTANCE;
-                                    apparentAngle = cube.getScale() / distance;
-                                    if (apparentAngle <= MIN_ENTITY_APPARENT_ANGLE * completedLODScaleFactor) {
+                                    angularDiameter = cube.getScale() / distance;
+                                    if (angularDiameter <= MIN_ENTITY_ANGULAR_DIAMETER * completedLODScaleFactor) {
                                         // this object was skipped in last completed traversal
                                         float priority = _conicalView.computePriority(cube);
                                         _sendQueue.push(PrioritizedEntity(entity, priority));

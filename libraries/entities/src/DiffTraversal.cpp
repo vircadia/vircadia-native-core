@@ -44,8 +44,8 @@ void DiffTraversal::Waypoint::getNextVisibleElementFirstTime(DiffTraversal::Visi
                     } else if (view.viewFrustum.cubeIntersectsKeyhole(nextElement->getAACube())) {
                         // check for LOD truncation
                         float distance = glm::distance(view.viewFrustum.getPosition(), nextElement->getAACube().calcCenter()) + MIN_VISIBLE_DISTANCE;
-                        float apparentAngle = nextElement->getAACube().getScale() / distance;
-                        if (apparentAngle > MIN_ELEMENT_APPARENT_ANGLE * view.lodScaleFactor) {
+                        float angularDiameter = nextElement->getAACube().getScale() / distance;
+                        if (angularDiameter > MIN_ELEMENT_ANGULAR_DIAMETER * view.lodScaleFactor) {
                             next.element = nextElement;
                             return;
                         }
@@ -84,8 +84,8 @@ void DiffTraversal::Waypoint::getNextVisibleElementRepeat(
                     } else {
                         // check for LOD truncation
                         float distance = glm::distance(view.viewFrustum.getPosition(), nextElement->getAACube().calcCenter()) + MIN_VISIBLE_DISTANCE;
-                        float apparentAngle = nextElement->getAACube().getScale() / distance;
-                        if (apparentAngle > MIN_ELEMENT_APPARENT_ANGLE * view.lodScaleFactor) {
+                        float angularDiameter = nextElement->getAACube().getScale() / distance;
+                        if (angularDiameter > MIN_ELEMENT_ANGULAR_DIAMETER * view.lodScaleFactor) {
                             ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
                             if (intersection != ViewFrustum::OUTSIDE) {
                                 next.element = nextElement;
@@ -121,8 +121,8 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
                     AACube cube = nextElement->getAACube();
                     // check for LOD truncation
                     float distance = glm::distance(view.viewFrustum.getPosition(), cube.calcCenter()) + MIN_VISIBLE_DISTANCE;
-                    float apparentAngle = cube.getScale() / distance;
-                    if (apparentAngle > MIN_ELEMENT_APPARENT_ANGLE * view.lodScaleFactor) {
+                    float angularDiameter = cube.getScale() / distance;
+                    if (angularDiameter > MIN_ELEMENT_ANGULAR_DIAMETER * view.lodScaleFactor) {
                         if (view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
                             next.element = nextElement;
                             next.intersection = ViewFrustum::OUTSIDE;
