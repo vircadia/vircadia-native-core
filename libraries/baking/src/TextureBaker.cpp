@@ -26,15 +26,19 @@
 const QString BAKED_TEXTURE_EXT = ".ktx";
 
 TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                           const QDir& outputDirectory, const QByteArray& textureContent) :
+                           const QDir& outputDirectory, const QString& bakedFilename,
+                           const QByteArray& textureContent) :
     _textureURL(textureURL),
     _originalTexture(textureContent),
     _textureType(textureType),
-    _outputDirectory(outputDirectory)
+    _outputDirectory(outputDirectory),
+    _bakedTextureFileName(bakedFilename)
 {
-    // figure out the baked texture filename
-    auto originalFilename = textureURL.fileName();
-    _bakedTextureFileName = originalFilename.left(originalFilename.lastIndexOf('.')) + BAKED_TEXTURE_EXT;
+    if (bakedFilename.isEmpty()) {
+        // figure out the baked texture filename
+        auto originalFilename = textureURL.fileName();
+        _bakedTextureFileName = originalFilename.left(originalFilename.lastIndexOf('.')) + BAKED_TEXTURE_EXT;
+    }
 }
 
 void TextureBaker::bake() {
