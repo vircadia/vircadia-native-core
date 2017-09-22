@@ -104,6 +104,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LIMITED_RUN;
     requestedProperties += PROP_MARKETPLACE_ID;
     requestedProperties += PROP_EDITION_NUMBER;
+    requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
     requestedProperties += PROP_CERTIFICATE_ID;
 
     requestedProperties += PROP_NAME;
@@ -260,6 +261,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, getItemLicense());
         APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, getLimitedRun());
         APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
+        APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
 
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
@@ -820,6 +822,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
         READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
         READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+        READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
         READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
     }
 
@@ -1249,6 +1252,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(limitedRun, getLimitedRun);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityInstanceNumber, getEntityInstanceNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
@@ -1355,6 +1359,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(limitedRun, setLimitedRun);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
@@ -2836,6 +2841,7 @@ DEFINE_PROPERTY_ACCESSOR(QString, ItemLicense, itemLicense)
 DEFINE_PROPERTY_ACCESSOR(quint32, LimitedRun, limitedRun)
 DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
 DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
+DEFINE_PROPERTY_ACCESSOR(quint32, EntityInstanceNumber, entityInstanceNumber)
 DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
 
 uint32_t EntityItem::getDirtyFlags() const { 

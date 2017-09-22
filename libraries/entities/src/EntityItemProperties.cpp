@@ -298,6 +298,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LIMITED_RUN, limitedRun);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
     CHECK_PROPERTY_CHANGE(PROP_EDITION_NUMBER, editionNumber);
+    CHECK_PROPERTY_CHANGE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     CHECK_PROPERTY_CHANGE(PROP_CERTIFICATE_ID, certificateID);
 
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
@@ -426,6 +427,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIMITED_RUN, limitedRun);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MARKETPLACE_ID, marketplaceID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EDITION_NUMBER, editionNumber);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CERTIFICATE_ID, certificateID);
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
@@ -703,6 +705,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(limitedRun, quint32, setLimitedRun);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(editionNumber, quint32, setEditionNumber);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(entityInstanceNumber, quint32, setEntityInstanceNumber);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(certificateID, QString, setCertificateID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
@@ -852,6 +855,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(limitedRun);
     COPY_PROPERTY_IF_CHANGED(marketplaceID);
     COPY_PROPERTY_IF_CHANGED(editionNumber);
+    COPY_PROPERTY_IF_CHANGED(entityInstanceNumber);
     COPY_PROPERTY_IF_CHANGED(certificateID);
 
     COPY_PROPERTY_IF_CHANGED(name);
@@ -1035,6 +1039,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LIMITED_RUN, LimitedRun, limitedRun, quint32);
         ADD_PROPERTY_TO_MAP(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
         ADD_PROPERTY_TO_MAP(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32);
+        ADD_PROPERTY_TO_MAP(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32);
         ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
 
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
@@ -1398,6 +1403,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, properties.getLimitedRun());
             APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
+            APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -1706,6 +1712,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIMITED_RUN, quint32, setLimitedRun);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -1830,6 +1837,7 @@ void EntityItemProperties::markAllChanged() {
     _limitedRunChanged = true;
     _marketplaceIDChanged = true;
     _editionNumberChanged = true;
+    _entityInstanceNumberChanged = true;
     _certificateIDChanged = true;
 
     _keyLight.markAllChanged();
@@ -2162,6 +2170,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (editionNumberChanged()) {
         out += "editionNumber";
+    }
+    if (entityInstanceNumberChanged()) {
+        out += "entityInstanceNumber";
     }
     if (certificateIDChanged()) {
         out += "certificateID";

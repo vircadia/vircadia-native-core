@@ -197,6 +197,7 @@ enum EntityPropertyList {
     PROP_LIMITED_RUN,
     // PROP_MARKETPLACE_ID is above
     PROP_EDITION_NUMBER,
+    PROP_ENTITY_INSTANCE_NUMBER,
     PROP_CERTIFICATE_ID,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
