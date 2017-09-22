@@ -1032,6 +1032,10 @@ bool ModelEntityRenderer::needsUpdate() const {
         model = _model;
     });
 
+    if (_modelJustLoaded) {
+        return true;
+    }
+
     if (model) {
         if (_needsJointSimulation || _moving || _animating) {
             return true;
@@ -1148,9 +1152,11 @@ void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& 
         return;
     }
 
+    _modelJustLoaded = false;
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());
+        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::handleModelLoaded);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         model->init();
         entity->setModel(model);
@@ -1238,6 +1244,12 @@ void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& 
             mapJoints(entity, model->getJointNames());
         }
         animate(entity);
+    }
+}
+
+void ModelEntityRenderer::handleModelLoaded(bool success) {
+    if (success) {
+        _modelJustLoaded = true;
     }
 }
 

@@ -151,6 +151,7 @@ private:
     // Transparency is handled in ModelMeshPartPayload
     virtual bool isTransparent() const override { return false; }
 
+    bool _modelJustLoaded { false };
     bool _hasModel { false };
     ::ModelPointer _model;
     GeometryResource::Pointer _compoundShapeResource;
@@ -178,6 +179,9 @@ private:
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
     float _currentFrame { 0 };
+
+private slots:
+    void handleModelLoaded(bool success);
 };
 
 } } // namespace 

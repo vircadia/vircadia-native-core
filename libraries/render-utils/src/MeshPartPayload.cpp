@@ -328,10 +328,18 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     assert(model && model->isLoaded());
     _model = model;
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
+    computeAdjustedLocalBound(state.clusterMatrices);
 
     updateTransform(transform, offsetTransform);
+    Transform renderTransform = transform;
+    if (state.clusterMatrices.size() == 1) {
+        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    }
+    updateTransformForSkinnedMesh(renderTransform, transform, state.clusterBuffer);
+
     initCache();
 }
 

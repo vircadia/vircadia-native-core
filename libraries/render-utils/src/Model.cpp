@@ -1265,7 +1265,6 @@ void Model::createVisibleRenderItemSet() {
             shapeID++;
         }
     }
-    computeMeshPartLocalBounds();
 }
 
 void Model::createCollisionRenderItemSet() {
