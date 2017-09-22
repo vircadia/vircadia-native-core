@@ -211,12 +211,12 @@ class UrlHandler : public QObject {
 public:
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->canAcceptURL(url);
+        return handler && handler->canAcceptURL(url);
     }
 
     Q_INVOKABLE bool handleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->acceptURL(url);
+        return handler && handler->acceptURL(url);
     }
 };
 
@@ -987,8 +987,8 @@ static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
     return ptr[i] == 0x00;
 }
 
-void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
-    auto eventHandler = getEventHandler();
+void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverride) {
+    auto eventHandler = targetOverride ? targetOverride : getEventHandler();
     if (eventHandler) {
         auto utf8Key = key.toUtf8();
 

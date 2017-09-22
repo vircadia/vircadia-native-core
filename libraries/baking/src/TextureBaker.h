@@ -15,6 +15,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QRunnable>
+#include <QImageReader>
 
 #include <image/Image.h>
 
@@ -26,7 +27,11 @@ class TextureBaker : public Baker {
     Q_OBJECT
 
 public:
-    TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDirectory);
+    TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
+                 const QDir& outputDirectory, const QString& bakedFilename = QString(),
+                 const QByteArray& textureContent = QByteArray());
+
+    static const QStringList getSupportedFormats();
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
@@ -35,8 +40,11 @@ public:
     QString getDestinationFilePath() const { return _outputDirectory.absoluteFilePath(_bakedTextureFileName); }
     QString getBakedTextureFileName() const { return _bakedTextureFileName; }
 
+    virtual void setWasAborted(bool wasAborted) override;
+
 public slots:
     virtual void bake() override;
+    virtual void abort() override; 
 
 signals:
     void originalTextureLoaded();
@@ -54,6 +62,8 @@ private:
 
     QDir _outputDirectory;
     QString _bakedTextureFileName;
+
+    std::atomic<bool> _abortProcessing { false };
 };
 
 #endif // hifi_TextureBaker_h
