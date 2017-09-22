@@ -420,16 +420,9 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.isPointingAtUI = function(controllerData) {
-            var hudRayPickInfo = controllerData.hudRayPicks[this.hand];
-            var result = isPointingAtUI(hudRayPickInfo);
-            print(result);
-            return result;
-        };
-
         this.run = function (controllerData) {
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData) || this.isPointingAtUI(controllerData)) {
+                this.notPointingAtEntity(controllerData)) {
                 this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);

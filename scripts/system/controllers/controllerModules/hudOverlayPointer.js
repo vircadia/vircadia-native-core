@@ -103,6 +103,7 @@
         this.reticleMaxY;
         this.clicked = false;
         this.triggerClicked = 0;
+        this.movedAway = false;
         this.parameters = ControllerDispatcherUtils.makeDispatcherModuleParameters(
             540,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
@@ -113,8 +114,8 @@
             return (this.hand === RIGHT_HAND) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
         };
 
-        this.clicked = function() {
-            return this.clicked;
+        _this.isClicked = function() {
+            return _this.triggerClicked;
         };
 
         this.getOtherModule = function() {
@@ -131,8 +132,9 @@
             this.reticleMaxY = dims.y - MARGIN;
         };
 
-        this.hasNotSentClick = function() {
+        _this.hasNotSentClick = function() {
             if (!_this.clicked) {
+                print("sending clicked");
                 _this.clicked = true;
                 return true;
             }
@@ -178,34 +180,44 @@
             Reticle.setPosition(point2d);
         };
 
+        this.pointingAtTablet = function(controllerData) {
+            var rayPick = controllerData.rayPicks[this.hand];
+            return (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID);
+        };
+
+        this.moveMouseAwayFromTablet = function() {
+            if (!this.movedAway) {
+                var point = {x: 25, y: 25};
+               // this.setReticlePosition(point);
+                this.movedAway = true;
+            }
+        }
+
         this.processLaser = function(controllerData) {
             var controllerLocation = controllerData.controllerLocations[this.hand];
-            if (controllerData.triggerValues[this.hand] < ControllerDispatcherUtils.TRIGGER_OFF_VALUE || !controllerLocation.valid) {
+            if ((controllerData.triggerValues[this.hand] < ControllerDispatcherUtils.TRIGGER_ON_VALUE || !controllerLocation.valid) ||
+                this.pointingAtTablet(controllerData)) {
                 this.exitModule();
                 return false;
             }
-
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var controllerLocation = controllerData.controllerLocations[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
             this.setReticlePosition(point2d);
-            print(Reticle.isPointOnSystemOverlay(point2d));
-            if (!Reticle.isPointOnSystemOverlay(point2d)) {
+            if (!Reticle.isPointingAtSystemOverlay(point2d)) {
                 this.exitModule();
-                print("----> exiting <------");
                 return false;
             }
-            
-            //this.setReticlePosition(point2d);
-
-            this.clicked = controllerData.triggerClicked[this.hand];
-            
+            Reticle.visible = false;
+            this.movedAway = false;
+            this.triggerClicked = controllerData.triggerClicks[this.hand];
             this.processControllerTriggers(controllerData);
             this.updateLaserPointer(controllerData);
             return true;
         };
 
         this.exitModule = function() {
+            this.moveMouseAwayFromTablet();
             LaserPointers.disableLaserPointer(this.laserPointer);
         };
         
@@ -240,12 +252,12 @@
         }
 
    
-    var leftHudOverlayPointer = new HudOverlayPointer(LEFT_HAND);
+    var leftHudOverlayPointer = new HudOverlayPointer(LEFT_HAND); 
     var rightHudOverlayPointer = new HudOverlayPointer(RIGHT_HAND);
     
     var clickMapping = Controller.newMapping('HudOverlayPointer-click');
-    clickMapping.from(rightHudOverlayPointer.clicked()).when(rightHudOverlayPointer.hasNotSentClick()).to(Controller.Actions.ReticleClick);
-    clickMapping.from(leftHudOverlayPointer.clicked()).when(leftHudOverlayPointer.hasNotSentClick()).to(Controller.Actions.ReticleClick);
+    clickMapping.from(rightHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
+    clickMapping.from(leftHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
     clickMapping.enable();
 
     enableDispatcherModule("LeftHudOverlayPointer", leftHudOverlayPointer);
