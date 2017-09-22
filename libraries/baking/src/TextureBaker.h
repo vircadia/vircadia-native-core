@@ -28,7 +28,8 @@ class TextureBaker : public Baker {
 
 public:
     TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                 const QDir& outputDirectory, const QByteArray& textureContent = QByteArray());
+                 const QDir& outputDirectory, const QString& bakedFilename = QString(),
+                 const QByteArray& textureContent = QByteArray());
 
     static const QStringList getSupportedFormats();
 

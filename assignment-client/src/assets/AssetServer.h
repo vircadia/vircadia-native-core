@@ -34,7 +34,6 @@ struct AssetMeta {
     }
 
     int bakeVersion { 0 };
-    int applicationVersion { 0 };
     bool failedLastBake { false };
     QString lastBakeErrors;
 };
@@ -79,7 +78,7 @@ private:
     bool setMapping(AssetPath path, AssetHash hash);
 
     /// Delete mapping `path`. Returns `true` if deletion of mappings succeeds, else `false`.
-    bool deleteMappings(AssetPathList& paths);
+    bool deleteMappings(const AssetPathList& paths);
 
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);
