@@ -222,6 +222,14 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         _renderablesToUpdate.insert({ entityId, renderable });
     }
 
+    if (!_entitiesInScene.empty()) {
+        for (const auto& entry : _entitiesInScene) {
+            const auto& renderable = entry.second;
+            if (renderable) {
+                renderable->update(scene, transaction);
+            }
+        }
+    }
     if (!_renderablesToUpdate.empty()) {
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;
