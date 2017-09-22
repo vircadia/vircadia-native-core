@@ -203,7 +203,15 @@ public:
     DEFINE_PROPERTY_REF(PROP_SHAPE, Shape, shape, QString, "Sphere");
 
     // Certifiable Properties - related to Proof of Purchase certificates
+    DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
+    DEFINE_PROPERTY_REF(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString, ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION);
+    DEFINE_PROPERTY_REF(PROP_ITEM_CATEGORIES, ItemCategories, itemCategories, QString, ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES);
+    DEFINE_PROPERTY_REF(PROP_ITEM_ARTIST, ItemArtist, itemArtist, QString, ENTITY_ITEM_DEFAULT_ITEM_ARTIST);
+    DEFINE_PROPERTY_REF(PROP_ITEM_LICENSE, ItemLicense, itemLicense, QString, ENTITY_ITEM_DEFAULT_ITEM_LICENSE);
+    DEFINE_PROPERTY_REF(PROP_LIMITED_RUN, LimitedRun, limitedRun, quint32, ENTITY_ITEM_DEFAULT_LIMITED_RUN);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
+    DEFINE_PROPERTY_REF(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32, ENTITY_ITEM_DEFAULT_EDITION_NUMBER);
+    DEFINE_PROPERTY_REF(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString, ENTITY_ITEM_DEFAULT_CERTIFICATE_ID);
 
     // these are used when bouncing location data into and out of scripts
     DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
@@ -428,7 +436,18 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RadiusSpread, radiusSpread, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RadiusStart, radiusStart, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RadiusFinish, radiusFinish, "");
+
+    // Certifiable Properties
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ItemName, itemName, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ItemDescription, itemDescription, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ItemCategories, itemCategories, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ItemArtist, itemArtist, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ItemLicense, itemLicense, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LimitedRun, limitedRun, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, MarketplaceID, marketplaceID, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EditionNumber, editionNumber, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CertificateID, certificateID, "");
+
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");

@@ -94,7 +94,18 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DYNAMIC;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
+
+    // Certifiable properties
+    requestedProperties += PROP_ITEM_NAME;
+    requestedProperties += PROP_ITEM_DESCRIPTION;
+    requestedProperties += PROP_ITEM_CATEGORIES;
+    requestedProperties += PROP_ITEM_ARTIST;
+    requestedProperties += PROP_ITEM_LICENSE;
+    requestedProperties += PROP_LIMITED_RUN;
     requestedProperties += PROP_MARKETPLACE_ID;
+    requestedProperties += PROP_EDITION_NUMBER;
+    requestedProperties += PROP_CERTIFICATE_ID;
+
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
@@ -239,7 +250,18 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
+
+        // Certifiable Properties
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, getItemName());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, getItemDescription());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, getItemCategories());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, getItemArtist());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, getItemLicense());
+        APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, getLimitedRun());
+        APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
+        APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
+
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
@@ -790,6 +812,16 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
         READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     }
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES) {
+        READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
+        READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
+        READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
+        READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
+        READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
+        READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
+        READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+        READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    }
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
@@ -1207,7 +1239,18 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dynamic, getDynamic);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+
+    // Certifiable Properties
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemName, getItemName);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemDescription, getItemDescription);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemCategories, getItemCategories);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemArtist, getItemArtist);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemLicense, getItemLicense);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(limitedRun, getLimitedRun);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
@@ -1302,7 +1345,18 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+
+    // Certifiable properties
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemName, setItemName);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemDescription, setItemDescription);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemCategories, setItemCategories);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemArtist, setItemArtist);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemLicense, setItemLicense);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(limitedRun, setLimitedRun);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
@@ -2757,19 +2811,32 @@ void EntityItem::setUserData(const QString& value) {
     });
 }
 
-QString EntityItem::getMarketplaceID() const { 
-    QString result;
-    withReadLock([&] {
-        result = _marketplaceID;
-    });
-    return result;
+// Certificate Properties
+#define DEFINE_PROPERTY_GETTER(type, accessor, var) \
+type EntityItem::get##accessor() const {            \
+    type result;         \
+    withReadLock([&] {   \
+        result = _##var; \
+    });                  \
+    return result;       \
 }
 
-void EntityItem::setMarketplaceID(const QString& value) { 
-    withWriteLock([&] {
-        _marketplaceID = value;
-    });
+#define DEFINE_PROPERTY_SETTER(type, accessor, var)   \
+void EntityItem::set##accessor(const type##& value) { \
+    withWriteLock([&] {                               \
+        _##var = value;                               \
+    });                                                \
 }
+#define DEFINE_PROPERTY_ACCESSOR(type, accessor, var) DEFINE_PROPERTY_GETTER(type, accessor, var) DEFINE_PROPERTY_SETTER(type, accessor, var)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemName, itemName)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemDescription, itemDescription)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemCategories, itemCategories)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemArtist, itemArtist)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemLicense, itemLicense)
+DEFINE_PROPERTY_ACCESSOR(quint32, LimitedRun, limitedRun)
+DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
+DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
+DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
 
 uint32_t EntityItem::getDirtyFlags() const { 
     uint32_t result;

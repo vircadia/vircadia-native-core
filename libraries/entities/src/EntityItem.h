@@ -308,18 +308,18 @@ public:
     void setItemName(const QString& value);
     QString getItemDescription() const;
     void setItemDescription(const QString& value);
-    QStringList getItemCategories() const;
-    void setItemCategories(const QStringList& value);
+    QString getItemCategories() const;
+    void setItemCategories(const QString& value);
     QString getItemArtist() const;
     void setItemArtist(const QString& value);
     QString getItemLicense() const;
     void setItemLicense(const QString& value);
-    int getLimitedRun() const;
-    void setLimitedRun(int);
+    quint32 getLimitedRun() const;
+    void setLimitedRun(const quint32&);
     QString getMarketplaceID() const;
     void setMarketplaceID(const QString& value);
-    int getEditionNumber() const;
-    void setEditionNumber(int);
+    quint32 getEditionNumber() const;
+    void setEditionNumber(const quint32&);
     QString getCertificateID() const;
     void setCertificateID(const QString& value);
     QString getStaticCertificateJSON() const;
@@ -555,13 +555,13 @@ protected:
     // Certificate Properties
     QString _itemName { ENTITY_ITEM_DEFAULT_ITEM_NAME };
     QString _itemDescription { ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION };
-    QStringList _itemCategories { ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES };
+    QString _itemCategories { ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES };
     QString _itemArtist { ENTITY_ITEM_DEFAULT_ITEM_ARTIST };
     QString _itemLicense { ENTITY_ITEM_DEFAULT_ITEM_LICENSE };
-    int _limitedRun { ENTITY_ITEM_DEFAULT_LIMITED_RUN };
+    quint32 _limitedRun { ENTITY_ITEM_DEFAULT_LIMITED_RUN };
+    QString _certificateID { ENTITY_ITEM_DEFAULT_CERTIFICATE_ID };
+    quint32 _editionNumber { ENTITY_ITEM_DEFAULT_EDITION_NUMBER };
     QString _marketplaceID { ENTITY_ITEM_DEFAULT_MARKETPLACE_ID };
-    int _editionNumber { ENTITY_ITEM_DEFAULT_EDITION_NUMBER };
-    QString _marketplaceID { ENTITY_ITEM_DEFAULT_CERTIFICATE_ID };
 
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
