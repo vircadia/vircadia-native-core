@@ -46,10 +46,6 @@ public:
 private:
     QHash<QUuid, std::shared_ptr<LaserPointer>> _laserPointers;
     QHash<QUuid, std::shared_ptr<QReadWriteLock>> _laserPointerLocks;
-    QReadWriteLock _addLock;
-    std::queue<std::pair<QUuid, std::shared_ptr<LaserPointer>>> _laserPointersToAdd;
-    QReadWriteLock _removeLock;
-    std::queue<QUuid> _laserPointersToRemove;
     QReadWriteLock _containsLock;
 
 };

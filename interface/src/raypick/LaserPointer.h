@@ -89,7 +89,7 @@ private:
     QUuid _rayPickUID;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);
     void disableRenderState(const RenderState& renderState);
 
 };
