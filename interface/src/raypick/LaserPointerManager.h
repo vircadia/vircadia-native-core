@@ -32,6 +32,7 @@ public:
     const RayPickResult getPrevRayPickResult(const QUuid uid);
 
     void setPrecisionPicking(QUuid uid, const bool precisionPicking);
+    void setLaserLength(QUuid uid, const float laserLength);
     void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
     void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
     void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);

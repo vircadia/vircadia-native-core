@@ -184,8 +184,10 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 
 void LaserPointer::update() {
     RayPickResult prevRayPickResult = DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID);
-    if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() && prevRayPickResult.type != IntersectionType::NONE) {
-        updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, prevRayPickResult.distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
+    if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
+            (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
+        float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;
+        updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
     } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
         disableRenderState(_renderStates[_currentRenderState]);

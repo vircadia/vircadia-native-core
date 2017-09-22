@@ -65,6 +65,7 @@ public:
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
     void setPrecisionPicking(const bool precisionPicking) { DependencyManager::get<RayPickScriptingInterface>()->setPrecisionPicking(_rayPickUID, precisionPicking); }
+    void setLaserLength(const float laserLength) { _laserLength = laserLength; }
     void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
     void setIncludeEntities(const QScriptValue& includeEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeEntities(_rayPickUID, includeEntities); }
     void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays); }
@@ -78,6 +79,7 @@ public:
 
 private:
     bool _renderingEnabled;
+    float _laserLength { 0.0f };
     std::string _currentRenderState { "" };
     RenderStateMap _renderStates;
     DefaultRenderStateMap _defaultRenderStates;
