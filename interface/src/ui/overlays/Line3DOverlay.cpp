@@ -133,8 +133,9 @@ void Line3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
     if (batch) {
         batch->setModelTransform(Transform());
-        glm::vec3 start = _renderStart;
-        glm::vec3 end = _renderEnd;
+        auto& renderTransform = getRenderTransform();
+        glm::vec3 start = renderTransform.getTranslation();
+        glm::vec3 end = renderTransform.transform(vec3(0.0, 0.0, -1.0));
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
         if (getIsDashedLine()) {
@@ -269,7 +270,19 @@ Line3DOverlay* Line3DOverlay::createClone() const {
 }
 
 Transform Line3DOverlay::evalRenderTransform() {
-    _renderStart = getStart();
-    _renderEnd = getEnd(); 
-    return Parent::evalRenderTransform();
+    // Capture start and endin the renderTransform:
+    // start is the origin
+    // end is at the tip of the front axis aka -Z
+    Transform transform;
+    transform.setTranslation( getStart());
+    auto endPos = getEnd();
+
+    auto vec = endPos - transform.getTranslation();
+    auto scale = glm::length(vec);
+    auto dir = vec / scale;
+    auto orientation = glm::rotation(glm::vec3(0,0,-1), dir);
+    transform.setRotation(orientation);
+    transform.setScale(scale);
+
+    return transform;
 }

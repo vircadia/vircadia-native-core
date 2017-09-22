@@ -73,10 +73,6 @@ private:
     float _glow { 0.0 };
     float _glowWidth { 0.0 };
     int _geometryCacheID;
-
-    // Similar to the _renderTransform, we capture the start and end pos for render loop in game loop
-    glm::vec3 _renderStart;
-    glm::vec3 _renderEnd;
 };
 
 #endif // hifi_Line3DOverlay_h
