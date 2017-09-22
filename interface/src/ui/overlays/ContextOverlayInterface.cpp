@@ -63,10 +63,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
 static const uint32_t LEFT_HAND_HW_ID = 1;
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
-static const float CONTEXT_OVERLAY_CLOSE_DISTANCE = 1.5f; // in meters
-static const float CONTEXT_OVERLAY_CLOSE_SIZE = 0.12f; // in meters, same x and y dims
-static const float CONTEXT_OVERLAY_FAR_SIZE = 0.08f; // in meters, same x and y dims
-static const float CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE = 20.0f;
+static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
+static const float CONTEXT_OVERLAY_OFFSET_ANGLE = 10.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_ALPHA = 0.85f;
 static const float CONTEXT_OVERLAY_HOVERED_ALPHA = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMIN = 0.6f;
@@ -91,7 +89,6 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             // Add all necessary variables to the stack
             EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
             glm::vec3 cameraPosition = qApp->getCamera().getPosition();
-            float distanceFromCameraToEntity = glm::distance(entityProperties.getPosition(), cameraPosition);
             glm::vec3 entityDimensions = entityProperties.getDimensions();
             glm::vec3 entityPosition = entityProperties.getPosition();
             glm::vec3 contextOverlayPosition = entityProperties.getPosition();
@@ -124,27 +121,17 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 // If the camera is inside the box...
                 // ...position the Context Overlay 1 meter in front of the camera.
                 contextOverlayPosition = cameraPosition + CONTEXT_OVERLAY_INSIDE_DISTANCE * (qApp->getCamera().getOrientation() * Vectors::FRONT);
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
-            } else if (distanceFromCameraToEntity < CONTEXT_OVERLAY_CLOSE_DISTANCE) {
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+            } else {
                 // Else if the entity is too close to the camera...
-                // ...rotate the Context Overlay to the right of the entity.
+                // ...rotate the Context Overlay some number of degrees offset from the entity.
                 // This makes it easy to inspect things you're holding.
-                float offsetAngle = -CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE;
+                float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
                 if (event.getID() == LEFT_HAND_HW_ID) {
                     offsetAngle *= -1;
                 }
                 contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f))) * (entityPosition - cameraPosition)) + cameraPosition;
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
-            } else {
-                // Else, place the Context Overlay some offset away from the entity's bounding
-                // box in the direction of the camera.
-                glm::vec3 direction = glm::normalize(entityPosition - cameraPosition);
-                float distance;
-                BoxFace face;
-                glm::vec3 normal;
-                boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
-                contextOverlayPosition = (cameraPosition + direction * distance) - direction * CONTEXT_OVERLAY_FAR_OFFSET;
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
 
             // Finally, setup and draw the Context Overlay
