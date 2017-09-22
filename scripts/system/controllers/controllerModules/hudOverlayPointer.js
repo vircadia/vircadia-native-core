@@ -132,15 +132,6 @@
             this.reticleMaxY = dims.y - MARGIN;
         };
 
-        _this.hasNotSentClick = function() {
-            if (!_this.clicked) {
-                print("sending clicked");
-                _this.clicked = true;
-                return true;
-            }
-            return false;
-        };
-        
         this.updateLaserPointer = function(controllerData) {
             var RADIUS = 0.005;
             var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
@@ -260,8 +251,13 @@
     clickMapping.from(leftHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
     clickMapping.enable();
 
-    enableDispatcherModule("LeftHudOverlayPointer", leftHudOverlayPointer);
-    enableDispatcherModule("RightHudOverlayPointer", rightHudOverlayPointer);
+    ControllerDispatcherUtils.enableDispatcherModule("LeftHudOverlayPointer", leftHudOverlayPointer);
+    ControllerDispatcherUtils.enableDispatcherModule("RightHudOverlayPointer", rightHudOverlayPointer);
 
+    function cleanup() {
+        ControllerDispatcherUtils.disableDispatcherModule("LeftHudOverlayPointer");
+        ControllerDispatcherUtils.disbaleDispatcherModule("RightHudOverlayPointer");
+    }
+    Script.scriptEnding.connect(cleanup);
 
 })();

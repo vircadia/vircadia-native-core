@@ -69,7 +69,6 @@
             }
 
             if (!_this.handControllerActivity.expired()) {
-                print("has not expired");
                 return true;
             }
 
@@ -116,8 +115,14 @@
     }
 
     var mouseHMD = new MouseHMD();
-    enableDispatcherModule("MouseHMD", mouseHMD);
+    ControllerDispatcherUtils.enableDispatcherModule("MouseHMD", mouseHMD);
 
     Controller.mouseMoveEvent.connect(mouseHMD.onMouseMove);
     Controller.mousePressEvent.connect(mouseHMD.onMouseClick);
+
+    function cleanup() {
+        ControllerDispatcherUtils.disableDispatcherModule("MouseHMD");
+    }
+
+    Script.scriptEnding.connect(cleanup);
 })();

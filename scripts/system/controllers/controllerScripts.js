@@ -12,7 +12,6 @@
 var CONTOLLER_SCRIPTS = [
     "squeezeHands.js",
     "controllerDisplayManager.js",
-    //"handControllerPointer.js",
     "grab.js",
     "toggleAdvancedMovementForHandControllers.js",
     "controllerDispatcher.js",
