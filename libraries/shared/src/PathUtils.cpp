@@ -54,6 +54,19 @@ QString PathUtils::getAppLocalDataFilePath(const QString& filename) {
     return QDir(getAppLocalDataPath()).absoluteFilePath(filename);
 }
 
+QString PathUtils::generateTemporaryDir() {
+    QDir rootTempDir = QDir::tempPath();
+    QString appName = qApp->applicationName();
+    for (auto i = 0; i < 64; ++i) {
+        auto now = std::chrono::system_clock::now().time_since_epoch().count();
+        QDir tempDir = rootTempDir.filePath(appName + "-" + QString::number(now));
+        if (tempDir.mkpath(".")) {
+            return tempDir.absolutePath();
+        }
+    }
+    return "";
+}
+
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions) {
     QString fileNameLowered = fileName.toLower();
     foreach (const QString possibleExtension, possibleExtensions) {

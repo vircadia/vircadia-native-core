@@ -25,22 +25,48 @@
 
 const QString BAKED_TEXTURE_EXT = ".ktx";
 
-TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDirectory) :
+TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
+                           const QDir& outputDirectory, const QString& bakedFilename,
+                           const QByteArray& textureContent) :
     _textureURL(textureURL),
+    _originalTexture(textureContent),
     _textureType(textureType),
-    _outputDirectory(outputDirectory)
+    _outputDirectory(outputDirectory),
+    _bakedTextureFileName(bakedFilename)
 {
-    // figure out the baked texture filename
-    auto originalFilename = textureURL.fileName();
-    _bakedTextureFileName = originalFilename.left(originalFilename.lastIndexOf('.')) + BAKED_TEXTURE_EXT;
+    if (bakedFilename.isEmpty()) {
+        // figure out the baked texture filename
+        auto originalFilename = textureURL.fileName();
+        _bakedTextureFileName = originalFilename.left(originalFilename.lastIndexOf('.')) + BAKED_TEXTURE_EXT;
+    }
 }
 
 void TextureBaker::bake() {
     // once our texture is loaded, kick off a the processing
     connect(this, &TextureBaker::originalTextureLoaded, this, &TextureBaker::processTexture);
 
-    // first load the texture (either locally or remotely)
-    loadTexture();
+    if (_originalTexture.isEmpty()) {
+        // first load the texture (either locally or remotely)
+        loadTexture();
+    } else {
+        // we already have a texture passed to us, use that
+        emit originalTextureLoaded();
+    }
+}
+
+void TextureBaker::abort() {
+    Baker::abort();
+
+    // flip our atomic bool so any ongoing texture processing is stopped
+    _abortProcessing.store(true);
+}
+
+const QStringList TextureBaker::getSupportedFormats() {
+    auto formats = QImageReader::supportedImageFormats();
+    QStringList stringFormats;
+    std::transform(formats.begin(), formats.end(), std::back_inserter(stringFormats),
+                   [](QByteArray& format) -> QString { return format; });
+    return stringFormats;
 }
 
 void TextureBaker::loadTexture() {
@@ -96,7 +122,11 @@ void TextureBaker::handleTextureNetworkReply() {
 
 void TextureBaker::processTexture() {
     auto processedTexture = image::processImage(_originalTexture, _textureURL.toString().toStdString(),
-                                                ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType);
+                                                ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, _abortProcessing);
+
+    if (shouldStop()) {
+        return;
+    }
 
     if (!processedTexture) {
         handleError("Could not process texture " + _textureURL.toString());
@@ -120,12 +150,21 @@ void TextureBaker::processTexture() {
     const size_t length = memKTX->_storage->size();
 
     // attempt to write the baked texture to the destination file path
-    QFile bakedTextureFile { _outputDirectory.absoluteFilePath(_bakedTextureFileName) };
+    auto filePath = _outputDirectory.absoluteFilePath(_bakedTextureFileName);
+    QFile bakedTextureFile { filePath };
 
     if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {
         handleError("Could not write baked texture for " + _textureURL.toString());
+    } else {
+        _outputFiles.push_back(filePath);
     }
 
     qCDebug(model_baking) << "Baked texture" << _textureURL;
-    emit finished();
+    setIsFinished(true);
+}
+
+void TextureBaker::setWasAborted(bool wasAborted) {
+    Baker::setWasAborted(wasAborted);
+
+    qCDebug(model_baking) << "Aborted baking" << _textureURL;
 }
