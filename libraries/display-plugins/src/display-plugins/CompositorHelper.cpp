@@ -279,18 +279,6 @@ bool CompositorHelper::getReticleOverDesktop() const {
     return _isOverDesktop;
 }
 
-bool CompositorHelper::isPositionOverDesktop(glm::vec2 position) const {
-    if (isHMD()) {
-        glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
-        static const glm::vec2 minOverlayPosition;
-        if (glm::any(glm::lessThan(position, minOverlayPosition)) ||
-            glm::any(glm::greaterThan(position, maxOverlayPosition))) {
-            return true;
-        }
-    }
-    return _isOverDesktop;
-}
-
 glm::vec2 CompositorHelper::getReticleMaximumPosition() const {
     glm::vec2 result;
     if (isHMD()) {
@@ -479,8 +467,4 @@ float ReticleInterface::getScale() const {
 void ReticleInterface::setScale(float scale) {
     auto& cursorManager = Cursor::Manager::instance();
     cursorManager.setScale(scale);
-}
-
-bool ReticleInterface::isPointOnSystemOverlay(QVariant position) {
-    return !_compositor->isPositionOverDesktop(vec2FromVariant(position));
 }
