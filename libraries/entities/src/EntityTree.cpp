@@ -192,21 +192,14 @@ int EntityTree::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                         if (!isDeletedEntity(entityItemID)) {
                             _entitiesToAdd.insert(entityItemID, entity);
 
-                            /*
-                            addEntityMapEntry(entity);
-                            oldElement->addEntityItem(entity); // add this new entity to this elements entities
-                            entityItemID = entity->getEntityItemID();
-                            postAddEntity(entity);
-                            */
-
                             if (entity->getCreated() == UNKNOWN_CREATED_TIME) {
                                 entity->recordCreationTime();
                             }
+                        #ifdef WANT_DEBUG
                         } else {
-                            #ifdef WANT_DEBUG
                                 qCDebug(entities) << "Received packet for previously deleted entity [" <<
                                         entityItemID << "] ignoring. (inside " << __FUNCTION__ << ")";
-                            #endif
+                        #endif
                         }
                     }
                 }

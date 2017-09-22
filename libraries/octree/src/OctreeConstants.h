@@ -37,6 +37,9 @@ const int NUMBER_OF_CHILDREN = 8;
 
 const int MAX_TREE_SLICE_BYTES = 26;
 
+// The oversend below is 20 degrees because that is the minimum oversend necessary to prevent missing entities
+// near the edge of the view.  The value here is determined by hard-coded values in ViewFrsutum::isVerySimilar().
+// TODO: move this parameter to the OctreeQueryNode context.
 const float VIEW_FRUSTUM_FOV_OVERSEND = 20.0f;
 
 // These are guards to prevent our voxel tree recursive routines from spinning out of control

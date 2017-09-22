@@ -236,17 +236,6 @@ void DiffTraversal::setScanCallback(std::function<void (DiffTraversal::VisibleEl
     }
 }
 
-// DEBUG method: delete later
-std::ostream& operator<<(std::ostream& s, const DiffTraversal& traversal) {
-    for (size_t i = 0; i < traversal._path.size(); ++i) {
-        s << (int32_t)(traversal._path[i].getNextIndex());
-        if (i < traversal._path.size() - 1) {
-            s << ":";
-        }
-    }
-    return s;
-}
-
 void DiffTraversal::traverse(uint64_t timeBudget) {
     uint64_t expiry = usecTimestampNow() + timeBudget;
     DiffTraversal::VisibleElement next;

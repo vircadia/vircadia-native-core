@@ -5429,7 +5429,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                             << perUnknownServer << " to send us jurisdiction.";
                 }
 
-                // TODO: remove this hackery: it no longer makes sense for streaming of entities in scene.
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen

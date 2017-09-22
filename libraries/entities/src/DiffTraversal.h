@@ -12,8 +12,6 @@
 #ifndef hifi_DiffTraversal_h
 #define hifi_DiffTraversal_h
 
-#include <ostream> // DEBUG
-
 #include <ViewFrustum.h>
 
 #include "EntityTreeElement.h"
@@ -73,8 +71,6 @@ public:
 
     void setScanCallback(std::function<void (VisibleElement&)> cb);
     void traverse(uint64_t timeBudget);
-
-    friend std::ostream& operator<<(std::ostream& s, const DiffTraversal& traversal); // DEBUG
 
 private:
     void getNextVisibleElement(VisibleElement& next);

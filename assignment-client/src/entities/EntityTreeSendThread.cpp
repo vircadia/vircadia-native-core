@@ -17,7 +17,6 @@
 
 #include "EntityServer.h"
 
-#define SEND_SORTED_ENTITIES
 
 EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
     OctreeSendThread(myServer, node)
@@ -144,31 +143,14 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     if (!_traversal.finished()) {
         quint64 startTime = usecTimestampNow();
 
-#ifdef DEBUG
+        #ifdef DEBUG
         const uint64_t TIME_BUDGET = 400; // usec
-#else
+        #else
         const uint64_t TIME_BUDGET = 200; // usec
-#endif
+        #endif
         _traversal.traverse(TIME_BUDGET);
         OctreeServer::trackTreeTraverseTime((float)(usecTimestampNow() - startTime));
     }
-
-#ifndef SEND_SORTED_ENTITIES
-    if (!_sendQueue.empty()) {
-        uint64_t sendTime = usecTimestampNow();
-        // print what needs to be sent
-        while (!_sendQueue.empty()) {
-            PrioritizedEntity entry = _sendQueue.top();
-            EntityItemPointer entity = entry.getEntity();
-            if (entity) {
-                std::cout << "adebug    send '" << entity->getName().toStdString() << "'" << "  :  " << entry.getPriority() << std::endl;  // adebug
-                _knownState[entity.get()] = sendTime;
-            }
-            _sendQueue.pop();
-            _entitiesInQueue.erase(entry.getRawEntityPointer());
-        }
-    }
-#endif // SEND_SORTED_ENTITIES
 
     OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
 }
@@ -400,8 +382,6 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
 }
 
 bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) {
-#ifdef SEND_SORTED_ENTITIES
-    //auto entityTree = std::static_pointer_cast<EntityTree>(_myServer->getOctree());
     if (_sendQueue.empty()) {
         OctreeServer::trackEncodeTime(OctreeServer::SKIP_TIME);
         return false;
@@ -485,10 +465,6 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
     _packetData.updatePriorBytes(_numEntitiesOffset, (const unsigned char*)&_numEntities, sizeof(_numEntities));
     OctreeServer::trackEncodeTime((float)(usecTimestampNow() - encodeStart));
     return true;
-
-#else // SEND_SORTED_ENTITIES
-    return OctreeSendThread::traverseTreeAndBuildNextPacketPayload(params);
-#endif // SEND_SORTED_ENTITIES
 }
 
 void EntityTreeSendThread::editingEntityPointer(const EntityItemPointer entity) {

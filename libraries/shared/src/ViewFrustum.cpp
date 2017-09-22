@@ -328,6 +328,7 @@ bool closeEnough(float a, float b, float relativeError) {
     return fabsf(a - b) / (0.5f * fabsf(a + b) + EPSILON) < relativeError;
 }
 
+// TODO: the slop and relative error should be passed in by argument rather than hard-coded.
 bool ViewFrustum::isVerySimilar(const ViewFrustum& other) const {
     const float MIN_POSITION_SLOP_SQUARED = 25.0f; // 5 meters squared
     const float MIN_ORIENTATION_DOT = 0.9924039f; // dot product of two quaternions 10 degrees apart
