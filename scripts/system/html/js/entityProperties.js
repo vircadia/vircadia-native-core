@@ -657,6 +657,8 @@ function loaded() {
         var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
         var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
 
+        var elZoneHazeActive = document.getElementById("property-zone-haze-haze-active");
+       
         var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
         var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
         var elZoneStageAltitude = document.getElementById("property-zone-stage-altitude");
@@ -975,6 +977,7 @@ function loaded() {
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
                             elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
 
+                            elZoneHazeActive.checked = properties.haze.hazeActive;
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                             elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -1369,6 +1372,8 @@ function loaded() {
         var zoneKeyLightDirectionChangeFunction = createEmitGroupVec3PropertyUpdateFunction('keyLight', 'direction', elZoneKeyLightDirectionX, elZoneKeyLightDirectionY);
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
+
+        elZoneHazeActive.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeActive'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));

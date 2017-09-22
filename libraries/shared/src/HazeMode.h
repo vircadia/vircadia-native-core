@@ -13,12 +13,12 @@
 #define hifi_HazeMode_h
 
 enum HazeMode {
+    HAZE_MODE_OFF,
+    HAZE_MODE_ON,
     HAZE_MODE_INHERIT,
-    HAZE_MODE_SKYBOX,
 
-    HAZE_MODE_ITEM_COUNT,
+    HAZE_MODE_ITEM_COUNT
 };
-
 
 #endif // hifi_HazeMode_h
 

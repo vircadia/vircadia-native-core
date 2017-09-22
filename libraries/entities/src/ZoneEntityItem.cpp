@@ -44,6 +44,7 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
 
     _backgroundMode = BACKGROUND_MODE_INHERIT;
+    _hazeMode = HAZE_MODE_OFF;
 }
 
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -59,10 +60,14 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundMode, getBackgroundMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
 
     // Contains a QString property, must be synchronized
     withReadLock([&] {
         _skyboxProperties.getProperties(properties);
+    });
+    withReadLock([&] {
+        _hazeProperties.getProperties(properties);
     });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
@@ -112,8 +117,11 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     withWriteLock([&] {
         _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
     });
+    withWriteLock([&] {
+        _hazePropertiesChanged = _hazeProperties.setProperties(properties);
+    });
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged;
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
     return somethingChanged;
 }
@@ -154,6 +162,15 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
 
+    int bytesFromHaze;
+    withWriteLock([&] {
+        bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, _hazePropertiesChanged);
+    });
+    somethingChanged = somethingChanged || _hazePropertiesChanged;
+    bytesRead += bytesFromHaze;
+    dataAt += bytesFromHaze;
+
     READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
     READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
@@ -178,7 +195,9 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     withReadLock([&] {
         requestedProperties += _skyboxProperties.getEntityProperties(params);
     });
-
+    withReadLock([&] {
+        requestedProperties += _hazeProperties.getEntityProperties(params);
+    });
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
@@ -208,7 +227,10 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
 
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+    _hazeProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
@@ -226,6 +248,7 @@ void ZoneEntityItem::debugDump() const {
     _keyLightProperties.debugDump();
     _stageProperties.debugDump();
     _skyboxProperties.debugDump();
+    _hazeProperties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
@@ -291,5 +314,6 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
         _backgroundPropertiesChanged = false;
         _stagePropertiesChanged = false;
         _skyboxPropertiesChanged = false;
+        _hazePropertiesChanged = false;
     });
 }

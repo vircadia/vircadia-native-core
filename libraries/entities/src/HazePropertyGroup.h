@@ -74,17 +74,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    glm::vec3 getColorVec3() const {
-        const quint8 MAX_COLOR = 255;
-        glm::vec3 color = { (float)_color.red / (float)MAX_COLOR,
-                            (float)_color.green / (float)MAX_COLOR,
-                            (float)_color.blue / (float)MAX_COLOR };
-        return color;
-    }
-
-    static const xColor DEFAULT_COLOR;
-    DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, Color, color, xColor, DEFAULT_COLOR);
-    DEFINE_PROPERTY_REF(PROP_HAZE_URL, URL, url, QString, "");
+    DEFINE_PROPERTY(PROP_HAZE_HAZE_ACTIVE, HazeActive, hazeActive, bool, false);
 };
 
 #endif // hifi_HazePropertyGroup_h

@@ -201,6 +201,13 @@ const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = 
     BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
 } };
 
+using HazePair = std::pair<const HazeMode, const QString>;
+const std::array<HazePair, HAZE_MODE_ITEM_COUNT> HAZE_MODES = { {
+    HazePair{ HAZE_MODE_INHERIT,{ "inherit" } },
+    HazePair{ HAZE_MODE_OFF,{ "off" } },
+    HazePair{ HAZE_MODE_ON,{ "on" } }
+    } };
+
 QString EntityItemProperties::getBackgroundModeAsString() const {
     return BACKGROUND_MODES[_backgroundMode].second;
 }
@@ -217,6 +224,10 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
         _backgroundMode = result->first;
         _backgroundModeChanged = true;
     }
+}
+
+QString EntityItemProperties::getHazeModeString(HazeMode mode) {
+    return HAZE_MODES[mode].second;
 }
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
@@ -1038,6 +1049,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_HAZE_ACTIVE, Haze, haze, HazeActive, hazeActive);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);

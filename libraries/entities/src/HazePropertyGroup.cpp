@@ -15,36 +15,27 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-const xColor HazePropertyGroup::DEFAULT_COLOR = { 0, 0, 0 };
-
 void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_COLOR, Haze, haze, Color, color);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_URL, Haze, haze, URL, url);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_HAZE_ACTIVE, Haze, haze, HazeActive, hazeActive);
 }
 
 void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, color, xColor, setColor);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, url, QString, setURL);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeActive, bool, setHazeActive);
 }
 
 void HazePropertyGroup::merge(const HazePropertyGroup& other) {
-    COPY_PROPERTY_IF_CHANGED(color);
-    COPY_PROPERTY_IF_CHANGED(url);
+    COPY_PROPERTY_IF_CHANGED(hazeActive);
 }
 
 
 void HazePropertyGroup::debugDump() const {
     qCDebug(entities) << "   HazePropertyGroup: ---------------------------------------------";
-    qCDebug(entities) << "       Color:" << getColor() << " has changed:" << colorChanged();
-    qCDebug(entities) << "       URL:" << getURL() << " has changed:" << urlChanged();
+    qCDebug(entities) << "       HazeActive :" << getHazeActive() << " has changed:" << hazeActiveChanged();
 }
 
 void HazePropertyGroup::listChangedProperties(QList<QString>& out) {
-    if (colorChanged()) {
-        out << "haze-color";
-    }
-    if (urlChanged()) {
-        out << "haze-url";
+    if (hazeActiveChanged()) {
+        out << "haze-hazeActive";
     }
 }
 
@@ -57,8 +48,7 @@ bool HazePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_URL, getURL());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, getHazeActive());
 
     return true;
 }
@@ -70,11 +60,9 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     bool overwriteLocalData = true;
     bool somethingChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, xColor, setColor);
-    READ_ENTITY_PROPERTY(PROP_HAZE_URL, QString, setURL);
+    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, bool, setHazeActive);
 
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_COLOR, Color);
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_URL, URL);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_HAZE_ACTIVE, HazeActive);
 
     processedBytes += bytesRead;
 
@@ -84,29 +72,25 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 }
 
 void HazePropertyGroup::markAllChanged() {
-    _colorChanged = true;
-    _urlChanged = true;
+    _hazeActiveChanged = true;
 }
 
 EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
-    
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_COLOR, color);
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_URL, url);
+
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_HAZE_ACTIVE, hazeActive);
 
     return changedProperties;
 }
 
 void HazePropertyGroup::getProperties(EntityItemProperties& properties) const {
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, Color, getColor);
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, URL, getURL);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeActive, getHazeActive);
 }
 
 bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, Color, color, setColor);
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, URL, url, setURL);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeActive, hazeActive, setHazeActive);
 
     return somethingChanged;
 }
@@ -114,8 +98,7 @@ bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
 EntityPropertyFlags HazePropertyGroup::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties;
 
-    requestedProperties += PROP_HAZE_COLOR;
-    requestedProperties += PROP_HAZE_URL;
+    requestedProperties += PROP_HAZE_HAZE_ACTIVE;
     
     return requestedProperties;
 }
@@ -130,8 +113,7 @@ void HazePropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeB
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_URL, getURL());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, getHazeActive());
 }
 
 int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -142,8 +124,7 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, xColor, setColor);
-    READ_ENTITY_PROPERTY(PROP_HAZE_URL, QString, setURL);
+    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, bool, setHazeActive);
 
     return bytesRead;
 }
