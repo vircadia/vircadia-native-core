@@ -102,7 +102,6 @@ protected:
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
 
-
     bool _isLoaded;
     float _alpha;
 

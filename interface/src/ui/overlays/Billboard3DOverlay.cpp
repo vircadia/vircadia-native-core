@@ -45,4 +45,3 @@ bool Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     }
     return transformChanged;
 }
-

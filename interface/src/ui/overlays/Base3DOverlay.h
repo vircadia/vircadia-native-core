@@ -72,7 +72,6 @@ protected:
     virtual void parentDeleted() override;
 
     mutable Transform _renderTransform;
-
     virtual Transform evalRenderTransform() const;
     virtual void setRenderTransform(const Transform& transform);
     const Transform& getRenderTransform() const { return _renderTransform; }
