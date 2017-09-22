@@ -45,3 +45,14 @@ bool Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     }
     return transformChanged;
 }
+
+Transform Billboard3DOverlay::evalRenderTransform() {
+    Transform transform = getTransform();
+    bool transformChanged = applyTransformTo(transform, true);
+    // If the transform is not modified, setting the transform to
+    // itself will cause drift over time due to floating point errors.
+    if (transformChanged) {
+        setTransform(transform);
+    }
+    return transform;
+}

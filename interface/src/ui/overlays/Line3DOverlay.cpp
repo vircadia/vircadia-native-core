@@ -132,10 +132,9 @@ void Line3DOverlay::render(RenderArgs* args) {
     glm::vec4 colorv4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
     auto batch = args->_batch;
     if (batch) {
-        // FIXME Start using the _renderTransform instead of calling for Transform and start and end from here, do the custom things needed in evalRenderTransform()
         batch->setModelTransform(Transform());
-        glm::vec3 start = getStart();
-        glm::vec3 end = getEnd();
+        glm::vec3 start = _renderStart;
+        glm::vec3 end = _renderEnd;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
         if (getIsDashedLine()) {
@@ -267,4 +266,10 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
 
 Line3DOverlay* Line3DOverlay::createClone() const {
     return new Line3DOverlay(this);
+}
+
+Transform Line3DOverlay::evalRenderTransform() {
+    _renderStart = getStart();
+    _renderEnd = getEnd(); 
+    return Parent::evalRenderTransform();
 }
