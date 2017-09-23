@@ -2941,6 +2941,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     function update(intersection, groupsCount, entitiesCount) {
         var intersectedItem = NONE,
             intersectionItems,
+            menuButtonHoverOverlays,
+            menuButtonIconOverlays,
             color,
             localPosition,
             parameter,
@@ -3047,22 +3049,19 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 switch (hoveredElementType) {
                 case "menuButton":
                     if (hoveredSourceOverlays === menuOverlays) {
-                        Overlays.editOverlay(menuHoverOverlays[hoveredItem], {
-                            localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
-                            visible: false
-                        });
-                        Overlays.editOverlay(menuIconOverlays[hoveredItem], {
-                            color: UI_ELEMENTS.menuButton.icon.properties.color
-                        });
+                        menuButtonHoverOverlays = menuHoverOverlays;
+                        menuButtonIconOverlays = menuIconOverlays;
                     } else {
-                        Overlays.editOverlay(footerHoverOverlays[hoveredItem], {
-                            localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
-                            visible: false
-                        });
-                        Overlays.editOverlay(footerIconOverlays[hoveredItem], {
-                            color: UI_ELEMENTS.menuButton.icon.properties.color
-                        });
+                        menuButtonHoverOverlays = footerHoverOverlays;
+                        menuButtonIconOverlays = footerIconOverlays;
                     }
+                    Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
+                        localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
+                        visible: false
+                    });
+                    Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
+                        color: UI_ELEMENTS.menuButton.icon.properties.color
+                    });
                     break;
                 case "button":
                     if (hoveredSourceItems[hoveredItem].enabledColor !== undefined && optionsEnabled[hoveredItem]) {
@@ -3147,24 +3146,20 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 case "menuButton":
                     Feedback.play(otherSide, Feedback.HOVER_MENU_ITEM);
                     if (intersectionOverlays === menuOverlays) {
-                        Overlays.editOverlay(menuHoverOverlays[hoveredItem], {
-                            localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
-                                MENU_HOVER_DELTA),
-                            visible: true
-                        });
-                        Overlays.editOverlay(menuIconOverlays[hoveredItem], {
-                            color: UI_ELEMENTS.menuButton.icon.highlightColor
-                        });
+                        menuButtonHoverOverlays = menuHoverOverlays;
+                        menuButtonIconOverlays = menuIconOverlays;
                     } else {
-                        Overlays.editOverlay(footerHoverOverlays[hoveredItem], {
-                            localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
-                                MENU_HOVER_DELTA),
-                            visible: true
-                        });
-                        Overlays.editOverlay(footerIconOverlays[hoveredItem], {
-                            color: UI_ELEMENTS.menuButton.icon.highlightColor
-                        });
+                        menuButtonHoverOverlays = footerHoverOverlays;
+                        menuButtonIconOverlays = footerIconOverlays;
                     }
+                    Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
+                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
+                            MENU_HOVER_DELTA),
+                        visible: true
+                    });
+                    Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
+                        color: UI_ELEMENTS.menuButton.icon.highlightColor
+                    });
                     break;
                 case "button":
                     if (intersectionEnabled[hoveredItem]) {
@@ -3259,28 +3254,51 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 || isTriggerClicked !== (pressedItem !== null)) {
             if (pressedItem) {
                 // Unpress previous button.
-                Overlays.editOverlay(pressedSource[pressedItem.index], {
-                    localPosition: isHoveringButtonElement && hoveredItem === pressedItem.index
-                        ? Vec3.sum(pressedItem.localPosition, OPTION_HOVER_DELTA)
-                        : pressedItem.localPosition
-                });
-                pressedItem = null;
+                if (pressedItem !== null) {
+                    if (pressedItem.pressedOverlays) {
+                        pressedSource = pressedItem.pressedOverlays;
+                    }
+                    Overlays.editOverlay(pressedSource[pressedItem.index], {
+                        localPosition: isHoveringButtonElement && hoveredItem === pressedItem.index
+                            ? Vec3.sum(pressedItem.localPosition, pressedItem.hoverDelta)
+                            : pressedItem.localPosition
+                    });
+                    pressedItem = null;
+                }
                 pressedSource = null;
             }
             if (isHoveringButtonElement && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
                     && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
-                localPosition = intersectionItems[intersectedItem].properties.localPosition;
-                if (hoveredElementType !== "menuButton") {
+                pressedSource = intersectionOverlays;
+                if (hoveredElementType === "menuButton") {
+                    if (intersectionItems === MENU_ITEMS) {
+                        menuButtonHoverOverlays = menuHoverOverlays;
+                    } else {
+                        menuButtonHoverOverlays = footerHoverOverlays;
+                    }
+                    localPosition = UI_ELEMENTS.menuButton.hoverButton.properties.localPosition;
+                    Overlays.editOverlay(menuButtonHoverOverlays[intersectedItem], {
+                        localPosition: Vec3.sum(Vec3.sum(localPosition, MENU_HOVER_DELTA), BUTTON_PRESS_DELTA)
+                    });
+                    pressedItem = {
+                        index: intersectedItem,
+                        localPosition: localPosition,
+                        hoverDelta: MENU_HOVER_DELTA,
+                        pressedOverlays: menuButtonHoverOverlays
+                    };
+                } else {
+                    localPosition = intersectionItems[intersectedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[intersectedItem], {
                         localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
                     });
+                    pressedItem = {
+                        index: intersectedItem,
+                        localPosition: localPosition,
+                        hoverDelta: OPTION_HOVER_DELTA
+                    };
                 }
                 pressedSource = intersectionOverlays;
-                pressedItem = {
-                    index: intersectedItem,
-                    localPosition: localPosition
-                };
 
                 // Button press actions.
                 if (intersectionOverlays === menuOverlays) {
