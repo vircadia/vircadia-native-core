@@ -71,6 +71,10 @@ Groups = function () {
         return rootEntityIDs.indexOf(rootEntityID) !== -1;
     }
 
+    function getRootEntityIDs() {
+        return rootEntityIDs;
+    }
+
     function groupsCount() {
         return selections.length;
     }
@@ -264,6 +268,7 @@ Groups = function () {
         toggle: toggle,
         selection: selection,
         includes: includes,
+        rootEntityIDs: getRootEntityIDs,
         groupsCount: groupsCount,
         entitiesCount: entitiesCount,
         group: group,

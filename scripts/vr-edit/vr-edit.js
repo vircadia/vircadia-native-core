@@ -690,6 +690,7 @@
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(rootEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
                     toolSelected === TOOL_COLOR || toolSelected === TOOL_PICK_COLOR ? selection.intersectedEntityIndex() : null,
+                    null,
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(rootEntityID)
                         ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
             }
@@ -702,6 +703,7 @@
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(rootEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
                     toolSelected === TOOL_COLOR || toolSelected === TOOL_PICK_COLOR ? selection.intersectedEntityIndex() : null,
+                    null,
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(rootEntityID)
                         ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
                 if (!intersection.laserIntersected && !isUIVisible) {
@@ -815,12 +817,13 @@
 
         function enterEditorGrouping() {
             if (!grouping.includes(rootEntityID)) {
-                highlights.display(false, selection.selection(), null, highlights.GROUP_COLOR);
+                highlights.display(false, selection.selection(), null, null, highlights.GROUP_COLOR);
             }
             if (toolSelected === TOOL_GROUP_BOX) {
                 if (!grouping.includes(rootEntityID)) {
                     Feedback.play(side, Feedback.SELECT_ENTITY);
-                    grouping.selectInBox(selection.selection());
+                    grouping.toggle(selection.selection());
+                    grouping.selectInBox();
                 } else {
                     Feedback.play(side, Feedback.GENERAL_ERROR);
                 }
@@ -1281,13 +1284,14 @@
         // Grouping highlights and functions.
 
         var groups,
-            isSelectInBox = false,
             highlights,
             exludedLeftRootEntityID = null,
             exludedrightRootEntityID = null,
             excludedRootEntityIDs = [],
             hasHighlights = false,
-            hasSelectionChanged = false;
+            hasSelectionChanged = false,
+            isSelectInBox = false,
+            selectInBoxSelection = null;  // Selection of all groups combined in order to calculate bounding box.
 
         if (!this instanceof Grouping) {
             return new Grouping();
@@ -1298,6 +1302,14 @@
 
         function toggle(selection) {
             groups.toggle(selection);
+            if (isSelectInBox) {
+                // When selecting in a box, toggle() is only called to add entities to the selection.
+                if (selectInBoxSelection.count() === 0) {
+                    selectInBoxSelection.select(selection[0].id);
+                } else {
+                    selectInBoxSelection.append(selection[0].id);
+                }
+            }
             if (groups.groupsCount() === 0) {
                 hasHighlights = false;
                 highlights.clear();
@@ -1307,31 +1319,54 @@
             }
         }
 
-        function updateSelectInBox() {
-            // TODO: Calculate bounding box.
+        function selectInBox() {
+            // Add any entities or groups of entities wholly within bounding box of current selection.
+            // Must be wholly within otherwise selection could grow uncontrollably.
+            var boundingBox;
 
-            // TODO: Select further entities per bounding box.
+            if (selectInBoxSelection.count() > 1) {
+                boundingBox = selectInBoxSelection.boundingBox();
 
-            // TODO: Update bounding box overlay.
+                // TODO: Select further entities per bounding box.
+
+                hasSelectionChanged = true;
+            }
         }
 
         function startSelectInBox() {
+            // Start automatically selecting entities in bounding box of current selection.
+            var rootEntityIDs,
+                i,
+                length;
+            
             isSelectInBox = true;
 
-            // TODO: Create bounding box overlay.
+            // Select entities current groups combined.
+            selectInBoxSelection = new SelectionManager();
+            rootEntityIDs = groups.rootEntityIDs();
+            if (rootEntityIDs.length > 0) {
+                selectInBoxSelection.select(rootEntityIDs[0]);
+                for (i = 1, length = rootEntityIDs.length; i < length; i += 1) {
+                    selectInBoxSelection.append(rootEntityIDs[i]);
+                }
+            }
 
-            updateSelectInBox();
-        }
+            // Add any enclosed entities.
+            selectInBox();
 
-        function selectInBox(selection) {
-            toggle(selection);
-            updateSelectInBox();
+            // Show bounding box overlay plus any newly selected entities.
+            hasSelectionChanged = true;
         }
 
         function stopSelectInBox() {
-            isSelectInBox = false;
+            // Stop automatically selecting entities within bounding box of current selection.
+            selectInBoxSelection.destroy();
+            selectInBoxSelection = null;
 
-            // TODO: Delete bounding box overlay.
+            // Hide bounding box overlay.
+            hasSelectionChanged = true;
+
+            isSelectInBox = false;
         }
 
         function includes(rootEntityID) {
@@ -1355,7 +1390,9 @@
         }
 
         function update(leftRootEntityID, rightRootEntityID) {
-            var hasExludedRootEntitiesChanged;
+            // Update highlights displayed, excluding entities highlighted by left or right hands.
+            var hasExludedRootEntitiesChanged,
+                boundingBox;
 
             hasExludedRootEntitiesChanged = leftRootEntityID !== exludedLeftRootEntityID
                 || rightRootEntityID !== exludedrightRootEntityID;
@@ -1376,12 +1413,15 @@
                 exludedrightRootEntityID = rightRootEntityID;
             }
 
-            highlights.display(false, groups.selection(excludedRootEntityIDs), null, highlights.GROUP_COLOR);
-
+            boundingBox = isSelectInBox && selectInBoxSelection.count() > 1 ? selectInBoxSelection.boundingBox() : null;
+            highlights.display(false, groups.selection(excludedRootEntityIDs), null, boundingBox, highlights.GROUP_COLOR);
             hasSelectionChanged = false;
         }
 
         function clear() {
+            if (isSelectInBox) {
+                stopSelectInBox();
+            }
             groups.clear();
             highlights.clear();
         }
@@ -1394,6 +1434,10 @@
             if (highlights) {
                 highlights.destroy();
                 highlights = null;
+            }
+            if (selectInBoxSelection) {
+                selectInBoxSelection.destroy();
+                selectInBoxSelection = null;
             }
         }
 

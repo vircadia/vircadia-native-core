@@ -99,6 +99,12 @@ SelectionManager = function (side) {
         traverseEntityTree(rootEntityID, selection, selectionProperties);
     }
 
+    function append(rootEntityID) {
+        // Add further entities to the selection.
+        // Assumes that rootEntityID is not already in the selection.
+        traverseEntityTree(rootEntityID, selection, selectionProperties);
+    }
+
     function getIntersectedEntityID() {
         return intersectedEntityID;
     }
@@ -754,6 +760,7 @@ SelectionManager = function (side) {
 
     return {
         select: select,
+        append: append,
         selection: getSelection,
         count: count,
         intersectedEntityID: getIntersectedEntityID,
