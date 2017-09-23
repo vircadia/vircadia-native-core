@@ -73,6 +73,7 @@ public:
     HazeMode getHazeMode() const { return _hazeMode; }
 
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
+    
     HazePropertyGroup getHazeProperties() const { return resultWithReadLock<HazePropertyGroup>([&] { return _hazeProperties; }); }
 
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
@@ -86,9 +87,9 @@ public:
 
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
-    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
     bool hazePropertiesChanged() const { return _hazePropertiesChanged; }
+    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
 
     void resetRenderingPropertiesChanged();
 
@@ -115,9 +116,9 @@ protected:
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
     HazeMode _hazeMode = HAZE_MODE_INHERIT;
 
-    StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
+    StagePropertyGroup _stageProperties;
 
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
@@ -126,8 +127,8 @@ protected:
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };
     bool _backgroundPropertiesChanged{ false };
-    bool _hazePropertiesChanged{ false };
     bool _skyboxPropertiesChanged { false };
+    bool _hazePropertiesChanged{ false };
     bool _stagePropertiesChanged { false };
 
     static bool _drawZoneBoundaries;

@@ -246,9 +246,9 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
 
     _keyLightProperties.debugDump();
-    _stageProperties.debugDump();
     _skyboxProperties.debugDump();
     _hazeProperties.debugDump();
+    _stageProperties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
@@ -312,8 +312,8 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
     withWriteLock([&] {
         _keyLightPropertiesChanged = false;
         _backgroundPropertiesChanged = false;
-        _stagePropertiesChanged = false;
         _skyboxPropertiesChanged = false;
         _hazePropertiesChanged = false;
+        _stagePropertiesChanged = false;
     });
 }

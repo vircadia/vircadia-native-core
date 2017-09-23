@@ -91,9 +91,9 @@ private:
     bool _needBackgroundUpdate{ true };
 
     KeyLightPropertyGroup _keyLightProperties;
-    StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
+    StagePropertyGroup _stageProperties;
 
     // More attributes used for rendering:
     QString _ambientTextureURL;
