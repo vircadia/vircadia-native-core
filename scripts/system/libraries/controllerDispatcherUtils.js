@@ -318,7 +318,6 @@ if (typeof module !== 'undefined') {
         makeRunningValues: makeRunningValues,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
-        isPointingAtUI: isPointingAtUI,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
