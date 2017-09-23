@@ -100,10 +100,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         MENU_HEADER_HEADING_PROPERTIES = {
-            dimensions:  UIT.dimensions.headerHeading,
+            url: Script.resolvePath("../assets/gray-header.fbx"),
+            highlightURL: Script.resolvePath("../assets/green-header.fbx"),
+            dimensions: UIT.dimensions.headerHeading,  // Model is in rotated coordinate system but can override.
             localPosition: { x: 0, y: UIT.dimensions.headerBar.y / 2, z: -MENU_HEADER_HOVER_OFFSET.z / 2 },
             localRotation: Quat.ZERO,
-            color: UIT.colors.baseGray,
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: true,
@@ -112,13 +113,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         MENU_HEADER_BAR_PROPERTIES = {
             url: Script.resolvePath("../assets/green-header-bar.fbx"),
-            dimensions: {  // FBX model is in rotated coordinate system.
-                x: UIT.dimensions.headerBar.z,
-                y: UIT.dimensions.headerBar.x,
-                z: UIT.dimensions.headerBar.y
-            },
+            dimensions: UIT.dimensions.headerBar,  // Model is in rotated coordinate system but can override.
             localPosition: { x: 0, y: -UIT.dimensions.headerHeading.y / 2 - UIT.dimensions.headerBar.y / 2, z: 0 },
-            localRotation: Quat.fromVec3Degrees({ x: 0, y: 90, z: 90 }),  // FBX model is in rotated coordinate system.
+            localRotation: Quat.ZERO,
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: true,
@@ -2894,8 +2891,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (isTriggerClicked && !wasTriggerClicked) {
                 // Lower and unhighlight heading; go back to Tools menu.
                 Overlays.editOverlay(menuHeaderHeadingOverlay, {
+                    url: MENU_HEADER_HEADING_PROPERTIES.url,
                     localPosition: MENU_HEADER_HEADING_PROPERTIES.localPosition,
-                    color: UIT.colors.baseGray,
                     emissive: false
                 });
                 isOptionsHeadingRaised = false;
@@ -2904,8 +2901,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Hover heading.
                 Feedback.play(otherSide, Feedback.HOVER_BUTTON);
                 Overlays.editOverlay(menuHeaderHeadingOverlay, {
+                    url: MENU_HEADER_HEADING_PROPERTIES.highlightURL,
                     localPosition: Vec3.sum(MENU_HEADER_HEADING_PROPERTIES.localPosition, MENU_HEADER_HOVER_OFFSET),
-                    color: UIT.colors.greenHighlight,
                     emissive: true  // TODO: This has no effect.
                 });
                 Overlays.editOverlay(menuHeaderBackOverlay, {
@@ -2924,8 +2921,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (isOptionsHeadingRaised) {
                 // Unhover heading.
                 Overlays.editOverlay(menuHeaderHeadingOverlay, {
+                    url: MENU_HEADER_HEADING_PROPERTIES.url,
                     localPosition: MENU_HEADER_HEADING_PROPERTIES.localPosition,
-                    color: UIT.colors.baseGray,
                     emissive: false
                 });
                 Overlays.editOverlay(menuHeaderBackOverlay, {
@@ -3372,7 +3369,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuHeaderOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(MENU_HEADER_HEADING_PROPERTIES);
         properties.parentID = menuHeaderOverlay;
-        menuHeaderHeadingOverlay = Overlays.addOverlay("cube", properties);
+        menuHeaderHeadingOverlay = Overlays.addOverlay("model", properties);
         properties = Object.clone(MENU_HEADER_BAR_PROPERTIES);
         properties.parentID = menuHeaderHeadingOverlay;
         menuHeaderBarOverlay = Overlays.addOverlay("model", properties);

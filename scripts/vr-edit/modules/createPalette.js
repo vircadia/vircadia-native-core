@@ -50,14 +50,14 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         PALETTE_HEADER_HEADING_PROPERTIES = {
-            dimensions: UIT.dimensions.headerHeading,
+            url: Script.resolvePath("../assets/gray-header.fbx"),
+            dimensions: UIT.dimensions.headerHeading,  // Model is in rotated coordinate system but can override.
             localPosition: {
                 x: 0,
                 y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.headerHeading.y / 2,
                 z: UIT.dimensions.headerHeading.z / 2
             },
             localRotation: Quat.ZERO,
-            color: UIT.colors.baseGray,
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
@@ -66,17 +66,13 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         PALETTE_HEADER_BAR_PROPERTIES = {
             url: Script.resolvePath("../assets/blue-header-bar.fbx"),
-            dimensions: {  // FBX model is in rotated coordinate system.
-                x: UIT.dimensions.headerBar.z,
-                y: UIT.dimensions.headerBar.x,
-                z: UIT.dimensions.headerBar.y
-            },
+            dimensions: UIT.dimensions.headerBar,  // Model is in rotated coordinate system but can override.
             localPosition: {
                 x: 0,
                 y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.headerHeading.y - UIT.dimensions.headerBar.y / 2,
                 z: UIT.dimensions.headerBar.z / 2
             },
-            localRotation: Quat.fromVec3Degrees({ x: 0, y: 90, z: 90 }),  // FBX model is in rotated coordinate system.
+            localRotation: Quat.ZERO,
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
@@ -480,7 +476,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Header.
         properties = Object.clone(PALETTE_HEADER_HEADING_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
-        paletteHeaderHeadingOverlay = Overlays.addOverlay("cube", properties);
+        paletteHeaderHeadingOverlay = Overlays.addOverlay("model", properties);
         properties = Object.clone(PALETTE_HEADER_BAR_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
         paletteHeaderBarOverlay = Overlays.addOverlay("model", properties);
