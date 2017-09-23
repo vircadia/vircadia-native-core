@@ -27,6 +27,7 @@
 
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
+HazePropertyGroup EntityItemProperties::_staticHaze;
 StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 
@@ -349,6 +350,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
+    changedProperties += _haze.getChangedProperties();
     changedProperties += _stage.getChangedProperties();
 
     return changedProperties;
@@ -512,6 +514,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
 
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
@@ -714,6 +717,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _animation.copyFromScriptValue(object, _defaultSettings);
     _keyLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
+    _haze.copyFromScriptValue(object, _defaultSettings);
     _stage.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
@@ -843,6 +847,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     _animation.merge(other._animation);
     _keyLight.merge(other._keyLight);
     _skybox.merge(other._skybox);
+    _haze.merge(other._haze);
     _stage.merge(other._stage);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
@@ -1312,6 +1317,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, properties.getFlyingAllowed());
                 APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, properties.getGhostingAllowed());
                 APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, properties.getFilterURL());
+
+                _staticHaze.setProperties(properties);
+                _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -1769,6 +1777,7 @@ void EntityItemProperties::markAllChanged() {
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
+    _haze.markAllChanged();
     _stage.markAllChanged();
 
     _sourceUrlChanged = true;

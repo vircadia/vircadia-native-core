@@ -93,6 +93,7 @@ private:
     KeyLightPropertyGroup _keyLightProperties;
     StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;
+    HazePropertyGroup _hazeProperties;
 
     // More attributes used for rendering:
     QString _ambientTextureURL;

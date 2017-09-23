@@ -171,6 +171,8 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     bool sunChanged = entity->keyLightPropertiesChanged();
     bool backgroundChanged = entity->backgroundPropertiesChanged();
     bool skyboxChanged = entity->skyboxPropertiesChanged();
+    bool hazeChanged = entity->hazePropertiesChanged();
+
     entity->resetRenderingPropertiesChanged();
     _lastPosition = entity->getPosition();
     _lastRotation = entity->getRotation();
@@ -179,7 +181,7 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     _keyLightProperties = entity->getKeyLightProperties();
     _stageProperties = entity->getStageProperties();
     _skyboxProperties = entity->getSkyboxProperties();
-
+    _hazeProperties = entity->getHazeProperties();
 
 #if 0
     if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {

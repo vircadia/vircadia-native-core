@@ -88,6 +88,7 @@ public:
     bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
     bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
+    bool hazePropertiesChanged() const { return _hazePropertiesChanged; }
 
     void resetRenderingPropertiesChanged();
 
