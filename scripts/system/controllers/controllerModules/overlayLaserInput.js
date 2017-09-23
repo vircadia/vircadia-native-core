@@ -298,6 +298,9 @@ Script.include("/~/system/libraries/controllers.js");
             var intersection = controllerData.rayPicks[this.hand];
             var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY);
             var triggerOff = (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE);
+            if (triggerOff) {
+                this.deleteContextOverlay();
+            }
             var grabbingOverlay = this.grabModuleWantsNearbyOverlay(controllerData);
             return offOverlay || grabbingOverlay || triggerOff;
         };
@@ -308,7 +311,6 @@ Script.include("/~/system/libraries/controllers.js");
                 this.laserPressExit();
                 this.laserPressingTarget = false;
             }
-            this.deleteContextOverlay();
             this.relinquishTouchFocus();
             this.reset();
             this.updateLaserPointer();
