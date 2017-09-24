@@ -211,8 +211,13 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     if (sunChanged || skyboxChanged) {
         updateKeyAmbientFromEntity();
     }
+
     if (backgroundChanged || skyboxChanged) {
         updateKeyBackgroundFromEntity(entity);
+    }
+
+    if (hazeChanged) {
+        updateHazeFromEntity(entity);
     }
 }
 
@@ -300,9 +305,16 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
     }
 }
 
+void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) {
+    const auto& haze = editHaze();
+
+    haze->setIsHazeActive(entity->getHazeMode() == HAZE_MODE_ON);
+}
+
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
     editBackground();
     setBackgroundMode(entity->getBackgroundMode());
+    setHazeMode(entity->getHazeMode());
     setSkyboxColor(_skyboxProperties.getColorVec3());
     setProceduralUserData(entity->getUserData());
     setSkyboxURL(_skyboxProperties.getURL());
@@ -408,6 +420,9 @@ void ZoneEntityRenderer::updateSkyboxMap() {
 
 void ZoneEntityRenderer::setBackgroundMode(BackgroundMode mode) {
     _backgroundMode = mode;
+}
+void ZoneEntityRenderer::setHazeMode(HazeMode mode) {
+    _hazeMode = mode;
 }
 
 void ZoneEntityRenderer::setSkyboxColor(const glm::vec3& color) {

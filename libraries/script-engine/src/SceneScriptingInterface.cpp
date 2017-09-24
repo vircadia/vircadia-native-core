@@ -113,7 +113,8 @@ bool SceneScripting::Stage::isSunModelEnabled() const {
 void SceneScripting::Stage::setBackgroundMode(const QString& mode) {
     if (mode == QString("inherit")) {
         _skyStage->setBackgroundMode(model::SunSkyStage::NO_BACKGROUND);
-    } else if (mode == QString("skybox")) {
+    }
+    else if (mode == QString("skybox")) {
         _skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
     }
 }
@@ -124,6 +125,26 @@ QString SceneScripting::Stage::getBackgroundMode() const {
         return QString("inherit");
     case model::SunSkyStage::SKY_BOX:
         return QString("skybox");
+    default:
+        return QString("inherit");
+    };
+}
+
+void SceneScripting::Stage::setHazeMode(const QString& mode) {
+    if (mode == QString("haze off")) {
+        _skyStage->setHazeMode(model::SunSkyStage::HAZE_OFF);
+    }
+    else if (mode == QString("haze on")) {
+        _skyStage->setHazeMode(model::SunSkyStage::HAZE_ON);
+    }
+}
+
+QString SceneScripting::Stage::getHazeMode() const {
+    switch (_skyStage->getHazeMode()) {
+    case model::SunSkyStage::HAZE_OFF:
+        return QString("haze off");
+    case model::SunSkyStage::HAZE_ON:
+        return QString("haze on");
     default:
         return QString("inherit");
     };

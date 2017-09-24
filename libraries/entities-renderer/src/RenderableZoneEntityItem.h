@@ -45,12 +45,14 @@ private:
     void updateKeyZoneItemFromEntity();
     void updateKeySunFromEntity();
     void updateKeyAmbientFromEntity();
+    void updateHazeFromEntity(const TypedEntityPointer& entity);
     void updateKeyBackgroundFromEntity(const TypedEntityPointer& entity);
     void updateAmbientMap();
     void updateSkyboxMap();
     void setAmbientURL(const QString& ambientUrl);
     void setSkyboxURL(const QString& skyboxUrl);
     void setBackgroundMode(BackgroundMode mode);
+    void setHazeMode(HazeMode mode);
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);
 
@@ -78,6 +80,7 @@ private:
     const model::LightPointer _ambientLight{ std::make_shared<model::Light>() };
     const model::SunSkyStagePointer _background{ std::make_shared<model::SunSkyStage>() };
     BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
+    HazeMode _hazeMode{ HAZE_MODE_INHERIT };
 
     indexed_container::Index _sunIndex{ LightStage::INVALID_INDEX };
     indexed_container::Index _ambientIndex{ LightStage::INVALID_INDEX };

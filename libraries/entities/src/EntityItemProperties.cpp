@@ -227,8 +227,21 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
     }
 }
 
+QString EntityItemProperties::getHazeModeAsString() const {
+    return HAZE_MODES[_hazeMode].second;
+}
+
 QString EntityItemProperties::getHazeModeString(HazeMode mode) {
     return HAZE_MODES[mode].second;
+}
+void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
+    auto result = std::find_if(HAZE_MODES.begin(), HAZE_MODES.end(), [&](const HazePair& pair) {
+        return (pair.second == hazeMode);
+    });
+    if (result != HAZE_MODES.end()) {
+        _hazeMode = result->first;
+        _hazeModeChanged = true;
+    }
 }
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {

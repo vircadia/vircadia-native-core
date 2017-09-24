@@ -177,21 +177,21 @@ public:
 
     // Haze
     enum HazeMode {
-        NO_HAZE,
-        YES_HAZE,
+        HAZE_OFF,
+        HAZE_ON,
 
         NUM_HAZE_MODES
     };
 
     void setHazeMode(HazeMode mode);
-    HazeMode gethazeMode() const { return _hazeMode; }
+    HazeMode getHazeMode() const { return _hazeMode; }
 
     void setHaze(const HazePointer& haze);
     const HazePointer& getHaze() const { valid(); return _haze; }
 
 protected:
     BackgroundMode _backgroundMode = SKY_DEFAULT;
-    HazeMode _hazeMode = NO_HAZE;
+    HazeMode _hazeMode = HAZE_OFF;
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;

@@ -44,7 +44,7 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
 
     _backgroundMode = BACKGROUND_MODE_INHERIT;
-    _hazeMode = HAZE_MODE_OFF;
+    _hazeMode = HAZE_MODE_INHERIT;
 }
 
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -66,9 +66,8 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     withReadLock([&] {
         _skyboxProperties.getProperties(properties);
     });
-    withReadLock([&] {
-        _hazeProperties.getProperties(properties);
-    });
+
+    _hazeProperties.getProperties(properties);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
@@ -108,6 +107,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
@@ -117,9 +117,8 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     withWriteLock([&] {
         _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
     });
-    withWriteLock([&] {
-        _hazePropertiesChanged = _hazeProperties.setProperties(properties);
-    });
+
+    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
@@ -152,6 +151,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, HazeMode, setHazeMode);
 
     int bytesFromSkybox;
     withWriteLock([&] {
