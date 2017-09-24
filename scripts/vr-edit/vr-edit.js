@@ -1285,13 +1285,14 @@
 
         var groups,
             highlights,
+            selectInBoxSelection,  // Selection of all entities selected.
+            groupSelection,  // New group to add to selection.
             exludedLeftRootEntityID = null,
             exludedrightRootEntityID = null,
             excludedRootEntityIDs = [],
             hasHighlights = false,
             hasSelectionChanged = false,
-            isSelectInBox = false,
-            selectInBoxSelection = null;  // Selection of all groups combined in order to calculate bounding box.
+            isSelectInBox = false;
 
         if (!this instanceof Grouping) {
             return new Grouping();
@@ -1299,6 +1300,74 @@
 
         groups = new Groups();
         highlights = new Highlights();
+        selectInBoxSelection = new SelectionManager();
+        groupSelection = new SelectionManager();
+
+        function getAllChildrenIDs(entityID) {
+            var childrenIDs = [],
+                ENTITY_TYPE = "entity";
+
+            function traverseEntityTree(id) {
+                var children,
+                    i,
+                    length;
+                children = Entities.getChildrenIDs(id);
+                for (i = 0, length = children.length; i < length; i += 1) {
+                    if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
+                        childrenIDs.push(children[i]);
+                        traverseEntityTree(children[i]);
+                    }
+                }
+            }
+
+            traverseEntityTree(entityID);
+            return childrenIDs;
+        }
+
+        function isInsideBoundingBox(entityID, boundingBox) {
+            // Are all 8 corners of entityID's bounding box inside boundingBox?
+            var entityProperties,
+                cornerPosition,
+                boundingBoxInverseRotation,
+                boundingBoxHalfDimensions,
+                isInside = true,
+                i,
+                CORNER_REGISTRATION_OFFSETS = [
+                    { x: 0, y: 0, z: 0 },
+                    { x: 0, y: 0, z: 1 },
+                    { x: 0, y: 1, z: 0 },
+                    { x: 0, y: 1, z: 1 },
+                    { x: 1, y: 0, z: 0 },
+                    { x: 1, y: 0, z: 1 },
+                    { x: 1, y: 1, z: 0 },
+                    { x: 1, y: 1, z: 1 }
+                ],
+                NUM_CORNERS = 8;
+
+            entityProperties = Entities.getEntityProperties(entityID, ["position", "rotation", "dimensions",
+                "registrationPoint"]);
+
+            // Convert entity coordinates into boundingBox coordinates.
+            boundingBoxInverseRotation = Quat.inverse(boundingBox.orientation);
+            entityProperties.position = Vec3.multiplyQbyV(boundingBoxInverseRotation,
+                Vec3.subtract(entityProperties.position, boundingBox.center));
+            entityProperties.rotation = Quat.multiply(boundingBoxInverseRotation, entityProperties.rotation);
+
+            // Check all 8 corners of entity's bounding box are inside the given bounding box.
+            boundingBoxHalfDimensions = Vec3.multiply(0.5, boundingBox.dimensions);
+            i = 0;
+            while (isInside && i < NUM_CORNERS) {
+                cornerPosition = Vec3.sum(entityProperties.position, Vec3.multiplyQbyV(entityProperties.rotation,
+                    Vec3.multiplyVbyV(Vec3.subtract(CORNER_REGISTRATION_OFFSETS[i], entityProperties.registrationPoint),
+                        entityProperties.dimensions)));
+                isInside = Math.abs(cornerPosition.x) <= boundingBoxHalfDimensions.x
+                    && Math.abs(cornerPosition.y) <= boundingBoxHalfDimensions.y
+                    && Math.abs(cornerPosition.z) <= boundingBoxHalfDimensions.z;
+                i += 1;
+            }
+
+            return isInside;
+        }
 
         function toggle(selection) {
             groups.toggle(selection);
@@ -1322,14 +1391,47 @@
         function selectInBox() {
             // Add any entities or groups of entities wholly within bounding box of current selection.
             // Must be wholly within otherwise selection could grow uncontrollably.
-            var boundingBox;
+            var boundingBox,
+                entityIDs,
+                checkedEntityIDs = [],
+                entityID,
+                rootID,
+                groupIDs,
+                doIncludeGroup,
+                i,
+                lengthI,
+                j,
+                lengthJ;
 
             if (selectInBoxSelection.count() > 1) {
                 boundingBox = selectInBoxSelection.boundingBox();
-
-                // TODO: Select further entities per bounding box.
-
-                hasSelectionChanged = true;
+                entityIDs = Entities.findEntities(boundingBox.center, Vec3.length(boundingBox.dimensions) / 2);
+                for (i = 0, lengthI = entityIDs.length; i < lengthI; i += 1) {
+                    entityID = entityIDs[i];
+                    if (checkedEntityIDs.indexOf(entityID) === -1) {
+                        rootID = Entities.rootOf(entityID);
+                        if (!selectInBoxSelection.contains(entityID) && Entities.hasEditableRoot(rootID)) {
+                            groupIDs = [rootID].concat(getAllChildrenIDs(rootID));
+                            doIncludeGroup = true;
+                            j = 0;
+                            lengthJ = groupIDs.length;
+                            while (doIncludeGroup && j < lengthJ) {
+                                doIncludeGroup = isInsideBoundingBox(groupIDs[j], boundingBox);
+                                j += 1;
+                            }
+                            checkedEntityIDs = checkedEntityIDs.concat(groupIDs);
+                            if (doIncludeGroup) {
+                                groupSelection.select(rootID);
+                                groups.toggle(groupSelection.selection());
+                                groupSelection.clear();
+                                selectInBoxSelection.append(rootID);
+                                hasSelectionChanged = true;
+                            }
+                        } else {
+                            checkedEntityIDs.push(rootID);
+                        }
+                    }
+                }
             }
         }
 
@@ -1338,11 +1440,10 @@
             var rootEntityIDs,
                 i,
                 length;
-            
+
             isSelectInBox = true;
 
             // Select entities current groups combined.
-            selectInBoxSelection = new SelectionManager();
             rootEntityIDs = groups.rootEntityIDs();
             if (rootEntityIDs.length > 0) {
                 selectInBoxSelection.select(rootEntityIDs[0]);
@@ -1360,10 +1461,9 @@
 
         function stopSelectInBox() {
             // Stop automatically selecting entities within bounding box of current selection.
-            selectInBoxSelection.destroy();
-            selectInBoxSelection = null;
 
             // Hide bounding box overlay.
+            selectInBoxSelection.clear();
             hasSelectionChanged = true;
 
             isSelectInBox = false;
@@ -1420,7 +1520,7 @@
 
         function clear() {
             if (isSelectInBox) {
-                stopSelectInBox();
+                selectInBoxSelection.clear();
             }
             groups.clear();
             highlights.clear();
@@ -1438,6 +1538,10 @@
             if (selectInBoxSelection) {
                 selectInBoxSelection.destroy();
                 selectInBoxSelection = null;
+            }
+            if (groupSelection) {
+                groupSelection.destroy();
+                groupSelection = null;
             }
         }
 
