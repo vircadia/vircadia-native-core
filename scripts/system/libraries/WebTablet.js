@@ -150,6 +150,22 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         parentJointIndex: -1
     });
 
+    this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
+        name: "homeButtonHighlight",
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.015 },
+        localRotation: { x: 0, y: 1, z: 0, w: 0 },
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
+        solid: true,
+        outerRadius: 25 * tabletScaleFactor,
+        innerRadius: 17 * tabletScaleFactor,
+        alpha: 1.0,
+        color: { red: 255, green: 255, blue: 255 },
+        visible: visible,
+        drawInFront: false,
+        parentID: this.tabletEntityID,
+        parentJointIndex: -1
+     });
+
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonID == senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -272,6 +288,7 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
+    Overlays.deleteOverlay(this.homeButtonHighlightID);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
@@ -500,6 +517,22 @@ WebTablet.prototype.scheduleMouseMoveProcessor = function() {
     }
 };
 
+WebTablet.prototype.handleHomeButtonHover = function(x, y) {
+    var pickRay = Camera.computePickRay(x, y);
+    var entityPickResults;
+    var homebuttonHovered = false;
+    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
+    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
+        entityPickResults.overlayID === this.tabletEntityID)) {
+        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID], []);
+        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
+            homebuttonHovered = true;
+        }
+    }
+
+    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homebuttonHovered ? 1.0 : 0.0 });
+}
+
 WebTablet.prototype.mouseMoveEvent = function (event) {
     if (this.dragging) {
         this.currentMouse = {
@@ -507,6 +540,8 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
             y: event.y
         };
         this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(event.x, event.y);
     }
 };
 
@@ -533,6 +568,8 @@ WebTablet.prototype.mouseMoveProcessor = function () {
             });
         }
         this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(this.currentMouse.x, this.currentMouse.y);
     }
 };
 
