@@ -202,13 +202,6 @@ const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = 
     BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
 } };
 
-using HazePair = std::pair<const HazeMode, const QString>;
-const std::array<HazePair, HAZE_MODE_ITEM_COUNT> HAZE_MODES = { {
-    HazePair{ HAZE_MODE_INHERIT,{ "inherit" } },
-    HazePair{ HAZE_MODE_OFF,{ "off" } },
-    HazePair{ HAZE_MODE_ON,{ "on" } }
-    } };
-
 QString EntityItemProperties::getBackgroundModeAsString() const {
     return BACKGROUND_MODES[_backgroundMode].second;
 }
@@ -226,6 +219,13 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
         _backgroundModeChanged = true;
     }
 }
+
+using HazePair = std::pair<const HazeMode, const QString>;
+const std::array<HazePair, HAZE_MODE_ITEM_COUNT> HAZE_MODES = { {
+        HazePair{ HAZE_MODE_INHERIT,{ "inherit" } },
+        HazePair{ HAZE_MODE_DISABLED,{ "disabled" } },
+        HazePair{ HAZE_MODE_ENABLED,{ "enabled" } }
+} };
 
 QString EntityItemProperties::getHazeModeAsString() const {
     return HAZE_MODES[_hazeMode].second;
@@ -317,6 +317,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_DATA, voxelData);
@@ -525,6 +526,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
 
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
@@ -704,6 +706,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
@@ -843,6 +846,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
     COPY_PROPERTY_IF_CHANGED(backgroundMode);
+    COPY_PROPERTY_IF_CHANGED(hazeMode);
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
     COPY_PROPERTY_IF_CHANGED(voxelData);
@@ -1021,6 +1025,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
         ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
         ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode);
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
@@ -1788,6 +1793,7 @@ void EntityItemProperties::markAllChanged() {
     _keyLight.markAllChanged();
 
     _backgroundModeChanged = true;
+    _hazeModeChanged = true;
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
@@ -2096,6 +2102,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (backgroundModeChanged()) {
         out += "backgroundMode";
+    }
+    if (hazeModeChanged()) {
+        out += "hazeMode";
     }
     if (voxelVolumeSizeChanged()) {
         out += "voxelVolumeSize";

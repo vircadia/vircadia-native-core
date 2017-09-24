@@ -13,9 +13,9 @@
 #define hifi_HazeMode_h
 
 enum HazeMode {
-    HAZE_MODE_OFF,
-    HAZE_MODE_ON,
     HAZE_MODE_INHERIT,
+    HAZE_MODE_DISABLED,
+    HAZE_MODE_ENABLED,
 
     HAZE_MODE_ITEM_COUNT
 };

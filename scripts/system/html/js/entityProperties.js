@@ -657,7 +657,7 @@ function loaded() {
         var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
         var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
 
-        var elZoneHazeActive = document.getElementById("property-zone-haze-haze-active");
+        var elZoneHazeMode = document.getElementById("property-zone-haze-mode");
        
         var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
         var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
@@ -977,7 +977,8 @@ function loaded() {
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
                             elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
 
-                            elZoneHazeActive.checked = properties.haze.hazeActive;
+                            elZoneHazeMode.value = properties.hazeMode;
+                            setDropdownText(elZoneHazeMode);
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                             elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -1373,7 +1374,7 @@ function loaded() {
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-        elZoneHazeActive.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeActive'));
+        elZoneHazeMode.addEventListener('change', createEmitTextPropertyUpdateFunction('hazeMode'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
@@ -1384,6 +1385,7 @@ function loaded() {
 
 
         elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
+
         var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox', 'color',
             elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);
         elZoneSkyboxColorRed.addEventListener('change', zoneSkyboxColorChangeFunction);

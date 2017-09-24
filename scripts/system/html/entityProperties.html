@@ -547,9 +547,13 @@
                 <legend class="sub-section-header zone-group zone-section haze-section">
                     Haze
                 </legend>
-                 <div class="zone-group zone-section haze-section property checkbox">
-                    <input type="checkbox" id="property-zone-haze-haze-active">
-                    <label for="property-zone-haze-haze-active">Haze Active</label>
+                <div class="zone-group zone-section haze-section property dropdown">
+                    <label>Haze Mode</label>
+                    <select name="SelectHazeMode" id="property-zone-haze-mode">
+                        <option value="inherit">Inherit</option>
+                        <option value="disabled">Disabled</option>
+                        <option value="enabled">Enabled</option>
+                    </select>
                 </div>
             </fieldset>
             <fieldset class="minor">
