@@ -1520,7 +1520,7 @@
 
         function clear() {
             if (isSelectInBox) {
-                selectInBoxSelection.clear();
+                stopSelectInBox();
             }
             groups.clear();
             highlights.clear();
@@ -1685,6 +1685,9 @@
                 Feedback.play(dominantHand, Feedback.SELECT_ENTITY);
             }
             grouping.clear();
+            if (toolSelected === TOOL_GROUP_BOX) {
+                grouping.startSelectInBox();
+            }
             break;
 
         case "setColor":
