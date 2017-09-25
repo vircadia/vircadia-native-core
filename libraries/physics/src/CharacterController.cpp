@@ -120,7 +120,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
             // restore gravity settings because adding an object to the world overwrites its gravity setting
-            _rigidBody->setGravity(_gravity * _currentUp);
+            _rigidBody->setGravity(_currentGravity * _currentUp);
             btCollisionShape* shape = _rigidBody->getCollisionShape();
             assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
             _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
@@ -302,7 +302,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
             // add minimum velocity to counteract gravity's displacement during one step
             // Note: the 0.5 factor comes from the fact that we really want the
             // average velocity contribution from gravity during the step
-            stepUpSpeed -= 0.5f * _gravity * timeToStep; // remember: _gravity is negative scalar
+            stepUpSpeed -= 0.5f * _currentGravity * timeToStep; // remember: _gravity is negative scalar
 
             btScalar vDotUp = velocity.dot(_currentUp);
             if (vDotUp < stepUpSpeed) {
@@ -351,6 +351,28 @@ static const char* stateToStr(CharacterController::State state) {
 }
 #endif // #ifdef DEBUG_STATE_CHANGE
 
+void CharacterController::updateCurrentGravity() {
+    int16_t collisionGroup = computeCollisionGroup();
+    if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+        _currentGravity = 0.0f;
+    } else {
+        _currentGravity = _gravity;
+    }
+    if (_rigidBody) {
+        _rigidBody->setGravity(_currentGravity * _currentUp);
+    }
+}
+
+
+void CharacterController::setGravity(float gravity) {
+    _gravity = gravity;
+    updateCurrentGravity();
+}
+
+float CharacterController::getGravity() {
+    return _gravity;
+}
+
 #ifdef DEBUG_STATE_CHANGE
 void CharacterController::setState(State desiredState, const char* reason) {
 #else
@@ -365,19 +387,7 @@ void CharacterController::setState(State desiredState) {
         qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "from" << stateToStr(_state) << "," << reason;
 #endif
         _state = desiredState;
-        updateGravity();
-    }
-}
-
-void CharacterController::updateGravity() {
-    int16_t collisionGroup = computeCollisionGroup();
-    if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
-        _gravity = 0.0f;
-    } else {
-        _gravity = DEFAULT_AVATAR_GRAVITY;
-    }
-    if (_rigidBody) {
-        _rigidBody->setGravity(_gravity * _currentUp);
+        updateCurrentGravity();
     }
 }
 
@@ -436,14 +446,14 @@ void CharacterController::handleChangedCollisionGroup() {
             _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
         }
         _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_GROUP;
-        updateGravity();
+        updateCurrentGravity();
     }
 }
 
 void CharacterController::updateUpAxis(const glm::quat& rotation) {
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
     if (_rigidBody) {
-        _rigidBody->setGravity(_gravity * _currentUp);
+        _rigidBody->setGravity(_currentGravity * _currentUp);
     }
 }
 

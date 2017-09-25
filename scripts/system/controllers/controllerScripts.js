@@ -30,7 +30,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/teleport.js",
     "controllerModules/scaleAvatar.js",
     "controllerModules/hudOverlayPointer.js",
-    "controllerModules/mouseHMD.js"
+    "controllerModules/mouseHMD.js",
+    "controllerModules/scaleEntity.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

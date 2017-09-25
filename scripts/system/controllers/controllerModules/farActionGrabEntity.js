@@ -147,7 +147,9 @@ Script.include("/~/system/libraries/controllers.js");
             if (mode === "full") {
                 var fullEndToEdit = PICK_WITH_HAND_RAY ? this.fullEnd : fullEnd;
                 fullEndToEdit.dimensions = dim;
-                LaserPointers.editRenderState(laserPointerID, mode, {path: fullPath, end: fullEndToEdit});
+                LaserPointers.editRenderState(laserPointerID, mode, { path: fullPath, end: fullEndToEdit });
+                this.contextOverlayTimer = false;
+                this.destroyContextOverlay();
             } else if (mode === "half") {
                 var halfEndToEdit = PICK_WITH_HAND_RAY ? this.halfEnd : halfEnd;
                 halfEndToEdit.dimensions = dim;
