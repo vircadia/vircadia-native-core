@@ -515,20 +515,18 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
     return texture;
 }
 
-
-
 TexturePointer Texture::unserialize(const cache::FilePointer& cacheEntry) {
-std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(cacheEntry->getFilepath().c_str()));
-if (!ktxPointer) {
-    return nullptr;
-}
+    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(cacheEntry->getFilepath().c_str()));
+    if (!ktxPointer) {
+        return nullptr;
+    }
 
-auto texture = build(ktxPointer->toDescriptor());
-if (texture) {
-    texture->setKtxBacking(cacheEntry);
-}
+    auto texture = build(ktxPointer->toDescriptor());
+    if (texture) {
+        texture->setKtxBacking(cacheEntry);
+    }
 
-return texture;
+    return texture;
 }
 
 TexturePointer Texture::unserialize(const std::string& ktxfile) {

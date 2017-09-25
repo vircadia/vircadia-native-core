@@ -13,6 +13,7 @@
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
+#include <QtWidgets/QMessageBox>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStackedWidget>
 
@@ -155,7 +156,9 @@ void SkyboxBakeWidget::bakeButtonClicked() {
     // make sure we have a valid output directory
     QDir outputDirectory(_outputDirLineEdit->text());
 
+    outputDirectory.mkdir(".");
     if (!outputDirectory.exists()) {
+        QMessageBox::warning(this, "Unable to create directory", "Unable to create output directory. Please create it manually or choose a different directory.");
         return;
     }
 

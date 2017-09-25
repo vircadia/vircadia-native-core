@@ -34,7 +34,10 @@ Item {
 
         onClicked: {
             mouse.accepted = true;
+
             webEntity.synthesizeKeyPress(glyph);
+            webEntity.synthesizeKeyPress(glyph, mirrorText);
+
             if (toggle) {
                 toggled = !toggled;
             }

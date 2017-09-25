@@ -138,8 +138,8 @@
             } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
                 tablet.emitScriptEvent(JSON.stringify({
                     type: "marketplaces",
-                    action: "inspectionModeSetting",
-                    data: Settings.getValue("inspectionMode", false)
+                    action: "commerceSetting",
+                    data: Settings.getValue("commerce", false)
                 }));
             } else if (parsedJsonMessage.type === "PURCHASES") {
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);

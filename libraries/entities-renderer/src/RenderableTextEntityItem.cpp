@@ -102,7 +102,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
         glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
         transformToTopLeft.setRotation(orientation);
     }
-    transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
+    transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
     
     batch.setModelTransform(transformToTopLeft);
