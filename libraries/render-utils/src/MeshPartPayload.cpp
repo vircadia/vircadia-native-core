@@ -321,17 +321,25 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
-    _meshIndex(_meshIndex),
+ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
+    _meshIndex(meshIndex),
     _shapeID(shapeIndex) {
 
     assert(model && model->isLoaded());
     _model = model;
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
+    computeAdjustedLocalBound(state.clusterMatrices);
 
     updateTransform(transform, offsetTransform);
+    Transform renderTransform = transform;
+    if (state.clusterMatrices.size() == 1) {
+        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    }
+    updateTransformForSkinnedMesh(renderTransform, transform, state.clusterBuffer);
+
     initCache();
 }
 

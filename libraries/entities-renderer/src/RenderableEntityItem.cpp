@@ -291,6 +291,18 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
     });
 }
 
+void EntityRenderer::update(const ScenePointer& scene, Transaction& transaction) {
+    if (!isValidRenderItem()) {
+        return;
+    }
+
+    if (!needsUpdate()) {
+        return;
+    }
+
+    doUpdate(scene, transaction, _entity);
+}
+
 //
 // Internal methods
 //
@@ -302,6 +314,11 @@ bool EntityRenderer::needsRenderUpdate() const {
         return true;
     }
     return needsRenderUpdateFromEntity(_entity);
+}
+
+// Returns true if the item needs to have update called
+bool EntityRenderer::needsUpdate() const {
+    return needsUpdateFromEntity(_entity);
 }
 
 // Returns true if the item in question needs to have updateInScene called because of changes in the entity
