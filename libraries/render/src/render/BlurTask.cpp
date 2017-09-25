@@ -77,7 +77,7 @@ void BlurParams::setFilterTap(int index, float offset, float value) {
     filterTaps[index].y = value;
 }
 
-void BlurParams::setGaussianFilterTaps(int numHalfTaps, float sigma, bool normalize) {
+void BlurParams::setGaussianFilterTaps(int numHalfTaps, float sigma) {
     auto& params = _parametersBuffer.edit<Params>();
     const int numTaps = 2 * numHalfTaps + 1;
     assert(numTaps <= BLUR_MAX_NUM_TAPS);
@@ -102,16 +102,8 @@ void BlurParams::setGaussianFilterTaps(int numHalfTaps, float sigma, bool normal
         totalWeight += 2 * weight;
     }
 
-    float normalizer;
-    if (normalize) {
-        normalizer = float(1.0 / totalWeight);
-    } else {
-        normalizer = float(1.0 / (sqrt(2 * M_PI)*sigma));
-    }
-
-    for (i = 0; i < numTaps; i++) {
-        params.filterTaps[i].y *= normalizer;
-    }
+    // Tap weights will be normalized in shader because side cases on edges of screen
+    // won't have the same number of taps as in the center.
 }
 
 void BlurParams::setDepthPerspective(float oneOverTan2FOV) {
@@ -158,7 +150,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
         //    _blurredFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
         //}
         auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
-        auto blurringTarget = gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler);
+        auto blurringTarget = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler);
         _blurredFramebuffer->setRenderBuffer(0, blurringTarget);
     } 
 

@@ -30,7 +30,7 @@ public:
     void setFilterNumTaps(int count);
     // Tap 0 is considered the center of the kernel
     void setFilterTap(int index, float offset, float value);
-    void setGaussianFilterTaps(int numHalfTaps, float sigma = 1.47f, bool normalize = true);
+    void setGaussianFilterTaps(int numHalfTaps, float sigma = 1.47f);
 
     void setDepthPerspective(float oneOverTan2FOV);
     void setDepthThreshold(float threshold);
@@ -115,6 +115,8 @@ public:
 
     void configure(const Config& config);
     void run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer);
+
+    BlurParamsPointer getParameters() const { return _parameters; }
 
 protected:
 
