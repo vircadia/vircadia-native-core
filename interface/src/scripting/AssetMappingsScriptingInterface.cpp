@@ -19,20 +19,12 @@
 #include <AssetUpload.h>
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
+#include <NodeList.h>
 #include <OffscreenUi.h>
 
-void AssetMappingModel::clear() {
-    // make sure we are on the same thread before we touch the hash
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "clear");
-        return;
-    }
+static const int AUTO_REFRESH_INTERVAL = 1000;
 
-    qDebug() << "Clearing loaded asset mappings for Asset Browser";
-
-    _pathToItemMap.clear();
-    QStandardItemModel::clear();
-}
+int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
 
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
@@ -154,7 +146,7 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
         auto map = callback.engine()->newObject();
 
         for (auto& kv : mappings ) {
-            map.setProperty(kv.first, kv.second);
+            map.setProperty(kv.first, kv.second.hash);
         }
 
         if (callback.isCallable()) {
@@ -174,7 +166,7 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
 
     connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
         if (callback.isCallable()) {
-            QJSValueList args { request->getErrorString() };
+            QJSValueList args{ request->getErrorString() };
             callback.call(args);
         }
 
@@ -182,6 +174,49 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
     });
 
     request->start();
+}
+
+void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool enabled, QJSValue callback) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createSetBakingEnabledRequest(paths, enabled);
+
+    connect(request, &SetBakingEnabledRequest::finished, this, [this, callback](SetBakingEnabledRequest* request) mutable {
+        if (callback.isCallable()) {
+            QJSValueList args{ request->getErrorString() };
+            callback.call(args);
+        }
+
+        request->deleteLater();
+    });
+
+    request->start();
+}
+
+AssetMappingModel::AssetMappingModel() {
+    setupRoles();
+
+    connect(&_autoRefreshTimer, &QTimer::timeout, this, [this] {
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+        if (assetServer) {
+            refresh();
+        }
+    });
+    _autoRefreshTimer.setInterval(AUTO_REFRESH_INTERVAL);
+}
+
+bool AssetMappingModel::isAutoRefreshEnabled() {
+    return _autoRefreshTimer.isActive();
+}
+
+void AssetMappingModel::setAutoRefreshEnabled(bool enabled) {
+    if (enabled != _autoRefreshTimer.isActive()) {
+        if (enabled) {
+            _autoRefreshTimer.start();
+        } else {
+            _autoRefreshTimer.stop();
+        }
+    }
 }
 
 bool AssetMappingModel::isKnownFolder(QString path) const {
@@ -198,10 +233,7 @@ bool AssetMappingModel::isKnownFolder(QString path) const {
     return false;
 }
 
-int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
-
 void AssetMappingModel::refresh() {
-    qDebug() << "Refreshing asset mapping model";
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
@@ -211,6 +243,12 @@ void AssetMappingModel::refresh() {
             auto existingPaths = _pathToItemMap.keys();
             for (auto& mapping : mappings) {
                 auto& path = mapping.first;
+
+                if (path.startsWith(HIDDEN_BAKED_CONTENT_FOLDER)) {
+                    // Hide baked mappings
+                    continue;
+                }
+
                 auto parts = path.split("/");
                 auto length = parts.length();
 
@@ -223,27 +261,32 @@ void AssetMappingModel::refresh() {
                 // start index at 1 to avoid empty string from leading slash
                 for (int i = 1; i < length; ++i) {
                     fullPath += (i == 1 ? "" : "/") + parts[i];
+                    bool isFolder = i < length - 1;
 
                     auto it = _pathToItemMap.find(fullPath);
                     if (it == _pathToItemMap.end()) {
                         auto item = new QStandardItem(parts[i]);
-                        bool isFolder = i < length - 1;
                         item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
                         item->setData(isFolder, Qt::UserRole + 1);
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
                         item->setData(fullPath, Qt::UserRole + 4);
+                        
                         if (lastItem) {
-                            lastItem->setChild(lastItem->rowCount(), 0, item);
+                            lastItem->appendRow(item);
                         } else {
                             appendRow(item);
                         }
-
                         lastItem = item;
                         _pathToItemMap[fullPath] = lastItem;
                     } else {
                         lastItem = it.value();
                     }
+
+                    // update status
+                    auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
+                    lastItem->setData(statusString, Qt::UserRole + 5);
+                    lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
                 }
 
                 Q_ASSERT(fullPath == path);
@@ -295,8 +338,30 @@ void AssetMappingModel::refresh() {
             emit errorGettingMappings(request->getErrorString());
         }
 
+        emit updated();
+
         request->deleteLater();
     });
 
     request->start();
+}
+
+void AssetMappingModel::clear() {
+    // make sure we are on the same thread before we touch the hash
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "clear");
+        return;
+    }
+
+    qDebug() << "Clearing loaded asset mappings for Asset Browser";
+
+    _pathToItemMap.clear();
+    QStandardItemModel::clear();
+}
+
+void AssetMappingModel::setupRoles() {
+    QHash<int, QByteArray> roleNames;
+    roleNames[Qt::DisplayRole] = "name";
+    roleNames[Qt::UserRole + 5] = "baked";
+    setItemRoleNames(roleNames);
 }

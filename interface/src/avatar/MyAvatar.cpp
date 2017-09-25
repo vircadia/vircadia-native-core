@@ -2196,6 +2196,14 @@ float MyAvatar::getDomainMaxScale() {
     return _domainMaximumScale;
 }
 
+void MyAvatar::setGravity(float gravity) {
+    _characterController.setGravity(gravity);
+}
+
+float MyAvatar::getGravity() {
+    return _characterController.getGravity();
+}
+
 void MyAvatar::increaseSize() {
     // make sure we're starting from an allowable scale
     clampTargetScaleToDomainLimits();

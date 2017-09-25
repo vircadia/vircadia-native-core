@@ -30,7 +30,7 @@ class EntityRenderer : public QObject, public std::enable_shared_from_this<Entit
 
 public:
     static void initEntityRenderers();
-    static Pointer addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene);
+    static Pointer addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene, Transaction& transaction);
 
     // Allow classes to override this to interact with the user
     virtual bool wantsHandControllerPointerEvents() const { return false; }
@@ -48,6 +48,8 @@ public:
     virtual void updateInScene(const ScenePointer& scene, Transaction& transaction) final;
     virtual bool addToScene(const ScenePointer& scene, Transaction& transaction) final;
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction);
+
+    virtual void update(const ScenePointer& scene, Transaction& transaction);
 
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
@@ -71,6 +73,12 @@ protected:
     // Returns true if the item in question needs to have updateInScene called because of changes in the entity
     virtual bool needsRenderUpdateFromEntity(const EntityItemPointer& entity) const;
 
+    // Returns true if the item in question needs to have update called
+    virtual bool needsUpdate() const;
+
+    // Returns true if the item in question needs to have update called because of changes in the entity
+    virtual bool needsUpdateFromEntity(const EntityItemPointer& entity) const { return false; }
+
     // Will be called on the main thread from updateInScene.  This can be used to fetch things like 
     // network textures or model geometry from resource caches
     virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {  }
@@ -79,6 +87,8 @@ protected:
     // This function will execute on the rendering thread, so you cannot use network caches to fetch
     // data in this method if using multi-threaded rendering
     virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity);
+
+    virtual void doUpdate(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) { }
 
     // Called by the `render` method after `needsRenderUpdate`
     virtual void doRender(RenderArgs* args) = 0;
@@ -148,6 +158,15 @@ protected:
         onRemoveFromSceneTyped(_typedEntity);
     }
 
+    using Parent::needsUpdateFromEntity;
+    // Returns true if the item in question needs to have update called because of changes in the entity
+    virtual bool needsUpdateFromEntity(const EntityItemPointer& entity) const override final {
+        if (Parent::needsUpdateFromEntity(entity)) {
+            return true;
+        }
+        return needsUpdateFromTypedEntity(_typedEntity);
+    }
+
     using Parent::needsRenderUpdateFromEntity;
     // Returns true if the item in question needs to have updateInScene called because of changes in the entity
     virtual bool needsRenderUpdateFromEntity(const EntityItemPointer& entity) const override final {
@@ -162,6 +181,11 @@ protected:
         doRenderUpdateSynchronousTyped(scene, transaction, _typedEntity);
     }
 
+    virtual void doUpdate(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) override final {
+        Parent::doUpdate(scene, transaction, entity);
+        doUpdateTyped(scene, transaction, _typedEntity);
+    }
+
     virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity) override final {
         Parent::doRenderUpdateAsynchronous(entity);
         doRenderUpdateAsynchronousTyped(_typedEntity);
@@ -170,6 +194,8 @@ protected:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const { return false; }
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) { }
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) { }
+    virtual bool needsUpdateFromTypedEntity(const TypedEntityPointer& entity) const { return false; }
+    virtual void doUpdateTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) { }
     virtual void onAddToSceneTyped(const TypedEntityPointer& entity) { }
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) { }
 
