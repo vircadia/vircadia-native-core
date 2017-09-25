@@ -116,9 +116,6 @@ void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
         EntityItemPointer entityItem = itr.value();
         AddEntityOperator theOperator(getThisPointer(), entityItem);
         recurseTreeWithOperator(&theOperator);
-        if (!entityItem->getParentID().isNull()) {
-            addToNeedsParentFixupList(entityItem);
-        }
         postAddEntity(entityItem);
     }
     _entitiesToAdd.clear();
