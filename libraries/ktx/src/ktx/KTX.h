@@ -170,7 +170,7 @@ namespace ktx {
         uint32_t evalPixelOrBlockHeight(uint32_t level) const;
         uint32_t evalPixelOrBlockDepth(uint32_t level) const;
 
-        size_t evalPixelOrBlockSize() const;
+        size_t evalPixelOrBlockBitSize() const;
         size_t evalRowSize(uint32_t level) const;
         size_t evalFaceSize(uint32_t level) const;
         size_t evalImageSize(uint32_t level) const;
