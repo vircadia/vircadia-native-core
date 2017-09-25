@@ -33,8 +33,8 @@ Item {
             }
         }
 
-        onHoveredChanged: {
-            if (hovered) {
+        onContainsMouseChanged: {
+            if (containsMouse) {
                 tabletInterface.playSound(TabletEnums.ButtonHover)
             }
         }
