@@ -227,7 +227,7 @@ void JSBaker::handleSingleLineComments(QTextStream * readCharacter) {
     QChar character;
     while (!readCharacter->atEnd()) {
         *readCharacter >> character;
-        if (character <= '\n')
+        if (character == '\n')
         break;
     }
     return;
