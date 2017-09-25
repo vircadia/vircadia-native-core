@@ -50,8 +50,8 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
     }
 
     // compute time-weighted running average renderTime
-    const float SYNC_AND_SWAP_TIME_BUDGET = 2.0f; // msec
-    float renderTime = batchTime + SYNC_AND_SWAP_TIME_BUDGET;
+    const float OVERLAY_AND_SWAP_TIME_BUDGET = 2.0f; // msec
+    float renderTime = batchTime + OVERLAY_AND_SWAP_TIME_BUDGET;
     float maxTime = glm::max(renderTime, engineRunTime);
     const float BLEND_TIMESCALE = 0.3f; // sec
     float blend = BLEND_TIMESCALE / deltaTimeSec;
@@ -189,12 +189,12 @@ void LODManager::resetLODAdjust() {
     _isDownshifting = false;
 }
 
-const float MIN_SENSIBLE_FPS = 1.0f;
+const float MIN_DECREASE_FPS = 0.5f;
 
 void LODManager::setDesktopLODDecreaseFPS(float fps) {
-    if (fps < MIN_SENSIBLE_FPS) {
+    if (fps < MIN_DECREASE_FPS) {
         // avoid divide by zero
-        fps = MIN_SENSIBLE_FPS;
+        fps = MIN_DECREASE_FPS;
     }
     _desktopMaxRenderTime = (float)MSECS_PER_SECOND / fps;
 }
@@ -208,9 +208,9 @@ float LODManager::getDesktopLODIncreaseFPS() const {
 }
 
 void LODManager::setHMDLODDecreaseFPS(float fps) {
-    if (fps < MIN_SENSIBLE_FPS) {
+    if (fps < MIN_DECREASE_FPS) {
         // avoid divide by zero
-        fps = MIN_SENSIBLE_FPS;
+        fps = MIN_DECREASE_FPS;
     }
     _hmdMaxRenderTime = (float)MSECS_PER_SECOND / fps;
 }
