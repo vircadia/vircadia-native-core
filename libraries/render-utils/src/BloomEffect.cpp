@@ -12,15 +12,16 @@
 
 #include <render/BlurTask.h>
 
-void BloomConfig::setMix(float value) {
-
+void BloomConfig::setIntensity(float value) {
+    auto blurConfig = getConfig<render::BlurGaussian>();
+    blurConfig->setProperty("mix", value*0.5f);
 }
 
 void BloomConfig::setSize(float value) {
     auto& blurJob = static_cast<render::Task::TaskConcept*>(_task)->_jobs.front();
     auto& gaussianBlur = blurJob.edit<render::BlurGaussian>();
     auto gaussianBlurParams = gaussianBlur.getParameters();
-    gaussianBlurParams->setGaussianFilterTaps((BLUR_MAX_NUM_TAPS - 1) / 2, value*7.0f);
+    gaussianBlurParams->setFilterGaussianTaps((BLUR_MAX_NUM_TAPS - 1) / 2, value*7.0f);
 }
 
 Bloom::Bloom() {
@@ -29,7 +30,7 @@ Bloom::Bloom() {
 
 void Bloom::configure(const Config& config) {
     auto blurConfig = config.getConfig<render::BlurGaussian>();
-    blurConfig->setProperty("filterScale", 2.5f);
+    blurConfig->setProperty("filterScale", 3.0f);
 }
 
 void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {

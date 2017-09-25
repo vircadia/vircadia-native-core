@@ -41,7 +41,7 @@ int getFilterNumTaps() {
     return int(parameters.filterInfo.y);
 }
 
-float getFilterMix() {
+float getOutputAlpha() {
     return parameters.filterInfo.z;
 }
 
@@ -102,6 +102,7 @@ vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
     if (totalWeight>0.0) {
         srcBlurred /= totalWeight;
     }
+    srcBlurred.a = getOutputAlpha();
     return srcBlurred;
 }
 

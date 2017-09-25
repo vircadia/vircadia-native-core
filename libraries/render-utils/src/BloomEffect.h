@@ -16,15 +16,15 @@
 
 class BloomConfig : public render::Task::Config {
 	Q_OBJECT
-		Q_PROPERTY(float mix MEMBER mix WRITE setMix NOTIFY dirty)
+		Q_PROPERTY(float intensity MEMBER intensity WRITE setIntensity NOTIFY dirty)
 		Q_PROPERTY(float size MEMBER size WRITE setSize NOTIFY dirty)
 
 public:
 
-	float mix{ 0.2f };
-	float size{ 0.1f };
+	float intensity{ 0.2f };
+	float size{ 0.4f };
 
-    void setMix(float value);
+    void setIntensity(float value);
     void setSize(float value);
 
 signals:

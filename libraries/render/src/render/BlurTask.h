@@ -30,7 +30,8 @@ public:
     void setFilterNumTaps(int count);
     // Tap 0 is considered the center of the kernel
     void setFilterTap(int index, float offset, float value);
-    void setGaussianFilterTaps(int numHalfTaps, float sigma = 1.47f);
+    void setFilterGaussianTaps(int numHalfTaps, float sigma = 1.47f);
+    void setOutputAlpha(float value);
 
     void setDepthPerspective(float oneOverTan2FOV);
     void setDepthThreshold(float threshold);
@@ -46,7 +47,7 @@ public:
         // Viewport to Texcoord info, if the region of the blur (viewport) is smaller than the full frame
         glm::vec4 texcoordTransform{ 0.0f, 0.0f, 1.0f, 1.0f };
 
-        // Filter info (radius scale, number of taps, mix)
+        // Filter info (radius scale, number of taps, output alpha)
         glm::vec4 filterInfo{ 1.0f, 0.0f, 0.0f, 0.0f };
 
         // Depth info (radius scale
@@ -93,12 +94,15 @@ public:
 class BlurGaussianConfig : public Job::Config {
     Q_OBJECT
     Q_PROPERTY(bool enabled WRITE setEnabled READ isEnabled NOTIFY dirty) // expose enabled flag
-    Q_PROPERTY(float filterScale MEMBER filterScale NOTIFY dirty) // expose enabled flag
+    Q_PROPERTY(float filterScale MEMBER filterScale NOTIFY dirty)
+    Q_PROPERTY(float mix MEMBER mix NOTIFY dirty)
 public:
 
     BlurGaussianConfig() : Job::Config(true) {}
 
     float filterScale{ 0.2f };
+    float mix{ 1.0f };
+
 signals :
     void dirty();
 

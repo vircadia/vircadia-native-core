@@ -32,7 +32,7 @@ enum BlurShaderMapSlots {
 BlurParams::BlurParams() {
     Params params;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Params), (const gpu::Byte*) &params));
-    setGaussianFilterTaps(3);
+    setFilterGaussianTaps(3);
 }
 
 void BlurParams::setWidthHeight(int width, int height, bool isStereo) {
@@ -77,7 +77,7 @@ void BlurParams::setFilterTap(int index, float offset, float value) {
     filterTaps[index].y = value;
 }
 
-void BlurParams::setGaussianFilterTaps(int numHalfTaps, float sigma) {
+void BlurParams::setFilterGaussianTaps(int numHalfTaps, float sigma) {
     auto& params = _parametersBuffer.edit<Params>();
     const int numTaps = 2 * numHalfTaps + 1;
     assert(numTaps <= BLUR_MAX_NUM_TAPS);
@@ -104,6 +104,14 @@ void BlurParams::setGaussianFilterTaps(int numHalfTaps, float sigma) {
 
     // Tap weights will be normalized in shader because side cases on edges of screen
     // won't have the same number of taps as in the center.
+}
+
+void BlurParams::setOutputAlpha(float value) {
+    value = glm::clamp(value, 0.0f, 1.0f);
+    auto filterInfo = _parametersBuffer.get<Params>().filterInfo;
+    if (value != filterInfo.z) {
+        _parametersBuffer.edit<Params>().filterInfo.z = value;
+    }
 }
 
 void BlurParams::setDepthPerspective(float oneOverTan2FOV) {
@@ -238,7 +246,13 @@ gpu::PipelinePointer BlurGaussian::getBlurHPipeline() {
 }
 
 void BlurGaussian::configure(const Config& config) {
+    auto blurHPipeline = getBlurHPipeline();
+
     _parameters->setFilterRadiusScale(config.filterScale);
+    _parameters->setOutputAlpha(config.mix);
+
+    blurHPipeline->getState()->setBlendFunction(config.mix < 1.0f, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 }
 
 
@@ -247,7 +261,6 @@ void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::Fra
     assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
-
 
     BlurInOutResource::Resources blurringResources;
     if (!_inOutResources.updateResources(sourceFramebuffer, blurringResources)) {
