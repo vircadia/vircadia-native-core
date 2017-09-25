@@ -44,10 +44,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             return (this.hand === RIGHT_HAND) ? leftNearParentingGrabEntity : rightNearParentingGrabEntity;
         };
 
-        this.otherHandIsParent = function(props) {
-            return this.getOtherModule().thisHandIsParent(props);
-        };
-
         this.thisHandIsParent = function(props) {
             if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
                 return false;
@@ -99,12 +95,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 // this should never happen, but if it does, don't set previous parent to be this hand.
                 // this.previousParentID[targetProps.id] = NULL;
                 // this.previousParentJointIndex[targetProps.id] = -1;
-            } else if (this.otherHandIsParent(targetProps)) {
-                // the other hand is parent. Steal the object and information
-                var otherModule = this.getOtherModule();
-                this.previousParentID[targetProps.id] = otherModule.previousParentID[targetProps.id];
-                this.previousParentJointIndex[targetProps.id] = otherModule.previousParentJointIndex[targetProps.id];
-                otherModule.endNearParentingGrabEntity();
             } else {
                 this.previousParentID[targetProps.id] = targetProps.parentID;
                 this.previousParentJointIndex[targetProps.id] = targetProps.parentJointIndex;
