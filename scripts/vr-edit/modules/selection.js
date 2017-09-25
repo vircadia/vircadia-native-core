@@ -31,7 +31,7 @@ SelectionManager = function (side) {
         startOrientation,
         isEditing = false,
         ENTITY_TYPE = "entity",
-        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine", "PolyVox"],
+        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine"],
         ENTITY_TYPES_2D = ["Text", "Web"],
         MIN_HISTORY_MOVE_DISTANCE = 0.005,
         MIN_HISTORY_ROTATE_ANGLE = 0.017453;  // Radians = 1 degree.
