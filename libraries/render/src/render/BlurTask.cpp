@@ -29,11 +29,10 @@ enum BlurShaderMapSlots {
     BlurTask_DepthSlot,
 };
 
-const float BLUR_NUM_SAMPLES = 7.0f;
-
 BlurParams::BlurParams() {
     Params params;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Params), (const gpu::Byte*) &params));
+    setGaussianFilterTaps(3);
 }
 
 void BlurParams::setWidthHeight(int width, int height, bool isStereo) {
@@ -60,7 +59,58 @@ void BlurParams::setFilterRadiusScale(float scale) {
     auto filterInfo = _parametersBuffer.get<Params>().filterInfo;
     if (scale != filterInfo.x) {
         _parametersBuffer.edit<Params>().filterInfo.x = scale;
-        _parametersBuffer.edit<Params>().filterInfo.y = scale / BLUR_NUM_SAMPLES;
+    }
+}
+
+void BlurParams::setFilterNumTaps(int count) {
+    assert(count <= BLUR_MAX_NUM_TAPS);
+    auto filterInfo = _parametersBuffer.get<Params>().filterInfo;
+    if (count != (int)filterInfo.y) {
+        _parametersBuffer.edit<Params>().filterInfo.y = count;
+    }
+}
+
+void BlurParams::setFilterTap(int index, float offset, float value) {
+    auto filterTaps = _parametersBuffer.edit<Params>().filterTaps;
+    assert(index < BLUR_MAX_NUM_TAPS);
+    filterTaps[index].x = offset;
+    filterTaps[index].y = value;
+}
+
+void BlurParams::setGaussianFilterTaps(int numHalfTaps, float sigma, bool normalize) {
+    auto& params = _parametersBuffer.edit<Params>();
+    const int numTaps = 2 * numHalfTaps + 1;
+    assert(numTaps <= BLUR_MAX_NUM_TAPS);
+    assert(sigma > 0.0f);
+    const float inverseTwoSigmaSquared = float(0.5 / (sigma*sigma));
+    float totalWeight = 1.0f;
+    float weight;
+    float offset;
+    int i;
+
+    params.filterInfo.y = numTaps;
+    params.filterTaps[0].x = 0.0f;
+    params.filterTaps[0].y = 1.0f;
+
+    for (i = 0; i < numHalfTaps; i++) {
+        offset = i + 1;
+        weight = (float)exp(-offset*offset * inverseTwoSigmaSquared);
+        params.filterTaps[i + 1].x = offset;
+        params.filterTaps[i + 1].y = weight;
+        params.filterTaps[i + 1 + numHalfTaps].x = -offset;
+        params.filterTaps[i + 1 + numHalfTaps].y = weight;
+        totalWeight += 2 * weight;
+    }
+
+    float normalizer;
+    if (normalize) {
+        normalizer = float(1.0 / totalWeight);
+    } else {
+        normalizer = float(1.0 / (sqrt(2 * M_PI)*sigma));
+    }
+
+    for (i = 0; i < numTaps; i++) {
+        params.filterTaps[i].y *= normalizer;
     }
 }
 

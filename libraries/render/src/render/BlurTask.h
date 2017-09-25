@@ -14,6 +14,8 @@
 
 #include "Engine.h"
 
+#include "BlurTask_shared.slh"
+
 namespace render {
 
 
@@ -25,6 +27,10 @@ public:
     void setTexcoordTransform(const glm::vec4 texcoordTransformViewport);
 
     void setFilterRadiusScale(float scale);
+    void setFilterNumTaps(int count);
+    // Tap 0 is considered the center of the kernel
+    void setFilterTap(int index, float offset, float value);
+    void setGaussianFilterTaps(int numHalfTaps, float sigma = 1.47f, bool normalize = true);
 
     void setDepthPerspective(float oneOverTan2FOV);
     void setDepthThreshold(float threshold);
@@ -40,7 +46,7 @@ public:
         // Viewport to Texcoord info, if the region of the blur (viewport) is smaller than the full frame
         glm::vec4 texcoordTransform{ 0.0f, 0.0f, 1.0f, 1.0f };
 
-        // Filter info (radius scale
+        // Filter info (radius scale, number of taps, mix)
         glm::vec4 filterInfo{ 1.0f, 0.0f, 0.0f, 0.0f };
 
         // Depth info (radius scale
@@ -51,6 +57,9 @@ public:
 
         // LinearDepth info is { f }
         glm::vec4 linearDepthInfo{ 0.0f };
+
+        // Taps (offset, weight)
+        glm::vec2 filterTaps[BLUR_MAX_NUM_TAPS];
 
         Params() {}
     };
