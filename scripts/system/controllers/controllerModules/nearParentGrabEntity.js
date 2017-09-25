@@ -98,13 +98,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             if (this.thisHandIsParent(targetProps)) {
                 // this should never happen, but if it does, don't set previous parent to be this hand.
-<<<<<<< HEAD
                 this.previousParentID[targetProps.id] = null;
                 this.previousParentJointIndex[targetProps.id] = -1;
-=======
-                // this.previousParentID[targetProps.id] = NULL;
-                // this.previousParentJointIndex[targetProps.id] = -1;
->>>>>>> 030da7d850d0291e8e94443ee784b39881836c17
             } else {
                 this.previousParentID[targetProps.id] = targetProps.parentID;
                 this.previousParentJointIndex[targetProps.id] = targetProps.parentJointIndex;

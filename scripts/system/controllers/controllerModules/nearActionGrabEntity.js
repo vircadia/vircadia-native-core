@@ -217,7 +217,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
                 var targetProps = this.getTargetProps(controllerData);
                 if (targetProps) {
-                    if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
+                    if (controllerData.triggerClicks[this.hand] ||
+                        controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
                         // switch to grabbing
                         var targetCloneable = entityIsCloneable(targetProps);
                         if (targetCloneable) {
