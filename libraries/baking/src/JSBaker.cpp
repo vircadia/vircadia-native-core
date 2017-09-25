@@ -1,10 +1,15 @@
-#include <QtConcurrent>
-#include <QtCore/QCoreApplication>
-#include <QtCore/QDir>
-#include <QtCore/QEventLoop>
-#include <QtCore/QFileInfo>
-#include <QtCore/QThread>
-#include <PathUtils.h>
+//
+//  JSBaker.cpp
+//  libraries/baking/src
+//
+//  Created by Utkarsh Gautam on 9/18/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include <PathUtils.h> // To generate Temporary directory
 
 #include "JSBaker.h"
 #include "Baker.h"
@@ -17,7 +22,6 @@ JSBaker::JSBaker(const QUrl& jsURL, const QString& bakedOutputDir) :
 };
 
 void JSBaker::bake() {
-    
     auto tempDir = PathUtils::generateTemporaryDir();
     
     if (tempDir.isEmpty()) {
@@ -31,13 +35,14 @@ void JSBaker::bake() {
     qDebug() << "Made temporary dir " << _tempDir;
     qDebug() << "Origin file path: " << _originalJSFilePath;
 
-    connect(this, &JSBaker::sourceCopyReadyToLoad, this, &JSBaker::bakeSourceCopy);
+    // When source JS is loaded, trigger the importJS method
+    connect(this, &JSBaker::sourceJSLoaded, this, &JSBaker::importJS);
 
+    // Make a local copy of the JS File
     loadSourceJS();
 }
 
 void JSBaker::loadSourceJS() {
-    
     // load the local file
     QFile localJS{ _jsURL.toLocalFile() };
     
@@ -47,282 +52,147 @@ void JSBaker::loadSourceJS() {
         return;
     }
 
-    // copy to original file
+    // make a copy of local file at _originalJSFilePath
     qDebug() << "Local file url: " << _jsURL << _jsURL.toString() << _jsURL.toLocalFile() << ", copying to: " << _originalJSFilePath;
     localJS.copy(_originalJSFilePath);
 
     // emit signal to indicate script is ready to import
-    emit sourceCopyReadyToLoad();
+    emit sourceJSLoaded();
 }
 
-void JSBaker::bakeSourceCopy() {
-    
-    importScript();
-
-    if (hasErrors()) {
-        return;
-    }
-
-    /*bakeScript();
-    if (hasErrors()) {
-        return;
-    }*/
-    
-    /*exportScript();
-
-    if (hasErrors()) {
-        return;
-    }*/
-}
-
-
-
-void JSBaker::importScript() {
-    
+void JSBaker::importJS() {
     //qDebug() << "file path: " << _originalJSFilePath.toLocal8Bit().data() << QDir(_originalJSFilePath).exists();
     
-    // Import the file to be processed
+    // Import the file to be processed from _originalJSFilePath
     QFile jsFile(_originalJSFilePath);
     if (!jsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         handleError("Error opening " + _originalJSFilePath + " for reading");
-        return;
     }
 
-    // Call Bake Script with the opened file
-    bakeScript(&jsFile);
+    if (hasErrors()) {
+        // Return if cannot open file
+        return;
+    } else {
+        // Import successful, Call the baking function with the imported file
+        bakeJS(&jsFile);
+    }
 }
 
-void JSBaker::bakeScript(QFile* inFile) {
-
-    QFile outFile;
-    outFile.open(QIODevice::WriteOnly | QIODevice::Text);
-    QTextStream in(inFile);
-    QTextStream out(&outFile);
-
-    QChar currentChar;
-    QChar prevChar;
-    QChar nextChar;
+void JSBaker::bakeJS(QFile* inputFile) {
+    // Create an output file which will be exported as the bakedFile
+    QFile outputFile;
+    outputFile.open(QIODevice::WriteOnly | QIODevice::Text);
     
-    // Initialize prevChar with new line
-    prevChar = '\n';
-    in >> currentChar;
-    
-    while (!in.atEnd()) {
-        
-        // Reading per character
-        in >> nextChar;
+    // Read from inputFile and write to outputFile per character 
+    QTextStream readCharacter(inputFile);
+    QTextStream writeCharacter(&outputFile);
 
-        if (currentChar == '\r') {
-            out << '\n';
-            //currentChar = '\n';
-            
-        } else if (currentChar == '/') {
-            
-            if (nextChar == '/') {
-                 
-                handleSingleLineComments(&in);
-                //out << '\n';
-                
+    // Algorithm requires the knowledge of previous and next character for each character read
+    QChar currentCharacter;
+    QChar nextCharacter;
+    // Initialize previousCharacter with new line
+    QChar previousCharacter = '\n';
+    
+    // Input currentCharacter
+    readCharacter >> currentCharacter;
+    
+    while (!readCharacter.atEnd()) {
+        // input nextCharacter
+        readCharacter >> nextCharacter;
+        if (currentCharacter == '\r') {
+            writeCharacter << '\n';
+        } else if (currentCharacter == '/') {
+            // Check if single line comment i.e. //
+            if (nextCharacter == '/') {
+                currentCharacter = handleSingleLineComments(&readCharacter);
+                //writeCharacter << '\n';
                 //Start fresh after handling comments
-                prevChar = '\n';
-                in >> currentChar;
+                //previousCharacter = '\n';
+                //readCharacter >> currentCharacter;
                 continue;
-
-            } else if (nextChar == '*') {
-                
-                handleMultiLineComments(&in);
-                //out << ' ';
-                
+            } else if (nextCharacter == '*') {
+                // Check if multi line comment i.e. /*
+                handleMultiLineComments(&readCharacter);
+                //writeCharacter << ' ';
                 //Start fresh after handling comments
-                prevChar = '\n';
-                in >> currentChar;
-                //currentChar = ' ';
+                previousCharacter = '\n';
+                readCharacter >> currentCharacter;
                 continue;
             } else {
-                out << currentChar;
+                // If '/' is not followed by '/' or '*' print '/'
+                writeCharacter << currentCharacter;
             }
-        } else if (currentChar == ' ' || (int) currentChar.toLatin1() == 9) {
+        } else if (isControlCharacter(currentCharacter)) { // Check if white space or tab
             
-            // Handle multiple spaces
-            if (nextChar == ' ' || (int)currentChar.toLatin1() == 9) {
-                while (nextChar == ' ' || (int)nextChar.toLatin1() == 9 ) {
-                    
-                    in >> nextChar;
-                    if (nextChar == '\n')
+            // Skip multiple spaces or tabs
+            if (isControlCharacter(nextCharacter)) {
+                while (isControlCharacter(nextCharacter)) {
+                    readCharacter >> nextCharacter;
+                    if (nextCharacter == '\n')
                         break;
                 }
             }
-            if (!omitSpace(prevChar,nextChar)) {
-
-                out << ' ';
+            // check if space can be omitted
+            if (!canOmitSpace(previousCharacter,nextCharacter)) {
+                writeCharacter << ' ';
             }
-
-        } else if (currentChar == '\n') {
-            qDebug() << "prevChar2" << prevChar;
-            qDebug() << "currentChar2" << currentChar;
-            qDebug() << "nextChar2" << nextChar;
-            //Handle multiple new lines
-            //Hnadle new line followed by space or tab
-            if (nextChar == '\n' || nextChar == ' ' || (int)nextChar.toLatin1() == 9) {
-                while (nextChar == '\n' || nextChar == ' ' || (int)nextChar.toLatin1() == 9) {
-                    in >> nextChar;
+        } else if (currentCharacter == '\n') { // Check if new line
+            
+            //Skip multiple new lines
+            //Skip new line followed by space or tab
+            if (nextCharacter == '\n' || isControlCharacter(nextCharacter)) { 
+                while (nextCharacter == '\n' || isControlCharacter(nextCharacter)) {
+                    readCharacter >> nextCharacter;
                 }
             } 
-
-            if (!omitNewLine(prevChar, nextChar)) {
-                out << '\n';
+            // Check if new line can be omitted
+            if (!canOmitNewLine(previousCharacter, nextCharacter)) {
+                writeCharacter << '\n';
             }
+        } else if (isQuote(currentCharacter)) { // If the currentCharacter is " or ' or `
+            // Print the current quote and nextCharacter as is
+            writeCharacter << currentCharacter;
+            writeCharacter << nextCharacter;
             
-        } else if (currentChar == '"' ) {
-            //Don't modify quoted strings
-            out << currentChar;
-            out << nextChar;
-            while (nextChar != '"') {
-                in >> nextChar;
-                out << nextChar;
+            // Store the type of quote we are processing
+            QChar quote = currentCharacter;
+
+            // Don't modify the quoted strings
+            while (nextCharacter != quote) {
+                readCharacter >> nextCharacter;
+                writeCharacter << nextCharacter;
             }
 
-            
             //Start fresh after handling quoted strings
-            //prevChar = '"';
-            prevChar = nextChar;
-            //currentChar = nextChar;
-            in >> currentChar;
-            continue;
-        } else if (currentChar == "'") {
-            //Don't modify quoted strings
-            out << currentChar;
-            out << nextChar;
-            while (nextChar != "'") {
-                in >> nextChar;
-                out << nextChar;
-            }
-            
-            qDebug() << "prevChar" << prevChar;
-            qDebug() << "currentChar" << currentChar;
-            qDebug() << "nextChar" << nextChar;
-
-            //out << nextChar;
-            //Start fresh after handling quoted strings
-            //prevChar = '\'';
-            prevChar = nextChar;
-            //currentChar = nextChar;
-            in >> currentChar;
-            qDebug() << "prevChar1" << prevChar;
-            qDebug() << "currentChar1" << currentChar;
-            qDebug() << "nextChar1" << nextChar;
+            previousCharacter = nextCharacter;
+            readCharacter >> currentCharacter;
             continue;
         } else {
-            out << currentChar;
-            
+            // In all other cases write the currentCharacter to outputFile
+            writeCharacter << currentCharacter;  
         } 
 
-        prevChar = currentChar;
-        currentChar = nextChar;
+        previousCharacter = currentCharacter;
+        currentCharacter = nextCharacter;
     }
     
-    //Output current character when next character reaches EOF
-    if (currentChar != '\n') {
-
-        out << currentChar;
+    //write currentCharacter to output file when nextCharacter reaches EOF
+    if (currentCharacter != '\n') {
+        writeCharacter << currentCharacter;
     }
     
-    
-    inFile->close();
-    exportScript(&outFile);
-}
+    inputFile->close();
 
-void JSBaker::handleSingleLineComments(QTextStream * in) {
-    QChar ch;
-    
-    while (!in->atEnd()) {
-        *in >> ch;
-        if (ch <= '\n')
-        break;
+    if (hasErrors()) {
+        return;
+    } else {
+        // Bake successful, Export the compressed outputFile
+        exportJS(&outputFile);
     }
-    
-    //*out << '\n';
 }
 
-void JSBaker::handleMultiLineComments(QTextStream * in) {
-    QChar ch;
-
-    while (!in->atEnd()) {
-        *in >> ch;
-        if (ch == '*') {
-            if (in->read(1) == '/') {
-                return;
-            }
-        }
-    }
-
-    handleError("Eror unterminated multi line comment");
-
-}
-
-bool JSBaker::isAlphanum(QChar c) {
-    return ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
-        (c >= 'A' && c <= 'Z') || c == '_' || c == '$' || c == '\\' ||
-            c > 126);
-}
-
-bool JSBaker::omitSpace(QChar prevChar, QChar nextChar) {
-
-    if ((isAlphanum(prevChar) || isNonAscii(prevChar) || isSpecialChar(prevChar)) &&
-        (isAlphanum(nextChar) || isNonAscii(nextChar) || isSpecialChar(nextChar))
-        ) {
-
-        return false;
-    }
-
-    return true;
-
-}
-
-bool JSBaker::isNonAscii(QChar c) {
-    return ((int)c.toLatin1() > 127);
-}
-
-bool JSBaker::isSpecialChar(QChar c) {
-    
-    if (c == '\'' || c == '$' || c == '_')
-        return true;
-
-    return false;
-}
-
-bool JSBaker::isSpecialCharPre(QChar c) {
-
-    if (c == '\'' || c == '$' || c == '_' || c == '}' || c == ']' || c == ')' || c == '+' || c == '-' 
-        || c == '"' || c == "'")
-        return true;
-
-    return false;
-}
-
-bool JSBaker::isSpecialCharPost(QChar c) {
-
-    if (c == '\'' || c == '$' || c == '_' || c == '{' || c == '[' || c == '(' || c == '+' || c == '-' || c == '/')
-        return true;
-
-    return false;
-}
-
-bool JSBaker::omitNewLine(QChar prevChar, QChar nextChar) {
-
-    if ((isAlphanum(prevChar) || isNonAscii(prevChar) || isSpecialCharPre(prevChar)) &&
-        (isAlphanum(nextChar) || isNonAscii(nextChar) || isSpecialCharPost(nextChar))
-        ) {
-
-        return false;
-    }
-
-    return true;
-
-}
-
-void JSBaker::exportScript(QFile* bakedFile) {
-    // save the relative path to this FBX inside our passed output folder
+void JSBaker::exportJS(QFile* bakedFile) {
+    // save the relative path to this JS inside the output folder
     auto fileName = _jsURL.fileName();
     auto baseName = fileName.left(fileName.lastIndexOf('.'));
     auto bakedFilename = baseName + BAKED_JS_EXTENSION;
@@ -331,19 +201,101 @@ void JSBaker::exportScript(QFile* bakedFile) {
 
     bakedFile->setFileName(_bakedJSFilePath);
 
-    //QFile bakedFile(_bakedJSFilePath);
-
     if (!bakedFile->open(QIODevice::WriteOnly)) {
         handleError("Error opening " + _bakedJSFilePath + " for writing");
-        return;
     }
 
-    /*QByteArray x(5, 'a');
-    bakedFile.copy();*/
+    if (hasErrors()) {
+        // cannot open bakedFile return
+        return;
+    } else {
+        _outputFiles.push_back(_bakedJSFilePath);
+        qCDebug(js_baking) << "Exported" << _jsURL << "with re-written paths to" << _bakedJSFilePath;
+    }
 
-    _outputFiles.push_back(_bakedJSFilePath);
-
-    qCDebug(model_baking) << "Exported" << _jsURL << "with re-written paths to" << _bakedJSFilePath;
+    //close the outputFile
     bakedFile->close();
+    // emit signal to indicate the JS baking is finished
     emit finished();
+}
+
+QChar JSBaker::handleSingleLineComments(QTextStream * readCharacter) {
+    QChar character;
+    while (!readCharacter->atEnd()) {
+        *readCharacter >> character;
+        if (character <= '\n')
+        break;
+    }
+    return character;
+}
+
+void JSBaker::handleMultiLineComments(QTextStream * readCharacter) {
+    QChar character;
+    while (!readCharacter->atEnd()) {
+        *readCharacter >> character;
+        if (character == '*') {
+            if (readCharacter->read(1) == '/') {
+                return;
+            }
+        }
+    }
+    handleError("Eror unterminated multi line comment");
+}
+
+bool JSBaker::canOmitSpace(QChar previousCharacter, QChar nextCharacter) {
+
+    if ((isAlphanum(previousCharacter) || isNonAscii(previousCharacter) || isSpecialChar(previousCharacter)) &&
+        (isAlphanum(nextCharacter) || isNonAscii(nextCharacter) || isSpecialChar(nextCharacter))
+        ) {
+        return false;
+    }
+    return true;
+}
+
+bool JSBaker::canOmitNewLine(QChar previousCharacter, QChar nextCharacter) {
+    if ((isAlphanum(previousCharacter) || isNonAscii(previousCharacter) || isSpecialCharPre(previousCharacter)) &&
+        (isAlphanum(nextCharacter) || isNonAscii(nextCharacter) || isSpecialCharPost(nextCharacter))
+        ) {
+        return false;
+    }
+    return true;
+}
+
+bool JSBaker::isAlphanum(QChar c) {
+    return ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') 
+            || c == '_' || c == '$' || c == '\\' || c > 126);
+}
+
+bool JSBaker::isNonAscii(QChar c) {
+    return ((int)c.toLatin1() > 127);
+}
+
+bool JSBaker::isSpecialChar(QChar c) {
+    if (c == '\'' || c == '$' || c == '_' || '/') {
+        return true;
+    }
+    return false;
+}
+
+bool JSBaker::isSpecialCharPre(QChar c) {
+    if (c == '\'' || c == '$' || c == '_' || c == '}' || c == ']' || c == ')' || c == '+' || c == '-'
+        || c == '"' || c == "'") {
+        return true;
+    }
+    return false;
+}
+
+bool JSBaker::isSpecialCharPost(QChar c) {
+    if (c == '\'' || c == '$' || c == '_' || c == '{' || c == '[' || c == '(' || c == '+' || c == '-' || c == '/') {
+        return true;
+    }
+    return false;
+}
+
+bool JSBaker::isControlCharacter(QChar c) {
+    return (c == ' ' || (int)c.toLatin1() == 9);
+}
+
+bool JSBaker::isQuote(QChar c) {
+    return (c == '"' || c == "'" || c == '`');
 }
