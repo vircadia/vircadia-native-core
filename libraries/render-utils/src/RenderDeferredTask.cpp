@@ -41,6 +41,7 @@
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
 #include "OutlineEffect.h"
+#include "BloomEffect.h"
 
 #include <gpu/StandardShaderLib.h>
 
@@ -167,6 +168,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     }
     
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
+
+    // Add bloom
+    const auto bloomInputs = lightingFramebuffer;
+    task.addJob<Bloom>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
