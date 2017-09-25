@@ -81,10 +81,10 @@ public:
     float getColorB() const { return color.b; }
 
     glm::vec3 color{ 1.f, 0.7f, 0.2f };
-    float width{ 3.f };
-    float intensity{ 1.f };
-    float fillOpacityUnoccluded{ 0.35f };
-    float fillOpacityOccluded{ 0.1f };
+    float width{ 2.0f };
+    float intensity{ 0.9f };
+    float fillOpacityUnoccluded{ 0.0f };
+    float fillOpacityOccluded{ 0.0f };
     bool glow{ false };
 
 signals:
