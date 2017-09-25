@@ -21,6 +21,7 @@
 #include <NetworkLogging.h>
 #include <NodeList.h>
 #include <OffscreenUi.h>
+#include <UserActivityLogger.h>
 
 static const int AUTO_REFRESH_INTERVAL = 1000;
 
