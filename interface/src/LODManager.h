@@ -92,8 +92,6 @@ private:
     LODManager();
     
     bool _automaticLODAdjust = true;
-    //float _desktopLODDecreaseFPS = DEFAULT_DESKTOP_LOD_DOWN_FPS;
-    //float _hmdLODDecreaseFPS = DEFAULT_HMD_LOD_DOWN_FPS;
     float _avgRenderTime { 0.0 };
     float _desktopMaxRenderTime { DEFAULT_DESKTOP_MAX_RENDER_TIME };
     float _hmdMaxRenderTime { DEFAULT_HMD_MAX_RENDER_TIME };
