@@ -18,7 +18,7 @@
 static const QString BAKED_JS_EXTENSION = ".baked.js";
 
 class JSBaker : public Baker {
-    //Q_OBJECT
+    Q_OBJECT
 public:
     JSBaker(const QUrl& jsURL, const QString& bakedOutputDir);
 
@@ -32,7 +32,6 @@ private slots:
     void importJS();
 
 private :
-    
     QUrl _jsURL;
     QString _bakedOutputDir;
     QDir _tempDir;
@@ -44,7 +43,7 @@ private :
     void bakeJS(QFile*);
     void exportJS(QFile*);
 
-    QChar handleSingleLineComments(QTextStream*);
+    void handleSingleLineComments(QTextStream*);
     void handleMultiLineComments(QTextStream*);
 
     bool canOmitSpace(QChar, QChar);
@@ -52,9 +51,9 @@ private :
 
     bool isAlphanum(QChar);
     bool isNonAscii(QChar c);
-    bool isSpecialChar(QChar c);
-    bool isSpecialCharPre(QChar c);
-    bool isSpecialCharPost(QChar c);
+    bool isSpecialCharacter(QChar c);
+    bool isSpecialCharacterPrevious(QChar c);
+    bool isSpecialCharacterNext(QChar c);
     bool isControlCharacter(QChar);
     bool isQuote(QChar);
 };

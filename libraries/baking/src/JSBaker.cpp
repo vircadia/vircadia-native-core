@@ -32,8 +32,8 @@ void JSBaker::bake() {
     _tempDir = tempDir;
     
     _originalJSFilePath = _tempDir.filePath(_jsURL.fileName());
-    qDebug() << "Made temporary dir " << _tempDir;
-    qDebug() << "Origin file path: " << _originalJSFilePath;
+    qCDebug(js_baking) << "Made temporary dir " << _tempDir;
+    qCDebug(js_baking) << "Origin file path: " << _originalJSFilePath;
 
     // When source JS is loaded, trigger the importJS method
     connect(this, &JSBaker::sourceJSLoaded, this, &JSBaker::importJS);
@@ -53,16 +53,14 @@ void JSBaker::loadSourceJS() {
     }
 
     // make a copy of local file at _originalJSFilePath
-    qDebug() << "Local file url: " << _jsURL << _jsURL.toString() << _jsURL.toLocalFile() << ", copying to: " << _originalJSFilePath;
+    qCDebug(js_baking) << "Local file url: " << _jsURL << _jsURL.toString() << _jsURL.toLocalFile() << ", copying to: " << _originalJSFilePath;
     localJS.copy(_originalJSFilePath);
 
     // emit signal to indicate script is ready to import
     emit sourceJSLoaded();
 }
 
-void JSBaker::importJS() {
-    //qDebug() << "file path: " << _originalJSFilePath.toLocal8Bit().data() << QDir(_originalJSFilePath).exists();
-    
+void JSBaker::importJS() {    
     // Import the file to be processed from _originalJSFilePath
     QFile jsFile(_originalJSFilePath);
     if (!jsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -99,21 +97,22 @@ void JSBaker::bakeJS(QFile* inputFile) {
     while (!readCharacter.atEnd()) {
         // input nextCharacter
         readCharacter >> nextCharacter;
+        
         if (currentCharacter == '\r') {
             writeCharacter << '\n';
         } else if (currentCharacter == '/') {
             // Check if single line comment i.e. //
             if (nextCharacter == '/') {
-                currentCharacter = handleSingleLineComments(&readCharacter);
-                //writeCharacter << '\n';
+                handleSingleLineComments(&readCharacter);
+                
                 //Start fresh after handling comments
-                //previousCharacter = '\n';
-                //readCharacter >> currentCharacter;
+                previousCharacter = '\n';
+                readCharacter >> currentCharacter;
                 continue;
             } else if (nextCharacter == '*') {
                 // Check if multi line comment i.e. /*
                 handleMultiLineComments(&readCharacter);
-                //writeCharacter << ' ';
+                
                 //Start fresh after handling comments
                 previousCharacter = '\n';
                 readCharacter >> currentCharacter;
@@ -122,21 +121,25 @@ void JSBaker::bakeJS(QFile* inputFile) {
                 // If '/' is not followed by '/' or '*' print '/'
                 writeCharacter << currentCharacter;
             }
-        } else if (isControlCharacter(currentCharacter)) { // Check if white space or tab
-            
+        } else if (isControlCharacter(currentCharacter)) { 
+            // Check if white space or tab
+
             // Skip multiple spaces or tabs
             if (isControlCharacter(nextCharacter)) {
                 while (isControlCharacter(nextCharacter)) {
                     readCharacter >> nextCharacter;
-                    if (nextCharacter == '\n')
+                    if (nextCharacter == '\n') {
                         break;
+                    }
                 }
             }
+            
             // check if space can be omitted
-            if (!canOmitSpace(previousCharacter,nextCharacter)) {
+            if (!canOmitSpace(previousCharacter, nextCharacter)) {
                 writeCharacter << ' ';
             }
-        } else if (currentCharacter == '\n') { // Check if new line
+        } else if (currentCharacter == '\n') { 
+            // Check if new line
             
             //Skip multiple new lines
             //Skip new line followed by space or tab
@@ -149,7 +152,7 @@ void JSBaker::bakeJS(QFile* inputFile) {
             if (!canOmitNewLine(previousCharacter, nextCharacter)) {
                 writeCharacter << '\n';
             }
-        } else if (isQuote(currentCharacter)) { // If the currentCharacter is " or ' or `
+        } else if (isQuote(currentCharacter)) { 
             // Print the current quote and nextCharacter as is
             writeCharacter << currentCharacter;
             writeCharacter << nextCharacter;
@@ -181,6 +184,7 @@ void JSBaker::bakeJS(QFile* inputFile) {
         writeCharacter << currentCharacter;
     }
     
+    // Reading done. Closing the inputFile
     inputFile->close();
 
     if (hasErrors()) {
@@ -213,20 +217,20 @@ void JSBaker::exportJS(QFile* bakedFile) {
         qCDebug(js_baking) << "Exported" << _jsURL << "with re-written paths to" << _bakedJSFilePath;
     }
 
-    //close the outputFile
+    // Exporting done. Closing the outputFile
     bakedFile->close();
     // emit signal to indicate the JS baking is finished
     emit finished();
 }
 
-QChar JSBaker::handleSingleLineComments(QTextStream * readCharacter) {
+void JSBaker::handleSingleLineComments(QTextStream * readCharacter) {
     QChar character;
     while (!readCharacter->atEnd()) {
         *readCharacter >> character;
         if (character <= '\n')
         break;
     }
-    return character;
+    return;
 }
 
 void JSBaker::handleMultiLineComments(QTextStream * readCharacter) {
@@ -243,24 +247,24 @@ void JSBaker::handleMultiLineComments(QTextStream * readCharacter) {
 }
 
 bool JSBaker::canOmitSpace(QChar previousCharacter, QChar nextCharacter) {
-
-    if ((isAlphanum(previousCharacter) || isNonAscii(previousCharacter) || isSpecialChar(previousCharacter)) &&
-        (isAlphanum(nextCharacter) || isNonAscii(nextCharacter) || isSpecialChar(nextCharacter))
-        ) {
+    if ((isAlphanum(previousCharacter) || isNonAscii(previousCharacter) || isSpecialCharacter(previousCharacter)) &&
+        (isAlphanum(nextCharacter) || isNonAscii(nextCharacter) || isSpecialCharacter(nextCharacter))
+       ) {
         return false;
     }
     return true;
 }
 
 bool JSBaker::canOmitNewLine(QChar previousCharacter, QChar nextCharacter) {
-    if ((isAlphanum(previousCharacter) || isNonAscii(previousCharacter) || isSpecialCharPre(previousCharacter)) &&
-        (isAlphanum(nextCharacter) || isNonAscii(nextCharacter) || isSpecialCharPost(nextCharacter))
-        ) {
+    if ((isAlphanum(previousCharacter) || isNonAscii(previousCharacter) || isSpecialCharacterPrevious(previousCharacter)) &&
+        (isAlphanum(nextCharacter) || isNonAscii(nextCharacter) || isSpecialCharacterNext(nextCharacter))
+       ) {
         return false;
     }
     return true;
 }
 
+//Check if character is alphabet, number or one of the following: '_', '$', '\\' 
 bool JSBaker::isAlphanum(QChar c) {
     return ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') 
             || c == '_' || c == '$' || c == '\\' || c > 126);
@@ -270,14 +274,14 @@ bool JSBaker::isNonAscii(QChar c) {
     return ((int)c.toLatin1() > 127);
 }
 
-bool JSBaker::isSpecialChar(QChar c) {
-    if (c == '\'' || c == '$' || c == '_' || '/') {
+bool JSBaker::isSpecialCharacter(QChar c) {
+    if (c == '\'' || c == '$' || c == '_' || c == '/') {
         return true;
     }
     return false;
 }
 
-bool JSBaker::isSpecialCharPre(QChar c) {
+bool JSBaker::isSpecialCharacterPrevious(QChar c) {
     if (c == '\'' || c == '$' || c == '_' || c == '}' || c == ']' || c == ')' || c == '+' || c == '-'
         || c == '"' || c == "'") {
         return true;
@@ -285,17 +289,19 @@ bool JSBaker::isSpecialCharPre(QChar c) {
     return false;
 }
 
-bool JSBaker::isSpecialCharPost(QChar c) {
-    if (c == '\'' || c == '$' || c == '_' || c == '{' || c == '[' || c == '(' || c == '+' || c == '-' || c == '/') {
+bool JSBaker::isSpecialCharacterNext(QChar c) {
+    if (c == '\'' || c == '$' || c == '_' || c == '{' || c == '[' || c == '(' || c == '+' || c == '-') {
         return true;
     }
     return false;
 }
 
+// Check if white space or tab
 bool JSBaker::isControlCharacter(QChar c) {
     return (c == ' ' || (int)c.toLatin1() == 9);
 }
 
+// Check If the currentCharacter is " or ' or `
 bool JSBaker::isQuote(QChar c) {
     return (c == '"' || c == "'" || c == '`');
 }
