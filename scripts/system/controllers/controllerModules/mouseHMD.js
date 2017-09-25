@@ -58,6 +58,16 @@
             }
         };
 
+        this.adjustReticleDepth = function(controllerData) {
+            if (Reticle.isPointingAtSystemOverlay(Reticle.position)) {
+                var reticlePositionOnHUD = HMD.worldPointFromOverlay(Reticle.position);
+                Reticle.depth = Vec3.distance(reticlePositionOnHUD, HMD.position);
+            } else {
+                var APPARENT_MAXIMUM_DEPTH = 100.0;
+                var result = controllerData.mouseRayPick;
+                Reticle.depth = result.intersects ? result.distance : APPARENT_MAXIMUM_DEPTH;
+            }
+        }
         this.ignoreMouseActivity = function() {
             if (!Reticle.allowMouseCapture) {
                 return true;
@@ -98,7 +108,7 @@
                 return ControllerDispatcherUtils.makeRunningValues(true, [], []);
             }
             if (HMD.active) {
-                Reticle.visble = false;
+                Reticle.visible = false;
             }
 
             return ControllerDispatcherUtils.makeRunningValues(false, [], []);
@@ -110,6 +120,7 @@
                 Reticle.visible = false;
                 return ControllerDispatcherUtils.makeRunningValues(false, [], []);
             }
+            this.adjustReticleDepth(controllerData);
             return ControllerDispatcherUtils.makeRunningValues(true, [], []);
         };
     }
