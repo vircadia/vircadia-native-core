@@ -15,6 +15,10 @@
 #include <EntityTreeRenderer.h>
 #include <NetworkingConstants.h>
 
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
 static const float CONTEXT_OVERLAY_TABLET_OFFSET = 30.0f; // Degrees
 static const float CONTEXT_OVERLAY_TABLET_ORIENTATION = 210.0f; // Degrees
 static const float CONTEXT_OVERLAY_TABLET_DISTANCE = 0.65F; // Meters
@@ -38,11 +42,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
 
-    // initially, set _enabled to match the switch.  Later we enable/disable via the getter/setters
-    // if we are in edit or pal (for instance).  Note this is temporary, as we expect to enable this all
-    // the time after getting edge highlighting, etc...
-    _enabled = _settingSwitch.get();
-
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
     connect(entityTreeRenderer, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverEnterEntity(const EntityItemID&, const PointerEvent&)));
@@ -65,40 +64,36 @@ ContextOverlayInterface::ContextOverlayInterface() {
     connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
 }
 
+static const uint32_t MOUSE_HW_ID = 0;
 static const uint32_t LEFT_HAND_HW_ID = 1;
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
-static const float CONTEXT_OVERLAY_CLOSE_DISTANCE = 1.5f; // in meters
-static const float CONTEXT_OVERLAY_CLOSE_SIZE = 0.12f; // in meters, same x and y dims
-static const float CONTEXT_OVERLAY_FAR_SIZE = 0.08f; // in meters, same x and y dims
-static const float CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE = 20.0f;
+static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
+static const float CONTEXT_OVERLAY_OFFSET_DISTANCE = 0.1f;
+static const float CONTEXT_OVERLAY_OFFSET_ANGLE = 5.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_ALPHA = 0.85f;
 static const float CONTEXT_OVERLAY_HOVERED_ALPHA = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMIN = 0.6f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMAX = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
-static const float CONTEXT_OVERLAY_FAR_OFFSET = 0.1f;
 
 void ContextOverlayInterface::setEnabled(bool enabled) {
-    // only enable/disable if the setting in 'on'.   If it is 'off',
-    // make sure _enabled is always false.
-    if (_settingSwitch.get()) {
-        _enabled = enabled;
-    } else {
-        _enabled = false;
-    }
+    _enabled = enabled;
 }
 
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
         if (contextOverlayFilterPassed(entityItemID)) {
+            if (event.getID() == MOUSE_HW_ID) {
+                enableEntityHighlight(entityItemID);
+            }
+
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
 
             // Add all necessary variables to the stack
             EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
             glm::vec3 cameraPosition = qApp->getCamera().getPosition();
-            float distanceFromCameraToEntity = glm::distance(entityProperties.getPosition(), cameraPosition);
             glm::vec3 entityDimensions = entityProperties.getDimensions();
             glm::vec3 entityPosition = entityProperties.getPosition();
             glm::vec3 contextOverlayPosition = entityProperties.getPosition();
@@ -131,27 +126,22 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 // If the camera is inside the box...
                 // ...position the Context Overlay 1 meter in front of the camera.
                 contextOverlayPosition = cameraPosition + CONTEXT_OVERLAY_INSIDE_DISTANCE * (qApp->getCamera().getOrientation() * Vectors::FRONT);
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
-            } else if (distanceFromCameraToEntity < CONTEXT_OVERLAY_CLOSE_DISTANCE) {
-                // Else if the entity is too close to the camera...
-                // ...rotate the Context Overlay to the right of the entity.
-                // This makes it easy to inspect things you're holding.
-                float offsetAngle = -CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE;
-                if (event.getID() == LEFT_HAND_HW_ID) {
-                    offsetAngle *= -1;
-                }
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f))) * (entityPosition - cameraPosition)) + cameraPosition;
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             } else {
-                // Else, place the Context Overlay some offset away from the entity's bounding
-                // box in the direction of the camera.
+                // Rotate the Context Overlay some number of degrees offset from the entity
+                // along the line cast from your head to the entity's bounding box.
                 glm::vec3 direction = glm::normalize(entityPosition - cameraPosition);
                 float distance;
                 BoxFace face;
                 glm::vec3 normal;
                 boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
-                contextOverlayPosition = (cameraPosition + direction * distance) - direction * CONTEXT_OVERLAY_FAR_OFFSET;
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+                float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
+                if (event.getID() == LEFT_HAND_HW_ID) {
+                    offsetAngle *= -1;
+                }
+                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) *
+                    ((cameraPosition + direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE)));
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
 
             // Finally, setup and draw the Context Overlay
@@ -176,6 +166,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
         }
     } else {
         if (!_currentEntityWithContextOverlay.isNull()) {
+            disableEntityHighlight(_currentEntityWithContextOverlay);
             return destroyContextOverlay(_currentEntityWithContextOverlay, event);
         }
         return false;
@@ -237,13 +228,13 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID&
 }
 
 void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (contextOverlayFilterPassed(entityID)) {
+    if (contextOverlayFilterPassed(entityID) && _enabled && event.getID() != MOUSE_HW_ID) {
         enableEntityHighlight(entityID);
     }
 }
 
 void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    if (_currentEntityWithContextOverlay != entityID) {
+    if (_currentEntityWithContextOverlay != entityID && _enabled && event.getID() != MOUSE_HW_ID) {
         disableEntityHighlight(entityID);
     }
 }
