@@ -5648,11 +5648,6 @@ void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
     viewOut = _displayViewFrustum;
 }
 
-void Application::copyShadowViewFrustum(ViewFrustum& viewOut) const {
-    QMutexLocker viewLocker(&_viewMutex);
-    viewOut = _shadowViewFrustum;
-}
-
 // WorldBox Render Data & rendering functions
 
 class WorldBoxRenderData {
