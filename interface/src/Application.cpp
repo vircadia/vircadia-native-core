@@ -2310,6 +2310,8 @@ void Application::initializeUi() {
 
     surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
+    surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
