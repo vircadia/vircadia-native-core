@@ -319,7 +319,11 @@ if (typeof module !== 'undefined') {
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
+        propsArePhysical: propsArePhysical,
+        entityIsGrabbable: entityIsGrabbable,
+        NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane
+
     };
 }
