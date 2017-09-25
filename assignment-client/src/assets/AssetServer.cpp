@@ -50,7 +50,7 @@ static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx" , "js" };
+static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx", "js" };
 static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
@@ -98,10 +98,10 @@ std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& pa
     QString bakedFilename;
 
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-        if (extension == "js") {
+        if (extension == "fbx") {
+            bakedFilename = BAKED_MODEL_SIMPLE_NAME;  
+        } else if (extension == "js") {
             bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-        } else {
-            bakedFilename = BAKED_MODEL_SIMPLE_NAME;
         }
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
@@ -189,10 +189,10 @@ bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHa
     }
 
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-        if (extension == "js") {
-            bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-        } else {
+        if (extension == "fbx") {
             bakedFilename = BAKED_MODEL_SIMPLE_NAME;
+        } else if (extension == "js") {
+            bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
         }
     } else if (loaded && BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit())) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
@@ -495,10 +495,10 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         QString bakedRootFile;
 
         if (BAKEABLE_MODEL_EXTENSIONS.contains(assetPathExtension)) {
-            if (assetPathExtension == "js") {
-                bakedRootFile = BAKED_SCRIPT_SIMPLE_NAME;
-            } else {
+            if (assetPathExtension == "fbx") {
                 bakedRootFile = BAKED_MODEL_SIMPLE_NAME;
+            } else if (assetPathExtension == "js") {
+                bakedRootFile = BAKED_SCRIPT_SIMPLE_NAME;
             }
         } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(assetPathExtension.toLocal8Bit())) {
             bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
