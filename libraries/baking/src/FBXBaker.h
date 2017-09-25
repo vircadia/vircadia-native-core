@@ -71,7 +71,7 @@ private:
     QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
 
     void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir,
-                     const QByteArray& textureContent = QByteArray());
+                     const QString& bakedFilename, const QByteArray& textureContent = QByteArray());
 
     QUrl _fbxURL;
 
@@ -91,6 +91,7 @@ private:
 
     QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
+    QHash<QUrl, QString> _remappedTexturePaths;
 
     TextureBakerThreadGetter _textureThreadGetter;
 

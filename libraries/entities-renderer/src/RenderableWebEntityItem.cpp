@@ -140,6 +140,11 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
     _webSurface->resize(QSize(windowSize.x, windowSize.y));
 }
 
+void WebEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    Parent::doRenderUpdateAsynchronousTyped(entity);
+    _modelTransform.postScale(entity->getDimensions());
+}
+
 void WebEntityRenderer::doRender(RenderArgs* args) {
     withWriteLock([&] {
         _lastRenderTime = usecTimestampNow();

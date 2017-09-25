@@ -583,29 +583,17 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             QString fbxTextureFileName { textureChild.properties.at(0).toByteArray() };
                             QFileInfo textureFileInfo { fbxTextureFileName.replace("\\", "/") };
 
+                            if (textureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
+                                // re-baking an FBX that already references baked textures is a fail
+                                // so we add an error and return from here
+                                handleError("Cannot re-bake a file that references compressed textures");
+
+                                return;
+                            }
+
+
                             // make sure this texture points to something and isn't one we've already re-mapped
                             if (!textureFileInfo.filePath().isEmpty()) {
-
-                                if (textureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
-                                    // re-baking an FBX that already references baked textures is a fail
-                                    // so we add an error and return from here
-                                    handleError("Cannot re-bake a file that references compressed textures");
-
-                                    return;
-                                }
-
-                                // construct the new baked texture file name and file path
-                                // ensuring that the baked texture will have a unique name
-                                // even if there was another texture with the same name at a different path
-                                auto bakedTextureFileName = createBakedTextureFileName(textureFileInfo);
-                                QString bakedTextureFilePath {
-                                    _bakedOutputDir + "/" + bakedTextureFileName
-                                };
-                                _outputFiles.push_back(bakedTextureFilePath);
-
-                                qCDebug(model_baking).noquote() << "Re-mapping" << fbxTextureFileName
-                                    << "to" << bakedTextureFileName;
-
                                 // check if this was an embedded texture we have already have in-memory content for
                                 auto textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
 
@@ -613,10 +601,29 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 auto urlToTexture = getTextureURL(textureFileInfo, fbxTextureFileName,
                                                                   !textureContent.isNull());
 
+                                QString bakedTextureFileName;
+                                if (_remappedTexturePaths.contains(urlToTexture)) {
+                                    bakedTextureFileName = _remappedTexturePaths[urlToTexture];
+                                } else {
+                                    // construct the new baked texture file name and file path
+                                    // ensuring that the baked texture will have a unique name
+                                    // even if there was another texture with the same name at a different path
+                                    bakedTextureFileName = createBakedTextureFileName(textureFileInfo);
+                                    _remappedTexturePaths[urlToTexture] = bakedTextureFileName;
+                                }
+
+                                qCDebug(model_baking).noquote() << "Re-mapping" << fbxTextureFileName
+                                    << "to" << bakedTextureFileName;
+
+                                QString bakedTextureFilePath {
+                                    _bakedOutputDir + "/" + bakedTextureFileName
+                                };
+
                                 // write the new filename into the FBX scene
                                 textureChild.properties[0] = bakedTextureFileName.toLocal8Bit();
 
                                 if (!_bakingTextures.contains(urlToTexture)) {
+                                    _outputFiles.push_back(bakedTextureFilePath);
 
                                     // grab the ID for this texture so we can figure out the
                                     // texture type from the loaded materials
@@ -624,7 +631,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                     auto textureType = textureTypes[textureID];
 
                                     // bake this texture asynchronously
-                                    bakeTexture(urlToTexture, textureType, _bakedOutputDir, textureContent);
+                                    bakeTexture(urlToTexture, textureType, _bakedOutputDir, bakedTextureFileName, textureContent);
                                 }
                             }
                         }
@@ -644,10 +651,10 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
 }
 
 void FBXBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                           const QDir& outputDir, const QByteArray& textureContent) {
+                           const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
     // start a bake for this texture and add it to our list to keep track of
     QSharedPointer<TextureBaker> bakingTexture {
-        new TextureBaker(textureURL, textureType, outputDir, textureContent),
+        new TextureBaker(textureURL, textureType, outputDir, bakedFilename, textureContent),
         &TextureBaker::deleteLater
     };
 

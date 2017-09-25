@@ -211,12 +211,12 @@ class UrlHandler : public QObject {
 public:
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->canAcceptURL(url);
+        return handler && handler->canAcceptURL(url);
     }
 
     Q_INVOKABLE bool handleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->acceptURL(url);
+        return handler && handler->acceptURL(url);
     }
 };
 
