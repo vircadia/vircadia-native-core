@@ -167,27 +167,10 @@ void Web3DOverlay::buildWebSurface() {
         if (!self) {
             return;
         }
-        auto tabletScreenID = DependencyManager::get<HMDScriptingInterface>()->getCurrentTabletScreenID();
-        if (overlayID == tabletScreenID) { //play only on Tablet border crossing
-            DependencyManager::get<TabletScriptingInterface>()->playSound(TabletScriptingInterface::TabletHandsOut);
-        }
         if (overlayID == selfOverlayID && (self->_pressed || (!self->_activeTouchPoints.empty() && self->_touchBeginAccepted))) {
             PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
                 event.getButton(), event.getButtons(), event.getKeyboardModifiers());
             forwardPointerEvent(overlayID, endEvent);
-        }
-    });
-
-    QObject::connect(overlays, &Overlays::hoverEnterOverlay, this, [=](OverlayID overlayID, const PointerEvent& event) {
-        Q_UNUSED(event)
-        auto self = weakSelf.lock();
-        if (!self) {
-            return;
-        }
-
-        auto tabletScreenID = DependencyManager::get<HMDScriptingInterface>()->getCurrentTabletScreenID();
-        if (overlayID == tabletScreenID) { //play only on Tablet border crossing
-            DependencyManager::get<TabletScriptingInterface>()->playSound(TabletScriptingInterface::TabletHandsIn);
         }
     });
 

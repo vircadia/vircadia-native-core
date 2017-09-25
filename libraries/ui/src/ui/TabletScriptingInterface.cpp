@@ -93,6 +93,7 @@ void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
         options.localOnly = options.localOnly || sound->isAmbisonic();  // force localOnly when Ambisonic
 
         AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
+        qDebug() << "playing sound for event" << aEvent;
     }
 }
 
