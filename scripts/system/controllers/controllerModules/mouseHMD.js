@@ -13,9 +13,6 @@
 (function() {
     var ControllerDispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
 
-    var WEIGHTING = 1 / 20; // simple moving average over last 20 samples
-    var ONE_MINUS_WEIGHTING = 1 - WEIGHTING;
-    var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 20;
     function TimeLock(experation) {
         this.experation = experation;
         this.last = 0;
@@ -27,7 +24,7 @@
             return ((time || Date.now()) - this.last) > this.experation;
         };
     }
-            
+
     function MouseHMD() {
         var _this = this;
         this.mouseMoved = false;
@@ -67,14 +64,15 @@
                 var result = controllerData.mouseRayPick;
                 Reticle.depth = result.intersects ? result.distance : APPARENT_MAXIMUM_DEPTH;
             }
-        }
+        };
+
         this.ignoreMouseActivity = function() {
             if (!Reticle.allowMouseCapture) {
                 return true;
             }
 
             var pos = Reticle.position;
-            if (!pos || (pos.x == -1 && pos.y == -1)) {
+            if (!pos || (pos.x === -1 && pos.y === -1)) {
                 return true;
             }
 
@@ -99,7 +97,7 @@
 
             return false;
         };
-        
+
         this.isReady = function(controllerData, deltaTime) {
             var now = Date.now();
             this.triggersPressed(controllerData, now);
@@ -113,7 +111,7 @@
 
             return ControllerDispatcherUtils.makeRunningValues(false, [], []);
         };
-        
+
         this.run = function(controllerData, deltaTime) {
             var now = Date.now();
             if (this.mouseActivity.expired(now) || this.triggersPressed(controllerData, now)) {

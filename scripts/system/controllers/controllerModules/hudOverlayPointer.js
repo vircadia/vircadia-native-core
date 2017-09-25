@@ -10,10 +10,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu, AvatarInputs, Vec3 */
+/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
+   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
+   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
+   makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+   PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
+   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
+
+*/
 (function() {
-    Script.include("/~/system/libraries/controllers.js")
+    Script.include("/~/system/libraries/controllers.js");
     var ControllerDispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
     var halfPath = {
         type: "line3d",
@@ -82,17 +89,7 @@
         {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
     ];
 
-
-    // triggered when stylus presses a web overlay/entity
-    var HAPTIC_STYLUS_STRENGTH = 1.0;
-    var HAPTIC_STYLUS_DURATION = 20.0;
     var MARGIN = 25;
-
-    function distance2D(a, b) {
-        var dx = (a.x - b.x);
-        var dy = (a.y - b.y);
-        return Math.sqrt(dx * dx + dy * dy);
-    }
 
     function HudOverlayPointer(hand) {
         var _this = this;
@@ -118,15 +115,11 @@
             return _this.triggerClicked;
         };
 
-        this.getOtherModule = function() {
-            return (this.hand === RIGHT_HAND) ? leftOverlayLaserInput : rightOverlayLaserInput;
-        };
-
         this.handToController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
 
-        this.updateRecommendedArea =  function() {
+        this.updateRecommendedArea = function() {
             var dims = Controller.getViewportDimensions();
             this.reticleMaxX = dims.x - MARGIN;
             this.reticleMaxY = dims.y - MARGIN;
@@ -159,7 +152,7 @@
             }
         };
 
-        this.calculateNewReticlePosition  = function(intersection) {
+        this.calculateNewReticlePosition = function(intersection) {
             this.updateRecommendedArea();
             var point2d = HMD.overlayFromWorldPoint(intersection);
             point2d.x = Math.max(this.reticleMinX, Math.min(point2d.x, this.reticleMaxX));
@@ -176,14 +169,6 @@
             return (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID);
         };
 
-        this.moveMouseAwayFromTablet = function() {
-            if (!this.movedAway) {
-                var point = {x: 25, y: 25};
-               // this.setReticlePosition(point);
-                this.movedAway = true;
-            }
-        }
-
         this.processLaser = function(controllerData) {
             var controllerLocation = controllerData.controllerLocations[this.hand];
             if ((controllerData.triggerValues[this.hand] < ControllerDispatcherUtils.TRIGGER_ON_VALUE || !controllerLocation.valid) ||
@@ -192,7 +177,6 @@
                 return false;
             }
             var hudRayPick = controllerData.hudRayPicks[this.hand];
-            var controllerLocation = controllerData.controllerLocations[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
             this.setReticlePosition(point2d);
             if (!Reticle.isPointingAtSystemOverlay(point2d)) {
@@ -208,10 +192,9 @@
         };
 
         this.exitModule = function() {
-            this.moveMouseAwayFromTablet();
             LaserPointers.disableLaserPointer(this.laserPointer);
         };
-        
+
         this.isReady = function (controllerData) {
             if (this.processLaser(controllerData)) {
                 return ControllerDispatcherUtils.makeRunningValues(true, [], []);
@@ -240,12 +223,12 @@
             enabled: true,
             defaultRenderStates: defaultRenderStates
         });
-        }
+    }
 
-   
-    var leftHudOverlayPointer = new HudOverlayPointer(LEFT_HAND); 
+
+    var leftHudOverlayPointer = new HudOverlayPointer(LEFT_HAND);
     var rightHudOverlayPointer = new HudOverlayPointer(RIGHT_HAND);
-    
+
     var clickMapping = Controller.newMapping('HudOverlayPointer-click');
     clickMapping.from(rightHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
     clickMapping.from(leftHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
