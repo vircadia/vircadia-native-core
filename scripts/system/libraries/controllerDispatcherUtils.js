@@ -362,7 +362,11 @@ if (typeof module !== 'undefined') {
         RIGHT_HAND: RIGHT_HAND,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
         TEAR_AWAY_DISTANCE: TEAR_AWAY_DISTANCE,
+        propsArePhysical: propsArePhysical,
+        entityIsGrabbable: entityIsGrabbable,
+        NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane
+
     };
 }

@@ -27,6 +27,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
     var PROFILE = false;
+    var DEBUG = false;
 
     if (typeof Test !== "undefined") {
         PROFILE = true;
@@ -299,6 +300,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         // activity-slots which this plugin consumes as "in use"
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
+                        if (DEBUG) {
+                            print("controllerDispatcher running " + orderedPluginName);
+                        }
                     }
                     if (PROFILE) {
                         Script.endProfileRange("dispatch.isReady." + orderedPluginName);
@@ -331,6 +335,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
+                            if (DEBUG) {
+                                print("controllerDispatcher stopping " + runningPluginName);
+                            }
                         }
                         if (PROFILE) {
                             Script.endProfileRange("dispatch.run." + runningPluginName);
