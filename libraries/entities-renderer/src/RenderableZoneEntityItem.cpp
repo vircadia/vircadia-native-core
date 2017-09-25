@@ -235,6 +235,7 @@ ItemKey ZoneEntityRenderer::getKey() {
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->keyLightPropertiesChanged() ||
         entity->backgroundPropertiesChanged() ||
+        entity->hazePropertiesChanged() ||
         entity->skyboxPropertiesChanged()) {
         return true;
     }

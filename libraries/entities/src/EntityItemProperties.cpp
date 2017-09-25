@@ -1328,6 +1328,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
 
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
+                APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
 
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);

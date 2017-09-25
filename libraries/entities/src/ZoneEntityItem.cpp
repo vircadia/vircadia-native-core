@@ -118,8 +118,6 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
         _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
     });
 
-    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
-
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
     return somethingChanged;
@@ -225,6 +223,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
 
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
