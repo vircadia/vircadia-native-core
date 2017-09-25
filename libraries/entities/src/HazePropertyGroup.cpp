@@ -15,27 +15,40 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
+const float HazePropertyGroup::DEFAULT_HAZE_RANGE = 1000.0f;
+const float HazePropertyGroup::DEFAULT_HAZE_ALTITUDE = 200.0f;
+
 void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_HAZE_ACTIVE, Haze, haze, HazeActive, hazeActive);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_HAZE_ALTITUDE, Haze, haze, HazeAltitude, hazeAltitude);
 }
 
 void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeActive, bool, setHazeActive);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeRange, float, setHazeRange, getHazeRange);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeAltitude, float, setHazeAltitude, getHazeAltitude);
+
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeRange, float, setHazeRange);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeAltitude, float, setHazeAltitude);
 }
 
 void HazePropertyGroup::merge(const HazePropertyGroup& other) {
-    COPY_PROPERTY_IF_CHANGED(hazeActive);
+    COPY_PROPERTY_IF_CHANGED(hazeRange);
+    COPY_PROPERTY_IF_CHANGED(hazeAltitude);
 }
 
 
 void HazePropertyGroup::debugDump() const {
     qCDebug(entities) << "   HazePropertyGroup: ---------------------------------------------";
-    qCDebug(entities) << "       HazeActive :" << getHazeActive() << " has changed:" << hazeActiveChanged();
+    qCDebug(entities) << "            _hazeRange:" << _hazeRange;
+    qCDebug(entities) << "            _hazeAltitude:" << _hazeAltitude;
 }
 
 void HazePropertyGroup::listChangedProperties(QList<QString>& out) {
-    if (hazeActiveChanged()) {
-        out << "haze-hazeActive";
+    if (hazeRangeChanged()) {
+        out << "haze-range";
+    }
+    if (hazeAltitudeChanged()) {
+        out << "haze-altitude";
     }
 }
 
@@ -48,7 +61,8 @@ bool HazePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, getHazeActive());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_RANGE, getHazeRange());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, getHazeAltitude());
 
     return true;
 }
@@ -60,9 +74,11 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     bool overwriteLocalData = true;
     bool somethingChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, bool, setHazeActive);
+    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_RANGE, float, setHazeRange);
+    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, float, setHazeAltitude);
 
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_HAZE_ACTIVE, HazeActive);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_HAZE_RANGE, HazeRange);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_HAZE_ALTITUDE, HazeAltitude);
 
     processedBytes += bytesRead;
 
@@ -72,25 +88,29 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 }
 
 void HazePropertyGroup::markAllChanged() {
-    _hazeActiveChanged = true;
+    _hazeRangeChanged = true;
+    _hazeAltitudeChanged = true;
 }
 
 EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_HAZE_ACTIVE, hazeActive);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_HAZE_RANGE, hazeRange);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_HAZE_ALTITUDE, hazeAltitude);
 
     return changedProperties;
 }
 
 void HazePropertyGroup::getProperties(EntityItemProperties& properties) const {
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeActive, getHazeActive);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeRange, getHazeRange);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeAltitude, getHazeAltitude);
 }
 
 bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeActive, hazeActive, setHazeActive);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeRange, hazeRange, setHazeRange);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeAltitude, hazeAltitude, setHazeAltitude);
 
     return somethingChanged;
 }
@@ -98,8 +118,9 @@ bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
 EntityPropertyFlags HazePropertyGroup::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties;
 
-    requestedProperties += PROP_HAZE_HAZE_ACTIVE;
-    
+    requestedProperties += PROP_HAZE_HAZE_RANGE;
+    requestedProperties += PROP_HAZE_HAZE_ALTITUDE;
+
     return requestedProperties;
 }
     
@@ -113,7 +134,8 @@ void HazePropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeB
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, getHazeActive());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_RANGE, getHazeRange());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, getHazeAltitude());
 }
 
 int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -124,7 +146,8 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ACTIVE, bool, setHazeActive);
+    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, float, setHazeRange);
+    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, float, setHazeAltitude);
 
     return bytesRead;
 }

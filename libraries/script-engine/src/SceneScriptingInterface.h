@@ -125,6 +125,14 @@ namespace SceneScripting {
         void setHazeMode(const QString& mode);
         QString getHazeMode() const;
 
+        Q_PROPERTY(float hazeRange READ getHazeRange WRITE setHazeRange)
+        void setHazeRange(float value);
+        float getHazeRange() const;
+
+        Q_PROPERTY(float hazeAltitude READ getHazeAltitude WRITE setHazeAltitude)
+        void setHazeAltitude(float value);
+        float getHazeAltitude() const;
+
     protected:
         model::SunSkyStagePointer _skyStage;
         LocationPointer _location;

@@ -1073,7 +1073,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_HAZE_ACTIVE, Haze, haze, HazeActive, hazeActive);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_HAZE_ALTITUDE, Haze, haze, HazeAltitude, hazeAltitude);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);

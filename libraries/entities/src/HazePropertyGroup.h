@@ -74,7 +74,11 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    DEFINE_PROPERTY(PROP_HAZE_HAZE_ACTIVE, HazeActive, hazeActive, bool, false);
+    static const float DEFAULT_HAZE_RANGE;
+    static const float DEFAULT_HAZE_ALTITUDE;
+
+    DEFINE_PROPERTY(PROP_HAZE_HAZE_RANGE, HazeRange, hazeRange, float, DEFAULT_HAZE_RANGE);
+    DEFINE_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, DEFAULT_HAZE_ALTITUDE);
 };
 
 #endif // hifi_HazePropertyGroup_h

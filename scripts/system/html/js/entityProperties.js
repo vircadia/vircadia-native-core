@@ -658,6 +658,8 @@ function loaded() {
         var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
 
         var elZoneHazeMode = document.getElementById("property-zone-haze-mode");
+        var elZoneHazeRange = document.getElementById("property-zone-haze-range");
+        var elZoneHazeAltitude = document.getElementById("property-zone-haze-altitude");
        
         var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
         var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
@@ -979,6 +981,9 @@ function loaded() {
 
                             elZoneHazeMode.value = properties.hazeMode;
                             setDropdownText(elZoneHazeMode);
+
+                            elZoneHazeRange.value = properties.haze.hazeRange.toFixed(2);
+                            elZoneHazeAltitude.value = properties.haze.hazeAltitude.toFixed(2);
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                             elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -1375,6 +1380,8 @@ function loaded() {
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
         elZoneHazeMode.addEventListener('change', createEmitTextPropertyUpdateFunction('hazeMode'));
+        elZoneHazeRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeRange'));
+        elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeAltitude'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
@@ -1382,7 +1389,6 @@ function loaded() {
         elZoneStageAutomaticHourDay.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage', 'automaticHourDay'));
         elZoneStageDay.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'day'));
         elZoneStageHour.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'hour'));
-
 
         elZoneBackgroundMode.addEventListener('change', createEmitTextPropertyUpdateFunction('backgroundMode'));
 

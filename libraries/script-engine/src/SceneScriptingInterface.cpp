@@ -150,6 +150,22 @@ QString SceneScripting::Stage::getHazeMode() const {
     };
 }
 
+void SceneScripting::Stage::setHazeRange(const float hazeRange) {
+     _skyStage->setHazeRange(hazeRange);
+}
+
+float SceneScripting::Stage::getHazeRange() const {
+    return _skyStage->getHazeRange();
+}
+
+void SceneScripting::Stage::setHazeAltitude(const float hazeAltitude) {
+    _skyStage->setHazeAltitude(hazeAltitude);
+}
+
+float SceneScripting::Stage::getHazeAltitude() const {
+    return _skyStage->getHazeAltitude();
+}
+
 SceneScriptingInterface::SceneScriptingInterface() : _stage{ new SceneScripting::Stage{ _skyStage } } {
     // Let's make sure the sunSkyStage is using a proceduralSkybox
     _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));

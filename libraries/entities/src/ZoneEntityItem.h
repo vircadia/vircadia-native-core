@@ -115,6 +115,8 @@ protected:
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
     HazeMode _hazeMode = HAZE_MODE_INHERIT;
+    float _hazeRange = 1000.0;
+    float _hazeAltitude = 200.0;
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
