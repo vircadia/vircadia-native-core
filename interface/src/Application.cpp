@@ -2373,6 +2373,11 @@ void Application::initializeUi() {
 }
 
 void Application::updateCamera(RenderArgs& renderArgs) {
+    // load the view frustum
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        _myCamera.loadViewFrustum(_displayViewFrustum);
+    }
 
     glm::vec3 boomOffset;
     {
@@ -2474,6 +2479,25 @@ void Application::updateCamera(RenderArgs& renderArgs) {
             }
         }
     }
+
+    renderArgs._cameraMode = (int8_t)_myCamera.getMode(); // HACK
+
+
+    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
+    // Then we can move this logic into the Avatar::simulate call.
+    auto myAvatar = getMyAvatar();
+    myAvatar->preDisplaySide(&renderArgs);
+
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        renderArgs.setViewFrustum(_displayViewFrustum);
+    }
+}
+
+void Application::editRenderArgs(RenderArgsEditor editor) {
+    QMutexLocker viewLocker(&_renderArgsMutex);
+    editor(_renderArgs);
+
 }
 
 void Application::paintGL() {
@@ -2518,6 +2542,10 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
     RenderArgs renderArgs;
+    {
+        QMutexLocker viewLocker(&_renderArgsMutex);
+        renderArgs = _renderArgs;
+    }
 
     float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
     {
@@ -2570,7 +2598,7 @@ void Application::paintGL() {
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
-    updateCamera(renderArgs);
+ //   updateCamera(renderArgs);
 
    /* glm::vec3 boomOffset;
     {
@@ -5336,6 +5364,7 @@ void Application::update(float deltaTime) {
 
     avatarManager->postUpdate(deltaTime, getMain3DScene());
 
+
     {
         PROFILE_RANGE_EX(app, "PreRenderLambdas", 0xffff0000, (uint64_t)0);
 
@@ -5345,6 +5374,10 @@ void Application::update(float deltaTime) {
         }
         _postUpdateLambdas.clear();
     }
+
+    editRenderArgs([this](RenderArgs& renderArgs) {
+        this->updateCamera(renderArgs);
+    });
 
     AnimDebugDraw::getInstance().update();
 
@@ -5679,20 +5712,18 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
-    auto myAvatar = getMyAvatar();
-    myAvatar->preDisplaySide(renderArgs);
+ //   auto myAvatar = getMyAvatar();
+ //   myAvatar->preDisplaySide(renderArgs);
 
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
 
     // load the view frustum
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        theCamera.loadViewFrustum(_displayViewFrustum);
-    }
-
-    // TODO fix shadows and make them use the GPU library
+  //  {
+   //     QMutexLocker viewLocker(&_viewMutex);
+   //     theCamera.loadViewFrustum(_displayViewFrustum);
+   // }
 
     // The pending changes collecting the changes here
     render::Transaction transaction;
@@ -5740,11 +5771,11 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
 
-        {
+     /*   {
             QMutexLocker viewLocker(&_viewMutex);
             renderArgs->setViewFrustum(_displayViewFrustum);
-        }
-        renderArgs->_cameraMode = (int8_t)theCamera.getMode(); // HACK
+        }*/
+     //   renderArgs->_cameraMode = (int8_t)theCamera.getMode(); // HACK
         renderArgs->_scene = getMain3DScene();
         _renderEngine->getRenderContext()->args = renderArgs;
 

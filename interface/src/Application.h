@@ -625,6 +625,13 @@ private:
     render::EnginePointer _renderEngine{ new render::Engine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
+    render::Args _renderArgs;
+
+    using RenderArgsEditor = std::function <void (render::Args&)>;
+    void editRenderArgs(RenderArgsEditor editor);
+
+
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     OverlayConductor _overlayConductor;
