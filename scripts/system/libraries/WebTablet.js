@@ -187,6 +187,23 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         }
     };
 
+    this.myOnHoverEnterOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverEnterOverlay(overlayID, pointerEvent);
+    };
+
+    Overlays.hoverEnterOverlay.connect(this.myOnHoverEnterOverlay);
+
+    this.myOnHoverLeaveOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverLeaveOverlay(overlayID, pointerEvent);
+    };
+
+    Overlays.hoverLeaveOverlay.connect(this.myOnHoverLeaveOverlay);
+
+    this.myOnHoverOverOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverOverOverlay(overlayID, pointerEvent);
+    };
+    Overlays.hoverOverOverlay.connect(this.myOnHoverOverOverlay);
+
     this.state = "idle";
 
     this.getRoot = function() {
@@ -286,6 +303,10 @@ WebTablet.prototype.setWidth = function (width) {
 };
 
 WebTablet.prototype.destroy = function () {
+    Overlays.hoverEnterOverlay.disconnect(this.myOnHoverEnterOverlay);
+    Overlays.hoverLeaveOverlay.disconnect(this.myOnHoverLeaveOverlay);
+    Overlays.hoverOverOverlay.disconnect(this.myOnHoverOverOverlay);
+
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
@@ -380,6 +401,24 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
         rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) : Quat.multiply(Camera.orientation, ROT_Y_180)
     };
 };
+
+WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
+    if (overlayID === this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 1.0 });
+    }
+}
+
+WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
+    if (overlayID !== this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+    }
+}
+
+WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
+    if (overlayID === this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+    }
+}
 
 // compute position, rotation & parentJointIndex of the tablet
 WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMouse, tabletProperties) {
