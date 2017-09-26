@@ -113,7 +113,7 @@ void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
     // add entities
     QHash<EntityItemID, EntityItemPointer>::const_iterator itr;
     for (itr = _entitiesToAdd.constBegin(); itr != _entitiesToAdd.constEnd(); ++itr) {
-        EntityItemPointer entityItem = itr.value();
+        EntityItemPointer& entityItem = itr.value();
         AddEntityOperator theOperator(getThisPointer(), entityItem);
         recurseTreeWithOperator(&theOperator);
         postAddEntity(entityItem);
@@ -560,7 +560,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         auto descendantID = descendant->getID();
         theOperator.addEntityIDToDeleteList(descendantID);
         emit deletingEntity(descendantID);
-        EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(descendant);
+        EntityItemPointer descendantEntity = std::dynamic_pointer_cast<EntityItem>(descendant);
         if (descendantEntity) {
             emit deletingEntityPointer(descendantEntity.get());
         }
