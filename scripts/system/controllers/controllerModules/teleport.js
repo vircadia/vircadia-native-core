@@ -50,7 +50,7 @@ Script.include("/~/system/libraries/controllers.js");
     };
 
     var TELEPORT_CANCEL_RANGE = 1;
-    var COOL_IN_DURATION = 500;
+    var COOL_IN_DURATION = 300;
 
     var handInfo = {
         right: {
@@ -422,7 +422,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         if (angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
             angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
-            Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE) {
+            Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE * MyAvatar.sensorToWorldScale) {
             return TARGET.INVALID;
         } else {
             return TARGET.SURFACE;
