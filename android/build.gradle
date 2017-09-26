@@ -1,0 +1,91 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.3'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+task extractQt5jars(type: Copy) {
+    from fileTree(QT5_ROOT + "/jar")
+    into("${project.rootDir}/libraries/jar")
+    include("*.jar")
+}
+
+task extractQt5so(type: Copy) {
+    from fileTree(QT5_ROOT + "/lib")
+    into("${project.rootDir}/libraries/jni/armeabi-v7a/")
+    include("libQt5AndroidExtras.so")
+    include("libQt5Concurrent.so")
+    include("libQt5Core.so")
+    include("libQt5Gamepad.so")
+    include("libQt5Gui.so")
+    include("libQt5Location.so")
+    include("libQt5Multimedia.so")
+    include("libQt5MultimediaQuick_p.so")
+    include("libQt5Network.so")
+    include("libQt5NetworkAuth.so")
+    include("libQt5OpenGL.so")
+    include("libQt5Positioning.so")
+    include("libQt5Qml.so")
+    include("libQt5Quick.so")
+    include("libQt5QuickControls2.so")
+    include("libQt5QuickParticles.so")
+    include("libQt5QuickTemplates2.so")
+    include("libQt5QuickWidgets.so")
+    include("libQt5Script.so")
+    include("libQt5ScriptTools.so")
+    include("libQt5Sensors.so")
+    include("libQt5Svg.so")
+    include("libQt5WebChannel.so")
+    include("libQt5WebSockets.so")
+    include("libQt5WebView.so")
+    include("libQt5Widgets.so")
+    include("libQt5Xml.so")
+    include("libQt5XmlPatterns.so")
+}
+
+task extractAudioSo(type: Copy) {
+    from zipTree(GVR_ROOT + "/libraries/sdk-audio-1.80.0.aar")
+    into "${project.rootDir}/libraries/"
+    include "jni/armeabi-v7a/libgvr_audio.so"
+}
+
+task extractGvrSo(type: Copy) {
+    from zipTree(GVR_ROOT + "/libraries/sdk-base-1.80.0.aar")
+    into "${project.rootDir}/libraries/"
+    include "jni/armeabi-v7a/libgvr.so"
+}
+
+task extractNdk { }
+extractNdk.dependsOn extractAudioSo
+extractNdk.dependsOn extractGvrSo
+
+task extractQt5 { }
+extractQt5.dependsOn extractQt5so
+extractQt5.dependsOn extractQt5jars
+
+task extractBinaries { }
+extractBinaries.dependsOn extractQt5
+extractBinaries.dependsOn extractNdk
+
+task deleteBinaries(type: Delete) {
+    delete "${project.rootDir}/libraries/jni"
+}
+
+//clean.dependsOn(deleteBinaries)

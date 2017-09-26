@@ -202,7 +202,7 @@ void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytes
     emit progress(bytesReceived, bytesTotal);
 
     auto now = p_high_resolution_clock::now();
-	
+    
     // Recording ATP bytes downloaded in stats
     DependencyManager::get<StatTracker>()->updateStat(STAT_ATP_RESOURCE_TOTAL_BYTES, bytesReceived);
 

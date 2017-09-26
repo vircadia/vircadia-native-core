@@ -18,7 +18,7 @@
 #include <mutex>
 #include <queue>
 
-#include <QtCore/qsystemdetection.h>
+#include <QtCore/QtGlobal>
 #include <QtCore/QByteArray>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
@@ -173,6 +173,9 @@ public slots:
 
     void sendDownstreamAudioStatsPacket() { _stats.publish(); }
     void handleMicAudioInput();
+#if defined(Q_OS_ANDROID)
+    void audioInputStateChanged(QAudio::State state);
+#endif
     void handleDummyAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
@@ -403,6 +406,10 @@ private:
     RateCounter<> _silentInbound;
     RateCounter<> _audioInbound;
 
+#if defined(Q_OS_ANDROID)
+    bool _shouldRestartInputSetup { true }; // Should we restart the input device because of an unintended stop?
+#endif
+    
     QTimer* _checkDevicesTimer { nullptr };
     QTimer* _checkPeakValuesTimer { nullptr };
 };
