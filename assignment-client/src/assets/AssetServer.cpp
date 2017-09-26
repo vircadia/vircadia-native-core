@@ -50,11 +50,12 @@ static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx", "js" };
+static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx"};
 static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
+static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = {"js"};
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
-static const QString BAKED_SCRIPT_SIMPLE_NAME = "script.js";
+static const QString BAKED_SCRIPT_SIMPLE_NAME = "asset.js";
 
 void AssetServer::bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) {
     qDebug() << "Starting bake for: " << assetPath << assetHash;
@@ -98,14 +99,13 @@ std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& pa
     QString bakedFilename;
 
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-        if (extension == "fbx") {
             bakedFilename = BAKED_MODEL_SIMPLE_NAME;  
-        } else if (extension == "js") {
-            bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-        }
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
-    } else {
+    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
+    }
+    else {
         return { Irrelevant, "" };
     }
 
@@ -189,13 +189,11 @@ bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHa
     }
 
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-        if (extension == "fbx") {
-            bakedFilename = BAKED_MODEL_SIMPLE_NAME;
-        } else if (extension == "js") {
-            bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-        }
+        bakedFilename = BAKED_MODEL_SIMPLE_NAME;
     } else if (loaded && BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit())) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
     } else {
         return false;
     }
@@ -495,13 +493,11 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         QString bakedRootFile;
 
         if (BAKEABLE_MODEL_EXTENSIONS.contains(assetPathExtension)) {
-            if (assetPathExtension == "fbx") {
-                bakedRootFile = BAKED_MODEL_SIMPLE_NAME;
-            } else if (assetPathExtension == "js") {
-                bakedRootFile = BAKED_SCRIPT_SIMPLE_NAME;
-            }
+            bakedRootFile = BAKED_MODEL_SIMPLE_NAME;
         } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(assetPathExtension.toLocal8Bit())) {
             bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
+        } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(assetPathExtension)) {
+            bakedRootFile = BAKED_SCRIPT_SIMPLE_NAME;
         }
         
         auto originalAssetHash = it->second;
@@ -1155,7 +1151,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
 
 static const QString BAKED_ASSET_SIMPLE_FBX_NAME = "asset.fbx";
 static const QString BAKED_ASSET_SIMPLE_TEXTURE_NAME = "texture.ktx";
-static const QString BAKED_ASSET_SIMPLE_JS_NAME = "script.js";
+static const QString BAKED_ASSET_SIMPLE_JS_NAME = "asset.js";
 
 QString getBakeMapping(const AssetHash& hash, const QString& relativeFilePath) {
     return HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
@@ -1366,13 +1362,11 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
             QString bakedFilename;
     
             if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-                if (extension == "js") {
-                    bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-                } else {
-                    bakedFilename = BAKED_MODEL_SIMPLE_NAME;
-                }
+                bakedFilename = BAKED_MODEL_SIMPLE_NAME;
             } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
                 bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+            } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+                bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
             } else {
                 continue;
             }
