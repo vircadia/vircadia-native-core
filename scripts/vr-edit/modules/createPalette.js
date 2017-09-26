@@ -98,11 +98,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         PALETTE_PANEL_PROPERTIES = {
             dimensions: UIT.dimensions.panel,
-            localPosition: {
-                x: 0,
-                y: UIT.dimensions.panel.y / 2 - UIT.dimensions.canvas.y / 2,
-                z: UIT.dimensions.panel.z / 2
-            },
+            localPosition: { x: 0, y: (UIT.dimensions.panel.y - UIT.dimensions.canvas.y) / 2, z: UIT.dimensions.panel.z / 2 },
             localRotation: Quat.ZERO,
             color: UIT.colors.baseGray,
             alpha: 1.0,
@@ -430,7 +426,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     function itemPosition(index) {
         // Position relative to palette panel.
         var ITEMS_PER_ROW = 4,
-            ROW_ZERO_Y_OFFSET = 0.0580,
+            ROW_ZERO_Y_OFFSET = 0.0860,
             ROW_SPACING = 0.0560,
             COLUMN_ZERO_OFFSET = -0.08415,
             COLUMN_SPACING = 0.0561,
@@ -496,7 +492,6 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties = Object.clone(PALETTE_ITEM.properties);
             properties.parentID = palettePanelOverlay;
             properties.localPosition = itemPosition(i);
-
             paletteItemOverlays[i] = Overlays.addOverlay(PALETTE_ITEM.overlay, properties);
             paletteItemPositions[i] = properties.localPosition;
 

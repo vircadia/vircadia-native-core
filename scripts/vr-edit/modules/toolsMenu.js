@@ -53,6 +53,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
         optionsToggles = {},  // Cater for toggle buttons without a setting.
 
+        footerOverlays = [],
+        footerHoverOverlays = [],
+        footerIconOverlays = [],
+        footerLabelOverlays = [],
+        footerEnabled = [],
+
         swatchHighlightOverlay = null,
 
         staticOverlays = [],
@@ -181,7 +187,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         MENU_PANEL_PROPERTIES = {
             dimensions: UIT.dimensions.panel,
-            localPosition: { x: 0, y: UIT.dimensions.panel.y / 2 - UIT.dimensions.canvas.y / 2, z: UIT.dimensions.panel.z / 2 },
+            localPosition: { x: 0, y: (UIT.dimensions.panel.y - UIT.dimensions.canvas.y) / 2, z: UIT.dimensions.panel.z / 2 },
             localRotation: Quat.ZERO,
             color: UIT.colors.baseGray,
             alpha: 1.0,
@@ -613,7 +619,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0935,
-                            y: 0.0513,
+                            y: 0.0513 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -634,7 +640,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0561,
-                            y: 0.0513,
+                            y: 0.0513 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -655,7 +661,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0935,
-                            y: 0.0153,
+                            y: 0.0153 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -676,7 +682,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0561,
-                            y: 0.0153,
+                            y: 0.0153 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -697,7 +703,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0935,
-                            y: -0.0207,
+                            y: -0.0207 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -718,7 +724,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: -0.0561,
-                            y: -0.0207,
+                            y: -0.0207 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -740,7 +746,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.001 },
                         localPosition: {
                             x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0668 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0481,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0481 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         }
                     }
@@ -751,7 +757,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: 0.04675,
-                            y: 0.01655,
+                            y: 0.01655 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -767,7 +773,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: {
                             x: 0.04675,
-                            y: -0.0620,
+                            y: -0.064 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         },
                         localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 })
@@ -781,25 +787,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
-                    id: "colorRule3",
-                    type: "horizontalRule",
-                    properties: {
-                        dimensions: { x: 0.1229, y: 0.001 },
-                        localPosition: {
-                            x: 0.04675,
-                            y: -0.0781,
-                            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
-                        }
-                    }
-                },
-                {
                     id: "pickColor",
                     type: "toggleButton",
                     properties: {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0935,
-                            y: -0.064,
+                            y: -0.064 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -818,7 +812,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.0280, z: UIT.dimensions.imageOverlayOffset },
                         localPosition: {
                             x: -0.0561,
-                            y: -0.064,
+                            y: -0.064 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -893,7 +887,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0321, y: 0.0320 },
                         localPosition: {
                             x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0321 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white  // Icon SVG is already lightGray color.
@@ -905,9 +899,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/stretch/info-text.svg",
                         scale: 0.1340,
-                        localPosition: {
+                        localPosition: {  // Vertically center on info icon.
                             x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,  // Center on info icon.
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white
@@ -1017,11 +1011,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "ungroupButton",
                     type: "button",
                     properties: {
-                        dimensions: {
-                            x: UIT.dimensions.buttonDimensions.x,
-                            y: 0.0400,
-                            z: UIT.dimensions.buttonDimensions.z
-                        },
+                        dimensions: { x: UIT.dimensions.buttonDimensions.x, y: 0.0400, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0,
                             y: UIT.dimensions.panel.y / 2 - 0.0280 - 0.0400 - 0.0040 - 0.0400 / 2,
@@ -1059,7 +1049,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.1042, y: 0.0400, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0040 - 0.1042 / 2,
-                            y: -0.0900 + 0.0120 + 0.0400 / 2,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - 2 * 0.0400 - 0.0160 - 0.0400 / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1078,7 +1068,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.1042, y: 0.0400, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0.0040 + 0.1042 / 2,
-                            y: -0.0900 + 0.0120 + 0.0400 / 2,
+                            y: UIT.dimensions.panel.y / 2 - 0.0280 - 2 * 0.0400 - 0.0160 - 0.0400 / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         },
                         color: UIT.colors.baseGrayShadow
@@ -1131,7 +1121,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0748,
-                            y: 0.0480,
+                            y: 0.0480 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1179,7 +1169,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0748,
-                            y: 0.0120,
+                            y: 0.0120 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1227,7 +1217,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0668, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0748,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1431,7 +1421,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: UIT.dimensions.panel.x / 2 - UIT.dimensions.rightMargin - 0.1416 / 2,
-                            y: 0.0480,
+                            y: 0.0480 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1490,7 +1480,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: -0.0187,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1519,7 +1509,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0.0187,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1548,7 +1538,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0.0561,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1577,7 +1567,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0294, y: 0.1000, z: UIT.dimensions.buttonDimensions.z },
                         localPosition: {
                             x: 0.0935,
-                            y: -0.0240,
+                            y: -0.0240 + UIT.dimensions.footerHeight / 2,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.buttonDimensions.z / 2
                         }
                     },
@@ -1663,7 +1653,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.0321, y: 0.0320 },
                         localPosition: {
                             x: -UIT.dimensions.panel.x / 2 + UIT.dimensions.leftMargin + 0.0321 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2,
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white  // Icon SVG is already lightGray color.
@@ -1675,9 +1665,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/delete/info-text.svg",
                         scale: 0.1416,
-                        localPosition: {
+                        localPosition: {  // Vertically off-center w.r.t. info icon.
                             x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
-                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0240 / 2 + 0.0063 / 2,  // Off-center w.r.t. info icon.
+                            y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0240 / 2 + 0.0063 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
                         color: UIT.colors.white
@@ -1687,7 +1677,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         MENU_ITEM_XS = [-0.08415, -0.02805, 0.02805, 0.08415],
-        MENU_ITEM_YS = [0.058, 0.002, -0.054],
+        MENU_ITEM_YS = [0.086, 0.030, -0.026, -0.082],
 
         MENU_ITEMS = [
             {
@@ -1918,6 +1908,26 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 callback: {
                     method: "deleteTool"
                 }
+            }
+        ],
+        COLOR_TOOL = 0,  // Indexes of corresponding MENU_ITEMS item.
+        SCALE_TOOL = 1,
+        CLONE_TOOL = 2,
+        GROUP_TOOL = 3,
+        PHYSICS_TOOL = 4,
+        DELETE_TOOL = 5,
+
+        FOOTER_ITEMS = [
+            {
+                id: "footerRule",
+                type: "horizontalRule",
+                properties: {
+                    localPosition: {
+                        x: 0,
+                        y: -UIT.dimensions.panel.y / 2 + 0.0600,
+                        z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
+                    }
+                }
             },
             {
                 id: "undoButton",
@@ -1925,7 +1935,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     localPosition: {
                         x: MENU_ITEM_XS[2],
-                        y: MENU_ITEM_YS[2],
+                        y: MENU_ITEM_YS[3] - 0.008,  // Allow space for horizontal rule and Line up with Create palette row.
                         z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
                     }
                 },
@@ -1951,7 +1961,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     localPosition: {
                         x: MENU_ITEM_XS[3],
-                        y: MENU_ITEM_YS[2],
+                        y: MENU_ITEM_YS[3] - 0.008,
                         z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
                     }
                 },
@@ -1972,12 +1982,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             }
         ],
-        COLOR_TOOL = 0,  // Indexes of corresponding MENU_ITEMS item.
-        SCALE_TOOL = 1,
-        CLONE_TOOL = 2,
-        GROUP_TOOL = 3,
-        PHYSICS_TOOL = 4,
-        DELETE_TOOL = 5,
 
         NONE = -1,
 
@@ -2055,7 +2059,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     setHand(side);
 
     function getOverlayIDs() {
-        return [menuPanelOverlay, menuHeaderOverlay].concat(menuOverlays).concat(optionsOverlays);
+        return [menuHeaderOverlay, menuPanelOverlay].concat(menuOverlays).concat(optionsOverlays).concat(footerOverlays);
     }
 
     function getIconInfo(tool) {
@@ -2149,6 +2153,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuHoverOverlays = [];
         menuIconOverlays = [];
         menuLabelOverlays = [];
+        menuEnabled = [];
         pressedItem = null;
     }
 
@@ -2471,6 +2476,57 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Display menu items.
         openMenu();
+    }
+
+    function displayFooter() {
+        var properties,
+            itemID,
+            buttonID,
+            overlayID,
+            i,
+            length;
+
+        // Display footer items.
+        for (i = 0, length = FOOTER_ITEMS.length; i < length; i += 1) {
+            properties = Object.clone(UI_ELEMENTS[FOOTER_ITEMS[i].type].properties);
+            properties = Object.merge(properties, FOOTER_ITEMS[i].properties);
+            properties.visible = isVisible;
+            properties.parentID = menuPanelOverlay;
+            if (properties.url) {
+                properties.url = Script.resolvePath(properties.url);
+            }
+            itemID = Overlays.addOverlay(UI_ELEMENTS[FOOTER_ITEMS[i].type].overlay, properties);
+            footerOverlays[i] = itemID;
+            footerEnabled[i] = true;
+
+            if (FOOTER_ITEMS[i].type === "menuButton") {
+                // Collision overlay.
+                properties = Object.clone(UI_ELEMENTS.menuButton.hoverButton.properties);
+                properties.parentID = itemID;
+                buttonID = Overlays.addOverlay(UI_ELEMENTS.menuButton.hoverButton.overlay, properties);
+                footerHoverOverlays[i] = buttonID;
+
+                // Icon.
+                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].properties);
+                properties = Object.merge(properties, UI_ELEMENTS.menuButton.icon.properties);
+                properties = Object.merge(properties, FOOTER_ITEMS[i].icon.properties);
+                properties.url = Script.resolvePath(properties.url);
+                properties.visible = isVisible;
+                properties.parentID = buttonID;
+                overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].overlay, properties);
+                footerIconOverlays[i] = overlayID;
+
+                // Label.
+                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].properties);
+                properties = Object.merge(properties, UI_ELEMENTS.menuButton.label.properties);
+                properties = Object.merge(properties, FOOTER_ITEMS[i].label.properties);
+                properties.url = Script.resolvePath(properties.url);
+                properties.visible = isVisible;
+                properties.parentID = itemID;
+                overlayID = Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].overlay, properties);
+                footerLabelOverlays.push(overlayID);
+            }
+        }
     }
 
     function clearTool() {
@@ -2942,12 +2998,29 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         }
 
+        for (i = 0, length = footerOverlays.length; i < length; i += 1) {
+            Overlays.editOverlay(footerOverlays[i], { visible: visible });
+        }
+        for (i = 0, length = footerIconOverlays.length; i < length; i += 1) {
+            Overlays.editOverlay(footerIconOverlays[i], { visible: visible });
+        }
+        for (i = 0, length = footerLabelOverlays.length; i < length; i += 1) {
+            Overlays.editOverlay(footerLabelOverlays[i], { visible: visible });
+        }
+        if (!visible) {
+            for (i = 0, length = footerHoverOverlays.length; i < length; i += 1) {
+                Overlays.editOverlay(footerHoverOverlays[i], { visible: false });
+            }
+        }
+
         isVisible = visible;
     }
 
     function update(intersection, groupsCount, entitiesCount) {
         var intersectedItem = NONE,
             intersectionItems,
+            menuButtonHoverOverlays,
+            menuButtonIconOverlays,
             color,
             localPosition,
             parameter,
@@ -3036,6 +3109,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     intersectionItems = optionsItems;
                     intersectionOverlays = optionsOverlays;
                     intersectionEnabled = optionsEnabled;
+                } else {
+                    intersectedItem = footerOverlays.indexOf(intersection.overlayID);
+                    if (intersectedItem !== NONE) {
+                        intersectionItems = FOOTER_ITEMS;
+                        intersectionOverlays = footerOverlays;
+                        intersectionEnabled = footerEnabled;
+                    }
                 }
             }
         }
@@ -3047,11 +3127,18 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Unhover old item.
                 switch (hoveredElementType) {
                 case "menuButton":
-                    Overlays.editOverlay(menuHoverOverlays[hoveredItem], {
+                    if (hoveredSourceOverlays === menuOverlays) {
+                        menuButtonHoverOverlays = menuHoverOverlays;
+                        menuButtonIconOverlays = menuIconOverlays;
+                    } else {
+                        menuButtonHoverOverlays = footerHoverOverlays;
+                        menuButtonIconOverlays = footerIconOverlays;
+                    }
+                    Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
                     });
-                    Overlays.editOverlay(menuIconOverlays[hoveredItem], {
+                    Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
                         color: UI_ELEMENTS.menuButton.icon.properties.color
                     });
                     break;
@@ -3137,11 +3224,19 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 switch (hoveredElementType) {
                 case "menuButton":
                     Feedback.play(otherSide, Feedback.HOVER_MENU_ITEM);
-                    Overlays.editOverlay(menuHoverOverlays[hoveredItem], {
-                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, MENU_HOVER_DELTA),
+                    if (intersectionOverlays === menuOverlays) {
+                        menuButtonHoverOverlays = menuHoverOverlays;
+                        menuButtonIconOverlays = menuIconOverlays;
+                    } else {
+                        menuButtonHoverOverlays = footerHoverOverlays;
+                        menuButtonIconOverlays = footerIconOverlays;
+                    }
+                    Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
+                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
+                            MENU_HOVER_DELTA),
                         visible: true
                     });
-                    Overlays.editOverlay(menuIconOverlays[hoveredItem], {
+                    Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
                         color: UI_ELEMENTS.menuButton.icon.highlightColor
                     });
                     break;
@@ -3238,32 +3333,55 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 || isTriggerClicked !== (pressedItem !== null)) {
             if (pressedItem) {
                 // Unpress previous button.
-                Overlays.editOverlay(pressedSource[pressedItem.index], {
-                    localPosition:
-                        isHoveringButtonElement && hoveredItem === pressedItem.index && optionsEnabled[pressedItem.index]
-                        ? Vec3.sum(pressedItem.localPosition, OPTION_HOVER_DELTA)
-                        : pressedItem.localPosition
-                });
-                pressedItem = null;
+                if (pressedItem !== null) {
+                    if (pressedItem.pressedOverlays) {
+                        pressedSource = pressedItem.pressedOverlays;
+                    }
+                    Overlays.editOverlay(pressedSource[pressedItem.index], {
+                        localPosition: isHoveringButtonElement && hoveredItem === pressedItem.index
+                                && intersectionEnabled[pressedItem.index]
+                            ? Vec3.sum(pressedItem.localPosition, pressedItem.hoverDelta)
+                            : pressedItem.localPosition
+                    });
+                    pressedItem = null;
+                }
                 pressedSource = null;
             }
             if (isHoveringButtonElement && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
                     && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
-                localPosition = intersectionItems[intersectedItem].properties.localPosition;
-                if (hoveredElementType !== "menuButton") {
+                pressedSource = intersectionOverlays;
+                if (hoveredElementType === "menuButton") {
+                    if (intersectionItems === MENU_ITEMS) {
+                        menuButtonHoverOverlays = menuHoverOverlays;
+                    } else {
+                        menuButtonHoverOverlays = footerHoverOverlays;
+                    }
+                    localPosition = UI_ELEMENTS.menuButton.hoverButton.properties.localPosition;
+                    Overlays.editOverlay(menuButtonHoverOverlays[intersectedItem], {
+                        localPosition: Vec3.sum(Vec3.sum(localPosition, MENU_HOVER_DELTA), BUTTON_PRESS_DELTA)
+                    });
+                    pressedItem = {
+                        index: intersectedItem,
+                        localPosition: localPosition,
+                        hoverDelta: MENU_HOVER_DELTA,
+                        pressedOverlays: menuButtonHoverOverlays
+                    };
+                } else {
+                    localPosition = intersectionItems[intersectedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[intersectedItem], {
                         localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
                     });
+                    pressedItem = {
+                        index: intersectedItem,
+                        localPosition: localPosition,
+                        hoverDelta: OPTION_HOVER_DELTA
+                    };
                 }
                 pressedSource = intersectionOverlays;
-                pressedItem = {
-                    index: intersectedItem,
-                    localPosition: localPosition
-                };
 
                 // Button press actions.
-                if (intersectionOverlays === menuOverlays && intersectionItems[intersectedItem].toolOptions) {
+                if (intersectionOverlays === menuOverlays) {
                     openOptions(intersectionItems[intersectedItem]);
                 }
                 if (intersectionItems[intersectedItem].command) {
@@ -3496,8 +3614,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         staticOverlays = [menuHeaderOverlay, menuHeaderHeadingOverlay, menuHeaderBarOverlay, menuHeaderTitleOverlay,
             menuPanelOverlay];
 
-        // Menu items.
+        // Menu and footer.
         openMenu();
+        displayFooter();
 
         // Initial values.
         optionsItems = null;
@@ -3546,10 +3665,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuHoverOverlays = [];
         menuIconOverlays = [];
         menuLabelOverlays = [];
+        menuEnabled = [];
         optionsOverlays = [];
         optionsOverlaysLabels = [];
         optionsOverlaysSublabels = [];
         optionsExtraOverlays = [];
+        optionsEnabled = [];
+        footerOverlays = [];
+        footerHoverOverlays = [];
+        footerIconOverlays = [];
+        footerLabelOverlays = [];
+        footerEnabled = [];
         isDisplaying = false;
     }
 
