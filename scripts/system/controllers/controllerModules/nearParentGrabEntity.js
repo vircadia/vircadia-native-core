@@ -187,7 +187,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                         var previousParentID = _this.previousParentID[childID];
                         var previousParentJointIndex = _this.previousParentJointIndex[childID];
 
-                        // The main flaw with keeping track of previous parantage in individual scripts is:
+                        // The main flaw with keeping track of previous parentage in individual scripts is:
                         // (1) A grabs something (2) B takes it from A (3) A takes it from B (4) A releases it
                         // now A and B will take turns passing it back to the other.  Detect this and stop the loop here...
                         var UNHOOK_LOOP_DETECT_MS = 200;
