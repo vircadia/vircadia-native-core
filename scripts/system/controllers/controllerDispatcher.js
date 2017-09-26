@@ -236,6 +236,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 RayPick.getPrevRayPickResult(_this.leftControllerHudRayPick),
                 RayPick.getPrevRayPickResult(_this.rightControllerHudRayPick)
             ];
+            var mouseRayPick = RayPick.getPrevRayPickResult(_this.mouseRayPick);
             // if the pickray hit something very nearby, put it into the nearby entities list
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
 
@@ -274,7 +275,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 nearbyEntityPropertiesByID: nearbyEntityPropertiesByID,
                 nearbyOverlayIDs: nearbyOverlayIDs,
                 rayPicks: rayPicks,
-                hudRayPicks: hudRayPicks
+                hudRayPicks: hudRayPicks,
+                mouseRayPick: mouseRayPick
             };
             if (PROFILE) {
                 Script.endProfileRange("dispatch.gather");
@@ -389,6 +391,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
+        });
+        this.mouseRayPick = RayPick.createRayPick({
+            joint: "Mouse",
+            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+            enabled: true
         });
 
         this.handleHandMessage = function(channel, message, sender) {
