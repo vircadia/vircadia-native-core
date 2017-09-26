@@ -630,6 +630,7 @@ private:
         render::Args _renderArgs;
         glm::mat4 _eyeToWorld;
         glm::mat4 _sensorToWorld;
+        float _sensorToWorldScale { 1.0f };
     };
     AppRenderArgs _appRenderArgs;
 

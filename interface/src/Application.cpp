@@ -2536,9 +2536,13 @@ void Application::paintGL() {
   //  auto lodManager = DependencyManager::get<LODManager>();
 
     RenderArgs renderArgs;
+    float sensorToWorldScale;
+    glm::mat4  HMDSensorPose;
     {
         QMutexLocker viewLocker(&_renderArgsMutex);
         renderArgs = _appRenderArgs._renderArgs;
+        HMDSensorPose = _appRenderArgs._eyeToWorld;
+        sensorToWorldScale = _appRenderArgs._sensorToWorldScale;
     }
 /*
     float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
@@ -2574,7 +2578,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(render, "/gpuContextReset");
      //   _gpuContext->beginFrame(getHMDSensorPose());
-        _gpuContext->beginFrame(getHMDSensorPose());
+        _gpuContext->beginFrame(HMDSensorPose);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
         gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
@@ -5386,6 +5390,7 @@ void Application::update(float deltaTime) {
         auto lodManager = DependencyManager::get<LODManager>();
 
         float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
+        appRenderArgs._sensorToWorldScale = sensorToWorldScale;
         {
             PROFILE_RANGE(render, "/buildFrustrumAndArgs");
             {
