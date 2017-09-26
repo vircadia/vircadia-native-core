@@ -29,10 +29,11 @@
         TOOL_SCALE = 1,
         TOOL_CLONE = 2,
         TOOL_GROUP = 3,
-        TOOL_COLOR = 4,
-        TOOL_PICK_COLOR = 5,
-        TOOL_PHYSICS = 6,
-        TOOL_DELETE = 7,
+        TOOL_GROUP_BOX = 4,
+        TOOL_COLOR = 5,
+        TOOL_PICK_COLOR = 6,
+        TOOL_PHYSICS = 7,
+        TOOL_DELETE = 8,
         toolSelected = TOOL_NONE,
         colorToolColor = { red: 128, green: 128, blue: 128 },
         physicsToolPhysics = { userData: { grabbableKey: {} } },
@@ -687,6 +688,7 @@
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(rootEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
                     toolSelected === TOOL_COLOR || toolSelected === TOOL_PICK_COLOR ? selection.intersectedEntityIndex() : null,
+                    null,
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(rootEntityID)
                         ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
             }
@@ -699,6 +701,7 @@
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(rootEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
                     toolSelected === TOOL_COLOR || toolSelected === TOOL_PICK_COLOR ? selection.intersectedEntityIndex() : null,
+                    null,
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(rootEntityID)
                         ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
                 if (!intersection.laserIntersected && !isUIVisible) {
@@ -812,10 +815,20 @@
 
         function enterEditorGrouping() {
             if (!grouping.includes(rootEntityID)) {
-                highlights.display(false, selection.selection(), null, highlights.GROUP_COLOR);
+                highlights.display(false, selection.selection(), null, null, highlights.GROUP_COLOR);
             }
-            Feedback.play(side, Feedback.SELECT_ENTITY);
-            grouping.toggle(selection.selection());
+            if (toolSelected === TOOL_GROUP_BOX) {
+                if (!grouping.includes(rootEntityID)) {
+                    Feedback.play(side, Feedback.SELECT_ENTITY);
+                    grouping.toggle(selection.selection());
+                    grouping.selectInBox();
+                } else {
+                    Feedback.play(side, Feedback.GENERAL_ERROR);
+                }
+            } else {
+                Feedback.play(side, Feedback.SELECT_ENTITY);
+                grouping.toggle(selection.selection());
+            }
         }
 
         function exitEditorGrouping() {
@@ -959,7 +972,7 @@
                         }
                     } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
-                    } else if (toolSelected === TOOL_GROUP) {
+                    } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         setState(EDITOR_HIGHLIGHTING);
@@ -1049,7 +1062,7 @@
                         }
                     } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
-                    } else if (toolSelected === TOOL_GROUP) {
+                    } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         if (selection.applyColor(colorToolColor, false)) {
@@ -1188,6 +1201,7 @@
                 }
                 break;
             case EDITOR_GROUPING:
+                // Immediate transition out of state after updating group data during state entry.
                 if (hand.valid() && isTriggerClicked) {
                     // No transition.
                     break;
@@ -1278,11 +1292,14 @@
 
         var groups,
             highlights,
+            selectInBoxSelection,  // Selection of all entities selected.
+            groupSelection,  // New group to add to selection.
             exludedLeftRootEntityID = null,
             exludedrightRootEntityID = null,
             excludedRootEntityIDs = [],
             hasHighlights = false,
-            hasSelectionChanged = false;
+            hasSelectionChanged = false,
+            isSelectInBox = false;
 
         if (!this instanceof Grouping) {
             return new Grouping();
@@ -1290,9 +1307,85 @@
 
         groups = new Groups();
         highlights = new Highlights();
+        selectInBoxSelection = new SelectionManager();
+        groupSelection = new SelectionManager();
+
+        function getAllChildrenIDs(entityID) {
+            var childrenIDs = [],
+                ENTITY_TYPE = "entity";
+
+            function traverseEntityTree(id) {
+                var children,
+                    i,
+                    length;
+                children = Entities.getChildrenIDs(id);
+                for (i = 0, length = children.length; i < length; i += 1) {
+                    if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
+                        childrenIDs.push(children[i]);
+                        traverseEntityTree(children[i]);
+                    }
+                }
+            }
+
+            traverseEntityTree(entityID);
+            return childrenIDs;
+        }
+
+        function isInsideBoundingBox(entityID, boundingBox) {
+            // Are all 8 corners of entityID's bounding box inside boundingBox?
+            var entityProperties,
+                cornerPosition,
+                boundingBoxInverseRotation,
+                boundingBoxHalfDimensions,
+                isInside = true,
+                i,
+                CORNER_REGISTRATION_OFFSETS = [
+                    { x: 0, y: 0, z: 0 },
+                    { x: 0, y: 0, z: 1 },
+                    { x: 0, y: 1, z: 0 },
+                    { x: 0, y: 1, z: 1 },
+                    { x: 1, y: 0, z: 0 },
+                    { x: 1, y: 0, z: 1 },
+                    { x: 1, y: 1, z: 0 },
+                    { x: 1, y: 1, z: 1 }
+                ],
+                NUM_CORNERS = 8;
+
+            entityProperties = Entities.getEntityProperties(entityID, ["position", "rotation", "dimensions",
+                "registrationPoint"]);
+
+            // Convert entity coordinates into boundingBox coordinates.
+            boundingBoxInverseRotation = Quat.inverse(boundingBox.orientation);
+            entityProperties.position = Vec3.multiplyQbyV(boundingBoxInverseRotation,
+                Vec3.subtract(entityProperties.position, boundingBox.center));
+            entityProperties.rotation = Quat.multiply(boundingBoxInverseRotation, entityProperties.rotation);
+
+            // Check all 8 corners of entity's bounding box are inside the given bounding box.
+            boundingBoxHalfDimensions = Vec3.multiply(0.5, boundingBox.dimensions);
+            i = 0;
+            while (isInside && i < NUM_CORNERS) {
+                cornerPosition = Vec3.sum(entityProperties.position, Vec3.multiplyQbyV(entityProperties.rotation,
+                    Vec3.multiplyVbyV(Vec3.subtract(CORNER_REGISTRATION_OFFSETS[i], entityProperties.registrationPoint),
+                        entityProperties.dimensions)));
+                isInside = Math.abs(cornerPosition.x) <= boundingBoxHalfDimensions.x
+                    && Math.abs(cornerPosition.y) <= boundingBoxHalfDimensions.y
+                    && Math.abs(cornerPosition.z) <= boundingBoxHalfDimensions.z;
+                i += 1;
+            }
+
+            return isInside;
+        }
 
         function toggle(selection) {
             groups.toggle(selection);
+            if (isSelectInBox) {
+                // When selecting in a box, toggle() is only called to add entities to the selection.
+                if (selectInBoxSelection.count() === 0) {
+                    selectInBoxSelection.select(selection[0].id);
+                } else {
+                    selectInBoxSelection.append(selection[0].id);
+                }
+            }
             if (groups.groupsCount() === 0) {
                 hasHighlights = false;
                 highlights.clear();
@@ -1300,6 +1393,87 @@
                 hasHighlights = true;
                 hasSelectionChanged = true;
             }
+        }
+
+        function selectInBox() {
+            // Add any entities or groups of entities wholly within bounding box of current selection.
+            // Must be wholly within otherwise selection could grow uncontrollably.
+            var boundingBox,
+                entityIDs,
+                checkedEntityIDs = [],
+                entityID,
+                rootID,
+                groupIDs,
+                doIncludeGroup,
+                i,
+                lengthI,
+                j,
+                lengthJ;
+
+            if (selectInBoxSelection.count() > 1) {
+                boundingBox = selectInBoxSelection.boundingBox();
+                entityIDs = Entities.findEntities(boundingBox.center, Vec3.length(boundingBox.dimensions) / 2);
+                for (i = 0, lengthI = entityIDs.length; i < lengthI; i += 1) {
+                    entityID = entityIDs[i];
+                    if (checkedEntityIDs.indexOf(entityID) === -1) {
+                        rootID = Entities.rootOf(entityID);
+                        if (!selectInBoxSelection.contains(entityID) && Entities.hasEditableRoot(rootID)) {
+                            groupIDs = [rootID].concat(getAllChildrenIDs(rootID));
+                            doIncludeGroup = true;
+                            j = 0;
+                            lengthJ = groupIDs.length;
+                            while (doIncludeGroup && j < lengthJ) {
+                                doIncludeGroup = isInsideBoundingBox(groupIDs[j], boundingBox);
+                                j += 1;
+                            }
+                            checkedEntityIDs = checkedEntityIDs.concat(groupIDs);
+                            if (doIncludeGroup) {
+                                groupSelection.select(rootID);
+                                groups.toggle(groupSelection.selection());
+                                groupSelection.clear();
+                                selectInBoxSelection.append(rootID);
+                                hasSelectionChanged = true;
+                            }
+                        } else {
+                            checkedEntityIDs.push(rootID);
+                        }
+                    }
+                }
+            }
+        }
+
+        function startSelectInBox() {
+            // Start automatically selecting entities in bounding box of current selection.
+            var rootEntityIDs,
+                i,
+                length;
+
+            isSelectInBox = true;
+
+            // Select entities current groups combined.
+            rootEntityIDs = groups.rootEntityIDs();
+            if (rootEntityIDs.length > 0) {
+                selectInBoxSelection.select(rootEntityIDs[0]);
+                for (i = 1, length = rootEntityIDs.length; i < length; i += 1) {
+                    selectInBoxSelection.append(rootEntityIDs[i]);
+                }
+            }
+
+            // Add any enclosed entities.
+            selectInBox();
+
+            // Show bounding box overlay plus any newly selected entities.
+            hasSelectionChanged = true;
+        }
+
+        function stopSelectInBox() {
+            // Stop automatically selecting entities within bounding box of current selection.
+
+            // Hide bounding box overlay.
+            selectInBoxSelection.clear();
+            hasSelectionChanged = true;
+
+            isSelectInBox = false;
         }
 
         function includes(rootEntityID) {
@@ -1323,7 +1497,9 @@
         }
 
         function update(leftRootEntityID, rightRootEntityID) {
-            var hasExludedRootEntitiesChanged;
+            // Update highlights displayed, excluding entities highlighted by left or right hands.
+            var hasExludedRootEntitiesChanged,
+                boundingBox;
 
             hasExludedRootEntitiesChanged = leftRootEntityID !== exludedLeftRootEntityID
                 || rightRootEntityID !== exludedrightRootEntityID;
@@ -1344,12 +1520,15 @@
                 exludedrightRootEntityID = rightRootEntityID;
             }
 
-            highlights.display(false, groups.selection(excludedRootEntityIDs), null, highlights.GROUP_COLOR);
-
+            boundingBox = isSelectInBox && selectInBoxSelection.count() > 1 ? selectInBoxSelection.boundingBox() : null;
+            highlights.display(false, groups.selection(excludedRootEntityIDs), null, boundingBox, highlights.GROUP_COLOR);
             hasSelectionChanged = false;
         }
 
         function clear() {
+            if (isSelectInBox) {
+                stopSelectInBox();
+            }
             groups.clear();
             highlights.clear();
         }
@@ -1363,10 +1542,21 @@
                 highlights.destroy();
                 highlights = null;
             }
+            if (selectInBoxSelection) {
+                selectInBoxSelection.destroy();
+                selectInBoxSelection = null;
+            }
+            if (groupSelection) {
+                groupSelection.destroy();
+                groupSelection = null;
+            }
         }
 
         return {
             toggle: toggle,
+            startSelectInBox: startSelectInBox,
+            selectInBox: selectInBox,
+            stopSelectInBox: stopSelectInBox,
             includes: includes,
             groupsCount: groupsCount,
             entitiesCount: entitiesCount,
@@ -1488,6 +1678,23 @@
             toolSelected = TOOL_NONE;
             ui.clearTool();
             ui.updateUIOverlays();
+            break;
+        case "toggleGroupSelectionBoxTool":
+            toolSelected = parameter ? TOOL_GROUP_BOX : TOOL_GROUP;
+            if (toolSelected === TOOL_GROUP_BOX) {
+                grouping.startSelectInBox();
+            } else {
+                grouping.stopSelectInBox();
+            }
+            break;
+        case "clearGroupSelectionTool":
+            if (grouping.groupsCount() > 0) {
+                Feedback.play(dominantHand, Feedback.SELECT_ENTITY);
+            }
+            grouping.clear();
+            if (toolSelected === TOOL_GROUP_BOX) {
+                grouping.startSelectInBox();
+            }
             break;
 
         case "setColor":

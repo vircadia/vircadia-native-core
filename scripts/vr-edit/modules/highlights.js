@@ -17,11 +17,14 @@ Highlights = function (side) {
 
     var handOverlay,
         entityOverlays = [],
+        boundingBoxOverlay,
+        isDisplayingBoundingBox = false,
         HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
         SCALE_COLOR = { red: 0, green: 240, blue: 240 },
         GROUP_COLOR = { red: 220, green: 60, blue: 220 },
         HAND_HIGHLIGHT_ALPHA = 0.35,
         ENTITY_HIGHLIGHT_ALPHA = 0.8,
+        BOUNDING_BOX_ALPHA = 0.8,
         HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 },
         LEFT_HAND = 0;
 
@@ -38,6 +41,14 @@ Highlights = function (side) {
         localPosition: HAND_HIGHLIGHT_OFFSET,
         alpha: HAND_HIGHLIGHT_ALPHA,
         solid: true,
+        drawInFront: true,
+        ignoreRayIntersection: true,
+        visible: false
+    });
+
+    boundingBoxOverlay = Overlays.addOverlay("cube", {
+        alpha: BOUNDING_BOX_ALPHA,
+        solid: false,
         drawInFront: true,
         ignoreRayIntersection: true,
         visible: false
@@ -75,7 +86,7 @@ Highlights = function (side) {
         });
     }
 
-    function display(handIntersected, selection, entityIndex, overlayColor) {
+    function display(handIntersected, selection, entityIndex, boundingBox, overlayColor) {
         // Displays highlight for just entityIndex if non-null, otherwise highlights whole selection.
         var i,
             length;
@@ -86,7 +97,8 @@ Highlights = function (side) {
             visible: handIntersected
         });
 
-        if (entityIndex  !== null) {
+        // Display entity overlays.
+        if (entityIndex !== null) {
             // Add/edit entity overlay for just entityIndex.
             maybeAddEntityOverlay(0);
             editEntityOverlay(0, selection[entityIndex], overlayColor);
@@ -103,14 +115,30 @@ Highlights = function (side) {
             Overlays.deleteOverlay(entityOverlays[i]);
             entityOverlays.splice(i, 1);
         }
+
+        // Update bounding box overlay.
+        if (boundingBox !== null) {
+            Overlays.editOverlay(boundingBoxOverlay, {
+                position: boundingBox.center,
+                rotation: boundingBox.orientation,
+                dimensions: boundingBox.dimensions,
+                color: overlayColor,
+                visible: true
+            });
+            isDisplayingBoundingBox = true;
+        } else if (isDisplayingBoundingBox) {
+            Overlays.editOverlay(boundingBoxOverlay, { visible: false });
+            isDisplayingBoundingBox = false;
+        }
     }
 
     function clear() {
         var i,
             length;
 
-        // Hide hand overlay.
+        // Hide hand and bounding box overlays.
         Overlays.editOverlay(handOverlay, { visible: false });
+        Overlays.editOverlay(boundingBoxOverlay, { visible: false });
 
         // Delete entity overlays.
         for (i = 0, length = entityOverlays.length; i < length; i += 1) {
@@ -122,6 +150,7 @@ Highlights = function (side) {
     function destroy() {
         clear();
         Overlays.deleteOverlay(handOverlay);
+        Overlays.deleteOverlay(boundingBoxOverlay);
     }
 
     return {

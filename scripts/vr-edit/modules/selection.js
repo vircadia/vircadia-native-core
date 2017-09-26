@@ -16,6 +16,7 @@ SelectionManager = function (side) {
     "use strict";
 
     var selection = [],  // Subset of properties to provide externally.
+        selectionIDs = [],
         selectionProperties = [],  // Full set of properties for history.
         intersectedEntityID = null,
         intersectedEntityIndex,
@@ -42,7 +43,7 @@ SelectionManager = function (side) {
         return new SelectionManager(side);
     }
 
-    function traverseEntityTree(id, selection, selectionProperties) {
+    function traverseEntityTree(id, selection, selectionIDs, selectionProperties) {
         // Recursively traverses tree of entities and their children, gather IDs and properties.
         // The root entity is always the first entry.
         var children,
@@ -65,6 +66,7 @@ SelectionManager = function (side) {
             collisionless: properties.collisionless,
             userData: properties.userData
         });
+        selectionIDs.push(id);
         selectionProperties.push({ entityID: id, properties: properties });
 
         if (id === intersectedEntityID) {
@@ -74,7 +76,7 @@ SelectionManager = function (side) {
         children = Entities.getChildrenIDs(id);
         for (i = 0, length = children.length; i < length; i += 1) {
             if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
-                traverseEntityTree(children[i], selection, selectionProperties);
+                traverseEntityTree(children[i], selection, selectionIDs, selectionProperties);
             }
         }
     }
@@ -95,8 +97,15 @@ SelectionManager = function (side) {
 
         // Find all children.
         selection = [];
+        selectionIDs = [];
         selectionProperties = [];
-        traverseEntityTree(rootEntityID, selection, selectionProperties);
+        traverseEntityTree(rootEntityID, selection, selectionIDs, selectionProperties);
+    }
+
+    function append(rootEntityID) {
+        // Add further entities to the selection.
+        // Assumes that rootEntityID is not already in the selection.
+        traverseEntityTree(rootEntityID, selection, selectionIDs, selectionProperties);
     }
 
     function getIntersectedEntityID() {
@@ -113,6 +122,10 @@ SelectionManager = function (side) {
 
     function getSelection() {
         return selection;
+    }
+
+    function contains(entityID) {
+        return selectionIDs.indexOf(entityID) !== -1;
     }
 
     function count() {
@@ -754,7 +767,9 @@ SelectionManager = function (side) {
 
     return {
         select: select,
+        append: append,
         selection: getSelection,
+        contains: contains,
         count: count,
         intersectedEntityID: getIntersectedEntityID,
         intersectedEntityIndex: getIntersectedEntityIndex,
