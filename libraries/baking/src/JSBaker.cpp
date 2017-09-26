@@ -76,7 +76,9 @@ void JSBaker::bakeJS(QFile* inputFile) {
             } else if (nextCharacter == '*') {
                 // Check if multi line comment i.e. /*
                 handleMultiLineComments(&in);
-                
+                if (hasErrors()) {
+                    return;
+                }
                 //Start fresh after handling comments
                 previousCharacter = '\n';
                 in >> currentCharacter;
@@ -147,13 +149,9 @@ void JSBaker::bakeJS(QFile* inputFile) {
     
     // Reading done. Closing the inputFile
     inputFile->close();
-
-    if (hasErrors()) {
-        return;
-    } else {
-        // Bake successful, Export the compressed outputFile
-        exportJS(&outputFile);
-    }
+    
+    // Bake successful, Export the compressed outputFile
+    exportJS(&outputFile);
 }
 
 void JSBaker::exportJS(QFile* bakedFile) {
