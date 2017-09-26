@@ -241,7 +241,6 @@ private:
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    qDebug() << "Processing geometry: " << _effectiveBaseURL;
     _url = _effectiveBaseURL;
     _textureBaseUrl = _effectiveBaseURL;
     QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
@@ -255,7 +254,6 @@ void GeometryDefinitionResource::setGeometryDefinition(FBXGeometry::Pointer fbxG
     QHash<QString, size_t> materialIDAtlas;
     for (const FBXMaterial& material : _fbxGeometry->materials) {
         materialIDAtlas[material.materialID] = _materials.size();
-            qDebug() << "setGeometryDefinition() " << _textureBaseUrl;
         _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
     }
 
@@ -348,7 +346,6 @@ Geometry::Geometry(const Geometry& geometry) {
 
     _materials.reserve(geometry._materials.size());
     for (const auto& material : geometry._materials) {
-        qDebug() << "Geometry() no base url...";
         _materials.push_back(std::make_shared<NetworkMaterial>(*material));
     }
 
@@ -434,7 +431,6 @@ void GeometryResource::deleter() {
 void GeometryResource::setTextures() {
     if (_fbxGeometry) {
         for (const FBXMaterial& material : _fbxGeometry->materials) {
-            qDebug() << "setTextures() " << _textureBaseUrl;
             _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
         }
     }
@@ -536,7 +532,6 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image
 NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) :
     model::Material(*material._material)
 {
-    qDebug() << "Created network material with base url: " << textureBaseUrl;
     _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
     if (!material.albedoTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);

@@ -70,7 +70,6 @@ Item {
 
             for (var i = 0; i < items.length; ++i) {
                 var item = items[i];
-                if (!item.visible) continue;
                 switch (item.type) {
                 case MenuItemType.Menu:
                     result.append({"name": item.title, "item": item})
@@ -216,5 +215,4 @@ Item {
     function nextItem() { d.topMenu.nextItem(); }
     function selectCurrentItem() { d.topMenu.selectCurrentItem(); }
     function previousPage() { d.topMenu.previousPage(); }
-
 }
