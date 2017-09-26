@@ -34,7 +34,7 @@ void JSBaker::importJS() {
     // Import the file to be processed from _jsURL
     QFile jsFile(_jsURL.toLocalFile());
     if (!jsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        handleError("Error opening " + _originalJSFilePath + " for reading");
+        handleError("Error opening " + _jsURL.fileName() + " for reading");
         return;
     }
     
@@ -85,19 +85,17 @@ void JSBaker::bakeJS(QFile* inputFile) {
                 // If '/' is not followed by '/' or '*' print '/'
                 out << currentCharacter;
             }
-        } else if (isControlCharacter(currentCharacter)) { 
+        } else if (isSpaceOrTab(currentCharacter)) { 
             // Check if white space or tab
 
             // Skip multiple spaces or tabs
-            if (isControlCharacter(nextCharacter)) {
-                while (isControlCharacter(nextCharacter)) {
-                    in >> nextCharacter;
-                    if (nextCharacter == '\n') {
-                        break;
-                    }
+            while (isSpaceOrTab(nextCharacter)) {
+                in >> nextCharacter;
+                if (nextCharacter == '\n') {
+                    break;
                 }
             }
-            
+
             // check if space can be omitted
             if (!canOmitSpace(previousCharacter, nextCharacter)) {
                 out << ' ';
@@ -107,7 +105,7 @@ void JSBaker::bakeJS(QFile* inputFile) {
             
             //Skip multiple new lines
             //Skip new line followed by space or tab
-            while (nextCharacter == '\n' || isControlCharacter(nextCharacter)) {
+            while (nextCharacter == '\n' || isSpaceOrTab(nextCharacter)) {
                 in >> nextCharacter;
             }
              
@@ -246,7 +244,7 @@ bool JSBaker::isSpecialCharacterNext(QChar c) {
 }
 
 // Check if white space or tab
-bool JSBaker::isControlCharacter(QChar c) {
+bool JSBaker::isSpaceOrTab(QChar c) {
     return (c == ' ' || c == '\t');
 }
 
