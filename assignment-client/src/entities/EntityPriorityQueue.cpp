@@ -61,7 +61,7 @@ float ConicalView::computePriority(const EntityItemPointer& entity) const {
         return computePriority(cube);
     } else {
         // when in doubt give it something positive
-        return 1.0f;
+        return PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
     }
 }
 
