@@ -220,164 +220,164 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
     _conicalView.set(_traversal.getCurrentView());
 
     switch (type) {
-    case DiffTraversal::First:
-        // When we get to a First traversal, clear the _knownState
-        _knownState.clear();
-        if (usesViewFrustum) {
+        case DiffTraversal::First:
+            // When we get to a First traversal, clear the _knownState
+            _knownState.clear();
+            if (usesViewFrustum) {
+                float lodScaleFactor = _traversal.getCurrentLODScaleFactor();
+                glm::vec3 viewPosition = _traversal.getCurrentView().getPosition();
+                _traversal.setScanCallback([=](DiffTraversal::VisibleElement& next) {
+                    next.element->forEachEntity([=](EntityItemPointer entity) {
+                        // Bail early if we've already checked this entity this frame
+                        if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                            return;
+                        }
+                        bool success = false;
+                        AACube cube = entity->getQueryAACube(success);
+                        if (success) {
+                            if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
+                                // Check the size of the entity, it's possible that a "too small to see" entity is included in a
+                                // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+                                // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
+                                // before we consider including it.
+                                float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
+                                float angularDiameter = cube.getScale() / distance;
+                                if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
+                                    float priority = _conicalView.computePriority(cube);
+                                    _sendQueue.push(PrioritizedEntity(entity, priority));
+                                    _entitiesInQueue.insert(entity.get());
+                                }
+                            }
+                        } else {
+                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                            _entitiesInQueue.insert(entity.get());
+                        }
+                    });
+                });
+            } else {
+                _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
+                    next.element->forEachEntity([this](EntityItemPointer entity) {
+                        // Bail early if we've already checked this entity this frame
+                        if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                            return;
+                        }
+                        _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                        _entitiesInQueue.insert(entity.get());
+                    });
+                });
+            }
+            break;
+        case DiffTraversal::Repeat:
+            if (usesViewFrustum) {
+                float lodScaleFactor = _traversal.getCurrentLODScaleFactor();
+                glm::vec3 viewPosition = _traversal.getCurrentView().getPosition();
+                _traversal.setScanCallback([=](DiffTraversal::VisibleElement& next) {
+                    uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
+                    if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
+                        next.element->forEachEntity([=](EntityItemPointer entity) {
+                            // Bail early if we've already checked this entity this frame
+                            if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                                return;
+                            }
+                            auto knownTimestamp = _knownState.find(entity.get());
+                            if (knownTimestamp == _knownState.end()) {
+                                bool success = false;
+                                AACube cube = entity->getQueryAACube(success);
+                                if (success) {
+                                    if (next.intersection == ViewFrustum::INSIDE || _traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
+                                        // See the DiffTraversal::First case for an explanation of the "entity is too small" check
+                                        float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
+                                        float angularDiameter = cube.getScale() / distance;
+                                        if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
+                                            float priority = _conicalView.computePriority(cube);
+                                            _sendQueue.push(PrioritizedEntity(entity, priority));
+                                            _entitiesInQueue.insert(entity.get());
+                                        }
+                                    }
+                                } else {
+                                    _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                                    _entitiesInQueue.insert(entity.get());
+                                }
+                            } else if (entity->getLastEdited() > knownTimestamp->second) {
+                                // it is known and it changed --> put it on the queue with any priority
+                                // TODO: sort these correctly
+                                _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                                _entitiesInQueue.insert(entity.get());
+                            }
+                        });
+                    }
+                });
+            } else {
+                _traversal.setScanCallback([this](DiffTraversal::VisibleElement& next) {
+                    uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
+                    if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
+                        next.element->forEachEntity([this](EntityItemPointer entity) {
+                            // Bail early if we've already checked this entity this frame
+                            if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
+                                return;
+                            }
+                            auto knownTimestamp = _knownState.find(entity.get());
+                            if (knownTimestamp == _knownState.end() || entity->getLastEdited() > knownTimestamp->second) {
+                                _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                                _entitiesInQueue.insert(entity.get());
+                            }
+                        });
+                    }
+                });
+            }
+            break;
+        case DiffTraversal::Differential:
+            assert(usesViewFrustum);
             float lodScaleFactor = _traversal.getCurrentLODScaleFactor();
             glm::vec3 viewPosition = _traversal.getCurrentView().getPosition();
-            _traversal.setScanCallback([=](DiffTraversal::VisibleElement& next) {
+            float completedLODScaleFactor = _traversal.getCompletedLODScaleFactor();
+            glm::vec3 completedViewPosition = _traversal.getCompletedView().getPosition();
+            _traversal.setScanCallback([=] (DiffTraversal::VisibleElement& next) {
                 next.element->forEachEntity([=](EntityItemPointer entity) {
                     // Bail early if we've already checked this entity this frame
                     if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
                         return;
                     }
-                    bool success = false;
-                    AACube cube = entity->getQueryAACube(success);
-                    if (success) {
-                        if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
-                            // Check the size of the entity, it's possible that a "too small to see" entity is included in a
-                            // larger octree cell because of its position (for example if it crosses the boundary of a cell it
-                            // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
-                            // before we consider including it.
-                            float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
-                            float angularDiameter = cube.getScale() / distance;
-                            if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
-                                float priority = _conicalView.computePriority(cube);
-                                _sendQueue.push(PrioritizedEntity(entity, priority));
-                                _entitiesInQueue.insert(entity.get());
+                    auto knownTimestamp = _knownState.find(entity.get());
+                    if (knownTimestamp == _knownState.end()) {
+                        bool success = false;
+                        AACube cube = entity->getQueryAACube(success);
+                        if (success) {
+                            if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
+                                // See the DiffTraversal::First case for an explanation of the "entity is too small" check
+                                float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
+                                float angularDiameter = cube.getScale() / distance;
+                                if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
+                                    if (!_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
+                                        float priority = _conicalView.computePriority(cube);
+                                        _sendQueue.push(PrioritizedEntity(entity, priority));
+                                        _entitiesInQueue.insert(entity.get());
+                                    } else {
+                                        // If this entity was skipped last time because it was too small, we still need to send it
+                                        distance = glm::distance(cube.calcCenter(), completedViewPosition) + MIN_VISIBLE_DISTANCE;
+                                        angularDiameter = cube.getScale() / distance;
+                                        if (angularDiameter <= MIN_ENTITY_ANGULAR_DIAMETER * completedLODScaleFactor) {
+                                            // this object was skipped in last completed traversal
+                                            float priority = _conicalView.computePriority(cube);
+                                            _sendQueue.push(PrioritizedEntity(entity, priority));
+                                            _entitiesInQueue.insert(entity.get());
+                                        }
+                                    }
+                                }
                             }
+                        } else {
+                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
+                            _entitiesInQueue.insert(entity.get());
                         }
-                    } else {
+                    } else if (entity->getLastEdited() > knownTimestamp->second) {
+                        // it is known and it changed --> put it on the queue with any priority
+                        // TODO: sort these correctly
                         _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
                         _entitiesInQueue.insert(entity.get());
                     }
                 });
             });
-        } else {
-            _traversal.setScanCallback([=](DiffTraversal::VisibleElement& next) {
-                next.element->forEachEntity([&](EntityItemPointer entity) {
-                    // Bail early if we've already checked this entity this frame
-                    if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
-                        return;
-                    }
-                    _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                    _entitiesInQueue.insert(entity.get());
-                });
-            });
-        }
-        break;
-    case DiffTraversal::Repeat:
-        if (usesViewFrustum) {
-            float lodScaleFactor = _traversal.getCurrentLODScaleFactor();
-            glm::vec3 viewPosition = _traversal.getCurrentView().getPosition();
-            _traversal.setScanCallback([=](DiffTraversal::VisibleElement& next) {
-                uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
-                if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
-                    next.element->forEachEntity([=](EntityItemPointer entity) {
-                        // Bail early if we've already checked this entity this frame
-                        if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
-                            return;
-                        }
-                        auto knownTimestamp = _knownState.find(entity.get());
-                        if (knownTimestamp == _knownState.end()) {
-                            bool success = false;
-                            AACube cube = entity->getQueryAACube(success);
-                            if (success) {
-                                if (next.intersection == ViewFrustum::INSIDE || _traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
-                                    // See the DiffTraversal::First case for an explanation of the "entity is too small" check
-                                    float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
-                                    float angularDiameter = cube.getScale() / distance;
-                                    if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
-                                        float priority = _conicalView.computePriority(cube);
-                                        _sendQueue.push(PrioritizedEntity(entity, priority));
-                                        _entitiesInQueue.insert(entity.get());
-                                    }
-                                }
-                            } else {
-                                _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                                _entitiesInQueue.insert(entity.get());
-                            }
-                        } else if (entity->getLastEdited() > knownTimestamp->second) {
-                            // it is known and it changed --> put it on the queue with any priority
-                            // TODO: sort these correctly
-                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                            _entitiesInQueue.insert(entity.get());
-                        }
-                    });
-                }
-            });
-        } else {
-            _traversal.setScanCallback([=](DiffTraversal::VisibleElement& next) {
-                uint64_t startOfCompletedTraversal = _traversal.getStartOfCompletedTraversal();
-                if (next.element->getLastChangedContent() > startOfCompletedTraversal) {
-                    next.element->forEachEntity([=](EntityItemPointer entity) {
-                        // Bail early if we've already checked this entity this frame
-                        if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
-                            return;
-                        }
-                        auto knownTimestamp = _knownState.find(entity.get());
-                        if (knownTimestamp == _knownState.end() || entity->getLastEdited() > knownTimestamp->second) {
-                            _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                            _entitiesInQueue.insert(entity.get());
-                        }
-                    });
-                }
-            });
-        }
-        break;
-    case DiffTraversal::Differential:
-        assert(usesViewFrustum);
-        float lodScaleFactor = _traversal.getCurrentLODScaleFactor();
-        glm::vec3 viewPosition = _traversal.getCurrentView().getPosition();
-        float completedLODScaleFactor = _traversal.getCompletedLODScaleFactor();
-        glm::vec3 completedViewPosition = _traversal.getCompletedView().getPosition();
-        _traversal.setScanCallback([=] (DiffTraversal::VisibleElement& next) {
-            next.element->forEachEntity([=](EntityItemPointer entity) {
-                // Bail early if we've already checked this entity this frame
-                if (_entitiesInQueue.find(entity.get()) != _entitiesInQueue.end()) {
-                    return;
-                }
-                auto knownTimestamp = _knownState.find(entity.get());
-                if (knownTimestamp == _knownState.end()) {
-                    bool success = false;
-                    AACube cube = entity->getQueryAACube(success);
-                    if (success) {
-                        if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
-                            // See the DiffTraversal::First case for an explanation of the "entity is too small" check
-                            float distance = glm::distance(cube.calcCenter(), viewPosition) + MIN_VISIBLE_DISTANCE;
-                            float angularDiameter = cube.getScale() / distance;
-                            if (angularDiameter > MIN_ENTITY_ANGULAR_DIAMETER * lodScaleFactor) {
-                                if (!_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
-                                    float priority = _conicalView.computePriority(cube);
-                                    _sendQueue.push(PrioritizedEntity(entity, priority));
-                                    _entitiesInQueue.insert(entity.get());
-                                } else {
-                                    // If this entity was skipped last time because it was too small, we still need to send it
-                                    distance = glm::distance(cube.calcCenter(), completedViewPosition) + MIN_VISIBLE_DISTANCE;
-                                    angularDiameter = cube.getScale() / distance;
-                                    if (angularDiameter <= MIN_ENTITY_ANGULAR_DIAMETER * completedLODScaleFactor) {
-                                        // this object was skipped in last completed traversal
-                                        float priority = _conicalView.computePriority(cube);
-                                        _sendQueue.push(PrioritizedEntity(entity, priority));
-                                        _entitiesInQueue.insert(entity.get());
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                        _entitiesInQueue.insert(entity.get());
-                    }
-                } else if (entity->getLastEdited() > knownTimestamp->second) {
-                    // it is known and it changed --> put it on the queue with any priority
-                    // TODO: sort these correctly
-                    _sendQueue.push(PrioritizedEntity(entity, PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY));
-                    _entitiesInQueue.insert(entity.get());
-                }
-            });
-        });
-        break;
+            break;
     }
 }
 
@@ -467,7 +467,7 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
     return true;
 }
 
-void EntityTreeSendThread::editingEntityPointer(const EntityItemPointer entity) {
+void EntityTreeSendThread::editingEntityPointer(const EntityItemPointer& entity) {
     if (entity) {
         if (_entitiesInQueue.find(entity.get()) == _entitiesInQueue.end() && _knownState.find(entity.get()) != _knownState.end()) {
             bool success = false;

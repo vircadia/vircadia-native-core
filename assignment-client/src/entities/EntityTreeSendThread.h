@@ -59,7 +59,7 @@ private:
     uint16_t _numEntities { 0 };
 
 private slots:
-    void editingEntityPointer(const EntityItemPointer entity);
+    void editingEntityPointer(const EntityItemPointer& entity);
     void deletingEntityPointer(EntityItem* entity);
 };
 
