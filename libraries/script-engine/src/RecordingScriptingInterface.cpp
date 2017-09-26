@@ -54,8 +54,23 @@ float RecordingScriptingInterface::playerLength() const {
     return _player->length();
 }
 
+void RecordingScriptingInterface::playClip(NetworkClipLoaderPointer clipLoader, const QString& url, QScriptValue callback) {
+    _player->queueClip(clipLoader->getClip());
+
+    if (callback.isFunction()) {
+        QScriptValueList args { true, url };
+        callback.call(_scriptEngine->globalObject(), args);
+    }
+}
+
 void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue callback) {
     auto clipLoader = DependencyManager::get<recording::ClipCache>()->getClipLoader(url);
+
+    if (clipLoader->isLoaded()) {
+        qCDebug(scriptengine) << "Recording already loaded from" << url;
+        playClip(clipLoader, url, callback);
+        return;
+    }
 
     // hold a strong pointer to the loading clip so that it has a chance to load
     _clipLoaders.insert(clipLoader);
@@ -69,12 +84,7 @@ void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue
         if (auto clipLoader = weakClipLoader.toStrongRef()) {
             qCDebug(scriptengine) << "Loaded recording from" << url;
 
-            _player->queueClip(clipLoader->getClip());
-
-            if (callback.isFunction()) {
-                QScriptValueList args { true, url };
-                callback.call(_scriptEngine->globalObject(), args);
-            }
+            playClip(clipLoader, url, callback);
 
             // drop our strong pointer to this clip so it is cleaned up
             _clipLoaders.remove(clipLoader);
