@@ -148,9 +148,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * TEAR_AWAY_CHECK_TIME) {
                 this.lastUnequipCheckTime = now;
                 if (props.parentID == AVATAR_SELF_ID) {
+                    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
                     var handPosition = controllerData.controllerLocations[this.hand].position;
                     var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
-                    if (dist > TEAR_AWAY_DISTANCE) {
+                    var distance = Vec3.distance(props.position, handPosition);
+                    if ((dist > TEAR_AWAY_DISTANCE) ||
+                        (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
                         this.autoUnequipCounter++;
                     } else {
                         this.autoUnequipCounter = 0;
@@ -184,7 +187,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                         var previousParentID = _this.previousParentID[childID];
                         var previousParentJointIndex = _this.previousParentJointIndex[childID];
 
-                        // The main flaw with keeping track of previous parantage in individual scripts is:
+                        // The main flaw with keeping track of previous parentage in individual scripts is:
                         // (1) A grabs something (2) B takes it from A (3) A takes it from B (4) A releases it
                         // now A and B will take turns passing it back to the other.  Detect this and stop the loop here...
                         var UNHOOK_LOOP_DETECT_MS = 200;
@@ -214,8 +217,10 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 var handPosition = controllerData.controllerLocations[this.hand].position;
-                var distance = Vec3.distance(props.position, handPosition);
-                if (distance > NEAR_GRAB_RADIUS * sensorScaleFactor) {
+                var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
+                var distance = Vec3.distance(handPosition, props.position);
+                if ((dist > TEAR_AWAY_DISTANCE) ||
+                    (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
                     continue;
                 }
                 if (entityIsGrabbable(props)) {
