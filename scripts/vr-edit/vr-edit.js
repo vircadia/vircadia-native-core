@@ -452,9 +452,8 @@
             return rootEntityID;
         }
 
-        function isCameraOutsideEntity(entityID) {
+        function isCameraOutsideEntity(entityID, entityPosition) {
             var cameraPosition,
-                grabPosition,
                 pickRay,
                 PRECISION_PICKING = true,
                 NO_EXCLUDE_IDS = [],
@@ -462,11 +461,10 @@
                 intersection;
 
             cameraPosition = Camera.position;
-            grabPosition = side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
             pickRay = {
                 origin: cameraPosition,
-                direction: Vec3.normalize(Vec3.subtract(grabPosition, cameraPosition)),
-                length: Vec3.distance(grabPosition, cameraPosition)
+                direction: Vec3.normalize(Vec3.subtract(entityPosition, cameraPosition)),
+                length: Vec3.distance(entityPosition, cameraPosition)
             };
             intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, [entityID], NO_EXCLUDE_IDS, VISIBLE_ONLY);
 
@@ -894,7 +892,8 @@
 
 
         function update() {
-            var showUI,
+            var isTriggerPressed,
+                showUI,
                 previousState = editorState,
                 doUpdateState,
                 color;
@@ -902,11 +901,12 @@
             intersection = getIntersection();
             isTriggerClicked = hand.triggerClicked();
             isGripClicked = hand.gripClicked();
+            isTriggerPressed = hand.triggerPressed();
 
             // Hide UI if hand is intersecting entity and camera is outside entity, or it hand is intersecting stretch handle.
             if (dominantHand !== side) {
-                showUI = !intersection.handIntersected
-                    || (intersection.entityID !== null && !isCameraOutsideEntity(intersection.entityID));
+                showUI = !intersection.handIntersected || (intersection.entityID !== null
+                    && !isCameraOutsideEntity(intersection.entityID, intersection.intersection));
                 if (showUI !== isUIVisible) {
                     isUIVisible = !isUIVisible;
                     ui.setVisible(isUIVisible);
@@ -924,9 +924,13 @@
                 break;
             case EDITOR_SEARCHING:
                 if (hand.valid()
-                        && (!intersection.entityID || !(intersection.editableEntity || toolSelected === TOOL_PICK_COLOR))
                         && !(intersection.overlayID && !wasTriggerClicked && isTriggerClicked
-                            && otherEditor.isHandle(intersection.overlayID))) {
+                            && otherEditor.isHandle(intersection.overlayID))
+                        && !(intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                            && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab
+                            && (isCameraOutsideEntity(intersection.entityID, intersection.intersection) || isTriggerPressed))
+                        && !(intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                            && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked)) {
                     // No transition.
                     updateState();
                     updateTool();
@@ -940,7 +944,8 @@
                     rootEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
                 } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
-                        && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab) {
+                        && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab
+                        && (isCameraOutsideEntity(intersection.entityID, intersection.intersection) || isTriggerPressed)) {
                     intersectedEntityID = intersection.entityID;
                     rootEntityID = Entities.rootOf(intersectedEntityID);
                     setState(EDITOR_HIGHLIGHTING);
@@ -991,6 +996,7 @@
             case EDITOR_HIGHLIGHTING:
                 if (hand.valid()
                         && intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                            && (isCameraOutsideEntity(intersection.entityID, intersection.intersection) || isTriggerPressed)
                         && !(!wasTriggerClicked && isTriggerClicked
                             && (!otherEditor.isEditing(rootEntityID) || toolSelected !== TOOL_SCALE))
                         && !(!wasTriggerClicked && isTriggerClicked && intersection.overlayID
@@ -1070,7 +1076,8 @@
                     } else {
                         setState(EDITOR_GRABBING);
                     }
-                } else if (!intersection.entityID || !intersection.editableEntity) {
+                } else if (!intersection.entityID || !intersection.editableEntity
+                        || (!isCameraOutsideEntity(intersection.entityID, intersection.intersection) && !isTriggerPressed)) {
                     setState(EDITOR_SEARCHING);
                 } else {
                     log(side, "ERROR: Editor: Unexpected condition B in EDITOR_HIGHLIGHTING!");
