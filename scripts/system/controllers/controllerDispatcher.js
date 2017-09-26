@@ -10,7 +10,7 @@
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
    controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
-   getGrabPointSphereOffset, HMD, MyAvatar, Messages
+   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities
 */
 
 controllerDispatcherPlugins = {};
@@ -27,6 +27,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
     var PROFILE = false;
+    var DEBUG = true;
 
     if (typeof Test !== "undefined") {
         PROFILE = true;
@@ -195,7 +196,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             var h;
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
                 if (controllerLocations[h].valid) {
-                    var nearbyOverlays = Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS * sensorScaleFactor);
+                    var nearbyOverlays =
+                        Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS * sensorScaleFactor);
                     nearbyOverlays.sort(function (a, b) {
                         var aPosition = Overlays.getProperty(a, "position");
                         var aDistance = Vec3.distance(aPosition, controllerLocations[h].position);
@@ -265,6 +267,20 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 });
             }
 
+            // sometimes, during a HMD snap-turn, an equipped or held item wont be near
+            // the hand when the findEntities is done.  Gather up any hand-children here.
+            for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
+                var handChildrenIDs = findHandChildEntities(h);
+                handChildrenIDs.forEach(function (handChildID) {
+                    if (handChildID in nearbyEntityPropertiesByID) {
+                        return;
+                    }
+                    var props = Entities.getEntityProperties(handChildID, DISPATCHER_PROPERTIES);
+                    props.id = handChildID;
+                    nearbyEntityPropertiesByID[handChildID] = props;
+                });
+            }
+
             // bundle up all the data about the current situation
             var controllerData = {
                 triggerValues: [_this.leftTriggerValue, _this.rightTriggerValue],
@@ -300,6 +316,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         // activity-slots which this plugin consumes as "in use"
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
+                        if (DEBUG) {
+                            print("controllerDispatcher running " + orderedPluginName);
+                        }
                     }
                     if (PROFILE) {
                         Script.endProfileRange("dispatch.isReady." + orderedPluginName);
@@ -332,6 +351,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
+                            if (DEBUG) {
+                                print("controllerDispatcher stopping " + runningPluginName);
+                            }
                         }
                         if (PROFILE) {
                             Script.endProfileRange("dispatch.run." + runningPluginName);
