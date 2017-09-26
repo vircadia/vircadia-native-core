@@ -464,7 +464,7 @@ void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
     _resource = resource;
     if (_resource) {
         if (_resource->isLoaded()) {
-            _geometryRef = std::make_shared<Geometry>(*_resource);
+            resourceFinished(true);
         } else {
             startWatching();
         }

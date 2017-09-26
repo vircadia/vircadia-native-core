@@ -25,10 +25,15 @@
 
 class AssetMappingModel : public QStandardItemModel {
     Q_OBJECT
+    Q_PROPERTY(bool autoRefreshEnabled READ isAutoRefreshEnabled WRITE setAutoRefreshEnabled)
+
 public:
     AssetMappingModel();
 
     Q_INVOKABLE void refresh();
+
+    bool isAutoRefreshEnabled();
+    void setAutoRefreshEnabled(bool enabled);
 
     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
     bool isKnownFolder(QString path) const;
@@ -44,6 +49,7 @@ private:
     void setupRoles();
 
     QHash<QString, QStandardItem*> _pathToItemMap;
+    QTimer _autoRefreshTimer;
 };
 
 Q_DECLARE_METATYPE(AssetMappingModel*)

@@ -450,7 +450,7 @@
                 var parsedJsonMessage = JSON.parse(message);
 
                 if (parsedJsonMessage.type === "marketplaces") {
-                    if (parsedJsonMessage.action === "inspectionModeSetting") {
+                    if (parsedJsonMessage.action === "commerceSetting") {
                         confirmAllPurchases = !!parsedJsonMessage.data;
                         injectCode();
                     }
@@ -458,7 +458,7 @@
             }
         });
 
-        // Request inspection mode setting
+        // Request commerce setting
         // Code is injected into the webpage after the setting comes back.
         EventBridge.emitWebEvent(JSON.stringify({
             type: "REQUEST_SETTING"

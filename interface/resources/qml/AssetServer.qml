@@ -49,8 +49,13 @@ ScrollingWindow {
     Component.onCompleted: {
         ApplicationInterface.uploadRequest.connect(uploadClicked);
         assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError);
+        assetMappingsModel.autoRefreshEnabled = true;
 
         reload();
+    }
+
+    Component.onDestruction: {
+        assetMappingsModel.autoRefreshEnabled = false;
     }
     
     function doDeleteFile(path) {
@@ -146,7 +151,6 @@ ScrollingWindow {
 
     function reload() {
         Assets.mappingModel.refresh();
-        treeView.selection.clear();
     }
 
     function handleGetMappingsError(errorString) {
@@ -502,16 +506,6 @@ ScrollingWindow {
                     onClicked: root.deleteFile()
                     enabled: treeView.selection.hasSelection
                 }
-                
-                HifiControls.GlyphButton {
-
-                    glyph: hifi.glyphs.reload
-                    color: hifi.buttons.black
-                    colorScheme: root.colorScheme
-                    width: hifi.dimensions.controlLineHeight
-
-                    onClicked: root.reload()
-                }
             }
         }
 
@@ -751,7 +745,7 @@ ScrollingWindow {
                         var path = assetProxyModel.data(index, 0x100);
                         mappings.push(path);
                     }
-                    print("Setting baking enabled:" + mappings + checked);
+                    print("Setting baking enabled:" + mappings + " " + checked);
                     Assets.setBakingEnabled(mappings, checked, function() {
                         reload();
                     });
