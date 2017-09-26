@@ -43,6 +43,7 @@ public:
     xColor getBackgroundColor();
     float getTextAlpha() { return _textAlpha; }
     float getBackgroundAlpha() { return getAlpha(); }
+    bool isTransparent() override { return Overlay::isTransparent() || _textAlpha < 1.0f; }
 
     // setters
     void setText(const QString& text);
