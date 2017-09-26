@@ -50,7 +50,7 @@ static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx"};
+static const QStringList BAKEABLE_MODEL_EXTENSIONS = {"fbx"};
 static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
 static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = {"js"};
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
@@ -99,7 +99,7 @@ std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& pa
     QString bakedFilename;
 
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-        bakedFilename = BAKED_MODEL_SIMPLE_NAME;  
+        bakedFilename = BAKED_MODEL_SIMPLE_NAME;
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
     } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
