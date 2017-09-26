@@ -78,6 +78,9 @@ signals:
     void requestWebSurface();
     void releaseWebSurface();
 
+protected:
+    Transform evalRenderTransform() override;
+
 private:
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;

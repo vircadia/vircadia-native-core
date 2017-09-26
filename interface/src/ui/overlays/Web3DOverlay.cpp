@@ -302,7 +302,6 @@ void Web3DOverlay::render(RenderArgs* args) {
         emit resizeWebSurface();
     }
 
-    vec2 halfSize = getSize() / 2.0f;
     vec4 color(toGlm(getColor()), getAlpha());
 
     if (!_texture) {
@@ -318,8 +317,11 @@ void Web3DOverlay::render(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     batch.setResourceTexture(0, _texture);
+
     auto renderTransform = getRenderTransform();
-    batch.setModelTransform(getRenderTransform());
+    auto size = renderTransform.getScale();
+    renderTransform.setScale(1.0f);
+    batch.setModelTransform(renderTransform);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (color.a < OPAQUE_ALPHA_THRESHOLD) {
@@ -327,8 +329,17 @@ void Web3DOverlay::render(RenderArgs* args) {
     } else {
         geometryCache->bindWebBrowserProgram(batch);
     }
+
+    vec2 halfSize = vec2(size.x, size.y) / 2.0f;
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
     batch.setResourceTexture(0, nullptr); // restore default white color after me
+}
+
+Transform Web3DOverlay::evalRenderTransform() {
+    Transform transform = Parent::evalRenderTransform();
+    transform.setScale(1.0f);
+    transform.postScale(glm::vec3(getSize(), 1.0f));
+    return transform;
 }
 
 const render::ShapeKey Web3DOverlay::getShapeKey() {
