@@ -25,21 +25,12 @@ public:
 public slots:
     virtual void bake() override;
 
-signals:
-    void sourceJSLoaded();
-
-private slots:
-    void importJS();
-
 private :
     QUrl _jsURL;
     QString _bakedOutputDir;
-    QDir _tempDir;
-    QString _originalJSFilePath;
     QString _bakedJSFilePath;
-    QByteArray _buffer;
 
-    void loadSourceJS();
+    void importJS();
     void bakeJS(QFile*);
     void exportJS(QFile*);
 
