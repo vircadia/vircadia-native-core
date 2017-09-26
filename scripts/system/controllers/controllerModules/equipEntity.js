@@ -499,6 +499,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var cloneID = this.cloneHotspot(grabbedProperties, controllerData);
                 this.targetEntityID = cloneID;
                 Entities.editEntity(this.targetEntityID, reparentProps);
+                controllerData.nearbyEntityPropertiesByID[this.targetEntityID] = grabbedProperties;
                 isClone = true;
             } else if (!grabbedProperties.locked) {
                 Entities.editEntity(this.targetEntityID, reparentProps);
