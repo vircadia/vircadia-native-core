@@ -294,8 +294,9 @@ ensureDynamic = function (entityID) {
 };
 
 findGroupParent = function (controllerData, targetProps) {
-    while (targetProps.parentID && targetProps.parentID !== NULL_UUID && targetProps.parentID !== AVATAR_SELF_ID) {
-        // XXX use controllerData.nearbyEntityPropertiesByID ?
+    while (targetProps.parentID &&
+           targetProps.parentID !== NULL_UUID &&
+           Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
             break;
