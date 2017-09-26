@@ -167,21 +167,21 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
         type = Type::First;
         _currentView.viewFrustum = viewFrustum;
         _currentView.lodScaleFactor = lodScaleFactor;
-        _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
+        _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementFirstTime(next, _currentView);
         };
     } else if (!_currentView.usesViewFrustum ||
                (_completedView.viewFrustum.isVerySimilar(viewFrustum) &&
                 lodScaleFactor == _completedView.lodScaleFactor)) {
         type = Type::Repeat;
-        _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
+        _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementRepeat(next, _completedView, _completedView.startTime);
         };
     } else {
         type = Type::Differential;
         _currentView.viewFrustum = viewFrustum;
         _currentView.lodScaleFactor = lodScaleFactor;
-        _getNextVisibleElementCallback = [&](DiffTraversal::VisibleElement& next) {
+        _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementDifferential(next, _currentView, _completedView);
         };
     }
