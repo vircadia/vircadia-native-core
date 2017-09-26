@@ -391,6 +391,7 @@
             initialHandleDistance,
             laserOffset,
             MIN_SCALE = 0.001,
+            MIN_SCALE_HANDLE_DISTANCE = 0.0001,
 
             getIntersection,  // Function.
             intersection,
@@ -548,6 +549,7 @@
                 + Vec3.dot(Vec3.subtract(otherTargetPosition, Overlays.getProperty(overlayID, "position")), scaleAxis);
             initialHandleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, initialTargetPosition), scaleAxis));
             initialHandleDistance -= handleTargetOffset;
+            initialHandleDistance = Math.max(initialHandleDistance, MIN_SCALE_HANDLE_DISTANCE);
 
             selection.startHandleScaling(initialTargetPosition);
             handles.startScaling();
@@ -629,6 +631,7 @@
             scaleAxis = Vec3.multiplyQbyV(selection.getPositionAndOrientation().orientation, handleUnitScaleAxis);
             handleDistance = Vec3.dot(Vec3.subtract(otherTargetPosition, targetPosition), scaleAxis);
             handleDistance -= handleTargetOffset;
+            handleDistance = Math.max(handleDistance, MIN_SCALE_HANDLE_DISTANCE);
 
             // Scale selection relative to initial dimensions.
             scale = handleDistance / initialHandleDistance;
