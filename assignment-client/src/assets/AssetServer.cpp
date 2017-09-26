@@ -104,8 +104,7 @@ std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& pa
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
     } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
         bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-    }
-    else {
+    } else {
         return { Irrelevant, "" };
     }
 
