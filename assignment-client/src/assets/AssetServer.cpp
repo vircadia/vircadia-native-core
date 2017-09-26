@@ -99,7 +99,7 @@ std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& pa
     QString bakedFilename;
 
     if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-            bakedFilename = BAKED_MODEL_SIMPLE_NAME;  
+        bakedFilename = BAKED_MODEL_SIMPLE_NAME;  
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
     } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
@@ -1214,15 +1214,14 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             // setup the mapping for this bake file
             auto relativeFilePath = QUrl(filePath).fileName();
             qDebug() << "Relative file path is: " << relativeFilePath;
-            if (relativeFilePath.endsWith(".js", Qt::CaseInsensitive)) {
-                relativeFilePath = BAKED_ASSET_SIMPLE_JS_NAME;
-            } else if (relativeFilePath.endsWith(".fbx", Qt::CaseInsensitive)) {
+            if (relativeFilePath.endsWith(".fbx", Qt::CaseInsensitive)) {
                 // for an FBX file, we replace the filename with the simple name
                 // (to handle the case where two mapped assets have the same hash but different names)
                 relativeFilePath = BAKED_ASSET_SIMPLE_FBX_NAME;
+            } else if (relativeFilePath.endsWith(".js", Qt::CaseInsensitive)) {
+                relativeFilePath = BAKED_ASSET_SIMPLE_JS_NAME;
             } else if (!originalAssetPath.endsWith(".fbx", Qt::CaseInsensitive)) {
                 relativeFilePath = BAKED_ASSET_SIMPLE_TEXTURE_NAME;
-
             }
 
             QString bakeMapping = getBakeMapping(originalAssetHash, relativeFilePath);
