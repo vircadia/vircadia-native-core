@@ -1568,6 +1568,27 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(getDimensions());
 }
 
+// Checking Certifiable Properties
+QString EntityItem::getStaticCertificateJSON() const {
+    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
+    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
+    // of the entity as reviewed during the certification submission.
+    return "FIXME";
+}
+QString EntityItem::getStaticCertificateHash() const {
+    // The base64 encoded, sha224 hash of static certificate json.
+    return "FIXME";
+}
+bool EntityItem::verifyStaticCertificateProperties() const {
+    // True IIF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+    if (_certificateID.isEmpty()) {
+        return false;
+    }
+    return false; // fixme
+}
+
+
 void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
     if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
         glm::mat4 scale = glm::scale(getDimensions());
@@ -2829,8 +2850,8 @@ type EntityItem::get##accessor() const {            \
 #define DEFINE_PROPERTY_SETTER(type, accessor, var)   \
 void EntityItem::set##accessor(const type##& value) { \
     withWriteLock([&] {                               \
-        _##var = value;                               \
-    });                                                \
+       _##var = value;                                \
+    });                                               \
 }
 #define DEFINE_PROPERTY_ACCESSOR(type, accessor, var) DEFINE_PROPERTY_GETTER(type, accessor, var) DEFINE_PROPERTY_SETTER(type, accessor, var)
 DEFINE_PROPERTY_ACCESSOR(QString, ItemName, itemName)

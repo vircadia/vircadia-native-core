@@ -327,10 +327,6 @@ public:
     QString getStaticCertificateJSON() const;
     QString getStaticCertificateHash() const;
     bool verifyStaticCertificateProperties() const;
-    QString getVerifiedCertificateId();
-
-    bool getShouldHighlight() const;
-    void setShouldHighlight(const bool value);
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
