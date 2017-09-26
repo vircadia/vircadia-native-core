@@ -239,6 +239,7 @@ void AssetMappingModel::refresh() {
 
     connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
         if (request->getError() == MappingRequest::NoError) {
+            int bakesPendingCount = 0;
             auto mappings = request->getMappings();
             auto existingPaths = _pathToItemMap.keys();
             for (auto& mapping : mappings) {
@@ -287,6 +288,9 @@ void AssetMappingModel::refresh() {
                     auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                     lastItem->setData(statusString, Qt::UserRole + 5);
                     lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
+                    if (mapping.second.status == Pending) {
+                        ++bakesPendingCount;
+                    }
                 }
 
                 Q_ASSERT(fullPath == path);
@@ -333,6 +337,11 @@ void AssetMappingModel::refresh() {
 
                     item = nextItem;
                 }
+            }
+
+            if (bakesPendingCount != _bakesPendingCount) {
+                _bakesPendingCount = bakesPendingCount;
+                emit bakesPendingCountChanged(_bakesPendingCount);
             }
         } else {
             emit errorGettingMappings(request->getErrorString());
