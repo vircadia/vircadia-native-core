@@ -626,9 +626,15 @@ private:
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
-    render::Args _renderArgs;
+    struct AppRenderArgs {
+        render::Args _renderArgs;
+        glm::mat4 _eyeToWorld;
+        glm::mat4 _sensorToWorld;
+    };
+    AppRenderArgs _appRenderArgs;
 
-    using RenderArgsEditor = std::function <void (render::Args&)>;
+
+    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
     void editRenderArgs(RenderArgsEditor editor);
 
 

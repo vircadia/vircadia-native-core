@@ -2482,12 +2482,6 @@ void Application::updateCamera(RenderArgs& renderArgs) {
 
     renderArgs._cameraMode = (int8_t)_myCamera.getMode(); // HACK
 
-
-    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
-    // Then we can move this logic into the Avatar::simulate call.
-    auto myAvatar = getMyAvatar();
-    myAvatar->preDisplaySide(&renderArgs);
-
     {
         QMutexLocker viewLocker(&_viewMutex);
         renderArgs.setViewFrustum(_displayViewFrustum);
@@ -2495,8 +2489,8 @@ void Application::updateCamera(RenderArgs& renderArgs) {
 }
 
 void Application::editRenderArgs(RenderArgsEditor editor) {
-    QMutexLocker viewLocker(&_renderArgsMutex);
-    editor(_renderArgs);
+    QMutexLocker renderLocker(&_renderArgsMutex);
+    editor(_appRenderArgs);
 
 }
 
@@ -2534,19 +2528,19 @@ void Application::paintGL() {
     }
 
     // update the avatar with a fresh HMD pose
-    {
-        PROFILE_RANGE(render, "/updateAvatar");
-        getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
-    }
+ //   {
+  //      PROFILE_RANGE(render, "/updateAvatar");
+ //       getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
+ //   }
 
-    auto lodManager = DependencyManager::get<LODManager>();
+  //  auto lodManager = DependencyManager::get<LODManager>();
 
     RenderArgs renderArgs;
     {
         QMutexLocker viewLocker(&_renderArgsMutex);
-        renderArgs = _renderArgs;
+        renderArgs = _appRenderArgs._renderArgs;
     }
-
+/*
     float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
     {
         PROFILE_RANGE(render, "/buildFrustrumAndArgs");
@@ -2568,7 +2562,7 @@ void Application::paintGL() {
             renderArgs.setViewFrustum(_viewFrustum);
         }
     }
-
+*/
     {
         PROFILE_RANGE(render, "/resizeGL");
         PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
@@ -2579,6 +2573,7 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/gpuContextReset");
+     //   _gpuContext->beginFrame(getHMDSensorPose());
         _gpuContext->beginFrame(getHMDSensorPose());
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
@@ -5375,8 +5370,49 @@ void Application::update(float deltaTime) {
         _postUpdateLambdas.clear();
     }
 
-    editRenderArgs([this](RenderArgs& renderArgs) {
-        this->updateCamera(renderArgs);
+    editRenderArgs([this](AppRenderArgs& appRenderArgs) {
+        
+        appRenderArgs._eyeToWorld = getHMDSensorPose();
+
+        auto myAvatar = getMyAvatar();
+
+
+        // update the avatar with a fresh HMD pose
+        {
+            PROFILE_RANGE(render, "/updateAvatar");
+            myAvatar->updateFromHMDSensorMatrix(appRenderArgs._eyeToWorld);
+        }
+
+        auto lodManager = DependencyManager::get<LODManager>();
+
+        float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
+        {
+            PROFILE_RANGE(render, "/buildFrustrumAndArgs");
+            {
+                QMutexLocker viewLocker(&_viewMutex);
+                // adjust near clip plane to account for sensor scaling.
+                auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
+                    _viewFrustum.getAspectRatio(),
+                    DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                    _viewFrustum.getFarClip());
+                _viewFrustum.setProjection(adjustedProjection);
+                _viewFrustum.calculate();
+            }
+            appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
+                lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+            {
+                QMutexLocker viewLocker(&_viewMutex);
+                appRenderArgs._renderArgs.setViewFrustum(_viewFrustum);
+            }
+        }
+
+        this->updateCamera(appRenderArgs._renderArgs);
+
+        // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
+        // Then we can move this logic into the Avatar::simulate call.
+        myAvatar->preDisplaySide(&appRenderArgs._renderArgs);
+
     });
 
     AnimDebugDraw::getInstance().update();
