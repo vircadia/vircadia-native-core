@@ -51,26 +51,3 @@ float ConicalView::computePriority(const AACube& cube) const {
     }
     return PrioritizedEntity::DO_NOT_SEND;
 }
-
-// static
-float ConicalView::computePriority(const EntityItemPointer& entity) const {
-    assert(entity);
-    bool success;
-    AACube cube = entity->getQueryAACube(success);
-    if (success) {
-        return computePriority(cube);
-    } else {
-        // when in doubt give it something positive
-        return PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
-    }
-}
-
-float PrioritizedEntity::updatePriority(const ConicalView& conicalView) {
-    EntityItemPointer entity = _weakEntity.lock();
-    if (entity) {
-        _priority = conicalView.computePriority(entity);
-    } else {
-        _priority = PrioritizedEntity::DO_NOT_SEND;
-    }
-    return _priority;
-}

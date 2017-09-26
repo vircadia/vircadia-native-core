@@ -27,7 +27,6 @@ public:
     ConicalView(const ViewFrustum& viewFrustum) { set(viewFrustum); }
     void set(const ViewFrustum& viewFrustum);
     float computePriority(const AACube& cube) const;
-    float computePriority(const EntityItemPointer& entity) const;
 private:
     glm::vec3 _position { 0.0f, 0.0f, 0.0f };
     glm::vec3 _direction { 0.0f, 0.0f, 1.0f };
@@ -44,7 +43,6 @@ public:
     static const float WHEN_IN_DOUBT_PRIORITY;
 
     PrioritizedEntity(EntityItemPointer entity, float priority, bool forceRemove = false) : _weakEntity(entity), _rawEntityPointer(entity.get()), _priority(priority), _forceRemove(forceRemove) {}
-    float updatePriority(const ConicalView& view);
     EntityItemPointer getEntity() const { return _weakEntity.lock(); }
     EntityItem* getRawEntityPointer() const { return _rawEntityPointer; }
     float getPriority() const { return _priority; }
