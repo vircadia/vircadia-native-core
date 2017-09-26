@@ -158,6 +158,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         solid: true,
         outerRadius: 25 * tabletScaleFactor,
         innerRadius: 17 * tabletScaleFactor,
+        ignoreIntersection: true,
         alpha: 1.0,
         color: { red: 255, green: 255, blue: 255 },
         visible: visible,
