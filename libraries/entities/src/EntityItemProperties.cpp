@@ -541,7 +541,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_COLORS, strokeColors);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
-		COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
     }
 
     if (!skipDefaults && !strictSemantics) {
@@ -693,7 +693,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeColors, qVectorVec3, setStrokeColors);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths,qVectorFloat, setStrokeWidths);
-	COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
     
 
     if (!honorReadOnly) {
@@ -834,7 +834,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(normals);
     COPY_PROPERTY_IF_CHANGED(strokeColors);
     COPY_PROPERTY_IF_CHANGED(strokeWidths);
-	COPY_PROPERTY_IF_CHANGED(isUVModeStretch);
+    COPY_PROPERTY_IF_CHANGED(isUVModeStretch);
     COPY_PROPERTY_IF_CHANGED(created);
 
     _animation.merge(other._animation);
@@ -1010,7 +1010,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_NORMALS, Normals, normals, QVector<glm::vec3>);
         ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>);
         ADD_PROPERTY_TO_MAP(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
-		ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
+        ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
         ADD_PROPERTY_TO_MAP(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
@@ -1338,7 +1338,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, properties.getPackedStrokeColors());
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
-				APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, properties.getIsUVModeStretch());
+                APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, properties.getIsUVModeStretch());
             }
             // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
             // when encoding/decoding edits because otherwise they can't polymorph to other shape types
@@ -1674,7 +1674,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
-		READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
     }
 
     // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
@@ -1710,6 +1710,9 @@ QVector<glm::vec3> EntityItemProperties::unpackNormals(const QByteArray& normals
             unpackedNormals[j] = aux;
             j++;
         }
+    } else {
+        qCDebug(entities) << "WARNING - Expected received size for normals does not match. Expected: " << (int)normals[0] 
+                          << " Received: " << (normals.size() / 6);
     }
     return unpackedNormals;
 }
@@ -1731,6 +1734,9 @@ QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& st
             float b = (uint8_t)strokeColors[i++] / 255.0f;
             unpackedStrokeColors[j++] = glmVec3(r, g, b);
         }
+    } else {
+        qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: " 
+            << (int)strokeColors[0] << " Received: " << (strokeColors.size() / 3);
     }
 
     return unpackedStrokeColors;
@@ -1866,7 +1872,7 @@ void EntityItemProperties::markAllChanged() {
     _normalsChanged = true;
     _strokeColorsChanged = true;
     _strokeWidthsChanged = true;
-	_isUVModeStretchChanged = true;
+    _isUVModeStretchChanged = true;
 
     _xTextureURLChanged = true;
     _yTextureURLChanged = true;
@@ -2248,6 +2254,10 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     if (strokeColorsChanged()) {
         out += "strokeColors";
+    }
+
+    if (isUVModeStretchChanged()) {
+        out += "isUVModeStretch";
     }
 
     getAnimation().listChangedProperties(out);

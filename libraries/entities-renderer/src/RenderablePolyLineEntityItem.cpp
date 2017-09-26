@@ -205,7 +205,6 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
     float uCoord = 0.0f;
     int finalIndex = size - 1;
     glm::vec3 binormal;
-    //
     float accumulatedDistance = 0.0f;
     float distanceToLastPoint = 0.0f;
     float accumulatedStrokeWidth = 0.0f;
@@ -213,8 +212,8 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
     bool doesStrokeWidthVary = false;
 
 
-    for (int i = 0; i < strokeWidths.size(); i++) {
-        if (i > 1 && strokeWidths[i] != strokeWidths[i - 1]) {
+    for (int i = 1; i < strokeWidths.size(); i++) {
+        if (strokeWidths[i] != strokeWidths[i - 1]) {
             doesStrokeWidthVary = true;
             break;
         }
@@ -227,9 +226,8 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
         const auto& color = strokeColors.size() == normals.size() ? strokeColors.at(i) : strokeColors.at(0);
         int vertexIndex = i * 2;
         
-        //if (!isUVModeStretch && vertexIndex >= 2) {
+
         if (!isUVModeStretch && i >= 1) {
-            //distanceToLastPoint = glm::distance(points.at(vertexIndex), points.at(vertexIndex - 2));
             distanceToLastPoint = glm::distance(points.at(i), points.at(i - 1));
             accumulatedDistance += distanceToLastPoint;
             strokeWidth = 2 * strokeWidths[i];
@@ -238,13 +236,17 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
                 //If the stroke varies along the line the texture will stretch more or less depending on the speed
                 //because it looks better than using the same method as below
                 accumulatedStrokeWidth += strokeWidth;
-                float newUcoord = glm::ceil((textureAspectRatio * accumulatedDistance) / (accumulatedStrokeWidth / i));
-                float increaseValue = newUcoord - uCoord;
+                float increaseValue = 1;
+                if (accumulatedStrokeWidth != 0) {
+                    float newUcoord = glm::ceil(((1.0f / textureAspectRatio) * accumulatedDistance) / (accumulatedStrokeWidth / i));
+                    increaseValue = newUcoord - uCoord;
+                }
+
                 increaseValue = increaseValue > 0 ? increaseValue : 1;
                 uCoord += increaseValue;
             } else {
                 //If the stroke width is constant then the textures should keep the aspect ratio along the line
-                uCoord = (textureAspectRatio * accumulatedDistance) / strokeWidth;
+                uCoord = ((1.0f / textureAspectRatio) * accumulatedDistance) / strokeWidth;
             }
         } else if (vertexIndex >= 2) {
             uCoord += uCoordInc;
@@ -261,11 +263,7 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
             }
         }
 
-        
-
-        //const auto v1 = point + binormal;
-        //const auto v2 = point - binormal;
-        const auto v1 = points.at(i)+ binormal;
+        const auto v1 = points.at(i) + binormal;
         const auto v2 = points.at(i) - binormal;
         vertices.emplace_back(v1, normal, vec2(uCoord, 0.0f), color);
         vertices.emplace_back(v2, normal, vec2(uCoord, 1.0f), color);
@@ -296,9 +294,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     float textureWidth = (float)_texture->getOriginalWidth();
     float textureHeight = (float)_texture->getOriginalHeight();
     if (textureWidth != 0 && textureHeight != 0) {
-        _textureAspectRatio = textureWidth < textureHeight
-            ? textureWidth / textureHeight
-            : textureHeight / textureWidth;
+        _textureAspectRatio = textureWidth / textureHeight;
     }
 
     batch.setInputFormat(polylineFormat);

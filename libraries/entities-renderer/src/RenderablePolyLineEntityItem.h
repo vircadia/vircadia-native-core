@@ -70,7 +70,6 @@ protected:
     bool _empty{ true };
     NetworkTexturePointer _texture;
     float _textureAspectRatio { 1.0f };
-    QVector<glm::vec3> _vertices;
 
 };
 
