@@ -44,18 +44,14 @@ Oven::Oven(int argc, char* argv[]) :
     parser.addHelpOption();
     parser.process(*this);
 
-    // enable compression in image library, except for cube maps
+    // enable compression in image library
     image::setColorTexturesCompressionEnabled(true);
     image::setGrayscaleTexturesCompressionEnabled(true);
     image::setNormalTexturesCompressionEnabled(true);
     image::setCubeTexturesCompressionEnabled(true);
 
     // setup our worker threads
-    setupWorkerThreads(QThread::idealThreadCount() - 1);
-
-    // Autodesk's SDK means that we need a single thread for all FBX importing/exporting in the same process
-    // setup the FBX Baker thread
-    setupFBXBakerThread();
+    setupWorkerThreads(QThread::idealThreadCount());
 
     // check if we were passed any command line arguments that would tell us just to run without the GUI
     if (parser.isSet(CLI_INPUT_PARAMETER) || parser.isSet(CLI_OUTPUT_PARAMETER)) {
@@ -81,10 +77,6 @@ Oven::~Oven() {
         _workerThreads[i]->quit();
         _workerThreads[i]->wait();
     }
-
-    // cleanup the FBX Baker thread
-    _fbxBakerThread->quit();
-    _fbxBakerThread->wait();
 }
 
 void Oven::setupWorkerThreads(int numWorkerThreads) {
@@ -95,22 +87,6 @@ void Oven::setupWorkerThreads(int numWorkerThreads) {
 
         _workerThreads.push_back(newThread);
     }
-}
-
-void Oven::setupFBXBakerThread() {
-    // we're being asked for the FBX baker thread, but we don't have one yet
-    // so set that up now
-    _fbxBakerThread = new QThread(this);
-    _fbxBakerThread->setObjectName("Oven FBX Baker Thread");
-}
-
-QThread* Oven::getFBXBakerThread() {
-    if (!_fbxBakerThread->isRunning()) {
-        // start the FBX baker thread if it isn't running yet
-        _fbxBakerThread->start();
-    }
-
-    return _fbxBakerThread;
 }
 
 QThread* Oven::getNextWorkerThread() {

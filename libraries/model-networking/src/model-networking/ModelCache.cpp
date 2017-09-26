@@ -77,6 +77,8 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
                 texdir += '/';
             }
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
+        } else {
+            _textureBaseUrl = _effectiveBaseURL;
         }
 
         auto animGraphVariant = mapping.value("animGraphUrl");
@@ -239,7 +241,9 @@ private:
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, _url, _mapping, data, _combineParts));
+    _url = _effectiveBaseURL;
+    _textureBaseUrl = _effectiveBaseURL;
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
 }
 
 void GeometryDefinitionResource::setGeometryDefinition(FBXGeometry::Pointer fbxGeometry) {
@@ -456,7 +460,7 @@ void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
     _resource = resource;
     if (_resource) {
         if (_resource->isLoaded()) {
-            _geometryRef = std::make_shared<Geometry>(*_resource);
+            resourceFinished(true);
         } else {
             startWatching();
         }

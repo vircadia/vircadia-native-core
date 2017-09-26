@@ -9,6 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4267 )
+#endif
+
+#include <draco/compression/decode.h>
+
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
+
 #include <iostream>
 #include <QBuffer>
 #include <QDataStream>
@@ -73,7 +84,7 @@ public:
 };
 
 
-void appendIndex(MeshData& data, QVector<int>& indices, int index) {
+void appendIndex(MeshData& data, QVector<int>& indices, int index, bool deduplicate) {
     if (index >= data.polygonIndices.size()) {
         return;
     }
@@ -145,12 +156,13 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
 
     QHash<Vertex, int>::const_iterator it = data.indices.find(vertex);
-    if (it == data.indices.constEnd()) {
+    if (!deduplicate || it == data.indices.constEnd()) {
         int newIndex = data.extracted.mesh.vertices.size();
         indices.append(newIndex);
         data.indices.insert(vertex, newIndex);
         data.extracted.newIndices.insert(vertexIndex, newIndex);
         data.extracted.mesh.vertices.append(position);
+        data.extracted.mesh.originalIndices.append(vertexIndex);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
         if (hasColors) {
@@ -165,14 +177,20 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
 }
 
-ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIndex) {
+ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate) {
     MeshData data;
     data.extracted.mesh.meshIndex = meshIndex++;
+
     QVector<int> materials;
     QVector<int> textures;
+
     bool isMaterialPerPolygon = false;
+
     static const QVariant BY_VERTICE = QByteArray("ByVertice");
     static const QVariant INDEX_TO_DIRECT = QByteArray("IndexToDirect");
+
+    bool isDracoMesh = false;
+
     foreach (const FBXNode& child, object.children) {
         if (child.name == "Vertices") {
             data.vertices = createVec3Vector(getDoubleVector(child));
@@ -304,8 +322,9 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
                 } else if (subdata.name == "MappingInformationType") {
-                    if (subdata.properties.at(0) == BY_POLYGON)
+                    if (subdata.properties.at(0) == BY_POLYGON) {
                         isMaterialPerPolygon = true;
+                    }
                 } else {
                     isMaterialPerPolygon = false;
                 }
@@ -318,70 +337,206 @@ ExtractedMesh FBXReader::extractMesh(const FBXNode& object, unsigned int& meshIn
                     textures = getIntVector(subdata);
                 }
             }
-        }
-    }
+        } else if (child.name == "DracoMesh") {
+            isDracoMesh = true;
+            data.extracted.mesh.wasCompressed = true;
 
-    bool isMultiMaterial = false;
-    if (isMaterialPerPolygon) {
-        isMultiMaterial = true;
-    }
-    // TODO: make excellent use of isMultiMaterial
-    Q_UNUSED(isMultiMaterial);
+            // load the draco mesh from the FBX and create a draco::Mesh
+            draco::Decoder decoder;
+            draco::DecoderBuffer decodedBuffer;
+            QByteArray dracoArray = child.properties.at(0).value<QByteArray>();
+            decodedBuffer.Init(dracoArray.data(), dracoArray.size());
 
-    // convert the polygons to quads and triangles
-    int polygonIndex = 0;
-    QHash<QPair<int, int>, int> materialTextureParts;
-    for (int beginIndex = 0; beginIndex < data.polygonIndices.size(); polygonIndex++) {
-        int endIndex = beginIndex;
-        while (endIndex < data.polygonIndices.size() && data.polygonIndices.at(endIndex++) >= 0);
+            std::unique_ptr<draco::Mesh> dracoMesh(new draco::Mesh());
+            decoder.DecodeBufferToGeometry(&decodedBuffer, dracoMesh.get());
 
-        QPair<int, int> materialTexture((polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0,
-            (polygonIndex < textures.size()) ? textures.at(polygonIndex) : 0);
-        int& partIndex = materialTextureParts[materialTexture];
-        if (partIndex == 0) {
-            data.extracted.partMaterialTextures.append(materialTexture);
-            data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
-            partIndex = data.extracted.mesh.parts.size();
-        }
-        FBXMeshPart& part = data.extracted.mesh.parts[partIndex - 1];
-        
-        if (endIndex - beginIndex == 4) {
-            appendIndex(data, part.quadIndices, beginIndex++);
-            appendIndex(data, part.quadIndices, beginIndex++);
-            appendIndex(data, part.quadIndices, beginIndex++);
-            appendIndex(data, part.quadIndices, beginIndex++);
+            // prepare attributes for this mesh
+            auto positionAttribute = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::POSITION);
+            auto normalAttribute = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::NORMAL);
+            auto texCoordAttribute = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::TEX_COORD);
+            auto extraTexCoordAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_TEX_COORD_1);
+            auto colorAttribute = dracoMesh->GetNamedAttribute(draco::GeometryAttribute::COLOR);
+            auto materialIDAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_MATERIAL_ID);
+            auto originalIndexAttribute = dracoMesh->GetAttributeByUniqueId(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
 
-            int quadStartIndex = part.quadIndices.size() - 4;
-            int i0 = part.quadIndices[quadStartIndex + 0];
-            int i1 = part.quadIndices[quadStartIndex + 1];
-            int i2 = part.quadIndices[quadStartIndex + 2];
-            int i3 = part.quadIndices[quadStartIndex + 3];
+            // setup extracted mesh data structures given number of points
+            auto numVertices = dracoMesh->num_points();
 
-            // Sam's recommended triangle slices
-            // Triangle tri1 = { v0, v1, v3 };
-            // Triangle tri2 = { v1, v2, v3 };
-            // NOTE: Random guy on the internet's recommended triangle slices
-            // Triangle tri1 = { v0, v1, v2 };
-            // Triangle tri2 = { v2, v3, v0 };
+            QHash<QPair<int, int>, int> materialTextureParts;
 
-            part.quadTrianglesIndices.append(i0);
-            part.quadTrianglesIndices.append(i1);
-            part.quadTrianglesIndices.append(i3);
+            data.extracted.mesh.vertices.resize(numVertices);
 
-            part.quadTrianglesIndices.append(i1);
-            part.quadTrianglesIndices.append(i2);
-            part.quadTrianglesIndices.append(i3);
+            if (normalAttribute) {
+                data.extracted.mesh.normals.resize(numVertices);
+            }
 
-        } else {
-            for (int nextIndex = beginIndex + 1;; ) {
-                appendIndex(data, part.triangleIndices, beginIndex);
-                appendIndex(data, part.triangleIndices, nextIndex++);
-                appendIndex(data, part.triangleIndices, nextIndex);
-                if (nextIndex >= data.polygonIndices.size() || data.polygonIndices.at(nextIndex) < 0) {
-                    break;
+            if (texCoordAttribute) {
+                data.extracted.mesh.texCoords.resize(numVertices);
+            }
+
+            if (extraTexCoordAttribute) {
+                data.extracted.mesh.texCoords1.resize(numVertices);
+            }
+
+            if (colorAttribute) {
+                data.extracted.mesh.colors.resize(numVertices);
+            }
+
+            // enumerate the vertices and construct the extracted mesh
+            for (int i = 0; i < numVertices; ++i) {
+                draco::PointIndex vertexIndex(i);
+
+                if (positionAttribute) {
+                    // read position from draco mesh to extracted mesh
+                    auto mappedIndex = positionAttribute->mapped_index(vertexIndex);
+
+                    positionAttribute->ConvertValue<float, 3>(mappedIndex,
+                                                              reinterpret_cast<float*>(&data.extracted.mesh.vertices[i]));
+                }
+
+                if (normalAttribute) {
+                    // read normals from draco mesh to extracted mesh
+                    auto mappedIndex = normalAttribute->mapped_index(vertexIndex);
+
+                    normalAttribute->ConvertValue<float, 3>(mappedIndex,
+                                                            reinterpret_cast<float*>(&data.extracted.mesh.normals[i]));
+                }
+
+                if (texCoordAttribute) {
+                    // read UVs from draco mesh to extracted mesh
+                    auto mappedIndex = texCoordAttribute->mapped_index(vertexIndex);
+
+                    texCoordAttribute->ConvertValue<float, 2>(mappedIndex,
+                                                              reinterpret_cast<float*>(&data.extracted.mesh.texCoords[i]));
+                }
+
+                if (extraTexCoordAttribute) {
+                    // some meshes have a second set of UVs, read those to extracted mesh
+                    auto mappedIndex = extraTexCoordAttribute->mapped_index(vertexIndex);
+
+                    extraTexCoordAttribute->ConvertValue<float, 2>(mappedIndex,
+                                                                   reinterpret_cast<float*>(&data.extracted.mesh.texCoords1[i]));
+                }
+
+                if (colorAttribute) {
+                    // read vertex colors from draco mesh to extracted mesh
+                    auto mappedIndex = colorAttribute->mapped_index(vertexIndex);
+
+                    colorAttribute->ConvertValue<float, 3>(mappedIndex,
+                                                           reinterpret_cast<float*>(&data.extracted.mesh.colors[i]));
+                }
+
+                if (originalIndexAttribute) {
+                    auto mappedIndex = originalIndexAttribute->mapped_index(vertexIndex);
+
+                    int32_t originalIndex;
+
+                    originalIndexAttribute->ConvertValue<int32_t, 1>(mappedIndex, &originalIndex);
+
+                    data.extracted.newIndices.insert(originalIndex, i);
+                } else {
+                    data.extracted.newIndices.insert(i, i);
                 }
             }
-            beginIndex = endIndex;
+
+            for (int i = 0; i < dracoMesh->num_faces(); ++i) {
+                // grab the material ID and texture ID for this face, if we have it
+                auto& dracoFace = dracoMesh->face(draco::FaceIndex(i));
+                auto& firstCorner = dracoFace[0];
+
+                uint16_t materialID { 0 };
+
+                if (materialIDAttribute) {
+                    // read material ID and texture ID mappings into materials and texture vectors
+                    auto mappedIndex = materialIDAttribute->mapped_index(firstCorner);
+
+                    materialIDAttribute->ConvertValue<uint16_t, 1>(mappedIndex, &materialID);
+                }
+
+                QPair<int, int> materialTexture(materialID, 0);
+
+                // grab or setup the FBXMeshPart for the part this face belongs to
+                int& partIndexPlusOne = materialTextureParts[materialTexture];
+                if (partIndexPlusOne == 0) {
+                    data.extracted.partMaterialTextures.append(materialTexture);
+                    data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
+                    partIndexPlusOne = data.extracted.mesh.parts.size();
+                }
+
+                // give the mesh part this index
+                FBXMeshPart& part = data.extracted.mesh.parts[partIndexPlusOne - 1];
+                part.triangleIndices.append(firstCorner.value());
+                part.triangleIndices.append(dracoFace[1].value());
+                part.triangleIndices.append(dracoFace[2].value());
+            }
+        }
+    }
+
+    // when we have a draco mesh, we've already built the extracted mesh, so we don't need to do the
+    // processing we do for normal meshes below
+    if (!isDracoMesh) {
+        bool isMultiMaterial = false;
+        if (isMaterialPerPolygon) {
+            isMultiMaterial = true;
+        }
+        // TODO: make excellent use of isMultiMaterial
+        Q_UNUSED(isMultiMaterial);
+
+        // convert the polygons to quads and triangles
+        int polygonIndex = 0;
+        QHash<QPair<int, int>, int> materialTextureParts;
+        for (int beginIndex = 0; beginIndex < data.polygonIndices.size(); polygonIndex++) {
+            int endIndex = beginIndex;
+            while (endIndex < data.polygonIndices.size() && data.polygonIndices.at(endIndex++) >= 0);
+
+            QPair<int, int> materialTexture((polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0,
+                                            (polygonIndex < textures.size()) ? textures.at(polygonIndex) : 0);
+            int& partIndex = materialTextureParts[materialTexture];
+            if (partIndex == 0) {
+                data.extracted.partMaterialTextures.append(materialTexture);
+                data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
+                partIndex = data.extracted.mesh.parts.size();
+            }
+            FBXMeshPart& part = data.extracted.mesh.parts[partIndex - 1];
+
+            if (endIndex - beginIndex == 4) {
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
+                appendIndex(data, part.quadIndices, beginIndex++, deduplicate);
+
+                int quadStartIndex = part.quadIndices.size() - 4;
+                int i0 = part.quadIndices[quadStartIndex + 0];
+                int i1 = part.quadIndices[quadStartIndex + 1];
+                int i2 = part.quadIndices[quadStartIndex + 2];
+                int i3 = part.quadIndices[quadStartIndex + 3];
+
+                // Sam's recommended triangle slices
+                // Triangle tri1 = { v0, v1, v3 };
+                // Triangle tri2 = { v1, v2, v3 };
+                // NOTE: Random guy on the internet's recommended triangle slices
+                // Triangle tri1 = { v0, v1, v2 };
+                // Triangle tri2 = { v2, v3, v0 };
+
+                part.quadTrianglesIndices.append(i0);
+                part.quadTrianglesIndices.append(i1);
+                part.quadTrianglesIndices.append(i3);
+
+                part.quadTrianglesIndices.append(i1);
+                part.quadTrianglesIndices.append(i2);
+                part.quadTrianglesIndices.append(i3);
+
+            } else {
+                for (int nextIndex = beginIndex + 1;; ) {
+                    appendIndex(data, part.triangleIndices, beginIndex, deduplicate);
+                    appendIndex(data, part.triangleIndices, nextIndex++, deduplicate);
+                    appendIndex(data, part.triangleIndices, nextIndex, deduplicate);
+                    if (nextIndex >= data.polygonIndices.size() || data.polygonIndices.at(nextIndex) < 0) {
+                        break;
+                    }
+                }
+                beginIndex = endIndex;
+            }
         }
     }
     
