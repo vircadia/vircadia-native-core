@@ -433,17 +433,8 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
-            var importURL = null;
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
-            if (importURL) {
-                if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                    toolBar.toggle();
-                }
-                importSVO(importURL);
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
         addButton("openAssetBrowserButton", "assets-01.svg", function() {
@@ -1461,6 +1452,39 @@ function toggleSelectedEntitiesVisible() {
     }
 }
 
+function onFileSaveChanged(filename) {
+    Window.saveFileChanged.disconnect(onFileSaveChanged);
+    if (filename !== "") {
+        var success = Clipboard.exportEntities(filename, selectionManager.selections);
+        if (!success) {
+            Window.notifyEditError("Export failed.");
+        }
+    }
+}
+
+function onFileOpenChanged(filename) {
+    var importURL = null;
+    if (filename !== "") {
+        importURL = "file:///" + filename;
+    }
+    if (importURL) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+            toolBar.toggle();
+        }
+        importSVO(importURL);
+    }
+}
+
+function onPromptTextChanged(prompt) {
+    Window.promptTextChanged.disconnect(onPromptTextChanged);
+    if (prompt !== "") {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+            toolBar.toggle();
+        }
+        importSVO(prompt);
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1478,30 +1502,16 @@ function handeMenuEvent(menuItem) {
         if (!selectionManager.hasSelection()) {
             Window.notifyEditError("No entities have been selected.");
         } else {
-            var filename = Window.save("Select Where to Save", "", "*.json");
-            if (filename) {
-                var success = Clipboard.exportEntities(filename, selectionManager.selections);
-                if (!success) {
-                    Window.notifyEditError("Export failed.");
-                }
-            }
+            Window.saveFileChanged.connect(onFileSaveChanged);
+            Window.saveAsync("Select Where to Save", "", "*.json");
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
-        var importURL = null;
         if (menuItem === "Import Entities") {
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            importURL = Window.prompt("URL of SVO to import", "");
-        }
-
-        if (importURL) {
-            if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                toolBar.toggle();
-            }
-            importSVO(importURL);
+            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
         entityListTool.toggleVisible();
