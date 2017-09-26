@@ -18,7 +18,6 @@
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
 
-
 class MainRenderTask {
 public:
     using JobModel = render::Task::Model<MainRenderTask>;
@@ -37,12 +36,15 @@ class SecondaryCameraJobConfig : public render::Task::Config { // Exposes second
     Q_PROPERTY(float nearClipPlaneDistance MEMBER nearClipPlaneDistance NOTIFY dirty)  // Secondary camera's near clip plane distance. In meters.
     Q_PROPERTY(float farClipPlaneDistance MEMBER farClipPlaneDistance NOTIFY dirty)  // Secondary camera's far clip plane distance. In meters.
 public:
-    QUuid attachedEntityId{};
-    glm::vec3 position{};
-    glm::quat orientation{};
-    float vFoV{ DEFAULT_FIELD_OF_VIEW_DEGREES };
-    float nearClipPlaneDistance{ DEFAULT_NEAR_CLIP };
-    float farClipPlaneDistance{ DEFAULT_FAR_CLIP };
+    QUuid attachedEntityId;
+    glm::vec3 position;
+    glm::quat orientation;
+    float vFoV { DEFAULT_FIELD_OF_VIEW_DEGREES };
+    float nearClipPlaneDistance { DEFAULT_NEAR_CLIP };
+    float farClipPlaneDistance { DEFAULT_FAR_CLIP };
+    int textureWidth { TextureCache::DEFAULT_SPECTATOR_CAM_WIDTH };
+    int textureHeight { TextureCache::DEFAULT_SPECTATOR_CAM_HEIGHT };
+
     SecondaryCameraJobConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
@@ -59,9 +61,6 @@ class SecondaryCameraRenderTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
     SecondaryCameraRenderTaskConfig() : render::Task::Config(false) {}
-    void resetSize(int width, int height);
-signals:
-    void dirty();
 };
 
 class SecondaryCameraRenderTask {

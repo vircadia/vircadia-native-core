@@ -21,7 +21,7 @@ public:
 
     void build(render::Task::TaskConcept& task, const task::Varying& editableItems);
 
-    render::ShapePipeline::BatchSetter getBatchSetter() const;
+    render::ShapePipeline::BatchSetter getBatchSetter();
     render::ShapePipeline::ItemSetter getItemUniformSetter() const;
     render::ShapePipeline::ItemSetter getItemStoredSetter();
 

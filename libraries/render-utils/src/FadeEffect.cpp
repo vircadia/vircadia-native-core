@@ -16,8 +16,7 @@
 #include <PathUtils.h>
 
 FadeEffect::FadeEffect() {
-    auto texturePath = PathUtils::resourcesPath() + "images/fadeMask.png";
-    _maskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
+
 }
 
 void FadeEffect::build(render::Task::TaskConcept& task, const task::Varying& editableItems) {
@@ -29,11 +28,15 @@ void FadeEffect::build(render::Task::TaskConcept& task, const task::Varying& edi
     task.addJob<FadeEditJob>("FadeEdit", fadeEditInput);
 }
 
-render::ShapePipeline::BatchSetter FadeEffect::getBatchSetter() const {
+render::ShapePipeline::BatchSetter FadeEffect::getBatchSetter() {
     return [this](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args*) {
         auto program = shapePipeline.pipeline->getProgram();
         auto maskMapLocation = program->getTextures().findLocation("fadeMaskMap");
         auto bufferLocation = program->getUniformBuffers().findLocation("fadeParametersBuffer");
+        if (!_maskMap) {
+            auto texturePath = PathUtils::resourcesPath() + "images/fadeMask.png";
+            _maskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
+        }
         batch.setResourceTexture(maskMapLocation, _maskMap);
         batch.setUniformBuffer(bufferLocation, _configurations);
     };
