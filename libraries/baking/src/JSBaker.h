@@ -45,7 +45,7 @@ private :
     bool isSpecialCharacter(QChar c);
     bool isSpecialCharacterPrevious(QChar c);
     bool isSpecialCharacterNext(QChar c);
-    bool isControlCharacter(QChar);
+    bool isSpaceOrTab(QChar);
     bool isQuote(QChar);
 };
 
