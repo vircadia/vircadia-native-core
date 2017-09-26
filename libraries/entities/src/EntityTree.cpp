@@ -113,7 +113,7 @@ void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
     // add entities
     QHash<EntityItemID, EntityItemPointer>::const_iterator itr;
     for (itr = _entitiesToAdd.constBegin(); itr != _entitiesToAdd.constEnd(); ++itr) {
-        EntityItemPointer& entityItem = itr.value();
+        const EntityItemPointer& entityItem = itr.value();
         AddEntityOperator theOperator(getThisPointer(), entityItem);
         recurseTreeWithOperator(&theOperator);
         postAddEntity(entityItem);
