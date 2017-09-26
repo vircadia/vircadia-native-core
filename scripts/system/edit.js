@@ -247,9 +247,12 @@ var toolBar = (function () {
                 direction = MyAvatar.orientation;
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
-
+            // Align entity with Avatar orientation.
+            properties.rotation = MyAvatar.orientation;
+            
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                    
                 // Adjust position of entity per bounding box prior to creating it.
                 var registration = properties.registration;
                 if (registration === undefined) {
@@ -259,7 +262,14 @@ var toolBar = (function () {
 
                 var orientation = properties.orientation;
                 if (orientation === undefined) {
-                    var DEFAULT_ORIENTATION = Quat.fromPitchYawRollDegrees(0, 0, 0);
+                    properties.orientation = MyAvatar.orientation;
+                    var DEFAULT_ORIENTATION = properties.orientation;
+                    orientation = DEFAULT_ORIENTATION;
+                } else {
+                    // If the orientation is already defined, we perform the corresponding rotation assuming that
+                    //  our start referential is the avatar referential.
+                    properties.orientation = Quat.multiply(MyAvatar.orientation, properties.orientation);
+                    var DEFAULT_ORIENTATION = properties.orientation;
                     orientation = DEFAULT_ORIENTATION;
                 }
 
