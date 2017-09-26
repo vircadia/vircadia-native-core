@@ -323,7 +323,8 @@ if (typeof module !== 'undefined') {
         entityIsGrabbable: entityIsGrabbable,
         NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
-        projectOntoEntityXYPlane: projectOntoEntityXYPlane
-
+        projectOntoEntityXYPlane: projectOntoEntityXYPlane,
+        TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
+        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE
     };
 }

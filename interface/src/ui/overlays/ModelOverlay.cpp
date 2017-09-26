@@ -280,7 +280,9 @@ ModelOverlay* ModelOverlay::createClone() const {
 }
 
 Transform ModelOverlay::evalRenderTransform() {
-    return getTransform();
+    Transform transform = getTransform();
+    transform.setScale(1.0f); // disable inherited scale
+    return transform;
 }
 
 void ModelOverlay::locationChanged(bool tellPhysics) {
