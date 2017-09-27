@@ -52,6 +52,12 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
             _backgroundStage->removeBackground(_backgroundIndex);
         }
     }
+
+    if (_hazeStage) {
+        if (!HazeStage::isIndexInvalid(_hazeIndex)) {
+            _hazeStage->removeHaze(_hazeIndex);
+        }
+    }
 }
 
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
@@ -95,6 +101,11 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         assert(_backgroundStage);
     }
 
+    if (!_hazeStage) {
+        _hazeStage = args->_scene->getStage<HazeStage>();
+        assert(_hazeStage);
+    }
+
     { // Sun 
       // Need an update ?
         if (_needSunUpdate) {
@@ -129,10 +140,21 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         if (_needBackgroundUpdate) {
             if (BackgroundStage::isIndexInvalid(_backgroundIndex)) {
                 _backgroundIndex = _backgroundStage->addBackground(_background);
-            } else {
+            }
+            else {
 
             }
             _needBackgroundUpdate = false;
+        }
+
+        if (_needHazeUpdate) {
+            if (HazeStage::isIndexInvalid(_hazeIndex)) {
+                _hazeIndex = _hazeStage->addHaze(_haze);
+            }
+            else {
+
+            }
+            _needHazeUpdate = false;
         }
     }
 

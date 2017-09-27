@@ -18,6 +18,7 @@
 #include <model/Stage.h>
 #include <LightStage.h>
 #include <BackgroundStage.h>
+#include <HazeStage.h>
 #include <TextureCache.h>
 #include "RenderableEntityItem.h"
 #if 0
@@ -60,7 +61,7 @@ private:
     model::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
     model::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
     model::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
-    model::HazePointer editHaze() { return editBackground()->getHaze(); }
+    model::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
 
     bool _needsInitialSimulation{ true };
     glm::vec3 _lastPosition;
@@ -79,6 +80,7 @@ private:
     const model::LightPointer _sunLight{ std::make_shared<model::Light>() };
     const model::LightPointer _ambientLight{ std::make_shared<model::Light>() };
     const model::SunSkyStagePointer _background{ std::make_shared<model::SunSkyStage>() };
+    const model::HazePointer _haze{ std::make_shared<model::Haze>() };
     BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
     HazeMode _hazeMode{ HAZE_MODE_INHERIT };
 
@@ -88,10 +90,14 @@ private:
     BackgroundStagePointer _backgroundStage;
     BackgroundStage::Index _backgroundIndex{ BackgroundStage::INVALID_INDEX };
 
+    HazeStagePointer _hazeStage;
+    HazeStage::Index _hazeIndex{ HazeStage::INVALID_INDEX };
+
     bool _needUpdate{ true };
     bool _needSunUpdate{ true };
     bool _needAmbientUpdate{ true };
     bool _needBackgroundUpdate{ true };
+    bool _needHazeUpdate{ true };
 
     KeyLightPropertyGroup _keyLightProperties;
     SkyboxPropertyGroup _skyboxProperties;

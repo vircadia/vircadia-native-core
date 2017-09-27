@@ -29,8 +29,8 @@ public:
     static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
     
-    using HazePointer = model::SunSkyStagePointer;
-    using Hazes = render::indexed_container::IndexedPointerVector<model::SunSkyStage>;
+    using HazePointer = model::HazePointer;
+    using Hazes = render::indexed_container::IndexedPointerVector<model::Haze>;
     using HazeMap = std::unordered_map<HazePointer, Index>;
 
     using HazeIndices = std::vector<Index>;

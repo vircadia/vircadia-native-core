@@ -110,6 +110,6 @@ namespace model {
         UniformBufferView _parametersBuffer;
     };
 
-    using HazePointer = std::shared_ptr<Haze>;
+    typedef std::shared_ptr<Haze> HazePointer;
 }
 #endif // hifi_model_Haze_h
