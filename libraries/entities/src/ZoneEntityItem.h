@@ -89,7 +89,6 @@ public:
     bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
 
-#pragma optimize("", off)
     bool hazePropertiesChanged() const { 
         return _hazePropertiesChanged; 
     }
