@@ -157,7 +157,7 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
     float power = specularDistribution(roughness, fragNormal, halfDir);
     vec3 specular = fresnelColor * power * diffuse;
 
-    return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
+    return vec4(specular, (1.0 - metallic) * diffuse * (1.0 - fresnelColor.x));
 }
 
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
@@ -171,7 +171,7 @@ vec4 evalPBRShadingDielectric(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDi
     float power = specularDistribution(roughness, fragNormal, halfDir);
     vec3 specular = vec3(fresnelScalar) * power * diffuse;
 
-    return vec4(specular,  diffuse * (1 - fresnelScalar));
+    return vec4(specular,  diffuse * (1.0 - fresnelScalar));
 }
 
 vec4 evalPBRShadingMetallic(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float roughness, vec3 fresnel) {

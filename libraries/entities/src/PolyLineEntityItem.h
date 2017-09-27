@@ -99,7 +99,6 @@ class PolyLineEntityItem : public EntityItem {
     // disable these external interfaces as PolyLineEntities caculate their own dimensions based on the points they contain
     virtual void setRegistrationPoint(const glm::vec3& value) override {};
 
-
     virtual void debugDump() const override;
     static const float DEFAULT_LINE_WIDTH;
     static const int MAX_POINTS_PER_LINE;
