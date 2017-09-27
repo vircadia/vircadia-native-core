@@ -17,6 +17,7 @@ import Qt.labs.settings 1.0
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
+import ".."
 
 Rectangle {
     id: root
@@ -56,6 +57,14 @@ Rectangle {
 
     Component.onDestruction: {
         assetMappingsModel.autoRefreshEnabled = false;
+    }
+    
+    function letterbox(headerGlyph, headerText, message) {
+        letterboxMessage.headerGlyph = headerGlyph;
+        letterboxMessage.headerText = headerText;
+        letterboxMessage.text = message;
+        letterboxMessage.visible = true;
+        letterboxMessage.popupRadius = 0;
     }
 
     function doDeleteFile(path) {
@@ -154,10 +163,7 @@ Rectangle {
     }
 
     function handleGetMappingsError(errorString) {
-        errorMessageBox(
-            "There was a problem retreiving the list of assets from your Asset Server.\n"
-            + errorString
-        );
+        errorMessageBox("There was a problem retreiving the list of assets from your Asset Server.\n" + errorString);
     }
 
     function addToWorld() {
@@ -477,7 +483,7 @@ Rectangle {
 
                 HifiControls.Button {
                     text: "Add To World"
-                    color: hifi.buttons.black
+                    color: hifi.buttons.blue
                     colorScheme: root.colorScheme
                     width: 120
 
@@ -583,8 +589,24 @@ Rectangle {
                                 ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                                 : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
                        
-                        elide: Text.ElideRight
                         horizontalAlignment: styleData.column === 1 ? TextInput.AlignHCenter : TextInput.AlignLeft
+                        
+                        elide: Text.ElideMiddle
+
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: true
+
+                            onEntered: {
+                                if (parent.truncated) {
+                                    treeLabelToolTip.show(parent);
+                                }
+                            }
+                            onExited: treeLabelToolTip.hide();
+                        }
                     }
                 }
                 Component {
@@ -667,6 +689,42 @@ Rectangle {
                 }
             }
 
+            Rectangle {
+                id: treeLabelToolTip
+                visible: false
+                z: 100 // Render on top
+
+                width: toolTipText.width + 2 * hifi.dimensions.textPadding
+                height: hifi.dimensions.tableRowHeight
+                color: colorScheme == hifi.colorSchemes.light ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
+                border.color: colorScheme == hifi.colorSchemes.light ? hifi.colors.black : hifi.colors.lightGrayText
+
+                FiraSansSemiBold {
+                    id: toolTipText
+                    anchors.centerIn: parent
+
+                    size: hifi.fontSizes.tableText
+                    color: colorScheme == hifi.colorSchemes.light ? hifi.colors.black : hifi.colors.lightGrayText
+                }
+                
+                Timer {
+                    id: showTimer
+                    interval: 1000
+                    onTriggered: { treeLabelToolTip.visible = true; }
+                }
+                function show(item) {
+                    var coord = item.mapToItem(parent, item.x, item.y);
+
+                    toolTipText.text = item.text;
+                    treeLabelToolTip.x = coord.x - hifi.dimensions.textPadding;
+                    treeLabelToolTip.y = coord.y;
+                    showTimer.start();
+                }
+                function hide() {
+                    showTimer.stop();
+                    treeLabelToolTip.visible = false;
+                }
+            }
             
             MouseArea {
                 propagateComposedEvents: true
@@ -715,26 +773,36 @@ Rectangle {
             id: infoRow
             anchors.left: treeView.left
             anchors.right: treeView.right
-            anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-            spacing: hifi.dimensions.contentSpacing.x
+            anchors.topMargin: 2 * hifi.dimensions.contentSpacing.y
+            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
             
             RalewayRegular {
+                anchors.verticalCenter: parent.verticalCenter
+
+                function makeText() {
+                    var pendingBakes = assetMappingsModel.bakesPendingCount;
+                    if (selectedItems > 1 || pendingBakes === 0) {
+                        return selectedItems + " items selected";
+                    } else {
+                        return pendingBakes + " bakes pending"
+                    }
+                }
+
                 size: hifi.fontSizes.sectionName
                 font.capitalization: Font.AllUppercase
-                text: selectedItems + " items selected"
+                text: makeText()
                 color: hifi.colors.lightGrayText
             }
 
             HifiControls.CheckBox {
-                function isChecked() {
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
-                    var bakingDisabled = (status === "Not Baked" || status === "--");
-                    return selectedItems === 1 && !bakingDisabled; 
-                }
+                id: bakingCheckbox
+                anchors.left: treeInfo.right
+                anchors.leftMargin: 2 * hifi.dimensions.contentSpacing.x
+                anchors.verticalCenter: parent.verticalCenter
 
-                text: "Use baked (optimized) versions"
+                text: " Use baked version"
                 colorScheme: root.colorScheme
-                enabled: selectedItems === 1 && assetProxyModel.data(treeView.selection.currentIndex, 0x105) !== "--"
+                enabled: isEnabled()
                 checked: isChecked()
                 onClicked: {
                     var mappings = [];
@@ -750,7 +818,72 @@ Rectangle {
 
                     checked = Qt.binding(isChecked);
                 }
+                
+                function isEnabled() {
+                    if (!treeView.selection.hasSelection) {
+                        return false;
+                    }
+
+                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    if (status === "--") {
+                        return false;
+                    }
+                    var bakingEnabled = status !== "Not Baked";
+
+                    for (var i in treeView.selection.selectedIndexes) {
+                        var thisStatus = assetProxyModel.data(treeView.selection.selectedIndexes[i], 0x105);
+                        if (thisStatus === "--") {
+                            return false;
+                        }
+                        var thisBakingEnalbed = (thisStatus !== "Not Baked");
+
+                        if (bakingEnabled !== thisBakingEnalbed) {
+                            return false;
+                        }
+                    }
+
+                    return true; 
+                }
+                function isChecked() {
+                    if (!treeView.selection.hasSelection) {
+                        return false;
+                    }
+
+                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    return isEnabled() && status !== "Not Baked"; 
+                }  
             }
+            
+            Item {
+                anchors.left: bakingCheckbox.right
+                anchors.leftMargin: hifi.dimensions.contentSpacing.x
+                anchors.verticalCenter: parent.verticalCenter
+                width: infoGlyph.size;
+                height: infoGlyph.size;
+
+                HiFiGlyphs {
+                    id: infoGlyph;
+                    anchors.fill: parent;
+                    horizontalAlignment: Text.AlignHCenter;
+                    verticalAlignment: Text.AlignVCenter;
+                    text: hifi.glyphs.question;
+                    size: 35;
+                    color:  hifi.colors.lightGrayText;
+                }
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: infoGlyph.color = hifi.colors.blueHighlight;
+                    onExited: infoGlyph.color =  hifi.colors.lightGrayText;
+                    onClicked: letterbox(hifi.glyphs.question,
+                                            "What is baking?",
+                                            "Baking is a process we use to compress geometric meshes and textures.<br>" +
+                                            "We do this for efficient storage and transmission of models.<br>" +
+                                            "In some cases, we have been able to achieve 60% compression of original models.<br><br>" +
+                                            "We highly recommend you leave baking on to enable faster transmission decode of models" +
+                                            "in interface resulting in better experience for users visiting your domain.");
+                    }
+            } 
         }
 
         HifiControls.TabletContentSection {

@@ -38,7 +38,7 @@ ScrollingWindow {
     property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
     property var selectedItems: treeView.selection.selectedIndexes.length;
-    
+
     Settings {
         category: "Overlay.AssetServer"
         property alias x: root.x
@@ -337,7 +337,7 @@ ScrollingWindow {
         if (!path) {
             return;
         }
-        
+
         var modalMessage = "";
         var items = selectedItems.toString();
         var isFolder = assetProxyModel.data(treeView.selection.currentIndex, 0x101);
@@ -490,18 +490,18 @@ ScrollingWindow {
                     color: hifi.buttons.blue
                     colorScheme: root.colorScheme
                     width: 120
-                    
+
                     enabled: canAddToWorld(assetProxyModel.data(treeView.selection.currentIndex, 0x100))
-                    
+
                     onClicked: root.addToWorld()
                 }
-                
+
                 HifiControls.Button {
                     text: "Rename"
                     color: hifi.buttons.black
                     colorScheme: root.colorScheme
                     width: 80
-                    
+
                     onClicked: root.renameFile()
                     enabled: canRename()
                 }
@@ -952,10 +952,9 @@ ScrollingWindow {
                         text: "In progress..."
                         colorScheme: root.colorScheme
                     }
-
                 }
             }
-
         }
     }
 }
+
