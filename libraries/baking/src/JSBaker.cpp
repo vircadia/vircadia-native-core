@@ -175,7 +175,7 @@ bool JSBaker::bakeJS(const QByteArray* inputFile, QByteArray* outputFile) {
     return true;
 }
 
-void JSBaker::handleSingleLineComments(QTextStream * in) {
+void JSBaker::handleSingleLineComments(QTextStream* in) {
     QChar character;
     while (!in->atEnd()) {
         *in >> character;
@@ -185,7 +185,7 @@ void JSBaker::handleSingleLineComments(QTextStream * in) {
     }
 }
 
-bool JSBaker::handleMultiLineComments(QTextStream * in) {
+bool JSBaker::handleMultiLineComments(QTextStream* in) {
     QChar character;
     while (!in->atEnd()) {
         *in >> character;
