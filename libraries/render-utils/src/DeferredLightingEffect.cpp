@@ -720,7 +720,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         }
 
         auto lightStage = renderContext->_scene->getStage<LightStage>();
-        if (lightStage) { 
+        if (lightStage) {
 
             // Allocate a default global light directional and ambient
             auto lp = std::make_shared<model::Light>();
@@ -757,6 +757,18 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
 
             // Add the global light to the light stage (for later shadow rendering)
             _defaultBackgroundID = backgroundStage->addBackground(_defaultBackground);
+        }
+    }
+
+    if (_defaultHaze == nullptr) {
+        auto hazeStage = renderContext->_scene->getStage<HazeStage>();
+        if (hazeStage) {
+
+            auto haze = std::make_shared<model::Haze>();
+            haze->setIsHazeActive(false);
+
+            _defaultHaze = haze;
+            _defaultHazeID = hazeStage->addHaze(_defaultHaze);
         }
     }
 }

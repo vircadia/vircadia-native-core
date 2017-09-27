@@ -31,6 +31,7 @@
 #include "LightStage.h"
 #include "LightClusters.h"
 #include "BackgroundStage.h"
+#include "HazeStage.h"
 
 #include "SurfaceGeometryPass.h"
 #include "SubsurfaceScattering.h"
@@ -182,7 +183,9 @@ protected:
     model::LightPointer _defaultLight;
     LightStage::Index _defaultLightID{ LightStage::INVALID_INDEX };
     model::SunSkyStagePointer _defaultBackground;
+    model::HazePointer _defaultHaze{ nullptr };
     BackgroundStage::Index _defaultBackgroundID{ BackgroundStage::INVALID_INDEX };
+    HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;

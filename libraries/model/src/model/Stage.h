@@ -192,9 +192,6 @@ public:
     void setHazeAltitude(float hazeAltitude) { _hazeAltitude = hazeAltitude; }
     float getHazeAltitude() const { return _hazeAltitude; }
 
-    void setHaze(const HazePointer& haze);
-    const HazePointer& getHaze() const { valid(); return _haze; }
-
 protected:
     BackgroundMode _backgroundMode = SKY_DEFAULT;
     

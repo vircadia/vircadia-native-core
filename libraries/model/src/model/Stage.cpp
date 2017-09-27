@@ -262,8 +262,3 @@ void SunSkyStage::setHazeMode(HazeMode mode) {
     _hazeMode = mode;
     invalidate();
 }
-
-void SunSkyStage::setHaze(const HazePointer& haze) {
-    _haze = haze;
-    invalidate();
-}
