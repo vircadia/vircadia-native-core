@@ -41,7 +41,7 @@ void JSBaker::bake() {
     bool success = bakeJS(&inputJS, &outputJS);
     if (!success) {
         qCDebug(js_baking) << "Bake Failed";
-        handleError("Eror unterminated multi line comment");
+        handleError("Error unterminated multi line comment");
         return;
     }
     
@@ -69,9 +69,9 @@ void JSBaker::bake() {
     emit finished();
 }
 
-bool JSBaker::bakeJS(QByteArray* inputFile, QByteArray* outputFile) {
+bool JSBaker::bakeJS(const QByteArray* inputFile, QByteArray* outputFile) {
     // Read from inputFile and write to outputFile per character 
-    QTextStream in(inputFile,QIODevice::ReadOnly);
+    QTextStream in(*inputFile,QIODevice::ReadOnly);
     QTextStream out(outputFile, QIODevice::WriteOnly);
 
     // Algorithm requires the knowledge of previous and next character for each character read
