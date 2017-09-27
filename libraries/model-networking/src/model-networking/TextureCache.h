@@ -167,12 +167,13 @@ public:
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
-
-    /// SpectatorCamera rendering targets.
     NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
-    const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
-    void resetSpectatorCameraFramebuffer(int width, int height);
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
+    const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
+    const gpu::FramebufferPointer& getSpectatorCameraFramebuffer(int width, int height);
+
+    static const int DEFAULT_SPECTATOR_CAM_WIDTH { 2048 };
+    static const int DEFAULT_SPECTATOR_CAM_HEIGHT { 1024 };
 
 signals:
     void spectatorCameraFramebufferReset();
