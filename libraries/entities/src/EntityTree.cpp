@@ -350,7 +350,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     }
 
     if (!properties.getClientOnly() && getIsClient() &&
-        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp()) {
+        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
         return nullptr;
     }
 
@@ -1076,7 +1077,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             }
 
             if ((isAdd || properties.lifetimeChanged()) &&
-                !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
+                ((!senderNode->getCanRez() && senderNode->getCanRezTmp()) ||
+                (!senderNode->getCanRezCertified() && senderNode->getCanRezTmpCertified()))) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {
@@ -1146,8 +1148,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     } else if (!senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
                         failedAdd = true;
                         qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
-                                          << "] attempted to add an entity ID:" << entityItemID;
-
+                            << "] attempted to add an entity ID:" << entityItemID;
+                    // FIXME after Cert ID property integrated        
+                    } else if (/*!properties.getCertificateID().isNull() && */!senderNode->getCanRezCertified() && !senderNode->getCanRezTmpCertified()) {
+                        qCDebug(entities) << "User without 'certified rez rights' [" << senderNode->getUUID()
+                            << "] attempted to add a certified entity with ID:" << entityItemID;
                     } else {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());

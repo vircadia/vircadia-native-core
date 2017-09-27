@@ -840,39 +840,58 @@ function loaded() {
                         elCloneableLimit.value = 0;
                         elCloneableLifetime.value = 300;
 
+                        var grabbablesSet = false;
                         var parsedUserData = {}
                         try {
                             parsedUserData = JSON.parse(properties.userData);
 
                             if ("grabbableKey" in parsedUserData) {
+                                grabbablesSet = true;
                                 var grabbableData = parsedUserData["grabbableKey"];
                                 if ("grabbable" in grabbableData) {
                                     elGrabbable.checked = grabbableData.grabbable;
+                                } else {
+                                    elGrabbable.checked = true;
                                 }
                                 if ("wantsTrigger" in grabbableData) {
                                     elWantsTrigger.checked = grabbableData.wantsTrigger;
+                                } else {
+                                    elWantsTrigger.checked = false;
                                 }
                                 if ("ignoreIK" in grabbableData) {
                                     elIgnoreIK.checked = grabbableData.ignoreIK;
+                                } else {
+                                    elIgnoreIK.checked = true;
                                 }
                                 if ("cloneable" in grabbableData) {
                                     elCloneable.checked = grabbableData.cloneable;
                                     elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                                    elCloneableDynamic.checked = grabbableData.cloneDynamic ? grabbableData.cloneDynamic : properties.dynamic;
+                                    elCloneableDynamic.checked =
+                                        grabbableData.cloneDynamic ? grabbableData.cloneDynamic : properties.dynamic;
                                     if (elCloneable.checked) {
                                       if ("cloneLifetime" in grabbableData) {
-                                          elCloneableLifetime.value = grabbableData.cloneLifetime ? grabbableData.cloneLifetime : 300;
+                                          elCloneableLifetime.value =
+                                              grabbableData.cloneLifetime ? grabbableData.cloneLifetime : 300;
                                       }
                                       if ("cloneLimit" in grabbableData) {
                                           elCloneableLimit.value = grabbableData.cloneLimit ? grabbableData.cloneLimit : 0;
                                       }
                                       if ("cloneAvatarEntity" in grabbableData) {
-                                          elCloneableAvatarEntity.checked = grabbableData.cloneAvatarEntity ? grabbableData.cloneAvatarEntity : false;
+                                          elCloneableAvatarEntity.checked =
+                                              grabbableData.cloneAvatarEntity ? grabbableData.cloneAvatarEntity : false;
                                       }
                                     }
+                                } else {
+                                    elCloneable.checked = false;
                                 }
                             }
                         } catch (e) {
+                        }
+                        if (!grabbablesSet) {
+                            elGrabbable.checked = true;
+                            elWantsTrigger.checked = false;
+                            elIgnoreIK.checked = true;
+                            elCloneable.checked = false;
                         }
 
                         elCollisionSoundURL.value = properties.collisionSoundURL;
