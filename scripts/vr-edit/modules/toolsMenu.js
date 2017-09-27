@@ -2776,7 +2776,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             break;
 
         case "clearGroupSelection":
-            optionsToggles.groupSelectionBoxButton = false;
             index = clearGroupingButtonIndex;
             Overlays.editOverlay(optionsOverlays[index], {
                 color: optionsItems[index].properties.color
