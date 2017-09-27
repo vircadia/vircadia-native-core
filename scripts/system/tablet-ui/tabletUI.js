@@ -192,7 +192,9 @@
             return;
         }
 
-        if (now - validCheckTime > MSECS_PER_SEC) {
+        var needInstantUpdate = UIWebTablet && UIWebTablet.getLandscape() !== landscape;
+
+        if ((now - validCheckTime > MSECS_PER_SEC) || needInstantUpdate) {
             validCheckTime = now;
 
             updateTabletWidthFromSettings();

@@ -19,6 +19,7 @@ class TextRenderer3D;
 
 class Text3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
+    using Parent = Billboard3DOverlay;
 
 public:
     static QString const TYPE;
@@ -63,6 +64,9 @@ public:
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
 
     virtual Text3DOverlay* createClone() const override;
+
+protected:
+    Transform evalRenderTransform() override;
 
 private:
     TextRenderer3D* _textRenderer = nullptr;
