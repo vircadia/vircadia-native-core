@@ -19,8 +19,8 @@ ToolIcon = function (side) {
 
         MODEL_DIMENSIONS = { x: 0.1944, y: 0.1928, z: 0.1928 },  // Raw FBX dimensions.
         MODEL_SCALE = 0.7,  // Adjust icon dimensions so that the green bar matches that of the Tools header.
-        MODEL_POSITION_LEFT_HAND = { x: -0.03, y: 0.035, z: 0 },  // x raises in thumb direction; y moves in fingers direction.
-        MODEL_POSITION_RIGHT_HAND = { x: 0.03, y: 0.035, z: 0 },  // ""
+        MODEL_POSITION_LEFT_HAND = { x: -0.025, y: 0.03, z: 0 },  // x raises in thumb direction; y moves in fingers direction.
+        MODEL_POSITION_RIGHT_HAND = { x: 0.025, y: 0.03, z: 0 },  // ""
         MODEL_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 0, z: 100 }),
         MODEL_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -100 }),
 
