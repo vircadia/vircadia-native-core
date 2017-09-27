@@ -38,7 +38,7 @@ Handles = function (side) {
         FACE_HANDLE_OVERLAY_OFFSETS,
         FACE_HANDLE_OVERLAY_ROTATIONS,
         FACE_HANDLE_OVERLAY_SCALE_AXES,
-        DISTANCE_MULTIPLIER_MULTIPLIER = 0.5,
+        DISTANCE_MULTIPLIER_MULTIPLIER = 0.25,
         hoveredOverlayID = null,
         isVisible = false,
 
@@ -179,9 +179,9 @@ Handles = function (side) {
         // display smaller in order to give comfortable depth cue.
         cameraPosition = Camera.position;
         boundingBoxVector = Vec3.subtract(boundingBox.center, Camera.position);
-        distanceMultiplier = DISTANCE_MULTIPLIER_MULTIPLIER * Math.sqrt(
-            Math.max(Vec3.length(boundingBoxVector, Vec3.length(boundingBox.dimensions) / 2))
-        );
+        distanceMultiplier = Vec3.length(boundingBoxVector);
+        distanceMultiplier = DISTANCE_MULTIPLIER_MULTIPLIER
+            * (distanceMultiplier + (1 - Math.LOG10E * Math.log(distanceMultiplier + 1)));
 
         // Corner scale handles.
         // At right-most and opposite corners of bounding box.
