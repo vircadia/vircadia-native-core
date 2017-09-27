@@ -137,7 +137,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
                 float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
                 if (event.getID() == LEFT_HAND_HW_ID) {
-                    offsetAngle *= -1;
+                    offsetAngle *= -1.0f;
                 }
                 contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) *
                     ((cameraPosition + direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE)));
@@ -201,8 +201,12 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        openMarketplace();
-        destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
+        if (_commerceSettingSwitch.get()) {
+            openInspectionCertificate();
+        } else {
+            openMarketplace();
+        }
+        emit contextOverlayClicked(_currentEntityWithContextOverlay);
         _contextOverlayJustClicked = true;
     }
 }
@@ -236,6 +240,16 @@ void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemI
 void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
     if (_currentEntityWithContextOverlay != entityID && _enabled && event.getID() != MOUSE_HW_ID) {
         disableEntityHighlight(entityID);
+    }
+}
+
+static const QString INSPECTION_CERTIFICATE_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
+void ContextOverlayInterface::openInspectionCertificate() {
+    // lets open the tablet to the inspection certificate QML
+    if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
+        auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+        tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
+        _hmdScriptingInterface->openTablet();
     }
 }
 

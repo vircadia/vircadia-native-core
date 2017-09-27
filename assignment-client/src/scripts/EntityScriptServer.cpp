@@ -102,7 +102,7 @@ static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
         if (_entityViewer.getTree() && !_shuttingDown) {
@@ -116,7 +116,7 @@ void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<Rec
 void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         MessageID messageID;
         message->readPrimitive(&messageID);
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
