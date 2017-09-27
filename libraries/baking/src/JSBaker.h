@@ -30,7 +30,7 @@ private :
     QString _bakedOutputDir;
     QString _bakedJSFilePath;
 
-    static bool bakeJS(QByteArray*, QByteArray*);
+    static bool bakeJS(const QByteArray*, QByteArray*);
 
     static void handleSingleLineComments(QTextStream*);
     static bool handleMultiLineComments(QTextStream*);
