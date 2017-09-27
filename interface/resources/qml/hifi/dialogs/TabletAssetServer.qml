@@ -66,6 +66,15 @@ Rectangle {
         letterboxMessage.visible = true;
         letterboxMessage.popupRadius = 0;
     }
+    
+    function errorMessageBox(message) {
+        return tabletRoot.messageBox({
+            icon: hifi.icons.warning,
+            defaultButton: OriginalDialogs.StandardButton.Ok,
+            title: "Error",
+            text: message
+        });
+    }
 
     function doDeleteFile(path) {
         console.log("Deleting " + path);
@@ -454,14 +463,11 @@ Rectangle {
             });
         }
     }
-
-    function errorMessageBox(message) {
-        return tabletRoot.messageBox({
-            icon: hifi.icons.warning,
-            defaultButton: OriginalDialogs.StandardButton.Ok,
-            title: "Error",
-            text: message
-        });
+    
+    // The letterbox used for popup messages
+    LetterboxMessage {
+        id: letterboxMessage;
+        z: 999; // Force the popup on top of everything else
     }
 
     Column {
@@ -773,7 +779,7 @@ Rectangle {
             id: infoRow
             anchors.left: treeView.left
             anchors.right: treeView.right
-            anchors.bottom: uploadSection.top
+            anchors.bottomMargin: hifi.dimensions.contentSpacing.y
             
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter

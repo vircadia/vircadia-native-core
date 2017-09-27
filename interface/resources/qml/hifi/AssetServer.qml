@@ -66,6 +66,15 @@ ScrollingWindow {
         letterboxMessage.popupRadius = 0;
     }
 
+    function errorMessageBox(message) {
+        return desktop.messageBox({
+            icon: hifi.icons.warning,
+            defaultButton: OriginalDialogs.StandardButton.Ok,
+            title: "Error",
+            text: message
+        });
+    }
+
     function doDeleteFile(path) {
         console.log("Deleting " + path);
 
@@ -452,15 +461,6 @@ ScrollingWindow {
                 doUploadTimer.start();
             });
         }
-    }
-
-    function errorMessageBox(message) {
-        return desktop.messageBox({
-            icon: hifi.icons.warning,
-            defaultButton: OriginalDialogs.StandardButton.Ok,
-            title: "Error",
-            text: message
-        });
     }
     
     Item {
