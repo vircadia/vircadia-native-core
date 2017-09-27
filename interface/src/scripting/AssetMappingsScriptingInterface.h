@@ -26,7 +26,7 @@
 class AssetMappingModel : public QStandardItemModel {
     Q_OBJECT
     Q_PROPERTY(bool autoRefreshEnabled READ isAutoRefreshEnabled WRITE setAutoRefreshEnabled)
-    Q_PROPERTY(int bakesPendingCount READ getBakesPendingCount NOTIFY bakesPendingCountChanged)
+    Q_PROPERTY(int numPendingBakes READ getNumPendingBakes NOTIFY numPendingBakesChanged)
 
 public:
     AssetMappingModel();
@@ -39,13 +39,13 @@ public:
     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
     bool isKnownFolder(QString path) const;
 
-    int getBakesPendingCount() const { return _bakesPendingCount;  }
+    int getNumPendingBakes() const { return _numPendingBakes;  }
 
 public slots:
     void clear();
 
 signals:
-    void bakesPendingCountChanged(int newCount);
+    void numPendingBakesChanged(int newCount);
     void errorGettingMappings(QString errorString);
     void updated();
 
@@ -54,7 +54,7 @@ private:
 
     QHash<QString, QStandardItem*> _pathToItemMap;
     QTimer _autoRefreshTimer;
-    int _bakesPendingCount{ 0 };
+    int _numPendingBakes{ 0 };
 };
 
 Q_DECLARE_METATYPE(AssetMappingModel*)

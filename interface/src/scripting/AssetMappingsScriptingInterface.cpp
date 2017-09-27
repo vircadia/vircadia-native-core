@@ -239,7 +239,7 @@ void AssetMappingModel::refresh() {
 
     connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
         if (request->getError() == MappingRequest::NoError) {
-            int bakesPendingCount = 0;
+            int numPendingBakes = 0;
             auto mappings = request->getMappings();
             auto existingPaths = _pathToItemMap.keys();
             for (auto& mapping : mappings) {
@@ -289,7 +289,7 @@ void AssetMappingModel::refresh() {
                     lastItem->setData(statusString, Qt::UserRole + 5);
                     lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
                     if (mapping.second.status == Pending) {
-                        ++bakesPendingCount;
+                        ++numPendingBakes;
                     }
                 }
 
@@ -339,9 +339,9 @@ void AssetMappingModel::refresh() {
                 }
             }
 
-            if (bakesPendingCount != _bakesPendingCount) {
-                _bakesPendingCount = bakesPendingCount;
-                emit bakesPendingCountChanged(_bakesPendingCount);
+            if (numPendingBakes != _numPendingBakes) {
+                _numPendingBakes = numPendingBakes;
+                emit numPendingBakesChanged(_numPendingBakes);
             }
         } else {
             emit errorGettingMappings(request->getErrorString());

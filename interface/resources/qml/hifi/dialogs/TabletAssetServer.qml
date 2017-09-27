@@ -785,11 +785,11 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
 
                 function makeText() {
-                    var pendingBakes = assetMappingsModel.bakesPendingCount;
-                    if (selectedItems > 1 || pendingBakes === 0) {
+                    var numPendingBakes = assetMappingsModel.numPendingBakes;
+                    if (selectedItems > 1 || numPendingBakes === 0) {
                         return selectedItems + " items selected";
                     } else {
-                        return pendingBakes + " bakes pending"
+                        return numPendingBakes + " bakes pending"
                     }
                 }
 
