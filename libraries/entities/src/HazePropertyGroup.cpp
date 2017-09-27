@@ -146,7 +146,7 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, float, setHazeRange);
+    READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_RANGE, float, setHazeRange);
     READ_ENTITY_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, float, setHazeAltitude);
 
     return bytesRead;

@@ -178,7 +178,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
+
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode, HAZE_MODE_INHERIT);
+    DEFINE_PROPERTY(PROP_HAZE_HAZE_RANGE, HazeRange, hazeRange, float, HazePropertyGroup::DEFAULT_HAZE_RANGE);
+    DEFINE_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
+
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);

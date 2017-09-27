@@ -69,12 +69,12 @@ public:
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
-    void setHazeMode(HazeMode value) { _hazeMode = value; _hazePropertiesChanged = true; }
-    HazeMode getHazeMode() const { return _hazeMode; }
+    void setHazeMode(HazeMode value);
+    HazeMode getHazeMode() const;
 
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
-    HazePropertyGroup getHazeProperties() const { return resultWithReadLock<HazePropertyGroup>([&] { return _hazeProperties; }); }
+    const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
 
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
@@ -88,7 +88,12 @@ public:
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
-    bool hazePropertiesChanged() const { return _hazePropertiesChanged; }
+
+#pragma optimize("", off)
+    bool hazePropertiesChanged() const { 
+        return _hazePropertiesChanged; 
+    }
+
     bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
 
     void resetRenderingPropertiesChanged();
@@ -114,9 +119,8 @@ protected:
     QString _compoundShapeURL;
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
-    HazeMode _hazeMode = HAZE_MODE_INHERIT;
-    float _hazeRange = 1000.0;
-    float _hazeAltitude = 200.0;
+
+    HazeMode _hazeMode{ HAZE_MODE_INHERIT };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;

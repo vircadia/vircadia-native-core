@@ -270,6 +270,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
     Item::clearID(_renderItemID);
 }
 
+#pragma optimize("", off)
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
     if (!isValidRenderItem()) {
         return;

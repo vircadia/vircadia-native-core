@@ -44,7 +44,6 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
 
     _backgroundMode = BACKGROUND_MODE_INHERIT;
-    _hazeMode = HAZE_MODE_INHERIT;
 }
 
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -60,6 +59,7 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundMode, getBackgroundMode);
+    
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
 
     // Contains a QString property, must be synchronized
@@ -107,6 +107,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
@@ -149,6 +150,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
+
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, HazeMode, setHazeMode);
 
     int bytesFromSkybox;
@@ -223,6 +225,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
+
     APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
 
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
@@ -317,3 +320,13 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
         _stagePropertiesChanged = false;
     });
 }
+
+void ZoneEntityItem::setHazeMode(HazeMode value) {
+    _hazeMode = value;
+    _hazePropertiesChanged = true;
+}
+
+HazeMode ZoneEntityItem::getHazeMode() const {
+    return _hazeMode; 
+}
+
