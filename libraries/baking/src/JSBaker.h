@@ -30,23 +30,21 @@ private :
     QString _bakedOutputDir;
     QString _bakedJSFilePath;
 
-    void importJS();
-    void bakeJS(QFile*);
-    void exportJS(QFile*);
+    static bool bakeJS(QByteArray*, QByteArray*);
 
-    void handleSingleLineComments(QTextStream*);
-    void handleMultiLineComments(QTextStream*);
+    static void handleSingleLineComments(QTextStream*);
+    static bool handleMultiLineComments(QTextStream*);
 
-    bool canOmitSpace(QChar, QChar);
-    bool canOmitNewLine(QChar, QChar);
+    static bool canOmitSpace(QChar, QChar);
+    static bool canOmitNewLine(QChar, QChar);
 
-    bool isAlphanum(QChar);
-    bool isNonAscii(QChar c);
-    bool isSpecialCharacter(QChar c);
-    bool isSpecialCharacterPrevious(QChar c);
-    bool isSpecialCharacterNext(QChar c);
-    bool isSpaceOrTab(QChar);
-    bool isQuote(QChar);
+    static bool isAlphanum(QChar);
+    static bool isNonAscii(QChar c);
+    static bool isSpecialCharacter(QChar c);
+    static bool isSpecialCharacterPrevious(QChar c);
+    static bool isSpecialCharacterNext(QChar c);
+    static bool isSpaceOrTab(QChar);
+    static bool isQuote(QChar);
 };
 
 #endif // !hifi_JSBaker_h
