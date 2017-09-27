@@ -776,17 +776,13 @@ ScrollingWindow {
             }
         }
 
-        Item {
+        Row {
             id: infoRow
             anchors.left: treeView.left
             anchors.right: treeView.right
             anchors.bottom: uploadSection.top
-            anchors.topMargin: 2 * hifi.dimensions.contentSpacing.y
-            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
             
             RalewayRegular {
-                id: treeInfo
-                anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
 
                 function makeText() {
@@ -804,9 +800,10 @@ ScrollingWindow {
                 color: hifi.colors.lightGrayText
             }
 
+            HifiControls.HorizontalSpacer { }
+
             HifiControls.CheckBox {
                 id: bakingCheckbox
-                anchors.left: treeInfo.right
                 anchors.leftMargin: 2 * hifi.dimensions.contentSpacing.x
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -865,8 +862,6 @@ ScrollingWindow {
             }
             
             Item {
-                anchors.left: bakingCheckbox.right
-                anchors.leftMargin: hifi.dimensions.contentSpacing.x
                 anchors.verticalCenter: parent.verticalCenter
                 width: infoGlyph.size;
                 height: infoGlyph.size;

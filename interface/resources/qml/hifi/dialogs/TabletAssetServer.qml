@@ -773,8 +773,7 @@ Rectangle {
             id: infoRow
             anchors.left: treeView.left
             anchors.right: treeView.right
-            anchors.topMargin: 2 * hifi.dimensions.contentSpacing.y
-            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+            anchors.bottom: uploadSection.top
             
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter
@@ -794,9 +793,10 @@ Rectangle {
                 color: hifi.colors.lightGrayText
             }
 
+            HifiControls.HorizontalSpacer { }
+
             HifiControls.CheckBox {
                 id: bakingCheckbox
-                anchors.left: treeInfo.right
                 anchors.leftMargin: 2 * hifi.dimensions.contentSpacing.x
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -855,8 +855,6 @@ Rectangle {
             }
             
             Item {
-                anchors.left: bakingCheckbox.right
-                anchors.leftMargin: hifi.dimensions.contentSpacing.x
                 anchors.verticalCenter: parent.verticalCenter
                 width: infoGlyph.size;
                 height: infoGlyph.size;
