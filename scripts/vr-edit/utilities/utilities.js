@@ -115,7 +115,8 @@ if (typeof Object.merge !== "function") {
             b = JSON.stringify(objectB);
         if (a === "{}") {
             return JSON.parse(b);  // Always return a new object.
-        } else if (b === "{}") {
+        }
+        if (b === "{}") {
             return JSON.parse(a);  // ""
         }
         return JSON.parse(a.slice(0, -1) + "," + b.slice(1));

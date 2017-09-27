@@ -23,8 +23,8 @@ Feedback = (function () {
         CREATE_SOUND = SoundCache.getSound(Script.resolvePath("../assets/audio/create.wav")),
         EQUIP_SOUND = SoundCache.getSound(Script.resolvePath("../assets/audio/equip.wav")),
         ERROR_SOUND = SoundCache.getSound(Script.resolvePath("../assets/audio/error.wav")),
-        UNDO_SOUND = DROP_SOUND,  // TODO
-        REDO_SOUND = DROP_SOUND,  // TODO
+        UNDO_SOUND = DROP_SOUND,
+        REDO_SOUND = DROP_SOUND,
 
         FEEDBACK_PARAMETERS = {
             DROP_TOOL:       { sound: DROP_SOUND,   volume: 0.3, haptic: 0.75  },
@@ -37,8 +37,8 @@ Feedback = (function () {
             EQUIP_TOOL:      { sound: EQUIP_SOUND,  volume: 0.3, haptic: 0.6   },
             APPLY_PROPERTY:  { sound: null,         volume: 0,   haptic: 0.3   },
             APPLY_ERROR:     { sound: ERROR_SOUND,  volume: 0.2, haptic: 0.7   },
-            UNDO_ACTION:     { sound: UNDO_SOUND,   volume: 0.1, haptic: 0.2   },  // TODO
-            REDO_ACTION:     { sound: REDO_SOUND,   volume: 0.1, haptic: 0.2   },  // TODO
+            UNDO_ACTION:     { sound: UNDO_SOUND,   volume: 0.1, haptic: 0.2   },
+            REDO_ACTION:     { sound: REDO_SOUND,   volume: 0.1, haptic: 0.2   },
             GENERAL_ERROR:   { sound: ERROR_SOUND,  volume: 0.2, haptic: 0.7   }
         },
 
