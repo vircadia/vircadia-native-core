@@ -708,8 +708,6 @@ controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(const c
             puckPoseIter++;
         }
 
-        //auto puckPoseIter = _poseStateMap.find(puckIndex);
-
         if (puckPoseIter != _validTrackedObjects.end()) {
 
             glm::mat4 postMat; // identity
