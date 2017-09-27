@@ -388,6 +388,7 @@
             handleUnitScaleAxis,
             handleScaleDirections,
             handleTargetOffset,
+            initialHandToTargetOffset,
             initialHandleDistance,
             laserOffset,
             MIN_SCALE = 0.001,
@@ -539,8 +540,12 @@
 
             isScalingWithHand = intersection.handIntersected;
 
+            // Grab center of selection.
             otherTargetPosition = targetPosition;
-            initialTargetPosition = getScaleTargetPosition();
+            initialTargetPosition = selection.boundingBox().center;
+            initialHandToTargetOffset = Vec3.subtract(initialTargetPosition, hand.position());
+
+            // Initial handle offset from center of selection.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
             handleUnitScaleAxis = handles.scalingAxis(overlayID);  // Unit vector in direction of scaling.
             handleScaleDirections = handles.scalingDirections(overlayID);  // Which axes to scale the selection on.
@@ -551,6 +556,7 @@
             initialHandleDistance -= handleTargetOffset;
             initialHandleDistance = Math.max(initialHandleDistance, MIN_SCALE_HANDLE_DISTANCE);
 
+            // Start scaling.
             selection.startHandleScaling(initialTargetPosition);
             handles.startScaling();
             isHandleScaling = true;
@@ -626,8 +632,10 @@
             deltaHandOrientation = Quat.multiply(hand.orientation(), initialHandOrientationInverse);
             selectionOrientation = Quat.multiply(deltaHandOrientation, initialSelectionOrientation);
 
+            // Position selection per grabbing hand.
+            targetPosition = Vec3.sum(hand.position(), Vec3.multiplyQbyV(deltaHandOrientation, initialHandToTargetOffset));
+
             // Desired distance of handle from other hand
-            targetPosition = getScaleTargetPosition();
             scaleAxis = Vec3.multiplyQbyV(selection.getPositionAndOrientation().orientation, handleUnitScaleAxis);
             handleDistance = Vec3.dot(Vec3.subtract(otherTargetPosition, targetPosition), scaleAxis);
             handleDistance -= handleTargetOffset;
