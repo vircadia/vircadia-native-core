@@ -26,7 +26,7 @@ ToolIcon = function (side) {
 
         MODEL_TYPE = "model",
         MODEL_PROPERTIES = {
-            url: "../assets/tools/tool-icon.fbx",
+            url: Script.resolvePath("../assets/tools/tool-icon.fbx"),
             dimensions: Vec3.multiply(MODEL_SCALE, MODEL_DIMENSIONS),
             solid: true,
             alpha: 1.0,
@@ -114,7 +114,6 @@ ToolIcon = function (side) {
 
         // Model.
         properties = Object.clone(MODEL_PROPERTIES);
-        properties.url = Script.resolvePath(properties.url);
         properties.parentJointIndex = handJointIndex;
         properties.localPosition = localPosition;
         properties.localRotation = localRotation;
@@ -124,7 +123,7 @@ ToolIcon = function (side) {
         properties = Object.clone(IMAGE_PROPERTIES);
         properties = Object.merge(properties, ICON_PROPERTIES);
         properties.parentID = modelOverlay;
-        properties.url = Script.resolvePath(iconInfo.icon.properties.url);
+        properties.url = iconInfo.icon.properties.url;
         properties.dimensions = {
             x: ICON_SCALE_FACTOR * iconInfo.icon.properties.dimensions.x,
             y: ICON_SCALE_FACTOR * iconInfo.icon.properties.dimensions.y
@@ -136,7 +135,7 @@ ToolIcon = function (side) {
         properties = Object.clone(IMAGE_PROPERTIES);
         properties = Object.merge(properties, LABEL_PROPERTIES);
         properties.parentID = modelOverlay;
-        properties.url = Script.resolvePath(iconInfo.label.properties.url);
+        properties.url = iconInfo.label.properties.url;
         properties.scale = LABEL_SCALE_FACTOR * iconInfo.label.properties.scale;
         Overlays.addOverlay(IMAGE_TYPE, properties);
 
@@ -144,7 +143,7 @@ ToolIcon = function (side) {
         properties = Object.clone(IMAGE_PROPERTIES);
         properties = Object.merge(properties, SUBLABEL_PROPERTIES);
         properties.parentID = modelOverlay;
-        properties.url = Script.resolvePath(iconInfo.sublabel.properties.url);
+        properties.url = iconInfo.sublabel.properties.url;
         properties.scale = LABEL_SCALE_FACTOR * iconInfo.sublabel.properties.scale;
         Overlays.addOverlay(IMAGE_TYPE, properties);
     }

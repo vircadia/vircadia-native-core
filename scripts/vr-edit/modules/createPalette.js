@@ -80,7 +80,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         PALETTE_TITLE_PROPERTIES = {
-            url: "../assets/create/create-heading.svg",
+            url: Script.resolvePath("../assets/create/create-heading.svg"),
             scale: 0.0363,
             localPosition: {
                 x: 0,
@@ -155,7 +155,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/cube.fbx"
+                        url: Script.resolvePath("../assets/create/cube.fbx")
                     }
                 },
                 entity: {
@@ -167,7 +167,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/sphere.fbx"
+                        url: Script.resolvePath("../assets/create/sphere.fbx")
                     }
                 },
                 entity: {
@@ -179,7 +179,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/tetrahedron.fbx"
+                        url: Script.resolvePath("../assets/create/tetrahedron.fbx")
                     }
                 },
                 entity: {
@@ -192,7 +192,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/octahedron.fbx"
+                        url: Script.resolvePath("../assets/create/octahedron.fbx")
                     }
                 },
                 entity: {
@@ -205,7 +205,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/icosahedron.fbx"
+                        url: Script.resolvePath("../assets/create/icosahedron.fbx")
                     }
                 },
                 entity: {
@@ -218,7 +218,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/dodecahedron.fbx"
+                        url: Script.resolvePath("../assets/create/dodecahedron.fbx")
                     }
                 },
                 entity: {
@@ -231,7 +231,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/hexagon.fbx",
+                        url: Script.resolvePath("../assets/create/hexagon.fbx"),
                         dimensions: { x: 0.02078, y: 0.024, z: 0.024 },
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
@@ -246,7 +246,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/prism.fbx",
+                        url: Script.resolvePath("../assets/create/prism.fbx"),
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
                 },
@@ -260,7 +260,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/octagon.fbx",
+                        url: Script.resolvePath("../assets/create/octagon.fbx"),
                         dimensions: { x: 0.023805, y: 0.024, z: 0.024 },
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
@@ -275,7 +275,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/cylinder.fbx",
+                        url: Script.resolvePath("../assets/create/cylinder.fbx"),
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
                 },
@@ -289,7 +289,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/cone.fbx",
+                        url: Script.resolvePath("../assets/create/cone.fbx"),
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
                 },
@@ -303,7 +303,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
-                        url: "../assets/create/circle.fbx",
+                        url: Script.resolvePath("../assets/create/circle.fbx"),
                         dimensions: { x: 0.024, y: 0.0005, z: 0.024 },
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
@@ -478,7 +478,6 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         paletteHeaderBarOverlay = Overlays.addOverlay("model", properties);
         properties = Object.clone(PALETTE_TITLE_PROPERTIES);
         properties.parentID = paletteHeaderHeadingOverlay;
-        properties.url = Script.resolvePath(properties.url);
         paletteTitleOverlay = Overlays.addOverlay("image3d", properties);
 
         // Palette background.
@@ -504,7 +503,6 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties = Object.clone(PALETTE_ITEM.icon.properties);
             properties = Object.merge(properties, PALETTE_ITEMS[i].icon.properties);
             properties.parentID = paletteItemHoverOverlays[i];
-            properties.url = Script.resolvePath(properties.url);
             iconOverlays[i] = Overlays.addOverlay(PALETTE_ITEM.icon.overlay, properties);
         }
 
