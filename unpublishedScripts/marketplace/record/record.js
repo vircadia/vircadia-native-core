@@ -571,7 +571,7 @@
 
     function onTabletScreenChanged(type, url) {
         // Opened/closed dialog in tablet or window.
-        var RECORD_URL = "/scripts/system/html/record.html";
+        var RECORD_URL = "/html/record.html";
 
         if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
             if (Dialog.finishOnOpen()) {

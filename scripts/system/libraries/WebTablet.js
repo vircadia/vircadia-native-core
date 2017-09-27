@@ -48,55 +48,14 @@ function calcSpawnInfo(hand, landscape) {
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
-    if (!hand) {
-        hand = NO_HANDS;
-    }
-
-    var handController = null;
-    if (HMD.active && hand !== NO_HANDS) {
-        handController = getControllerWorldLocation(hand, true);
-    }
-
-    if (handController && handController.valid) {
-        // Orient tablet per hand pitch and yaw.
-        // Angle it back similar to holding it like a book.
-        // Move tablet up so that hand is at bottom.
-        // Move tablet back so that hand is in front.
-
-        var position = handController.position;
-        var rotation = handController.rotation;
-
-        if (hand === Controller.Standard.LeftHand) {
-            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0));
-        } else {
-            rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, -90, 0));
-        }
-        var normal = Vec3.multiplyQbyV(rotation, Vec3.UNIT_NEG_Y);
-        var lookAt = Quat.lookAt(Vec3.ZERO, normal, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
-        var TABLET_RAKE_ANGLE = 30;
-        rotation = Quat.multiply(Quat.angleAxis(TABLET_RAKE_ANGLE, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
-
-        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
-        var tabletWidth = getTabletWidthFromSettings() * sensorScaleFactor;
-        var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
-        var height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
-        var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.6 * height, z: 0.1 * height };
-
-        position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RELATIVE_SPAWN_OFFSET));
-
-        return {
-            position: position,
-            rotation: landscape ? Quat.multiply(rotation, { x: 0.0, y: 0.0, z: 0.707, w: 0.707 }) : rotation
-        };
-    } else {
-        var forward = Quat.getForward(headRot);
-        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, forward));
-        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, {x: 0, y: 1, z: 0});
-        return {
-            position: finalPosition,
-            rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
-        };
-    }
+    var forward = Quat.getForward(headRot);
+    var FORWARD_OFFSET = 0.5 * MyAvatar.sensorToWorldScale;
+    finalPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
+    var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+    return {
+        position: finalPosition,
+        rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
+    };
 }
 
 /**

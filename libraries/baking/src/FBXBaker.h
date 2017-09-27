@@ -1,6 +1,6 @@
 //
 //  FBXBaker.h
-//  tools/oven/src
+//  tools/baking/src
 //
 //  Created by Stephen Birarda on 3/30/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -20,33 +20,30 @@
 #include "Baker.h"
 #include "TextureBaker.h"
 
+#include "ModelBakingLoggingCategory.h"
+
 #include <gpu/Texture.h> 
 
-namespace fbxsdk {
-    class FbxManager;
-    class FbxProperty;
-    class FbxScene;
-    class FbxFileTexture;
-}
+#include <FBX.h>
 
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
-using FBXSDKManagerUniquePointer = std::unique_ptr<fbxsdk::FbxManager, std::function<void (fbxsdk::FbxManager *)>>;
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
 
 class FBXBaker : public Baker {
     Q_OBJECT
 public:
-    FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath,
-             TextureBakerThreadGetter textureThreadGetter, bool copyOriginals = true);
+    FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
+             const QString& bakedOutputDir, const QString& originalOutputDir = "");
 
     QUrl getFBXUrl() const { return _fbxURL; }
-    QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
+    QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
+
+    virtual void setWasAborted(bool wasAborted) override;
 
 public slots:
-    // all calls to FBXBaker::bake for FBXBaker instances must be from the same thread
-    // because the Autodesk SDK will cause a crash if it is called from multiple threads
     virtual void bake() override;
+    virtual void abort() override;
 
 signals:
     void sourceCopyReadyToLoad();
@@ -55,45 +52,48 @@ private slots:
     void bakeSourceCopy();
     void handleFBXNetworkReply();
     void handleBakedTexture();
+    void handleAbortedTexture();
 
 private:
     void setupOutputFolder();
 
     void loadSourceFBX();
 
-    void bakeCopiedFBX();
-
     void importScene();
+    void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
     void exportScene();
     void removeEmbeddedMediaFolder();
-    void possiblyCleanupOriginals();
 
     void checkIfTexturesFinished();
 
     QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
-    QUrl getTextureURL(const QFileInfo& textureFileInfo, fbxsdk::FbxFileTexture* fileTexture);
+    QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
 
-    void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir);
-
-    QString pathToCopyOfOriginal() const;
+    void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir,
+                     const QString& bakedFilename, const QByteArray& textureContent = QByteArray());
 
     QUrl _fbxURL;
-    QString _fbxName;
-    
-    QString _baseOutputPath;
-    QString _uniqueOutputPath;
-    QString _bakedFBXRelativePath;
 
-    static FBXSDKManagerUniquePointer _sdkManager;
-    fbxsdk::FbxScene* _scene { nullptr };
+    FBXNode _rootNode;
+    FBXGeometry* _geometry;
+    QHash<QByteArray, QByteArray> _textureContent;
+    
+    QString _bakedFBXFilePath;
+
+    QString _bakedOutputDir;
+
+    // If set, the original FBX and textures will also be copied here
+    QString _originalOutputDir;
+
+    QDir _tempDir;
+    QString _originalFBXFilePath;
 
     QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
+    QHash<QUrl, QString> _remappedTexturePaths;
 
     TextureBakerThreadGetter _textureThreadGetter;
-
-    bool _copyOriginals { true };
 
     bool _pendingErrorEmission { false };
 };

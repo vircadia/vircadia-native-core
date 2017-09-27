@@ -88,6 +88,9 @@ protected:
 
     QSharedPointer<BaseScriptEngine> _scriptEngine;
     QSet<recording::NetworkClipLoaderPointer> _clipLoaders;
+
+private:
+    void playClip(recording::NetworkClipLoaderPointer clipLoader, const QString& url, QScriptValue callback);
 };
 
 #endif // hifi_RecordingScriptingInterface_h
