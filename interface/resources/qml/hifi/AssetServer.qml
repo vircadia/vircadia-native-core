@@ -882,11 +882,7 @@ ScrollingWindow {
                     onExited: infoGlyph.color =  hifi.colors.lightGrayText;
                     onClicked: letterbox(hifi.glyphs.question,
                                             "What is baking?",
-                                            "Baking is a process we use to compress geometric meshes and textures.<br>" +
-                                            "We do this for efficient storage and transmission of models.<br>" +
-                                            "In some cases, we have been able to achieve 60% compression of original models.<br><br>" +
-                                            "We highly recommend you leave baking on to enable faster transmission decode of models" +
-                                            "in interface resulting in better experience for users visiting your domain.");
+                                            "Baking compresses and optimizes files for faster network transfer and display. We recommend you bake your content to reduce initial load times for your visitors.");
                     }
             } 
         }
