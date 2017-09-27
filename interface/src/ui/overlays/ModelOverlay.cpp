@@ -46,10 +46,7 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
-        Transform transform = getTransform();
-#ifndef USE_SN_SCALE
-        transform.setScale(1.0f); // disable inherited scale
-#endif
+        Transform transform = evalRenderTransform();
         if (_scaleToFit) {
             _model->setScaleToFit(true, transform.getScale() * getDimensions());
         } else {
@@ -280,6 +277,12 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
 
 ModelOverlay* ModelOverlay::createClone() const {
     return new ModelOverlay(this);
+}
+
+Transform ModelOverlay::evalRenderTransform() {
+    Transform transform = getTransform();
+    transform.setScale(1.0f); // disable inherited scale
+    return transform;
 }
 
 void ModelOverlay::locationChanged(bool tellPhysics) {

@@ -9,9 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "NodePermissions.h"
+
+#include <QtCore/QtGlobal>
 #include <QDataStream>
 #include <QtCore/QDebug>
-#include "NodePermissions.h"
+
+
+
+size_t std::hash<NodePermissionsKey>::operator()(const NodePermissionsKey& key) const {
+    size_t result = qHash(key.first);
+    result <<= sizeof(size_t) / 2;
+
+#if (QT_POINTER_SIZE == 8)
+    const uint MASK = 0x00FF;
+#else
+    const uint MASK = 0xFFFF;
+#endif
+
+    result |= (qHash(key.second) & MASK);
+    return result;
+}
+
 
 NodePermissionsKey NodePermissions::standardNameLocalhost = NodePermissionsKey("localhost", 0);
 NodePermissionsKey NodePermissions::standardNameLoggedIn = NodePermissionsKey("logged-in", 0);

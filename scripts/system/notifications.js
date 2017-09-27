@@ -250,7 +250,7 @@
             noticeWidth = notice.width * NOTIFICATION_3D_SCALE + NOTIFICATION_3D_BUTTON_WIDTH;
             noticeHeight = notice.height * NOTIFICATION_3D_SCALE;
 
-            notice.size = { x: noticeWidth, y: noticeHeight};
+            notice.size = { x: noticeWidth, y: noticeHeight };
 
             positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
 

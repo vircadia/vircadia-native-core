@@ -12,6 +12,7 @@
 #ifndef hifi_DependencyManager_h
 #define hifi_DependencyManager_h
 
+#include <QtGlobal>
 #include <QDebug>
 #include <QHash>
 #include <QSharedPointer>
@@ -64,6 +65,15 @@ public:
     template<typename Base, typename Derived>
     static void registerInheritance();
     
+    template <typename T>
+    static size_t typeHash() {
+#ifdef Q_OS_ANDROID
+        size_t hashCode = std::hash<std::string>{}( typeid(T).name() );
+#else
+        size_t hashCode = typeid(T).hash_code();
+#endif
+        return hashCode;
+    }
 private:
     static DependencyManager& manager();
 
@@ -134,14 +144,14 @@ void DependencyManager::destroy() {
 
 template<typename Base, typename Derived>
 void DependencyManager::registerInheritance() {
-    size_t baseHashCode = typeid(Base).hash_code();
-    size_t derivedHashCode = typeid(Derived).hash_code();
+    size_t baseHashCode = typeHash<Base>();
+    size_t derivedHashCode = typeHash<Derived>();
     manager()._inheritanceHash.insert(baseHashCode, derivedHashCode);
 }
 
 template<typename T>
 size_t DependencyManager::getHashCode() {
-    size_t hashCode = typeid(T).hash_code();
+    size_t hashCode = typeHash<T>();
     auto derivedHashCode = _inheritanceHash.find(hashCode);
     
     while (derivedHashCode != _inheritanceHash.end()) {

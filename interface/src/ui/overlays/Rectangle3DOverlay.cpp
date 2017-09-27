@@ -124,3 +124,8 @@ void Rectangle3DOverlay::setProperties(const QVariantMap& properties) {
 Rectangle3DOverlay* Rectangle3DOverlay::createClone() const {
     return new Rectangle3DOverlay(this);
 }
+
+Transform Rectangle3DOverlay::evalRenderTransform() {
+    return getTransform();
+}
+

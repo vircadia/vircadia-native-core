@@ -980,7 +980,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(scriptEngines, &ScriptEngines::scriptLoadError,
         scriptEngines, [](const QString& filename, const QString& error){
-        OffscreenUi::warning(nullptr, "Error Loading Script", filename + " failed to load.");
+        OffscreenUi::asyncWarning(nullptr, "Error Loading Script", filename + " failed to load.");
     }, Qt::QueuedConnection);
 
 #ifdef _WIN32
@@ -1845,7 +1845,7 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
         case DomainHandler::ConnectionRefusedReason::Unknown: {
             QString message = "Unable to connect to the location you are visiting.\n";
             message += reasonMessage;
-            OffscreenUi::warning("", message);
+            OffscreenUi::asyncWarning("", message);
             break;
         }
         default:
@@ -2369,6 +2369,7 @@ void Application::initializeUi() {
 
     // Pre-create a couple of Web3D overlays to speed up tablet UI
     auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
@@ -2581,7 +2582,6 @@ void Application::paintGL() {
     // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
     ipdScale *= sensorToWorldScale;
 
-    mat4 eyeProjections[2];
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -2638,17 +2638,8 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("postComposite");
         renderArgs._batch = &postCompositeBatch;
         renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
-        for_each_eye([&](Eye eye) {
-
-            // apply eye offset and IPD scale to the view matrix
-            mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
-            vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-            mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
-            renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView() * eyeOffsetTransform);
-
-            renderArgs._batch->setProjectionTransform(eyeProjections[eye]);
-            _overlays.render3DHUDOverlays(&renderArgs);
-        });
+        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
+        _overlays.render3DHUDOverlays(&renderArgs);
     }
 
     auto frame = _gpuContext->endFrame();
@@ -3751,7 +3742,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
             DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
         }
     } else {
-        OffscreenUi::warning("", "No location details were found in the file\n" +
+        OffscreenUi::asyncWarning("", "No location details were found in the file\n" +
                              snapshotPath + "\nTry dragging in an authentic Hifi snapshot.");
     }
     return true;
@@ -6151,7 +6142,7 @@ void Application::setSessionUUID(const QUuid& sessionUUID) const {
 bool Application::askToSetAvatarUrl(const QString& url) {
     QUrl realUrl(url);
     if (realUrl.isLocalFile()) {
-        OffscreenUi::warning("", "You can not use local files for avatar components.");
+        OffscreenUi::asyncWarning("", "You can not use local files for avatar components.");
         return false;
     }
 
@@ -6163,41 +6154,55 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QString modelName = fstMapping["name"].toString();
     QString modelLicense = fstMapping["license"].toString();
 
-    bool agreeToLicence = true; // assume true
+    bool agreeToLicense = true; // assume true
+    //create set avatar callback
+    auto setAvatar = [=] (QString url, QString modelName) {
+        ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Set Avatar",
+                                                              "Would you like to use '" + modelName + "' for your avatar?",
+                                                              QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+
+            bool ok = (QMessageBox::Ok == static_cast<QMessageBox::StandardButton>(answer.toInt()));
+            if (ok) {
+                getMyAvatar()->useFullAvatarURL(url, modelName);
+                emit fullAvatarURLChanged(url, modelName);
+            } else {
+                qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
+            }
+        });
+    };
+
     if (!modelLicense.isEmpty()) {
-        // word wrap the licence text to fit in a reasonable shaped message box.
+        // word wrap the license text to fit in a reasonable shaped message box.
         const int MAX_CHARACTERS_PER_LINE = 90;
         modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
 
-        agreeToLicence = QMessageBox::Yes == OffscreenUi::question("Avatar Usage License",
-            modelLicense + "\nDo you agree to these terms?",
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-    }
+        ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Avatar Usage License",
+                                                              modelLicense + "\nDo you agree to these terms?",
+                                                              QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=, &agreeToLicense] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
 
-    bool ok = false;
+            agreeToLicense = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            if (agreeToLicense) {
+                switch (modelType) {
+                    case FSTReader::HEAD_AND_BODY_MODEL: {
+                    setAvatar(url, modelName);
+                    break;
+                }
+                default:
+                    OffscreenUi::asyncWarning("", modelName + "Does not support a head and body as required.");
+                    break;
+                }
+            } else {
+                qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+            }
 
-    if (!agreeToLicence) {
-        qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+            //auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        });
     } else {
-        switch (modelType) {
-
-            case FSTReader::HEAD_AND_BODY_MODEL:
-                 ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
-                                   "Would you like to use '" + modelName + "' for your avatar?",
-                                   QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-            break;
-
-            default:
-                OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
-            break;
-        }
-    }
-
-    if (ok) {
-        getMyAvatar()->useFullAvatarURL(url, modelName);
-        emit fullAvatarURLChanged(url, modelName);
-    } else {
-        qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
+        setAvatar(url, modelName);
     }
 
     return true;
@@ -6205,8 +6210,6 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
 
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
-    QMessageBox::StandardButton reply;
-
     QString shortName = scriptFilenameOrURL;
 
     QUrl scriptURL { scriptFilenameOrURL };
@@ -6218,15 +6221,20 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     }
 
     QString message = "Would you like to run this script:\n" + shortName;
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion(getWindow(), "Run Script", message,
+                                                           QMessageBox::Yes | QMessageBox::No);
 
-    reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
+    QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+        const QString& fileName = scriptFilenameOrURL;
+        if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
+            qCDebug(interfaceapp) << "Chose to run the script: " << fileName;
+            DependencyManager::get<ScriptEngines>()->loadScript(fileName);
+        } else {
+            qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
+        }
+        QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+    });
 
-    if (reply == QMessageBox::Yes) {
-        qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;
-        DependencyManager::get<ScriptEngines>()->loadScript(scriptFilenameOrURL);
-    } else {
-        qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
-    }
     return true;
 }
 
@@ -6263,22 +6271,26 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
                     name = nameValue.toString();
                 }
 
-                // display confirmation dialog
-                if (displayAvatarAttachmentConfirmationDialog(name)) {
-
-                    // add attachment to avatar
-                    auto myAvatar = getMyAvatar();
-                    assert(myAvatar);
-                    auto attachmentDataVec = myAvatar->getAttachmentData();
-                    AttachmentData attachmentData;
-                    attachmentData.fromJson(jsonObject);
-                    attachmentDataVec.push_back(attachmentData);
-                    myAvatar->setAttachmentData(attachmentDataVec);
-
-                } else {
-                    qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
-                }
-
+                auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
+                auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?").arg(name);
+                ModalDialogListener* dlg = OffscreenUi::asyncQuestion(avatarAttachmentConfirmationTitle,
+                                           avatarAttachmentConfirmationMessage,
+                                           QMessageBox::Ok | QMessageBox::Cancel);
+                QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+                    QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+                    if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
+                        // add attachment to avatar
+                        auto myAvatar = getMyAvatar();
+                        assert(myAvatar);
+                        auto attachmentDataVec = myAvatar->getAttachmentData();
+                        AttachmentData attachmentData;
+                        attachmentData.fromJson(jsonObject);
+                        attachmentDataVec.push_back(attachmentData);
+                        myAvatar->setAttachmentData(attachmentDataVec);
+                    } else {
+                        qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
+                    }
+                });
             } else {
                 // json parse error
                 auto avatarAttachmentParseErrorString = tr("Error parsing attachment JSON from url: \"%1\"");
@@ -6351,20 +6363,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
 
 void Application::displayAvatarAttachmentWarning(const QString& message) const {
     auto avatarAttachmentWarningTitle = tr("Avatar Attachment Failure");
-    OffscreenUi::warning(avatarAttachmentWarningTitle, message);
-}
-
-bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name) const {
-    auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
-    auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?").arg(name);
-    auto reply = OffscreenUi::question(avatarAttachmentConfirmationTitle,
-                                       avatarAttachmentConfirmationMessage,
-                                       QMessageBox::Ok | QMessageBox::Cancel);
-    if (QMessageBox::Ok == reply) {
-        return true;
-    } else {
-        return false;
-    }
+    OffscreenUi::asyncWarning(avatarAttachmentWarningTitle, message);
 }
 
 void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const {
@@ -6686,7 +6685,7 @@ void Application::addAssetToWorldCheckModelSize() {
         if (dimensions != DEFAULT_DIMENSIONS) {
 
             // Scale model so that its maximum is exactly specific size.
-            const float MAXIMUM_DIMENSION = 1.0f * getMyAvatar()->getSensorToWorldScale();
+            const float MAXIMUM_DIMENSION = getMyAvatar()->getSensorToWorldScale();
             auto previousDimensions = dimensions;
             auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
                 MAXIMUM_DIMENSION / dimensions.z));
@@ -6945,12 +6944,17 @@ void Application::openUrl(const QUrl& url) const {
 
 void Application::loadDialog() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
-    QString fileNameString = OffscreenUi::getOpenFileName(
-        _glWidget, tr("Open Script"), getPreviousScriptLocation(), tr("JavaScript Files (*.js)"));
-    if (!fileNameString.isEmpty() && QFile(fileNameString).exists()) {
-        setPreviousScriptLocation(QFileInfo(fileNameString).absolutePath());
-        DependencyManager::get<ScriptEngines>()->loadScript(fileNameString, true, false, false, true);  // Don't load from cache
-    }
+    ModalDialogListener* dlg = OffscreenUi::getOpenFileNameAsync(_glWidget, tr("Open Script"),
+                                                                 getPreviousScriptLocation(),
+                                                                 tr("JavaScript Files (*.js)"));
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        const QString& response = answer.toString();
+        if (!response.isEmpty() && QFile(response).exists()) {
+            setPreviousScriptLocation(QFileInfo(response).absolutePath());
+            DependencyManager::get<ScriptEngines>()->loadScript(response, true, false, false, true);  // Don't load from cache
+        }
+    });
 }
 
 QString Application::getPreviousScriptLocation() {
@@ -6963,12 +6967,16 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    QString newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
-    if (QUrl(newScript).scheme() == "atp") {
-        OffscreenUi::warning("Error Loading Script", "Cannot load client script over ATP");
-    } else if (!newScript.isEmpty()) {
-        DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
-    }
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        const QString& newScript = response.toString();
+        if (QUrl(newScript).scheme() == "atp") {
+            OffscreenUi::asyncWarning("Error Loading Script", "Cannot load client script over ATP");
+        } else if (!newScript.isEmpty()) {
+            DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
+        }
+    });
 }
 
 void Application::loadLODToolsDialog() {
@@ -7085,7 +7093,7 @@ void Application::notifyPacketVersionMismatch() {
         QString message = "The location you are visiting is running an incompatible server version.\n";
         message += "Content may not display properly.";
 
-        OffscreenUi::warning("", message);
+        OffscreenUi::asyncWarning("", message);
     }
 }
 
@@ -7094,7 +7102,7 @@ void Application::checkSkeleton() const {
         qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
 
         QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
-        OffscreenUi::warning("", message);
+        OffscreenUi::asyncWarning("", message);
 
         getMyAvatar()->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {

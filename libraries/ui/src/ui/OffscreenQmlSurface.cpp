@@ -827,7 +827,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-            QWidget* widget = dynamic_cast<QWidget*>(originalDestination);
+            QWidget* widget = static_cast<QWidget*>(originalDestination);
             if (widget) {
                 this->resize(resizeEvent->size());
             }
@@ -932,7 +932,7 @@ void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
 }
 
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    QQuickItem* item = static_cast<QQuickItem*>(object);
     if (!item) {
         setFocusText(false);
         _currentFocusItem = nullptr;
@@ -1019,6 +1019,10 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
 }
 
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+#if Q_OS_ANDROID
+    return;
+#endif
+
     if (!object) {
         return;
     }

@@ -97,7 +97,7 @@
         checkTablet()
 
         tabletScalePercentage = getTabletScalePercentageFromSettings();
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
+        UIWebTablet = new WebTablet("hifi/tablet/TabletRoot.qml",
                                     DEFAULT_WIDTH * (tabletScalePercentage / 100),
                                     null, activeHand, true, null, false);
         UIWebTablet.register();
@@ -271,6 +271,36 @@
     Messages.subscribe("toggleHand");
     Messages.subscribe("home");
     Messages.messageReceived.connect(handleMessage);
+
+    var clickMapping = Controller.newMapping('tabletToggle-click');
+    var wantsMenu = 0;
+    clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
+    clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
+    if (clicked) {
+        //activeHudPoint2d(Controller.Standard.RightHand);
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.RightHand);
+    }
+        wantsMenu = clicked;
+    });
+    
+    clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
+        if (clicked) {
+            //activeHudPoint2d(Controller.Standard.LeftHand);
+            Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
+        }
+        wantsMenu = clicked;
+    });
+    
+    clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
+    if (clicked) {
+        //activeHudPoint2dGamePad();
+        var noHands = -1;
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
+    }
+
+        wantsMenu = clicked;
+    });
+    clickMapping.enable();
 
     Script.setInterval(updateShowTablet, 100);
 
