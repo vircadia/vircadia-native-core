@@ -492,7 +492,7 @@
 
         function getScaleTargetPosition() {
             if (isScalingWithHand) {
-                return side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+                return hand.palmPosition();
             }
             return Vec3.sum(Vec3.sum(hand.position(), Vec3.multiplyQbyV(hand.orientation(), laserOffset)),
                 Vec3.multiply(laser.length(), Quat.getUp(hand.orientation())));
