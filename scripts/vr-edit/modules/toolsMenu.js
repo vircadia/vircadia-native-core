@@ -2473,9 +2473,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         pressedItem = null;
 
         isOptionsOpen = false;
-
-        // Display menu items.
-        openMenu();
     }
 
     function displayFooter() {
@@ -2531,6 +2528,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function clearTool() {
         closeOptions();
+        openMenu();
     }
 
     function setPresetsLabelToCustom() {
@@ -2924,6 +2922,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         case "closeOptions":
             closeOptions();
+            openMenu();
             break;
 
         case "clearTool":
@@ -3659,17 +3658,17 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (!isDisplaying) {
             return;
         }
+
+        if (isOptionsOpen) {
+            closeOptions();
+        }
+
         Overlays.deleteOverlay(menuOriginOverlay);  // Automatically deletes all other overlays because they're children.
         menuOverlays = [];
         menuHoverOverlays = [];
         menuIconOverlays = [];
         menuLabelOverlays = [];
         menuEnabled = [];
-        optionsOverlays = [];
-        optionsOverlaysLabels = [];
-        optionsOverlaysSublabels = [];
-        optionsExtraOverlays = [];
-        optionsEnabled = [];
         footerOverlays = [];
         footerHoverOverlays = [];
         footerIconOverlays = [];
