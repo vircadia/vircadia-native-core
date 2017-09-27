@@ -26,30 +26,53 @@ JSBaker::JSBaker(const QUrl& jsURL, const QString& bakedOutputDir) :
 void JSBaker::bake() {
     qCDebug(js_baking) << "JS Baker " << _jsURL << "bake starting";
     
-    // Import the script to start baking
-    importJS();
-}
-
-void JSBaker::importJS() {    
-    // Import the file to be processed from _jsURL
+    // Import file to start baking
     QFile jsFile(_jsURL.toLocalFile());
     if (!jsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         handleError("Error opening " + _jsURL.fileName() + " for reading");
         return;
     }
     
-    // Import successful, Call the baking function with the imported file
-    bakeJS(&jsFile);    
+    // Read file into an array
+    QByteArray inputJS = jsFile.readAll();
+    QByteArray outputJS;
+   
+    // Call baking on inputJS and store result in outputJS 
+    bool success = bakeJS(&inputJS, &outputJS);
+    if (!success) {
+        qCDebug(js_baking) << "Bake Failed";
+        handleError("Eror unterminated multi line comment");
+        return;
+    }
+    
+    // Bake Successful. Export the file
+    auto fileName = _jsURL.fileName();
+    auto baseName = fileName.left(fileName.lastIndexOf('.'));
+    auto bakedFilename = baseName + BAKED_JS_EXTENSION;
+
+    _bakedJSFilePath = _bakedOutputDir + "/" + bakedFilename;
+    
+    QFile bakedFile;
+    bakedFile.setFileName(_bakedJSFilePath);
+    if (!bakedFile.open(QIODevice::WriteOnly)) {
+        handleError("Error opening " + _bakedJSFilePath + " for writing");
+        return;
+    }
+    
+    bakedFile.write(outputJS);
+    
+    // Export successful
+    _outputFiles.push_back(_bakedJSFilePath);
+    qCDebug(js_baking) << "Exported" << _jsURL << "with re-written paths to" << _bakedJSFilePath;
+
+    // emit signal to indicate the JS baking is finished
+    emit finished();
 }
 
-void JSBaker::bakeJS(QFile* inputFile) {
-    // Create an output file which will be exported as the bakedFile
-    QFile outputFile;
-    outputFile.open(QIODevice::WriteOnly | QIODevice::Text);
-    
+bool JSBaker::bakeJS(QByteArray* inputFile, QByteArray* outputFile) {
     // Read from inputFile and write to outputFile per character 
-    QTextStream in(inputFile);
-    QTextStream out(&outputFile);
+    QTextStream in(inputFile,QIODevice::ReadOnly);
+    QTextStream out(outputFile, QIODevice::WriteOnly);
 
     // Algorithm requires the knowledge of previous and next character for each character read
     QChar currentCharacter;
@@ -75,9 +98,10 @@ void JSBaker::bakeJS(QFile* inputFile) {
                 continue;
             } else if (nextCharacter == '*') {
                 // Check if multi line comment i.e. /*
-                handleMultiLineComments(&in);
-                if (hasErrors()) {
-                    return;
+                bool success = handleMultiLineComments(&in);
+                if (!success) {
+                    // Errors present return false
+                    return false;
                 }
                 //Start fresh after handling comments
                 previousCharacter = '\n';
@@ -119,7 +143,7 @@ void JSBaker::bakeJS(QFile* inputFile) {
             // Print the current quote and nextCharacter as is
             out << currentCharacter;
             out << nextCharacter;
-            
+
             // Store the type of quote we are processing
             QChar quote = currentCharacter;
 
@@ -135,7 +159,7 @@ void JSBaker::bakeJS(QFile* inputFile) {
             continue;
         } else {
             // In all other cases write the currentCharacter to outputFile
-            out << currentCharacter;  
+            out << currentCharacter;
         } 
 
         previousCharacter = currentCharacter;
@@ -147,37 +171,8 @@ void JSBaker::bakeJS(QFile* inputFile) {
         out << currentCharacter;
     }
     
-    // Reading done. Closing the inputFile
-    inputFile->close();
-    
-    // Bake successful, Export the compressed outputFile
-    exportJS(&outputFile);
-}
-
-void JSBaker::exportJS(QFile* bakedFile) {
-    // save the relative path to this JS inside the output folder
-    auto fileName = _jsURL.fileName();
-    auto baseName = fileName.left(fileName.lastIndexOf('.'));
-    auto bakedFilename = baseName + BAKED_JS_EXTENSION;
-
-    _bakedJSFilePath = _bakedOutputDir + "/" + bakedFilename;
-
-    bakedFile->setFileName(_bakedJSFilePath);
-
-    if (!bakedFile->open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedJSFilePath + " for writing");
-        return;
-    }
-    
-    // Export successful
-    _outputFiles.push_back(_bakedJSFilePath);
-    qCDebug(js_baking) << "Exported" << _jsURL << "with re-written paths to" << _bakedJSFilePath;
-    
-    // Exporting done. Closing the outputFile
-    bakedFile->close();
-    
-    // emit signal to indicate the JS baking is finished
-    emit finished();
+    // Successful bake. Return true
+    return true;
 }
 
 void JSBaker::handleSingleLineComments(QTextStream * in) {
@@ -190,17 +185,17 @@ void JSBaker::handleSingleLineComments(QTextStream * in) {
     }
 }
 
-void JSBaker::handleMultiLineComments(QTextStream * in) {
+bool JSBaker::handleMultiLineComments(QTextStream * in) {
     QChar character;
     while (!in->atEnd()) {
         *in >> character;
         if (character == '*') {
             if (in->read(1) == '/') {
-                return;
+                return true;
             }
         }
     }
-    handleError("Eror unterminated multi line comment");
+    return false;
 }
 
 bool JSBaker::canOmitSpace(QChar previousCharacter, QChar nextCharacter) {
