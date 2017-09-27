@@ -4073,7 +4073,6 @@ SelectionDisplay = (function() {
         if (SelectionManager.hasSelection()) {
             var controllerPose = getControllerWorldLocation(activeHand, true);
             var hand = (activeHand === Controller.Standard.LeftHand) ? 0 : 1;
-            print(hand);
             if (controllerPose.valid && lastControllerPoses[hand].valid) {
                 if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
                     !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
