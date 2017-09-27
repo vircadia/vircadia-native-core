@@ -23,28 +23,29 @@ public:
     JSBaker(const QUrl& jsURL, const QString& bakedOutputDir);
 
 public slots:
-    virtual void bake() override;
+    virtual void bake() override;  
+
+public:
+    static bool bakeJS(const QByteArray* inputFile, QByteArray* outputFile);
 
 private :
     QUrl _jsURL;
     QString _bakedOutputDir;
     QString _bakedJSFilePath;
 
-    static bool bakeJS(const QByteArray*, QByteArray*);
+    static void handleSingleLineComments(QTextStream* in);
+    static bool handleMultiLineComments(QTextStream* in);
 
-    static void handleSingleLineComments(QTextStream*);
-    static bool handleMultiLineComments(QTextStream*);
+    static bool canOmitSpace(QChar previousCharacter, QChar nextCharacter);
+    static bool canOmitNewLine(QChar previousCharacter, QChar nextCharacter);
 
-    static bool canOmitSpace(QChar, QChar);
-    static bool canOmitNewLine(QChar, QChar);
-
-    static bool isAlphanum(QChar);
+    static bool isAlphanum(QChar c);
     static bool isNonAscii(QChar c);
     static bool isSpecialCharacter(QChar c);
     static bool isSpecialCharacterPrevious(QChar c);
     static bool isSpecialCharacterNext(QChar c);
-    static bool isSpaceOrTab(QChar);
-    static bool isQuote(QChar);
+    static bool isSpaceOrTab(QChar c);
+    static bool isQuote(QChar c);
 };
 
 #endif // !hifi_JSBaker_h
