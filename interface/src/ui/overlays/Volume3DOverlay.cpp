@@ -26,6 +26,11 @@ AABox Volume3DOverlay::getBounds() const {
     return AABox(extents);
 }
 
+void Volume3DOverlay::setDimensions(const glm::vec3& value) {
+    _localBoundingBox.setBox(-value / 2.0f, value);
+    notifyRenderTransformChange();
+}
+
 void Volume3DOverlay::setProperties(const QVariantMap& properties) {
     Base3DOverlay::setProperties(properties);
 
@@ -66,4 +71,12 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
     // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
     // and testing intersection there.
     return _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face, surfaceNormal);
+}
+
+Transform Volume3DOverlay::evalRenderTransform() {
+    Transform transform = getTransform();
+#ifndef USE_SN_SCALE
+    transform.setScale(1.0f);  // ignore any inherited scale from SpatiallyNestable
+#endif
+    return transform;
 }
