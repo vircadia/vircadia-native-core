@@ -14,7 +14,7 @@ StatTracker::StatTracker() {
 
 QVariant StatTracker::getStat(const QString& name) {
     std::lock_guard<std::mutex> lock(_statsLock);
-    return _stats[name];
+    return QVariant::fromValue<int64_t>(_stats[name]);
 }
 
 void StatTracker::setStat(const QString& name, int64_t value) {
