@@ -369,11 +369,6 @@ Script.include("/~/system/libraries/controllers.js");
             otherFarGrabModule.currentObjectRotation = Quat.multiply(controllerRotationDelta,
                 otherFarGrabModule.currentObjectRotation);
 
-            // Rotate about the translation controller's target position.
-            this.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta, this.offsetPosition);
-            otherFarGrabModule.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta,
-                otherFarGrabModule.offsetPosition);
-
             this.previousWorldControllerRotation = worldControllerRotation;
         };
 
@@ -495,6 +490,7 @@ Script.include("/~/system/libraries/controllers.js");
                             }
 
                             if (otherFarGrabModule.grabbedThingID === this.grabbedThingID && otherFarGrabModule.distanceHolding) {
+                                this.prepareDistanceRotatingData(controllerData);
                                 this.distanceRotate(otherFarGrabModule);
                             } else {
                                 this.distanceHolding = true;
