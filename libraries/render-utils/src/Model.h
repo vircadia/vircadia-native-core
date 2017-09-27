@@ -381,8 +381,8 @@ protected:
     QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
 
-	QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
-	QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
+    QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
+    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
 
     render::ItemIDs _modelMeshRenderItemIDs;
 

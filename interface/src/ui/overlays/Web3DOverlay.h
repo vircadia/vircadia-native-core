@@ -31,8 +31,6 @@ public:
     Web3DOverlay(const Web3DOverlay* Web3DOverlay);
     virtual ~Web3DOverlay();
 
-    QString pickURL();
-    void loadSourceURL();
     void setMaxFPS(uint8_t maxFPS);
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
@@ -82,6 +80,10 @@ protected:
     Transform evalRenderTransform() override;
 
 private:
+    void setupQmlSurface();
+    void rebuildWebSurface();
+    bool isWebContent() const;
+
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     gpu::TexturePointer _texture;

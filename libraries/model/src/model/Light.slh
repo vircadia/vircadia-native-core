@@ -41,7 +41,7 @@ SphericalHarmonics getLightAmbientSphere(LightAmbient l) { return l._ambientSphe
 
 
 float getLightAmbientIntensity(LightAmbient l) { return l._ambient.x; }
-bool getLightHasAmbientMap(LightAmbient l) { return l._ambient.y > 0; }
+bool getLightHasAmbientMap(LightAmbient l) { return l._ambient.y > 0.0; }
 float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
 
 <@func declareLightBuffer(N)@>

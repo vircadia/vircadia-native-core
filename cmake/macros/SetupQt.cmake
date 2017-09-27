@@ -28,7 +28,7 @@ function(calculate_default_qt_dir _RESULT_NAME)
         set(QT_DEFAULT_ARCH "gcc_64")
     endif()
 
-    if (WIN32)
+    if (WIN32 OR (ANDROID AND ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")))
         set(QT_DEFAULT_ROOT "c:/Qt")
     else()
         set(QT_DEFAULT_ROOT "$ENV{HOME}/Qt")

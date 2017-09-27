@@ -2369,6 +2369,7 @@ void Application::initializeUi() {
 
     // Pre-create a couple of Web3D overlays to speed up tablet UI
     auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 

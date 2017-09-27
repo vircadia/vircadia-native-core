@@ -29,13 +29,8 @@ using NodePermissionsKeyList = QList<QPair<QString, QUuid>>;
 
 namespace std {
     template<>
-    struct hash<NodePermissionsKey> {	
-        size_t operator()(const NodePermissionsKey& key) const {	
-            size_t result = qHash(key.first);
-            result <<= 32;
-            result |= qHash(key.second);
-            return result;
-	    }
+    struct hash<NodePermissionsKey> {    
+        size_t operator()(const NodePermissionsKey& key) const;
     };
 }
 
