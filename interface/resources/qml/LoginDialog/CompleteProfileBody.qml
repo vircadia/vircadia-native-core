@@ -65,7 +65,7 @@ Item {
             text: qsTr("Cancel")
 
 
-            onClicked: root.destroy()
+            onClicked: root.tryDestroy()
         }
     }
 

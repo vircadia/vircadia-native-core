@@ -50,7 +50,6 @@ Item {
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                 + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : 0);
-            console.log("sign up h:", parent.height, targetHeight, form.height)
         }
     }
 

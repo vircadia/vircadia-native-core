@@ -56,7 +56,6 @@ Item {
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
-            console.log("sign in h:", targetHeight, parent.height, form.height)
         }
     }
 
@@ -232,7 +231,6 @@ Item {
             }
         }
     }
-
 
     // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
     Keyboard {

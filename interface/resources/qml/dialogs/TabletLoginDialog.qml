@@ -47,8 +47,10 @@ TabletModalWindow {
         }
 
         function tryDestroy() {
+            console.log("tryDestroy")
             canceled()
         }
+        Component.onDestruction: console.log("root dying")
     }
 
     //property int colorScheme: hifi.colorSchemes.dark
@@ -81,7 +83,7 @@ TabletModalWindow {
 
     onCanceled: {
         if (bodyLoader.active === true) {
-            bodyLoader.active = false
+            //bodyLoader.active = false
         }
         if (gotoPreviousApp) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -96,13 +98,12 @@ TabletModalWindow {
         id: mfRoot
 
         width: root.width
-        height: root.height //+ frameMarginTop
+        height: root.height + frameMarginTop + hifi.dimensions.contentMargin.x
 
         anchors {
             horizontalCenter: parent.horizontalCenter
             verticalCenter: parent.verticalCenter
         }
-        onHeightChanged: console.log("tablet mf h:", height)
 
         LoginDialog {
             id: loginDialog
@@ -158,45 +159,4 @@ TabletModalWindow {
                 break
         }
     }
-//    LoginDialog {
-//        id: loginDialog
-//        width: parent.width
-//        height: parent.height
-//        StackView {
-//            id: bodyLoader
-//            property var item: currentItem
-//            property var props
-//            property string source: ""
-
-//            onCurrentItemChanged: {
-//                //cleanup source for future usage
-//                source = ""
-//            }
-
-//            function setSource(src, props) {
-//                source = "../TabletLoginDialog/" + src
-//                bodyLoader.props = props
-//            }
-//            function popup() {
-//                bodyLoader.pop()
-
-//                //check if last screen, if yes, dialog is popped out
-//                if (depth === 1)
-//                    loginDialogRoot.canceled()
-//            }
-
-//            anchors.fill: parent
-//            anchors.margins: 10
-//            onSourceChanged: {
-//                if (source !== "") {
-//                    bodyLoader.push(Qt.resolvedUrl(source), props)
-//                }
-//            }
-//            Component.onCompleted: {
-//                setSource(loginDialog.isSteamRunning() ?
-//                              "SignInBody.qml" :
-//                              "LinkAccountBody.qml")
-//            }
-//        }
-//    }
 }
