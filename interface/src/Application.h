@@ -470,8 +470,6 @@ private:
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
 
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
-
     int sendNackPackets();
     void sendAvatarViewFrustum();
 
@@ -481,7 +479,7 @@ private:
 
     void initializeAcceptedFiles();
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
+    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
@@ -628,6 +626,7 @@ private:
     struct AppRenderArgs {
         render::Args _renderArgs;
         glm::mat4 _eyeToWorld;
+        glm::mat4 _headPose;
         glm::mat4 _sensorToWorld;
         float _sensorToWorldScale { 1.0f };
     };

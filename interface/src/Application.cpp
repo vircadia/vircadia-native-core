@@ -2374,11 +2374,7 @@ void Application::initializeUi() {
 }
 
 void Application::updateCamera(RenderArgs& renderArgs) {
-    // load the view frustum
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        _myCamera.loadViewFrustum(_displayViewFrustum);
-    }
+
 
     glm::vec3 boomOffset;
     {
@@ -2481,12 +2477,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         }
     }
 
-    renderArgs._cameraMode = (int8_t)_myCamera.getMode(); // HACK
-
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        renderArgs.setViewFrustum(_displayViewFrustum);
-    }
+    renderArgs._cameraMode = (int8_t)_myCamera.getMode();
 }
 
 void Application::editRenderArgs(RenderArgsEditor editor) {
@@ -2539,42 +2530,46 @@ void Application::paintGL() {
     RenderArgs renderArgs;
     float sensorToWorldScale;
     glm::mat4  HMDSensorPose;
+    glm::mat4  eyeToWorld;
+    glm::mat4  sensorToWorld;
     {
         QMutexLocker viewLocker(&_renderArgsMutex);
         renderArgs = _appRenderArgs._renderArgs;
-        HMDSensorPose = _appRenderArgs._eyeToWorld;
+        HMDSensorPose = _appRenderArgs._headPose;
+        eyeToWorld = _appRenderArgs._eyeToWorld;
+        sensorToWorld = _appRenderArgs._sensorToWorld;
         sensorToWorldScale = _appRenderArgs._sensorToWorldScale;
     }
-/*
-    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
-    {
-        PROFILE_RANGE(render, "/buildFrustrumAndArgs");
-        {
-            QMutexLocker viewLocker(&_viewMutex);
-            // adjust near clip plane to account for sensor scaling.
-            auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
-                                                       _viewFrustum.getAspectRatio(),
-                                                       DEFAULT_NEAR_CLIP * sensorToWorldScale,
-                                                       _viewFrustum.getFarClip());
-            _viewFrustum.setProjection(adjustedProjection);
-            _viewFrustum.calculate();
-        }
-        renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
-            lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
-            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-        {
-            QMutexLocker viewLocker(&_viewMutex);
-            renderArgs.setViewFrustum(_viewFrustum);
-        }
-    }
-*/
-    {
-        PROFILE_RANGE(render, "/resizeGL");
-        PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
-        bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-        PerformanceWarning warn(showWarnings, "Application::paintGL()");
-        resizeGL();
-    }
+
+    //float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
+    //{
+    //    PROFILE_RANGE(render, "/buildFrustrumAndArgs");
+    //    {
+    //        QMutexLocker viewLocker(&_viewMutex);
+    //        // adjust near clip plane to account for sensor scaling.
+    //        auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
+    //                                                   _viewFrustum.getAspectRatio(),
+    //                                                   DEFAULT_NEAR_CLIP * sensorToWorldScale,
+    //                                                   _viewFrustum.getFarClip());
+    //        _viewFrustum.setProjection(adjustedProjection);
+    //        _viewFrustum.calculate();
+    //    }
+    //    renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
+    //        lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+    //        RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+    //    {
+    //        QMutexLocker viewLocker(&_viewMutex);
+    //        renderArgs.setViewFrustum(_viewFrustum);
+    //    }
+    //}
+
+    //{
+    //    PROFILE_RANGE(render, "/resizeGL");
+    //    PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
+    //    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    //    PerformanceWarning warn(showWarnings, "Application::paintGL()");
+    //    resizeGL();
+    //}
 
     {
         PROFILE_RANGE(render, "/gpuContextReset");
@@ -2599,103 +2594,10 @@ void Application::paintGL() {
     }
 
  //   updateCamera(renderArgs);
-
-   /* glm::vec3 boomOffset;
-    {
-        PROFILE_RANGE(render, "/updateCamera");
-        {
-            PerformanceTimer perfTimer("CameraUpdates");
-
-            auto myAvatar = getMyAvatar();
-            boomOffset = myAvatar->getModelScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
-
-            // The render mode is default or mirror if the camera is in mirror mode, assigned further below
-            renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-            // Always use the default eye position, not the actual head eye position.
-            // Using the latter will cause the camera to wobble with idle animations,
-            // or with changes from the face tracker
-            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-                if (isHMDMode()) {
-                    mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                    _myCamera.setPosition(extractTranslation(camMat));
-                    _myCamera.setOrientation(glmExtractRotation(camMat));
-                } else {
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-                    _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
-                }
-            } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-                if (isHMDMode()) {
-                    auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                    _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
-                    _myCamera.setPosition(extractTranslation(hmdWorldMat) +
-                        myAvatar->getOrientation() * boomOffset);
-                } else {
-                    _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                            + _myCamera.getOrientation() * boomOffset);
-                    } else {
-                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                            + myAvatar->getOrientation() * boomOffset);
-                    }
-                }
-            } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                if (isHMDMode()) {
-                    auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
-
-                    glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                    // Mirror HMD yaw and roll
-                    glm::vec3 mirrorHmdEulers = glm::eulerAngles(hmdRotation);
-                    mirrorHmdEulers.y = -mirrorHmdEulers.y;
-                    mirrorHmdEulers.z = -mirrorHmdEulers.z;
-                    glm::quat mirrorHmdRotation = glm::quat(mirrorHmdEulers);
-
-                    glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
-
-                    _myCamera.setOrientation(worldMirrorRotation);
-
-                    glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                    // Mirror HMD lateral offsets
-                    hmdOffset.x = -hmdOffset.x;
-
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                        + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
-                        + mirrorBodyOrientation * hmdOffset);
-                } else {
-                    _myCamera.setOrientation(myAvatar->getOrientation()
-                        * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                        + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                        glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-                }
-                renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-            } else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
-                EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
-                if (cameraEntity != nullptr) {
-                    if (isHMDMode()) {
-                        glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                        _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
-                        glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                        _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
-                    } else {
-                        _myCamera.setOrientation(cameraEntity->getRotation());
-                        _myCamera.setPosition(cameraEntity->getPosition());
-                    }
-                }
-            }
-            // Update camera position
-            if (!isHMDMode()) {
-                _myCamera.update(1.0f / _frameCounter.rate());
-            }
-        }
-    }
-    */
     {
         PROFILE_RANGE(render, "/updateCompositor");
-        getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
+    //    getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
+        getApplicationCompositor().setFrameInfo(_frameCount, eyeToWorld, sensorToWorld);
     }
 
     gpu::FramebufferPointer finalFramebuffer;
@@ -2761,7 +2663,8 @@ void Application::paintGL() {
             renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
-        displaySide(&renderArgs, _myCamera);
+       // displaySide(&renderArgs, _myCamera);
+        runRenderFrame(&renderArgs);
     }
 
     gpu::Batch postCompositeBatch;
@@ -5367,7 +5270,7 @@ void Application::update(float deltaTime) {
 
     editRenderArgs([this](AppRenderArgs& appRenderArgs) {
         
-        appRenderArgs._eyeToWorld = getHMDSensorPose();
+        appRenderArgs._headPose= getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
 
@@ -5375,7 +5278,7 @@ void Application::update(float deltaTime) {
         // update the avatar with a fresh HMD pose
         {
             PROFILE_RANGE(render, "/updateAvatar");
-            myAvatar->updateFromHMDSensorMatrix(appRenderArgs._eyeToWorld);
+            myAvatar->updateFromHMDSensorMatrix(appRenderArgs._headPose);
         }
 
         auto lodManager = DependencyManager::get<LODManager>();
@@ -5402,13 +5305,31 @@ void Application::update(float deltaTime) {
                 appRenderArgs._renderArgs.setViewFrustum(_viewFrustum);
             }
         }
+        {
+            PROFILE_RANGE(render, "/resizeGL");
+            PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
+            bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+            PerformanceWarning warn(showWarnings, "Application::paintGL()");
+            resizeGL();
+        }
 
         this->updateCamera(appRenderArgs._renderArgs);
 
+
+        // HACK
+        // load the view frustum
         // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
         // Then we can move this logic into the Avatar::simulate call.
         myAvatar->preDisplaySide(&appRenderArgs._renderArgs);
 
+        {
+            QMutexLocker viewLocker(&_viewMutex);
+            _myCamera.loadViewFrustum(_displayViewFrustum);
+        }
+        {
+            QMutexLocker viewLocker(&_viewMutex);
+            appRenderArgs._renderArgs.setViewFrustum(_displayViewFrustum);
+        }
     });
 
     AnimDebugDraw::getInstance().update();
@@ -5740,7 +5661,7 @@ namespace render {
     }
 }
 
-void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
+void Application::runRenderFrame(RenderArgs* renderArgs) {
 
     // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
@@ -5749,7 +5670,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::runRenderFrame()");
 
     // load the view frustum
   //  {
@@ -5761,12 +5682,13 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     render::Transaction transaction;
 
     // Assuming nothing gets rendered through that
-    if (!selfAvatarOnly) {
+    //if (!selfAvatarOnly) {
+    {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             // render models...
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... entities...");
+                "Application::runRenderFrame() ... entities...");
 
             RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
@@ -5775,7 +5697,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                     static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
             }
             renderArgs->_debugFlags = renderDebugFlags;
-            //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
         }
     }
 
@@ -5788,16 +5709,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
         transaction.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
-    } else {
-        transaction.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
-            [](WorldBoxRenderData& payload) {
-            payload._val++;
-        });
-    }
-
-    {
         _main3DScene->enqueueTransaction(transaction);
     }
+
 
     // For now every frame pass the renderContext
     {
@@ -7861,5 +7775,4 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
 }
-
 #include "Application.moc"
