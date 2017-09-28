@@ -198,6 +198,8 @@
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
 
+#include <FadeEffect.h>
+
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
@@ -681,6 +683,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
+
+    DependencyManager::set<FadeEffect>();
 
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();
@@ -2369,6 +2373,7 @@ void Application::initializeUi() {
 
     // Pre-create a couple of Web3D overlays to speed up tablet UI
     auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
@@ -2581,7 +2586,6 @@ void Application::paintGL() {
     // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
     ipdScale *= sensorToWorldScale;
 
-    mat4 eyeProjections[2];
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -2638,17 +2642,8 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("postComposite");
         renderArgs._batch = &postCompositeBatch;
         renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
-        for_each_eye([&](Eye eye) {
-
-            // apply eye offset and IPD scale to the view matrix
-            mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
-            vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-            mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
-            renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView() * eyeOffsetTransform);
-
-            renderArgs._batch->setProjectionTransform(eyeProjections[eye]);
-            _overlays.render3DHUDOverlays(&renderArgs);
-        });
+        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
+        _overlays.render3DHUDOverlays(&renderArgs);
     }
 
     auto frame = _gpuContext->endFrame();
@@ -4470,11 +4465,13 @@ void Application::init() {
     }, Qt::QueuedConnection);
 }
 
-void Application::updateLOD() const {
+void Application::updateLOD(float deltaTime) const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
-        DependencyManager::get<LODManager>()->autoAdjustLOD(_frameCounter.rate());
+        float batchTime = (float)_gpuContext->getFrameTimerBatchAverage();
+        float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
+        DependencyManager::get<LODManager>()->autoAdjustLOD(batchTime, engineRunTime, deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -4851,7 +4848,7 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
-    updateLOD();
+    updateLOD(deltaTime);
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
@@ -6694,7 +6691,7 @@ void Application::addAssetToWorldCheckModelSize() {
         if (dimensions != DEFAULT_DIMENSIONS) {
 
             // Scale model so that its maximum is exactly specific size.
-            const float MAXIMUM_DIMENSION = 1.0f * getMyAvatar()->getSensorToWorldScale();
+            const float MAXIMUM_DIMENSION = getMyAvatar()->getSensorToWorldScale();
             auto previousDimensions = dimensions;
             auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
                 MAXIMUM_DIMENSION / dimensions.z));

@@ -46,6 +46,8 @@ public:
     float getLoadPriority() const { return _loadPriority; }
 
 protected:
+    Transform evalRenderTransform() override;
+
     // helper to extract metadata from our Model's rigged joints
     template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;
     template <typename vectorType, typename itemType>

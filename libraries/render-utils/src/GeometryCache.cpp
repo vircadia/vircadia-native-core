@@ -18,9 +18,11 @@
 #include <QtCore/QFileInfo>
 #include <QtNetwork/QNetworkReply>
 
+#include <shared/Shapes.h>
+#include <shared/PlatformHacks.h>
+
 #include <FSTReader.h>
 #include <NumericalConstants.h>
-#include <shared/Shapes.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
@@ -561,7 +563,7 @@ void GeometryCache::initializeShapePipelines() {
 render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
     bool unlit, bool depthBias) {
 
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false), nullptr,
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true), nullptr,
         [](const render::ShapePipeline& , gpu::Batch& batch, render::Args*) {
         batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
@@ -1877,6 +1879,7 @@ public:
         IS_UNLIT_FLAG,
         HAS_DEPTH_BIAS_FLAG,
         IS_FADING_FLAG,
+        IS_ANTIALIASED_FLAG,
 
         NUM_FLAGS,
     };
@@ -1888,6 +1891,7 @@ public:
         IS_UNLIT = (1 << IS_UNLIT_FLAG),
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
         IS_FADING = (1 << IS_FADING_FLAG),
+        IS_ANTIALIASED = (1 << IS_ANTIALIASED_FLAG),
     };
     typedef unsigned short Flags;
 
@@ -1899,6 +1903,7 @@ public:
     bool isUnlit() const { return isFlag(IS_UNLIT); }
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
     bool isFading() const { return isFlag(IS_FADING); }
+    bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
 
     Flags _flags = 0;
     short _spare = 0;
@@ -1907,9 +1912,9 @@ public:
 
 
     SimpleProgramKey(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool fading = false) {
+        bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true) {
         _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
-            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0);
+            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) | (isAntiAliased ? IS_ANTIALIASED : 0);
     }
 
     SimpleProgramKey(int bitmask) : _flags(bitmask) {}
@@ -1958,8 +1963,8 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     return transparent ? _simpleTransparentWebBrowserPipelineNoAA : _simpleOpaqueWebBrowserPipelineNoAA;
 }
 
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased) {
-    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased));
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -1968,8 +1973,8 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool tra
     }
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading) {
-    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading };
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading, bool isAntiAliased) {
+    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased };
 
     // If the pipeline already exists, return it
     auto it = _simplePrograms.find(config);
@@ -2027,11 +2032,10 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-    if (config.isTransparent()) {
-        PrepareStencil::testMask(*state);
-    }
-    else {
-        PrepareStencil::testMaskDrawShape(*state);
+    if (config.isAntiAliased()) {
+        config.isTransparent() ? PrepareStencil::testMask(*state) : PrepareStencil::testMaskDrawShape(*state);
+    } else {
+        PrepareStencil::testMaskDrawShapeNoAA(*state);
     }
 
     gpu::ShaderPointer program = (config.isUnlit()) ? (config.isFading() ? _unlitFadeShader : _unlitShader) : (config.isFading() ? _simpleFadeShader : _simpleShader);

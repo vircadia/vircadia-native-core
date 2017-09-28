@@ -176,8 +176,6 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
         }
     }
 
-        //_timer.singleShot
-
     PerformanceTimer perfTimer("WebEntityRenderer::render");
     static const glm::vec2 texMin(0.0f), texMax(1.0f), topLeft(-0.5f), bottomRight(0.5f);
 
@@ -187,11 +185,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     batch._glColor4f(1.0f, 1.0f, 1.0f, fadeRatio);
 
-    if (fadeRatio < OPAQUE_ALPHA_THRESHOLD) {
-        DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, true);
-    } else {
-        DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch);
-    }
+    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, fadeRatio < OPAQUE_ALPHA_THRESHOLD);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f, 1.0f, 1.0f, fadeRatio), _geometryId);
 }
 

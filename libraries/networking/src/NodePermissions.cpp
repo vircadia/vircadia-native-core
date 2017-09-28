@@ -9,9 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "NodePermissions.h"
+
+#include <QtCore/QtGlobal>
 #include <QDataStream>
 #include <QtCore/QDebug>
-#include "NodePermissions.h"
+
+
+
+size_t std::hash<NodePermissionsKey>::operator()(const NodePermissionsKey& key) const {
+    size_t result = qHash(key.first);
+    result <<= sizeof(size_t) / 2;
+
+#if (QT_POINTER_SIZE == 8)
+    const uint MASK = 0x00FF;
+#else
+    const uint MASK = 0xFFFF;
+#endif
+
+    result |= (qHash(key.second) & MASK);
+    return result;
+}
+
 
 NodePermissionsKey NodePermissions::standardNameLocalhost = NodePermissionsKey("localhost", 0);
 NodePermissionsKey NodePermissions::standardNameLoggedIn = NodePermissionsKey("logged-in", 0);
@@ -41,6 +60,8 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
     permissions |= perms["id_can_adjust_locks"].toBool() ? Permission::canAdjustLocks : Permission::none;
     permissions |= perms["id_can_rez"].toBool() ? Permission::canRezPermanentEntities : Permission::none;
     permissions |= perms["id_can_rez_tmp"].toBool() ? Permission::canRezTemporaryEntities : Permission::none;
+    permissions |= perms["id_can_rez_certified"].toBool() ? Permission::canRezPermanentCertifiedEntities : Permission::none;
+    permissions |= perms["id_can_rez_tmp_certified"].toBool() ? Permission::canRezTemporaryCertifiedEntities : Permission::none;
     permissions |= perms["id_can_write_to_asset_server"].toBool() ? Permission::canWriteToAssetServer : Permission::none;
     permissions |= perms["id_can_connect_past_max_capacity"].toBool() ?
         Permission::canConnectPastMaxCapacity : Permission::none;
@@ -67,6 +88,8 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["id_can_adjust_locks"] = can(Permission::canAdjustLocks);
     values["id_can_rez"] = can(Permission::canRezPermanentEntities);
     values["id_can_rez_tmp"] = can(Permission::canRezTemporaryEntities);
+    values["id_can_rez_certified"] = can(Permission::canRezPermanentCertifiedEntities);
+    values["id_can_rez_tmp_certified"] = can(Permission::canRezTemporaryCertifiedEntities);
     values["id_can_write_to_asset_server"] = can(Permission::canWriteToAssetServer);
     values["id_can_connect_past_max_capacity"] = can(Permission::canConnectPastMaxCapacity);
     values["id_can_kick"] = can(Permission::canKick);
@@ -124,6 +147,12 @@ QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     }
     if (perms.can(NodePermissions::Permission::canRezTemporaryEntities)) {
         debug << " rez-tmp";
+    }
+    if (perms.can(NodePermissions::Permission::canRezPermanentCertifiedEntities)) {
+        debug << " rez-certified";
+    }
+    if (perms.can(NodePermissions::Permission::canRezTemporaryCertifiedEntities)) {
+        debug << " rez-tmp-certified";
     }
     if (perms.can(NodePermissions::Permission::canWriteToAssetServer)) {
         debug << " asset-server";

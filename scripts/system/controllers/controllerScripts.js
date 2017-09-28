@@ -12,7 +12,6 @@
 var CONTOLLER_SCRIPTS = [
     "squeezeHands.js",
     "controllerDisplayManager.js",
-    "handControllerPointer.js",
     "grab.js",
     "toggleAdvancedMovementForHandControllers.js",
     "controllerDispatcher.js",
@@ -30,6 +29,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/farTrigger.js",
     "controllerModules/teleport.js",
     "controllerModules/scaleAvatar.js",
+    "controllerModules/hudOverlayPointer.js",
+    "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js"
 ];
 

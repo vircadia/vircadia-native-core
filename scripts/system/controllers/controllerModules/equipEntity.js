@@ -254,6 +254,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.triggerValue = 0;
         this.messageGrabEntity = false;
         this.grabEntityProps = null;
+        this.shouldSendStart = false;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -498,6 +499,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var cloneID = this.cloneHotspot(grabbedProperties, controllerData);
                 this.targetEntityID = cloneID;
                 Entities.editEntity(this.targetEntityID, reparentProps);
+                controllerData.nearbyEntityPropertiesByID[this.targetEntityID] = grabbedProperties;
                 isClone = true;
             } else if (!grabbedProperties.locked) {
                 Entities.editEntity(this.targetEntityID, reparentProps);
@@ -507,8 +509,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 return;
             }
 
-            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "startEquip", args);
+            // we don't want to send startEquip message until the trigger is released.  otherwise,
+            // guns etc will fire right as they are equipped.
+            this.shouldSendStart = true;
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
@@ -588,22 +591,21 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             // if the potentialHotspot is cloneable, clone it and return it
             // if the potentialHotspot os not cloneable and locked return null
 
-            if (potentialEquipHotspot) {
-                if ((this.triggerSmoothedSqueezed() && !this.waitForTriggerRelease) || this.messageGrabEntity) {
-                    this.grabbedHotspot = potentialEquipHotspot;
-                    this.targetEntityID = this.grabbedHotspot.entityID;
-                    this.startEquipEntity(controllerData);
-                    this.messageGrabEnity = false;
-                }
+            if (potentialEquipHotspot &&
+                ((this.triggerSmoothedSqueezed() && !this.waitForTriggerRelease) || this.messageGrabEntity)) {
+                this.grabbedHotspot = potentialEquipHotspot;
+                this.targetEntityID = this.grabbedHotspot.entityID;
+                this.startEquipEntity(controllerData);
+                this.messageGrabEnity = false;
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
                 return makeRunningValues(false, [], []);
             }
         };
 
-        this.isTargetIDValid = function() {
-            var entityProperties = Entities.getEntityProperties(this.targetEntityID, ["type"]);
-            return "type" in entityProperties;
+        this.isTargetIDValid = function(controllerData) {
+            var entityProperties = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
+            return entityProperties && "type" in entityProperties;
         };
 
         this.isReady = function (controllerData, deltaTime) {
@@ -616,7 +618,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var timestamp = Date.now();
             this.updateInputs(controllerData);
 
-            if (!this.isTargetIDValid()) {
+            if (!this.isTargetIDValid(controllerData)) {
                 this.endEquipEntity();
                 return makeRunningValues(false, [], []);
             }
@@ -643,6 +645,13 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var dropDetected = this.dropGestureProcess(deltaTime);
 
             if (this.triggerSmoothedReleased()) {
+                if (this.shouldSendStart) {
+                    // we don't want to send startEquip message until the trigger is released.  otherwise,
+                    // guns etc will fire right as they are equipped.
+                    var startArgs = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                    Entities.callEntityMethod(this.targetEntityID, "startEquip", startArgs);
+                    this.shouldSendStart = false;
+                }
                 this.waitForTriggerRelease = false;
             }
 
@@ -674,8 +683,10 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
-            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "continueEquip", args);
+            if (!this.shouldSendStart) {
+                var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                Entities.callEntityMethod(this.targetEntityID, "continueEquip", args);
+            }
 
             return makeRunningValues(true, [this.targetEntityID], []);
         };

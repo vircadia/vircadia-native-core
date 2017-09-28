@@ -248,10 +248,17 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.nearGrabWantsToRun = function(controllerData) {
+            var moduleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+            var module = getEnabledModuleByName(moduleName);
+            var ready = module ? module.isReady(controllerData) : makeRunningValues(false, [], []);
+            return ready.active;
+        };
+
         this.processStylus = function(controllerData) {
             this.updateStylusTip();
 
-            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData)) {
+            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.nearGrabWantsToRun(controllerData)) {
                 this.pointFinger(false);
                 this.hideStylus();
                 return false;

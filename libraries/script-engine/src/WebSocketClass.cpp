@@ -25,7 +25,7 @@ WebSocketClass::WebSocketClass(QScriptEngine* engine, QString url) :
 
 WebSocketClass::WebSocketClass(QScriptEngine* engine, QWebSocket* qWebSocket) :
     _webSocket(qWebSocket),
-	_engine(engine)
+    _engine(engine)
 {
     initialize();
 }

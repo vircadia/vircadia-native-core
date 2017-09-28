@@ -959,7 +959,8 @@ bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedN
 
         bool isAgentWithoutRights = nodeA->getType() == NodeType::Agent
             && nodeB->getType() == NodeType::EntityScriptServer
-            && !nodeA->getCanRez() && !nodeA->getCanRezTmp();
+            && !nodeA->getCanRez() && !nodeA->getCanRezTmp()
+            && !nodeA->getCanRezCertified() && !nodeA->getCanRezTmpCertified();
 
         if (isAgentWithoutRights) {
             return false;
@@ -968,7 +969,7 @@ bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedN
         bool isScriptServerForIneffectiveAgent =
             (nodeA->getType() == NodeType::EntityScriptServer && nodeB->getType() == NodeType::Agent)
             && ((nodeBData && !nodeBData->getNodeInterestSet().contains(NodeType::EntityScriptServer))
-                || (!nodeB->getCanRez() && !nodeB->getCanRezTmp()));
+                || (!nodeB->getCanRez() && !nodeB->getCanRezTmp() && !nodeB->getCanRezCertified() && !nodeB->getCanRezTmpCertified()));
 
         return !isScriptServerForIneffectiveAgent;
     } else {

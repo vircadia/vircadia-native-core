@@ -47,6 +47,8 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
     connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
+    connect(nodeList.data(), &NodeList::canRezCertifiedChanged, this, &EntityScriptingInterface::canRezCertifiedChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpCertifiedChanged, this, &EntityScriptingInterface::canRezTmpCertifiedChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
 }
 
@@ -74,6 +76,16 @@ bool EntityScriptingInterface::canRez() {
 bool EntityScriptingInterface::canRezTmp() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRezTmp();
+}
+
+bool EntityScriptingInterface::canRezCertified() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezCertified();
+}
+
+bool EntityScriptingInterface::canRezTmpCertified() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmpCertified();
 }
 
 bool EntityScriptingInterface::canWriteAssets() {
@@ -659,22 +671,22 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const {
-	EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
+    EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
 
-	QVector<QUuid> result;
-	if (_entityTree) {
-		QVector<EntityItemPointer> entities;
-		_entityTree->withReadLock([&] {
-			_entityTree->findEntities(center, radius, entities);
-		});
+    QVector<QUuid> result;
+    if (_entityTree) {
+        QVector<EntityItemPointer> entities;
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
 
-		foreach(EntityItemPointer entity, entities) {
-			if (entity->getType() == type) {
-				result << entity->getEntityItemID();
-			}
-		}
-	}
-	return result;
+        foreach(EntityItemPointer entity, entities) {
+            if (entity->getType() == type) {
+                result << entity->getEntityItemID();
+            }
+        }
+    }
+    return result;
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 

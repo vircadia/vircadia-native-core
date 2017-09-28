@@ -13,7 +13,7 @@
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
 
 */
 
@@ -21,7 +21,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-
     var PICK_WITH_HAND_RAY = true;
 
     var halfPath = {
@@ -370,11 +369,6 @@ Script.include("/~/system/libraries/controllers.js");
             otherFarGrabModule.currentObjectRotation = Quat.multiply(controllerRotationDelta,
                 otherFarGrabModule.currentObjectRotation);
 
-            // Rotate about the translation controller's target position.
-            this.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta, this.offsetPosition);
-            otherFarGrabModule.offsetPosition = Vec3.multiplyQbyV(controllerRotationDelta,
-                otherFarGrabModule.offsetPosition);
-
             this.previousWorldControllerRotation = worldControllerRotation;
         };
 
@@ -423,19 +417,9 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.isPointingAtUI = function(controllerData) {
-            var hudRayPickInfo = controllerData.hudRayPicks[this.hand];
-            var hudPoint2d = HMD.overlayFromWorldPoint(hudRayPickInfo.intersection);
-            if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d || Reticle.position)) {
-                return true;
-            }
-
-            return false;
-        };
-
         this.run = function (controllerData) {
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData) || this.isPointingAtUI(controllerData)) {
+                this.notPointingAtEntity(controllerData)) {
                 this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);
@@ -506,6 +490,7 @@ Script.include("/~/system/libraries/controllers.js");
                             }
 
                             if (otherFarGrabModule.grabbedThingID === this.grabbedThingID && otherFarGrabModule.distanceHolding) {
+                                this.prepareDistanceRotatingData(controllerData);
                                 this.distanceRotate(otherFarGrabModule);
                             } else {
                                 this.distanceHolding = true;

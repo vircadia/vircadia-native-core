@@ -29,13 +29,8 @@ using NodePermissionsKeyList = QList<QPair<QString, QUuid>>;
 
 namespace std {
     template<>
-    struct hash<NodePermissionsKey> {	
-        size_t operator()(const NodePermissionsKey& key) const {	
-            size_t result = qHash(key.first);
-            result <<= 32;
-            result |= qHash(key.second);
-            return result;
-	    }
+    struct hash<NodePermissionsKey> {    
+        size_t operator()(const NodePermissionsKey& key) const;
     };
 }
 
@@ -78,7 +73,9 @@ public:
         canWriteToAssetServer = 16,
         canConnectPastMaxCapacity = 32,
         canKick = 64,
-        canReplaceDomainContent = 128
+        canReplaceDomainContent = 128,
+        canRezPermanentCertifiedEntities = 256,
+        canRezTemporaryCertifiedEntities = 512
     };
     Q_DECLARE_FLAGS(Permissions, Permission)
     Permissions permissions;

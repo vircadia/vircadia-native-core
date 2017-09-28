@@ -13,7 +13,9 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -21,116 +23,395 @@ import "../wallet" as HifiWallet
 
 // references XXX from root context
 
-Rectangle {
+Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string itemName: "";
-    property string itemId: "";
-    property string itemPreviewImageUrl: "";
-    property string itemHref: "";
-    // Style
-    color: hifi.colors.white;
-    // Size
-    width: parent.width;
-    height: 120;
+    property string purchaseStatus;
+    property bool purchaseStatusChanged;
+    property bool canRezCertifiedItems: false;
+    property string itemName;
+    property string itemId;
+    property string itemPreviewImageUrl;
+    property string itemHref;
+    property int ownedItemCount;
+    property int itemEdition;
 
-    Image {
-        id: itemPreviewImage;
-        source: root.itemPreviewImageUrl;
+    height: 110;
+    width: parent.width;
+
+    onPurchaseStatusChangedChanged: {
+        if (root.purchaseStatusChanged === true && root.purchaseStatus === "confirmed") {
+            statusText.text = "CONFIRMED!";
+            statusText.color = hifi.colors.blueAccent;
+            confirmedTimer.start();
+            root.purchaseStatusChanged = false;
+        }
+    }
+
+    Timer {
+        id: confirmedTimer;
+        interval: 3000;
+        onTriggered: {
+            root.purchaseStatus = "";
+        }
+    }
+
+    Rectangle {
+        id: mainContainer;
+        // Style
+        color: hifi.colors.white;
+        // Size
         anchors.left: parent.left;
         anchors.leftMargin: 8;
+        anchors.right: parent.right;
+        anchors.rightMargin: 8;
         anchors.top: parent.top;
-        anchors.topMargin: 8;
-        anchors.bottom: parent.bottom;
-        anchors.bottomMargin: 8;
-        width: 180;
-        fillMode: Image.PreserveAspectFit;
+        height: root.height - 10;
 
-        MouseArea {
-            anchors.fill: parent;
-            onClicked: {
-                sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
-            }
-        }
-    }
-
-    
-    RalewayRegular {
-        id: itemName;
-        anchors.top: itemPreviewImage.top;
-        anchors.left: itemPreviewImage.right;
-        anchors.leftMargin: 8;
-        anchors.right: parent.right;
-        anchors.rightMargin: 8;
-        height: 30;
-        // Text size
-        size: 20;
-        // Style
-        color: hifi.colors.blueAccent;
-        text: root.itemName;
-        elide: Text.ElideRight;
-        // Alignment
-        horizontalAlignment: Text.AlignLeft;
-        verticalAlignment: Text.AlignVCenter;
-
-        MouseArea {
-            anchors.fill: parent;
-            hoverEnabled: enabled;
-            onClicked: {
-                sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
-            }
-            onEntered: {
-                itemName.color = hifi.colors.blueHighlight;
-            }
-            onExited: {
-                itemName.color = hifi.colors.blueAccent;
-            }
-        }
-    }
-
-    Item {
-        id: buttonContainer;
-        anchors.top: itemName.bottom;
-        anchors.topMargin: 8;
-        anchors.bottom: parent.bottom;
-        anchors.bottomMargin: 8;
-        anchors.left: itemPreviewImage.right;
-        anchors.leftMargin: 8;
-        anchors.right: parent.right;
-        anchors.rightMargin: 8;
-
-        // "Rez" button
-        HifiControlsUit.Button {
-            id: rezButton;
-            color: hifi.buttons.blue;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.top: parent.top;
+        Image {
+            id: itemPreviewImage;
+            source: root.itemPreviewImageUrl;
             anchors.left: parent.left;
-            anchors.right: parent.right;
-            height: parent.height/2 - 4;
-            text: "Rez Item"
-            onClicked: {
-                if (urlHandler.canHandleUrl(root.itemHref)) {
-                    urlHandler.handleUrl(root.itemHref);
+            anchors.top: parent.top;
+            anchors.bottom: parent.bottom;
+            width: height;
+            fillMode: Image.PreserveAspectCrop;
+
+            MouseArea {
+                anchors.fill: parent;
+                onClicked: {
+                    sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
                 }
             }
         }
 
-        // "More Info" button
-        HifiControlsUit.Button {
-            id: moreInfoButton;
-            color: hifi.buttons.black;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.bottom: parent.bottom;
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            height: parent.height/2 - 4;
-            text: "More Info"
-            onClicked: {
-                sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
+    
+        RalewaySemiBold {
+            id: itemName;
+            anchors.top: itemPreviewImage.top;
+            anchors.topMargin: 4;
+            anchors.left: itemPreviewImage.right;
+            anchors.leftMargin: 8;
+            anchors.right: buttonContainer.left;
+            anchors.rightMargin: 8;
+            height: paintedHeight;
+            // Text size
+            size: 24;
+            // Style
+            color: hifi.colors.blueAccent;
+            text: root.itemName;
+            elide: Text.ElideRight;
+            // Alignment
+            horizontalAlignment: Text.AlignLeft;
+            verticalAlignment: Text.AlignVCenter;
+
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                    sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
+                }
+                onEntered: {
+                    itemName.color = hifi.colors.blueHighlight;
+                }
+                onExited: {
+                    itemName.color = hifi.colors.blueAccent;
+                }
             }
         }
+
+        Item {
+            id: certificateContainer;
+            anchors.top: itemName.bottom;
+            anchors.topMargin: 4;
+            anchors.left: itemName.left;
+            anchors.right: buttonContainer.left;
+            anchors.rightMargin: 2;
+            height: 24;
+        
+            HiFiGlyphs {
+                id: certificateIcon;
+                text: hifi.glyphs.scriptNew;
+                // Size
+                size: 30;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: parent.left;
+                anchors.bottom: parent.bottom;
+                width: 32;
+                // Style
+                color: hifi.colors.lightGray;
+            }
+
+            RalewayRegular {
+                id: viewCertificateText;
+                text: "VIEW CERTIFICATE";
+                size: 14;
+                anchors.left: certificateIcon.right;
+                anchors.leftMargin: 4;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                color: hifi.colors.lightGray;
+            }
+
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                    sendToPurchases({method: 'purchases_itemCertificateClicked', itemMarketplaceId: root.itemId});
+                }
+                onEntered: {
+                    certificateIcon.color = hifi.colors.black;
+                    viewCertificateText.color = hifi.colors.black;
+                }
+                onExited: {
+                    certificateIcon.color = hifi.colors.lightGray;
+                    viewCertificateText.color = hifi.colors.lightGray;
+                }
+            }
+        }
+
+        Item {
+            id: statusContainer;
+
+            visible: root.purchaseStatus || root.ownedItemCount > 1;
+            anchors.left: itemName.left;
+            anchors.top: certificateContainer.bottom;
+            anchors.topMargin: 8;
+            anchors.bottom: parent.bottom;
+            anchors.right: buttonContainer.left;
+            anchors.rightMargin: 2;
+
+            RalewaySemiBold {
+                id: statusText;
+                anchors.left: parent.left;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                width: paintedWidth;
+                text: {
+                        if (root.purchaseStatus === "pending") {
+                            "PENDING..."
+                        } else if (root.purchaseStatus === "invalidated") {
+                            "INVALIDATED"
+                        } else if (root.ownedItemCount > 1) {
+                            "<font color='#6a6a6a'>(#" + root.itemEdition + ")</font> <u>You own " + root.ownedItemCount + " others</u>"
+                        } else {
+                            ""
+                        }
+                    }
+                size: 18;
+                color: {
+                        if (root.purchaseStatus === "pending") {
+                            hifi.colors.blueAccent
+                        } else if (root.purchaseStatus === "invalidated") {
+                            hifi.colors.redAccent
+                        } else if (root.ownedItemCount > 1) {
+                            hifi.colors.blueAccent
+                        } else {
+                            hifi.colors.baseGray
+                        }
+                    }
+                verticalAlignment: Text.AlignTop;
+            }
+        
+            HiFiGlyphs {
+                id: statusIcon;
+                text: {
+                        if (root.purchaseStatus === "pending") {
+                            hifi.glyphs.question
+                        } else if (root.purchaseStatus === "invalidated") {
+                            hifi.glyphs.question
+                        } else {
+                            ""
+                        }
+                    }
+                // Size
+                size: 36;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: -8;
+                anchors.left: statusText.right;
+                anchors.bottom: parent.bottom;
+                // Style
+                color: {
+                        if (root.purchaseStatus === "pending") {
+                            hifi.colors.blueAccent
+                        } else if (root.purchaseStatus === "invalidated") {
+                            hifi.colors.redAccent
+                        } else if (root.ownedItemCount > 1) {
+                            hifi.colors.blueAccent
+                        } else {
+                            hifi.colors.baseGray
+                        }
+                    }
+                verticalAlignment: Text.AlignTop;
+            }
+
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                    if (root.purchaseStatus === "pending") {
+                        sendToPurchases({method: 'showPendingLightbox'});
+                    } else if (root.purchaseStatus === "invalidated") {
+                        sendToPurchases({method: 'showInvalidatedLightbox'});
+                    } else if (root.ownedItemCount > 1) {
+                        sendToPurchases({method: 'setFilterText', filterText: root.itemName});
+                    }
+                }
+                onEntered: {
+                    if (root.purchaseStatus === "pending") {
+                        statusText.color = hifi.colors.blueHighlight;
+                        statusIcon.color = hifi.colors.blueHighlight;
+                    } else if (root.purchaseStatus === "invalidated") {
+                        statusText.color = hifi.colors.redAccent;
+                        statusIcon.color = hifi.colors.redAccent;
+                    } else if (root.ownedItemCount > 1) {
+                        statusText.color = hifi.colors.blueHighlight;
+                        statusIcon.color = hifi.colors.blueHighlight;
+                    }
+                }
+                onExited: {
+                    if (root.purchaseStatus === "pending") {
+                        statusText.color = hifi.colors.blueAccent;
+                        statusIcon.color = hifi.colors.blueAccent;
+                    } else if (root.purchaseStatus === "invalidated") {
+                        statusText.color = hifi.colors.redHighlight;
+                        statusIcon.color = hifi.colors.redHighlight;
+                    } else if (root.ownedItemCount > 1) {
+                        statusText.color = hifi.colors.blueAccent;
+                        statusIcon.color = hifi.colors.blueAccent;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            id: rezzedNotifContainer;
+            z: 998;
+            visible: false;
+            color: hifi.colors.blueHighlight;
+            anchors.fill: buttonContainer;
+            MouseArea {
+                anchors.fill: parent;
+                propagateComposedEvents: false;
+            }
+
+            RalewayBold {
+                anchors.fill: parent;
+                text: "REZZED";
+                size: 18;
+                color: hifi.colors.white;
+                verticalAlignment: Text.AlignVCenter;
+                horizontalAlignment: Text.AlignHCenter;
+            }
+
+                Timer {
+                    id: rezzedNotifContainerTimer;
+                    interval: 2000;
+                    onTriggered: rezzedNotifContainer.visible = false
+                }
+        }
+
+        Button {
+            id: buttonContainer;
+            property int color: hifi.buttons.red;
+            property int colorScheme: hifi.colorSchemes.light;
+
+            anchors.top: parent.top;
+            anchors.bottom: parent.bottom;
+            anchors.right: parent.right;
+            width: height;
+            enabled: root.canRezCertifiedItems && root.purchaseStatus !== "invalidated";
+            
+            onClicked: {
+                if (urlHandler.canHandleUrl(root.itemHref)) {
+                    urlHandler.handleUrl(root.itemHref);
+                }
+                rezzedNotifContainer.visible = true;
+                rezzedNotifContainerTimer.start();
+            }
+
+            style: ButtonStyle {
+
+                background: Rectangle {
+                    gradient: Gradient {
+                        GradientStop {
+                            position: 0.2
+                            color: {
+                                if (!control.enabled) {
+                                    hifi.buttons.disabledColorStart[control.colorScheme]
+                                } else if (control.pressed) {
+                                    hifi.buttons.pressedColor[control.color]
+                                } else if (control.hovered) {
+                                    hifi.buttons.hoveredColor[control.color]
+                                } else {
+                                    hifi.buttons.colorStart[control.color]
+                                }
+                            }
+                        }
+                        GradientStop {
+                            position: 1.0
+                            color: {
+                                if (!control.enabled) {
+                                    hifi.buttons.disabledColorFinish[control.colorScheme]
+                                } else if (control.pressed) {
+                                    hifi.buttons.pressedColor[control.color]
+                                } else if (control.hovered) {
+                                    hifi.buttons.hoveredColor[control.color]
+                                } else {
+                                    hifi.buttons.colorFinish[control.color]
+                                }
+                            }
+                        }
+                    }
+                }
+
+                label: Item {
+                    HiFiGlyphs {
+                        id: lightningIcon;
+                        text: hifi.glyphs.lightning;
+                        // Size
+                        size: 32;
+                        // Anchors
+                        anchors.top: parent.top;
+                        anchors.topMargin: 12;
+                        anchors.left: parent.left;
+                        anchors.right: parent.right;
+                        horizontalAlignment: Text.AlignHCenter;
+                        // Style
+                        color: enabled ? hifi.buttons.textColor[control.color]
+                                       : hifi.buttons.disabledTextColor[control.colorScheme]
+                    }
+                    RalewayBold {
+                        anchors.top: lightningIcon.bottom;
+                        anchors.topMargin: -20;
+                        anchors.right: parent.right;
+                        anchors.left: parent.left;
+                        anchors.bottom: parent.bottom;
+                        font.capitalization: Font.AllUppercase
+                        color: enabled ? hifi.buttons.textColor[control.color]
+                                       : hifi.buttons.disabledTextColor[control.colorScheme]
+                        size: 16;
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "Rez It"
+                    }
+                }
+            }
+        }
+    }
+
+    DropShadow {
+        anchors.fill: mainContainer;
+        horizontalOffset: 3;
+        verticalOffset: 3;
+        radius: 8.0;
+        samples: 17;
+        color: "#80000000";
+        source: mainContainer;
     }
 
     //
