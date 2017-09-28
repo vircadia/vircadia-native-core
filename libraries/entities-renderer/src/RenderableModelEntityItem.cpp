@@ -407,13 +407,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         }
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-<<<<<<< HEAD
-        // should never fall in here when model not fully loaded
-        ////assert(_model && _model->isLoaded());
-=======
         // TODO: assert we never fall in here when model not fully loaded
         //assert(_model && _model->isLoaded());
->>>>>>> master
 
         updateModelBounds();
         model->updateGeometry();

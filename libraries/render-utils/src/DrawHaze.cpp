@@ -114,7 +114,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Mask out haze on the tablet
-        PrepareStencil::testMaskNoAA(*state);
+        PrepareStencil::testNoAA(*state);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HazeEffect_ParamsSlot));
