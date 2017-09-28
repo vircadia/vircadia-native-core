@@ -60,7 +60,6 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
     }
 }
 
-#pragma optimize("", off);
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
 #if 0
     if (ZoneEntityItem::getDrawZoneBoundaries()) {

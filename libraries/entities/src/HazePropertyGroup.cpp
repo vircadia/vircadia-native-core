@@ -207,7 +207,7 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 }
 
 void HazePropertyGroup::markAllChanged() {
-    _hazeModeChanged;
+    _hazeModeChanged = true;
 
     _hazeRangeChanged = true;
     _hazeBlendInColorChanged = true;

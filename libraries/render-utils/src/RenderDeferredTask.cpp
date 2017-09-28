@@ -58,7 +58,6 @@ void RenderDeferredTask::configure(const Config& config)
 {
 }
 
-#pragma optimize("", off);
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     const auto& items = input.get<Input>();
     auto fadeEffect = DependencyManager::get<FadeEffect>();
