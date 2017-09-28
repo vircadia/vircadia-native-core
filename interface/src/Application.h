@@ -429,7 +429,6 @@ private slots:
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
-    bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     bool askToReplaceDomainContent(const QString& url);
 
@@ -464,7 +463,7 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateLOD() const;
+    void updateLOD(float deltaTime) const;
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 

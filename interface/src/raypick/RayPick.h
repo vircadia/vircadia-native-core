@@ -70,6 +70,9 @@ public:
         if (doesPickNonCollidable()) {
             toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
         }
+        if (doesPickCourse()) {
+            toReturn |= getBitMask(PICK_COURSE);
+        }
         return Flags(toReturn);
     }
     Flags getOverlayFlags() const {
@@ -79,6 +82,9 @@ public:
         }
         if (doesPickNonCollidable()) {
             toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
+        }
+        if (doesPickCourse()) {
+            toReturn |= getBitMask(PICK_COURSE);
         }
         return Flags(toReturn);
     }

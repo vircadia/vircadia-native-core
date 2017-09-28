@@ -88,13 +88,8 @@ Script.include("/~/system/libraries/utils.js");
         this.startNearParentingGrabOverlay = function (controllerData) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
-            var handJointIndex;
-            // if (this.ignoreIK) {
-            //     handJointIndex = this.controllerJointIndex;
-            // } else {
-            //     handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
-            // }
-            handJointIndex = this.controllerJointIndex;
+            this.controllerJointIndex = getControllerJointIndex(this.hand);
+            var handJointIndex = this.controllerJointIndex;
 
             var grabbedProperties = this.getGrabbedProperties();
 

@@ -42,6 +42,7 @@ class TabletScriptingInterface : public QObject, public Dependency {
 public:
     TabletScriptingInterface();
     ~TabletScriptingInterface();
+    static const QString QML;
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 

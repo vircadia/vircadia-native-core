@@ -223,7 +223,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << "           position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
-	qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
+    qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
 }
 
 void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {

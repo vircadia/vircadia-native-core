@@ -375,7 +375,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     calibrateFromHandController(inputCalibrationData);
     calibrateFromUI(inputCalibrationData);
 
-    updateCalibratedLimbs();
+    updateCalibratedLimbs(inputCalibrationData);
     _lastSimPoseData = _nextSimPoseData;
 }
 
@@ -676,40 +676,53 @@ void ViveControllerManager::InputDevice::uncalibrate() {
     _overrideHands = false;
 }
 
-void ViveControllerManager::InputDevice::updateCalibratedLimbs() {
-    _poseStateMap[controller::LEFT_FOOT] = addOffsetToPuckPose(controller::LEFT_FOOT);
-    _poseStateMap[controller::RIGHT_FOOT] = addOffsetToPuckPose(controller::RIGHT_FOOT);
-    _poseStateMap[controller::HIPS] = addOffsetToPuckPose(controller::HIPS);
-    _poseStateMap[controller::SPINE2] = addOffsetToPuckPose(controller::SPINE2);
-    _poseStateMap[controller::RIGHT_ARM] = addOffsetToPuckPose(controller::RIGHT_ARM);
-    _poseStateMap[controller::LEFT_ARM] = addOffsetToPuckPose(controller::LEFT_ARM);
+void ViveControllerManager::InputDevice::updateCalibratedLimbs(const controller::InputCalibrationData& inputCalibration) {
+    _poseStateMap[controller::LEFT_FOOT] = addOffsetToPuckPose(inputCalibration, controller::LEFT_FOOT);
+    _poseStateMap[controller::RIGHT_FOOT] = addOffsetToPuckPose(inputCalibration, controller::RIGHT_FOOT);
+    _poseStateMap[controller::HIPS] = addOffsetToPuckPose(inputCalibration, controller::HIPS);
+    _poseStateMap[controller::SPINE2] = addOffsetToPuckPose(inputCalibration, controller::SPINE2);
+    _poseStateMap[controller::RIGHT_ARM] = addOffsetToPuckPose(inputCalibration, controller::RIGHT_ARM);
+    _poseStateMap[controller::LEFT_ARM] = addOffsetToPuckPose(inputCalibration, controller::LEFT_ARM);
 
     if (_overrideHead) {
-        _poseStateMap[controller::HEAD] = addOffsetToPuckPose(controller::HEAD);
+        _poseStateMap[controller::HEAD] = addOffsetToPuckPose(inputCalibration, controller::HEAD);
     }
 
     if (_overrideHands) {
-        _poseStateMap[controller::LEFT_HAND] = addOffsetToPuckPose(controller::LEFT_HAND);
-        _poseStateMap[controller::RIGHT_HAND] = addOffsetToPuckPose(controller::RIGHT_HAND);
+        _poseStateMap[controller::LEFT_HAND] = addOffsetToPuckPose(inputCalibration, controller::LEFT_HAND);
+        _poseStateMap[controller::RIGHT_HAND] = addOffsetToPuckPose(inputCalibration, controller::RIGHT_HAND);
     }
 }
 
-controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(int joint) const {
+controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(const controller::InputCalibrationData& inputCalibration, int joint) const {
     auto puck = _jointToPuckMap.find(joint);
     if (puck != _jointToPuckMap.end()) {
         uint32_t puckIndex = puck->second;
-        auto puckPose = _poseStateMap.find(puckIndex);
-        auto puckPostOffset = _pucksPostOffset.find(puckIndex);
-        auto puckPreOffset = _pucksPreOffset.find(puckIndex);
 
-        if (puckPose != _poseStateMap.end()) {
-            if (puckPreOffset != _pucksPreOffset.end() && puckPostOffset != _pucksPostOffset.end()) {
-                return puckPose->second.postTransform(puckPostOffset->second).transform(puckPreOffset->second);
-            } else if (puckPostOffset != _pucksPostOffset.end()) {
-                return puckPose->second.postTransform(puckPostOffset->second);
-            } else if (puckPreOffset != _pucksPreOffset.end()) {
-                return puckPose->second.transform(puckPreOffset->second);
+        // use sensor space pose.
+        auto puckPoseIter = _validTrackedObjects.begin();
+        while (puckPoseIter != _validTrackedObjects.end()) {
+            if (puckPoseIter->first == puckIndex) {
+                break;
             }
+            puckPoseIter++;
+        }
+
+        if (puckPoseIter != _validTrackedObjects.end()) {
+
+            glm::mat4 postMat; // identity
+            auto postIter = _pucksPostOffset.find(puckIndex);
+            if (postIter != _pucksPostOffset.end()) {
+                postMat = postIter->second;
+            }
+
+            glm::mat4 preMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
+            auto preIter = _pucksPreOffset.find(puckIndex);
+            if (preIter != _pucksPreOffset.end()) {
+                preMat = preMat * preIter->second;
+            }
+
+            return puckPoseIter->second.postTransform(postMat).transform(preMat);
         }
     }
     return controller::Pose();
@@ -924,15 +937,12 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
 
 void ViveControllerManager::InputDevice::handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
                                                              const vec3& linearVelocity, const vec3& angularVelocity) {
-
     //perform a 180 flip to make the HMD face the +z instead of -z, beacuse the head faces +z
     glm::mat4 matYFlip = mat * Matrices::Y_180;
     controller::Pose pose(extractTranslation(matYFlip), glmExtractRotation(matYFlip), linearVelocity, angularVelocity);
-
-    glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
-    controller::Pose hmdHeadPose = pose.transform(sensorToAvatar);
-    _poseStateMap[controller::HEAD] = hmdHeadPose.postTransform(defaultHeadOffset);
+    glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    _poseStateMap[controller::HEAD] = pose.postTransform(defaultHeadOffset).transform(sensorToAvatar);
 }
 
 void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
