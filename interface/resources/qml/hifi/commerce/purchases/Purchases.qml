@@ -417,6 +417,8 @@ Rectangle {
                 itemHref: root_file_url;
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
+                itemInstanceNumber: model.itemInstanceNumber;
+                ownedItemCount: model.ownedItemCount;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
@@ -540,6 +542,22 @@ Rectangle {
                     filteredPurchasesModel.append(purchasesModel.get(i));
                 }
             }
+        }
+
+        var itemCountDictionary = {};
+        var currentItemId;
+        for (var i = 0; i < filteredPurchasesModel.count; i++) {
+            currentItemId = filteredPurchasesModel.get(i).id;
+            if (itemCountDictionary[currentItemId] === undefined) {
+                itemCountDictionary[currentItemId] = 1;
+            } else {
+                itemCountDictionary[currentItemId]++;
+            }
+            filteredPurchasesModel.setProperty(i, "itemInstanceNumber", itemCountDictionary[currentItemId]);
+        }
+
+        for (var i = 0; i < filteredPurchasesModel.count; i++) {
+            filteredPurchasesModel.setProperty(i, "ownedItemCount", itemCountDictionary[currentItemId]);
         }
     }
 

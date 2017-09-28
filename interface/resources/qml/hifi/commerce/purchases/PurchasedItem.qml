@@ -35,7 +35,7 @@ Item {
     property string itemPreviewImageUrl;
     property string itemHref;
     property int ownedItemCount;
-    property int itemEdition;
+    property int itemInstanceNumber;
 
     height: 110;
     width: parent.width;
@@ -196,7 +196,7 @@ Item {
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
                         } else if (root.ownedItemCount > 1) {
-                            "<font color='#6a6a6a'>(#" + root.itemEdition + ")</font> <u>You own " + root.ownedItemCount + " others</u>"
+                            "<font color='#6a6a6a'>(#" + root.itemInstanceNumber + ")</font> <u>You own " + (root.ownedItemCount - 1) + " others</u>"
                         } else {
                             ""
                         }
