@@ -337,7 +337,6 @@
                 tablet.loadQMLSource("TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
-                console.log("ZRFJIOSE FJSOPIEFJSE OIFJSOPEI FJSIOEFJ ")
                 setCertificateInfo("", message.itemMarketplaceId);
                 break;
             case 'inspectionCertificate_closeClicked':
@@ -347,7 +346,13 @@
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'header_myItemsClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '?view=mine', MARKETPLACES_INJECT_SCRIPT_URL);
+                referrerURL = MARKETPLACE_URL_INITIAL;
+                filterText = "";
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'purchases_showMyItems'
+                });
                 break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));

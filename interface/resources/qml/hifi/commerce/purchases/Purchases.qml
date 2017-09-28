@@ -32,8 +32,9 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool canRezCertifiedItems: false;
+    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
     property bool pendingInventoryReply: true;
+    property bool isShowingMyItems: false;
     // Style
     color: hifi.colors.white;
     Hifi.QmlCommerce {
@@ -299,7 +300,7 @@ Rectangle {
             anchors.topMargin: 4;
 
             RalewayRegular {
-                id: myPurchasesText;
+                id: myText;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
                 anchors.bottom: parent.bottom;
@@ -307,7 +308,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 4;
                 width: paintedWidth;
-                text: "My Purchases";
+                text: isShowingMyItems ? "My Items" : "My Purchases";
                 color: hifi.colors.baseGray;
                 size: 28;
             }
@@ -317,7 +318,7 @@ Rectangle {
                 colorScheme: hifi.colorSchemes.faintGray;
                 hasClearButton: true;
                 hasRoundedBorder: true;
-                anchors.left: myPurchasesText.right;
+                anchors.left: myText.right;
                 anchors.leftMargin: 16;
                 anchors.top: parent.top;
                 anchors.bottom: parent.bottom;
@@ -421,7 +422,7 @@ Rectangle {
 
         ListView {
             id: purchasesContentsList;
-            visible: purchasesModel.count !== 0;
+            visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
             clip: true;
             model: filteredPurchasesModel;
             // Anchors
@@ -474,8 +475,54 @@ Rectangle {
         }
 
         Item {
+            id: noItemsAlertContainer;
+            visible: !purchasesContentsList.visible && root.purchasesReceived && root.isShowingMyItems && filterBar.text === "";
+            anchors.top: filterBarContainer.bottom;
+            anchors.topMargin: 12;
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            width: parent.width;
+
+            // Explanitory text
+            RalewayRegular {
+                id: noItemsYet;
+                text: "<b>You haven't submitted anything to the Marketplace yet!</b><br><br>Submit an item to the Marketplace to add it to My Items.";
+                // Text size
+                size: 22;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 150;
+                anchors.left: parent.left;
+                anchors.leftMargin: 24;
+                anchors.right: parent.right;
+                anchors.rightMargin: 24;
+                height: paintedHeight;
+                // Style
+                color: hifi.colors.baseGray;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+            }
+
+            // "Go To Marketplace" button
+            HifiControlsUit.Button {
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.top: noItemsYet.bottom;
+                anchors.topMargin: 20;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                width: parent.width * 2 / 3;
+                height: 50;
+                text: "Visit Marketplace";
+                onClicked: {
+                    sendToScript({method: 'purchases_goToMarketplaceClicked'});
+                }
+            }
+        }
+
+        Item {
             id: noPurchasesAlertContainer;
-            visible: !purchasesContentsList.visible && root.purchasesReceived;
+            visible: !purchasesContentsList.visible && root.purchasesReceived && !root.isShowingMyItems && filterBar.text === "";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -503,7 +550,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter;
             }
 
-            // "Set Up" button
+            // "Go To Marketplace" button
             HifiControlsUit.Button {
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
@@ -582,9 +629,9 @@ Rectangle {
         filteredPurchasesModel.clear();
         for (var i = 0; i < purchasesModel.count; i++) {
             if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                if (purchasesModel.get(i).status !== "confirmed") {
+                if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems) {
                     filteredPurchasesModel.insert(0, purchasesModel.get(i));
-                } else {
+                } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === -1) || !root.isShowingMyItems) {
                     filteredPurchasesModel.append(purchasesModel.get(i));
                 }
             }
@@ -632,7 +679,6 @@ Rectangle {
             case 'updatePurchases':
                 referrerURL = message.referrerURL;
                 titleBarContainer.referrerURL = message.referrerURL;
-                root.canRezCertifiedItems = message.canRezCertifiedItems;
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
             case 'purchases_getIsFirstUseResult':
@@ -646,6 +692,9 @@ Rectangle {
             case 'inspectionCertificate_setMarketplaceId':
             case 'inspectionCertificate_setItemInfo':
                 inspectionCertificate.fromScript(message);
+            break;
+            case 'purchases_showMyItems':
+                root.isShowingMyItems = true;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

@@ -39,7 +39,7 @@ Rectangle {
     property bool itemIsJson: true;
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
-    property bool canRezCertifiedItems: false;
+    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
     // Style
     color: hifi.colors.white;
     Hifi.QmlCommerce {
@@ -829,7 +829,6 @@ Rectangle {
                 if (itemHref.indexOf('.json') === -1) {
                     root.itemIsJson = false;
                 }
-                root.canRezCertifiedItems = message.canRezCertifiedItems;
                 setBuyText();
             break;
             default:
