@@ -27,6 +27,7 @@ Item {
     id: root;
     property string referrerURL: "https://metaverse.highfidelity.com/marketplace?";
     readonly property int additionalDropdownHeight: usernameDropdown.height - myUsernameButton.anchors.bottomMargin;
+    property alias usernameDropdownVisible: usernameDropdown.visible;
 
     height: mainContainer.height + additionalDropdownHeight;
 

@@ -179,6 +179,13 @@ Rectangle {
             }
         }
     }
+    MouseArea {
+        enabled: titleBarContainer.usernameDropdownVisible;
+        anchors.fill: parent;
+        onClicked: {
+            titleBarContainer.usernameDropdownVisible = false;
+        }
+    }
     //
     // TITLE BAR END
     //
