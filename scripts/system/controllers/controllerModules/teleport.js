@@ -235,7 +235,35 @@ function Teleporter(hand) {
         this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
         [],
         100);
+    
+    this.updatePadDimensions = function() {
+        // pad scale with avatar size
+        var AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS = Vec3.multiply(MyAvatar.sensorToWorldScale, TARGET_MODEL_DIMENSIONS);
+        
+        cancelEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
+        teleportEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
+        seatEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
 
+        teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
+                                {name: "teleport", path: teleportPath, end: teleportEnd},
+                                {name: "seat", path: seatPath, end: seatEnd}];
+
+        LaserPointers.editRenderState(this.teleportRayHandVisible, "cancel", teleportRenderStates[0]);
+        LaserPointers.editRenderState(this.teleportRayHandInvisible, "cancel", teleportRenderStates[0]);
+        LaserPointers.editRenderState(this.teleportRayHeadVisible, "cancel", teleportRenderStates[0]);
+        LaserPointers.editRenderState(this.teleportRayHeadInvisible, "cancel", teleportRenderStates[0]);
+
+        LaserPointers.editRenderState(this.teleportRayHandVisible, "teleport", teleportRenderStates[1]);
+        LaserPointers.editRenderState(this.teleportRayHandInvisible, "teleport", teleportRenderStates[1]);
+        LaserPointers.editRenderState(this.teleportRayHeadVisible, "teleport", teleportRenderStates[1]);
+        LaserPointers.editRenderState(this.teleportRayHeadInvisible, "teleport", teleportRenderStates[1]);
+
+        LaserPointers.editRenderState(this.teleportRayHandVisible, "seat", teleportRenderStates[2]);
+        LaserPointers.editRenderState(this.teleportRayHandInvisible, "seat", teleportRenderStates[2]);
+        LaserPointers.editRenderState(this.teleportRayHeadVisible, "seat", teleportRenderStates[2]);
+        LaserPointers.editRenderState(this.teleportRayHeadInvisible, "seat", teleportRenderStates[2]);
+    }
+    
     this.enterTeleport = function() {
         if (coolInTimeout !== null) {
             Script.clearTimeout(coolInTimeout);
@@ -248,33 +276,7 @@ function Teleporter(hand) {
             }
         }, COOL_IN_DURATION);
 
-        // pad scale with avatar size
-        var AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS = Vec3.multiply(MyAvatar.sensorToWorldScale, TARGET_MODEL_DIMENSIONS);
-
-        if (!Vec3.equal(AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS, cancelEnd.dimensions)) {
-            cancelEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-            teleportEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-            seatEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-
-            teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-                                    {name: "teleport", path: teleportPath, end: teleportEnd},
-                                    {name: "seat", path: seatPath, end: seatEnd}];
-
-            LaserPointers.editRenderState(this.teleportRayHandVisible, "cancel", teleportRenderStates[0]);
-            LaserPointers.editRenderState(this.teleportRayHandInvisible, "cancel", teleportRenderStates[0]);
-            LaserPointers.editRenderState(this.teleportRayHeadVisible, "cancel", teleportRenderStates[0]);
-            LaserPointers.editRenderState(this.teleportRayHeadInvisible, "cancel", teleportRenderStates[0]);
-
-            LaserPointers.editRenderState(this.teleportRayHandVisible, "teleport", teleportRenderStates[1]);
-            LaserPointers.editRenderState(this.teleportRayHandInvisible, "teleport", teleportRenderStates[1]);
-            LaserPointers.editRenderState(this.teleportRayHeadVisible, "teleport", teleportRenderStates[1]);
-            LaserPointers.editRenderState(this.teleportRayHeadInvisible, "teleport", teleportRenderStates[1]);
-
-            LaserPointers.editRenderState(this.teleportRayHandVisible, "seat", teleportRenderStates[2]);
-            LaserPointers.editRenderState(this.teleportRayHandInvisible, "seat", teleportRenderStates[2]);
-            LaserPointers.editRenderState(this.teleportRayHeadVisible, "seat", teleportRenderStates[2]);
-            LaserPointers.editRenderState(this.teleportRayHeadInvisible, "seat", teleportRenderStates[2]);
-        }
+        this.updatePadDimensions();
     };
 
     this.isReady = function(controllerData, deltaTime) {
