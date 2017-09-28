@@ -417,7 +417,7 @@ Rectangle {
                 itemHref: root_file_url;
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
-                itemInstanceNumber: model.itemInstanceNumber;
+                itemEdition: model.edition_number;
                 ownedItemCount: model.ownedItemCount;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
@@ -553,7 +553,6 @@ Rectangle {
             } else {
                 itemCountDictionary[currentItemId]++;
             }
-            filteredPurchasesModel.setProperty(i, "itemInstanceNumber", itemCountDictionary[currentItemId]);
         }
 
         for (var i = 0; i < filteredPurchasesModel.count; i++) {

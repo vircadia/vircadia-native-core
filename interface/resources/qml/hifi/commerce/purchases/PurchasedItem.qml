@@ -35,13 +35,18 @@ Item {
     property string itemPreviewImageUrl;
     property string itemHref;
     property int ownedItemCount;
-    property int itemInstanceNumber;
+    property int itemEdition;
+
+    property string originalStatusText;
+    property string originalStatusColor;
 
     height: 110;
     width: parent.width;
 
     onPurchaseStatusChangedChanged: {
         if (root.purchaseStatusChanged === true && root.purchaseStatus === "confirmed") {
+            root.originalStatusText = statusText.text;
+            root.originalStatusColor = statusText.color;
             statusText.text = "CONFIRMED!";
             statusText.color = hifi.colors.blueAccent;
             confirmedTimer.start();
@@ -53,7 +58,8 @@ Item {
         id: confirmedTimer;
         interval: 3000;
         onTriggered: {
-            root.purchaseStatus = "";
+            statusText.text = root.originalStatusText;
+            statusText.color = root.originalStatusColor;
         }
     }
 
@@ -196,7 +202,7 @@ Item {
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
                         } else if (root.ownedItemCount > 1) {
-                            "<font color='#6a6a6a'>(#" + root.itemInstanceNumber + ")</font> <u>You own " + (root.ownedItemCount - 1) + " others</u>"
+                            "<font color='#6a6a6a'>(#" + root.itemEdition + ")</font> <u>You own " + (root.ownedItemCount - 1) + " others</u>"
                         } else {
                             ""
                         }
