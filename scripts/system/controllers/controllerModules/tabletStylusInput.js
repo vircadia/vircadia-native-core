@@ -152,20 +152,6 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.updateStylus = function() {
-            if (this.stylus) {
-                var X_ROT_NEG_90 = { x: -0.70710678, y: 0, z: 0, w: 0.70710678 };
-                var modelOrientation = Quat.multiply(this.stylusTip.orientation, X_ROT_NEG_90);
-                var modelPositionOffset = Vec3.multiplyQbyV(modelOrientation, { x: 0, y: 0, z: MyAvatar.sensorToWorldScale * -WEB_STYLUS_LENGTH / 2 });
-
-                var stylusProps = {
-                    position: Vec3.sum(this.stylusTip.position, modelPositionOffset),
-                    rotation: modelOrientation
-                };
-                Overlays.editOverlay(this.stylus, stylusProps);
-            }
-        };
-
         this.showStylus = function() {
             if (this.stylus) {
                 return;
@@ -334,7 +320,6 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.isNearStylusTarget) {
                 if (!this.useFingerInsteadOfStylus) {
                     this.showStylus();
-                    this.updateStylus();
                 } else {
                     this.pointFinger(true);
                 }
