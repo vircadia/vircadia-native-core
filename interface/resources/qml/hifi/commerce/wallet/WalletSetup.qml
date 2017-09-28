@@ -422,6 +422,7 @@ Item {
             onClicked: {
                 root.hasShownSecurityImageTip = true;
                 securityImageTip.visible = false;
+                passphraseSelection.focusFirstTextField();
             }
         }
     }
@@ -466,6 +467,7 @@ Item {
 
         PassphraseSelection {
             id: passphraseSelection;
+            shouldImmediatelyFocus: root.hasShownSecurityImageTip;
             isShowingTip: securityImageTip.visible;
             anchors.top: passphraseTitleHelper.bottom;
             anchors.topMargin: 30;

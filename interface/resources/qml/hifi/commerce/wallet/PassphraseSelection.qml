@@ -26,6 +26,7 @@ Item {
     id: root;
     property bool isChangingPassphrase: false;
     property bool isShowingTip: false;
+    property bool shouldImmediatelyFocus: true;
 
     // This object is always used in a popup.
     // This MouseArea is used to prevent a user from being
@@ -53,10 +54,8 @@ Item {
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
-            if (root.isChangingPassphrase) {
-                currentPassphraseField.focus = true;
-            } else {
-                passphraseField.focus = true;
+            if (root.shouldImmediatelyFocus) {
+                focusFirstTextField();
             }
             sendMessageToLightbox({method: 'disableHmdPreview'});
         } else {
@@ -318,6 +317,14 @@ Item {
         passphraseField.text = "";
         passphraseFieldAgain.text = "";
         setErrorText("");
+    }
+
+    function focusFirstTextField() {
+        if (root.isChangingPassphrase) {
+            currentPassphraseField.focus = true;
+        } else {
+            passphraseField.focus = true;
+        }
     }
 
     signal sendMessageToLightbox(var msg);
