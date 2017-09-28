@@ -2536,6 +2536,11 @@ void Application::paintGL() {
     glm::mat4  HMDSensorPose;
     glm::mat4  eyeToWorld;
     glm::mat4  sensorToWorld;
+
+    bool isStereo;
+    glm::mat4  stereoEyeOffsets[2];
+    glm::mat4  stereoEyeProjections[2];
+
     {
         QMutexLocker viewLocker(&_renderArgsMutex);
         renderArgs = _appRenderArgs._renderArgs;
@@ -2543,6 +2548,11 @@ void Application::paintGL() {
         eyeToWorld = _appRenderArgs._eyeToWorld;
         sensorToWorld = _appRenderArgs._sensorToWorld;
         sensorToWorldScale = _appRenderArgs._sensorToWorldScale;
+        isStereo = _appRenderArgs._isStereo;
+        for_each_eye([&](Eye eye) {
+            stereoEyeOffsets[eye] = _appRenderArgs._eyeOffsets[eye];
+            stereoEyeProjections[eye] = _appRenderArgs._eyeProjections[eye];
+        });
     }
 
     //float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
@@ -2615,57 +2625,65 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
-    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-    float ipdScale = hmdInterface->getIPDScale();
+    //auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
+    //float ipdScale = hmdInterface->getIPDScale();
 
-    // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
-    ipdScale *= sensorToWorldScale;
+    //// scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
+    //ipdScale *= sensorToWorldScale;
 
     {
-        PROFILE_RANGE(render, "/mainRender");
-        PerformanceTimer perfTimer("mainRender");
-        // FIXME is this ever going to be different from the size previously set in the render args
-        // in the overlay render?
-        // Viewport is assigned to the size of the framebuffer
-        renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
-        auto baseProjection = renderArgs.getViewFrustum().getProjection();
-        if (displayPlugin->isStereo()) {
-            // Stereo modes will typically have a larger projection matrix overall,
-            // so we ask for the 'mono' projection matrix, which for stereo and HMD
-            // plugins will imply the combined projection for both eyes.
-            //
-            // This is properly implemented for the Oculus plugins, but for OpenVR
-            // and Stereo displays I'm not sure how to get / calculate it, so we're
-            // just relying on the left FOV in each case and hoping that the
-            // overall culling margin of error doesn't cause popping in the
-            // right eye.  There are FIXMEs in the relevant plugins
-            _myCamera.setProjection(displayPlugin->getCullingProjection(baseProjection));
+        //PROFILE_RANGE(render, "/mainRender");
+        //PerformanceTimer perfTimer("mainRender");
+        //// FIXME is this ever going to be different from the size previously set in the render args
+        //// in the overlay render?
+        //// Viewport is assigned to the size of the framebuffer
+        //renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
+        //auto baseProjection = renderArgs.getViewFrustum().getProjection();
+        //if (displayPlugin->isStereo()) {
+        //    // Stereo modes will typically have a larger projection matrix overall,
+        //    // so we ask for the 'mono' projection matrix, which for stereo and HMD
+        //    // plugins will imply the combined projection for both eyes.
+        //    //
+        //    // This is properly implemented for the Oculus plugins, but for OpenVR
+        //    // and Stereo displays I'm not sure how to get / calculate it, so we're
+        //    // just relying on the left FOV in each case and hoping that the
+        //    // overall culling margin of error doesn't cause popping in the
+        //    // right eye.  There are FIXMEs in the relevant plugins
+        //    _myCamera.setProjection(displayPlugin->getCullingProjection(baseProjection));
+        //    renderArgs._context->enableStereo(true);
+        //    mat4 eyeOffsets[2];
+        //    mat4 eyeProjections[2];
+
+        //    // FIXME we probably don't need to set the projection matrix every frame,
+        //    // only when the display plugin changes (or in non-HMD modes when the user
+        //    // changes the FOV manually, which right now I don't think they can.
+        //    for_each_eye([&](Eye eye) {
+        //        // For providing the stereo eye views, the HMD head pose has already been
+        //        // applied to the avatar, so we need to get the difference between the head
+        //        // pose applied to the avatar and the per eye pose, and use THAT as
+        //        // the per-eye stereo matrix adjustment.
+        //        mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
+        //        // Grab the translation
+        //        vec3 eyeOffset = glm::vec3(eyeToHead[3]);
+        //        // Apply IPD scaling
+        //        mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
+        //        eyeOffsets[eye] = eyeOffsetTransform;
+        //        eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
+        //    });
+        //    renderArgs._context->setStereoProjections(eyeProjections);
+        //    renderArgs._context->setStereoViews(eyeOffsets);
+
+        //    // Configure the type of display / stereo
+        //    renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
+        //}
+
+        if (isStereo) {
             renderArgs._context->enableStereo(true);
-            mat4 eyeOffsets[2];
-            mat4 eyeProjections[2];
-
-            // FIXME we probably don't need to set the projection matrix every frame,
-            // only when the display plugin changes (or in non-HMD modes when the user
-            // changes the FOV manually, which right now I don't think they can.
-            for_each_eye([&](Eye eye) {
-                // For providing the stereo eye views, the HMD head pose has already been
-                // applied to the avatar, so we need to get the difference between the head
-                // pose applied to the avatar and the per eye pose, and use THAT as
-                // the per-eye stereo matrix adjustment.
-                mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
-                // Grab the translation
-                vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-                // Apply IPD scaling
-                mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
-                eyeOffsets[eye] = eyeOffsetTransform;
-                eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
-            });
-            renderArgs._context->setStereoProjections(eyeProjections);
-            renderArgs._context->setStereoViews(eyeOffsets);
-
-            // Configure the type of display / stereo
-            renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
+            renderArgs._context->setStereoProjections(stereoEyeProjections);
+            renderArgs._context->setStereoViews(stereoEyeOffsets);
+   //         renderArgs._displayMode
         }
+
         renderArgs._blitFramebuffer = finalFramebuffer;
        // displaySide(&renderArgs, _myCamera);
         runRenderFrame(&renderArgs);
@@ -5320,7 +5338,55 @@ void Application::update(float deltaTime) {
         }
 
         this->updateCamera(appRenderArgs._renderArgs);
+        appRenderArgs._isStereo = false;
 
+        {
+            auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
+            float ipdScale = hmdInterface->getIPDScale();
+
+            // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
+            ipdScale *= sensorToWorldScale;
+
+            auto baseProjection = appRenderArgs._renderArgs.getViewFrustum().getProjection();
+            if (getActiveDisplayPlugin()->isStereo()) {
+                // Stereo modes will typically have a larger projection matrix overall,
+                // so we ask for the 'mono' projection matrix, which for stereo and HMD
+                // plugins will imply the combined projection for both eyes.
+                //
+                // This is properly implemented for the Oculus plugins, but for OpenVR
+                // and Stereo displays I'm not sure how to get / calculate it, so we're
+                // just relying on the left FOV in each case and hoping that the
+                // overall culling margin of error doesn't cause popping in the
+                // right eye.  There are FIXMEs in the relevant plugins
+                _myCamera.setProjection(getActiveDisplayPlugin()->getCullingProjection(baseProjection));
+                appRenderArgs._isStereo = true;
+
+                auto& eyeOffsets = appRenderArgs._eyeOffsets;
+                auto& eyeProjections = appRenderArgs._eyeProjections;
+
+                // FIXME we probably don't need to set the projection matrix every frame,
+                // only when the display plugin changes (or in non-HMD modes when the user
+                // changes the FOV manually, which right now I don't think they can.
+                for_each_eye([&](Eye eye) {
+                    // For providing the stereo eye views, the HMD head pose has already been
+                    // applied to the avatar, so we need to get the difference between the head
+                    // pose applied to the avatar and the per eye pose, and use THAT as
+                    // the per-eye stereo matrix adjustment.
+                    mat4 eyeToHead = getActiveDisplayPlugin()->getEyeToHeadTransform(eye);
+                    // Grab the translation
+                    vec3 eyeOffset = glm::vec3(eyeToHead[3]);
+                    // Apply IPD scaling
+                    mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
+                    eyeOffsets[eye] = eyeOffsetTransform;
+                    eyeProjections[eye] = getActiveDisplayPlugin()->getEyeProjection(eye, baseProjection);
+                });
+                //renderArgs._context->setStereoProjections(eyeProjections);
+                //renderArgs._context->setStereoViews(eyeOffsets);
+
+                // Configure the type of display / stereo
+                appRenderArgs._renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
+            }
+        }
 
         // HACK
         // load the view frustum
@@ -5332,6 +5398,7 @@ void Application::update(float deltaTime) {
             QMutexLocker viewLocker(&_viewMutex);
             _myCamera.loadViewFrustum(_displayViewFrustum);
         }
+
         {
             QMutexLocker viewLocker(&_viewMutex);
             appRenderArgs._renderArgs.setViewFrustum(_displayViewFrustum);

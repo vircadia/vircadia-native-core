@@ -626,9 +626,12 @@ private:
     struct AppRenderArgs {
         render::Args _renderArgs;
         glm::mat4 _eyeToWorld;
+        glm::mat4 _eyeOffsets[2];
+        glm::mat4 _eyeProjections[2];
         glm::mat4 _headPose;
         glm::mat4 _sensorToWorld;
         float _sensorToWorldScale { 1.0f };
+        bool _isStereo{ false };
     };
     AppRenderArgs _appRenderArgs;
 
