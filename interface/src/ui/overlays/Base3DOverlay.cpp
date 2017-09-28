@@ -270,10 +270,10 @@ void Base3DOverlay::update(float duration) {
     // then the correct transform used for rendering is computed in the update transaction and assigned.
     if (_renderTransformDirty) {
         auto itemID = getRenderItemID();
+        // Capture the render transform value in game loop before 
+        auto latestTransform = evalRenderTransform();
+        _renderTransformDirty = false;
         if (render::Item::isValidID(itemID)) {
-            _renderTransformDirty = false;
-            // Capture the render transform value in game loop before 
-            auto latestTransform = evalRenderTransform();
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
             transaction.updateItem<Overlay>(itemID, [latestTransform](Overlay& data) {
@@ -282,7 +282,9 @@ void Base3DOverlay::update(float duration) {
                     overlay3D->setRenderTransform(latestTransform);
                 }
             });
-            scene->enqueueTransaction(transaction);       
+            scene->enqueueTransaction(transaction);
+        } else {
+            setRenderTransform(latestTransform);
         }
     }
 }
