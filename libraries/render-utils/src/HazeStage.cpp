@@ -26,7 +26,6 @@ HazeStage::Index HazeStage::findHaze(const HazePointer& haze) const {
 }
 
 HazeStage::Index HazeStage::addHaze(const HazePointer& haze) {
-
     auto found = _hazeMap.find(haze);
     if (found == _hazeMap.end()) {
         auto hazeId = _hazes.newElement(haze);
@@ -61,3 +60,13 @@ void HazeStageSetup::run(const render::RenderContextPointer& renderContext) {
     }
 }
 
+void FetchHazeStage::run(const render::RenderContextPointer& renderContext, model::HazePointer& haze) {
+
+    auto hazeStage = renderContext->_scene->getStage<HazeStage>();
+    assert(hazeStage);
+
+    if (hazeStage->_currentFrame._hazes.size()) {
+        auto hazeId = hazeStage->_currentFrame._hazes.front();
+        haze = hazeStage->getHaze(hazeId);
+    }
+}

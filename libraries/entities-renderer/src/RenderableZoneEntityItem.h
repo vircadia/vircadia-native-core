@@ -81,6 +81,7 @@ private:
     const model::LightPointer _ambientLight{ std::make_shared<model::Light>() };
     const model::SunSkyStagePointer _background{ std::make_shared<model::SunSkyStage>() };
     const model::HazePointer _haze{ std::make_shared<model::Haze>() };
+
     BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
     HazeMode _hazeMode{ HAZE_MODE_INHERIT };
 

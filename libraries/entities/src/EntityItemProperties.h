@@ -180,8 +180,8 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
 
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode, HAZE_MODE_INHERIT);
-    DEFINE_PROPERTY(PROP_HAZE_HAZE_RANGE, HazeRange, hazeRange, float, HazePropertyGroup::DEFAULT_HAZE_RANGE);
-    DEFINE_PROPERTY(PROP_HAZE_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
+    DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, HazePropertyGroup::DEFAULT_HAZE_RANGE);
+    DEFINE_PROPERTY(PROP_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);

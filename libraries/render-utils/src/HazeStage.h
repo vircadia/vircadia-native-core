@@ -17,7 +17,9 @@
 #include <render/IndexedContainer.h>
 #include <render/Stage.h>
 
-#include "LightingModel.h"
+#include <render/Forward.h>
+#include <render/DrawTask.h>
+#include "model/Haze.h"
 
 // Haze stage to set up haze-related rendering tasks
 class HazeStage : public render::Stage {
@@ -34,7 +36,6 @@ public:
     using HazeMap = std::unordered_map<HazePointer, Index>;
 
     using HazeIndices = std::vector<Index>;
-
 
     Index findHaze(const HazePointer& haze) const;
     Index addHaze(const HazePointer& haze);
@@ -79,4 +80,13 @@ public:
 protected:
 };
 
+class FetchHazeStage {
+public:
+    using JobModel = render::Job::ModelO<FetchHazeStage, model::HazePointer>;
+
+    void run(const render::RenderContextPointer& renderContext, model::HazePointer& haze);
+
+private:
+    gpu::PipelinePointer _hazePipeline;
+};
 #endif
