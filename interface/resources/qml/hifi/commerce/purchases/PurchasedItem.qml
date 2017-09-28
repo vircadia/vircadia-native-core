@@ -180,9 +180,30 @@ Item {
         }
 
         Item {
-            id: statusContainer;
+            id: editionContainer;
+            visible: root.displayedItemCount > 1 && !statusContainer.visible;
+            anchors.left: itemName.left;
+            anchors.top: certificateContainer.bottom;
+            anchors.topMargin: 8;
+            anchors.bottom: parent.bottom;
+            anchors.right: buttonContainer.left;
+            anchors.rightMargin: 2;
 
-            visible: root.purchaseStatus || root.displayedItemCount > 1;
+            FiraSansRegular {
+                anchors.left: parent.left;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                width: paintedWidth;
+                text: "#" + root.itemEdition;
+                size: 15;
+                color: "#cc6a6a6a";
+                verticalAlignment: Text.AlignTop;
+            }
+        }
+
+        Item {
+            id: statusContainer;
+            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated";
             anchors.left: itemName.left;
             anchors.top: certificateContainer.bottom;
             anchors.topMargin: 8;
@@ -201,8 +222,6 @@ Item {
                             "PENDING..."
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
-                        } else if (root.displayedItemCount > 1) {
-                            ("#" + root.itemEdition)
                         } else {
                             ""
                         }
@@ -213,8 +232,6 @@ Item {
                             hifi.colors.blueAccent
                         } else if (root.purchaseStatus === "invalidated") {
                             hifi.colors.redAccent
-                        } else if (root.displayedItemCount > 1) {
-                            hifi.colors.lightGray
                         } else {
                             hifi.colors.baseGray
                         }
