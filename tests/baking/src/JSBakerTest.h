@@ -13,12 +13,12 @@
 #define hifi_JSBakerTest_h
 
 #include <QtTest/QtTest>
-#include "../../libraries/baking/src/JSBaker.h"
+#include <JSBaker.h>
 
 class JSBakerTest : public QObject {
     Q_OBJECT
 
-        private slots:
+private slots:
     void setTestCases();
     void testJSBaking();
 
