@@ -9,7 +9,7 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.4
+import QtQuick 2.7
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
 import "../controls-uit"
@@ -18,8 +18,8 @@ import "../styles-uit"
 Item {
     id: signInBody
     clip: true
-    width: root.pane.width
     height: root.pane.height
+    width: root.pane.width
 
     property bool required: false
 
@@ -29,7 +29,7 @@ Item {
     }
 
     function cancel() {
-        root.destroy()
+        root.tryDestroy()
     }
 
     QtObject {

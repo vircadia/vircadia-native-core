@@ -35,6 +35,10 @@ ModalWindow {
 
     keyboardOverride: true  // Disable ModalWindow's keyboard.
 
+    function tryDestroy() {
+        root.destroy()
+    }
+
     LoginDialog {
         id: loginDialog
 

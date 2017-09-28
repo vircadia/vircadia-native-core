@@ -9,7 +9,7 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.4
+import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
@@ -50,6 +50,7 @@ Item {
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                 + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : 0);
+            //console.log("sign up h:", parent.height)
         }
     }
 
@@ -237,7 +238,7 @@ Item {
 
             text: qsTr("Cancel")
 
-            onClicked: root.destroy()
+            onClicked: root.tryDestroy()
         }
     }
 

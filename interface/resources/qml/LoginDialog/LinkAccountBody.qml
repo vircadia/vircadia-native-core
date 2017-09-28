@@ -9,7 +9,7 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.4
+import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
@@ -56,6 +56,7 @@ Item {
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
+            console.log("sign in h:", targetHeight, parent.height)
         }
     }
 
@@ -108,30 +109,27 @@ Item {
 
     Column {
         id: form
+        width: parent.width
+        onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
         anchors {
             top: mainTextContainer.bottom
-            left: parent.left
-            margins: 0
             topMargin: 2 * hifi.dimensions.contentSpacing.y
         }
         spacing: 2 * hifi.dimensions.contentSpacing.y
 
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
 
-            TextField {
-                id: usernameField
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-                width: 350
+        TextField {
+            id: usernameField
+            width: parent.width
 
-                label: "Username or Email"
-            }
+            label: "Username or Email"
 
             ShortcutText {
                 anchors {
-                    verticalCenter: parent.verticalCenter
+                    verticalCenter: usernameField.textFieldLabel.verticalCenter
+                    left: usernameField.textFieldLabel.right
+                    leftMargin: 10
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
@@ -143,23 +141,19 @@ Item {
                 onLinkActivated: loginDialog.openUrl(link)
             }
         }
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
 
-            TextField {
-                id: passwordField
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-                width: 350
+        TextField {
+            id: passwordField
+            width: parent.width
 
-                label: "Password"
-                echoMode: TextInput.Password
-            }
+            label: "Password"
+            echoMode: showPassword.checked ? TextInput.Normal : TextInput.Password
 
             ShortcutText {
                 anchors {
-                    verticalCenter: parent.verticalCenter
+                    verticalCenter: passwordField.textFieldLabel.verticalCenter
+                    left: passwordField.textFieldLabel.right
+                    leftMargin: 10
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
@@ -172,25 +166,86 @@ Item {
             }
         }
 
-    }
-
-    InfoItem {
-        id: additionalInformation
-        anchors {
-            top: form.bottom
-            left: parent.left
-            margins: 0
-            topMargin: hifi.dimensions.contentSpacing.y
+        CheckBoxQQC2 {
+            id: showPassword
+            text: "Show password"
         }
 
-        visible: loginDialog.isSteamRunning()
+        InfoItem {
+            id: additionalInformation
+            anchors {
+                left: parent.left
+                margins: 0
+                topMargin: hifi.dimensions.contentSpacing.y
+            }
 
-        text: qsTr("Your steam account informations will not be exposed to other users.")
-        wrapMode: Text.WordWrap
-        color: hifi.colors.baseGrayHighlight
-        lineHeight: 1
-        lineHeightMode: Text.ProportionalHeight
-        horizontalAlignment: Text.AlignHCenter
+            visible: loginDialog.isSteamRunning()
+
+            text: qsTr("Your steam account informations will not be exposed to other users.")
+            wrapMode: Text.WordWrap
+            color: hifi.colors.baseGrayHighlight
+            lineHeight: 1
+            lineHeightMode: Text.ProportionalHeight
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        Column {
+            //width: parent.width
+            spacing: hifi.dimensions.contentSpacing.y*2
+            anchors.horizontalCenter: parent.horizontalCenter
+            //padding: 10
+
+            Row {
+                id: buttons
+                spacing: hifi.dimensions.contentSpacing.y*2
+                onHeightChanged: d.resize(); onWidthChanged: d.resize();
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                Button {
+                    id: linkAccountButton
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 200
+
+                    text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Login")
+                    color: hifi.buttons.blue
+
+                    onClicked: linkAccountBody.login()
+                }
+
+                Button {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Cancel")
+                    onClicked: root.tryDestroy()
+                }
+            }
+
+            Row {
+                id: leftButton
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: hifi.dimensions.contentSpacing.x
+                onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
+                RalewaySemiBold {
+                    size: hifi.fontSizes.inputLabel
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Don't have an account?")
+                }
+
+                Button {
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    text: qsTr("Sign Up")
+                    visible: !loginDialog.isSteamRunning()
+
+                    onClicked: {
+                        bodyLoader.setSource("SignUpBody.qml")
+                        bodyLoader.item.width = root.pane.width
+                        bodyLoader.item.height = root.pane.height
+                    }
+                }
+            }
+        }
     }
 
     // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
@@ -200,65 +255,12 @@ Item {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: buttons.top
+            bottom: parent.bottom
             bottomMargin: keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
     }
 
-    Row {
-        id: leftButton
-        anchors {
-            left: parent.left
-            bottom: parent.bottom
-            bottomMargin: hifi.dimensions.contentSpacing.y
-        }
 
-        spacing: hifi.dimensions.contentSpacing.x
-        onHeightChanged: d.resize(); onWidthChanged: d.resize();
-
-        Button {
-          anchors.verticalCenter: parent.verticalCenter
-
-          text: qsTr("Sign Up")
-          visible: !loginDialog.isSteamRunning()
-
-          onClicked: {
-              bodyLoader.setSource("SignUpBody.qml")
-              bodyLoader.item.width = root.pane.width
-              bodyLoader.item.height = root.pane.height
-          }
-        }
-    }
-
-    Row {
-        id: buttons
-        anchors {
-            right: parent.right
-            bottom: parent.bottom
-            bottomMargin: hifi.dimensions.contentSpacing.y
-        }
-        spacing: hifi.dimensions.contentSpacing.x
-        onHeightChanged: d.resize(); onWidthChanged: d.resize();
-
-        Button {
-            id: linkAccountButton
-            anchors.verticalCenter: parent.verticalCenter
-            width: 200
-
-            text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Login")
-            color: hifi.buttons.blue
-
-            onClicked: linkAccountBody.login()
-        }
-
-        Button {
-            anchors.verticalCenter: parent.verticalCenter
-
-            text: qsTr("Cancel")
-
-            onClicked: root.destroy()
-        }
-    }
 
     Component.onCompleted: {
         root.title = qsTr("Sign Into High Fidelity")
