@@ -37,6 +37,19 @@
         return document.activeElement.type === "number";
     };
 
+    function scheduleBringToView(timeout) {
+
+        var timer = setTimeout(function () {
+            clearTimeout(timer);
+
+            var elementRect = document.activeElement.getBoundingClientRect();
+            var absoluteElementTop = elementRect.top + window.scrollY;
+            var middle = absoluteElementTop - (window.innerHeight / 2);
+
+            window.scrollTo(0, middle);
+        }, timeout);
+    }
+
     setInterval(function () {
         var keyboardRaised = shouldRaiseKeyboard();
         var numericKeyboard = shouldSetNumeric();
@@ -55,21 +68,20 @@
             }
 
             if (!isKeyboardRaised) {
-                var timeout = setTimeout(function () {
-                    clearTimeout(timeout);
-
-                    var elementRect = document.activeElement.getBoundingClientRect();
-                    var absoluteElementTop = elementRect.top + window.scrollY;
-                    var middle = absoluteElementTop - (window.innerHeight / 2);
-
-                    window.scrollTo(0, middle);
-                }, 500);  // Allow time for keyboard to be raised in QML.
+                scheduleBringToView(500); // Allow time for keyboard to be raised in QML.
             }
 
             isKeyboardRaised = keyboardRaised;
             isNumericKeyboard = numericKeyboard;
         }
     }, POLL_FREQUENCY);
+
+    window.addEventListener("click", function () {
+        var keyboardRaised = shouldRaiseKeyboard();
+        if(keyboardRaised && isKeyboardRaised) {
+            scheduleBringToView(150);
+        }
+    });
 
     window.addEventListener("focus", function () {
         isWindowFocused = true;
