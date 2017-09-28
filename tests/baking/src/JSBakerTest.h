@@ -15,12 +15,12 @@
 #include <QtTest/QtTest>
 #include "../../libraries/baking/src/JSBaker.h"
 
-class JSBakerTest: public QObject {
+class JSBakerTest : public QObject {
     Q_OBJECT
 
-private slots:
+        private slots:
     void setTestCases();
-    void testJSBaking();  
+    void testJSBaking();
 
 private:
     std::vector<std::pair<QByteArray, QByteArray>> _testCases;
