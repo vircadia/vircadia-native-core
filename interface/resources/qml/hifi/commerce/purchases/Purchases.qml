@@ -35,6 +35,7 @@ Rectangle {
     property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
+    property bool isDebuggingFirstUseTutorial: false;
     // Style
     color: hifi.colors.white;
     Hifi.QmlCommerce {
@@ -250,12 +251,9 @@ Rectangle {
 
     FirstUseTutorial {
         id: firstUseTutorial;
+        z: 999;
         visible: root.activeView === "firstUseTutorial";
-        anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: -titleBarContainer.additionalDropdownHeight;
-        anchors.bottom: parent.bottom;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
+        anchors.fill: parent;
 
         Connections {
             onSendSignalToParent: {
@@ -682,7 +680,7 @@ Rectangle {
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
             case 'purchases_getIsFirstUseResult':
-                if (message.isFirstUseOfPurchases && root.activeView !== "firstUseTutorial") {
+                if ((message.isFirstUseOfPurchases || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
                     root.activeView = "firstUseTutorial";
                 } else if (!message.isFirstUseOfPurchases && root.activeView === "initialize") {
                     root.activeView = "purchasesMain";
