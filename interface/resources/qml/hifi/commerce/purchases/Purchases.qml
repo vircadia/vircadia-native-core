@@ -19,6 +19,7 @@ import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
+import "../inspectionCertificate" as HifiInspectionCertificate
 
 // references XXX from root context
 
@@ -118,6 +119,19 @@ Rectangle {
         interval: 200;
         onTriggered: {
             sendToScript({method: 'checkout_walletNotSetUp'});
+        }
+    }
+
+    HifiInspectionCertificate.InspectionCertificate {
+        id: inspectionCertificate;
+        z: 999;
+        visible: false;
+        anchors.fill: parent;
+
+        Connections {
+            onSendToScript: {
+                sendToScript(message);
+            }
         }
     }
 
@@ -331,7 +345,7 @@ Rectangle {
         ListModel {
             id: previousPurchasesModel;
         }
-        ListModel {
+        HifiCommerceCommon.SortableListModel {
             id: filteredPurchasesModel;
         }
 
@@ -418,7 +432,7 @@ Rectangle {
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;
-                ownedItemCount: model.ownedItemCount;
+                displayedItemCount: model.displayedItemCount;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
@@ -427,6 +441,8 @@ Rectangle {
                         if (msg.method === 'purchases_itemInfoClicked') {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
+                            inspectionCertificate.visible = true;
+                            inspectionCertificate.isLightbox = true;
                             sendToScript(msg);
                         } else if (msg.method === "showInvalidatedLightbox") {
                             lightboxPopup.titleText = "Item Invalidated";
@@ -532,18 +548,7 @@ Rectangle {
     // FUNCTION DEFINITIONS START
     //
 
-    function buildFilteredPurchasesModel() {
-        filteredPurchasesModel.clear();
-        for (var i = 0; i < purchasesModel.count; i++) {
-            if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                if (purchasesModel.get(i).status !== "confirmed") {
-                    filteredPurchasesModel.insert(0, purchasesModel.get(i));
-                } else {
-                    filteredPurchasesModel.append(purchasesModel.get(i));
-                }
-            }
-        }
-
+    function populateDisplayedItemCounts() {
         var itemCountDictionary = {};
         var currentItemId;
         for (var i = 0; i < filteredPurchasesModel.count; i++) {
@@ -556,8 +561,30 @@ Rectangle {
         }
 
         for (var i = 0; i < filteredPurchasesModel.count; i++) {
-            filteredPurchasesModel.setProperty(i, "ownedItemCount", itemCountDictionary[currentItemId]);
+            filteredPurchasesModel.setProperty(i, "displayedItemCount", itemCountDictionary[filteredPurchasesModel.get(i).id]);
         }
+    }
+
+    function sortByDate() {
+        filteredPurchasesModel.sortColumnName = "purchase_date";
+        filteredPurchasesModel.isSortingDescending = false;
+        filteredPurchasesModel.quickSort();
+    }
+
+    function buildFilteredPurchasesModel() {
+        filteredPurchasesModel.clear();
+        for (var i = 0; i < purchasesModel.count; i++) {
+            if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
+                if (purchasesModel.get(i).status !== "confirmed") {
+                    filteredPurchasesModel.insert(0, purchasesModel.get(i));
+                } else {
+                    filteredPurchasesModel.append(purchasesModel.get(i));
+                }
+            }
+        }
+
+        populateDisplayedItemCounts();
+        sortByDate();
     }
 
     function checkIfAnyItemStatusChanged() {
@@ -608,6 +635,10 @@ Rectangle {
                     root.activeView = "purchasesMain";
                     commerce.inventory();
                 }
+            break;
+            case 'inspectionCertificate_setMarketplaceId':
+            case 'inspectionCertificate_setItemInfo':
+                inspectionCertificate.fromScript(message);
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

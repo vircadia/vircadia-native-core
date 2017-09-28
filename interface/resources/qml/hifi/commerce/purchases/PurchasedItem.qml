@@ -34,7 +34,7 @@ Item {
     property string itemId;
     property string itemPreviewImageUrl;
     property string itemHref;
-    property int ownedItemCount;
+    property int displayedItemCount;
     property int itemEdition;
 
     property string originalStatusText;
@@ -182,7 +182,7 @@ Item {
         Item {
             id: statusContainer;
 
-            visible: root.purchaseStatus || root.ownedItemCount > 1;
+            visible: root.purchaseStatus || root.displayedItemCount > 1;
             anchors.left: itemName.left;
             anchors.top: certificateContainer.bottom;
             anchors.topMargin: 8;
@@ -201,8 +201,8 @@ Item {
                             "PENDING..."
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
-                        } else if (root.ownedItemCount > 1) {
-                            "<font color='#6a6a6a'>(#" + root.itemEdition + ")</font> <u>You own " + (root.ownedItemCount - 1) + " others</u>"
+                        } else if (root.displayedItemCount > 1) {
+                            ("#" + root.itemEdition)
                         } else {
                             ""
                         }
@@ -213,8 +213,8 @@ Item {
                             hifi.colors.blueAccent
                         } else if (root.purchaseStatus === "invalidated") {
                             hifi.colors.redAccent
-                        } else if (root.ownedItemCount > 1) {
-                            hifi.colors.blueAccent
+                        } else if (root.displayedItemCount > 1) {
+                            hifi.colors.lightGray
                         } else {
                             hifi.colors.baseGray
                         }
@@ -246,8 +246,6 @@ Item {
                             hifi.colors.blueAccent
                         } else if (root.purchaseStatus === "invalidated") {
                             hifi.colors.redAccent
-                        } else if (root.ownedItemCount > 1) {
-                            hifi.colors.blueAccent
                         } else {
                             hifi.colors.baseGray
                         }
@@ -263,8 +261,6 @@ Item {
                         sendToPurchases({method: 'showPendingLightbox'});
                     } else if (root.purchaseStatus === "invalidated") {
                         sendToPurchases({method: 'showInvalidatedLightbox'});
-                    } else if (root.ownedItemCount > 1) {
-                        sendToPurchases({method: 'setFilterText', filterText: root.itemName});
                     }
                 }
                 onEntered: {
@@ -274,9 +270,6 @@ Item {
                     } else if (root.purchaseStatus === "invalidated") {
                         statusText.color = hifi.colors.redAccent;
                         statusIcon.color = hifi.colors.redAccent;
-                    } else if (root.ownedItemCount > 1) {
-                        statusText.color = hifi.colors.blueHighlight;
-                        statusIcon.color = hifi.colors.blueHighlight;
                     }
                 }
                 onExited: {
@@ -286,9 +279,6 @@ Item {
                     } else if (root.purchaseStatus === "invalidated") {
                         statusText.color = hifi.colors.redHighlight;
                         statusIcon.color = hifi.colors.redHighlight;
-                    } else if (root.ownedItemCount > 1) {
-                        statusText.color = hifi.colors.blueAccent;
-                        statusIcon.color = hifi.colors.blueAccent;
                     }
                 }
             }

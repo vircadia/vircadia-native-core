@@ -128,12 +128,11 @@
         }
     }
 
-    function setCertificateInfo(currentEntityWithContextOverlay, itemMarketplaceId, closeGoesToPurchases) {
+    function setCertificateInfo(currentEntityWithContextOverlay, itemMarketplaceId) {
         wireEventBridge(true);
         tablet.sendToQml({
             method: 'inspectionCertificate_setMarketplaceId',
-            marketplaceId: itemMarketplaceId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['marketplaceID']).marketplaceID,
-            closeGoesToPurchases: closeGoesToPurchases
+            marketplaceId: itemMarketplaceId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['marketplaceID']).marketplaceID
         });
         // ZRF FIXME! Make a call to the endpoint to get item info instead of this silliness
         Script.setTimeout(function () {
@@ -338,17 +337,11 @@
                 tablet.loadQMLSource("TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
-                tablet.loadQMLSource("../commerce/inspectionCertificate/InspectionCertificate.qml");
-                setCertificateInfo("", message.itemMarketplaceId, true);
+                console.log("ZRFJIOSE FJSOPIEFJSE OIFJSOPEI FJSIOEFJ ")
+                setCertificateInfo("", message.itemMarketplaceId);
                 break;
             case 'inspectionCertificate_closeClicked':
-                if (message.closeGoesToPurchases) {
-                    referrerURL = MARKETPLACE_URL_INITIAL;
-                    filterText = "";
-                    tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
-                } else {
-                    tablet.gotoHomeScreen();
-                }
+                tablet.gotoHomeScreen();
                 break;
             case 'inspectionCertificate_showInMarketplaceClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
