@@ -114,7 +114,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
 
     QString extension = "";
     auto idx = path.lastIndexOf(".");
-    if (idx) {
+    if (idx >= 0) {
         extension = path.mid(idx + 1);
     }
 
