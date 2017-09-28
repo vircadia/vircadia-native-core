@@ -463,7 +463,7 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateLOD() const;
+    void updateLOD(float deltaTime) const;
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 

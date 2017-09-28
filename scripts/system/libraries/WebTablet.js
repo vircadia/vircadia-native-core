@@ -222,6 +222,10 @@ WebTablet.prototype.getTabletTextureResolution = function() {
     }
 };
 
+WebTablet.prototype.getLandscape = function() {
+    return this.landscape;
+}
+
 WebTablet.prototype.setLandscape = function(newLandscapeValue) {
     if (this.landscape === newLandscapeValue) {
         return;

@@ -276,6 +276,10 @@ SelectionDisplay = (function() {
     var overlayNames = [];
     var lastCameraPosition = Camera.getPosition();
     var lastCameraOrientation = Camera.getOrientation();
+    var lastControllerPoses = [
+        getControllerWorldLocation(Controller.Standard.LeftHand, true),
+        getControllerWorldLocation(Controller.Standard.RightHand, true)
+    ];
 
     var handleHoverColor = {
         red: 224,
@@ -4062,6 +4066,21 @@ SelectionDisplay = (function() {
 
                 that.updateRotationHandles();
             }
+        }
+    };
+
+    that.checkControllerMove = function() {
+        if (SelectionManager.hasSelection()) {
+            var controllerPose = getControllerWorldLocation(activeHand, true);
+            var hand = (activeHand === Controller.Standard.LeftHand) ? 0 : 1;
+            if (controllerPose.valid && lastControllerPoses[hand].valid) {
+                if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
+                    !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
+                    print("setting controller pose");
+                    that.mouseMoveEvent({});
+                }
+            }
+            lastControllerPoses[hand] = controllerPose;
         }
     };
 

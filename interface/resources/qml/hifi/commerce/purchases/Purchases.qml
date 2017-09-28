@@ -18,6 +18,7 @@ import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
+import "../common" as HifiCommerceCommon
 
 // references XXX from root context
 
@@ -30,18 +31,12 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
+    property bool canRezCertifiedItems: false;
+    property bool pendingInventoryReply: true;
     // Style
-    color: hifi.colors.baseGray;
+    color: hifi.colors.white;
     Hifi.QmlCommerce {
         id: commerce;
-
-        onAccountResult: {
-            if (result.status === "success") {
-                commerce.getKeyFilePathIfExists();
-            } else {
-                // unsure how to handle a failure here. We definitely cannot proceed.
-            }
-        }
 
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
@@ -52,9 +47,18 @@ Rectangle {
             }
         }
 
+        onAccountResult: {
+            if (result.status === "success") {
+                commerce.getKeyFilePathIfExists();
+            } else {
+                // unsure how to handle a failure here. We definitely cannot proceed.
+            }
+        }
+
         onKeyFilePathIfExistsResult: {
             if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
+                notSetUpTimer.start();
             } else if (path !== "" && root.activeView === "initialize") {
                 commerce.getSecurityImage();
             }
@@ -64,103 +68,101 @@ Rectangle {
             securityImageResultReceived = true;
             if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
                 root.activeView = "notSetUp";
+                notSetUpTimer.start();
             } else if (exists && root.activeView === "initialize") {
                 commerce.getWalletAuthenticatedStatus();
-            } else if (exists) {
-                // just set the source again (to be sure the change was noticed)
-                securityImage.source = "";
-                securityImage.source = "image://security/securityImage";
             }
         }
 
         onWalletAuthenticatedStatusResult: {
-            if (!isAuthenticated && !passphraseModal.visible) {
-                passphraseModal.visible = true;
+            if (!isAuthenticated && root.activeView !== "passphraseModal") {
+                root.activeView = "passphraseModal";
             } else if (isAuthenticated) {
-                root.activeView = "purchasesMain";
-                commerce.inventory();
+                sendToScript({method: 'purchases_getIsFirstUse'});
             }
         }
 
         onInventoryResult: {
             purchasesReceived = true;
+
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
                 purchasesModel.clear();
                 purchasesModel.append(result.data.assets);
-                filteredPurchasesModel.clear();
-                filteredPurchasesModel.append(result.data.assets);
+
+                if (previousPurchasesModel.count !== 0) {
+                    checkIfAnyItemStatusChanged();
+                } else {
+                    // Fill statusChanged default value
+                    // Not doing this results in the default being true...
+                    for (var i = 0; i < purchasesModel.count; i++) {
+                        purchasesModel.setProperty(i, "statusChanged", false);
+                    }
+                }
+                previousPurchasesModel.append(result.data.assets);
+
+                buildFilteredPurchasesModel();
+
+                if (root.pendingInventoryReply) {
+                    inventoryTimer.start();
+                }
             }
+
+            root.pendingInventoryReply = false;
         }
     }
 
-    HifiWallet.SecurityImageModel {
-        id: securityImageModel;
+    Timer {
+        id: notSetUpTimer;
+        interval: 200;
+        onTriggered: {
+            sendToScript({method: 'checkout_walletNotSetUp'});
+        }
+    }
+
+    HifiCommerceCommon.CommerceLightbox {
+        id: lightboxPopup;
+        visible: false;
+        anchors.fill: parent;
+
+        Connections {
+            onSendToParent: {
+                sendToScript(msg);
+            }
+        }
     }
 
     //
     // TITLE BAR START
     //
-    Item {
+    HifiCommerceCommon.EmulatedMarketplaceHeader {
         id: titleBarContainer;
+        z: 998;
         visible: !needsLogIn.visible;
         // Size
-        height: 50;
+        width: parent.width;
         // Anchors
         anchors.left: parent.left;
-        anchors.right: parent.right;
         anchors.top: parent.top;
 
-        // Title Bar text
-        RalewaySemiBold {
-            id: titleBarText;
-            text: "PURCHASES";
-            // Text size
-            size: hifi.fontSizes.overlayTitle;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            anchors.bottom: parent.bottom;
-            width: paintedWidth;
-            // Style
-            color: hifi.colors.faintGray;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
-        // Security Image (TEMPORARY!)
-        Image {
-            id: securityImage;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.right: parent.right;
-            anchors.verticalCenter: parent.verticalCenter;
-            height: parent.height - 10;
-            width: height;
-            fillMode: Image.PreserveAspectFit;
-            mipmap: true;
-            cache: false;
-            source: "image://security/securityImage";
-        }
-        Image {
-            id: securityImageOverlay;
-            source: "../wallet/images/lockOverlay.png";
-            width: securityImage.width * 0.45;
-            height: securityImage.height * 0.45;
-            anchors.bottom: securityImage.bottom;
-            anchors.right: securityImage.right;
-            mipmap: true;
-            opacity: 0.9;
-        }
-
-        // Separator
-        HifiControlsUit.Separator {
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            anchors.bottom: parent.bottom;
+        Connections {
+            onSendToParent: {
+                if (msg.method === 'needsLogIn' && root.activeView !== "needsLogIn") {
+                    root.activeView = "needsLogIn";
+                } else if (msg.method === 'showSecurityPicLightbox') {
+                    lightboxPopup.titleText = "Your Security Pic";
+                    lightboxPopup.bodyImageSource = msg.securityImageSource;
+                    lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
+                    lightboxPopup.button1text = "CLOSE";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button2text = "GO TO WALLET";
+                    lightboxPopup.button2method = "sendToParent({method: 'purchases_openWallet'});";
+                    lightboxPopup.visible = true;
+                } else {
+                    sendToScript(msg);
+                }
+            }
         }
     }
     //
@@ -171,10 +173,11 @@ Rectangle {
         id: initialize;
         visible: root.activeView === "initialize";
         anchors.top: titleBarContainer.bottom;
+        anchors.topMargin: -titleBarContainer.additionalDropdownHeight;
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
-        color: hifi.colors.baseGray;
+        color: hifi.colors.white;
 
         Component.onCompleted: {
             securityImageResultReceived = false;
@@ -206,101 +209,45 @@ Rectangle {
 
     HifiWallet.PassphraseModal {
         id: passphraseModal;
-        visible: false;
+        visible: root.activeView === "passphraseModal";
+        anchors.fill: parent;
+        titleBarText: "Purchases";
+        titleBarIcon: hifi.glyphs.wallet;
+
+        Connections {
+            onSendSignalToParent: {
+                if (msg.method === "authSuccess") {
+                    root.activeView = "initialize";
+                    sendToScript({method: 'purchases_getIsFirstUse'});
+                } else {
+                    sendToScript(msg);
+                }
+            }
+        }
+    }
+
+    FirstUseTutorial {
+        id: firstUseTutorial;
+        visible: root.activeView === "firstUseTutorial";
         anchors.top: titleBarContainer.bottom;
+        anchors.topMargin: -titleBarContainer.additionalDropdownHeight;
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
 
         Connections {
             onSendSignalToParent: {
-                sendToScript(msg);
-            }
-        }
-    }
-
-    //
-    // "WALLET NOT SET UP" START
-    //
-    Item {
-        id: notSetUp;
-        visible: root.activeView === "notSetUp";
-        anchors.top: titleBarContainer.bottom;
-        anchors.bottom: parent.bottom;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-
-        RalewayRegular {
-            id: notSetUpText;
-            text: "<b>Your wallet isn't set up.</b><br><br>Set up your Wallet (no credit card necessary) to claim your <b>free HFC</b> " +
-            "and get items from the Marketplace.";
-            // Text size
-            size: 24;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.bottom: notSetUpActionButtonsContainer.top;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            anchors.right: parent.right;
-            anchors.rightMargin: 16;
-            // Style
-            color: hifi.colors.faintGray;
-            wrapMode: Text.WordWrap;
-            // Alignment
-            horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
-        Item {
-            id: notSetUpActionButtonsContainer;
-            // Size
-            width: root.width;
-            height: 70;
-            // Anchors
-            anchors.left: parent.left;
-            anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 24;
-
-            // "Cancel" button
-            HifiControlsUit.Button {
-                id: cancelButton;
-                color: hifi.buttons.black;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
-                anchors.left: parent.left;
-                anchors.leftMargin: 20;
-                width: parent.width/2 - anchors.leftMargin*2;
-                text: "Cancel"
-                onClicked: {
-                    sendToScript({method: 'purchases_backClicked', referrerURL: referrerURL});
-                }
-            }
-
-            // "Set Up" button
-            HifiControlsUit.Button {
-                id: setUpButton;
-                color: hifi.buttons.blue;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
-                anchors.right: parent.right;
-                anchors.rightMargin: 20;
-                width: parent.width/2 - anchors.rightMargin*2;
-                text: "Set Up Wallet"
-                onClicked: {
-                    sendToScript({method: 'checkout_setUpClicked'});
+                switch (message.method) {
+                    case 'tutorial_skipClicked':
+                    case 'tutorial_finished':
+                        sendToScript({method: 'purchases_setIsFirstUse'});
+                        root.activeView = "purchasesMain";
+                        commerce.inventory();
+                    break;
                 }
             }
         }
     }
-    //
-    // "WALLET NOT SET UP" END
-    //
 
     //
     // PURCHASES CONTENTS START
@@ -310,13 +257,10 @@ Rectangle {
         visible: root.activeView === "purchasesMain";
         // Anchors
         anchors.left: parent.left;
-        anchors.leftMargin: 4;
         anchors.right: parent.right;
-        anchors.rightMargin: 4;
         anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: 8;
-        anchors.bottom: actionButtonsContainer.top;
-        anchors.bottomMargin: 8;
+        anchors.topMargin: 8 - titleBarContainer.additionalDropdownHeight;
+        anchors.bottom: parent.bottom;
 
         //
         // FILTER BAR START
@@ -329,32 +273,38 @@ Rectangle {
             anchors.left: parent.left;
             anchors.leftMargin: 8;
             anchors.right: parent.right;
-            anchors.rightMargin: 8;
+            anchors.rightMargin: 12;
             anchors.top: parent.top;
             anchors.topMargin: 4;
 
+            RalewayRegular {
+                id: myPurchasesText;
+                anchors.top: parent.top;
+                anchors.topMargin: 10;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 10;
+                anchors.left: parent.left;
+                anchors.leftMargin: 4;
+                width: paintedWidth;
+                text: "My Purchases";
+                color: hifi.colors.baseGray;
+                size: 28;
+            }
+
             HifiControlsUit.TextField {
                 id: filterBar;
-                property int previousLength: 0;
-                anchors.fill: parent;
-                placeholderText: "Filter";
+                colorScheme: hifi.colorSchemes.faintGray;
+                hasClearButton: true;
+                hasRoundedBorder: true;
+                anchors.left: myPurchasesText.right;
+                anchors.leftMargin: 16;
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                placeholderText: "filter items";
 
                 onTextChanged: {
-                    if (filterBar.text.length < previousLength) {
-                        filteredPurchasesModel.clear();
-
-                        for (var i = 0; i < purchasesModel.count; i++) {
-                            filteredPurchasesModel.append(purchasesModel.get(i));
-                        }
-                    }
-
-                    for (var i = 0; i < filteredPurchasesModel.count; i++) {
-                        if (filteredPurchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) === -1) {
-                            filteredPurchasesModel.remove(i);
-                            i--;
-                        }
-                    }
-                    previousLength = filterBar.text.length;
+                    buildFilteredPurchasesModel();
                 }
 
                 onAccepted: {
@@ -366,11 +316,86 @@ Rectangle {
         // FILTER BAR END
         //
 
+        HifiControlsUit.Separator {
+            id: separator;
+            colorScheme: 1;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            anchors.top: filterBarContainer.bottom;
+            anchors.topMargin: 16;
+        }
+
         ListModel {
             id: purchasesModel;
         }
         ListModel {
+            id: previousPurchasesModel;
+        }
+        ListModel {
             id: filteredPurchasesModel;
+        }
+
+        Rectangle {
+            id: cantRezCertified;
+            visible: !root.canRezCertifiedItems;
+            color: "#FFC3CD";
+            radius: 4;
+            border.color: hifi.colors.redAccent;
+            border.width: 1;
+            anchors.top: separator.bottom;
+            anchors.topMargin: 12;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: 80;
+
+            HiFiGlyphs {
+                id: lightningIcon;
+                text: hifi.glyphs.lightning;
+                // Size
+                size: 36;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 18;
+                anchors.left: parent.left;
+                anchors.leftMargin: 12;
+                horizontalAlignment: Text.AlignHCenter;
+                // Style
+                color: hifi.colors.lightGray;
+            }
+
+            RalewayRegular {
+                text: "You don't have permission to rez certified items in this domain. " +
+                '<b><font color="' + hifi.colors.blueAccent + '"><a href="#">Learn More</a></font></b>';
+                // Text size
+                size: 18;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 4;
+                anchors.left: lightningIcon.right;
+                anchors.leftMargin: 8;
+                anchors.right: parent.right;
+                anchors.rightMargin: 8;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 4;
+                // Style
+                color: hifi.colors.baseGray;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                verticalAlignment: Text.AlignVCenter;
+                
+                onLinkActivated: {
+                    lightboxPopup.titleText = "Rez Permission Required";
+                    lightboxPopup.bodyText = "You don't have permission to rez certified items in this domain.<br><br>" +
+                        "Use the <b>GOTO app</b> to visit another domain or <b>go to your own sandbox.</b>";
+                    lightboxPopup.button1text = "CLOSE";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button2text = "OPEN GOTO";
+                    lightboxPopup.button2method = "sendToParent({method: 'purchases_openGoTo'});";
+                    lightboxPopup.visible = true;
+                }
+            }
         }
 
         ListView {
@@ -379,16 +404,19 @@ Rectangle {
             clip: true;
             model: filteredPurchasesModel;
             // Anchors
-            anchors.top: filterBarContainer.bottom;
+            anchors.top: root.canRezCertifiedItems ? separator.bottom : cantRezCertified.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width;
             delegate: PurchasedItem {
+                canRezCertifiedItems: root.canRezCertifiedItems;
                 itemName: title;
                 itemId: id;
                 itemPreviewImageUrl: preview;
                 itemHref: root_file_url;
+                purchaseStatus: status;
+                purchaseStatusChanged: statusChanged;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
@@ -396,6 +424,24 @@ Rectangle {
                     onSendToPurchases: {
                         if (msg.method === 'purchases_itemInfoClicked') {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
+                        } else if (msg.method === 'purchases_itemCertificateClicked') {
+                            sendToScript(msg);
+                        } else if (msg.method === "showInvalidatedLightbox") {
+                            lightboxPopup.titleText = "Item Invalidated";
+                            lightboxPopup.bodyText = 'Your item is marked "invalidated" because this item has been suspended ' +
+                            "from the Marketplace due to a claim against its author.";
+                            lightboxPopup.button1text = "CLOSE";
+                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.visible = true;
+                        } else if (msg.method === "showPendingLightbox") {
+                            lightboxPopup.titleText = "Item Pending";
+                            lightboxPopup.bodyText = 'Your item is marked "pending" while your purchase is being confirmed. ' +
+                            "Usually, purchases take about 90 seconds to confirm.";
+                            lightboxPopup.button1text = "CLOSE";
+                            lightboxPopup.button1method = "root.visible = false;"
+                            lightboxPopup.visible = true;
+                        } else if (msg.method === "setFilterText") {
+                            filterBar.text = msg.filterText;
                         }
                     }
                 }
@@ -414,7 +460,7 @@ Rectangle {
             // Explanitory text
             RalewayRegular {
                 id: haventPurchasedYet;
-                text: "<b>You haven't purchased anything yet!</b><br><br>Get an item from <b>Marketplace</b> to add it to your <b>Purchases</b>.";
+                text: "<b>You haven't purchased anything yet!</b><br><br>Get an item from <b>Marketplace</b> to add it to My Purchases.";
                 // Text size
                 size: 22;
                 // Anchors
@@ -426,7 +472,7 @@ Rectangle {
                 anchors.rightMargin: 24;
                 height: paintedHeight;
                 // Style
-                color: hifi.colors.faintGray;
+                color: hifi.colors.baseGray;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
@@ -452,42 +498,6 @@ Rectangle {
     // PURCHASES CONTENTS END
     //
 
-    //
-    // ACTION BUTTONS START
-    //
-    Item {
-        id: actionButtonsContainer;
-        visible: purchasesContentsContainer.visible;
-        // Size
-        width: parent.width;
-        height: 40;
-        // Anchors
-        anchors.left: parent.left;
-        anchors.bottom: keyboard.top;
-        anchors.bottomMargin: 8;
-
-        // "Back" button
-        HifiControlsUit.Button {
-            id: backButton;
-            color: hifi.buttons.black;
-            colorScheme: hifi.colorSchemes.dark;
-            anchors.top: parent.top;
-            anchors.topMargin: 3;
-            anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 3;
-            anchors.left: parent.left;
-            anchors.leftMargin: 20;
-            width: parent.width/2 - anchors.leftMargin*2;
-            text: "Back"
-            onClicked: {
-                sendToScript({method: 'purchases_backClicked', referrerURL: referrerURL});
-            }
-        }
-    }
-    //
-    // ACTION BUTTONS END
-    //
-
     HifiControlsUit.Keyboard {
         id: keyboard;
         raised: HMD.mounted && filterBar.focus;
@@ -499,9 +509,60 @@ Rectangle {
         }
     }
 
+    onVisibleChanged: {
+        if (!visible) {
+            inventoryTimer.stop();
+        }
+    }
+
+    Timer {
+        id: inventoryTimer;
+        interval: 90000;
+        onTriggered: {
+            if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
+                root.pendingInventoryReply = true;
+                commerce.inventory();
+            }
+        }
+    }
+
     //
     // FUNCTION DEFINITIONS START
     //
+
+    function buildFilteredPurchasesModel() {
+        filteredPurchasesModel.clear();
+        for (var i = 0; i < purchasesModel.count; i++) {
+            if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
+                if (purchasesModel.get(i).status !== "confirmed") {
+                    filteredPurchasesModel.insert(0, purchasesModel.get(i));
+                } else {
+                    filteredPurchasesModel.append(purchasesModel.get(i));
+                }
+            }
+        }
+    }
+
+    function checkIfAnyItemStatusChanged() {
+        var currentPurchasesModelId, currentPurchasesModelEdition, currentPurchasesModelStatus;
+        var previousPurchasesModelStatus;
+        for (var i = 0; i < purchasesModel.count; i++) {
+            currentPurchasesModelId = purchasesModel.get(i).id;
+            currentPurchasesModelEdition = purchasesModel.get(i).edition_number;
+            currentPurchasesModelStatus = purchasesModel.get(i).status;
+
+            for (var j = 0; j < previousPurchasesModel.count; j++) {
+                previousPurchasesModelStatus = previousPurchasesModel.get(j).status;
+                if (currentPurchasesModelId === previousPurchasesModel.get(j).id &&
+                    currentPurchasesModelEdition === previousPurchasesModel.get(j).edition_number &&
+                    currentPurchasesModelStatus !== previousPurchasesModelStatus) {
+                    
+                    purchasesModel.setProperty(i, "statusChanged", true);
+                }
+            }
+        }
+    }
+
     //
     // Function Name: fromScript()
     //
@@ -519,6 +580,17 @@ Rectangle {
         switch (message.method) {
             case 'updatePurchases':
                 referrerURL = message.referrerURL;
+                titleBarContainer.referrerURL = message.referrerURL;
+                root.canRezCertifiedItems = message.canRezCertifiedItems;
+                filterBar.text = message.filterText ? message.filterText : "";
+            break;
+            case 'purchases_getIsFirstUseResult':
+                if (message.isFirstUseOfPurchases && root.activeView !== "firstUseTutorial") {
+                    root.activeView = "firstUseTutorial";
+                } else if (!message.isFirstUseOfPurchases && root.activeView === "initialize") {
+                    root.activeView = "purchasesMain";
+                    commerce.inventory();
+                }
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

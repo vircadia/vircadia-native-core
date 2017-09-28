@@ -27,6 +27,7 @@
     var isPreparing = false;  // Explicitly track download request status.
 
     var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
+    var userIsLoggedIn = false;
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -90,23 +91,77 @@
         });
     }
 
-    function addPurchasesButton() {
-        // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
-        var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
-        var purchasesElement = document.createElement('a');
-        purchasesElement.classList.add("btn");
-        purchasesElement.classList.add("btn-default");
-        purchasesElement.id = "purchasesButton";
-        purchasesElement.setAttribute('href', "#");
-        purchasesElement.innerHTML = "PURCHASES";
-        purchasesElement.style = "height:100%;margin-top:0;padding:15px 15px;";
-        navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
-        $('#purchasesButton').on('click', function () {
-            EventBridge.emitWebEvent(JSON.stringify({
-                type: "PURCHASES",
-                referrerURL: window.location.href
-            }));
-        });
+    function maybeAddLogInButton() {
+        if (!userIsLoggedIn) {
+            var resultsElement = document.getElementById('results');
+            var logInElement = document.createElement('div');
+            logInElement.classList.add("row");
+            logInElement.id = "logInDiv";
+            logInElement.style = "height:60px;margin:20px 10px 10px 10px;padding:5px;" +
+                "background-color:#D6F4D8;border-color:#aee9b2;border-width:2px;border-style:solid;border-radius:5px;";
+
+            var button = document.createElement('a');
+            button.classList.add("btn");
+            button.classList.add("btn-default");
+            button.id = "logInButton";
+            button.setAttribute('href', "#");
+            button.innerHTML = "LOG IN";
+            button.style = "width:80px;height:100%;margin-top:0;margin-left:10px;padding:13px;font-weight:bold;background:linear-gradient(white, #ccc);";
+            button.onclick = function () {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "LOGIN"
+                }));
+            };
+
+            var span = document.createElement('span');
+            span.style = "margin:10px;color:#1b6420;font-size:15px;";
+            span.innerHTML = "to purchase items from the Marketplace.";
+
+            var xButton = document.createElement('a');
+            xButton.id = "xButton";
+            xButton.setAttribute('href', "#");
+            xButton.style = "width:50px;height:100%;margin:0;color:#ccc;font-size:20px;";
+            xButton.innerHTML = "X";
+            xButton.onclick = function () {
+                logInElement.remove();
+                dummyRow.remove();
+            };
+
+            logInElement.appendChild(button);
+            logInElement.appendChild(span);
+            logInElement.appendChild(xButton);
+
+            resultsElement.insertBefore(logInElement, resultsElement.firstChild);
+
+            // Dummy row for padding
+            var dummyRow = document.createElement('div');
+            dummyRow.classList.add("row");
+            dummyRow.style = "height:15px;";
+            resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
+        }
+    }
+
+    function maybeAddPurchasesButton() {
+        if (userIsLoggedIn) {
+            // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
+            var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
+            var purchasesElement = document.createElement('a');
+            var dropDownElement = document.getElementById('user-dropdown');
+            purchasesElement.id = "purchasesButton";
+            purchasesElement.setAttribute('href', "#");
+            purchasesElement.innerHTML = "MY PURCHASES";
+            // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
+            //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
+            purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
+                "px;position:relative;z-index:999;";
+            navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
+            $('#purchasesButton').on('click', function () {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "PURCHASES",
+                    referrerURL: window.location.href
+                }));
+            });
+        }
     }
 
     function buyButtonClicked(id, name, author, price, href) {
@@ -123,6 +178,14 @@
     function injectBuyButtonOnMainPage() {
         var cost;
 
+        // Unbind original mouseenter and mouseleave behavior
+        $('body').off('mouseenter', '#price-or-edit .price');
+        $('body').off('mouseleave', '#price-or-edit .price');
+
+        $('.grid-item').find('#price-or-edit').each(function () {
+            $(this).css({ "margin-top": "0" });
+        });
+
         $('.grid-item').find('#price-or-edit').find('a').each(function() {
             $(this).attr('data-href', $(this).attr('href'));
             $(this).attr('href', '#');
@@ -131,12 +194,34 @@
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
 
+            var priceElement = $(this).find('.price')
+            priceElement.css({
+                "padding": "3px 5px",
+                "height": "40px",
+                "background": "linear-gradient(#00b4ef, #0093C5)",
+                "color": "#FFF",
+                "font-weight": "600",
+                "line-height": "34px"
+            });
+
             if (parseInt(cost) > 0) {
-                var priceElement = $(this).find('.price')
-                priceElement.css({ "width": "auto", "padding": "3px 5px", "height": "26px" });
-                priceElement.text(cost + ' HFC');
-                priceElement.css({ "min-width": priceElement.width() + 10 });
+                priceElement.css({ "width": "auto" });
+                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                priceElement.css({ "min-width": priceElement.width() + 30 });
             }
+        });
+
+        // change pricing to GET on button hover
+        $('body').on('mouseenter', '#price-or-edit .price', function () {
+            var $this = $(this);
+            $this.data('initialHtml', $this.html());
+            $this.text('GET');
+        });
+
+        $('body').on('mouseleave', '#price-or-edit .price', function () {
+            var $this = $(this);
+            $this.html($this.data('initialHtml'));
         });
 
 
@@ -151,6 +236,9 @@
 
     function injectHiFiCode() {
         if (confirmAllPurchases) {
+
+            maybeAddLogInButton();
+
             var target = document.getElementById('templated-items');
             // MutationObserver is necessary because the DOM is populated after the page is loaded.
             // We're searching for changes to the element whose ID is '#templated-items' - this is
@@ -167,30 +255,41 @@
             // Try this here in case it works (it will if the user just pressed the "back" button,
             //     since that doesn't trigger another AJAX request.
             injectBuyButtonOnMainPage();
-            addPurchasesButton();
+            maybeAddPurchasesButton();
         }
     }
 
     function injectHiFiItemPageCode() {
         if (confirmAllPurchases) {
-            var href = $('#side-info').find('.btn').first().attr('href');
-            $('#side-info').find('.btn').first().attr('href', '#');
+
+            maybeAddLogInButton();
+
+            var purchaseButton = $('#side-info').find('.btn').first();
+
+            var href = purchaseButton.attr('href');
+            purchaseButton.attr('href', '#');
+            purchaseButton.css({
+                "background": "linear-gradient(#00b4ef, #0093C5)",
+                "color": "#FFF",
+                "font-weight": "600",
+                "padding-bottom": "10px"
+            });
 
             var cost = $('.item-cost').text();
 
             if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
-                $('#side-info').find('.btn').first().html('<span class="glyphicon glyphicon-download" id="buyItemButton"></span>Own Item: ' + cost + ' HFC');
-
+                purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' + 
+                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
             }
 
-            $('#side-info').find('.btn').first().on('click', function () {
+            purchaseButton.on('click', function () {
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),
                     cost,
                     href);
             });
-            addPurchasesButton();
+            maybeAddPurchasesButton();
         }
     }
 
@@ -451,7 +550,8 @@
 
                 if (parsedJsonMessage.type === "marketplaces") {
                     if (parsedJsonMessage.action === "commerceSetting") {
-                        confirmAllPurchases = !!parsedJsonMessage.data;
+                        confirmAllPurchases = !!parsedJsonMessage.data.commerceMode;
+                        userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn
                         injectCode();
                     }
                 }

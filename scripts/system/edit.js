@@ -1245,6 +1245,7 @@ var lastPosition = null;
 Script.update.connect(function (deltaTime) {
     progressDialog.move();
     selectionDisplay.checkMove();
+    selectionDisplay.checkControllerMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
     var dPosition = Vec3.distance(Camera.position, lastPosition);
     if (dOrientation > 0.001 || dPosition > 0.001) {
