@@ -119,7 +119,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     }
 
     UserActivityLogger::getInstance().logAction("uploading_asset", {
-        { "size", size },
+        { "size", (qint64)size },
         { "mapping", mapping },
         { "extension", extension}
     });
