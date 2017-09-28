@@ -221,7 +221,7 @@ bool JSBaker::isNonAscii(QChar c) {
 
 // If previous and next characters are special characters, don't omit space
 bool JSBaker::isSpecialCharacter(QChar c) {
-    return (c == '\'' || c == '$' || c == '_' || c == '/');
+    return (c == '\'' || c == '$' || c == '_' || c == '/' || c== '+' || c == '-');
 }
 
 // If previous character is a special character, maybe don't omit new line (depends on next character as well)
