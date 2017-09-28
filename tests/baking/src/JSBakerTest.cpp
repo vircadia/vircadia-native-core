@@ -71,9 +71,6 @@ void JSBakerTest::setTestCases() {
 
     //No semicolon to terminate an expression, instead a new line used for termination
     _testCases.emplace_back("var x=5\nvar y=6;", "var x=5\nvar y=6;");
-
-    //a + ++b is minified as a+++b, interpreted as a++ + b. Ensure original script has correct parantheses
-    _testCases.emplace_back("a + ++b", "a+++b");
 }
 
 void JSBakerTest::testJSBaking() {
