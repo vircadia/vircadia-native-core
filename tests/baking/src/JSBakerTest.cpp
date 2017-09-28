@@ -21,7 +21,7 @@ void JSBakerTest::setTestCases() {
     _testCases.emplace_back("a/*multi\n line \n comment*/ b", "ab");
     _testCases.emplace_back("a/b", "a/b");
     _testCases.emplace_back("var a =      1;", "var a=1;"); // Multiple spaces omitted
-    _testCases.emplace_back("var a=         1;", "var a=1;"); // Multiple tabs omitted
+    _testCases.emplace_back("var a=\t\t\t1;", "var a=1;"); // Multiple tabs omitted
 
                                                               // Cases for space not omitted
     _testCases.emplace_back("var x", "var x");
