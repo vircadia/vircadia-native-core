@@ -45,8 +45,8 @@ Item {
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
-                            4 * hifi.dimensions.contentSpacing.y + form.height +
-                                hifi.dimensions.contentSpacing.y + buttons.height;
+                    4 * hifi.dimensions.contentSpacing.y + form.height/* +
+                                hifi.dimensions.contentSpacing.y + buttons.height*/;
 
             if (additionalInformation.visible) {
                 targetWidth = Math.max(targetWidth, additionalInformation.width);
@@ -56,7 +56,7 @@ Item {
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
                     + (keyboardEnabled && keyboardRaised ? (200 + 2 * hifi.dimensions.contentSpacing.y) : hifi.dimensions.contentSpacing.y);
-            console.log("sign in h:", targetHeight, parent.height)
+            console.log("sign in h:", targetHeight, parent.height, form.height)
         }
     }
 
@@ -67,9 +67,6 @@ Item {
         if (loginDialog.isSteamRunning()) {
             additionalInformation.visible = !isLoading
         }
-
-        leftButton.visible = !isLoading
-        buttons.visible = !isLoading
     }
 
     BusyIndicator {
@@ -173,11 +170,6 @@ Item {
 
         InfoItem {
             id: additionalInformation
-            anchors {
-                left: parent.left
-                margins: 0
-                topMargin: hifi.dimensions.contentSpacing.y
-            }
 
             visible: loginDialog.isSteamRunning()
 
@@ -189,64 +181,58 @@ Item {
             horizontalAlignment: Text.AlignHCenter
         }
 
-        Column {
-            //width: parent.width
+        Row {
+            id: buttons
             spacing: hifi.dimensions.contentSpacing.y*2
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
             anchors.horizontalCenter: parent.horizontalCenter
-            //padding: 10
 
-            Row {
-                id: buttons
-                spacing: hifi.dimensions.contentSpacing.y*2
-                onHeightChanged: d.resize(); onWidthChanged: d.resize();
-                anchors.horizontalCenter: parent.horizontalCenter
+            Button {
+                id: linkAccountButton
+                anchors.verticalCenter: parent.verticalCenter
+                width: 200
 
-                Button {
-                    id: linkAccountButton
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 200
+                text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Login")
+                color: hifi.buttons.blue
 
-                    text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Login")
-                    color: hifi.buttons.blue
-
-                    onClicked: linkAccountBody.login()
-                }
-
-                Button {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Cancel")
-                    onClicked: root.tryDestroy()
-                }
+                onClicked: linkAccountBody.login()
             }
 
-            Row {
-                id: leftButton
+            Button {
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Cancel")
+                onClicked: root.tryDestroy()
+            }
+        }
 
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: hifi.dimensions.contentSpacing.x
-                onHeightChanged: d.resize(); onWidthChanged: d.resize();
+        Row {
+            id: leftButton
 
-                RalewaySemiBold {
-                    size: hifi.fontSizes.inputLabel
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Don't have an account?")
-                }
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: hifi.dimensions.contentSpacing.y*2
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
-                Button {
-                    anchors.verticalCenter: parent.verticalCenter
+            RalewaySemiBold {
+                size: hifi.fontSizes.inputLabel
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Don't have an account?")
+            }
 
-                    text: qsTr("Sign Up")
-                    visible: !loginDialog.isSteamRunning()
+            Button {
+                anchors.verticalCenter: parent.verticalCenter
 
-                    onClicked: {
-                        bodyLoader.setSource("SignUpBody.qml")
-                        bodyLoader.item.width = root.pane.width
-                        bodyLoader.item.height = root.pane.height
-                    }
+                text: qsTr("Sign Up")
+                visible: !loginDialog.isSteamRunning()
+
+                onClicked: {
+                    bodyLoader.setSource("SignUpBody.qml")
+                    bodyLoader.item.width = root.pane.width
+                    bodyLoader.item.height = root.pane.height
                 }
             }
         }
     }
+
 
     // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
     Keyboard {
@@ -266,7 +252,7 @@ Item {
         root.title = qsTr("Sign Into High Fidelity")
         root.iconText = "<"
         keyboardEnabled = HMD.active;
-        d.resize();
+        //d.resize();
 
         if (failAfterSignUp) {
             mainTextContainer.text = "Account created successfully."
@@ -313,11 +299,11 @@ Item {
         }
 
         switch (event.key) {
-            case Qt.Key_Enter:
-            case Qt.Key_Return:
-                event.accepted = true
-                linkAccountBody.login()
-                break
+        case Qt.Key_Enter:
+        case Qt.Key_Return:
+            event.accepted = true
+            linkAccountBody.login()
+            break
         }
     }
 }

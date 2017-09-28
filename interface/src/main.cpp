@@ -48,7 +48,9 @@ int main(int argc, const char* argv[]) {
     static QString BUG_SPLAT_APPLICATION_NAME = "Interface";
     CrashReporter crashReporter { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION };
 #endif
-
+#ifdef Q_OS_UNIX
+    QApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
+#endif
     disableQtBearerPoll(); // Fixes wifi ping spikes
 
     QElapsedTimer startupTime;

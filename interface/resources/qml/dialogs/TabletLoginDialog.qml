@@ -96,7 +96,7 @@ TabletModalWindow {
         id: mfRoot
 
         width: root.width
-        height: root.height + frameMarginTop
+        height: root.height //+ frameMarginTop
 
         anchors {
             horizontalCenter: parent.horizontalCenter
