@@ -235,7 +235,9 @@
     }
 
     function injectHiFiCode() {
-        if (confirmAllPurchases) {
+        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
+
+            $('body').addClass("code-injected");
 
             maybeAddLogInButton();
 
@@ -260,7 +262,9 @@
     }
 
     function injectHiFiItemPageCode() {
-        if (confirmAllPurchases) {
+        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
+
+            $('body').addClass("code-injected");
 
             maybeAddLogInButton();
 
@@ -567,4 +571,5 @@
 
     // Load / unload.
     window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
+    window.addEventListener("page:change", onLoad);  // Triggered after Marketplace HTML is changed
 }());
