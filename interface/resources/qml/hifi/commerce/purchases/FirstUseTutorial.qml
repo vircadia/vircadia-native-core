@@ -66,12 +66,26 @@ Rectangle {
         }
         RalewayRegular {
             id: introText1;
-            text: "<font size='2'>INTRODUCTION TO</font><br>My Purchases";
+            text: "INTRODUCTION TO";
+            // Text size
+            size: 15;
+            // Anchors
+            anchors.top: marketplaceHeaderImage.bottom;
+            anchors.topMargin: 8;
+            anchors.left: parent.left;
+            anchors.leftMargin: 12;
+            anchors.right: parent.right;
+            height: paintedHeight;
+            // Style
+            color: hifi.colors.white;
+        }
+        RalewayRegular {
+            id: introText2;
+            text: "My Purchases";
             // Text size
             size: 28;
             // Anchors
-            anchors.top: marketplaceHeaderImage.bottom;
-            anchors.topMargin: -8;
+            anchors.top: introText1.bottom;
             anchors.left: parent.left;
             anchors.leftMargin: 12;
             anchors.right: parent.right;
@@ -121,6 +135,22 @@ Rectangle {
             text: "Next";
             onClicked: {
                 root.activeView++;
+            }
+        }
+        
+        // "SKIP" button
+        HifiControlsUit.Button {
+            color: hifi.buttons.noneBorderlessGray;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 32;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            width: 150;
+            height: 40;
+            text: "SKIP";
+            onClicked: {
+                sendSignalToParent({method: 'tutorial_finished'});
             }
         }
     }
