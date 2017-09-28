@@ -132,7 +132,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.updateLaserPointer = function(controllerData) {
             var SEARCH_SPHERE_SIZE = 0.011;
             var MIN_SPHERE_SIZE = 0.0005;
-            var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE);
+            var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE) * MyAvatar.sensorToWorldScale;
             var dim = {x: radius, y: radius, z: radius};
             var mode = "hold";
             if (!this.distanceHolding && !this.distanceRotating) {
@@ -424,7 +424,7 @@ Script.include("/~/system/libraries/controllers.js");
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);
             }
-
+            this.intersectionDistance = controllerData.rayPicks[this.hand].distance;
             this.updateLaserPointer(controllerData);
 
             var otherModuleName =this.hand === RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
