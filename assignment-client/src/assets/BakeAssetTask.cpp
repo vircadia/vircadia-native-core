@@ -20,7 +20,8 @@
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) :
     _assetHash(assetHash),
     _assetPath(assetPath),
-    _filePath(filePath) {
+    _filePath(filePath)
+{
 
 }
 
@@ -31,7 +32,7 @@ void BakeAssetTask::run() {
     TextureBakerThreadGetter fn = []() -> QThread* { return QThread::currentThread();  };
 
     if (_assetPath.endsWith(".fbx")) {
-        _baker = std::unique_ptr<FBXBaker>{
+        _baker = std::unique_ptr<FBXBaker> {
             new FBXBaker(QUrl("file:///" + _filePath), fn, PathUtils::generateTemporaryDir())
         };
     } else if (_assetPath.endsWith(".js", Qt::CaseInsensitive)) {
@@ -39,9 +40,9 @@ void BakeAssetTask::run() {
             new JSBaker(QUrl("file:///" + _filePath), PathUtils::generateTemporaryDir())
         };
     } else {
-        _baker = std::unique_ptr<TextureBaker>{
+        _baker = std::unique_ptr<TextureBaker> {
             new TextureBaker(QUrl("file:///" + _filePath), image::TextureUsage::CUBE_TEXTURE,
-            PathUtils::generateTemporaryDir())
+                             PathUtils::generateTemporaryDir())
         };
     }
 
