@@ -68,7 +68,8 @@
             }
 
             if (!isKeyboardRaised) {
-                scheduleBringToView(500); // Allow time for keyboard to be raised in QML.
+                scheduleBringToView(250); // Allow time for keyboard to be raised in QML.
+                                          // 2DO: should it be rather done from 'client area height changed' event?
             }
 
             isKeyboardRaised = keyboardRaised;
