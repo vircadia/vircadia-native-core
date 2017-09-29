@@ -178,11 +178,11 @@
             }
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
-            this.setReticlePosition(point2d);
-            if (!Reticle.isPointingAtSystemOverlay(point2d)) {
+            if (!Window.isPointOnDesktopWindow(point2d)) {
                 this.exitModule();
                 return false;
             }
+            this.setReticlePosition(point2d);
             Reticle.visible = false;
             this.movedAway = false;
             this.triggerClicked = controllerData.triggerClicks[this.hand];

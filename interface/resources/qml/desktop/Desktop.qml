@@ -223,7 +223,7 @@ FocusScope {
             //offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
             focusHack.start();
         }
-
+        
         function onWindowFocusChanged() {
             //console.log("Focus item is " + offscreenWindow.activeFocusItem);
 
@@ -296,6 +296,23 @@ FocusScope {
 
     function togglePinned() {
         pinned = !pinned
+    }
+
+    function isPointOnWindow(point) {
+        for (var i = 0; i < desktop.visibleChildren.length; i++) {
+            var child = desktop.visibleChildren[i];
+            if (child.visible) {
+                if (child.hasOwnProperty("modality")) {
+                    var mappedPoint = child.mapFromGlobal(point.x, point.y);
+                    console.log(mappedPoint);
+                    if (child.contains(mappedPoint)) {
+                        return true;
+                        console.log(child);
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     function setPinned(newPinned) {
