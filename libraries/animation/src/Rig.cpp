@@ -249,6 +249,7 @@ void Rig::reset(const FBXGeometry& geometry) {
     _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
     if (!_animGraphURL.isEmpty()) {
+        _animNode.reset();
         initAnimGraph(_animGraphURL);
     }
 }
@@ -1619,7 +1620,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 }
 
 void Rig::initAnimGraph(const QUrl& url) {
-    if (_animGraphURL != url) {
+    if (_animGraphURL != url || !_animNode) {
         _animGraphURL = url;
 
         _animNode.reset();
