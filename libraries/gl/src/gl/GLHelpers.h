@@ -25,7 +25,12 @@ class QSurfaceFormat;
 class QGLFormat;
 
 template<class F>
-void setGLFormatVersion(F& format, int major = 4, int minor = 5) { format.setVersion(major, minor); }
+#if defined(QT_OPENGL_ES_3_1)
+void setGLFormatVersion(F& format, int major = 3, int minor = 1)
+#else
+void setGLFormatVersion(F& format, int major = 4, int minor = 5) 
+#endif
+    { format.setVersion(major, minor);  }
 
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format);
 

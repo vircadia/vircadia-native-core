@@ -66,7 +66,7 @@ Q_INVOKABLE void thruModeEnable(bool enable);
 
 public:
     Midi();
-	virtual ~Midi();
+    virtual ~Midi();
 };
 
 #endif // hifi_Midi_h

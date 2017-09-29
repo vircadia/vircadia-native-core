@@ -11,8 +11,13 @@
 import QtQuick 2.0
 import "."
 
-Item {
+Rectangle {
     id: keyboardBase
+
+    anchors.left: parent.left
+    anchors.right: parent.right
+
+    color: "#252525"
 
     property bool raised: false
     property bool numeric: false
@@ -105,6 +110,7 @@ Item {
         height: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
         color: "#252525"
+        anchors.horizontalCenter: parent.horizontalCenter
 
         TextEdit {
             id: mirrorText
@@ -116,6 +122,13 @@ Item {
             wrapMode: Text.WordWrap
             readOnly: false // we need to leave this property read-only to allow control to accept QKeyEvent
             selectByMouse: false
+
+            Keys.onPressed: {
+                if (event.key == Qt.Key_Return) {
+                    mirrorText.text = "";
+                    event.accepted = true;
+                }
+            }
         }
 
         MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus

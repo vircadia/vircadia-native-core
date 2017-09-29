@@ -1245,6 +1245,7 @@ var lastPosition = null;
 Script.update.connect(function (deltaTime) {
     progressDialog.move();
     selectionDisplay.checkMove();
+    selectionDisplay.checkControllerMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
     var dPosition = Vec3.distance(Camera.position, lastPosition);
     if (dOrientation > 0.001 || dPosition > 0.001) {
@@ -1473,6 +1474,8 @@ function onFileSaveChanged(filename) {
 }
 
 function onFileOpenChanged(filename) {
+    // disconnect the event, otherwise the requests will stack up
+    Window.openFileChanged.disconnect(onFileOpenChanged);
     var importURL = null;
     if (filename !== "") {
         importURL = "file:///" + filename;

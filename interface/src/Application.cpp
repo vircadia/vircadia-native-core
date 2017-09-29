@@ -198,6 +198,8 @@
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
 
+#include <FadeEffect.h>
+
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
@@ -681,6 +683,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
+
+    DependencyManager::set<FadeEffect>();
 
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();
@@ -2369,6 +2373,7 @@ void Application::initializeUi() {
 
     // Pre-create a couple of Web3D overlays to speed up tablet UI
     auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
@@ -4460,11 +4465,13 @@ void Application::init() {
     }, Qt::QueuedConnection);
 }
 
-void Application::updateLOD() const {
+void Application::updateLOD(float deltaTime) const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
-        DependencyManager::get<LODManager>()->autoAdjustLOD(_frameCounter.rate());
+        float batchTime = (float)_gpuContext->getFrameTimerBatchAverage();
+        float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
+        DependencyManager::get<LODManager>()->autoAdjustLOD(batchTime, engineRunTime, deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -4689,12 +4696,8 @@ void Application::resetPhysicsReadyInformation() {
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
-        _viewFrustum.setOrientation(glm::quat());
-    }
-    // Clear entities out of view frustum
+    // Query the octree to refresh everything in view
+    _lastQueriedTime = 0;
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
     DependencyManager::get<AssetClient>()->clearCache();
@@ -4841,7 +4844,7 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
-    updateLOD();
+    updateLOD(deltaTime);
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
@@ -4852,13 +4855,9 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        bool timeout = false;
         const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
-        if (_lastPhysicsCheckTime > 0 && now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT) {
-            timeout = true;
-        }
 
-        if (timeout || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
+        if (now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -5296,7 +5295,7 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
@@ -5450,16 +5449,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
-            }
-
-            // if asked to forceResend, then set the query's position/orientation to be degenerate in a manner
-            // that will cause our next query to be guarenteed to be different and the server will resend to us
-            if (forceResend) {
-                _octreeQuery.setCameraPosition(glm::vec3(-0.1, -0.1, -0.1));
-                const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
-                _octreeQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
-                _octreeQuery.setCameraNearClip(0.1f);
-                _octreeQuery.setCameraFarClip(0.1f);
             }
 
             // encode the query data
@@ -5710,8 +5699,6 @@ void Application::clearDomainOctreeDetails() {
 
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
-    _recentlyClearedDomain = true;
-
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
@@ -5758,14 +5745,10 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
-    // If we get a new EntityServer activated, do a "forceRedraw" query. This will send a degenerate
-    // query so that the server will think our next non-degenerate query is "different enough" to send
-    // us a full scene
-    if (_recentlyClearedDomain && node->getType() == NodeType::EntityServer) {
-        _recentlyClearedDomain = false;
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-            queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions, true);
-        }
+    // If we get a new EntityServer activated, reset lastQueried time
+    // so we will do a proper query during update
+    if (node->getType() == NodeType::EntityServer) {
+        _lastQueriedTime = 0;
     }
 
     if (node->getType() == NodeType::AudioMixer) {

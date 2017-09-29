@@ -1,12 +1,15 @@
-if (WIN32)
+# If we're running under the gradle build, HIFI_ANDROID will be set here, but 
+# ANDROID will not be set until after the `project` statement.  This is the *ONLY*
+# place you need to use `HIFI_ANDROID` instead of `ANDROID`
+if (WIN32 AND NOT HIFI_ANDROID)
   cmake_minimum_required(VERSION 3.7)
 else()
   cmake_minimum_required(VERSION 3.2)
 endif()
 
-include("cmake/init.cmake")
-
 project(hifi)
+
+include("cmake/init.cmake")
 
 include("cmake/compiler.cmake")
 
@@ -54,11 +57,13 @@ endif()
 file(GLOB_RECURSE CMAKE_SRC cmake/*.cmake cmake/CMakeLists.txt)
 add_custom_target(cmake SOURCES ${CMAKE_SRC})
 GroupSources("cmake")
+unset(CMAKE_SRC)
 
 file(GLOB_RECURSE JS_SRC scripts/*.js unpublishedScripts/*.js)
 add_custom_target(js SOURCES ${JS_SRC})
 GroupSources("scripts")
 GroupSources("unpublishedScripts")
+unset(JS_SRC)
 
 # Locate the required Qt build on the filesystem
 setup_qt()
@@ -76,6 +81,12 @@ setup_externals_binary_dir()
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
 
 set_packaging_parameters()
+
+# FIXME hack to work on the proper Android toolchain
+if (ANDROID)
+    add_subdirectory(android/app)
+    return()
+endif()
 
 # add subdirectories for all targets
 if (BUILD_SERVER)

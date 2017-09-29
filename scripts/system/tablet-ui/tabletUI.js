@@ -97,7 +97,7 @@
         checkTablet()
 
         tabletScalePercentage = getTabletScalePercentageFromSettings();
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
+        UIWebTablet = new WebTablet("hifi/tablet/TabletRoot.qml",
                                     DEFAULT_WIDTH * (tabletScalePercentage / 100),
                                     null, activeHand, true, null, false);
         UIWebTablet.register();
@@ -192,7 +192,9 @@
             return;
         }
 
-        if (now - validCheckTime > MSECS_PER_SEC) {
+        var needInstantUpdate = UIWebTablet && UIWebTablet.getLandscape() !== landscape;
+
+        if ((now - validCheckTime > MSECS_PER_SEC) || needInstantUpdate) {
             validCheckTime = now;
 
             updateTabletWidthFromSettings();
