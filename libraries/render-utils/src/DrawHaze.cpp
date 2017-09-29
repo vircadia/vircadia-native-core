@@ -140,7 +140,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
         batch.setPipeline(_hazePipeline);
 
-////        batch.setUniformBuffer(HazeEffect_ParamsSlot, haze->getParametersBuffer());
+        batch.setUniformBuffer(HazeEffect_ParamsSlot, haze->getParametersBuffer());
         batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
 
         batch.setResourceTexture(HazeEffect_LightingMapSlot, inputBuffer);

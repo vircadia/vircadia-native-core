@@ -61,11 +61,10 @@ void HazeStageSetup::run(const render::RenderContextPointer& renderContext) {
 }
 
 void FetchHazeStage::run(const render::RenderContextPointer& renderContext, model::HazePointer& haze) {
-
     auto hazeStage = renderContext->_scene->getStage<HazeStage>();
     assert(hazeStage);
 
-    if (hazeStage->_currentFrame._hazes.size()) {
+    if (hazeStage->_currentFrame._hazes.size() != 0) {
         auto hazeId = hazeStage->_currentFrame._hazes.front();
         haze = hazeStage->getHaze(hazeId);
     }

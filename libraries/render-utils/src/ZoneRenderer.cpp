@@ -67,6 +67,12 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     lightStage->_currentFrame.pushAmbientLight(0);
 
     backgroundStage->_currentFrame.pushBackground(0);
+
+    // Haze
+    auto hazeStage = context->_scene->getStage<HazeStage>();
+    assert(hazeStage);
+    hazeStage->_currentFrame.clear();
+    hazeStage->_currentFrame.pushHaze(0);
 }
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {

@@ -146,16 +146,16 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             }
             _needBackgroundUpdate = false;
         }
+    }
 
-        if (_needHazeUpdate) {
-            if (HazeStage::isIndexInvalid(_hazeIndex)) {
-                _hazeIndex = _hazeStage->addHaze(_haze);
-            }
-            else {
-
-            }
-            _needHazeUpdate = false;
+    if (_needHazeUpdate) {
+        if (HazeStage::isIndexInvalid(_hazeIndex)) {
+            _hazeIndex = _hazeStage->addHaze(_haze);
         }
+        else {
+
+        }
+        _needHazeUpdate = false;
     }
 
     if (_visible) {
@@ -171,6 +171,11 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         // The background only if the mode is not inherit
         if (_backgroundMode != BACKGROUND_MODE_INHERIT) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
+        }
+
+        // The haze only if the mode is not inherit
+        if (_hazeMode != HAZE_MODE_INHERIT) {
+            _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
     }
 }
@@ -329,6 +334,8 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
 }
 
 void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) {
+    setHazeMode(entity->getHazeMode());
+
     const auto& haze = editHaze();
 
     haze->setIsHazeActive(entity->getHazeMode() == HAZE_MODE_ENABLED);
@@ -337,7 +344,6 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
     editBackground();
     setBackgroundMode(entity->getBackgroundMode());
-    setHazeMode(entity->getHazeMode());
     setSkyboxColor(_skyboxProperties.getColorVec3());
     setProceduralUserData(entity->getUserData());
     setSkyboxURL(_skyboxProperties.getURL());
