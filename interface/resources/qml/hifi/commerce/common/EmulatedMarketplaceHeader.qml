@@ -47,6 +47,8 @@ Item {
         onLoginStatusResult: {
             if (!isLoggedIn) {
                 sendToParent({method: "needsLogIn"});
+            } else {
+                commerce.getWalletStatus();
             }
         }
 

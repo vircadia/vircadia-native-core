@@ -70,6 +70,8 @@ Rectangle {
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
+            } else {
+                commerce.getWalletStatus();
             }
         }
 
