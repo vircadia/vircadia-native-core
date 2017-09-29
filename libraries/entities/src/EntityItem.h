@@ -36,6 +36,9 @@
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 
+// FIXME: The server-side marketplace will soon create the certificateID. At that point, all of the DEBUG_CERT stuff will go away.
+#define DEBUG_CERT 1
+
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -326,7 +329,10 @@ public:
     void setCertificateID(const QString& value);
     QByteArray getStaticCertificateJSON() const;
     QByteArray getStaticCertificateHash() const;
-    bool verifyStaticCertificateProperties() const;
+    bool verifyStaticCertificateProperties();
+#ifdef DEBUG_CERT
+    QString EntityItem::computeCertificateID();
+#endif
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;

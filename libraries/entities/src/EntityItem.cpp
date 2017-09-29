@@ -13,6 +13,11 @@
 
 #include <QtCore/QObject>
 #include <QtEndian>
+#include <QJsonDocument>
+#include <openssl/err.h> // see comments for DEBUG_CERT
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
 
 #include <glm/gtx/transform.hpp>
 
@@ -31,7 +36,6 @@
 #include "EntityTree.h"
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
-
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
@@ -1569,11 +1573,6 @@ float EntityItem::getRadius() const {
 }
 
 // Checking Certifiable Properties
-#include <QJsonDocument> // fixme
-#include <openssl/err.h>
-#include <openssl/rsa.h>
-#include <openssl/pem.h>
-#include <openssl/x509.h> // fixme
 #define ADD_STRING_PROPERTY(n, N) if (!propertySet.get##N().isEmpty()) json[#n] = propertySet.get##N()
 #define ADD_ENUM_PROPERTY(n, N) json[#n] = propertySet.get##N##AsString()
 #define ADD_INT_PROPERTY(n, N) if (propertySet.get##N() != 0) json[#n] = (propertySet.get##N() == -1) ? -1.0 : ((double) propertySet.get##N())
@@ -1586,7 +1585,9 @@ QByteArray EntityItem::getStaticCertificateJSON() const {
     EntityItemProperties propertySet = getProperties(); // Note: neither EntityItem nor EntityitemProperties "properties" are QObject "properties"!
     // It is important that this be reproducible in the same order each time. Since we also generate these on the server, we do it alphabetically
     // to help maintainence in two different code bases.
-    // animation
+    if (!propertySet.getAnimation().getURL().isEmpty()) {
+        json["animation.url"] = propertySet.getAnimation().getURL();
+    }
     ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
     ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
     ADD_INT_PROPERTY(editionNumber, EditionNumber);
@@ -1606,30 +1607,18 @@ QByteArray EntityItem::getStaticCertificateJSON() const {
     return QJsonDocument(json).toJson(QJsonDocument::Compact);
 }
 QByteArray EntityItem::getStaticCertificateHash() const {
-    // The base64 encoded, sha224 hash of static certificate json.
     return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
 }
-bool EntityItem::verifyStaticCertificateProperties() const {
-    // True IIF a non-empty certificateID matches the static certificate json.
-    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
-    if (_certificateID.isEmpty()) {
-        return false;
-    }
-    // FIXME: really verify(hifi-pub-key, certificateID-as-signature-for-getStaticCertifcateHash)
- 
-    //const char text[] = "{\"collisionSoundURL\":\"colSound02\",\"compoundShapeURL\":\"http://mpassets.highfidelity.com/31479af7-94b0-45f2-84ba-478d27e5af90-v1/gnome_phys.obj\",\"entityInstanceNumber\":2,\"itemName\":\"Explosive Garden Nomex\",\"limitedRun\":-1,\"marketplaceID\":\"31479af7-94b0-45f2-84ba-478d27e5af90\",\"modelURL\":\"http://mpassets.highfidelity.com/31479af7-94b0-45f2-84ba-478d27e5af90-v1/gnome_green.fbx\",\"script\":\"http://mpassets.highfidelity.com/31479af7-94b0-45f2-84ba-478d27e5af90-v1/explodingGnomeEntity.js\",\"shapeType\":\"compound\",\"type\":\"Model\"}";
-    // auto textLength = sizeof(text);
-    auto hash = getStaticCertificateHash();
-    const char* text = hash.constData();
-    auto textLength = hash.length();
-    qDebug() << "HRS FIXME text" << getStaticCertificateJSON() << "hash base64" << hash.toBase64();
 
-    //const char signatureBase64[] = "QpRnN7XGeVFnF/a+FVjZDWhdbHM3P5Cu69rL0/X2DMnqQEGwhx/oBs/7guTs6aNuO+ahmbTTc0+Nqdcqv36KGA==";
-    //auto signatureBytes = QByteArray::fromBase64(signatureBase64);
-    //const char* signature = signatureBytes.constData();
-    //auto signatureLength = signatureBytes.length();
+#ifdef DEBUG_CERT
+QString EntityItem::computeCertificateID() {
+    // Until the marketplace generates it, compute and answer the certificateID here.
+    // Does not set it, as that will have to be done from script engine in order to update server, etc.
+    const auto hash = getStaticCertificateHash();
+    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
+    const unsigned int textLength = hash.length();
 
-        const char key[] = "-----BEGIN RSA PRIVATE KEY-----\n\
+    const char privateKey[] = "-----BEGIN RSA PRIVATE KEY-----\n\
 MIIBOQIBAAJBALCoBiDAZOClO26tC5pd7JikBL61WIgpAqbcNnrV/TcG6LPI7Zbi\n\
 MjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQJABvOlwhYwIhL+gr12jm2R\n\
 yPPzZ9nVEQ6kFxLlZfIT09119fd6OU1X5d4sHWfMfSIEgjwQIDS3ZU1kY3XKo87X\n\
@@ -1638,46 +1627,48 @@ yuyV3yHvr5LkZKBGqhjmOTmDfgtX7ncCIChGbgX3nQuHVOLhD/nTxHssPNozVGl5\n\
 KxHof+LmYSYZAiB4U+yEh9SsXdq40W/3fpLMPuNq1PRezJ5jGidGMcvF+wIgUNec\n\
 3Kg2U+CVZr8/bDT/vXRrsKj1zfobYuvbfVH02QY=\n\
 -----END RSA PRIVATE KEY-----";
-        BIO* vbio = BIO_new(BIO_s_mem());
-        int vlen = BIO_write(vbio, key, sizeof(key));
-        RSA* vrsa = PEM_read_bio_RSAPrivateKey(vbio, NULL, NULL, NULL);
-        qDebug() << "HRS FIXME private key bufio" << !!vbio << vlen << !!vrsa << key;
+    BIO* bio = BIO_new_mem_buf((void*)privateKey, sizeof(privateKey));
+    RSA* rsa = PEM_read_bio_RSAPrivateKey(bio, NULL, NULL, NULL);
 
-        QByteArray signature(RSA_size(vrsa), 0);
-        unsigned int signatureLength = 0;
-        int signOK = RSA_sign(NID_sha256, reinterpret_cast<const unsigned char*>(text), textLength, reinterpret_cast<unsigned char*>(signature.data()), &signatureLength, vrsa);
-        QByteArray signature64 = signature.toBase64();
-        qDebug() << "HRS FIXME signature" << signature64.length() << signature64 << "ok:" << signOK;
+    QByteArray signature(RSA_size(rsa), 0);
+    unsigned int signatureLength = 0;
+    const int signOK = RSA_sign(NID_sha256, text, textLength, reinterpret_cast<unsigned char*>(signature.data()), &signatureLength, rsa);
+    BIO_free(bio);
+    if (!signOK) {
+        qCWarning(entities) << "Unable to compute signature for" << getName() << getEntityItemID();
+        return "";
+    }
+    return signature.toBase64();
+#endif
+}
+
+bool EntityItem::verifyStaticCertificateProperties() {
+    // True IIF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+
+    if (getCertificateID().isEmpty()) {
+        return false;
+    }
+    const auto signatureBytes = QByteArray::fromBase64(getCertificateID().toLatin1());
+    const auto signature = reinterpret_cast<const unsigned char*>(signatureBytes.constData());
+    const unsigned int signatureLength = signatureBytes.length();
+
+    const auto hash = getStaticCertificateHash();
+    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
+    const unsigned int textLength = hash.length();
     
-    ///*
+    // After DEBUG_CERT ends, we will get/cache this once from the marketplace when needed, and it likely won't be RSA.
     const char publicKey[] = "-----BEGIN PUBLIC KEY-----\n\
 MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALCoBiDAZOClO26tC5pd7JikBL61WIgp\n\
 AqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==\n\
 -----END PUBLIC KEY-----";
-    //*/
-    // const char publicKey[] = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALCoBiDAZOClO26tC5pd7JikBL61WIgpAqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==";
-    //const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKey);
-    //RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, sizeof(publicKey));
-    qDebug() << "HRS FIXME key:" << sizeof(publicKey) << QString(publicKey) << "text:" << textLength << QString(text) << "signature:" << signatureLength << QString(signature);
-
-
-    //BIO *bio = BIO_new_mem_buf((void*)publicKey, sizeof(publicKey));
-    BIO* bio = BIO_new(BIO_s_mem());
-    int len = BIO_write(bio, publicKey, sizeof(publicKey));
+    BIO *bio = BIO_new_mem_buf((void*)publicKey, sizeof(publicKey));
     EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    qDebug() << "HRS FIXME bufio" << !!bio << len << !!evp_key;
-    //RSA *rsa;
-    //PEM_read_bio_RSA_PUBKEY(bio, &rsa, 0, NULL);
     RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
-    //RSA* rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
-    qDebug() << "HRS FIXME rsa" << !!rsa;
-
-    bool answer = RSA_verify(NID_sha256, reinterpret_cast<const unsigned char*>(text), textLength, reinterpret_cast<const unsigned char*>(signature.constData()), signatureLength, rsa);
-    qDebug() << "HRS FIXME key:" << sizeof(publicKey) << QString(publicKey) << "text:" << textLength << QString(text) << "signature:" << signatureLength << QString(signature) << "verified:" << answer;
-    //return _certificateID == getStaticCertificateHash();
+    bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
+    BIO_free(bio);
     return answer;
 }
-
 
 void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
     if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
