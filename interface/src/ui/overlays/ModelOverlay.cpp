@@ -404,17 +404,15 @@ void ModelOverlay::animate() {
     float deltaTime = (float)interval / (float)USECS_PER_SECOND;
     _animationCurrentFrame += (deltaTime * _animationFPS);
 
-    {
-        int animationCurrentFrame = (int)(glm::floor(_animationCurrentFrame)) % frameCount;
-        if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
-            animationCurrentFrame = 0;
-        }
-
-        if (animationCurrentFrame == _lastKnownCurrentFrame) {
-            return;
-        }
-        _lastKnownCurrentFrame = animationCurrentFrame;
+    int animationCurrentFrame = (int)(glm::floor(_animationCurrentFrame)) % frameCount;
+    if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
+        animationCurrentFrame = 0;
     }
+
+    if (animationCurrentFrame == _lastKnownCurrentFrame) {
+        return;
+    }
+    _lastKnownCurrentFrame = animationCurrentFrame;
 
     if (_jointMapping.size() != _model->getJointStateCount()) {
         return;
@@ -440,12 +438,11 @@ void ModelOverlay::animate() {
                 if (index < translations.size()) {
                     translationMat = glm::translate(translations[index]);
                 }
-            }
-            else if (index < animationJointNames.size()) {
+            } else if (index < animationJointNames.size()) {
                 QString jointName = fbxJoints[index].name;
 
                 if (originalFbxIndices.contains(jointName)) {
-                    // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get it's translation.
+                    // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get its translation.
                     int remappedIndex = originalFbxIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
                     translationMat = glm::translate(originalFbxJoints[remappedIndex].translation);
                 }
@@ -453,8 +450,7 @@ void ModelOverlay::animate() {
             glm::mat4 rotationMat;
             if (index < rotations.size()) {
                 rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
-            }
-            else {
+            } else {
                 rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * fbxJoints[index].postRotation);
             }
 
