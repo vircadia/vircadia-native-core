@@ -1474,6 +1474,8 @@ function onFileSaveChanged(filename) {
 }
 
 function onFileOpenChanged(filename) {
+    // disconnect the event, otherwise the requests will stack up
+    Window.openFileChanged.disconnect(onFileOpenChanged);
     var importURL = null;
     if (filename !== "") {
         importURL = "file:///" + filename;
