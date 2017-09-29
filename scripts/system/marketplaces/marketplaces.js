@@ -203,7 +203,7 @@
                     data: {
                         commerceMode: Settings.getValue("commerce", false),
                         userIsLoggedIn: Account.loggedIn,
-                        walletNeedsSetup: Wallet.walletStatus !== 3
+                        walletNeedsSetup: Wallet.walletStatus === 1
                     }
                 }));
             } else if (parsedJsonMessage.type === "PURCHASES") {
