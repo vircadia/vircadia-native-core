@@ -47,10 +47,8 @@ TabletModalWindow {
         }
 
         function tryDestroy() {
-            console.log("tryDestroy")
             canceled()
         }
-        Component.onDestruction: console.log("root dying")
     }
 
     //property int colorScheme: hifi.colorSchemes.dark
