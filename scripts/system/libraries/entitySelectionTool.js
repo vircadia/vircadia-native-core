@@ -2833,7 +2833,7 @@ SelectionDisplay = (function() {
                     planeNormal = {
                         x: 0,
                         y: 0,
-                        z: z
+                        z: 1
                     };
                 }
             }
