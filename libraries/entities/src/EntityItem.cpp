@@ -1570,13 +1570,17 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 }
 
 void EntityItem::updateParentID(const QUuid& value) {
-    if (getParentID() != value) {
+    QUuid oldParentID = getParentID();
+    if (oldParentID != value) {
+        EntityTreePointer tree = getTree();
+        if (!oldParentID.isNull()) {
+            tree->removeFromChildrenOfAvatars(getThisPointer());
+        }
         setParentID(value);
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
 
-        EntityTreePointer tree = getTree();
         if (tree) {
             tree->addToNeedsParentFixupList(getThisPointer());
         }
