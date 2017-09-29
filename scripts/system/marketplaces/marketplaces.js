@@ -106,7 +106,7 @@
     var referrerURL; // Used for updating Purchases QML
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
-        onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
+        onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         onCommerceScreen = type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
         wireEventBridge(onCommerceScreen);
 
