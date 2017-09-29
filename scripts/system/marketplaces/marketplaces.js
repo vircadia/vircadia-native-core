@@ -202,7 +202,8 @@
                     action: "commerceSetting",
                     data: {
                         commerceMode: Settings.getValue("commerce", false),
-                        userIsLoggedIn: Account.loggedIn
+                        userIsLoggedIn: Account.loggedIn,
+                        walletNeedsSetup: Wallet.walletStatus !== 3
                     }
                 }));
             } else if (parsedJsonMessage.type === "PURCHASES") {
@@ -211,6 +212,8 @@
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
+            } else if (parsedJsonMessage.type === "WALLET_SETUP") {
+                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
             }
         }
     }
@@ -323,15 +326,6 @@
                 break;
             case 'maybeEnableHmdPreview':
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
-                break;
-            case 'purchases_getIsFirstUse':
-                tablet.sendToQml({
-                    method: 'purchases_getIsFirstUseResult',
-                    isFirstUseOfPurchases: Settings.getValue("isFirstUseOfPurchases", true)
-                });
-                break;
-            case 'purchases_setIsFirstUse':
-                Settings.setValue("isFirstUseOfPurchases", false);
                 break;
             case 'purchases_openGoTo':
                 tablet.loadQMLSource("TabletAddressDialog.qml");

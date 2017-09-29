@@ -1,0 +1,37 @@
+
+//  WalletScriptingInterface.h
+//  interface/src/scripting
+//
+//  Created by Zach Fox on 2017-09-29.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#ifndef hifi_WalletScriptingInterface_h
+#define hifi_WalletScriptingInterface_h
+
+#include <QtCore/QObject>
+#include <DependencyManager.h>
+
+
+class WalletScriptingInterface : public QObject, public Dependency {
+    Q_OBJECT
+
+    Q_PROPERTY(uint walletStatus READ getWalletStatus WRITE setWalletStatus NOTIFY walletStatusChanged)
+
+public:
+    WalletScriptingInterface();
+
+    Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
+    void setWalletStatus(const uint& status) { _walletStatus = status; }
+
+signals:
+    void walletStatusChanged();
+
+private:
+    uint _walletStatus;
+};
+
+#endif // hifi_WalletScriptingInterface_h

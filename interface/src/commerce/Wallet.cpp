@@ -468,7 +468,7 @@ bool Wallet::generateKeyPair() {
 
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
-    sendKeyFilePathIfExists();
+    emit keyFilePathIfExistsResult(getKeyFilePath());
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
@@ -559,14 +559,14 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     emit securityImageResult(success);
 }
 
-void Wallet::getSecurityImage() {
+bool Wallet::getSecurityImage() {
     unsigned char* data;
     int dataLen;
 
     // if already decrypted, don't do it again
     if (_securityImage) {
         emit securityImageResult(true);
-        return;
+        return true;
     }
 
     bool success = false;
@@ -585,14 +585,15 @@ void Wallet::getSecurityImage() {
         success = true;
     }
     emit securityImageResult(success);
+    return success;
 }
-void Wallet::sendKeyFilePathIfExists() {
+QString Wallet::getKeyFilePath() {
     QString filePath(keyFilePath());
     QFileInfo fileInfo(filePath);
     if (fileInfo.exists()) {
-        emit keyFilePathIfExistsResult(filePath);
+        return filePath;
     } else {
-        emit keyFilePathIfExistsResult("");
+        return "";
     }
 }
 

@@ -15,6 +15,7 @@
 #include "Ledger.h"
 #include "Wallet.h"
 #include <AccountManager.h>
+#include "scripting/WalletScriptingInterface.h"
 
 HIFI_QML_DEF(QmlCommerce)
 
@@ -30,13 +31,41 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
 }
 
+void QmlCommerce::getWalletStatus() {
+    auto wallet = DependencyManager::get<Wallet>();
+    auto ledger = DependencyManager::get<Ledger>();
+    auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+    uint status;
+
+    if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
+        // This will set account info for the wallet, allowing us to decrypt and display the security image.
+        ledger->account();
+    } else {
+        status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
+        emit walletStatusResult(status);
+        walletScriptingInterface->setWalletStatus(status);
+        return;
+    }
+
+    if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
+        status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
+    } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
+        status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+    } else {
+        status = (uint)WalletStatus::WALLET_STATUS_READY;
+    }
+
+    walletScriptingInterface->setWalletStatus(status);
+    emit walletStatusResult(status);
+}
+
 void QmlCommerce::getLoginStatus() {
     emit loginStatusResult(DependencyManager::get<AccountManager>()->isLoggedIn());
 }
 
 void QmlCommerce::getKeyFilePathIfExists() {
     auto wallet = DependencyManager::get<Wallet>();
-    wallet->sendKeyFilePathIfExists();
+    emit keyFilePathIfExistsResult(wallet->getKeyFilePath());
 }
 
 void QmlCommerce::getWalletAuthenticatedStatus() {

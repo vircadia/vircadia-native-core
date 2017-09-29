@@ -34,17 +34,19 @@ Item {
     Hifi.QmlCommerce {
         id: commerce;
 
-        onLoginStatusResult: {
-            if (!isLoggedIn) {
+        onWalletStatusResult: {
+            if (walletStatus === 0) {
                 sendToParent({method: "needsLogIn"});
+            } else if (walletStatus === 3) {
+                commerce.getSecurityImage();
+            } else {
+                console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
             }
         }
 
-        onAccountResult: {
-            if (result.status === "success") {
-                commerce.getKeyFilePathIfExists();
-            } else {
-                // unsure how to handle a failure here. We definitely cannot proceed.
+        onLoginStatusResult: {
+            if (!isLoggedIn) {
+                sendToParent({method: "needsLogIn"});
             }
         }
 
@@ -57,8 +59,7 @@ Item {
     }
 
     Component.onCompleted: {
-        commerce.getLoginStatus();
-        commerce.getSecurityImage();
+        commerce.getWalletStatus();
     }
 
     Connections {

@@ -27,7 +27,16 @@ class QmlCommerce : public OffscreenQmlDialog {
 public:
     QmlCommerce(QQuickItem* parent = nullptr);
 
+    enum WalletStatus {
+        WALLET_STATUS_NOT_LOGGED_IN = 0,
+        WALLET_STATUS_NOT_SET_UP,
+        WALLET_STATUS_NOT_AUTHENTICATED,
+        WALLET_STATUS_READY
+    };
+
 signals:
+    void walletStatusResult(uint walletStatus);
+
     void loginStatusResult(bool isLoggedIn);
     void keyFilePathIfExistsResult(const QString& path);
     void securityImageResult(bool exists);
@@ -42,6 +51,8 @@ signals:
     void accountResult(QJsonObject result);
 
 protected:
+    Q_INVOKABLE void getWalletStatus();
+
     Q_INVOKABLE void getLoginStatus();
     Q_INVOKABLE void getKeyFilePathIfExists();
     Q_INVOKABLE void getSecurityImage();

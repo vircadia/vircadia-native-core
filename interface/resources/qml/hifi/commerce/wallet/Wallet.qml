@@ -38,46 +38,37 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
 
+        onWalletStatusResult: {
+            if (walletStatus === 0) {
+                if (root.activeView !== "needsLogIn") {
+                    root.activeView = "needsLogIn";
+                }
+            } else if (walletStatus === 1) {
+                if (root.activeView !== "walletSetup") {
+                    root.activeView = "walletSetup";
+                }
+            } else if (walletStatus === 2) {
+                if (root.activeView !== "passphraseModal") {
+                    root.activeView = "passphraseModal";
+                }
+            } else if (walletStatus === 3) {
+                root.activeView = "walletHome";
+                commerce.getSecurityImage();
+            } else {
+                console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
+            }
+        }
+
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
-            } else if (isLoggedIn) {
-                root.activeView = "initialize";
-                commerce.account();
-            }
-        }
-
-        onAccountResult: {
-            if (result.status === "success") {
-                commerce.getKeyFilePathIfExists();
-            } else {
-                // unsure how to handle a failure here. We definitely cannot proceed.
-            }
-        }
-
-        onKeyFilePathIfExistsResult: {
-            if (path === "" && root.activeView !== "walletSetup") {
-                root.activeView = "walletSetup";
-            } else if (path !== "" && root.activeView === "initialize") {
-                commerce.getSecurityImage();
             }
         }
 
         onSecurityImageResult: {
-            if (!exists && root.activeView !== "walletSetup") { // "If security image is not set up"
-                root.activeView = "walletSetup";
-            } else if (exists && root.activeView === "initialize") {
-                commerce.getWalletAuthenticatedStatus();
+            if (exists) {
                 titleBarSecurityImage.source = "";
                 titleBarSecurityImage.source = "image://security/securityImage";
-            }
-        }
-
-        onWalletAuthenticatedStatusResult: {
-            if (!isAuthenticated && passphraseModal && root.activeView !== "passphraseModal") {
-                root.activeView = "passphraseModal";
-            } else if (isAuthenticated) {
-                root.activeView = "walletHome";
             }
         }
     }
@@ -179,7 +170,7 @@ Rectangle {
                 if (msg.method === 'walletSetup_finished') {
                     if (msg.referrer === '') {
                         root.activeView = "initialize";
-                        commerce.getLoginStatus();
+                        commerce.getWalletStatus();
                     } else if (msg.referrer === 'purchases') {
                         sendToScript({method: 'goToPurchases'});
                     }
@@ -254,7 +245,7 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getLoginStatus();
+            commerce.getWalletStatus();
         }
     }
 

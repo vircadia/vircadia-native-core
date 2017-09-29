@@ -29,7 +29,6 @@ Rectangle {
     property string activeView: "initialize";
     property bool purchasesReceived: false;
     property bool balanceReceived: false;
-    property bool securityImageResultReceived: false;
     property string itemId;
     property string itemPreviewImageUrl;
     property string itemHref;
@@ -45,47 +44,30 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
 
+        onWalletStatusResult: {
+            if (walletStatus === 0) {
+                if (root.activeView !== "needsLogIn") {
+                    root.activeView = "needsLogIn";
+                }
+            } else if (walletStatus === 1) {
+                if (root.activeView !== "notSetUp") {
+                    root.activeView = "notSetUp";
+                    notSetUpTimer.start();
+                }
+            } else if (walletStatus === 2) {
+                if (root.activeView !== "passphraseModal") {
+                    root.activeView = "passphraseModal";
+                }
+            } else if (walletStatus === 3) {
+                authSuccessStep();
+            } else {
+                console.log("ERROR in Checkout.qml: Unknown wallet status: " + walletStatus);
+            }
+        }
+
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
-            } else if (isLoggedIn) {
-                root.activeView = "initialize";
-                commerce.account();
-            }
-        }
-
-        onAccountResult: {
-            if (result.status === "success") {
-                commerce.getKeyFilePathIfExists();
-            } else {
-                // unsure how to handle a failure here. We definitely cannot proceed.
-            }
-        }
-
-        onKeyFilePathIfExistsResult: {
-            if (path === "" && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-                notSetUpTimer.start();
-            } else if (path !== "" && root.activeView === "initialize") {
-                commerce.getSecurityImage();
-            }
-        }
-
-        onSecurityImageResult: {
-            securityImageResultReceived = true;
-            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
-                root.activeView = "notSetUp";
-                notSetUpTimer.start();
-            } else if (exists && root.activeView === "initialize") {
-                commerce.getWalletAuthenticatedStatus();
-            }
-        }
-
-        onWalletAuthenticatedStatusResult: {
-            if (!isAuthenticated && root.activeView !== "passphraseModal") {
-                root.activeView = "passphraseModal";
-            } else if (isAuthenticated) {
-                authSuccessStep();
             }
         }
 
@@ -197,10 +179,9 @@ Rectangle {
         color: hifi.colors.white;
 
         Component.onCompleted: {
-            securityImageResultReceived = false;
             purchasesReceived = false;
             balanceReceived = false;
-            commerce.getLoginStatus();
+            commerce.getWalletStatus();
         }
     }
 
