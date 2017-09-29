@@ -278,9 +278,10 @@ Transform Line3DOverlay::evalRenderTransform() {
     auto endPos = getEnd();
 
     auto vec = endPos - transform.getTranslation();
-    auto scale = glm::length(vec);
+    const float MIN_LINE_LENGTH = 0.0001f;
+    auto scale = glm::max(glm::length(vec), MIN_LINE_LENGTH);
     auto dir = vec / scale;
-    auto orientation = glm::rotation(glm::vec3(0,0,-1), dir);
+    auto orientation = glm::rotation(glm::vec3(0.0f, 0.0f, -1.0f), dir);
     transform.setRotation(orientation);
     transform.setScale(scale);
 

@@ -45,7 +45,19 @@ void Volume3DOverlay::setProperties(const QVariantMap& properties) {
     }
 
     if (dimensions.isValid()) {
-        setDimensions(vec3FromVariant(dimensions));
+        glm::vec3 scale = vec3FromVariant(dimensions);
+        // don't allow a zero or negative dimension component to reach the renderTransform
+        const float MIN_DIMENSION = 0.0001f;
+        if (scale.x < MIN_DIMENSION) {
+            scale.x = MIN_DIMENSION;
+        }
+        if (scale.y < MIN_DIMENSION) {
+            scale.y = MIN_DIMENSION;
+        }
+        if (scale.z < MIN_DIMENSION) {
+            scale.z = MIN_DIMENSION;
+        }
+        setDimensions(scale);
     }
 }
 
