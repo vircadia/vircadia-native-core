@@ -107,10 +107,13 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
         }
         message += context->argument(i).toString();
     }
-    qCDebug(scriptengineScript).noquote() << message;  // noquote() so that \n is treated as newline
 
     if (ScriptEngine *scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->print(message);
+        // prefix the script engine name to help disambiguate messages in the main debug log
+        qCDebug(scriptengineScript, "[%s] %s", qUtf8Printable(scriptEngine->getFilename()), qUtf8Printable(message));
+    } else {
+        qCDebug(scriptengineScript, "%s", qUtf8Printable(message));
     }
 
     return QScriptValue();
@@ -465,22 +468,22 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 }
 
 void ScriptEngine::scriptErrorMessage(const QString& message) {
-    qCCritical(scriptengine) << qPrintable(message);
+    qCCritical(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit errorMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptWarningMessage(const QString& message) {
-    qCWarning(scriptengine) << qPrintable(message);
+    qCWarning(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit warningMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptInfoMessage(const QString& message) {
-    qCInfo(scriptengine) << qPrintable(message);
+    qCInfo(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit infoMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptPrintedMessage(const QString& message) {
-    qCDebug(scriptengine) << qPrintable(message);
+    qCDebug(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit printedMessage(message, getFilename());
 }
 
