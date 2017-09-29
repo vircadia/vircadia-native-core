@@ -215,7 +215,7 @@ Item {
                         AnonymousProRegular {
                             id: pendingCountText;
                             anchors.fill: parent;
-                            text: root.pendingCount + ' Transactions Pending';
+                            text: root.pendingCount + ' Transaction' + (root.pendingCount > 1 ? 's' : '') + ' Pending';
                             size: 18;
                             color: hifi.colors.blueAccent;
                             verticalAlignment: Text.AlignVCenter;
