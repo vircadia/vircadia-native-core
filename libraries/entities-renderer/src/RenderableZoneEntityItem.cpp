@@ -339,6 +339,21 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     const auto& haze = editHaze();
 
     haze->setIsHazeActive(entity->getHazeMode() == HAZE_MODE_ENABLED);
+
+    haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(entity->getHazeRange()));
+    xColor hazeBlendInColor = entity->getHazeBlendInColor();
+    haze->setHazeColor(glm::vec3(hazeBlendInColor.red / 255.0, hazeBlendInColor.green / 255.0, hazeBlendInColor.blue / 255.0));
+    xColor hazeBlendOutColor = entity->getHazeBlendOutColor();
+    haze->setHazeColor(glm::vec3(hazeBlendOutColor.red / 255.0, hazeBlendOutColor.green / 255.0, hazeBlendOutColor.blue / 255.0));
+    haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(entity->getHazeLightBlendAngle()));
+
+    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(entity->getHazeAltitude()));
+    haze->setHazeBaseReference(entity->getHazeBaseRef());
+
+    haze->setHazeBackgroundBlendValue(entity->getHazeBackgroundBlend());
+
+    haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(entity->getHazeRange()));
+    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(entity->getHazeAltitude()));
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {

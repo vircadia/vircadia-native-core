@@ -31,28 +31,28 @@ public:
     HazeConfig() : render::Job::Config(true) {}
 
     // attributes
-    float hazeColorR{ initialHazeColor.r };
-    float hazeColorG{ initialHazeColor.g };
-    float hazeColorB{ initialHazeColor.b };
-    float directionalLightAngle_degs{ initialDirectionalLightAngle_degs };
+    float hazeColorR{ model::initialHazeColor.r };
+    float hazeColorG{ model::initialHazeColor.g };
+    float hazeColorB{ model::initialHazeColor.b };
+    float directionalLightAngle_degs{ model::initialDirectionalLightAngle_degs };
 
-    float directionalLightColorR{ initialDirectionalLightColor.r };
-    float directionalLightColorG{ initialDirectionalLightColor.g };
-    float directionalLightColorB{ initialDirectionalLightColor.b };
-    float hazeBaseReference{ initialHazeBaseReference };
+    float directionalLightColorR{ model::initialDirectionalLightColor.r };
+    float directionalLightColorG{ model::initialDirectionalLightColor.g };
+    float directionalLightColorB{ model::initialDirectionalLightColor.b };
+    float hazeBaseReference{ model::initialHazeBaseReference };
 
     bool isHazeActive{ false };   // Setting this to true will set haze to on
     bool isAltitudeBased{ false };
     bool isDirectionalLightAttenuationActive{ false };
     bool isModulateColorActive{ false };
 
-    float hazeRange_m{ initialHazeRange_m };
-    float hazeAltitude_m{ initialHazeAltitude_m };
+    float hazeRange_m{ model::initialHazeRange_m };
+    float hazeAltitude_m{ model::initialHazeAltitude_m };
 
-    float hazeRangeKeyLight_m{ initialHazeRangeKeyLight_m };
-    float hazeAltitudeKeyLight_m{ initialHazeAltitudeKeyLight_m };
+    float hazeRangeKeyLight_m{ model::initialHazeKeyLightRange_m };
+    float hazeAltitudeKeyLight_m{ model::initialHazeKeyLightAltitude_m };
 
-    float backgroundBlendValue{ initialBackgroundBlendValue };
+    float backgroundBlendValue{ model::initialBackgroundBlendValue };
 
     // methods
     void setHazeColorR(const float value);

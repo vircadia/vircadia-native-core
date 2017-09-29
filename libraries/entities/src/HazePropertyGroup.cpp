@@ -20,7 +20,7 @@ const uint8_t HazePropertyGroup::DEFAULT_HAZE_MODE{ 0 };
 const float HazePropertyGroup::DEFAULT_HAZE_RANGE{ 1000.0f };
 const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR{ 128, 154, 179 };    // Bluish
 const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_OUT_COLOR{ 255, 229, 179 };   // Yellowish
-const float HazePropertyGroup::DEFAULT_LIGHT_BLEND_ANGLE{ 20.0 };
+const float HazePropertyGroup::DEFAULT_HAZE_LIGHT_BLEND_ANGLE{ 20.0 };
 
 const float HazePropertyGroup::DEFAULT_HAZE_ALTITUDE{ 200.0f };
 const float HazePropertyGroup::DEFAULT_HAZE_BASE_REF{ 0.0f };

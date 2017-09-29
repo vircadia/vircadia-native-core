@@ -110,6 +110,19 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
 
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeRange, setHazeRange);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBlendInColor, setHazeBlendInColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBlendInColor, setHazeBlendInColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeLightBlendAngle, setHazeLightBlendAngle);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeAltitude, setHazeAltitude);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBaseRef, setHazeBaseRef);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBackgroundBlend, setHazeBackgroundBlend);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeKeyLightRange, setHazeKeyLightRange);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeKeyLightAltitude, setHazeKeyLightAltitude);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
@@ -321,12 +334,93 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
     });
 }
 
-void ZoneEntityItem::setHazeMode(HazeMode value) {
+void ZoneEntityItem::setHazeMode(const HazeMode value) {
     _hazeMode = value;
     _hazePropertiesChanged = true;
 }
 
 HazeMode ZoneEntityItem::getHazeMode() const {
-    return _hazeMode; 
+    return _hazeMode;
+}
+
+void ZoneEntityItem::setHazeRange(const float hazeRange) {
+    _hazeRange = hazeRange;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeRange() const {
+    return _hazeRange;
+}
+
+void ZoneEntityItem::setHazeBlendInColor(const xColor hazeBlendInColor){
+    _hazeBlendInColor = hazeBlendInColor;
+    _hazePropertiesChanged = true;
+}
+
+xColor ZoneEntityItem::getHazeBlendInColor()const{
+    return _hazeBlendInColor;
+}
+
+void ZoneEntityItem::setHazeBlendOutColor(const xColor hazeBlendOutColor){
+    _hazeBlendOutColor = hazeBlendOutColor;
+    _hazePropertiesChanged = true;
+}
+
+xColor ZoneEntityItem::getHazeBlendOutColor()const{
+    return _hazeBlendOutColor;
+}
+
+void ZoneEntityItem::setHazeLightBlendAngle(const float hazeLightBlendAngle){
+    _hazeLightBlendAngle = hazeLightBlendAngle;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeLightBlendAngle()const{
+    return _hazeLightBlendAngle;
+}
+
+void ZoneEntityItem::setHazeAltitude(const float hazeAltitude){
+    _hazeAltitude = hazeAltitude;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeAltitude()const{
+    return _hazeAltitude;
+}
+
+void ZoneEntityItem::setHazeBaseRef(const float hazeBaseRef){
+    _hazeBaseRef = hazeBaseRef;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeBaseRef()const{
+    return _hazeBaseRef;
+}
+
+void ZoneEntityItem::setHazeBackgroundBlend(const float hazeBackgroundBlend){
+    _hazeBackgroundBlend = hazeBackgroundBlend;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeBackgroundBlend()const{
+    return _hazeBackgroundBlend;
+}
+
+void ZoneEntityItem::setHazeKeyLightRange(const float hazeKeyLightRange){
+    _hazeKeyLightRange = hazeKeyLightRange;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeKeyLightRange()const {
+    return _hazeKeyLightRange;
+}
+
+void ZoneEntityItem::setHazeKeyLightAltitude(const float hazeKeyLightAltitude){
+    _hazeKeyLightAltitude = hazeKeyLightAltitude;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeKeyLightAltitude()const{
+    return _hazeKeyLightAltitude;
 }
 

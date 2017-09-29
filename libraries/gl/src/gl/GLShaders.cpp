@@ -45,9 +45,9 @@ namespace gl {
         std::ofstream filestream;
         filestream.open("D:\\debugshader.glsl");
         if (filestream.is_open()) {
-        filestream << srcstr[0];
-        filestream << srcstr[1];
-        filestream.close();
+            filestream << srcstr[0];
+            filestream << srcstr[1];
+            filestream.close();
         }
 
 
@@ -61,8 +61,8 @@ namespace gl {
 
         filestream.open("D:\\debugshader.glsl.info.txt");
         if (filestream.is_open()) {
-        filestream << std::string(temp);
-        filestream.close();
+            filestream << std::string(temp);
+            filestream.close();
         }
 
 

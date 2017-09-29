@@ -234,10 +234,12 @@ QString EntityItemProperties::getHazeModeAsString() const {
 QString EntityItemProperties::getHazeModeString(HazeMode mode) {
     return HAZE_MODES[mode].second;
 }
+
 void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
     auto result = std::find_if(HAZE_MODES.begin(), HAZE_MODES.end(), [&](const HazePair& pair) {
         return (pair.second == hazeMode);
     });
+
     if (result != HAZE_MODES.end()) {
         _hazeMode = result->first;
         _hazeModeChanged = true;
@@ -317,7 +319,20 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
+
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_RANGE, hazeRange);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_BLEND_IN_COLOR, hazeBlendInColor);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_BLEND_OUT_COLOR, hazeBlendOutColor);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_LIGHT_BLEND_ANGLE, hazeLightBlendAngle);
+
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_ALTITUDE, hazeAltitude);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_BASE_REF, hazeBaseRef);
+
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_BACKGROUND_BLEND, hazeBackgroundBlend);
+
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_KEYLIGHT_RANGE, hazeKeyLightRange);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_KEYLIGHT_ALTITUDE, hazeKeyLightAltitude);
+
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_DATA, voxelData);
@@ -526,6 +541,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
+
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
 
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
@@ -706,7 +722,22 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
+
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeRange, float, setHazeRange);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeBlendInColor, xColor, setHazeBlendInColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeBlendOutColor, xColor, setHazeBlendOutColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeLightBlendAngle, float, setHazeLightBlendAngle);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeAltitude, float, setHazeAltitude);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeBaseRef, float, setHazeBaseRef);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeBackgroundBlend, float, setHazeBackgroundBlend);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeKeyLightRange, float, setHazeKeyLightRange);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(hazeKeyLightAltitude, float, setHazeKeyLightAltitude);
+
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
@@ -846,7 +877,22 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
     COPY_PROPERTY_IF_CHANGED(backgroundMode);
+
     COPY_PROPERTY_IF_CHANGED(hazeMode);
+
+    COPY_PROPERTY_IF_CHANGED(hazeRange);
+    COPY_PROPERTY_IF_CHANGED(hazeBlendInColor);
+    COPY_PROPERTY_IF_CHANGED(hazeBlendOutColor);
+    COPY_PROPERTY_IF_CHANGED(hazeLightBlendAngle);
+
+    COPY_PROPERTY_IF_CHANGED(hazeAltitude);
+    COPY_PROPERTY_IF_CHANGED(hazeBaseRef);
+
+    COPY_PROPERTY_IF_CHANGED(hazeBackgroundBlend);
+
+    COPY_PROPERTY_IF_CHANGED(hazeKeyLightRange);
+    COPY_PROPERTY_IF_CHANGED(hazeKeyLightAltitude);
+
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
     COPY_PROPERTY_IF_CHANGED(voxelData);
@@ -1025,7 +1071,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
         ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
         ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode);
-        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode);
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>);
@@ -1073,8 +1118,20 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, Haze, haze, HazeRange, HazeRange, hazeRange);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeBlendInColor, hazeBlendInColor);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BLEND_OUT_COLOR, Haze, haze, HazeBlendOutColor, hazeBlendOutColor);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_LIGHT_BLEND_ANGLE, Haze, haze, HazeLightBlendAngle, hazeLightBlendAngle);
+
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, Haze, haze, HazeAltitude, hazeAltitude);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
@@ -2105,9 +2162,42 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (backgroundModeChanged()) {
         out += "backgroundMode";
     }
+
     if (hazeModeChanged()) {
         out += "hazeMode";
     }
+
+    if (hazeRangeChanged()) {
+        out += "hazeRange";
+    }
+    if (hazeBlendInColorChanged()) {
+        out += "hazeBlendInColor";
+    }
+    if (hazeBlendOutColorChanged()) {
+        out += "hazeBlendOutColor";
+    }
+    if (hazeLightBlendAngleChanged()) {
+        out += "hazehazeLightBlendAngle";
+    }
+
+    if (hazeAltitudeChanged()) {
+        out += "hazeAltitude";
+    }
+    if (hazeBaseRefChanged()) {
+        out += "hazeBaseRef";
+    }
+
+    if (hazeBackgroundBlendChanged()) {
+        out += "hazeBackgroundBlend";
+    }
+
+    if (hazeKeyLightRangeChanged()) {
+        out += "hazeKeyLightRange";
+    }
+    if (hazeKeyLightAltitudeChanged()) {
+        out += "hazeKeyLightAltitude";
+    }
+
     if (voxelVolumeSizeChanged()) {
         out += "voxelVolumeSize";
     }

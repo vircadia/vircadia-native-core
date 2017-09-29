@@ -188,16 +188,43 @@ public:
 
     void setHazeRange(float hazeRange) { _hazeRange = hazeRange; }
     float getHazeRange() const { return _hazeRange; }
+    void setHazeBlendInColor(const xColor hazeBlendInColor) { _hazeBlendInColor = hazeBlendInColor; }
+    xColor getHazeBlendInColor() { return _hazeBlendInColor; }
+    void setHazeBlendOutColor(const xColor hazeBlendOutColor) { _hazeBlendInColor = hazeBlendOutColor; }
+    xColor getHazeBlendOutColor() const { return _hazeBlendOutColor; }
+    void setHazeLightBlendAngle(float hazeLightBlendAngle) { _hazeLightBlendAngle = hazeLightBlendAngle; }
+    float getHazeLightBlendAngle() const { return _hazeLightBlendAngle; }
 
     void setHazeAltitude(float hazeAltitude) { _hazeAltitude = hazeAltitude; }
     float getHazeAltitude() const { return _hazeAltitude; }
+    void setHazeBaseRef(float hazeBaseRef) { _hazeBaseRef = hazeBaseRef; }
+    float getHazeBaseRef() const { return _hazeBaseRef; }
+
+    void setHazeBackgroundBlend(float hazeBackgroundBlend) { _hazeBackgroundBlend = hazeBackgroundBlend; }
+    float getHazeBackgroundBlend() const { return _hazeBackgroundBlend; }
+
+    void setHazeKeyLightRange(float hazeKeyLightRange) { _hazeKeyLightRange = hazeKeyLightRange; }
+    float getHazeKeyLightRange() const { return _hazeKeyLightRange; }
+    void setHazeKeyLightAltitude(float hazeKeyLightAltitude) { _hazeKeyLightAltitude = hazeKeyLightAltitude; }
+    float getHazeKeyLightAltitude() const { return _hazeKeyLightAltitude; }
 
 protected:
     BackgroundMode _backgroundMode = SKY_DEFAULT;
     
     HazeMode _hazeMode = HAZE_OFF;
+    
     float _hazeRange;
+    xColor _hazeBlendInColor;
+    xColor _hazeBlendOutColor;
+    float _hazeLightBlendAngle;
+
     float _hazeAltitude;
+    float _hazeBaseRef;
+
+    float _hazeBackgroundBlend;
+
+    float _hazeKeyLightRange;
+    float _hazeKeyLightAltitude;
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;

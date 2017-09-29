@@ -27,7 +27,6 @@ enum HazeModes {
     HAZE_MODE_IS_MODULATE_COLOR                = 1 << 3
 };
 
-
 // For color modulated mode, the colour values are used as range values, which are then converted to range factors
 // This is separate for each colour.
 // The colour value is converted from [0.0 .. 1.0] to [5.0 .. 3000.0]
@@ -139,21 +138,30 @@ void Haze::setHazeAltitudeFactor(const float hazeAltitudeFactor) {
     }
 }
 
-void Haze::setHazeRangeFactorKeyLight(const float hazeRangeFactorKeyLight) {
+void Haze::setHazeKeyLightRangeFactor(const float hazeKeyLightRangeFactor) {
     auto& params = _parametersBuffer.get<Parameters>();
 
-    if (params.hazeRangeFactorKeyLight != hazeRangeFactorKeyLight) {
-        _parametersBuffer.edit<Parameters>().hazeRangeFactorKeyLight = hazeRangeFactorKeyLight;
+    if (params.hazeKeyLightRangeFactor != hazeKeyLightRangeFactor) {
+        _parametersBuffer.edit<Parameters>().hazeKeyLightRangeFactor = hazeKeyLightRangeFactor;
     }
 }
 
-void Haze::setHazeAltitudeFactorKeyLight(const float hazeAltitudeFactorKeyLight) {
+void Haze::setHazeKeyLightAltitudeFactor(const float hazeKeyLightAltitudeFactor) {
     auto& params = _parametersBuffer.get<Parameters>();
 
-    if (params.hazeAltitudeFactorKeyLight != hazeAltitudeFactorKeyLight) {
-        _parametersBuffer.edit<Parameters>().hazeAltitudeFactorKeyLight = hazeAltitudeFactorKeyLight;
+    if (params.hazeKeyLightAltitudeFactor != hazeKeyLightAltitudeFactor) {
+        _parametersBuffer.edit<Parameters>().hazeKeyLightAltitudeFactor = hazeKeyLightAltitudeFactor;
     }
 }
+
+void Haze::setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue) {
+    auto& params = _parametersBuffer.get<Parameters>();
+
+    if (params.hazeBackgroundBlendValue != hazeBackgroundBlendValue) {
+        _parametersBuffer.edit<Parameters>().hazeBackgroundBlendValue = hazeBackgroundBlendValue;
+    }
+}
+
 void Haze::setHazeBaseReference(const float hazeBaseReference) {
     auto& params = _parametersBuffer.get<Parameters>();
 

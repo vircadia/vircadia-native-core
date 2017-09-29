@@ -180,8 +180,20 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
 
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode, HAZE_MODE_INHERIT);
+
     DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, HazePropertyGroup::DEFAULT_HAZE_RANGE);
+    DEFINE_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor, hazeBlendInColor, xColor, HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR);
+    DEFINE_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, HazeBlendOutColor, hazeBlendOutColor, xColor, HazePropertyGroup::DEFAULT_HAZE_BLEND_OUT_COLOR);
+    DEFINE_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
+
     DEFINE_PROPERTY(PROP_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
+    DEFINE_PROPERTY(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
+
+    DEFINE_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
+
+    DEFINE_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, HazePropertyGroup::DEFAULT_HAZE_RANGE);
+    DEFINE_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, HazePropertyGroup::DEFAULT_HAZE_ALTITUDE);
+
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);

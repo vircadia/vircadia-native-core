@@ -69,8 +69,30 @@ public:
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
-    void setHazeMode(HazeMode value);
+    void setHazeMode(const HazeMode value);
     HazeMode getHazeMode() const;
+
+    void setHazeRange(const float hazeRange);
+    float getHazeRange()const;
+    void setHazeBlendInColor(const xColor hazeBlendInColor);
+    xColor getHazeBlendInColor()const;
+    void setHazeBlendOutColor(const xColor hazeBlendOutColor);
+    xColor getHazeBlendOutColor()const;
+    void setHazeLightBlendAngle(const float hazeLightBlendAngle);
+    float getHazeLightBlendAngle()const;
+
+    void setHazeAltitude(const float hazeAltitude);
+    float getHazeAltitude()const;
+    void setHazeBaseRef(const float hazeBaseRef);
+    float getHazeBaseRef()const;
+
+    void setHazeBackgroundBlend(const float hazeBackgroundBlend);
+    float getHazeBackgroundBlend()const;
+
+    void setHazeKeyLightRange(const float hazeKeyLightRange);
+    float getHazeKeyLightRange()const;
+    void setHazeKeyLightAltitude(const float hazeKeyLightAltitude);
+    float getHazeKeyLightAltitude()const;
 
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
@@ -120,6 +142,19 @@ protected:
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
     HazeMode _hazeMode{ HAZE_MODE_INHERIT };
+
+    float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
+    xColor _hazeBlendInColor{ HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR };
+    xColor _hazeBlendOutColor{ HazePropertyGroup::DEFAULT_HAZE_BLEND_OUT_COLOR };
+    float _hazeLightBlendAngle{ HazePropertyGroup::DEFAULT_HAZE_LIGHT_BLEND_ANGLE };
+
+    float _hazeAltitude{ HazePropertyGroup::DEFAULT_HAZE_ALTITUDE };
+    float _hazeBaseRef{ HazePropertyGroup::DEFAULT_HAZE_BASE_REF };
+
+    float _hazeBackgroundBlend{ HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND };
+
+    float _hazeKeyLightRange{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_RANGE };
+    float _hazeKeyLightAltitude{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
