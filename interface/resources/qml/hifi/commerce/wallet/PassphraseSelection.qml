@@ -76,8 +76,8 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "enter current passphrase";
-        activeFocusOnPress: true
-        activeFocusOnTab: true
+        activeFocusOnPress: true;
+        activeFocusOnTab: true;
 
         onFocusChanged: {
             if (focus) {
@@ -103,8 +103,8 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: root.isShowingTip ? "" : "enter new passphrase";
-        activeFocusOnPress: true
-        activeFocusOnTab: true
+        activeFocusOnPress: true;
+        activeFocusOnTab: true;
 
         onFocusChanged: {
             if (focus) {
@@ -128,8 +128,8 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: root.isShowingTip ? "" : "re-enter new passphrase";
-        activeFocusOnPress: true
-        activeFocusOnTab: true
+        activeFocusOnPress: true;
+        activeFocusOnTab: true;
 
         onFocusChanged: {
             if (focus) {
