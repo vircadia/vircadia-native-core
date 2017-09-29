@@ -1569,15 +1569,45 @@ float EntityItem::getRadius() const {
 }
 
 // Checking Certifiable Properties
-QString EntityItem::getStaticCertificateJSON() const {
+#include <QJsonDocument> // fixme
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h> // fixme
+#define ADD_STRING_PROPERTY(n, N) if (!propertySet.get##N().isEmpty()) json[#n] = propertySet.get##N()
+#define ADD_ENUM_PROPERTY(n, N) json[#n] = propertySet.get##N##AsString()
+#define ADD_INT_PROPERTY(n, N) if (propertySet.get##N() != 0) json[#n] = (propertySet.get##N() == -1) ? -1.0 : ((double) propertySet.get##N())
+QByteArray EntityItem::getStaticCertificateJSON() const {
     // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
     // The static certificate properties include all an only those properties that cannot be changed without altering the identity
     // of the entity as reviewed during the certification submission.
-    return "FIXME";
+
+    QJsonObject json;
+    EntityItemProperties propertySet = getProperties(); // Note: neither EntityItem nor EntityitemProperties "properties" are QObject "properties"!
+    // It is important that this be reproducible in the same order each time. Since we also generate these on the server, we do it alphabetically
+    // to help maintainence in two different code bases.
+    // animation
+    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
+    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
+    ADD_INT_PROPERTY(editionNumber, EditionNumber);
+    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
+    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
+    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
+    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
+    ADD_STRING_PROPERTY(itemLicense, ItemLicense);
+    ADD_STRING_PROPERTY(itemName, ItemName);
+    ADD_INT_PROPERTY(limitedRun, LimitedRun);
+    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
+    ADD_STRING_PROPERTY(modelURL, ModelURL);
+    ADD_STRING_PROPERTY(script, Script);
+    ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    json["type"] = EntityTypes::getEntityTypeName(propertySet.getType());
+
+    return QJsonDocument(json).toJson(QJsonDocument::Compact);
 }
-QString EntityItem::getStaticCertificateHash() const {
+QByteArray EntityItem::getStaticCertificateHash() const {
     // The base64 encoded, sha224 hash of static certificate json.
-    return "FIXME";
+    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
 }
 bool EntityItem::verifyStaticCertificateProperties() const {
     // True IIF a non-empty certificateID matches the static certificate json.
@@ -1585,7 +1615,67 @@ bool EntityItem::verifyStaticCertificateProperties() const {
     if (_certificateID.isEmpty()) {
         return false;
     }
-    return false; // fixme
+    // FIXME: really verify(hifi-pub-key, certificateID-as-signature-for-getStaticCertifcateHash)
+ 
+    //const char text[] = "{\"collisionSoundURL\":\"colSound02\",\"compoundShapeURL\":\"http://mpassets.highfidelity.com/31479af7-94b0-45f2-84ba-478d27e5af90-v1/gnome_phys.obj\",\"entityInstanceNumber\":2,\"itemName\":\"Explosive Garden Nomex\",\"limitedRun\":-1,\"marketplaceID\":\"31479af7-94b0-45f2-84ba-478d27e5af90\",\"modelURL\":\"http://mpassets.highfidelity.com/31479af7-94b0-45f2-84ba-478d27e5af90-v1/gnome_green.fbx\",\"script\":\"http://mpassets.highfidelity.com/31479af7-94b0-45f2-84ba-478d27e5af90-v1/explodingGnomeEntity.js\",\"shapeType\":\"compound\",\"type\":\"Model\"}";
+    // auto textLength = sizeof(text);
+    auto hash = getStaticCertificateHash();
+    const char* text = hash.constData();
+    auto textLength = hash.length();
+    qDebug() << "HRS FIXME text" << getStaticCertificateJSON() << "hash base64" << hash.toBase64();
+
+    //const char signatureBase64[] = "QpRnN7XGeVFnF/a+FVjZDWhdbHM3P5Cu69rL0/X2DMnqQEGwhx/oBs/7guTs6aNuO+ahmbTTc0+Nqdcqv36KGA==";
+    //auto signatureBytes = QByteArray::fromBase64(signatureBase64);
+    //const char* signature = signatureBytes.constData();
+    //auto signatureLength = signatureBytes.length();
+
+        const char key[] = "-----BEGIN RSA PRIVATE KEY-----\n\
+MIIBOQIBAAJBALCoBiDAZOClO26tC5pd7JikBL61WIgpAqbcNnrV/TcG6LPI7Zbi\n\
+MjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQJABvOlwhYwIhL+gr12jm2R\n\
+yPPzZ9nVEQ6kFxLlZfIT09119fd6OU1X5d4sHWfMfSIEgjwQIDS3ZU1kY3XKo87X\n\
+zQIhAOPHlYa1OC7BLhaTouy68qIU2vCKLP8mt4S31/TT0UOnAiEAxor6gU6yupTQ\n\
+yuyV3yHvr5LkZKBGqhjmOTmDfgtX7ncCIChGbgX3nQuHVOLhD/nTxHssPNozVGl5\n\
+KxHof+LmYSYZAiB4U+yEh9SsXdq40W/3fpLMPuNq1PRezJ5jGidGMcvF+wIgUNec\n\
+3Kg2U+CVZr8/bDT/vXRrsKj1zfobYuvbfVH02QY=\n\
+-----END RSA PRIVATE KEY-----";
+        BIO* vbio = BIO_new(BIO_s_mem());
+        int vlen = BIO_write(vbio, key, sizeof(key));
+        RSA* vrsa = PEM_read_bio_RSAPrivateKey(vbio, NULL, NULL, NULL);
+        qDebug() << "HRS FIXME private key bufio" << !!vbio << vlen << !!vrsa << key;
+
+        QByteArray signature(RSA_size(vrsa), 0);
+        unsigned int signatureLength = 0;
+        int signOK = RSA_sign(NID_sha256, reinterpret_cast<const unsigned char*>(text), textLength, reinterpret_cast<unsigned char*>(signature.data()), &signatureLength, vrsa);
+        QByteArray signature64 = signature.toBase64();
+        qDebug() << "HRS FIXME signature" << signature64.length() << signature64 << "ok:" << signOK;
+    
+    ///*
+    const char publicKey[] = "-----BEGIN PUBLIC KEY-----\n\
+MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALCoBiDAZOClO26tC5pd7JikBL61WIgp\n\
+AqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==\n\
+-----END PUBLIC KEY-----";
+    //*/
+    // const char publicKey[] = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALCoBiDAZOClO26tC5pd7JikBL61WIgpAqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==";
+    //const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKey);
+    //RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, sizeof(publicKey));
+    qDebug() << "HRS FIXME key:" << sizeof(publicKey) << QString(publicKey) << "text:" << textLength << QString(text) << "signature:" << signatureLength << QString(signature);
+
+
+    //BIO *bio = BIO_new_mem_buf((void*)publicKey, sizeof(publicKey));
+    BIO* bio = BIO_new(BIO_s_mem());
+    int len = BIO_write(bio, publicKey, sizeof(publicKey));
+    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    qDebug() << "HRS FIXME bufio" << !!bio << len << !!evp_key;
+    //RSA *rsa;
+    //PEM_read_bio_RSA_PUBKEY(bio, &rsa, 0, NULL);
+    RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
+    //RSA* rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+    qDebug() << "HRS FIXME rsa" << !!rsa;
+
+    bool answer = RSA_verify(NID_sha256, reinterpret_cast<const unsigned char*>(text), textLength, reinterpret_cast<const unsigned char*>(signature.constData()), signatureLength, rsa);
+    qDebug() << "HRS FIXME key:" << sizeof(publicKey) << QString(publicKey) << "text:" << textLength << QString(text) << "signature:" << signatureLength << QString(signature) << "verified:" << answer;
+    //return _certificateID == getStaticCertificateHash();
+    return answer;
 }
 
 
