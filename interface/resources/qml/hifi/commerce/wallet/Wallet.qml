@@ -140,6 +140,7 @@ Rectangle {
             anchors.bottomMargin: 6;
             width: height;
             mipmap: true;
+            cache: false;
 
             MouseArea {
                 enabled: titleBarSecurityImage.visible;

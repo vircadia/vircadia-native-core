@@ -212,6 +212,7 @@ Item {
             anchors.bottomMargin: 16;
             width: height;
             mipmap: true;
+            cache: false;
 
             MouseArea {
                 enabled: securityImage.visible;
