@@ -254,6 +254,7 @@ public:
     void knowAvatarID(QUuid avatarID) { _avatarIDs += avatarID; }
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
     void deleteDescendantsOfAvatar(QUuid avatarID);
+    void removeFromChildrenOfAvatars(EntityItemPointer entity);
 
     void addToNeedsParentFixupList(EntityItemPointer entity);
 

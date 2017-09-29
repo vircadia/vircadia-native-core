@@ -1326,6 +1326,13 @@ void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
     }
 }
 
+void EntityTree::removeFromChildrenOfAvatars(EntityItemPointer entity) {
+    QUuid avatarID = entity->getParentID();
+    if (_childrenOfAvatars.contains(avatarID)) {
+        _childrenOfAvatars[avatarID].remove(entity->getID());
+    }
+}
+
 void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
     QWriteLocker locker(&_needsParentFixupLock);
     _needsParentFixup.append(entity);
