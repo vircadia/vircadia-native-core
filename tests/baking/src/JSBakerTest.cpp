@@ -71,6 +71,12 @@ void JSBakerTest::setTestCases() {
 
     //No semicolon to terminate an expression, instead a new line used for termination
     _testCases.emplace_back("var x=5\nvar y=6;", "var x=5\nvar y=6;");
+    
+     //a + ++b is minified as a+ ++b.
+    _testCases.emplace_back("a + ++b", "a + ++b");
+
+    //a - --b is minified as a- --b.
+    _testCases.emplace_back("a - --b", "a - --b");
 }
 
 void JSBakerTest::testJSBaking() {
