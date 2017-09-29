@@ -90,7 +90,6 @@ public:
     void init();
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
-    void render3DHUDOverlays(RenderArgs* renderArgs);
     void disable();
     void enable();
 
@@ -102,8 +101,6 @@ public:
     /// adds an overlay that's already been created
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     OverlayID addOverlay(const Overlay::Pointer& overlay);
-
-    void setOverlayDrawHUDLayer(const OverlayID& id, const bool drawHUDLayer);
 
     bool mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
@@ -334,10 +331,7 @@ private:
 
     mutable QMutex _mutex { QMutex::Recursive };
     QMap<OverlayID, Overlay::Pointer> _overlaysHUD;
-    QMap<OverlayID, Overlay::Pointer> _overlays3DHUD;
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
-
-    render::ShapePlumberPointer _shapePlumber;
 
 #if OVERLAY_PANELS
     QMap<OverlayID, OverlayPanel::Pointer> _panels;

@@ -307,7 +307,7 @@ bool OpenGLDisplayPlugin::activate() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::alphaChanged, [this] {
         auto compositorHelper = DependencyManager::get<CompositorHelper>();
-        auto animation = new QPropertyAnimation(this, "overlayAlpha");
+        auto animation = new QPropertyAnimation(this, "hudAlpha");
         animation->setDuration(200);
         animation->setEndValue(compositorHelper->getAlpha());
         animation->start();
@@ -415,7 +415,7 @@ void OpenGLDisplayPlugin::customizeContext() {
             state->setBlendFunction(true,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _overlayPipeline = gpu::Pipeline::create(program, state);
+            _hudPipeline = gpu::Pipeline::create(program, state);
         }
 
         {
@@ -437,7 +437,7 @@ void OpenGLDisplayPlugin::customizeContext() {
 void OpenGLDisplayPlugin::uncustomizeContext() {
     _presentPipeline.reset();
     _cursorPipeline.reset();
-    _overlayPipeline.reset();
+    _hudPipeline.reset();
     _compositeFramebuffer.reset();
     withPresentThreadLock([&] {
         _currentFrame.reset();
@@ -562,12 +562,11 @@ void OpenGLDisplayPlugin::updateFrameData() {
     });
 }
 
-void OpenGLDisplayPlugin::compositeOverlay() {
-    render([&](gpu::Batch& batch){
+std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin::getHUDOperator() {
+    return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
         batch.enableStereo(false);
-        batch.setFramebuffer(_compositeFramebuffer);
-        batch.setPipeline(_overlayPipeline);
-        batch.setResourceTexture(0, _currentFrame->overlay);
+        batch.setPipeline(_hudPipeline);
+        batch.setResourceTexture(0, hudTexture);
         if (isStereo()) {
             for_each_eye([&](Eye eye) {
                 batch.setViewportTransform(eyeViewport(eye));
@@ -577,7 +576,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
             batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
-    });
+    };
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
@@ -626,29 +625,15 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeScene();
     }
 
-    // Clear the depth framebuffer after drawing the scene so that the HUD elements can depth test against each other
-    render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setFramebuffer(_compositeFramebuffer);
-        batch.clearDepthFramebuffer((float) UINT32_MAX);
-    });
-
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
-    if (false) // do not compositeoverlay if running nsight debug
+    if (false) // do not draw the HUD if running nsight debug
 #endif
     {
-        PROFILE_RANGE_EX(render_detail, "compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
-        compositeOverlay();
-    }
-
-    // Only render HUD layer 3D overlays in HMD mode
-    if (isHmd()) {
-        PROFILE_RANGE_EX(render_detail, "compositeHUDOverlays", 0xff0077ff, (uint64_t)presentCount())
-        render([&](gpu::Batch& batch) {
-            batch.enableStereo(false);
-            batch.setFramebuffer(_compositeFramebuffer);
+        PROFILE_RANGE_EX(render_detail, "handleHUDBatch", 0xff0077ff, (uint64_t)presentCount())
+        auto hudOperator = getHUDOperator();
+        withPresentThreadLock([&] {
+            _hudOperator = hudOperator;
         });
-        _gpuContext->executeBatch(_currentFrame->postCompositeBatch);
     }
 
     {
@@ -656,13 +641,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeExtra();
     }
 
-    // Clear the depth buffer again and draw the pointer last so it's on top of everything
-    render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setFramebuffer(_compositeFramebuffer);
-        batch.clearDepthFramebuffer((float) UINT32_MAX);
-    });
-
+    // Draw the pointer last so it's on top of everything
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     if (compositorHelper->getReticleVisible()) {
         PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
@@ -844,7 +823,7 @@ void OpenGLDisplayPlugin::assertIsPresentThread() const {
 
 bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     withNonPresentThreadLock([&] {
-        _compositeOverlayAlpha = _overlayAlpha;
+        _compositeHUDAlpha = _hudAlpha;
     });
     return Parent::beginFrameRender(frameIndex);
 }
@@ -887,8 +866,7 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = getRecommendedRenderSize();
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, depthFormat, renderSize.x, renderSize.y));
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }
 }
 

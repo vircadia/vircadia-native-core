@@ -101,6 +101,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
+    bool isLayeredInHUD() const { return _isLayeredInHUD; }
 
     virtual void updateRenderItems();
     void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
@@ -410,6 +411,7 @@ protected:
     int _renderInfoHasTransparent { false };
 
     bool _isLayeredInFront { false };
+    bool _isLayeredInHUD { false };
 
 private:
     float _loadingPriority { 0.0f };

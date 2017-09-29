@@ -233,6 +233,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // AA job to be revisited
     task.addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
 
+    // Composite the HUD
+    task.addJob<CompositeHUD>("HUD");
+
     task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
 
     // Blit!
@@ -405,6 +408,18 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             args->_batch = nullptr;
         });
     }
+}
+
+void CompositeHUD::run(const RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
+
+    // Grab the HUD texture
+    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+        if (renderContext->args->_hudOperator) {
+            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture);
+        }
+    });
 }
 
 void Blit::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {

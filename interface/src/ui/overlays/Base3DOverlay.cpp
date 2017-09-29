@@ -26,7 +26,8 @@ Base3DOverlay::Base3DOverlay() :
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
-    _drawInFront(false)
+    _drawInFront(false),
+    _drawHUDLayer(false)
 {
 }
 
@@ -38,6 +39,7 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _isDashedLine(base3DOverlay->_isDashedLine),
     _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
     _drawInFront(base3DOverlay->_drawInFront),
+    _drawHUDLayer(base3DOverlay->_drawHUDLayer),
     _isGrabbable(base3DOverlay->_isGrabbable)
 {
     setTransform(base3DOverlay->getTransform());
@@ -125,10 +127,16 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     bool needRenderItemUpdate = false;
 
     auto drawInFront = properties["drawInFront"];
-
     if (drawInFront.isValid()) {
         bool value = drawInFront.toBool();
         setDrawInFront(value);
+        needRenderItemUpdate = true;
+    }
+
+    auto drawHUDLayer = properties["drawHUDLayer"];
+    if (drawHUDLayer.isValid()) {
+        bool value = drawHUDLayer.toBool();
+        setDrawHUDLayer(value);
         needRenderItemUpdate = true;
     }
 

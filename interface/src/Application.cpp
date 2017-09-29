@@ -2590,6 +2590,8 @@ void Application::paintGL() {
         // in the overlay render?
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
+        renderArgs._hudOperator = displayPlugin->getHUDOperator();
+        renderArgs._hudTexture = _applicationOverlay.getOverlayTexture();
         auto baseProjection = renderArgs.getViewFrustum().getProjection();
         if (displayPlugin->isStereo()) {
             // Stereo modes will typically have a larger projection matrix overall,
@@ -2632,24 +2634,12 @@ void Application::paintGL() {
         displaySide(&renderArgs, _myCamera);
     }
 
-    gpu::Batch postCompositeBatch;
-    {
-        PROFILE_RANGE(render, "/postComposite");
-        PerformanceTimer perfTimer("postComposite");
-        renderArgs._batch = &postCompositeBatch;
-        renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
-        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
-        _overlays.render3DHUDOverlays(&renderArgs);
-    }
-
     auto frame = _gpuContext->endFrame();
     frame->frameIndex = _frameCount;
     frame->framebuffer = finalFramebuffer;
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
     };
-    frame->overlay = _applicationOverlay.getOverlayTexture();
-    frame->postCompositeBatch = postCompositeBatch;
     // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(render, "/pluginOutput");
@@ -7209,11 +7199,11 @@ glm::uvec2 Application::getUiSize() const {
     return result;
 }
 
-QRect Application::getRecommendedOverlayRect() const {
+QRect Application::getRecommendedHUDRect() const {
     auto uiSize = getUiSize();
     QRect result(0, 0, uiSize.x, uiSize.y);
     if (_displayPlugin) {
-        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+        result = getActiveDisplayPlugin()->getRecommendedHUDRect();
     }
     return result;
 }

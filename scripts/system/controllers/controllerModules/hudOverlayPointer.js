@@ -31,7 +31,7 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         parentID: AVATAR_SELF_ID
     };
     var halfEnd = {
@@ -40,7 +40,7 @@
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         visible: true
     };
     var fullPath = {
@@ -52,7 +52,7 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         parentID: AVATAR_SELF_ID
     };
     var fullEnd = {
@@ -61,7 +61,7 @@
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         visible: true
     };
     var holdPath = {
@@ -73,7 +73,7 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         parentID: AVATAR_SELF_ID
     };
 

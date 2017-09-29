@@ -385,7 +385,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
             builder.withInvisible();
         }
 
-        if (model->isLayeredInFront()) {
+        if (model->isLayeredInFront() || model->isLayeredInHUD()) {
             builder.withLayered();
         }
 

@@ -29,7 +29,7 @@ int DesktopScriptingInterface::getHeight() {
     return size.height();
 }
 
-void DesktopScriptingInterface::setOverlayAlpha(float alpha) {
+void DesktopScriptingInterface::setHUDAlpha(float alpha) {
     qApp->getApplicationCompositor().setAlpha(alpha);
 }
 

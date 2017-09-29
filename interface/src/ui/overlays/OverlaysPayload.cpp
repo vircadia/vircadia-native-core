@@ -34,7 +34,8 @@ namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
         auto builder = ItemKey::Builder().withTypeShape();
         if (overlay->is3D()) {
-            if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
+            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
+            if (overlay3D->getDrawInFront() || overlay3D->getDrawHUDLayer()) {
                 builder.withLayered();
             }
             if (overlay->isTransparent()) {
