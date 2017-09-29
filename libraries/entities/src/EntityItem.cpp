@@ -32,7 +32,8 @@
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
 
-
+Q_DECLARE_METATYPE(EntityItemPointer);
+int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 
@@ -2024,7 +2025,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
-        EntityTreeElementPointer element = _element; // use local copy of _element for logic below
+            EntityTreeElementPointer element = _element; // use local copy of _element for logic below
             EntityTreePointer entityTree = element ? element->getTree() : nullptr;
             simulation = entityTree ? entityTree->getSimulation() : nullptr;
         }

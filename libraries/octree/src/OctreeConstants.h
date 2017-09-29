@@ -21,7 +21,8 @@ const int TREE_SCALE = 32768; // ~20 miles.. This is the number of meters of the
 const int HALF_TREE_SCALE = TREE_SCALE / 2;
 
 // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
-const float DEFAULT_OCTREE_SIZE_SCALE = TREE_SCALE * 400.0f; 
+const float MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT = 400.0f; // max distance where a 1x1x1 cube is visible for 20:20 vision
+const float DEFAULT_OCTREE_SIZE_SCALE = TREE_SCALE * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
 
 // Since entities like models live inside of octree cells, and they themselves can have very small mesh parts,
 // we want to have some constant that controls have big a mesh part must be to render even if the octree cell itself
@@ -36,7 +37,10 @@ const int NUMBER_OF_CHILDREN = 8;
 
 const int MAX_TREE_SLICE_BYTES = 26;
 
-const float VIEW_FRUSTUM_FOV_OVERSEND = 60.0f;
+// The oversend below is 20 degrees because that is the minimum oversend necessary to prevent missing entities
+// near the edge of the view.  The value here is determined by hard-coded values in ViewFrsutum::isVerySimilar().
+// TODO: move this parameter to the OctreeQueryNode context.
+const float VIEW_FRUSTUM_FOV_OVERSEND = 20.0f;
 
 // These are guards to prevent our voxel tree recursive routines from spinning out of control
 const int UNREASONABLY_DEEP_RECURSION = 29; // use this for something that you want to be shallow, but not spin out
