@@ -306,7 +306,7 @@ Grabber.prototype.computeNewGrabPlane = function() {
 };
 
 Grabber.prototype.pressEvent = function(event) {
-    if (isInEditMode()) {
+    if (isInEditMode() || HMD.active) {
         return;
     }
 
@@ -401,7 +401,7 @@ Grabber.prototype.pressEvent = function(event) {
 };
 
 Grabber.prototype.releaseEvent = function(event) {
-    if (event.isLeftButton!==true || event.isRightButton===true || event.isMiddleButton===true) {
+    if ((event.isLeftButton!==true || event.isRightButton===true || event.isMiddleButton===true) && !HMD.active) {
         return;
     }
 
@@ -447,7 +447,7 @@ Grabber.prototype.moveEvent = function(event) {
     // during the handling of the event, do as little as possible.  We save the updated mouse position,
     // and start a timer to react to the change.  If more changes arrive before the timer fires, only
     // the last update will be considered.  This is done to avoid backing-up Qt's event queue.
-    if (!this.isGrabbing) {
+    if (!this.isGrabbing || HMD.active) {
         return;
     }
     mouse.updateDrag(event);
@@ -458,7 +458,7 @@ Grabber.prototype.moveEventProcess = function() {
     this.moveEventTimer = null;
     // see if something added/restored gravity
     var entityProperties = Entities.getEntityProperties(this.entityID);
-    if (!entityProperties || !entityProperties.gravity) {
+    if (!entityProperties || !entityProperties.gravity || HMD.active) {
         return;
     }
 

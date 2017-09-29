@@ -335,7 +335,7 @@ Script.include("/~/system/libraries/controllers.js");
             var SCALED_TABLET_MAX_HOVER_DISTANCE = TABLET_MAX_HOVER_DISTANCE * sensorScaleFactor;
 
             if (nearestStylusTarget && nearestStylusTarget.distance > SCALED_TABLET_MIN_TOUCH_DISTANCE &&
-                nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE) {
+                nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE && !this.getOtherHandController().stylusTouchingTarget) {
 
                 this.requestTouchFocus(nearestStylusTarget);
 
