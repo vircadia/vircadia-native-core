@@ -72,6 +72,23 @@ void ModelOverlay::update(float deltatime) {
         animate();
     }
 
+    // check to see if when we added our model to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    render::ScenePointer scene = qApp->getMain3DScene();
+    render::Transaction transaction;
+    if (_model->needsFixupInScene()) {
+        _model->removeFromScene(scene, transaction);
+        _model->addToScene(scene, transaction);
+    }
+    if (_visibleDirty) {
+        _visibleDirty = false;
+        _model->setVisibleInScene(getVisible(), scene);
+    }
+    if (_drawInFrontDirty) {
+        _drawInFrontDirty = false;
+        _model->setLayeredInFront(getDrawInFront(), scene);
+    }
+    scene->enqueueTransaction(transaction);
 }
 
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -85,21 +102,14 @@ void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::Scene
     _model->removeFromScene(scene, transaction);
 }
 
-void ModelOverlay::render(RenderArgs* args) {
+void ModelOverlay::setVisible(bool visible) {
+    Overlay::setVisible(visible);
+    _visibleDirty = true;
+}
 
-    // check to see if when we added our model to the scene they were ready, if they were not ready, then
-    // fix them up in the scene
-    render::ScenePointer scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    if (_model->needsFixupInScene()) {
-        _model->removeFromScene(scene, transaction);
-        _model->addToScene(scene, transaction);
-    }
-
-    _model->setVisibleInScene(_visible, scene);
-    _model->setLayeredInFront(getDrawInFront(), scene);
-
-    scene->enqueueTransaction(transaction);
+void ModelOverlay::setDrawInFront(bool drawInFront) {
+    Base3DOverlay::setDrawInFront(drawInFront);
+    _drawInFrontDirty = true;
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
