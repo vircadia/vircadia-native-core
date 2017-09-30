@@ -33,7 +33,7 @@ const float HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE{ 200.0f };
 void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_MODE, Haze, haze, HazeMode, hazeMode);
 
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeRange, hazeRange);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeBlendInColor, hazeBlendIncolor);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BLEND_OUT_COLOR, Haze, haze, HazeBlendOutColor, hazeBlendOutcolor);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_LIGHT_BLEND_ANGLE, Haze, haze, HazeLightBlendAngle, hazeLightBlendAngle);
@@ -184,7 +184,7 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, float, setHazeKeyLightRange);
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, float, setHazeKeyLightAltitude);
 
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_RANGE, HazeMode);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_MODE, HazeMode);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_RANGE, HazeRange);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor);

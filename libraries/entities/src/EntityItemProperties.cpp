@@ -1118,20 +1118,20 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 
-        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint8_t);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, Haze, haze, HazeRange, HazeRange, hazeRange);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeBlendInColor, hazeBlendInColor);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BLEND_OUT_COLOR, Haze, haze, HazeBlendOutColor, hazeBlendOutColor);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_LIGHT_BLEND_ANGLE, Haze, haze, HazeLightBlendAngle, hazeLightBlendAngle);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, HazeRange, hazeRange, float);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor, hazeBlendInColor, xColor);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_BLEND_OUT_COLOR, HazeBlendOutColor, hazeBlendOutColor, xColor);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, Haze, haze, HazeAltitude, hazeAltitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
