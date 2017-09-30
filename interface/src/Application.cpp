@@ -5400,6 +5400,9 @@ void Application::update(float deltaTime) {
     AnimDebugDraw::getInstance().update();
 
     DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
+
+    // Game loopis done, mark the end of the frame for the scene transactions
+    getMain3DScene()->enqueueFrame();
 }
 
 void Application::sendAvatarViewFrustum() {
