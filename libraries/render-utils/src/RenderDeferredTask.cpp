@@ -152,7 +152,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters).asVarying();
+        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, hazeModel).asVarying();
     
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 

@@ -285,10 +285,10 @@ public:
     
     const T5& get5() const { return std::get<5>((*this)).template get<T5>(); }
     T5& edit5() { return std::get<5>((*this)).template edit<T5>(); }
-    
+
     const T6& get6() const { return std::get<6>((*this)).template get<T6>(); }
     T6& edit6() { return std::get<6>((*this)).template edit<T6>(); }
-    
+
     Varying asVarying() const { return Varying((*this)); }
 };
 
