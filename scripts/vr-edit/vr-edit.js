@@ -12,10 +12,10 @@
 
     "use strict";
 
-    var APP_NAME = "VR EDIT",  // TODO: App name.
-        APP_ICON_INACTIVE = "icons/tablet-icons/edit-i.svg",  // TODO: App icons.
-        APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",
-        APP_ICON_DISABLED = "icons/tablet-icons/edit-disabled.svg",
+    var APP_NAME = "SHAPES",
+        APP_ICON_INACTIVE = Script.resolvePath("./assets/shapes-i.svg"),
+        APP_ICON_ACTIVE = Script.resolvePath("./assets/shapes-a.svg"),
+        APP_ICON_DISABLED = Script.resolvePath("./assets/shapes-d.svg"),
         ENABLED_CAPTION_COLOR_OVERRIDE = "",
         DISABLED_CAPTION_COLOR_OVERRIDE = "#888888",
         START_DELAY = 2000,  // ms
