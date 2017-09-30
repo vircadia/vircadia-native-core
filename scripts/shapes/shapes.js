@@ -1,5 +1,5 @@
 //
-//  vr-edit.js
+//  shapes.js
 //
 //  Created by David Rowe on 27 Jun 2017.
 //  Copyright 2017 High Fidelity, Inc.
