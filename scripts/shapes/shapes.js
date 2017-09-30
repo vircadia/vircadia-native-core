@@ -71,7 +71,7 @@
         button,
         DOMAIN_CHANGED_MESSAGE = "Toolbar-DomainChanged",
 
-        DEBUG = true;
+        DEBUG = false;
 
     // Utilities
     Script.include("./utilities/utilities.js");
