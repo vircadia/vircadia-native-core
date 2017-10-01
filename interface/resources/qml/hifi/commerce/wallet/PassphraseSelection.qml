@@ -87,6 +87,14 @@ Item {
             }
         }
 
+        MouseArea {
+            anchors.fill: parent
+            onPressed: {
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                mouse.accepted = false
+            }
+        }
+
         onAccepted: {
             passphraseField.focus = true;
         }
@@ -106,6 +114,14 @@ Item {
         activeFocusOnPress: true;
         activeFocusOnTab: true;
 
+        MouseArea {
+            anchors.fill: parent
+            onPressed: {
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                mouse.accepted = false
+            }
+        }
+
         onFocusChanged: {
             if (focus) {
                 sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
@@ -118,6 +134,7 @@ Item {
             passphraseFieldAgain.focus = true;
         }
     }
+
     HifiControlsUit.TextField {
         id: passphraseFieldAgain;
         colorScheme: hifi.colorSchemes.dark;
@@ -130,6 +147,14 @@ Item {
         placeholderText: root.isShowingTip ? "" : "re-enter new passphrase";
         activeFocusOnPress: true;
         activeFocusOnTab: true;
+
+        MouseArea {
+            anchors.fill: parent
+            onPressed: {
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                mouse.accepted = false
+            }
+        }
 
         onFocusChanged: {
             if (focus) {
