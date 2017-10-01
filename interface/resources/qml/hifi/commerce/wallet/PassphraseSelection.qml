@@ -88,10 +88,10 @@ Item {
         }
 
         MouseArea {
-            anchors.fill: parent
+            anchors.fill: parent;
             onPressed: {
                 sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
-                mouse.accepted = false
+                mouse.accepted = false;
             }
         }
 
@@ -115,10 +115,10 @@ Item {
         activeFocusOnTab: true;
 
         MouseArea {
-            anchors.fill: parent
+            anchors.fill: parent;
             onPressed: {
                 sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
-                mouse.accepted = false
+                mouse.accepted = false;
             }
         }
 
@@ -149,10 +149,10 @@ Item {
         activeFocusOnTab: true;
 
         MouseArea {
-            anchors.fill: parent
+            anchors.fill: parent;
             onPressed: {
                 sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
-                mouse.accepted = false
+                mouse.accepted = false;
             }
         }
 
