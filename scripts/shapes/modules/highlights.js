@@ -104,14 +104,14 @@ Highlights = function (side) {
             editEntityOverlay(0, selection[entityIndex], overlayColor);
         } else {
             // Add/edit entity overlays for all entities in selection.
-            for (i = 0, length = selection.length; i < length; i += 1) {
+            for (i = 0, length = selection.length; i < length; i++) {
                 maybeAddEntityOverlay(i);
                 editEntityOverlay(i, selection[i], overlayColor);
             }
         }
 
         // Delete extra entity overlays.
-        for (i = entityOverlays.length - 1, length = selection.length; i >= length; i -= 1) {
+        for (i = entityOverlays.length - 1, length = selection.length; i >= length; i--) {
             Overlays.deleteOverlay(entityOverlays[i]);
             entityOverlays.splice(i, 1);
         }
@@ -141,7 +141,7 @@ Highlights = function (side) {
         Overlays.editOverlay(boundingBoxOverlay, { visible: false });
 
         // Delete entity overlays.
-        for (i = 0, length = entityOverlays.length; i < length; i += 1) {
+        for (i = 0, length = entityOverlays.length; i < length; i++) {
             Overlays.deleteOverlay(entityOverlays[i]);
         }
         entityOverlays = [];

@@ -2094,7 +2094,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         Overlays.editOverlay(menuHeaderIconOverlay, { visible: false });
 
         // Display menu items.
-        for (i = 0, length = MENU_ITEMS.length; i < length; i += 1) {
+        for (i = 0, length = MENU_ITEMS.length; i < length; i++) {
             properties = Object.clone(UI_ELEMENTS[MENU_ITEMS[i].type].properties);
             properties = Object.merge(properties, MENU_ITEMS[i].properties);
             properties.visible = isVisible;
@@ -2144,7 +2144,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         var i,
             length;
 
-        for (i = 0, length = menuOverlays.length; i < length; i += 1) {
+        for (i = 0, length = menuOverlays.length; i < length; i++) {
             Overlays.deleteOverlay(menuOverlays[i]);
         }
 
@@ -2192,7 +2192,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Open specified options panel.
         optionsItems = OPTONS_PANELS[menuItem.toolOptions];
         parentID = menuPanelOverlay;
-        for (i = 0, length = optionsItems.length; i < length; i += 1) {
+        for (i = 0, length = optionsItems.length; i < length; i++) {
             properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
             if (optionsItems[i].properties) {
                 properties = Object.merge(properties, optionsItems[i].properties);
@@ -2447,7 +2447,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             swatchHighlightOverlay = null;
         }
 
-        for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
+        for (i = 0, length = optionsOverlays.length; i < length; i++) {
             Overlays.deleteOverlay(optionsOverlays[i]);
         }
         optionsOverlays = [];
@@ -2477,7 +2477,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             length;
 
         // Display footer items.
-        for (i = 0, length = FOOTER_ITEMS.length; i < length; i += 1) {
+        for (i = 0, length = FOOTER_ITEMS.length; i < length; i++) {
             properties = Object.clone(UI_ELEMENTS[FOOTER_ITEMS[i].type].properties);
             properties = Object.merge(properties, FOOTER_ITEMS[i].properties);
             properties.visible = isVisible;
@@ -2812,7 +2812,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
                     // Hide options.
                     items = optionsItems[index].items;
-                    for (i = 0, length = items.length; i < length; i += 1) {
+                    for (i = 0, length = items.length; i < length; i++) {
                         index = optionsOverlaysIDs.indexOf(items[i]);
                         Overlays.editOverlay(optionsOverlays[index], {
                             localPosition: Vec3.ZERO,
@@ -2841,7 +2841,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
                     // Show options.
                     items = optionsItems[index].items;
-                    for (i = 0, length = items.length; i < length; i += 1) {
+                    for (i = 0, length = items.length; i < length; i++) {
                         index = optionsOverlaysIDs.indexOf(items[i]);
                         Overlays.editOverlay(optionsOverlays[index], {
                             parentID: parentID,
@@ -2947,53 +2947,53 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         var i,
             length;
 
-        for (i = 0, length = staticOverlays.length; i < length; i += 1) {
+        for (i = 0, length = staticOverlays.length; i < length; i++) {
             Overlays.editOverlay(staticOverlays[i], { visible: visible });
         }
 
         if (isOptionsOpen) {
             Overlays.editOverlay(menuHeaderBackOverlay, { visible: visible });
             Overlays.editOverlay(menuHeaderIconOverlay, { visible: visible });
-            for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
+            for (i = 0, length = optionsOverlays.length; i < length; i++) {
                 Overlays.editOverlay(optionsOverlays[i], { visible: visible });
             }
-            for (i = 0, length = optionsOverlaysLabels.length; i < length; i += 1) {
+            for (i = 0, length = optionsOverlaysLabels.length; i < length; i++) {
                 Overlays.editOverlay(optionsOverlaysLabels[i], { visible: visible });
             }
-            for (i = 0, length = optionsOverlaysSublabels.length; i < length; i += 1) {
+            for (i = 0, length = optionsOverlaysSublabels.length; i < length; i++) {
                 Overlays.editOverlay(optionsOverlaysSublabels[i], { visible: visible });
             }
-            for (i = 0, length = optionsExtraOverlays.length; i < length; i += 1) {
+            for (i = 0, length = optionsExtraOverlays.length; i < length; i++) {
                 Overlays.editOverlay(optionsExtraOverlays[i], { visible: visible });
             }
         } else {
-            for (i = 0, length = menuOverlays.length; i < length; i += 1) {
+            for (i = 0, length = menuOverlays.length; i < length; i++) {
                 Overlays.editOverlay(menuOverlays[i], { visible: visible });
             }
-            for (i = 0, length = menuIconOverlays.length; i < length; i += 1) {
+            for (i = 0, length = menuIconOverlays.length; i < length; i++) {
                 Overlays.editOverlay(menuIconOverlays[i], { visible: visible });
             }
-            for (i = 0, length = menuLabelOverlays.length; i < length; i += 1) {
+            for (i = 0, length = menuLabelOverlays.length; i < length; i++) {
                 Overlays.editOverlay(menuLabelOverlays[i], { visible: visible });
             }
             if (!visible) {
-                for (i = 0, length = menuHoverOverlays.length; i < length; i += 1) {
+                for (i = 0, length = menuHoverOverlays.length; i < length; i++) {
                     Overlays.editOverlay(menuHoverOverlays[i], { visible: false });
                 }
             }
         }
 
-        for (i = 0, length = footerOverlays.length; i < length; i += 1) {
+        for (i = 0, length = footerOverlays.length; i < length; i++) {
             Overlays.editOverlay(footerOverlays[i], { visible: visible });
         }
-        for (i = 0, length = footerIconOverlays.length; i < length; i += 1) {
+        for (i = 0, length = footerIconOverlays.length; i < length; i++) {
             Overlays.editOverlay(footerIconOverlays[i], { visible: visible });
         }
-        for (i = 0, length = footerLabelOverlays.length; i < length; i += 1) {
+        for (i = 0, length = footerLabelOverlays.length; i < length; i++) {
             Overlays.editOverlay(footerLabelOverlays[i], { visible: visible });
         }
         if (!visible) {
-            for (i = 0, length = footerHoverOverlays.length; i < length; i += 1) {
+            for (i = 0, length = footerHoverOverlays.length; i < length; i++) {
                 Overlays.editOverlay(footerHoverOverlays[i], { visible: false });
             }
         }
@@ -3621,7 +3621,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isGroupButtonEnabled = false;
         isUngroupButtonEnabled = false;
         isClearGroupingButtonEnabled = false;
-        for (i = 0, length = OPTONS_PANELS.groupOptions.length; i < length; i += 1) {
+        for (i = 0, length = OPTONS_PANELS.groupOptions.length; i < length; i++) {
             id = OPTONS_PANELS.groupOptions[i].id;
             if (id === "groupButton") {
                 groupButtonIndex = i;

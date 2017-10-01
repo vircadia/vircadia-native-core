@@ -160,7 +160,7 @@ Hand = function (side) {
                 if (overlayIDs.length > 1) {
                     // Find closest overlay.
                     overlayDistance = Vec3.length(Vec3.subtract(Overlays.getProperty(overlayID, "position"), palmPosition));
-                    for (i = 1, length = overlayIDs.length; i < length; i += 1) {
+                    for (i = 1, length = overlayIDs.length; i < length; i++) {
                         distance =
                             Vec3.length(Vec3.subtract(Overlays.getProperty(overlayIDs[i], "position"), palmPosition));
                         if (distance > overlayDistance) {
@@ -191,7 +191,7 @@ Hand = function (side) {
                 if (entityIDs.length > 1) {
                     // Find smallest, editable entity.
                     entitySize = HALF_TREE_SCALE;
-                    for (i = 0, length = entityIDs.length; i < length; i += 1) {
+                    for (i = 0, length = entityIDs.length; i < length; i++) {
                         if (Entities.hasEditableRoot(entityIDs[i])) {
                             size = Vec3.length(Entities.getEntityProperties(entityIDs[i], "dimensions").dimensions);
                             if (size < entitySize) {

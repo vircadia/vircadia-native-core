@@ -351,12 +351,12 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         var i,
             length;
 
-        for (i = 0, length = staticOverlays.length; i < length; i += 1) {
+        for (i = 0, length = staticOverlays.length; i < length; i++) {
             Overlays.editOverlay(staticOverlays[i], { visible: visible });
         }
 
         if (!visible) {
-            for (i = 0, length = paletteItemHoverOverlays.length; i < length; i += 1) {
+            for (i = 0, length = paletteItemHoverOverlays.length; i < length; i++) {
                 Overlays.editOverlay(paletteItemHoverOverlays[i], { visible: false });
             }
         }
@@ -486,7 +486,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         palettePanelOverlay = Overlays.addOverlay("cube", properties);
 
         // Palette items.
-        for (i = 0, length = PALETTE_ITEMS.length; i < length; i += 1) {
+        for (i = 0, length = PALETTE_ITEMS.length; i < length; i++) {
             // Collision overlay.
             properties = Object.clone(PALETTE_ITEM.properties);
             properties.parentID = palettePanelOverlay;

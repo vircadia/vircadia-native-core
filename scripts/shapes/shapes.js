@@ -1330,7 +1330,7 @@
                     i,
                     length;
                 children = Entities.getChildrenIDs(id);
-                for (i = 0, length = children.length; i < length; i += 1) {
+                for (i = 0, length = children.length; i < length; i++) {
                     if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
                         childrenIDs.push(children[i]);
                         traverseEntityTree(children[i]);
@@ -1381,7 +1381,7 @@
                 isInside = Math.abs(cornerPosition.x) <= boundingBoxHalfDimensions.x
                     && Math.abs(cornerPosition.y) <= boundingBoxHalfDimensions.y
                     && Math.abs(cornerPosition.z) <= boundingBoxHalfDimensions.z;
-                i += 1;
+                i++;
             }
 
             return isInside;
@@ -1424,7 +1424,7 @@
             if (selectInBoxSelection.count() > 1) {
                 boundingBox = selectInBoxSelection.boundingBox();
                 entityIDs = Entities.findEntities(boundingBox.center, Vec3.length(boundingBox.dimensions) / 2);
-                for (i = 0, lengthI = entityIDs.length; i < lengthI; i += 1) {
+                for (i = 0, lengthI = entityIDs.length; i < lengthI; i++) {
                     entityID = entityIDs[i];
                     if (checkedEntityIDs.indexOf(entityID) === -1) {
                         rootID = Entities.rootOf(entityID);
@@ -1435,7 +1435,7 @@
                             lengthJ = groupIDs.length;
                             while (doIncludeGroup && j < lengthJ) {
                                 doIncludeGroup = isInsideBoundingBox(groupIDs[j], boundingBox);
-                                j += 1;
+                                j++;
                             }
                             checkedEntityIDs = checkedEntityIDs.concat(groupIDs);
                             if (doIncludeGroup) {
@@ -1465,7 +1465,7 @@
             rootEntityIDs = groups.rootEntityIDs();
             if (rootEntityIDs.length > 0) {
                 selectInBoxSelection.select(rootEntityIDs[0]);
-                for (i = 1, length = rootEntityIDs.length; i < length; i += 1) {
+                for (i = 1, length = rootEntityIDs.length; i < length; i++) {
                     selectInBoxSelection.append(rootEntityIDs[i]);
                 }
             }

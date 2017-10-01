@@ -96,7 +96,7 @@ History = (function () {
         }
 
         history.push({ undoData: undoData, redoData: redoData });
-        undoPosition += 1;
+        undoPosition++;
 
         undoData = {};
         redoData = {};
@@ -112,7 +112,7 @@ History = (function () {
                 length;
 
             if (properties) {
-                for (i = 0, length = properties.length; i < length; i += 1) {
+                for (i = 0, length = properties.length; i < length; i++) {
                     if (properties[i].entityID === oldEntityID) {
                         properties[i].entityID = newEntityID;
                     }
@@ -123,7 +123,7 @@ History = (function () {
             }
         }
 
-        for (i = 0, length = history.length; i < length; i += 1) {
+        for (i = 0, length = history.length; i < length; i++) {
             if (history[i].undoData) {
                 updateEntityIDsInProperty(history[i].undoData.setProperties);
                 updateEntityIDsInProperty(history[i].undoData.createEntities);
@@ -155,14 +155,14 @@ History = (function () {
             undoData = history[undoPosition].undoData;
 
             if (undoData.createEntities) {
-                for (i = 0, length = undoData.createEntities.length; i < length; i += 1) {
+                for (i = 0, length = undoData.createEntities.length; i < length; i++) {
                     entityID = Entities.addEntity(undoData.createEntities[i].properties);
                     updateEntityIDs(undoData.createEntities[i].entityID, entityID);
                 }
             }
 
             if (undoData.setProperties) {
-                for (i = 0, length = undoData.setProperties.length; i < length; i += 1) {
+                for (i = 0, length = undoData.setProperties.length; i < length; i++) {
                     Entities.editEntity(undoData.setProperties[i].entityID, undoData.setProperties[i].properties);
                     if (undoData.setProperties[i].properties.gravity) {
                         kickPhysics(undoData.setProperties[i].entityID);
@@ -171,12 +171,12 @@ History = (function () {
             }
 
             if (undoData.deleteEntities) {
-                for (i = 0, length = undoData.deleteEntities.length; i < length; i += 1) {
+                for (i = 0, length = undoData.deleteEntities.length; i < length; i++) {
                     Entities.deleteEntity(undoData.deleteEntities[i].entityID);
                 }
             }
 
-            undoPosition -= 1;
+            undoPosition--;
         }
     }
 
@@ -191,14 +191,14 @@ History = (function () {
             redoData = history[undoPosition + 1].redoData;
 
             if (redoData.createEntities) {
-                for (i = 0, length = redoData.createEntities.length; i < length; i += 1) {
+                for (i = 0, length = redoData.createEntities.length; i < length; i++) {
                     entityID = Entities.addEntity(redoData.createEntities[i].properties);
                     updateEntityIDs(redoData.createEntities[i].entityID, entityID);
                 }
             }
 
             if (redoData.setProperties) {
-                for (i = 0, length = redoData.setProperties.length; i < length; i += 1) {
+                for (i = 0, length = redoData.setProperties.length; i < length; i++) {
                     Entities.editEntity(redoData.setProperties[i].entityID, redoData.setProperties[i].properties);
                     if (redoData.setProperties[i].properties.gravity) {
                         kickPhysics(redoData.setProperties[i].entityID);
@@ -207,12 +207,12 @@ History = (function () {
             }
 
             if (redoData.deleteEntities) {
-                for (i = 0, length = redoData.deleteEntities.length; i < length; i += 1) {
+                for (i = 0, length = redoData.deleteEntities.length; i < length; i++) {
                     Entities.deleteEntity(redoData.deleteEntities[i].entityID);
                 }
             }
 
-            undoPosition += 1;
+            undoPosition++;
         }
     }
 

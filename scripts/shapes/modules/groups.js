@@ -56,9 +56,9 @@ Groups = function () {
             j,
             lengthJ;
 
-        for (i = 0, lengthI = rootEntityIDs.length; i < lengthI; i += 1) {
+        for (i = 0, lengthI = rootEntityIDs.length; i < lengthI; i++) {
             if (excludes.indexOf(rootEntityIDs[i]) === -1) {
-                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j += 1) {
+                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j++) {
                     result.push(selections[i][j]);
                 }
             }
@@ -98,8 +98,8 @@ Groups = function () {
         // collisionless. (Don't need to worry about other groups physics properties because only those of the first entity in
         // the linkset are used by High Fidelity.) See Selection.applyPhysics().
         if (selections[0][0].dynamic) {
-            for (i = 1, lengthI = selections.length; i < lengthI; i += 1) {
-                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j += 1) {
+            for (i = 1, lengthI = selections.length; i < lengthI; i++) {
+                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j++) {
                     undoData.push({
                         entityID: selections[i][j].id,
                         properties: {
@@ -120,7 +120,7 @@ Groups = function () {
 
         // Make the first entity in the first group the root and link the first entities of all other groups to it.
         rootID = rootEntityIDs[0];
-        for (i = 1, lengthI = rootEntityIDs.length; i < lengthI; i += 1) {
+        for (i = 1, lengthI = rootEntityIDs.length; i < lengthI; i++) {
             undoData.push({
                 entityID: rootEntityIDs[i],
                 properties: { parentID: Uuid.NULL }
@@ -136,7 +136,7 @@ Groups = function () {
 
         // Update selection.
         rootEntityIDs.splice(1, rootEntityIDs.length - 1);
-        for (i = 1, lengthI = selections.length; i < lengthI; i += 1) {
+        for (i = 1, lengthI = selections.length; i < lengthI; i++) {
             selections[i][0].parentID = rootID;
             selections[0] = selections[0].concat(selections[i]);
         }
@@ -193,7 +193,7 @@ Groups = function () {
 
         // Compile information on immediate children.
         rootID = rootEntityIDs[0];
-        for (i = 1, lengthI = selections[0].length; i < lengthI; i += 1) {
+        for (i = 1, lengthI = selections[0].length; i < lengthI; i++) {
             if (selections[0][i].parentID === rootID) {
                 childrenIDs.push(selections[0][i].id);
                 childrenIndexes.push(i);
@@ -205,7 +205,7 @@ Groups = function () {
 
         // Unlink children.
         isUngroupAll = hasSoloChildren !== hasGroupChildren;
-        for (i = childrenIDs.length - 1; i >= 0; i -= 1) {
+        for (i = childrenIDs.length - 1; i >= 0; i--) {
             if (isUngroupAll || childrenIndexIsGroup[i]) {
                 undoData.push({
                     entityID: childrenIDs[i],
@@ -227,8 +227,8 @@ Groups = function () {
         // If root group has physics, reset child groups to defaults for dynamic and collisionless. See 
         // Selection.applyPhysics().
         if (selections[0][0].dynamic) {
-            for (i = 1, lengthI = selections.length; i < lengthI; i += 1) {
-                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j += 1) {
+            for (i = 1, lengthI = selections.length; i < lengthI; i++) {
+                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j++) {
                     undoData.push({
                         entityID: selections[i][j].id,
                         properties: {

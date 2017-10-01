@@ -187,7 +187,7 @@ Handles = function (side) {
         // At right-most and opposite corners of bounding box.
         cameraUp = Quat.getUp(Camera.orientation);
         maxCrossProductScale = 0;
-        for (i = 0; i < NUM_CORNERS; i += 1) {
+        for (i = 0; i < NUM_CORNERS; i++) {
             cornerPosition = Vec3.sum(boundingBoxCenter,
                 Vec3.multiplyQbyV(boundingBoxOrientation,
                     Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[i], boundingBoxDimensions)));
@@ -202,7 +202,7 @@ Handles = function (side) {
         cornerIndexes[0] = leftCornerIndex;
         cornerIndexes[1] = rightCornerIndex;
         cornerHandleDimensions = Vec3.multiply(distanceMultiplier, CORNER_HANDLE_OVERLAY_DIMENSIONS);
-        for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+        for (i = 0; i < NUM_CORNER_HANDLES; i++) {
             cornerHandleOverlays[i] = Overlays.addOverlay("sphere", {
                 parentID: rootEntityID,
                 localPosition: Vec3.sum(boundingBoxLocalCenter,
@@ -224,7 +224,7 @@ Handles = function (side) {
         if (!isMultipleEntities) {
             faceHandleDimensions = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_DIMENSIONS);
             faceHandleOffsets = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_OFFSETS);
-            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+            for (i = 0; i < NUM_FACE_HANDLES; i++) {
                 if (!isSuppressZAxis || FACE_HANDLE_OVERLAY_AXES[i].z === 0) {
                     faceHandleOverlays[i] = Overlays.addOverlay("shape", {
                         parentID: rootEntityID,
@@ -263,7 +263,7 @@ Handles = function (side) {
         });
 
         // Corner scale handles.
-        for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+        for (i = 0; i < NUM_CORNER_HANDLES; i++) {
             Overlays.editOverlay(cornerHandleOverlays[i], {
                 localPosition: Vec3.sum(scalingBoundingBoxDimensions,
                     Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[cornerIndexes[i]], scalingBoundingBoxLocalCenter))
@@ -272,7 +272,7 @@ Handles = function (side) {
 
         // Face scale handles.
         if (faceHandleOverlays.length > 0) {
-            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+            for (i = 0; i < NUM_FACE_HANDLES; i++) {
                 Overlays.editOverlay(faceHandleOverlays[i], {
                     localPosition: Vec3.sum(scalingBoundingBoxDimensions,
                         Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
@@ -314,7 +314,7 @@ Handles = function (side) {
             i,
             length;
 
-        for (i = 0, length = cornerHandleOverlays.length; i < length; i += 1) {
+        for (i = 0, length = cornerHandleOverlays.length; i < length; i++) {
             overlay = cornerHandleOverlays[i];
             Overlays.editOverlay(overlay, {
                 visible: isVisible && (isShowAll || overlay === overlayID),
@@ -323,7 +323,7 @@ Handles = function (side) {
             });
         }
 
-        for (i = 0, length = faceHandleOverlays.length; i < length; i += 1) {
+        for (i = 0, length = faceHandleOverlays.length; i < length; i++) {
             overlay = faceHandleOverlays[i];
             Overlays.editOverlay(overlay, {
                 visible: isVisible && (isShowAll || overlay === overlayID),
@@ -338,10 +338,10 @@ Handles = function (side) {
             length;
 
         Overlays.deleteOverlay(boundingBoxOverlay);
-        for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+        for (i = 0; i < NUM_CORNER_HANDLES; i++) {
             Overlays.deleteOverlay(cornerHandleOverlays[i]);
         }
-        for (i = 0, length = faceHandleOverlays.length; i < length; i += 1) {
+        for (i = 0, length = faceHandleOverlays.length; i < length; i++) {
             Overlays.deleteOverlay(faceHandleOverlays[i]);
         }
 

@@ -70,7 +70,7 @@ SelectionManager = function (side) {
         }
 
         children = Entities.getChildrenIDs(id);
-        for (i = 0, length = children.length; i < length; i += 1) {
+        for (i = 0, length = children.length; i < length; i++) {
             if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
                 traverseEntityTree(children[i], selection, selectionIDs, selectionProperties);
             }
@@ -164,7 +164,7 @@ SelectionManager = function (side) {
             min = Vec3.multiplyVbyV(Vec3.subtract(Vec3.ZERO, selection[0].registrationPoint), selection[0].dimensions);
             max = Vec3.multiplyVbyV(Vec3.subtract(Vec3.ONE, selection[0].registrationPoint), selection[0].dimensions);
             inverseOrientation = Quat.inverse(rootOrientation);
-            for (i = 1, length = selection.length; i < length; i += 1) {
+            for (i = 1, length = selection.length; i < length; i++) {
 
                 registration = selection[i].registrationPoint;
                 corners[0] = { x: -registration.x, y: -registration.y, z: -registration.z };
@@ -180,7 +180,7 @@ SelectionManager = function (side) {
                 rotation = selection[i].rotation;
                 dimensions = selection[i].dimensions;
 
-                for (j = 0; j < NUM_CORNERS; j += 1) {
+                for (j = 0; j < NUM_CORNERS; j++) {
                     // Corner position in world coordinates.
                     corners[j] = Vec3.sum(position, Vec3.multiplyQbyV(rotation, Vec3.multiplyVbyV(corners[j], dimensions)));
                     // Corner position in root entity coordinates.
@@ -247,7 +247,7 @@ SelectionManager = function (side) {
         startOrientation = selection[0].rotation;
 
         // Disable entity set's physics.
-        for (i = selection.length - 1; i >= 0; i -= 1) {
+        for (i = selection.length - 1; i >= 0; i--) {
             Entities.editEntity(selection[i].id, {
                 dynamic: false, // So that gravity doesn't fight with us trying to hold the entity in place.
                 collisionless: true, // So that entity doesn't bump us about as we resize the entity.
@@ -267,7 +267,7 @@ SelectionManager = function (side) {
 
         // Restore entity set's physics.
         // Note: Need to apply children-first in order to avoid children's relative positions sometimes drifting.
-        for (i = selection.length - 1; i >= 0; i -= 1) {
+        for (i = selection.length - 1; i >= 0; i--) {
             Entities.editEntity(selection[i].id, {
                 dynamic: selection[i].dynamic,
                 collisionless: selection[i].collisionless
@@ -360,7 +360,7 @@ SelectionManager = function (side) {
         });
 
         // Scale and position children.
-        for (i = 1, length = selection.length; i < length; i += 1) {
+        for (i = 1, length = selection.length; i < length; i++) {
             Entities.editEntity(selection[i].id, {
                 dimensions: Vec3.multiply(factor, selection[i].dimensions),
                 localPosition: Vec3.multiply(factor, selection[i].localPosition)
@@ -400,7 +400,7 @@ SelectionManager = function (side) {
         });
 
         // Final scale and position of children.
-        for (i = 1, length = selection.length; i < length; i += 1) {
+        for (i = 1, length = selection.length; i < length; i++) {
             undoData.push({
                 entityID: selection[i].id,
                 properties: {
@@ -473,7 +473,7 @@ SelectionManager = function (side) {
         // Scale and position children.
         // Only corner handles are used for scaling multiple entities so scale factor is the same in all dimensions.
         // Therefore don't need to take into account orientation relative to parent when scaling local position.
-        for (i = 1, length = selection.length; i < length; i += 1) {
+        for (i = 1, length = selection.length; i < length; i++) {
             Entities.editEntity(selection[i].id, {
                 dimensions: Vec3.multiplyVbyV(factor, selection[i].dimensions),
                 localPosition: Vec3.multiplyVbyV(factor, selection[i].localPosition)
@@ -513,7 +513,7 @@ SelectionManager = function (side) {
         });
 
         // Final scale and position of children.
-        for (i = 1, length = selection.length; i < length; i += 1) {
+        for (i = 1, length = selection.length; i < length; i++) {
             undoData.push({
                 entityID: selection[i].id,
                 properties: {
@@ -555,12 +555,12 @@ SelectionManager = function (side) {
             length;
 
         // Map parent IDs; find intersectedEntityID's index.
-        for (i = 1, length = selection.length; i < length; i += 1) {
+        for (i = 1, length = selection.length; i < length; i++) {
             if (selection[i].id === intersectedEntityID) {
                 intersectedEntityIndex = i;
             }
             parentID = selection[i].parentID;
-            for (j = 0; j < i; j += 1) {
+            for (j = 0; j < i; j++) {
                 if (parentID === selection[j].id) {
                     parentIDIndexes[i] = j;
                     break;
@@ -569,7 +569,7 @@ SelectionManager = function (side) {
         }
 
         // Clone entities.
-        for (i = 0, length = selection.length; i < length; i += 1) {
+        for (i = 0, length = selection.length; i < length; i++) {
             properties = Entities.getEntityProperties(selection[i].id);
             if (i > 0) {
                 properties.parentID = selection[parentIDIndexes[i]].id;
@@ -600,7 +600,7 @@ SelectionManager = function (side) {
             length;
 
         if (isApplyToAll) {
-            for (i = 0, length = selection.length; i < length; i += 1) {
+            for (i = 0, length = selection.length; i < length; i++) {
                 properties = Entities.getEntityProperties(selection[i].id, ["type", "color"]);
                 if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) !== -1) {
                     Entities.editEntity(selection[i].id, {
@@ -680,7 +680,7 @@ SelectionManager = function (side) {
             dynamic: physicsProperties.dynamic,
             collisionless: physicsProperties.dynamic || physicsProperties.collisionless
         };
-        for (i = 1, length = selection.length; i < length; i += 1) {
+        for (i = 1, length = selection.length; i < length; i++) {
             undoData.push({
                 entityID: selection[i].id,
                 properties: {
