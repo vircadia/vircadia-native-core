@@ -85,6 +85,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioPacketLoss, 0)
     STATS_PROPERTY(QString, audioCodec, QString())
     STATS_PROPERTY(QString, audioNoiseGate, QString())
+    STATS_PROPERTY(int, entityPacketsInKbps, 0)
 
     STATS_PROPERTY(int, downloads, 0)
     STATS_PROPERTY(int, downloadLimit, 0)
@@ -212,6 +213,7 @@ signals:
     void audioPacketLossChanged();
     void audioCodecChanged();
     void audioNoiseGateChanged();
+    void entityPacketsInKbpsChanged();
 
     void downloadsChanged();
     void downloadLimitChanged();
