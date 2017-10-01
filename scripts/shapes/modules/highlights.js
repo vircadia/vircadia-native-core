@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Highlights */
+/* global Highlights: true */
 
 Highlights = function (side) {
     // Draws highlights on selected entities.
@@ -28,7 +28,7 @@ Highlights = function (side) {
         HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 },
         LEFT_HAND = 0;
 
-    if (!this instanceof Highlights) {
+    if (!(this instanceof Highlights)) {
         return new Highlights();
     }
 

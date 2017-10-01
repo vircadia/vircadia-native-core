@@ -8,6 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* global Feedback, History */
+
 (function () {
 
     "use strict";
@@ -18,7 +20,7 @@
         APP_ICON_DISABLED = Script.resolvePath("./assets/shapes-d.svg"),
         ENABLED_CAPTION_COLOR_OVERRIDE = "",
         DISABLED_CAPTION_COLOR_OVERRIDE = "#888888",
-        START_DELAY = 2000,  // ms
+        START_DELAY = 2000, // ms
 
         // Application state
         isAppActive,
@@ -132,7 +134,7 @@
             intersection = {};
 
 
-        if (!this instanceof Inputs) {
+        if (!(this instanceof Inputs)) {
             return new Inputs();
         }
 
@@ -225,10 +227,9 @@
 
             isDisplaying = false,
 
-            getIntersection;  // Function.
+            getIntersection; // Function.
 
-
-        if (!this instanceof UI) {
+        if (!(this instanceof UI)) {
             return new UI();
         }
 
@@ -343,17 +344,17 @@
             handles,
 
             // References.
-            otherEditor,  // Other hand's Editor object.
+            otherEditor, // Other hand's Editor object.
             hand,
             laser,
 
             // Editor states.
             EDITOR_IDLE = 0,
             EDITOR_SEARCHING = 1,
-            EDITOR_HIGHLIGHTING = 2,  // Highlighting an entity (not hovering a handle).
+            EDITOR_HIGHLIGHTING = 2, // Highlighting an entity (not hovering a handle).
             EDITOR_GRABBING = 3,
-            EDITOR_DIRECT_SCALING = 4,  // Scaling data are sent to other editor's EDITOR_GRABBING state.
-            EDITOR_HANDLE_SCALING = 5,  // ""
+            EDITOR_DIRECT_SCALING = 4, // Scaling data are sent to other editor's EDITOR_GRABBING state.
+            EDITOR_HANDLE_SCALING = 5, // ""
             EDITOR_CLONING = 6,
             EDITOR_GROUPING = 7,
             EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING",
@@ -362,8 +363,8 @@
 
             // State machine.
             STATE_MACHINE,
-            intersectedEntityID = null,  // Intersected entity of highlighted entity set.
-            rootEntityID = null,  // Root entity of highlighted entity set.
+            intersectedEntityID = null, // Intersected entity of highlighted entity set.
+            rootEntityID = null, // Root entity of highlighted entity set.
             wasScaleTool = false,
             isOtherEditorEditingEntityID = false,
             isTriggerClicked = false,
@@ -380,8 +381,8 @@
 
             // Scaling values.
             isScalingWithHand = false,
-            isDirectScaling = false,  // Modifies EDITOR_GRABBING state.
-            isHandleScaling = false,  // ""
+            isDirectScaling = false, // Modifies EDITOR_GRABBING state.
+            isHandleScaling = false, // ""
             initialTargetsSeparation,
             initialtargetsDirection,
             otherTargetPosition,
@@ -394,12 +395,12 @@
             MIN_SCALE = 0.001,
             MIN_SCALE_HANDLE_DISTANCE = 0.0001,
 
-            getIntersection,  // Function.
+            getIntersection, // Function.
             intersection,
             isUIVisible = true;
 
 
-        if (!this instanceof Editor) {
+        if (!(this instanceof Editor)) {
             return new Editor();
         }
 
@@ -408,12 +409,12 @@
         handles = new Handles(side);
 
         function setReferences(inputs, editor) {
-            hand = inputs.hand();  // Object.
-            laser = inputs.laser();  // Object.
-            getIntersection = inputs.intersection;  // Function.
-            otherEditor = editor;  // Object.
+            hand = inputs.hand(); // Object.
+            laser = inputs.laser(); // Object.
+            getIntersection = inputs.intersection; // Function.
+            otherEditor = editor; // Object.
 
-            laserOffset = laser.handOffset();  // Value.
+            laserOffset = laser.handOffset(); // Value.
 
             highlights.setHandHighlightRadius(hand.getNearGrabRadius());
         }
@@ -546,8 +547,8 @@
 
             // Initial handle offset from center of selection.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
-            handleUnitScaleAxis = handles.scalingAxis(overlayID);  // Unit vector in direction of scaling.
-            handleScaleDirections = handles.scalingDirections(overlayID);  // Which axes to scale the selection on.
+            handleUnitScaleAxis = handles.scalingAxis(overlayID); // Unit vector in direction of scaling.
+            handleScaleDirections = handles.scalingDirections(overlayID); // Which axes to scale the selection on.
             scaleAxis = Vec3.multiplyQbyV(selectionPositionAndOrientation.orientation, handleUnitScaleAxis);
             handleTargetOffset = handles.handleOffset(overlayID)
                 + Vec3.dot(Vec3.subtract(otherTargetPosition, Overlays.getProperty(overlayID, "position")), scaleAxis);
@@ -571,7 +572,7 @@
             if (isHandleScaling) {
                 handles.finishScaling();
                 selection.finishHandleScaling();
-                handles.grab(null);  // Stop highlighting grabbed handle and resume displaying all handles.
+                handles.grab(null); // Stop highlighting grabbed handle and resume displaying all handles.
                 isHandleScaling = false;
             }
         }
@@ -733,7 +734,7 @@
         }
 
         function enterEditorGrabbing() {
-            selection.select(intersectedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            selection.select(intersectedEntityID); // For when transitioning from EDITOR_SEARCHING.
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
             } else {
@@ -769,7 +770,7 @@
         }
 
         function enterEditorDirectScaling() {
-            selection.select(intersectedEntityID);  // In case need to transition to EDITOR_GRABBING.
+            selection.select(intersectedEntityID); // In case need to transition to EDITOR_GRABBING.
             isScalingWithHand = intersection.handIntersected;
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
@@ -790,7 +791,7 @@
         }
 
         function enterEditorHandleScaling() {
-            selection.select(intersectedEntityID);  // In case need to transition to EDITOR_GRABBING.
+            selection.select(intersectedEntityID); // In case need to transition to EDITOR_GRABBING.
             isScalingWithHand = intersection.handIntersected;
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
@@ -812,7 +813,7 @@
 
         function enterEditorCloning() {
             Feedback.play(side, Feedback.CLONE_ENTITY);
-            selection.select(intersectedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            selection.select(intersectedEntityID); // For when transitioning from EDITOR_SEARCHING.
             selection.cloneEntities();
             intersectedEntityID = selection.intersectedEntityID();
             rootEntityID = selection.rootEntityID();
@@ -938,290 +939,290 @@
 
             // State update.
             switch (editorState) {
-            case EDITOR_IDLE:
-                if (!hand.valid()) {
-                    // No transition.
+                case EDITOR_IDLE:
+                    if (!hand.valid()) {
+                        // No transition.
+                        break;
+                    }
+                    setState(EDITOR_SEARCHING);
                     break;
-                }
-                setState(EDITOR_SEARCHING);
-                break;
-            case EDITOR_SEARCHING:
-                if (hand.valid()
-                        && !(intersection.overlayID && !wasTriggerClicked && isTriggerClicked
-                            && otherEditor.isHandle(intersection.overlayID))
-                        && !(intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                case EDITOR_SEARCHING:
+                    if (hand.valid()
+                            && !(intersection.overlayID && !wasTriggerClicked && isTriggerClicked
+                                && otherEditor.isHandle(intersection.overlayID))
+                            && !(intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                                && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab
+                                && (isTriggerPressed || isCameraOutsideEntity(intersection.entityID, hand.palmPosition())))
+                            && !(intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                                && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked)) {
+                        // No transition.
+                        updateState();
+                        updateTool();
+                        break;
+                    }
+                    if (!hand.valid()) {
+                        setState(EDITOR_IDLE);
+                    } else if (intersection.overlayID && !wasTriggerClicked && isTriggerClicked
+                            && otherEditor.isHandle(intersection.overlayID)) {
+                        intersectedEntityID = otherEditor.intersectedEntityID();
+                        rootEntityID = otherEditor.rootEntityID();
+                        setState(EDITOR_HANDLE_SCALING);
+                    } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
                             && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab
-                            && (isTriggerPressed || isCameraOutsideEntity(intersection.entityID, hand.palmPosition())))
-                        && !(intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
-                            && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked)) {
-                    // No transition.
-                    updateState();
-                    updateTool();
-                    break;
-                }
-                if (!hand.valid()) {
-                    setState(EDITOR_IDLE);
-                } else if (intersection.overlayID && !wasTriggerClicked && isTriggerClicked
-                        && otherEditor.isHandle(intersection.overlayID)) {
-                    intersectedEntityID = otherEditor.intersectedEntityID();
-                    rootEntityID = otherEditor.rootEntityID();
-                    setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
-                        && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab
-                        && (isTriggerPressed || isCameraOutsideEntity(intersection.entityID, hand.palmPosition()))) {
-                    intersectedEntityID = intersection.entityID;
-                    rootEntityID = Entities.rootOf(intersectedEntityID);
-                    setState(EDITOR_HIGHLIGHTING);
-                } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
-                        && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked) {
-                    intersectedEntityID = intersection.entityID;
-                    rootEntityID = Entities.rootOf(intersectedEntityID);
-                    if (otherEditor.isEditing(rootEntityID)) {
-                        if (toolSelected !== TOOL_SCALE) {
-                            setState(EDITOR_DIRECT_SCALING);
-                        }
-                    } else if (toolSelected === TOOL_CLONE) {
-                        setState(EDITOR_CLONING);
-                    } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
-                        setState(EDITOR_GROUPING);
-                    } else if (toolSelected === TOOL_COLOR) {
-                        setState(EDITOR_HIGHLIGHTING);
-                        if (selection.applyColor(colorToolColor, false)) {
-                            Feedback.play(side, Feedback.APPLY_PROPERTY);
-                        } else {
-                            Feedback.play(side, Feedback.APPLY_ERROR);
-                        }
-                    } else if (toolSelected === TOOL_PICK_COLOR) {
-                        color = selection.getColor(intersection.entityID);
-                        if (color) {
-                            colorToolColor = color;
-                            ui.doPickColor(colorToolColor);
-                        } else {
-                            Feedback.play(side, Feedback.APPLY_ERROR);
-                        }
-                        toolSelected = TOOL_COLOR;
-                        ui.setToolIcon(ui.COLOR_TOOL);
-                    } else if (toolSelected === TOOL_PHYSICS) {
-                        setState(EDITOR_HIGHLIGHTING);
-                        selection.applyPhysics(physicsToolPhysics);
-                    } else if (toolSelected === TOOL_DELETE) {
-                        setState(EDITOR_HIGHLIGHTING);
-                        Feedback.play(side, Feedback.DELETE_ENTITY);
-                        selection.deleteEntities();
-                        setState(EDITOR_SEARCHING);
-                    } else {
-                        setState(EDITOR_GRABBING);
-                    }
-                } else {
-                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_SEARCHING!");
-                }
-                break;
-            case EDITOR_HIGHLIGHTING:
-                if (hand.valid()
-                        && intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
-                            && (isTriggerPressed || isCameraOutsideEntity(intersection.entityID, hand.palmPosition()))
-                        && !(!wasTriggerClicked && isTriggerClicked
-                            && (!otherEditor.isEditing(rootEntityID) || toolSelected !== TOOL_SCALE))
-                        && !(!wasTriggerClicked && isTriggerClicked && intersection.overlayID
-                            && otherEditor.isHandle(intersection.overlayID))) {
-                    // No transition.
-                    doUpdateState = false;
-                    if (otherEditor.isEditing(rootEntityID) !== isOtherEditorEditingEntityID) {
-                        doUpdateState = true;
-                    }
-                    if (Entities.rootOf(intersection.entityID) !== rootEntityID) {
+                            && (isTriggerPressed || isCameraOutsideEntity(intersection.entityID, hand.palmPosition()))) {
                         intersectedEntityID = intersection.entityID;
                         rootEntityID = Entities.rootOf(intersectedEntityID);
-                        doUpdateState = true;
-                    }
-                    if ((toolSelected === TOOL_SCALE) !== wasScaleTool) {
-                        wasScaleTool = toolSelected === TOOL_SCALE;
-                        doUpdateState = true;
-                    }
-                    if (toolSelected === TOOL_COLOR && intersection.entityID !== intersectedEntityID) {
+                        setState(EDITOR_HIGHLIGHTING);
+                    } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                            && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked) {
                         intersectedEntityID = intersection.entityID;
-                        doUpdateState = true;
-                    }
-                    if ((toolSelected === TOOL_COLOR || toolSelected === TOOL_PHYSICS)
-                            && intersection.entityID !== intersectedEntityID) {
-                        intersectedEntityID = intersection.entityID;
-                        doUpdateState = true;
-                    }
-                    if (doUpdateState) {
-                        updateState();
-                    }
-                    updateTool();
-                    break;
-                }
-                if (!hand.valid()) {
-                    setState(EDITOR_IDLE);
-                } else if (intersection.overlayID && !wasTriggerClicked && isTriggerClicked
-                        && otherEditor.isHandle(intersection.overlayID)) {
-                    intersectedEntityID = otherEditor.intersectedEntityID();
-                    rootEntityID = otherEditor.rootEntityID();
-                    setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
-                        && !wasTriggerClicked && isTriggerClicked) {
-                    intersectedEntityID = intersection.entityID;  // May be a different entityID.
-                    rootEntityID = Entities.rootOf(intersectedEntityID);
-                    if (otherEditor.isEditing(rootEntityID)) {
-                        if (toolSelected !== TOOL_SCALE) {
-                            setState(EDITOR_DIRECT_SCALING);
-                        } else {
-                            log(side, "ERROR: Editor: Unexpected condition A in EDITOR_HIGHLIGHTING!");
-                        }
-                    } else if (toolSelected === TOOL_CLONE) {
-                        setState(EDITOR_CLONING);
-                    } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
-                        setState(EDITOR_GROUPING);
-                    } else if (toolSelected === TOOL_COLOR) {
-                        if (selection.applyColor(colorToolColor, false)) {
-                            Feedback.play(side, Feedback.APPLY_PROPERTY);
-                        } else {
-                            Feedback.play(side, Feedback.APPLY_ERROR);
-                        }
-                    } else if (toolSelected === TOOL_PICK_COLOR) {
-                        color = selection.getColor(intersection.entityID);
-                        if (color) {
-                            colorToolColor = color;
-                            ui.doPickColor(colorToolColor);
+                        rootEntityID = Entities.rootOf(intersectedEntityID);
+                        if (otherEditor.isEditing(rootEntityID)) {
+                            if (toolSelected !== TOOL_SCALE) {
+                                setState(EDITOR_DIRECT_SCALING);
+                            }
+                        } else if (toolSelected === TOOL_CLONE) {
+                            setState(EDITOR_CLONING);
+                        } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
+                            setState(EDITOR_GROUPING);
+                        } else if (toolSelected === TOOL_COLOR) {
+                            setState(EDITOR_HIGHLIGHTING);
+                            if (selection.applyColor(colorToolColor, false)) {
+                                Feedback.play(side, Feedback.APPLY_PROPERTY);
+                            } else {
+                                Feedback.play(side, Feedback.APPLY_ERROR);
+                            }
+                        } else if (toolSelected === TOOL_PICK_COLOR) {
+                            color = selection.getColor(intersection.entityID);
+                            if (color) {
+                                colorToolColor = color;
+                                ui.doPickColor(colorToolColor);
+                            } else {
+                                Feedback.play(side, Feedback.APPLY_ERROR);
+                            }
                             toolSelected = TOOL_COLOR;
                             ui.setToolIcon(ui.COLOR_TOOL);
+                        } else if (toolSelected === TOOL_PHYSICS) {
+                            setState(EDITOR_HIGHLIGHTING);
+                            selection.applyPhysics(physicsToolPhysics);
+                        } else if (toolSelected === TOOL_DELETE) {
+                            setState(EDITOR_HIGHLIGHTING);
+                            Feedback.play(side, Feedback.DELETE_ENTITY);
+                            selection.deleteEntities();
+                            setState(EDITOR_SEARCHING);
                         } else {
-                            Feedback.play(side, Feedback.APPLY_ERROR);
+                            setState(EDITOR_GRABBING);
                         }
-                    } else if (toolSelected === TOOL_PHYSICS) {
-                        selection.applyPhysics(physicsToolPhysics);
-                    } else if (toolSelected === TOOL_DELETE) {
-                        Feedback.play(side, Feedback.DELETE_ENTITY);
-                        selection.deleteEntities();
+                    } else {
+                        log(side, "ERROR: Editor: Unexpected condition in EDITOR_SEARCHING!");
+                    }
+                    break;
+                case EDITOR_HIGHLIGHTING:
+                    if (hand.valid()
+                            && intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                                && (isTriggerPressed || isCameraOutsideEntity(intersection.entityID, hand.palmPosition()))
+                            && !(!wasTriggerClicked && isTriggerClicked
+                                && (!otherEditor.isEditing(rootEntityID) || toolSelected !== TOOL_SCALE))
+                            && !(!wasTriggerClicked && isTriggerClicked && intersection.overlayID
+                                && otherEditor.isHandle(intersection.overlayID))) {
+                        // No transition.
+                        doUpdateState = false;
+                        if (otherEditor.isEditing(rootEntityID) !== isOtherEditorEditingEntityID) {
+                            doUpdateState = true;
+                        }
+                        if (Entities.rootOf(intersection.entityID) !== rootEntityID) {
+                            intersectedEntityID = intersection.entityID;
+                            rootEntityID = Entities.rootOf(intersectedEntityID);
+                            doUpdateState = true;
+                        }
+                        if ((toolSelected === TOOL_SCALE) !== wasScaleTool) {
+                            wasScaleTool = toolSelected === TOOL_SCALE;
+                            doUpdateState = true;
+                        }
+                        if (toolSelected === TOOL_COLOR && intersection.entityID !== intersectedEntityID) {
+                            intersectedEntityID = intersection.entityID;
+                            doUpdateState = true;
+                        }
+                        if ((toolSelected === TOOL_COLOR || toolSelected === TOOL_PHYSICS)
+                                && intersection.entityID !== intersectedEntityID) {
+                            intersectedEntityID = intersection.entityID;
+                            doUpdateState = true;
+                        }
+                        if (doUpdateState) {
+                            updateState();
+                        }
+                        updateTool();
+                        break;
+                    }
+                    if (!hand.valid()) {
+                        setState(EDITOR_IDLE);
+                    } else if (intersection.overlayID && !wasTriggerClicked && isTriggerClicked
+                            && otherEditor.isHandle(intersection.overlayID)) {
+                        intersectedEntityID = otherEditor.intersectedEntityID();
+                        rootEntityID = otherEditor.rootEntityID();
+                        setState(EDITOR_HANDLE_SCALING);
+                    } else if (intersection.entityID && (intersection.editableEntity || toolSelected === TOOL_PICK_COLOR)
+                            && !wasTriggerClicked && isTriggerClicked) {
+                        intersectedEntityID = intersection.entityID; // May be a different entityID.
+                        rootEntityID = Entities.rootOf(intersectedEntityID);
+                        if (otherEditor.isEditing(rootEntityID)) {
+                            if (toolSelected !== TOOL_SCALE) {
+                                setState(EDITOR_DIRECT_SCALING);
+                            } else {
+                                log(side, "ERROR: Editor: Unexpected condition A in EDITOR_HIGHLIGHTING!");
+                            }
+                        } else if (toolSelected === TOOL_CLONE) {
+                            setState(EDITOR_CLONING);
+                        } else if (toolSelected === TOOL_GROUP || toolSelected === TOOL_GROUP_BOX) {
+                            setState(EDITOR_GROUPING);
+                        } else if (toolSelected === TOOL_COLOR) {
+                            if (selection.applyColor(colorToolColor, false)) {
+                                Feedback.play(side, Feedback.APPLY_PROPERTY);
+                            } else {
+                                Feedback.play(side, Feedback.APPLY_ERROR);
+                            }
+                        } else if (toolSelected === TOOL_PICK_COLOR) {
+                            color = selection.getColor(intersection.entityID);
+                            if (color) {
+                                colorToolColor = color;
+                                ui.doPickColor(colorToolColor);
+                                toolSelected = TOOL_COLOR;
+                                ui.setToolIcon(ui.COLOR_TOOL);
+                            } else {
+                                Feedback.play(side, Feedback.APPLY_ERROR);
+                            }
+                        } else if (toolSelected === TOOL_PHYSICS) {
+                            selection.applyPhysics(physicsToolPhysics);
+                        } else if (toolSelected === TOOL_DELETE) {
+                            Feedback.play(side, Feedback.DELETE_ENTITY);
+                            selection.deleteEntities();
+                            setState(EDITOR_SEARCHING);
+                        } else {
+                            setState(EDITOR_GRABBING);
+                        }
+                    } else if (!intersection.entityID || !intersection.editableEntity
+                            || (!isTriggerPressed && !isCameraOutsideEntity(intersection.entityID, hand.palmPosition()))) {
                         setState(EDITOR_SEARCHING);
                     } else {
-                        setState(EDITOR_GRABBING);
+                        log(side, "ERROR: Editor: Unexpected condition B in EDITOR_HIGHLIGHTING!");
                     }
-                } else if (!intersection.entityID || !intersection.editableEntity
-                        || (!isTriggerPressed && !isCameraOutsideEntity(intersection.entityID, hand.palmPosition()))) {
-                    setState(EDITOR_SEARCHING);
-                } else {
-                    log(side, "ERROR: Editor: Unexpected condition B in EDITOR_HIGHLIGHTING!");
-                }
-                break;
-            case EDITOR_GRABBING:
-                if (hand.valid() && isTriggerClicked && !isGripClicked) {
-                    // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
-                    // No transition.
-                    if ((toolSelected === TOOL_SCALE) !== wasScaleTool) {
+                    break;
+                case EDITOR_GRABBING:
+                    if (hand.valid() && isTriggerClicked && !isGripClicked) {
+                        // Don't test  intersection.intersected because when scaling with handles intersection may lag behind.
+                        // No transition.
+                        if ((toolSelected === TOOL_SCALE) !== wasScaleTool) {
+                            updateState();
+                            wasScaleTool = toolSelected === TOOL_SCALE;
+                        }
+                        // updateTool();  Don't updateTool() because grip button is used to delete grabbed entity.
+                        break;
+                    }
+                    if (!hand.valid()) {
+                        setState(EDITOR_IDLE);
+                    } else if (!isTriggerClicked) {
+                        if (intersection.entityID && intersection.editableEntity) {
+                            intersectedEntityID = intersection.entityID;
+                            rootEntityID = Entities.rootOf(intersectedEntityID);
+                            setState(EDITOR_HIGHLIGHTING);
+                        } else {
+                            setState(EDITOR_SEARCHING);
+                        }
+                    } else if (isGripClicked) {
+                        if (!wasGripClicked) {
+                            Feedback.play(side, Feedback.DELETE_ENTITY);
+                            selection.deleteEntities();
+                            setState(EDITOR_SEARCHING);
+                        }
+                    } else {
+                        log(side, "ERROR: Editor: Unexpected condition in EDITOR_GRABBING!");
+                    }
+                    break;
+                case EDITOR_DIRECT_SCALING:
+                    if (hand.valid() && isTriggerClicked
+                            && (otherEditor.isEditing(rootEntityID) || otherEditor.isHandle(intersection.overlayID))) {
+                        // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
+                        // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed while 
+                        // scaling with two hands.
+                        // No transition.
                         updateState();
-                        wasScaleTool = toolSelected === TOOL_SCALE;
+                        // updateTool();  Don't updateTool() because this hand is currently using the scaling tool.
+                        break;
                     }
-                    //updateTool();  Don't updateTool() because grip button is used to delete grabbed entity.
+                    if (!hand.valid()) {
+                        setState(EDITOR_IDLE);
+                    } else if (!isTriggerClicked) {
+                        if (!intersection.entityID || !intersection.editableEntity) {
+                            setState(EDITOR_SEARCHING);
+                        } else {
+                            intersectedEntityID = intersection.entityID;
+                            rootEntityID = Entities.rootOf(intersectedEntityID);
+                            setState(EDITOR_HIGHLIGHTING);
+                        }
+                    } else if (!otherEditor.isEditing(rootEntityID)) {
+                        // Grab highlightEntityID that was scaling and has already been set.
+                        setState(EDITOR_GRABBING);
+                    } else {
+                        log(side, "ERROR: Editor: Unexpected condition in EDITOR_DIRECT_SCALING!");
+                    }
                     break;
-                }
-                if (!hand.valid()) {
-                    setState(EDITOR_IDLE);
-                } else if (!isTriggerClicked) {
-                    if (intersection.entityID && intersection.editableEntity) {
-                        intersectedEntityID = intersection.entityID;
-                        rootEntityID = Entities.rootOf(intersectedEntityID);
-                        setState(EDITOR_HIGHLIGHTING);
+                case EDITOR_HANDLE_SCALING:
+                    if (hand.valid() && isTriggerClicked && otherEditor.isEditing(rootEntityID)) {
+                        // Don't test intersection.intersected because when scaling with handles intersection may lag behind.
+                        // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed 
+                        // while scaling with two hands.
+                        // No transition.
+                        updateState();
+                        updateTool();
+                        break;
+                    }
+                    if (!hand.valid()) {
+                        setState(EDITOR_IDLE);
+                    } else if (!isTriggerClicked) {
+                        if (!intersection.entityID || !intersection.editableEntity) {
+                            setState(EDITOR_SEARCHING);
+                        } else {
+                            intersectedEntityID = intersection.entityID;
+                            rootEntityID = Entities.rootOf(intersectedEntityID);
+                            setState(EDITOR_HIGHLIGHTING);
+                        }
+                    } else if (!otherEditor.isEditing(rootEntityID)) {
+                        // Grab highlightEntityID that was scaling and has already been set.
+                        setState(EDITOR_GRABBING);
+                    } else {
+                        log(side, "ERROR: Editor: Unexpected condition in EDITOR_HANDLE_SCALING!");
+                    }
+                    break;
+                case EDITOR_CLONING:
+                    // Immediate transition out of state after cloning entities during state entry.
+                    if (hand.valid() && isTriggerClicked) {
+                        setState(EDITOR_GRABBING);
+                    } else if (!hand.valid()) {
+                        setState(EDITOR_IDLE);
+                    } else if (!isTriggerClicked) {
+                        if (intersection.entityID && intersection.editableEntity) {
+                            intersectedEntityID = intersection.entityID;
+                            rootEntityID = Entities.rootOf(intersectedEntityID);
+                            setState(EDITOR_HIGHLIGHTING);
+                        } else {
+                            setState(EDITOR_SEARCHING);
+                        }
+                    } else {
+                        log(side, "ERROR: Editor: Unexpected condition in EDITOR_CLONING!");
+                    }
+                    break;
+                case EDITOR_GROUPING:
+                    // Immediate transition out of state after updating group data during state entry.
+                    if (hand.valid() && isTriggerClicked) {
+                        // No transition.
+                        break;
+                    }
+                    if (!hand.valid()) {
+                        setState(EDITOR_IDLE);
                     } else {
                         setState(EDITOR_SEARCHING);
                     }
-                } else if (isGripClicked) {
-                    if (!wasGripClicked) {
-                        Feedback.play(side, Feedback.DELETE_ENTITY);
-                        selection.deleteEntities();
-                        setState(EDITOR_SEARCHING);
-                    }
-                } else {
-                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_GRABBING!");
-                }
-                break;
-            case EDITOR_DIRECT_SCALING:
-                if (hand.valid() && isTriggerClicked
-                        && (otherEditor.isEditing(rootEntityID) || otherEditor.isHandle(intersection.overlayID))) {
-                    // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
-                    // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed while 
-                    // scaling with two hands.
-                    // No transition.
-                    updateState();
-                    // updateTool();  Don't updateTool() because this hand is currently using the scaling tool.
                     break;
-                }
-                if (!hand.valid()) {
-                    setState(EDITOR_IDLE);
-                } else if (!isTriggerClicked) {
-                    if (!intersection.entityID || !intersection.editableEntity) {
-                        setState(EDITOR_SEARCHING);
-                    } else {
-                        intersectedEntityID = intersection.entityID;
-                        rootEntityID = Entities.rootOf(intersectedEntityID);
-                        setState(EDITOR_HIGHLIGHTING);
-                    }
-                } else if (!otherEditor.isEditing(rootEntityID)) {
-                    // Grab highlightEntityID that was scaling and has already been set.
-                    setState(EDITOR_GRABBING);
-                } else {
-                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_DIRECT_SCALING!");
-                }
-                break;
-            case EDITOR_HANDLE_SCALING:
-                if (hand.valid() && isTriggerClicked && otherEditor.isEditing(rootEntityID)) {
-                    // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
-                    // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed while 
-                    // scaling with two hands.
-                    // No transition.
-                    updateState();
-                    updateTool();
-                    break;
-                }
-                if (!hand.valid()) {
-                    setState(EDITOR_IDLE);
-                } else if (!isTriggerClicked) {
-                    if (!intersection.entityID || !intersection.editableEntity) {
-                        setState(EDITOR_SEARCHING);
-                    } else {
-                        intersectedEntityID = intersection.entityID;
-                        rootEntityID = Entities.rootOf(intersectedEntityID);
-                        setState(EDITOR_HIGHLIGHTING);
-                    }
-                } else if (!otherEditor.isEditing(rootEntityID)) {
-                    // Grab highlightEntityID that was scaling and has already been set.
-                    setState(EDITOR_GRABBING);
-                } else {
-                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_HANDLE_SCALING!");
-                }
-                break;
-            case EDITOR_CLONING:
-                // Immediate transition out of state after cloning entities during state entry.
-                if (hand.valid() && isTriggerClicked) {
-                    setState(EDITOR_GRABBING);
-                } else if (!hand.valid()) {
-                    setState(EDITOR_IDLE);
-                } else if (!isTriggerClicked) {
-                    if (intersection.entityID && intersection.editableEntity) {
-                        intersectedEntityID = intersection.entityID;
-                        rootEntityID = Entities.rootOf(intersectedEntityID);
-                        setState(EDITOR_HIGHLIGHTING);
-                    } else {
-                        setState(EDITOR_SEARCHING);
-                    }
-                } else {
-                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_CLONING!");
-                }
-                break;
-            case EDITOR_GROUPING:
-                // Immediate transition out of state after updating group data during state entry.
-                if (hand.valid() && isTriggerClicked) {
-                    // No transition.
-                    break;
-                }
-                if (!hand.valid()) {
-                    setState(EDITOR_IDLE);
-                } else {
-                    setState(EDITOR_SEARCHING);
-                }
-                break;
             }
 
             wasTriggerClicked = isTriggerClicked;
@@ -1235,15 +1236,15 @@
 
         function apply() {
             switch (editorState) {
-            case EDITOR_GRABBING:
-                if (isDirectScaling) {
-                    applyDirectScale();
-                } else if (isHandleScaling) {
-                    applyHandleScale();
-                } else {
-                    applyGrab();
-                }
-                break;
+                case EDITOR_GRABBING:
+                    if (isDirectScaling) {
+                        applyDirectScale();
+                    } else if (isHandleScaling) {
+                        applyHandleScale();
+                    } else {
+                        applyGrab();
+                    }
+                    break;
             }
         }
 
@@ -1302,8 +1303,8 @@
 
         var groups,
             highlights,
-            selectInBoxSelection,  // Selection of all entities selected.
-            groupSelection,  // New group to add to selection.
+            selectInBoxSelection, // Selection of all entities selected.
+            groupSelection, // New group to add to selection.
             exludedLeftRootEntityID = null,
             exludedrightRootEntityID = null,
             excludedRootEntityIDs = [],
@@ -1311,7 +1312,7 @@
             hasSelectionChanged = false,
             isSelectInBox = false;
 
-        if (!this instanceof Grouping) {
+        if (!(this instanceof Grouping)) {
             return new Grouping();
         }
 
@@ -1611,201 +1612,201 @@
 
     function onUICommand(command, parameter) {
         switch (command) {
-        case "scaleTool":
-            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
-            grouping.clear();
-            toolSelected = TOOL_SCALE;
-            ui.setToolIcon(ui.SCALE_TOOL);
-            ui.updateUIOverlays();
-            break;
-        case "cloneTool":
-            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
-            grouping.clear();
-            toolSelected = TOOL_CLONE;
-            ui.setToolIcon(ui.CLONE_TOOL);
-            ui.updateUIOverlays();
-            break;
-        case "groupTool":
-            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
-            toolSelected = TOOL_GROUP;
-            ui.setToolIcon(ui.GROUP_TOOL);
-            ui.updateUIOverlays();
-            break;
-        case "colorTool":
-            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
-            grouping.clear();
-            toolSelected = TOOL_COLOR;
-            ui.setToolIcon(ui.COLOR_TOOL);
-            colorToolColor = parameter;
-            ui.updateUIOverlays();
-            break;
-        case "pickColorTool":
-            if (parameter) {
+            case "scaleTool":
+                Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
                 grouping.clear();
-                toolSelected = TOOL_PICK_COLOR;
+                toolSelected = TOOL_SCALE;
+                ui.setToolIcon(ui.SCALE_TOOL);
                 ui.updateUIOverlays();
-            } else {
+                break;
+            case "cloneTool":
+                Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
+                grouping.clear();
+                toolSelected = TOOL_CLONE;
+                ui.setToolIcon(ui.CLONE_TOOL);
+                ui.updateUIOverlays();
+                break;
+            case "groupTool":
+                Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
+                toolSelected = TOOL_GROUP;
+                ui.setToolIcon(ui.GROUP_TOOL);
+                ui.updateUIOverlays();
+                break;
+            case "colorTool":
                 Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
                 grouping.clear();
                 toolSelected = TOOL_COLOR;
-                ui.updateUIOverlays();
-            }
-            break;
-        case "physicsTool":
-            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
-            grouping.clear();
-            toolSelected = TOOL_PHYSICS;
-            ui.setToolIcon(ui.PHYSICS_TOOL);
-            ui.updateUIOverlays();
-            break;
-        case "deleteTool":
-            Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
-            grouping.clear();
-            toolSelected = TOOL_DELETE;
-            ui.setToolIcon(ui.DELETE_TOOL);
-            ui.updateUIOverlays();
-            break;
-        case "clearTool":
-            Feedback.play(dominantHand, Feedback.DROP_TOOL);
-            grouping.clear();
-            toolSelected = TOOL_NONE;
-            ui.clearTool();
-            ui.updateUIOverlays();
-            break;
-
-        case "groupButton":
-            Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
-            grouping.group();
-            grouping.clear();
-            toolSelected = TOOL_NONE;
-            ui.clearTool();
-            ui.updateUIOverlays();
-            break;
-        case "ungroupButton":
-            Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
-            grouping.ungroup();
-            grouping.clear();
-            toolSelected = TOOL_NONE;
-            ui.clearTool();
-            ui.updateUIOverlays();
-            break;
-        case "toggleGroupSelectionBoxTool":
-            toolSelected = parameter ? TOOL_GROUP_BOX : TOOL_GROUP;
-            if (toolSelected === TOOL_GROUP_BOX) {
-                grouping.startSelectInBox();
-            } else {
-                grouping.stopSelectInBox();
-            }
-            break;
-        case "clearGroupSelectionTool":
-            if (grouping.groupsCount() > 0) {
-                Feedback.play(dominantHand, Feedback.SELECT_ENTITY);
-            }
-            grouping.clear();
-            if (toolSelected === TOOL_GROUP_BOX) {
-                grouping.startSelectInBox();
-            }
-            break;
-
-        case "setColor":
-            if (toolSelected === TOOL_PICK_COLOR) {
-                toolSelected = TOOL_COLOR;
                 ui.setToolIcon(ui.COLOR_TOOL);
-            }
-            colorToolColor = parameter;
-            break;
-
-        case "setGravityOn":
-            // Dynamic is true if the entity has gravity or is grabbable.
-            if (parameter) {
-                physicsToolPhysics.gravity = { x: 0, y: physicsToolGravity, z: 0 };
-                physicsToolPhysics.dynamic = true;
-            } else {
-                physicsToolPhysics.gravity = Vec3.ZERO;
-                physicsToolPhysics.dynamic = physicsToolPhysics.userData.grabbableKey.grabbable === true;
-            }
-            break;
-        case "setGrabOn":
-            // Dynamic is true if the entity has gravity or is grabbable.
-            physicsToolPhysics.userData.grabbableKey.grabbable = parameter;
-            physicsToolPhysics.dynamic = parameter
-                || (physicsToolPhysics.gravity && Vec3.length(physicsToolPhysics.gravity) > 0);
-            break;
-        case "setCollideOn":
-            if (parameter) {
-                physicsToolPhysics.collisionless = false;
-                physicsToolPhysics.collidesWith = "static,dynamic,kinematic,myAvatar,otherAvatar";
-            } else {
-                physicsToolPhysics.collisionless = true;
-                physicsToolPhysics.collidesWith = "";
-            }
-            break;
-
-        case "setGravity":
-            if (parameter !== undefined) {
-                // Power range 0.0, 0.5, 1.0 maps to -50.0, -9.80665, 50.0.
-                physicsToolGravity = 82.36785162 * Math.pow(2.214065901, parameter) - 132.36785;
-                if (physicsToolPhysics.dynamic === true) {  // Only apply if gravity is turned on.
-                    physicsToolPhysics.gravity = { x: 0, y: physicsToolGravity, z: 0 };
+                colorToolColor = parameter;
+                ui.updateUIOverlays();
+                break;
+            case "pickColorTool":
+                if (parameter) {
+                    grouping.clear();
+                    toolSelected = TOOL_PICK_COLOR;
+                    ui.updateUIOverlays();
+                } else {
+                    Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
+                    grouping.clear();
+                    toolSelected = TOOL_COLOR;
+                    ui.updateUIOverlays();
                 }
-            }
-            break;
-        case "setBounce":
-            if (parameter !== undefined) {
-                // Linear range from 0.0, 0.5, 1.0 maps to 0.0, 0.5, 1.0;
-                physicsToolPhysics.restitution = parameter;
-            }
-            break;
-        case "setFriction":
-            if (parameter !== undefined) {
-                // Power range 0.0, 0.5, 1.0 maps to 0, 0.39, 1.0.
-                physicsToolPhysics.damping = 0.69136364 * Math.pow(2.446416831, parameter) - 0.691364;
-                // Power range 0.0, 0.5, 1.0 maps to 0, 0.3935, 1.0.
-                physicsToolPhysics.angularDamping = 0.72695892 * Math.pow(2.375594, parameter) - 0.726959;
-                // Linear range from 0.0, 0.5, 1.0 maps to 0.0, 0.5, 1.0;
-                physicsToolPhysics.friction = parameter;
-            }
-            break;
-        case "setDensity":
-            if (parameter !== undefined) {
-                // Power range 0.0, 0.5, 1.0 maps to 100, 1000, 10000.
-                physicsToolPhysics.density = Math.pow(10, 2 + 2 * parameter);
-            }
-            break;
+                break;
+            case "physicsTool":
+                Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
+                grouping.clear();
+                toolSelected = TOOL_PHYSICS;
+                ui.setToolIcon(ui.PHYSICS_TOOL);
+                ui.updateUIOverlays();
+                break;
+            case "deleteTool":
+                Feedback.play(dominantHand, Feedback.EQUIP_TOOL);
+                grouping.clear();
+                toolSelected = TOOL_DELETE;
+                ui.setToolIcon(ui.DELETE_TOOL);
+                ui.updateUIOverlays();
+                break;
+            case "clearTool":
+                Feedback.play(dominantHand, Feedback.DROP_TOOL);
+                grouping.clear();
+                toolSelected = TOOL_NONE;
+                ui.clearTool();
+                ui.updateUIOverlays();
+                break;
 
-        case "autoGrab":
-            if (dominantHand === LEFT_HAND) {
-                editors[LEFT_HAND].enableAutoGrab();
-            } else {
-                editors[RIGHT_HAND].enableAutoGrab();
-            }
-            break;
+            case "groupButton":
+                Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
+                grouping.group();
+                grouping.clear();
+                toolSelected = TOOL_NONE;
+                ui.clearTool();
+                ui.updateUIOverlays();
+                break;
+            case "ungroupButton":
+                Feedback.play(dominantHand, Feedback.APPLY_PROPERTY);
+                grouping.ungroup();
+                grouping.clear();
+                toolSelected = TOOL_NONE;
+                ui.clearTool();
+                ui.updateUIOverlays();
+                break;
+            case "toggleGroupSelectionBoxTool":
+                toolSelected = parameter ? TOOL_GROUP_BOX : TOOL_GROUP;
+                if (toolSelected === TOOL_GROUP_BOX) {
+                    grouping.startSelectInBox();
+                } else {
+                    grouping.stopSelectInBox();
+                }
+                break;
+            case "clearGroupSelectionTool":
+                if (grouping.groupsCount() > 0) {
+                    Feedback.play(dominantHand, Feedback.SELECT_ENTITY);
+                }
+                grouping.clear();
+                if (toolSelected === TOOL_GROUP_BOX) {
+                    grouping.startSelectInBox();
+                }
+                break;
 
-        case "undoAction":
-            if (History.hasUndo()) {
-                Feedback.play(dominantHand, Feedback.UNDO_ACTION);
-                History.undo();
-            } else {
-                Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
-            }
-            break;
-        case "redoAction":
-            if (History.hasRedo()) {
-                Feedback.play(dominantHand, Feedback.REDO_ACTION);
-                History.redo();
-            } else {
-                Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
-            }
-            break;
+            case "setColor":
+                if (toolSelected === TOOL_PICK_COLOR) {
+                    toolSelected = TOOL_COLOR;
+                    ui.setToolIcon(ui.COLOR_TOOL);
+                }
+                colorToolColor = parameter;
+                break;
 
-        default:
-            log("ERROR: Unexpected command in onUICommand(): " + command + ", " + parameter);
+            case "setGravityOn":
+                // Dynamic is true if the entity has gravity or is grabbable.
+                if (parameter) {
+                    physicsToolPhysics.gravity = { x: 0, y: physicsToolGravity, z: 0 };
+                    physicsToolPhysics.dynamic = true;
+                } else {
+                    physicsToolPhysics.gravity = Vec3.ZERO;
+                    physicsToolPhysics.dynamic = physicsToolPhysics.userData.grabbableKey.grabbable === true;
+                }
+                break;
+            case "setGrabOn":
+                // Dynamic is true if the entity has gravity or is grabbable.
+                physicsToolPhysics.userData.grabbableKey.grabbable = parameter;
+                physicsToolPhysics.dynamic = parameter
+                    || (physicsToolPhysics.gravity && Vec3.length(physicsToolPhysics.gravity) > 0);
+                break;
+            case "setCollideOn":
+                if (parameter) {
+                    physicsToolPhysics.collisionless = false;
+                    physicsToolPhysics.collidesWith = "static,dynamic,kinematic,myAvatar,otherAvatar";
+                } else {
+                    physicsToolPhysics.collisionless = true;
+                    physicsToolPhysics.collidesWith = "";
+                }
+                break;
+
+            case "setGravity":
+                if (parameter !== undefined) {
+                    // Power range 0.0, 0.5, 1.0 maps to -50.0, -9.80665, 50.0.
+                    physicsToolGravity = 82.36785162 * Math.pow(2.214065901, parameter) - 132.36785;
+                    if (physicsToolPhysics.dynamic === true) { // Only apply if gravity is turned on.
+                        physicsToolPhysics.gravity = { x: 0, y: physicsToolGravity, z: 0 };
+                    }
+                }
+                break;
+            case "setBounce":
+                if (parameter !== undefined) {
+                    // Linear range from 0.0, 0.5, 1.0 maps to 0.0, 0.5, 1.0;
+                    physicsToolPhysics.restitution = parameter;
+                }
+                break;
+            case "setFriction":
+                if (parameter !== undefined) {
+                    // Power range 0.0, 0.5, 1.0 maps to 0, 0.39, 1.0.
+                    physicsToolPhysics.damping = 0.69136364 * Math.pow(2.446416831, parameter) - 0.691364;
+                    // Power range 0.0, 0.5, 1.0 maps to 0, 0.3935, 1.0.
+                    physicsToolPhysics.angularDamping = 0.72695892 * Math.pow(2.375594, parameter) - 0.726959;
+                    // Linear range from 0.0, 0.5, 1.0 maps to 0.0, 0.5, 1.0;
+                    physicsToolPhysics.friction = parameter;
+                }
+                break;
+            case "setDensity":
+                if (parameter !== undefined) {
+                    // Power range 0.0, 0.5, 1.0 maps to 100, 1000, 10000.
+                    physicsToolPhysics.density = Math.pow(10, 2 + 2 * parameter);
+                }
+                break;
+
+            case "autoGrab":
+                if (dominantHand === LEFT_HAND) {
+                    editors[LEFT_HAND].enableAutoGrab();
+                } else {
+                    editors[RIGHT_HAND].enableAutoGrab();
+                }
+                break;
+
+            case "undoAction":
+                if (History.hasUndo()) {
+                    Feedback.play(dominantHand, Feedback.UNDO_ACTION);
+                    History.undo();
+                } else {
+                    Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
+                }
+                break;
+            case "redoAction":
+                if (History.hasRedo()) {
+                    Feedback.play(dominantHand, Feedback.REDO_ACTION);
+                    History.redo();
+                } else {
+                    Feedback.play(dominantHand, Feedback.GENERAL_ERROR);
+                }
+                break;
+
+            default:
+                log("ERROR: Unexpected command in onUICommand(): " + command + ", " + parameter);
         }
     }
 
     function startApp() {
         ui.display();
-        update();  // Start main update loop.
+        update(); // Start main update loop.
     }
 
     function stopApp() {
@@ -1823,9 +1824,9 @@
 
     function onAppButtonClicked() {
         var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications",
-            EDIT_ERROR = 4,  // Per notifications.js.
+            EDIT_ERROR = 4, // Per notifications.js.
             INSUFFICIENT_PERMISSIONS_ERROR_MSG =
-                "You do not have the necessary permissions to edit on this domain.";  // Same as edit.js.
+                "You do not have the necessary permissions to edit on this domain."; // Same as edit.js.
 
         // Application tablet/toolbar button clicked.
         if (!isAppActive && !(Entities.canRez() || Entities.canRezTmp())) {
@@ -2030,6 +2031,6 @@
         tablet = null;
     }
 
-    Script.setTimeout(setUp, START_DELAY);  // Delay start so that Entities.canRez() work; button is enabled correctly.
+    Script.setTimeout(setUp, START_DELAY); // Delay start so that Entities.canRez() work; button is enabled correctly.
     Script.scriptEnding.connect(tearDown);
 }());

@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Groups */
+/* global Groups:true, App, History */
 
 Groups = function () {
     // Groups and ungroups trees of entities.
@@ -19,7 +19,7 @@ Groups = function () {
         selections = [],
         entitiesSelectedCount = 0;
 
-    if (!this instanceof Groups) {
+    if (!(this instanceof Groups)) {
         return new Groups();
     }
 
@@ -200,7 +200,7 @@ Groups = function () {
                 updateGroupInformation();
             }
         }
-        childrenIndexes.push(selections[0].length);  // Special extra item at end to aid updating selection.
+        childrenIndexes.push(selections[0].length); // Special extra item at end to aid updating selection.
         updateGroupInformation();
 
         // Unlink children.

@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global UIT */
+/* global UIT:true */
 
 UIT = (function () {
     // User Interface Toolkit. Global object.
@@ -32,10 +32,10 @@ UIT = (function () {
         // Coordinate system: UI lies in x-y plane with the front surface being +z.
         // Offsets are relative to parents' centers.
         dimensions: {
-            canvas: { x: 0.24, y: 0.296 },  // Overall UI size.
-            canvasSeparation: 0.004,  // Gap between Tools menu and Create panel.
-            handOffset: 0.085,  // Distance from hand (wrist) joint to center of canvas.
-            handLateralOffset: 0.01,  // Offset of UI in direction of palm normal.
+            canvas: { x: 0.24, y: 0.296 }, // Overall UI size.
+            canvasSeparation: 0.004, // Gap between Tools menu and Create panel.
+            handOffset: 0.085, // Distance from hand (wrist) joint to center of canvas.
+            handLateralOffset: 0.01, // Offset of UI in direction of palm normal.
 
             topMargin: 0.010,
             leftMargin: 0.0118,
@@ -47,24 +47,24 @@ UIT = (function () {
             panel: { x: 0.24, y: 0.236, z: 0.008 },
             footerHeight: 0.056,
 
-            itemCollisionZone: { x: 0.0481, y: 0.0480, z: 0.0040 },  // Cursor intersection zone for Tools and Create items.
+            itemCollisionZone: { x: 0.0481, y: 0.0480, z: 0.0040 }, // Cursor intersection zone for Tools and Create items.
 
-            buttonDimensions: { x: 0.2164, y: 0.0840, z: 0.0040 },  // Default size of large single options button.
+            buttonDimensions: { x: 0.2164, y: 0.0840, z: 0.0040 }, // Default size of large single options button.
 
             menuButtonDimensions: { x: 0.0267, y: 0.0267, z: 0.0040 },
-            menuButtonIconOffset: { x: 0, y: 0.00935, z: -0.0040 },  // Non-hovered position relative to itemCollisionZone.
-            menuButtonLabelYOffset: -0.00915,  // Relative to itemCollisionZone.
-            menuButtonSublabelYOffset: -0.01775,  // Relative to itemCollisionZone.
+            menuButtonIconOffset: { x: 0, y: 0.00935, z: -0.0040 }, // Non-hovered position relative to itemCollisionZone.
+            menuButtonLabelYOffset: -0.00915, // Relative to itemCollisionZone.
+            menuButtonSublabelYOffset: -0.01775, // Relative to itemCollisionZone.
 
             paletteItemButtonDimensions: { x: 0.0481, y: 0.0480, z: 0.0020 },
-            paletteItemButtonOffset: { x: 0, y: 0, z: -0.0020 },  // Non-hovered position relative to itemCollisionZone.
+            paletteItemButtonOffset: { x: 0, y: 0, z: -0.0020 }, // Non-hovered position relative to itemCollisionZone.
             paletteItemButtonHoveredOffset: { x: 0, y: 0, z: -0.0010 },
             paletteItemIconDimensions: { x: 0.024, y: 0.024, z: 0.024 },
-            paletteItemIconOffset: { x: 0, y: 0, z: 0.015 },  // Non-hovered position relative to palette button.
+            paletteItemIconOffset: { x: 0, y: 0, z: 0.015 }, // Non-hovered position relative to palette button.
 
             horizontalRuleHeight : 0.0004,
 
-            imageOverlayOffset: 0.001  // Raise image above surface.
+            imageOverlayOffset: 0.001 // Raise image above surface.
         }
     };
 }());

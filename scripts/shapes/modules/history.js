@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global History */
+/* global History: true */
 
 History = (function () {
     // Provides undo facility.
@@ -46,14 +46,14 @@ History = (function () {
             */
         ],
         MAX_HISTORY_ITEMS = 1000,
-        undoPosition = -1,  // The next history item to undo; the next history item to redo = undoIndex + 1.
+        undoPosition = -1, // The next history item to undo; the next history item to redo = undoIndex + 1.
         undoData = {},
         redoData = {};
 
     function doKick(entityID) {
         var properties,
-            NO_KICK_ENTITY_TYPES = ["Text", "Web", "PolyLine", "ParticleEffect"],  // Don't respond to gravity so don't kick.
-            DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+            NO_KICK_ENTITY_TYPES = ["Text", "Web", "PolyLine", "ParticleEffect"], // Don't respond to gravity so don't kick.
+            DYNAMIC_VELOCITY_THRESHOLD = 0.05, // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.1, z: 0 };
 
         properties = Entities.getEntityProperties(entityID, ["type", "dynamic", "gravity", "velocity"]);
@@ -65,10 +65,12 @@ History = (function () {
 
     function kickPhysics(entityID) {
         // Gives entities a small kick to start off physics, if necessary.
-        var KICK_DELAY = 500;  // ms
+        var KICK_DELAY = 500; // ms
 
         // Give physics a chance to catch up. Avoids some erratic behavior.
-        Script.setTimeout(function () { doKick(entityID); }, KICK_DELAY);
+        Script.setTimeout(function () { 
+            doKick(entityID);
+        }, KICK_DELAY);
     }
 
     function prePush(undo, redo) {

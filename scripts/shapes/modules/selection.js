@@ -8,24 +8,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global SelectionManager */
+/* global SelectionManager:true, App, History */
 
 SelectionManager = function (side) {
     // Manages set of selected entities. Currently supports just one set of linked entities.
 
     "use strict";
 
-    var selection = [],  // Subset of properties to provide externally.
+    var selection = [], // Subset of properties to provide externally.
         selectionIDs = [],
-        selectionProperties = [],  // Full set of properties for history.
+        selectionProperties = [], // Full set of properties for history.
         intersectedEntityID = null,
         intersectedEntityIndex,
         rootEntityID = null,
         rootPosition,
         rootOrientation,
         scaleFactor,
-        scalePosition,
-        scaleOrientation,
         scaleRootOffset,
         scaleRootOrientation,
         startPosition,
@@ -35,11 +33,9 @@ SelectionManager = function (side) {
         ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "PolyLine"],
         ENTITY_TYPES_2D = ["Text", "Web"],
         MIN_HISTORY_MOVE_DISTANCE = 0.005,
-        MIN_HISTORY_ROTATE_ANGLE = 0.017453;  // Radians = 1 degree.
+        MIN_HISTORY_ROTATE_ANGLE = 0.017453; // Radians = 1 degree.
 
-
-
-    if (!this instanceof SelectionManager) {
+    if (!(this instanceof SelectionManager)) {
         return new SelectionManager(side);
     }
 
@@ -217,8 +213,8 @@ SelectionManager = function (side) {
 
     function doKick(entityID) {
         var properties,
-            NO_KICK_ENTITY_TYPES = ["Text", "Web", "PolyLine", "ParticleEffect"],  // Don't respond to gravity so don't kick.
-            DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+            NO_KICK_ENTITY_TYPES = ["Text", "Web", "PolyLine", "ParticleEffect"], // Don't respond to gravity so don't kick.
+            DYNAMIC_VELOCITY_THRESHOLD = 0.05, // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.1, z: 0 };
 
         if (entityID === rootEntityID && isEditing) {
@@ -235,10 +231,12 @@ SelectionManager = function (side) {
 
     function kickPhysics(entityID) {
         // Gives entities a small kick to start off physics, if necessary.
-        var KICK_DELAY = 500;  // ms
+        var KICK_DELAY = 500; // ms
 
         // Give physics a chance to catch up. Avoids some erratic behavior.
-        Script.setTimeout(function () { doKick(entityID); }, KICK_DELAY);
+        Script.setTimeout(function () {
+            doKick(entityID);
+        }, KICK_DELAY);
     }
 
     function startEditing() {
@@ -249,13 +247,12 @@ SelectionManager = function (side) {
         startOrientation = selection[0].rotation;
 
         // Disable entity set's physics.
-        //for (i = 0, count = selection.length; i < count; i += 1) {
         for (i = selection.length - 1; i >= 0; i -= 1) {
             Entities.editEntity(selection[i].id, {
-                dynamic: false,  // So that gravity doesn't fight with us trying to hold the entity in place.
-                collisionless: true,  // So that entity doesn't bump us about as we resize the entity.
-                velocity: Vec3.ZERO,  // So that entity doesn't drift if we've grabbed a set while it was moving.
-                angularVelocity: Vec3.ZERO  // ""
+                dynamic: false, // So that gravity doesn't fight with us trying to hold the entity in place.
+                collisionless: true, // So that entity doesn't bump us about as we resize the entity.
+                velocity: Vec3.ZERO, // So that entity doesn't drift if we've grabbed a set while it was moving.
+                angularVelocity: Vec3.ZERO // ""
             });
         }
 
@@ -483,10 +480,8 @@ SelectionManager = function (side) {
             });
         }
 
-        // Save most recent scale parameters.
+        // Save most recent scale factor.
         scaleFactor = factor;
-        scalePosition = position;
-        scaleOrientation = orientation;
     }
 
     function finishHandleScaling() {
@@ -756,7 +751,7 @@ SelectionManager = function (side) {
     function deleteEntities() {
         if (rootEntityID) {
             History.push({ createEntities: selectionProperties }, { deleteEntities: [{ entityID: rootEntityID }] });
-            Entities.deleteEntity(rootEntityID);  // Children are automatically deleted.
+            Entities.deleteEntity(rootEntityID); // Children are automatically deleted.
             clear();
         }
     }

@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global App, ToolsMenu */
+/* global ToolsMenu: true, App, Feedback, UIT */
 
 ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
@@ -36,11 +36,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuEnabled = [],
 
         optionsOverlays = [],
-        optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
-        optionsOverlaysLabels = [],  // Overlay IDs of labels for optionsOverlays.
-        optionsOverlaysSublabels = [],  // Overlay IDs of sublabels for optionsOverlays.
-        optionsSliderData = [],  // Uses same index values as optionsOverlays.
-        optionsColorData = [],  // Uses same index values as optionsOverlays.
+        optionsOverlaysIDs = [], // Text ids (names) of options overlays.
+        optionsOverlaysLabels = [], // Overlay IDs of labels for optionsOverlays.
+        optionsOverlaysSublabels = [], // Overlay IDs of sublabels for optionsOverlays.
+        optionsSliderData = [], // Uses same index values as optionsOverlays.
+        optionsColorData = [], // Uses same index values as optionsOverlays.
         optionsExtraOverlays = [],
         optionsEnabled = [],
         optionsSettings = {
@@ -51,7 +51,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             //  For reliable access, use the values from optionsSettings rather than doing Settings.getValue() - Settings values
             //  are not necessarily updated instantaneously.
         },
-        optionsToggles = {},  // Cater for toggle buttons without a setting.
+        optionsToggles = {}, // Cater for toggle buttons without a setting.
 
         footerOverlays = [],
         footerHoverOverlays = [],
@@ -92,23 +92,23 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         MENU_HEADER_PROPERTIES = {
             // Invisible box to catch laser intersections while menu heading and bar move inside.
-            dimensions: Vec3.sum(UIT.dimensions.header, MENU_HEADER_HOVER_OFFSET),  // Keep the laser on top when hover.
+            dimensions: Vec3.sum(UIT.dimensions.header, MENU_HEADER_HOVER_OFFSET), // Keep the laser on top when hover.
             localPosition: {
                 x: 0,
                 y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y / 2,
                 z: UIT.dimensions.header.z / 2 + MENU_HEADER_HOVER_OFFSET.z / 2
             },
             localRotation: Quat.ZERO,
-            alpha: 0.0,  // Invisible
+            alpha: 0.0, // Invisible
             solid: true,
             ignoreRayIntersection: false,
-            visible: true  // Catch laser intersections.
+            visible: true // Catch laser intersections.
         },
 
         MENU_HEADER_HEADING_PROPERTIES = {
             url: Script.resolvePath("../assets/gray-header.fbx"),
             highlightURL: Script.resolvePath("../assets/green-header.fbx"),
-            dimensions: UIT.dimensions.headerHeading,  // Model is in rotated coordinate system but can override.
+            dimensions: UIT.dimensions.headerHeading, // Model is in rotated coordinate system but can override.
             localPosition: { x: 0, y: UIT.dimensions.headerBar.y / 2, z: -MENU_HEADER_HOVER_OFFSET.z / 2 },
             localRotation: Quat.ZERO,
             alpha: 1.0,
@@ -119,7 +119,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         MENU_HEADER_BAR_PROPERTIES = {
             url: Script.resolvePath("../assets/green-header-bar.fbx"),
-            dimensions: UIT.dimensions.headerBar,  // Model is in rotated coordinate system but can override.
+            dimensions: UIT.dimensions.headerBar, // Model is in rotated coordinate system but can override.
             localPosition: { x: 0, y: -UIT.dimensions.headerHeading.y / 2 - UIT.dimensions.headerBar.y / 2, z: 0 },
             localRotation: Quat.ZERO,
             alpha: 1.0,
@@ -173,9 +173,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         MENU_HEADER_ICON_PROPERTIES = {
-            url: Script.resolvePath("../assets/tools/color-icon.svg"),  // Initial value so that the overlay is initialized OK.
-            dimensions: { x: 0.01, y: 0.01 },       // ""
-            localPosition: Vec3.ZERO,               // ""
+            url: Script.resolvePath("../assets/tools/color-icon.svg"), // Initial value so that the overlay is initialized OK.
+            dimensions: { x: 0.01, y: 0.01 }, // Ditto.
+            localPosition: Vec3.ZERO, // Ditto.
             localRotation: Quat.ZERO,
             color: UIT.colors.lightGrayText,
             alpha: 1.0,
@@ -201,14 +201,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         UI_ELEMENTS = {
             "menuButton": {
-                overlay: "cube",  // Invisible cube for hit area.
+                overlay: "cube", // Invisible cube for hit area.
                 properties: {
                     dimensions: UIT.dimensions.itemCollisionZone,
                     localRotation: Quat.ZERO,
-                    alpha: 0.0,  // Invisible.
+                    alpha: 0.0, // Invisible.
                     solid: true,
                     ignoreRayIntersection: false,
-                    visible: true  // So that laser intersects.
+                    visible: true // So that laser intersects.
                 },
                 hoverButton: {
                     overlay: "shape",
@@ -223,7 +223,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: -90 }),
                         color: UIT.colors.greenHighlight,
                         alpha: 1.0,
-                        emissive: true,  // TODO: This has no effect.
+                        emissive: true, // TODO: This has no effect.
                         solid: true,
                         ignoreRayIntersection: true,
                         visible: false
@@ -334,7 +334,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: { x: 0.0294, y: UIT.dimensions.buttonDimensions.z, z: 0.0294 },
                     localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: -90 }),
                     color: EMPTY_SWATCH_COLOR,
-                    emissive: true,  // TODO: This has no effect.
+                    emissive: true, // TODO: This has no effect.
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: false,
@@ -353,10 +353,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         y: UIT.dimensions.buttonDimensions.z,
                         z: 0.0294 + SWATCH_HIGHLIGHT_DELTA
                     },
-                    localRotation: Quat.ZERO,  // Relative to swatch.
+                    localRotation: Quat.ZERO, // Relative to swatch.
                     localPosition: { x: 0, y: -0.0001, z: 0 },
                     color: UIT.colors.faintGray,
-                    emissive: true,  // TODO: This has no effect.
+                    emissive: true, // TODO: This has no effect.
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: true,
@@ -365,7 +365,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
             },
             "square": {
-                overlay: "cube",  // Emulate a 2D square with a cube.
+                overlay: "cube", // Emulate a 2D square with a cube.
                 properties: {
                     localRotation: Quat.ZERO,
                     color: UIT.colors.baseGrayShadow,
@@ -420,10 +420,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     dimensions: { x: 0.02, y: 0.1, z: 0.01 },
                     localRotation: Quat.ZERO,
-                    alpha: 0.0,  // Invisible.
+                    alpha: 0.0, // Invisible.
                     solid: true,
                     ignoreRayIntersection: false,
-                    visible: true  // Catch laser intersections.
+                    visible: true // Catch laser intersections.
                 },
                 label: {
                     // Relative to barSlider.
@@ -470,7 +470,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 }
             },
-            "imageSlider": {  // Values range between 0.0 and 1.0.
+            "imageSlider": { // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.0160, y: 0.1229, z: UIT.dimensions.buttonDimensions.z },
@@ -542,7 +542,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.white
                 }
             },
-            "picklistItem": {  // Note: When using, declare before picklist item that it's being used in.
+            "picklistItem": { // Note: When using, declare before picklist item that it's being used in.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
@@ -571,21 +571,21 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         PICKLIST_HOVER_DELTA = { x: 0, y: 0, z: 0.006 },
         BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.002 },
 
-        MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
+        MIN_BAR_SLIDER_DIMENSION = 0.0001, // Avoid visual artifact for 0 slider values.
 
         PHYSICS_SLIDER_PRESETS = {
             // Slider values in the range 0.0 to 1.0.
             // Note: Friction values give the desired linear and angular damping values but friction values are a somewhat out,
             // especially for the balloon.
-            presetDefault:    { gravity: 0.5,      bounce: 0.5,  friction: 0.5,      density: 0.5      },
-            presetLead:       { gravity: 0.5,      bounce: 0.0,  friction: 0.5,      density: 1.0      },
-            presetWood:       { gravity: 0.5,      bounce: 0.4,  friction: 0.5,      density: 0.5      },
-            presetIce:        { gravity: 0.5,      bounce: 0.99, friction: 0.151004, density: 0.349485 },
-            presetRubber:     { gravity: 0.5,      bounce: 0.99, friction: 0.5,      density: 0.5      },
-            presetCotton:     { gravity: 0.587303, bounce: 0.0,  friction: 0.931878, density: 0.0      },
-            presetTumbleweed: { gravity: 0.595893, bounce: 0.7,  friction: 0.5,      density: 0.0      },
-            presetZeroG:      { gravity: 0.596844, bounce: 0.5,  friction: 0.5,      density: 0.5      },
-            presetBalloon:    { gravity: 0.606313, bounce: 0.99, friction: 0.151004, density: 0.0      }
+            presetDefault:    { gravity: 0.5, bounce: 0.5, friction: 0.5, density: 0.5 },
+            presetLead:       { gravity: 0.5, bounce: 0.0, friction: 0.5, density: 1.0 },
+            presetWood:       { gravity: 0.5, bounce: 0.4, friction: 0.5, density: 0.5 },
+            presetIce:        { gravity: 0.5, bounce: 0.99, friction: 0.151004, density: 0.349485 },
+            presetRubber:     { gravity: 0.5, bounce: 0.99, friction: 0.5, density: 0.5 },
+            presetCotton:     { gravity: 0.587303, bounce: 0.0, friction: 0.931878, density: 0.0 },
+            presetTumbleweed: { gravity: 0.595893, bounce: 0.7, friction: 0.5, density: 0.0 },
+            presetZeroG:      { gravity: 0.596844, bounce: 0.5, friction: 0.5, density: 0.5 },
+            presetBalloon:    { gravity: 0.606313, bounce: 0.99, friction: 0.151004, density: 0.0 }
         },
 
         OPTONS_PANELS = {
@@ -893,7 +893,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
-                        color: UIT.colors.white  // Icon SVG is already lightGray color.
+                        color: UIT.colors.white // Icon SVG is already lightGray color.
                     }
                 },
                 {
@@ -902,7 +902,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: Script.resolvePath("../assets/tools/stretch/info-text.svg"),
                         scale: 0.1340,
-                        localPosition: {  // Vertically center on info icon.
+                        localPosition: { // Vertically center on info icon.
                             x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
                             y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
@@ -1146,7 +1146,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         },
                         url: Script.resolvePath("../assets/tools/physics/buttons/off-label.svg"),
                         scale: 0.0104,
-                        color: UIT.colors.white  // SVG has gray color.
+                        color: UIT.colors.white // SVG has gray color.
                     },
                     onSublabel: {
                         url: Script.resolvePath("../assets/tools/physics/buttons/on-label.svg"),
@@ -1194,7 +1194,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         },
                         url: Script.resolvePath("../assets/tools/physics/buttons/off-label.svg"),
                         scale: 0.0104,
-                        color: UIT.colors.white  // SVG has gray color.
+                        color: UIT.colors.white // SVG has gray color.
                     },
                     onSublabel: {
                         url: Script.resolvePath("../assets/tools/physics/buttons/on-label.svg"),
@@ -1242,7 +1242,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         },
                         url: Script.resolvePath("../assets/tools/physics/buttons/off-label.svg"),
                         scale: 0.0104,
-                        color: UIT.colors.white  // SVG has gray color.
+                        color: UIT.colors.white // SVG has gray color.
                     },
                     onSublabel: {
                         url: Script.resolvePath("../assets/tools/physics/buttons/on-label.svg"),
@@ -1445,7 +1445,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             y: 0,
                             z: UIT.dimensions.buttonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
-                        color: UIT.colors.white  // SVG is colored baseGrayHighlight
+                        color: UIT.colors.white // SVG is colored baseGrayHighlight
                     },
                     customLabel: {
                         url: Script.resolvePath("../assets/tools/physics/presets/custom-label.svg"),
@@ -1659,7 +1659,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                             y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0320 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
                         },
-                        color: UIT.colors.white  // Icon SVG is already lightGray color.
+                        color: UIT.colors.white // Icon SVG is already lightGray color.
                     }
                 },
                 {
@@ -1668,7 +1668,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: Script.resolvePath("../assets/tools/delete/info-text.svg"),
                         scale: 0.1416,
-                        localPosition: {  // Vertically off-center w.r.t. info icon.
+                        localPosition: { // Vertically off-center w.r.t. info icon.
                             x: -UIT.dimensions.panel.x / 2 + 0.0679 + 0.1340 / 2,
                             y: -UIT.dimensions.panel.y / 2 + 0.0200 + 0.0240 / 2 + 0.0063 / 2 + UIT.dimensions.footerHeight,
                             z: UIT.dimensions.panel.z / 2 + UIT.dimensions.imageOverlayOffset
@@ -1913,7 +1913,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             }
         ],
-        COLOR_TOOL = 0,  // Indexes of corresponding MENU_ITEMS item.
+        COLOR_TOOL = 0, // Indexes of corresponding MENU_ITEMS item.
         SCALE_TOOL = 1,
         CLONE_TOOL = 2,
         GROUP_TOOL = 3,
@@ -1938,7 +1938,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     localPosition: {
                         x: MENU_ITEM_XS[2],
-                        y: MENU_ITEM_YS[3] - 0.008,  // Allow space for horizontal rule and Line up with Create palette row.
+                        y: MENU_ITEM_YS[3] - 0.008, // Allow space for horizontal rule and Line up with Create palette row.
                         z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
                     }
                 },
@@ -2033,8 +2033,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Forward declarations.
         doCommand;
 
-
-    if (!this instanceof ToolsMenu) {
+    if (!(this instanceof ToolsMenu)) {
         return new ToolsMenu();
     }
 
@@ -2232,7 +2231,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 }
             } else if (optionsItems[i].type === "toggleButton") {
-                optionsToggles[optionsItems[i].id] = false;  // Default to off.
+                optionsToggles[optionsItems[i].id] = false; // Default to off.
             }
 
             optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
@@ -2307,7 +2306,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = optionsItems[i].imageURL;
                     childProperties.dimensions = { x: properties.dimensions.x, y: properties.dimensions.y };
-                    imageOffset += 2 * IMAGE_OFFSET;  // Double offset to prevent clipping against background.
+                    imageOffset += 2 * IMAGE_OFFSET; // Double offset to prevent clipping against background.
                     if (optionsItems[i].useBaseColor) {
                         childProperties.color = properties.color;
                     }
@@ -2358,7 +2357,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties = Object.clone(UI_ELEMENTS.image.properties);
                     childProperties.url = optionsItems[i].imageURL;
                     childProperties.scale = properties.dimensions.x;
-                    imageOffset += 2 * IMAGE_OFFSET;  // Double offset to prevent clipping against background.
+                    imageOffset += 2 * IMAGE_OFFSET; // Double offset to prevent clipping against background.
                     childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                     childProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
@@ -2690,252 +2689,252 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         switch (command) {
 
-        case "setPickColor":
-            setColorPicker(parameter);
-            break;
+            case "setPickColor":
+                setColorPicker(parameter);
+                break;
 
-        case "setColorPerCircle":
-            hsvControl.hsv.h = parameter.h;
-            hsvControl.hsv.s = parameter.s;
-            updateColorSlider();
-            value = hsvToRGB(hsvControl.hsv);
-            setCurrentColor(value);
-            uiCommandCallback("setColor", value);
-            break;
-
-        case "setColorPerSlider":
-            hsvControl.hsv.v = parameter;
-            updateColorCircle();
-            value = hsvToRGB(hsvControl.hsv);
-            setCurrentColor(value);
-            uiCommandCallback("setColor", value);
-            break;
-
-        case "setColorPerSwatch":
-            index = optionsOverlaysIDs.indexOf(parameter);
-            value = optionsSettings[parameter].value;
-            if (value !== "") {
-                // Set current color to swatch color.
+            case "setColorPerCircle":
+                hsvControl.hsv.h = parameter.h;
+                hsvControl.hsv.s = parameter.s;
+                updateColorSlider();
+                value = hsvToRGB(hsvControl.hsv);
                 setCurrentColor(value);
-                setColorPicker(value);
                 uiCommandCallback("setColor", value);
-            } else {
-                // Swatch has no color; set swatch color to current color.
-                value = optionsSettings.currentColor.value;
+                break;
+
+            case "setColorPerSlider":
+                hsvControl.hsv.v = parameter;
+                updateColorCircle();
+                value = hsvToRGB(hsvControl.hsv);
+                setCurrentColor(value);
+                uiCommandCallback("setColor", value);
+                break;
+
+            case "setColorPerSwatch":
+                index = optionsOverlaysIDs.indexOf(parameter);
+                value = optionsSettings[parameter].value;
+                if (value !== "") {
+                    // Set current color to swatch color.
+                    setCurrentColor(value);
+                    setColorPicker(value);
+                    uiCommandCallback("setColor", value);
+                } else {
+                    // Swatch has no color; set swatch color to current color.
+                    value = optionsSettings.currentColor.value;
+                    Overlays.editOverlay(optionsOverlays[index], {
+                        color: value
+                    });
+                    optionsSettings[parameter].value = value;
+                    Settings.setValue(optionsSettings[parameter].key, value);
+                }
+                break;
+
+            case "togglePickColor":
+                optionsToggles.pickColor = !optionsToggles.pickColor;
+                index = optionsOverlaysIDs.indexOf("pickColor");
+                Overlays.editOverlay(optionsOverlays[index], {
+                    color: optionsToggles.pickColor
+                        ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
+                        : UI_ELEMENTS[optionsItems[index].type].offHoverColor
+                });
+                uiCommandCallback("pickColorTool", optionsToggles.pickColor);
+                break;
+
+            case "setColorFromPick":
+                optionsToggles.pickColor = false;
+                index = optionsOverlaysIDs.indexOf("pickColor");
+                Overlays.editOverlay(optionsOverlays[index], {
+                    color: UI_ELEMENTS[optionsItems[index].type].offColor
+                });
+                setCurrentColor(parameter);
+                setColorPicker(parameter);
+                break;
+
+            case "toggleGroupSelectionBox":
+                optionsToggles.groupSelectionBoxButton = !optionsToggles.groupSelectionBoxButton;
+                index = optionsOverlaysIDs.indexOf("groupSelectionBoxButton");
+                Overlays.editOverlay(optionsOverlays[index], {
+                    color: optionsToggles.groupSelectionBoxButton
+                        ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
+                        : UI_ELEMENTS[optionsItems[index].type].offHoverColor
+                });
+                uiCommandCallback("toggleGroupSelectionBoxTool", optionsToggles.groupSelectionBoxButton);
+                break;
+
+            case "clearGroupSelection":
+                index = clearGroupingButtonIndex;
+                Overlays.editOverlay(optionsOverlays[index], {
+                    color: optionsItems[index].properties.color
+                });
+                Overlays.editOverlay(optionsOverlaysLabels[index], {
+                    color: optionsItems[index].label.color
+                });
+                optionsEnabled[index] = false;
+                uiCommandCallback("clearGroupSelectionTool");
+                break;
+
+            case "setGravityOn":
+            case "setGrabOn":
+            case "setCollideOn":
+                value = !optionsSettings[parameter].value;
+                optionsSettings[parameter].value = value;
+                optionsToggles[parameter] = value;
+                Settings.setValue(optionsSettings[parameter].key, value);
+                index = optionsOverlaysIDs.indexOf(parameter);
                 Overlays.editOverlay(optionsOverlays[index], {
                     color: value
+                        ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
+                        : UI_ELEMENTS[optionsItems[index].type].offHoverColor
                 });
-                optionsSettings[parameter].value = value;
-                Settings.setValue(optionsSettings[parameter].key, value);
-            }
-            break;
+                properties = Object.clone(value ? optionsItems[index].onSublabel : optionsItems[index].offSublabel);
+                Overlays.editOverlay(optionsOverlaysSublabels[index], properties);
+                uiCommandCallback(command, value);
+                break;
 
-        case "togglePickColor":
-            optionsToggles.pickColor = !optionsToggles.pickColor;
-            index = optionsOverlaysIDs.indexOf("pickColor");
-            Overlays.editOverlay(optionsOverlays[index], {
-                color: optionsToggles.pickColor
-                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
-                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
-            });
-            uiCommandCallback("pickColorTool", optionsToggles.pickColor);
-            break;
+            case "togglePhysicsPresets":
+                if (isPicklistOpen) {
+                    // Close picklist.
+                    index = optionsOverlaysIDs.indexOf("physicsPresets");
 
-        case "setColorFromPick":
-            optionsToggles.pickColor = false;
-            index = optionsOverlaysIDs.indexOf("pickColor");
-            Overlays.editOverlay(optionsOverlays[index], {
-                color: UI_ELEMENTS[optionsItems[index].type].offColor
-            });
-            setCurrentColor(parameter);
-            setColorPicker(parameter);
-            break;
+                    // Lower picklist.
+                    isHighlightingPicklist = hoveredElementType === "picklist";
+                    Overlays.editOverlay(optionsOverlays[index], {
+                        localPosition: isHighlightingPicklist
+                            ? Vec3.sum(optionsItems[index].properties.localPosition, OPTION_HOVER_DELTA)
+                            : optionsItems[index].properties.localPosition,
+                        color: isHighlightingPicklist
+                            ? UIT.colors.highlightColor
+                            : UI_ELEMENTS.picklist.properties.color
+                    });
+                    Overlays.editOverlay(optionsOverlaysSublabels[index], {
+                        url: PICKLIST_DOWN_ARROW
+                    });
 
-        case "toggleGroupSelectionBox":
-            optionsToggles.groupSelectionBoxButton = !optionsToggles.groupSelectionBoxButton;
-            index = optionsOverlaysIDs.indexOf("groupSelectionBoxButton");
-            Overlays.editOverlay(optionsOverlays[index], {
-                color: optionsToggles.groupSelectionBoxButton
-                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
-                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
-            });
-            uiCommandCallback("toggleGroupSelectionBoxTool", optionsToggles.groupSelectionBoxButton);
-            break;
+                    // Hide options.
+                    items = optionsItems[index].items;
+                    for (i = 0, length = items.length; i < length; i += 1) {
+                        index = optionsOverlaysIDs.indexOf(items[i]);
+                        Overlays.editOverlay(optionsOverlays[index], {
+                            localPosition: Vec3.ZERO,
+                            visible: false
+                        });
+                        Overlays.editOverlay(optionsOverlaysLabels[index], {
+                            visible: false
+                        });
+                    }
+                }
 
-        case "clearGroupSelection":
-            index = clearGroupingButtonIndex;
-            Overlays.editOverlay(optionsOverlays[index], {
-                color: optionsItems[index].properties.color
-            });
-            Overlays.editOverlay(optionsOverlaysLabels[index], {
-                color: optionsItems[index].label.color
-            });
-            optionsEnabled[index] = false;
-            uiCommandCallback("clearGroupSelectionTool");
-            break;
+                isPicklistOpen = !isPicklistOpen;
 
-        case "setGravityOn":
-        case "setGrabOn":
-        case "setCollideOn":
-            value = !optionsSettings[parameter].value;
-            optionsSettings[parameter].value = value;
-            optionsToggles[parameter] = value;
-            Settings.setValue(optionsSettings[parameter].key, value);
-            index = optionsOverlaysIDs.indexOf(parameter);
-            Overlays.editOverlay(optionsOverlays[index], {
-                color: value
-                    ? UI_ELEMENTS[optionsItems[index].type].onHoverColor
-                    : UI_ELEMENTS[optionsItems[index].type].offHoverColor
-            });
-            properties = Object.clone(value ? optionsItems[index].onSublabel : optionsItems[index].offSublabel);
-            Overlays.editOverlay(optionsOverlaysSublabels[index], properties);
-            uiCommandCallback(command, value);
-            break;
+                if (isPicklistOpen) {
+                    // Open picklist.
+                    index = optionsOverlaysIDs.indexOf("physicsPresets");
+                    parentID = optionsOverlays[index];
 
-        case "togglePhysicsPresets":
-            if (isPicklistOpen) {
+                    // Raise picklist.
+                    Overlays.editOverlay(parentID, {
+                        localPosition: Vec3.sum(optionsItems[index].properties.localPosition, PICKLIST_HOVER_DELTA)
+                    });
+                    Overlays.editOverlay(optionsOverlaysSublabels[index], {
+                        url: PICKLIST_UP_ARROW
+                    });
+
+                    // Show options.
+                    items = optionsItems[index].items;
+                    for (i = 0, length = items.length; i < length; i += 1) {
+                        index = optionsOverlaysIDs.indexOf(items[i]);
+                        Overlays.editOverlay(optionsOverlays[index], {
+                            parentID: parentID,
+                            localPosition: { x: 0, y: (i + 1) * UI_ELEMENTS.picklistItem.properties.dimensions.y, z: 0 },
+                            visible: true
+                        });
+                        Overlays.editOverlay(optionsOverlaysLabels[index], {
+                            visible: true
+                        });
+                    }
+                }
+                break;
+
+            case "pickPhysicsPreset":
                 // Close picklist.
-                index = optionsOverlaysIDs.indexOf("physicsPresets");
+                doCommand("togglePhysicsPresets");
 
-                // Lower picklist.
-                isHighlightingPicklist = hoveredElementType === "picklist";
-                Overlays.editOverlay(optionsOverlays[index], {
-                    localPosition: isHighlightingPicklist
-                        ? Vec3.sum(optionsItems[index].properties.localPosition, OPTION_HOVER_DELTA)
-                        : optionsItems[index].properties.localPosition,
-                    color: isHighlightingPicklist
-                        ? UIT.colors.highlightColor
-                        : UI_ELEMENTS.picklist.properties.color
+                // Update picklist label.
+                label = optionsItems[optionsOverlaysIDs.indexOf(parameter)].label;
+                Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("physicsPresets")], {
+                    url: label.url,
+                    scale: label.scale,
+                    localPosition: label.localPosition
                 });
-                Overlays.editOverlay(optionsOverlaysSublabels[index], {
-                    url: PICKLIST_DOWN_ARROW
-                });
+                optionsSettings.physicsPresets.value = parameter;
+                Settings.setValue(optionsSettings.physicsPresets.key, parameter);
 
-                // Hide options.
-                items = optionsItems[index].items;
-                for (i = 0, length = items.length; i < length; i += 1) {
-                    index = optionsOverlaysIDs.indexOf(items[i]);
-                    Overlays.editOverlay(optionsOverlays[index], {
-                        localPosition: Vec3.ZERO,
-                        visible: false
-                    });
-                    Overlays.editOverlay(optionsOverlaysLabels[index], {
-                        visible: false
-                    });
-                }
-            }
+                // Update sliders.
+                values = PHYSICS_SLIDER_PRESETS[parameter];
+                setBarSliderValue(optionsOverlaysIDs.indexOf("gravitySlider"), values.gravity);
+                Settings.setValue(optionsSettings.gravitySlider.key, values.gravity);
+                uiCommandCallback("setGravity", values.gravity);
+                setBarSliderValue(optionsOverlaysIDs.indexOf("bounceSlider"), values.bounce);
+                Settings.setValue(optionsSettings.bounceSlider.key, values.bounce);
+                uiCommandCallback("setBounce", values.bounce);
+                setBarSliderValue(optionsOverlaysIDs.indexOf("frictionSlider"), values.friction);
+                Settings.setValue(optionsSettings.frictionSlider.key, values.friction);
+                uiCommandCallback("setFriction", values.friction);
+                setBarSliderValue(optionsOverlaysIDs.indexOf("densitySlider"), values.density);
+                Settings.setValue(optionsSettings.densitySlider.key, values.density);
+                uiCommandCallback("setDensity", values.density);
 
-            isPicklistOpen = !isPicklistOpen;
+                break;
 
-            if (isPicklistOpen) {
-                // Open picklist.
-                index = optionsOverlaysIDs.indexOf("physicsPresets");
-                parentID = optionsOverlays[index];
+            case "setGravity":
+                setPresetsLabelToCustom();
+                Settings.setValue(optionsSettings.gravitySlider.key, parameter);
+                uiCommandCallback("setGravity", parameter);
+                break;
+            case "setBounce":
+                setPresetsLabelToCustom();
+                Settings.setValue(optionsSettings.bounceSlider.key, parameter);
+                uiCommandCallback("setBounce", parameter);
+                break;
+            case "setFriction":
+                setPresetsLabelToCustom();
+                Settings.setValue(optionsSettings.frictionSlider.key, parameter);
+                uiCommandCallback("setFriction", parameter);
+                break;
+            case "setDensity":
+                setPresetsLabelToCustom();
+                Settings.setValue(optionsSettings.densitySlider.key, parameter);
+                uiCommandCallback("setDensity", parameter);
+                break;
 
-                // Raise picklist.
-                Overlays.editOverlay(parentID, {
-                    localPosition: Vec3.sum(optionsItems[index].properties.localPosition, PICKLIST_HOVER_DELTA)
-                });
-                Overlays.editOverlay(optionsOverlaysSublabels[index], {
-                    url: PICKLIST_UP_ARROW
-                });
+            case "closeOptions":
+                closeOptions();
+                openMenu();
+                break;
 
-                // Show options.
-                items = optionsItems[index].items;
-                for (i = 0, length = items.length; i < length; i += 1) {
-                    index = optionsOverlaysIDs.indexOf(items[i]);
-                    Overlays.editOverlay(optionsOverlays[index], {
-                        parentID: parentID,
-                        localPosition: { x: 0, y: (i + 1) * UI_ELEMENTS.picklistItem.properties.dimensions.y, z: 0 },
-                        visible: true
-                    });
-                    Overlays.editOverlay(optionsOverlaysLabels[index], {
-                        visible: true
-                    });
-                }
-            }
-            break;
+            case "clearTool":
+                uiCommandCallback("clearTool");
+                break;
 
-        case "pickPhysicsPreset":
-            // Close picklist.
-            doCommand("togglePhysicsPresets");
-
-            // Update picklist label.
-            label = optionsItems[optionsOverlaysIDs.indexOf(parameter)].label;
-            Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("physicsPresets")], {
-                url: label.url,
-                scale: label.scale,
-                localPosition: label.localPosition
-            });
-            optionsSettings.physicsPresets.value = parameter;
-            Settings.setValue(optionsSettings.physicsPresets.key, parameter);
-
-            // Update sliders.
-            values = PHYSICS_SLIDER_PRESETS[parameter];
-            setBarSliderValue(optionsOverlaysIDs.indexOf("gravitySlider"), values.gravity);
-            Settings.setValue(optionsSettings.gravitySlider.key, values.gravity);
-            uiCommandCallback("setGravity", values.gravity);
-            setBarSliderValue(optionsOverlaysIDs.indexOf("bounceSlider"), values.bounce);
-            Settings.setValue(optionsSettings.bounceSlider.key, values.bounce);
-            uiCommandCallback("setBounce", values.bounce);
-            setBarSliderValue(optionsOverlaysIDs.indexOf("frictionSlider"), values.friction);
-            Settings.setValue(optionsSettings.frictionSlider.key, values.friction);
-            uiCommandCallback("setFriction", values.friction);
-            setBarSliderValue(optionsOverlaysIDs.indexOf("densitySlider"), values.density);
-            Settings.setValue(optionsSettings.densitySlider.key, values.density);
-            uiCommandCallback("setDensity", values.density);
-
-            break;
-
-        case "setGravity":
-            setPresetsLabelToCustom();
-            Settings.setValue(optionsSettings.gravitySlider.key, parameter);
-            uiCommandCallback("setGravity", parameter);
-            break;
-        case "setBounce":
-            setPresetsLabelToCustom();
-            Settings.setValue(optionsSettings.bounceSlider.key, parameter);
-            uiCommandCallback("setBounce", parameter);
-            break;
-        case "setFriction":
-            setPresetsLabelToCustom();
-            Settings.setValue(optionsSettings.frictionSlider.key, parameter);
-            uiCommandCallback("setFriction", parameter);
-            break;
-        case "setDensity":
-            setPresetsLabelToCustom();
-            Settings.setValue(optionsSettings.densitySlider.key, parameter);
-            uiCommandCallback("setDensity", parameter);
-            break;
-
-        case "closeOptions":
-            closeOptions();
-            openMenu();
-            break;
-
-        case "clearTool":
-            uiCommandCallback("clearTool");
-            break;
-
-        default:
-            App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
+            default:
+                App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
         }
     };
 
     function doGripClicked(command, parameter) {
         switch (command) {
-        case "clearSwatch":
-            // Remove highlight ring and change swatch to current color.
-            Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
-            Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(parameter)], {
-                color: optionsSettings.currentColor.value,
-                dimensions: UI_ELEMENTS.swatch.properties.dimensions
-            });
-            optionsSettings[parameter].value = "";  // Emulate Settings.getValue() returning "" for nonexistent setting.
-            Settings.setValue(optionsSettings[parameter].key, null);  // Delete settings value.
-            break;
-        default:
-            App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
+            case "clearSwatch":
+                // Remove highlight ring and change swatch to current color.
+                Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
+                Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(parameter)], {
+                    color: optionsSettings.currentColor.value,
+                    dimensions: UI_ELEMENTS.swatch.properties.dimensions
+                });
+                optionsSettings[parameter].value = ""; // Emulate Settings.getValue() returning "" for nonexistent setting.
+                Settings.setValue(optionsSettings[parameter].key, null); // Delete settings value.
+                break;
+            default:
+                App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
         }
     }
 
@@ -3044,7 +3043,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Overlays.editOverlay(menuHeaderHeadingOverlay, {
                     url: MENU_HEADER_HEADING_PROPERTIES.highlightURL,
                     localPosition: Vec3.sum(MENU_HEADER_HEADING_PROPERTIES.localPosition, MENU_HEADER_HOVER_OFFSET),
-                    emissive: true  // TODO: This has no effect.
+                    emissive: true // TODO: This has no effect.
                 });
                 Overlays.editOverlay(menuHeaderBackOverlay, {
                     color: UIT.colors.white
@@ -3112,83 +3111,83 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (hoveredItem !== NONE) {
                 // Unhover old item.
                 switch (hoveredElementType) {
-                case "menuButton":
-                    if (hoveredSourceOverlays === menuOverlays) {
-                        menuButtonHoverOverlays = menuHoverOverlays;
-                        menuButtonIconOverlays = menuIconOverlays;
-                    } else {
-                        menuButtonHoverOverlays = footerHoverOverlays;
-                        menuButtonIconOverlays = footerIconOverlays;
-                    }
-                    Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
-                        localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
-                        visible: false
-                    });
-                    Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
-                        color: UI_ELEMENTS.menuButton.icon.properties.color
-                    });
-                    break;
-                case "button":
-                    if (hoveredSourceItems[hoveredItem].enabledColor !== undefined && optionsEnabled[hoveredItem]) {
-                        color = hoveredSourceItems[hoveredItem].enabledColor;
-                    } else {
-                        color = hoveredSourceItems[hoveredItem].properties.color !== undefined
-                            ? hoveredSourceItems[hoveredItem].properties.color
-                            : UI_ELEMENTS.button.properties.color;
-                    }
-                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
-                        color: color,
-                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
-                    });
-                    break;
-                case "toggleButton":
-                    color = optionsToggles[hoveredSourceItems[hoveredItem].id]
-                        ? UI_ELEMENTS.toggleButton.onColor
-                        : UI_ELEMENTS.toggleButton.offColor;
-                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
-                        color: color,
-                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
-                    });
-                    break;
-                case "swatch":
-                    Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
-                    color = optionsSettings[hoveredSourceItems[hoveredItem].id].value;
-                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
-                        dimensions: UI_ELEMENTS.swatch.properties.dimensions,
-                        color: color === "" ? EMPTY_SWATCH_COLOR : color,
-                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
-                    });
-                    break;
-                case "barSlider":
-                case "imageSlider":
-                case "colorCircle":
-                    // Lower old slider or color circle.
-                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
-                        localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
-                    });
-                    break;
-                case "picklist":
-                    if (hoveredSourceItems[hoveredItem].type !== "picklistItem" && !isPicklistOpen) {
-                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
-                            localPosition: hoveredSourceItems[hoveredItem].properties.localPosition,
-                            color: UI_ELEMENTS.picklist.properties.color
+                    case "menuButton":
+                        if (hoveredSourceOverlays === menuOverlays) {
+                            menuButtonHoverOverlays = menuHoverOverlays;
+                            menuButtonIconOverlays = menuIconOverlays;
+                        } else {
+                            menuButtonHoverOverlays = footerHoverOverlays;
+                            menuButtonIconOverlays = footerIconOverlays;
+                        }
+                        Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
+                            localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
+                            visible: false
                         });
-                    } else {
-                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
-                            color: UIT.colors.darkGray
+                        Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
+                            color: UI_ELEMENTS.menuButton.icon.properties.color
                         });
-                    }
-                    break;
-                case "picklistItem":
-                    Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
-                        color: UI_ELEMENTS.picklistItem.properties.color
-                    });
-                    break;
-                case null:
-                    // Nothing to do.
-                    break;
-                default:
-                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
+                        break;
+                    case "button":
+                        if (hoveredSourceItems[hoveredItem].enabledColor !== undefined && optionsEnabled[hoveredItem]) {
+                            color = hoveredSourceItems[hoveredItem].enabledColor;
+                        } else {
+                            color = hoveredSourceItems[hoveredItem].properties.color !== undefined
+                                ? hoveredSourceItems[hoveredItem].properties.color
+                                : UI_ELEMENTS.button.properties.color;
+                        }
+                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                            color: color,
+                            localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
+                        });
+                        break;
+                    case "toggleButton":
+                        color = optionsToggles[hoveredSourceItems[hoveredItem].id]
+                            ? UI_ELEMENTS.toggleButton.onColor
+                            : UI_ELEMENTS.toggleButton.offColor;
+                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                            color: color,
+                            localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
+                        });
+                        break;
+                    case "swatch":
+                        Overlays.editOverlay(swatchHighlightOverlay, { visible: false });
+                        color = optionsSettings[hoveredSourceItems[hoveredItem].id].value;
+                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                            dimensions: UI_ELEMENTS.swatch.properties.dimensions,
+                            color: color === "" ? EMPTY_SWATCH_COLOR : color,
+                            localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
+                        });
+                        break;
+                    case "barSlider":
+                    case "imageSlider":
+                    case "colorCircle":
+                        // Lower old slider or color circle.
+                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                            localPosition: hoveredSourceItems[hoveredItem].properties.localPosition
+                        });
+                        break;
+                    case "picklist":
+                        if (hoveredSourceItems[hoveredItem].type !== "picklistItem" && !isPicklistOpen) {
+                            Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                                localPosition: hoveredSourceItems[hoveredItem].properties.localPosition,
+                                color: UI_ELEMENTS.picklist.properties.color
+                            });
+                        } else {
+                            Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                                color: UIT.colors.darkGray
+                            });
+                        }
+                        break;
+                    case "picklistItem":
+                        Overlays.editOverlay(hoveredSourceOverlays[hoveredItem], {
+                            color: UI_ELEMENTS.picklistItem.properties.color
+                        });
+                        break;
+                    case null:
+                        // Nothing to do.
+                        break;
+                    default:
+                        App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
                 }
 
                 // Update status variables.
@@ -3208,105 +3207,105 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
                 // Hover new item.
                 switch (hoveredElementType) {
-                case "menuButton":
-                    Feedback.play(otherSide, Feedback.HOVER_MENU_ITEM);
-                    if (intersectionOverlays === menuOverlays) {
-                        menuButtonHoverOverlays = menuHoverOverlays;
-                        menuButtonIconOverlays = menuIconOverlays;
-                    } else {
-                        menuButtonHoverOverlays = footerHoverOverlays;
-                        menuButtonIconOverlays = footerIconOverlays;
-                    }
-                    Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
-                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
-                            MENU_HOVER_DELTA),
-                        visible: true
-                    });
-                    Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
-                        color: UI_ELEMENTS.menuButton.icon.highlightColor
-                    });
-                    break;
-                case "button":
-                    if (intersectionEnabled[hoveredItem]) {
-                        Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                        localPosition = intersectionItems[hoveredItem].properties.localPosition;
-                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
-                            color: intersectionItems[hoveredItem].highlightColor !== undefined
-                                ? intersectionItems[hoveredItem].highlightColor
-                                : UIT.colors.greenHighlight,
-                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
-                        });
-                    }
-                    break;
-                case "toggleButton":
-                    if (intersectionEnabled[hoveredItem]) {
-                        Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                        localPosition = intersectionItems[hoveredItem].properties.localPosition;
-                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
-                            color: optionsToggles[intersectionItems[hoveredItem].id]
-                                ? UI_ELEMENTS.toggleButton.onHoverColor
-                                : UI_ELEMENTS.toggleButton.offHoverColor,
-                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
-                        });
-                    }
-                    break;
-                case "swatch":
-                    Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                    localPosition = intersectionItems[hoveredItem].properties.localPosition;
-                    if (optionsSettings[intersectionItems[hoveredItem].id].value === "") {
-                        // Swatch is empty; highlight it with current color.
-                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
-                            color: optionsSettings.currentColor.value,
-                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
-                        });
-                    } else {
-                        // Swatch is full; highlight it with ring.
-                        Overlays.editOverlay(intersectionOverlays[hoveredItem], {
-                            dimensions: Vec3.subtract(UI_ELEMENTS.swatch.properties.dimensions,
-                                { x: SWATCH_HIGHLIGHT_DELTA, y: 0, z: SWATCH_HIGHLIGHT_DELTA }),
-                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
-                        });
-                        Overlays.editOverlay(swatchHighlightOverlay, {
-                            parentID: intersectionOverlays[hoveredItem],
-                            localPosition: UI_ELEMENTS.swatchHighlight.properties.localPosition,
+                    case "menuButton":
+                        Feedback.play(otherSide, Feedback.HOVER_MENU_ITEM);
+                        if (intersectionOverlays === menuOverlays) {
+                            menuButtonHoverOverlays = menuHoverOverlays;
+                            menuButtonIconOverlays = menuIconOverlays;
+                        } else {
+                            menuButtonHoverOverlays = footerHoverOverlays;
+                            menuButtonIconOverlays = footerIconOverlays;
+                        }
+                        Overlays.editOverlay(menuButtonHoverOverlays[hoveredItem], {
+                            localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
+                                MENU_HOVER_DELTA),
                             visible: true
                         });
-                    }
-                    break;
-                case "barSlider":
-                case "imageSlider":
-                case "colorCircle":
-                    Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                    localPosition = intersectionItems[hoveredItem].properties.localPosition;
-                    Overlays.editOverlay(intersectionOverlays[hoveredItem], {
-                        localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
-                    });
-                    break;
-                case "picklist":
-                    Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                    if (!isPicklistOpen) {
+                        Overlays.editOverlay(menuButtonIconOverlays[hoveredItem], {
+                            color: UI_ELEMENTS.menuButton.icon.highlightColor
+                        });
+                        break;
+                    case "button":
+                        if (intersectionEnabled[hoveredItem]) {
+                            Feedback.play(otherSide, Feedback.HOVER_BUTTON);
+                            localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                            Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                                color: intersectionItems[hoveredItem].highlightColor !== undefined
+                                    ? intersectionItems[hoveredItem].highlightColor
+                                    : UIT.colors.greenHighlight,
+                                localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
+                            });
+                        }
+                        break;
+                    case "toggleButton":
+                        if (intersectionEnabled[hoveredItem]) {
+                            Feedback.play(otherSide, Feedback.HOVER_BUTTON);
+                            localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                            Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                                color: optionsToggles[intersectionItems[hoveredItem].id]
+                                    ? UI_ELEMENTS.toggleButton.onHoverColor
+                                    : UI_ELEMENTS.toggleButton.offHoverColor,
+                                localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
+                            });
+                        }
+                        break;
+                    case "swatch":
+                        Feedback.play(otherSide, Feedback.HOVER_BUTTON);
+                        localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                        if (optionsSettings[intersectionItems[hoveredItem].id].value === "") {
+                            // Swatch is empty; highlight it with current color.
+                            Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                                color: optionsSettings.currentColor.value,
+                                localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
+                            });
+                        } else {
+                            // Swatch is full; highlight it with ring.
+                            Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                                dimensions: Vec3.subtract(UI_ELEMENTS.swatch.properties.dimensions,
+                                    { x: SWATCH_HIGHLIGHT_DELTA, y: 0, z: SWATCH_HIGHLIGHT_DELTA }),
+                                localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
+                            });
+                            Overlays.editOverlay(swatchHighlightOverlay, {
+                                parentID: intersectionOverlays[hoveredItem],
+                                localPosition: UI_ELEMENTS.swatchHighlight.properties.localPosition,
+                                visible: true
+                            });
+                        }
+                        break;
+                    case "barSlider":
+                    case "imageSlider":
+                    case "colorCircle":
+                        Feedback.play(otherSide, Feedback.HOVER_BUTTON);
                         localPosition = intersectionItems[hoveredItem].properties.localPosition;
                         Overlays.editOverlay(intersectionOverlays[hoveredItem], {
-                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA),
-                            color: UIT.colors.greenHighlight
+                            localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA)
                         });
-                    } else {
+                        break;
+                    case "picklist":
+                        Feedback.play(otherSide, Feedback.HOVER_BUTTON);
+                        if (!isPicklistOpen) {
+                            localPosition = intersectionItems[hoveredItem].properties.localPosition;
+                            Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                                localPosition: Vec3.sum(localPosition, OPTION_HOVER_DELTA),
+                                color: UIT.colors.greenHighlight
+                            });
+                        } else {
+                            Overlays.editOverlay(intersectionOverlays[hoveredItem], {
+                                color: UIT.colors.greenHighlight
+                            });
+                        }
+                        break;
+                    case "picklistItem":
+                        Feedback.play(otherSide, Feedback.HOVER_BUTTON);
                         Overlays.editOverlay(intersectionOverlays[hoveredItem], {
                             color: UIT.colors.greenHighlight
                         });
-                    }
-                    break;
-                case "picklistItem":
-                    Feedback.play(otherSide, Feedback.HOVER_BUTTON);
-                    Overlays.editOverlay(intersectionOverlays[hoveredItem], {
-                        color: UIT.colors.greenHighlight
-                    });
-                    break;
-                case null:
-                    // Nothing to do.
-                    break;
-                default:
-                    App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
+                        break;
+                    case null:
+                        // Nothing to do.
+                        break;
+                    default:
+                        App.log(side, "ERROR: ToolsMenu: Unexpected hover item! " + hoveredElementType);
                 }
             }
 
@@ -3469,8 +3468,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             });
             if (intersectionItems[intersectedItem].command) {
                 // Cartesian planar coordinates.
-                x = -delta.z;  // Coordinates based on rotate cylinder entity. TODO: Use FBX model instead of cylinder entity.
-                y = -delta.x;  // ""
+                x = -delta.z; // Coordinates based on rotate cylinder entity. TODO: Use FBX model instead of cylinder entity.
+                y = -delta.x; // ""
                 s = Math.sqrt(x * x + y * y) / hsvControl.circle.radius;
                 h = Math.atan2(y, x) / (2 * Math.PI);
                 if (h < 0) {
@@ -3648,7 +3647,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             closeOptions();
         }
 
-        Overlays.deleteOverlay(menuOriginOverlay);  // Automatically deletes all other overlays because they're children.
+        Overlays.deleteOverlay(menuOriginOverlay); // Automatically deletes all other overlays because they're children.
         menuOverlays = [];
         menuHoverOverlays = [];
         menuIconOverlays = [];

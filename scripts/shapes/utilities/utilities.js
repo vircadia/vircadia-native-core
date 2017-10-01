@@ -40,7 +40,7 @@ if (typeof Uuid.SELF !== "string") {
 
 if (typeof Entities.rootOf !== "function") {
     Entities.rootOfCache = {
-        CACHE_ENTRY_EXPIRY_TIME: 1000  // ms
+        CACHE_ENTRY_EXPIRY_TIME: 1000 // ms
     };
 
     Entities.rootOf = function (entityID) {
@@ -72,7 +72,7 @@ if (typeof Entities.rootOf !== "function") {
 
 if (typeof Entities.hasEditableRoot !== "function") {
     Entities.hasEditableRootCache = {
-        CACHE_ENTRY_EXPIRY_TIME: 5000  // ms
+        CACHE_ENTRY_EXPIRY_TIME: 5000 // ms
     };
 
     Entities.hasEditableRoot = function (entityID) {
@@ -114,10 +114,10 @@ if (typeof Object.merge !== "function") {
         var a = JSON.stringify(objectA),
             b = JSON.stringify(objectB);
         if (a === "{}") {
-            return JSON.parse(b);  // Always return a new object.
+            return JSON.parse(b); // Always return a new object.
         }
         if (b === "{}") {
-            return JSON.parse(a);  // ""
+            return JSON.parse(a); // ""
         }
         return JSON.parse(a.slice(0, -1) + "," + b.slice(1));
     };

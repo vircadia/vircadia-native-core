@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Handles */
+/* global Handles:true */
 
 Handles = function (side) {
     // Draws scaling handles.
@@ -48,7 +48,7 @@ Handles = function (side) {
 
         i;
 
-    if (!this instanceof Handles) {
+    if (!(this instanceof Handles)) {
         return new Handles(side);
     }
 
@@ -112,7 +112,7 @@ Handles = function (side) {
     function handleOffset(overlayID) {
         // Distance from overlay position to entity surface.
         if (isCornerHandle(overlayID)) {
-            return 0;  // Corner overlays are centered on the corner.
+            return 0; // Corner overlays are centered on the corner.
         }
         return faceHandleOffsets.y / 2;
     }

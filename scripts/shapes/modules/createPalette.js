@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global App, CreatePalette */
+/* global CreatePalette: true, App, Feedback, History, UIT */
 
 CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
@@ -51,7 +51,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         PALETTE_HEADER_HEADING_PROPERTIES = {
             url: Script.resolvePath("../assets/gray-header.fbx"),
-            dimensions: UIT.dimensions.headerHeading,  // Model is in rotated coordinate system but can override.
+            dimensions: UIT.dimensions.headerHeading, // Model is in rotated coordinate system but can override.
             localPosition: {
                 x: 0,
                 y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.headerHeading.y / 2,
@@ -66,7 +66,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         PALETTE_HEADER_BAR_PROPERTIES = {
             url: Script.resolvePath("../assets/blue-header-bar.fbx"),
-            dimensions: UIT.dimensions.headerBar,  // Model is in rotated coordinate system but can override.
+            dimensions: UIT.dimensions.headerBar, // Model is in rotated coordinate system but can override.
             localPosition: {
                 x: 0,
                 y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.headerHeading.y - UIT.dimensions.headerBar.y / 2,
@@ -111,14 +111,14 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         ENTITY_CREATION_COLOR = { red: 192, green: 192, blue: 192 },
 
         PALETTE_ITEM = {
-            overlay: "cube",  // Invisible cube for hit area.
+            overlay: "cube", // Invisible cube for hit area.
             properties: {
                 dimensions: UIT.dimensions.itemCollisionZone,
                 localRotation: Quat.ZERO,
-                alpha: 0.0,  // Invisible.
+                alpha: 0.0, // Invisible.
                 solid: true,
                 ignoreRayIntersection: false,
-                visible: true  // So that laser intersects.
+                visible: true // So that laser intersects.
             },
             hoverButton: {
                 // Relative to root overlay.
@@ -129,7 +129,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     localRotation: Quat.ZERO,
                     color: UIT.colors.blueHighlight,
                     alpha: 1.0,
-                    emissive: true,  // TODO: This has no effect.
+                    emissive: true, // TODO: This has no effect.
                     solid: true,
                     ignoreRayIntersection: true,
                     visible: false
@@ -142,7 +142,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: UIT.dimensions.paletteItemIconDimensions,
                     localPosition: UIT.dimensions.paletteItemIconOffset,
                     localRotation: Quat.ZERO,
-                    emissive: true,  // TODO: This has no effect.
+                    emissive: true, // TODO: This has no effect.
                     ignoreRayIntersection: true
                 }
             },
@@ -327,7 +327,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // References.
         controlHand;
 
-    if (!this instanceof CreatePalette) {
+    if (!(this instanceof CreatePalette)) {
         return new CreatePalette();
     }
 
@@ -518,7 +518,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (!isDisplaying) {
             return;
         }
-        Overlays.deleteOverlay(paletteOriginOverlay);  // Automatically deletes all other overlays because they're children.
+        Overlays.deleteOverlay(paletteOriginOverlay); // Automatically deletes all other overlays because they're children.
         paletteItemOverlays = [];
         paletteItemHoverOverlays = [];
         iconOverlays = [];

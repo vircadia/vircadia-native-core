@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global App, ToolIcon */
+/* global ToolIcon:true, App, UIT */
 
 ToolIcon = function (side) {
     // Tool icon displayed on non-dominant hand.
@@ -17,10 +17,10 @@ ToolIcon = function (side) {
 
     var LEFT_HAND = 0,
 
-        MODEL_DIMENSIONS = { x: 0.1944, y: 0.1928, z: 0.1928 },  // Raw FBX dimensions.
-        MODEL_SCALE = 0.7,  // Adjust icon dimensions so that the green bar matches that of the Tools header.
-        MODEL_POSITION_LEFT_HAND = { x: -0.025, y: 0.03, z: 0 },  // x raises in thumb direction; y moves in fingers direction.
-        MODEL_POSITION_RIGHT_HAND = { x: 0.025, y: 0.03, z: 0 },  // ""
+        MODEL_DIMENSIONS = { x: 0.1944, y: 0.1928, z: 0.1928 }, // Raw FBX dimensions.
+        MODEL_SCALE = 0.7, // Adjust icon dimensions so that the green bar matches that of the Tools header.
+        MODEL_POSITION_LEFT_HAND = { x: -0.025, y: 0.03, z: 0 }, // x raises in thumb direction; y moves in fingers direction.
+        MODEL_POSITION_RIGHT_HAND = { x: 0.025, y: 0.03, z: 0 }, // ""
         MODEL_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 0, z: 100 }),
         MODEL_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -100 }),
 
@@ -46,8 +46,9 @@ ToolIcon = function (side) {
         },
 
         ICON_PROPERTIES = {
-            localPosition: { x: 0.020, y: 0.069, z: 0 },  // Relative to model overlay.
-            color: UIT.colors.lightGrayText               // x is in fingers direction; y is in thumb direction.
+            // Relative to model overlay. x is in fingers direction; y is in thumb direction.
+            localPosition: { x: 0.020, y: 0.069, z: 0 },
+            color: UIT.colors.lightGrayText
         },
         LABEL_PROPERTIES = {
             localPosition: { x: -0.040, y: 0.067, z: 0 },
@@ -67,7 +68,7 @@ ToolIcon = function (side) {
 
         modelOverlay = null;
 
-    if (!this instanceof ToolIcon) {
+    if (!(this instanceof ToolIcon)) {
         return new ToolIcon();
     }
 
@@ -89,7 +90,7 @@ ToolIcon = function (side) {
     function clear() {
         // Deletes current tool model.
         if (modelOverlay) {
-            Overlays.deleteOverlay(modelOverlay);  // Child overlays are automatically deleted.
+            Overlays.deleteOverlay(modelOverlay); // Child overlays are automatically deleted.
             modelOverlay = null;
         }
     }

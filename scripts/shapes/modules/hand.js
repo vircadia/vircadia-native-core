@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Hand */
+/* global Hand:true */
 
 Hand = function (side) {
 
@@ -27,11 +27,11 @@ Hand = function (side) {
 
         isTriggerPressed,
         isTriggerClicked,
-        TRIGGER_ON_VALUE = 0.15,  // Per controllerDispatcherUtils.js.
-        TRIGGER_OFF_VALUE = 0.1,  // Per controllerDispatcherUtils.js.
+        TRIGGER_ON_VALUE = 0.15, // Per controllerDispatcherUtils.js.
+        TRIGGER_OFF_VALUE = 0.1, // Per controllerDispatcherUtils.js.
         TRIGGER_CLICKED_VALUE = 1.0,
 
-        NEAR_GRAB_RADIUS = 0.05,  // Different from controllerDispatcherUtils.js.
+        NEAR_GRAB_RADIUS = 0.05, // Different from controllerDispatcherUtils.js.
         NEAR_HOVER_RADIUS = 0.025,
 
         LEFT_HAND = 0,
@@ -45,7 +45,7 @@ Hand = function (side) {
         handleOverlayIDs = [],
         intersection = {};
 
-    if (!this instanceof Hand) {
+    if (!(this instanceof Hand)) {
         return new Hand(side);
     }
 
