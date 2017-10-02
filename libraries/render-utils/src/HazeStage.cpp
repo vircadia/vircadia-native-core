@@ -15,6 +15,31 @@
 
 std::string HazeStage::_stageName { "HAZE_STAGE"};
 
+FetchHazeStage::FetchHazeStage() {
+    _haze = std::make_shared<model::Haze>();
+}
+
+void FetchHazeStage::configure(const Config& config) {
+    _haze->setHazeColor(glm::vec3(config.hazeColorR, config.hazeColorG, config.hazeColorB));
+    _haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(config.hazeDirectionalLightAngle_degs));
+
+    _haze->setDirectionalLightColor(glm::vec3(config.hazeDirectionalLightColorR, config.hazeDirectionalLightColorG, config.hazeDirectionalLightColorB));
+    _haze->setHazeBaseReference(config.hazeBaseReference);
+
+    _haze->setIsHazeActive(config.isHazeActive);
+    _haze->setIsAltitudeBased(config.isAltitudeBased);
+    _haze->setIsDirectionaLightAttenuationActive(config.isDirectionaLightAttenuationActive);
+    _haze->setIsModulateColorActive(config.isModulateColorActive);
+
+    _haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeRange_m));
+    _haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(config.hazeAltitude_m));
+
+    _haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeKeyLightRange_m));
+    _haze->setHazeKeyLightAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(config.hazeKeyLightAltitude_m));
+
+    _haze->setHazeBackgroundBlendValue(config.hazeBackgroundBlendValue);
+}
+
 HazeStage::Index HazeStage::findHaze(const HazePointer& haze) const {
     auto found = _hazeMap.find(haze);
     if (found != _hazeMap.end()) {

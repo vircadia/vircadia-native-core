@@ -148,8 +148,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto lightClusters = task.addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
  
     // Add haze model
-	const auto hazeModel = task.addJob<MakeHaze>("HazeModel");
-    ////const auto hazeModel = task.addJob<FetchHazeStage>("FetchHazeStage");
+	////const auto hazeModel = task.addJob<MakeHaze>("HazeModel");
+    const auto hazeModel = task.addJob<FetchHazeStage>("FetchHazeStage");
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
