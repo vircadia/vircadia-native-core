@@ -14,10 +14,10 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-import "styles-uit"
-import "controls-uit" as HifiControls
-import "windows"
-import "dialogs"
+import "../styles-uit"
+import "../controls-uit" as HifiControls
+import "../windows"
+import "../dialogs"
 
 ScrollingWindow {
     id: root
@@ -38,7 +38,7 @@ ScrollingWindow {
     property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
     property var selectedItems: treeView.selection.selectedIndexes.length;
-    
+
     Settings {
         category: "Overlay.AssetServer"
         property alias x: root.x
@@ -58,6 +58,23 @@ ScrollingWindow {
         assetMappingsModel.autoRefreshEnabled = false;
     }
     
+    function letterbox(headerGlyph, headerText, message) {
+        letterboxMessage.headerGlyph = headerGlyph;
+        letterboxMessage.headerText = headerText;
+        letterboxMessage.text = message;
+        letterboxMessage.visible = true;
+        letterboxMessage.popupRadius = 0;
+    }
+
+    function errorMessageBox(message) {
+        return desktop.messageBox({
+            icon: hifi.icons.warning,
+            defaultButton: OriginalDialogs.StandardButton.Ok,
+            title: "Error",
+            text: message
+        });
+    }
+
     function doDeleteFile(path) {
         console.log("Deleting " + path);
 
@@ -154,10 +171,7 @@ ScrollingWindow {
     }
 
     function handleGetMappingsError(errorString) {
-        errorMessageBox(
-            "There was a problem retreiving the list of assets from your Asset Server.\n"
-            + errorString
-        );
+        errorMessageBox("There was a problem retreiving the list of assets from your Asset Server.\n" + errorString);
     }
 
     function addToWorld() {
@@ -332,7 +346,7 @@ ScrollingWindow {
         if (!path) {
             return;
         }
-        
+
         var modalMessage = "";
         var items = selectedItems.toString();
         var isFolder = assetProxyModel.data(treeView.selection.currentIndex, 0x101);
@@ -448,19 +462,16 @@ ScrollingWindow {
             });
         }
     }
-
-    function errorMessageBox(message) {
-        return desktop.messageBox({
-            icon: hifi.icons.warning,
-            defaultButton: OriginalDialogs.StandardButton.Ok,
-            title: "Error",
-            text: message
-        });
-    }
-
+    
     Item {
         width: pane.contentWidth
         height: pane.height
+        
+        // The letterbox used for popup messages
+        LetterboxMessage {
+            id: letterboxMessage;
+            z: 999; // Force the popup on top of everything else
+        }
 
         HifiControls.ContentSection {
             id: assetDirectory
@@ -476,21 +487,21 @@ ScrollingWindow {
 
                 HifiControls.Button {
                     text: "Add To World"
-                    color: hifi.buttons.black
+                    color: hifi.buttons.blue
                     colorScheme: root.colorScheme
                     width: 120
-                    
+
                     enabled: canAddToWorld(assetProxyModel.data(treeView.selection.currentIndex, 0x100))
-                    
+
                     onClicked: root.addToWorld()
                 }
-                
+
                 HifiControls.Button {
                     text: "Rename"
                     color: hifi.buttons.black
                     colorScheme: root.colorScheme
                     width: 80
-                    
+
                     onClicked: root.renameFile()
                     enabled: canRename()
                 }
@@ -513,6 +524,7 @@ ScrollingWindow {
             id: treeView
             anchors.top: assetDirectory.bottom
             anchors.bottom: infoRow.top
+            anchors.bottomMargin: 2 * hifi.dimensions.contentSpacing.y
             anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
             anchors.left: parent.left
             anchors.right: parent.right
@@ -555,7 +567,7 @@ ScrollingWindow {
                         case "Not Baked":
                             return hifi.glyphs.circleSlash;
                         case "Baked":
-                            return hifi.glyphs.check_2_01;
+                            return hifi.glyphs.checkmark;
                         case "Error":
                             return hifi.glyphs.alert;
                         default:
@@ -584,8 +596,24 @@ ScrollingWindow {
                                 ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                                 : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
                        
-                        elide: Text.ElideRight
                         horizontalAlignment: styleData.column === 1 ? TextInput.AlignHCenter : TextInput.AlignLeft
+                        
+                        elide: Text.ElideMiddle
+
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: true
+
+                            onEntered: {
+                                if (parent.truncated) {
+                                    treeLabelToolTip.show(parent);
+                                }
+                            }
+                            onExited: treeLabelToolTip.hide();
+                        }
                     }
                 }
                 Component {
@@ -668,6 +696,42 @@ ScrollingWindow {
                 }
             }
 
+            Rectangle {
+                id: treeLabelToolTip
+                visible: false
+                z: 100 // Render on top
+
+                width: toolTipText.width + 2 * hifi.dimensions.textPadding
+                height: hifi.dimensions.tableRowHeight
+                color: colorScheme == hifi.colorSchemes.light ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
+                border.color: colorScheme == hifi.colorSchemes.light ? hifi.colors.black : hifi.colors.lightGrayText
+
+                FiraSansSemiBold {
+                    id: toolTipText
+                    anchors.centerIn: parent
+
+                    size: hifi.fontSizes.tableText
+                    color: colorScheme == hifi.colorSchemes.light ? hifi.colors.black : hifi.colors.lightGrayText
+                }
+                
+                Timer {
+                    id: showTimer
+                    interval: 1000
+                    onTriggered: { treeLabelToolTip.visible = true; }
+                }
+                function show(item) {
+                    var coord = item.mapToItem(parent, item.x, item.y);
+
+                    toolTipText.text = item.text;
+                    treeLabelToolTip.x = coord.x - hifi.dimensions.textPadding;
+                    treeLabelToolTip.y = coord.y;
+                    showTimer.start();
+                }
+                function hide() {
+                    showTimer.stop();
+                    treeLabelToolTip.visible = false;
+                }
+            }
             
             MouseArea {
                 propagateComposedEvents: true
@@ -717,26 +781,35 @@ ScrollingWindow {
             anchors.left: treeView.left
             anchors.right: treeView.right
             anchors.bottom: uploadSection.top
-            anchors.bottomMargin: hifi.dimensions.contentSpacing.y
-            spacing: hifi.dimensions.contentSpacing.x
             
             RalewayRegular {
+                anchors.verticalCenter: parent.verticalCenter
+
+                function makeText() {
+                    var numPendingBakes = assetMappingsModel.numPendingBakes;
+                    if (selectedItems > 1 || numPendingBakes === 0) {
+                        return selectedItems + " items selected";
+                    } else {
+                        return numPendingBakes + " bakes pending"
+                    }
+                }
+
                 size: hifi.fontSizes.sectionName
                 font.capitalization: Font.AllUppercase
-                text: selectedItems + " items selected"
+                text: makeText()
                 color: hifi.colors.lightGrayText
             }
 
-            HifiControls.CheckBox {
-                function isChecked() {
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
-                    var bakingDisabled = (status === "Not Baked" || status === "--");
-                    return selectedItems === 1 && !bakingDisabled; 
-                }
+            HifiControls.HorizontalSpacer { }
 
-                text: "Use baked (optimized) versions"
+            HifiControls.CheckBox {
+                id: bakingCheckbox
+                anchors.leftMargin: 2 * hifi.dimensions.contentSpacing.x
+                anchors.verticalCenter: parent.verticalCenter
+
+                text: " Use baked version"
                 colorScheme: root.colorScheme
-                enabled: selectedItems === 1 && assetProxyModel.data(treeView.selection.currentIndex, 0x105) !== "--"
+                enabled: isEnabled()
                 checked: isChecked()
                 onClicked: {
                     var mappings = [];
@@ -752,7 +825,66 @@ ScrollingWindow {
 
                     checked = Qt.binding(isChecked);
                 }
+                
+                function isEnabled() {
+                    if (!treeView.selection.hasSelection) {
+                        return false;
+                    }
+
+                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    if (status === "--") {
+                        return false;
+                    }
+                    var bakingEnabled = status !== "Not Baked";
+
+                    for (var i in treeView.selection.selectedIndexes) {
+                        var thisStatus = assetProxyModel.data(treeView.selection.selectedIndexes[i], 0x105);
+                        if (thisStatus === "--") {
+                            return false;
+                        }
+                        var thisBakingEnalbed = (thisStatus !== "Not Baked");
+
+                        if (bakingEnabled !== thisBakingEnalbed) {
+                            return false;
+                        }
+                    }
+
+                    return true; 
+                }
+                function isChecked() {
+                    if (!treeView.selection.hasSelection) {
+                        return false;
+                    }
+
+                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    return isEnabled() && status !== "Not Baked"; 
+                }  
             }
+            
+            Item {
+                anchors.verticalCenter: parent.verticalCenter
+                width: infoGlyph.size;
+                height: infoGlyph.size;
+
+                HiFiGlyphs {
+                    id: infoGlyph;
+                    anchors.fill: parent;
+                    horizontalAlignment: Text.AlignHCenter;
+                    verticalAlignment: Text.AlignVCenter;
+                    text: hifi.glyphs.question;
+                    size: 35;
+                    color:  hifi.colors.lightGrayText;
+                }
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: infoGlyph.color = hifi.colors.blueHighlight;
+                    onExited: infoGlyph.color =  hifi.colors.lightGrayText;
+                    onClicked: letterbox(hifi.glyphs.question,
+                                            "What is baking?",
+                                            "Baking compresses and optimizes files for faster network transfer and display. We recommend you bake your content to reduce initial load times for your visitors.");
+                    }
+            } 
         }
 
         HifiControls.ContentSection {
@@ -790,7 +922,7 @@ ScrollingWindow {
                         id: image
                         width: 24
                         height: 24
-                        source: "../images/Loading-Outer-Ring.png"
+                        source: "../../images/Loading-Outer-Ring.png"
                         RotationAnimation on rotation {
                             loops: Animation.Infinite
                             from: 0
@@ -801,7 +933,7 @@ ScrollingWindow {
                     Image {
                         width: 24
                         height: 24
-                        source: "../images/Loading-Inner-H.png"
+                        source: "../../images/Loading-Inner-H.png"
                     }
                     HifiControls.Label {
                         id: uploadProgressLabel
@@ -811,10 +943,9 @@ ScrollingWindow {
                         text: "In progress..."
                         colorScheme: root.colorScheme
                     }
-
                 }
             }
-
         }
     }
 }
+
