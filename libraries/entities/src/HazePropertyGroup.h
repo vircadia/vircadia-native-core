@@ -105,7 +105,7 @@ public:
     // Background (skybox) blend value
     DEFINE_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, DEFAULT_HAZE_BACKGROUND_BLEND);
 
-    // Directional light attenuation
+    // hazeDirectional light attenuation
     DEFINE_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, DEFAULT_HAZE_KEYLIGHT_RANGE);
     DEFINE_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, DEFAULT_HAZE_KEYLIGHT_ALTITUDE);
 };

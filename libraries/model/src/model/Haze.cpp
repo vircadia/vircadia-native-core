@@ -57,25 +57,25 @@ void Haze::setHazeColor(const glm::vec3 hazeColor) {
     }
 }
 
-void Haze::setDirectionalLightBlend(const float directionalLightBlend) {
+void Haze::setDirectionalLightBlend(const float hazeDirectionalLightBlend) {
     auto& params = _parametersBuffer.get<Parameters>();
 
-    if (params.directionalLightBlend != directionalLightBlend) {
-        _parametersBuffer.edit<Parameters>().directionalLightBlend = directionalLightBlend;
+    if (params.directionalLightBlend != hazeDirectionalLightBlend) {
+        _parametersBuffer.edit<Parameters>().directionalLightBlend = hazeDirectionalLightBlend;
     }
 }
 
-void Haze::setDirectionalLightColor(const glm::vec3 directionalLightColor) {
+void Haze::setDirectionalLightColor(const glm::vec3 hazeDirectionalLightColor) {
     auto& params = _parametersBuffer.get<Parameters>();
 
-    if (params.directionalLightColor.r != directionalLightColor.r) {
-        _parametersBuffer.edit<Parameters>().directionalLightColor.r = directionalLightColor.r;
+    if (params.directionalLightColor.r != hazeDirectionalLightColor.r) {
+        _parametersBuffer.edit<Parameters>().directionalLightColor.r = hazeDirectionalLightColor.r;
     }
-    if (params.directionalLightColor.g != directionalLightColor.g) {
-        _parametersBuffer.edit<Parameters>().directionalLightColor.g = directionalLightColor.g;
+    if (params.directionalLightColor.g != hazeDirectionalLightColor.g) {
+        _parametersBuffer.edit<Parameters>().directionalLightColor.g = hazeDirectionalLightColor.g;
     }
-    if (params.directionalLightColor.b != directionalLightColor.b) {
-        _parametersBuffer.edit<Parameters>().directionalLightColor.b = directionalLightColor.b;
+    if (params.directionalLightColor.b != hazeDirectionalLightColor.b) {
+        _parametersBuffer.edit<Parameters>().directionalLightColor.b = hazeDirectionalLightColor.b;
     }
 }
 void Haze::setIsHazeActive(const bool isHazeActive) {
