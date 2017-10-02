@@ -238,8 +238,14 @@ SelectionManager = (function() {
 
 // Normalize degrees to be in the range (-180, 180]
 function normalizeDegrees(degrees) {
-    while (degrees > 180) degrees -= 360;
-    while (degrees <= -180) degrees += 360;
+    while (degrees > 180) {
+     degrees -= 360;
+    }
+
+    while (degrees <= -180) {
+     degrees += 360;
+    }
+    
     return degrees;
 }
 
@@ -2143,7 +2149,9 @@ SelectionDisplay = (function() {
                 var curBoxPosition = Vec3.sum(props.position, offset);
 
                 var color = {red: 255, green: 128, blue: 0};
-                if (i >= selectionManager.selections.length - 1) color = {red: 255, green: 255, blue: 64};
+                if (i >= selectionManager.selections.length - 1) {
+                    color = {red: 255, green: 255, blue: 64};
+                }
 
                 Overlays.editOverlay(selectionBoxes[i], {
                     position: curBoxPosition,
@@ -4134,7 +4142,7 @@ SelectionDisplay = (function() {
                     print("    Triggering ActiveTool(" + activeTool.mode + ")'s onEnd");
                 }
                 activeTool.onEnd(event);
-            }else if (wantDebug) {
+            } else if (wantDebug) {
                 print("    ActiveTool(" + activeTool.mode + ")'s missing onEnd");
             }
         }
