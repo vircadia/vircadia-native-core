@@ -332,7 +332,7 @@ public:
     QByteArray getStaticCertificateHash() const;
     bool verifyStaticCertificateProperties();
 #ifdef DEBUG_CERT
-    QString EntityItem::computeCertificateID();
+    QString computeCertificateID();
 #endif
 
     // TODO: get rid of users of getRadius()...
