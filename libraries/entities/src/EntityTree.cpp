@@ -1935,6 +1935,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
+        if (properties.getClientOnly()) {
+            auto nodeList = DependencyManager::get<NodeList>();
+            const QUuid myNodeID = nodeList->getSessionUUID();
+            properties.setOwningAvatarID(myNodeID);
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
