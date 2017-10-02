@@ -1781,7 +1781,7 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
 
 #ifdef DEBUG_CERT
 QString EntityScriptingInterface::computeCertificateID(const QUuid& entityID) {
-    QString result = false;
+    QString result { "" };
     if (_entityTree) {
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
