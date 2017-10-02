@@ -97,6 +97,9 @@ static const bool HIFI_AUTOREFRESH_FILE_SCRIPTS { true };
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
+Q_DECLARE_METATYPE(ScriptEnginePointer)
+int scriptEnginePointerMetaID = qRegisterMetaType<ScriptEnginePointer>();
+
 Q_LOGGING_CATEGORY(scriptengineScript, "hifi.scriptengine.script")
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
