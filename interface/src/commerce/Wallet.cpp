@@ -284,7 +284,7 @@ Wallet::Wallet() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
-    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "verifyOwnerChallenge");
+    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
 }
 
 Wallet::~Wallet() {

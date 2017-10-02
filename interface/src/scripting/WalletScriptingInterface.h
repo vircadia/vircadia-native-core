@@ -17,6 +17,15 @@
 
 #include "scripting/HMDScriptingInterface.h"
 #include <ui/TabletScriptingInterface.h>
+#include <ui/QmlWrapper.h>
+#include <OffscreenUi.h>
+#include "Application.h"
+
+class CheckoutProxy : public QmlWrapper {
+    Q_OBJECT
+public:
+    CheckoutProxy(QObject* qmlObject, QObject* parent = nullptr);
+};
 
 
 class WalletScriptingInterface : public QObject, public Dependency {
@@ -30,7 +39,7 @@ public:
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
     void setWalletStatus(const uint& status) { _walletStatus = status; }
 
-    Q_INVOKABLE void buy();
+    Q_INVOKABLE void buy(const QString& name, const QString& id, const int& price, const QString& href);
 
 signals:
     void walletStatusChanged();

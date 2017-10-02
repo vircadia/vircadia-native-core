@@ -235,7 +235,6 @@
             type: "CHECKOUT",
             itemId: id,
             itemName: name,
-            itemAuthor: author,
             itemPrice: price ? parseInt(price, 10) : 0,
             itemHref: href
         }));

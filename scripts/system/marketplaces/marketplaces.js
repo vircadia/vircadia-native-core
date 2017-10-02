@@ -19,7 +19,8 @@
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_CHECKOUT_QML_PATH_BASE = "qml/hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + MARKETPLACE_CHECKOUT_QML_PATH_BASE;
     var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
     var MARKETPLACE_WALLET_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
     var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
@@ -71,7 +72,6 @@
                 method: 'updateCheckoutQML', params: {
                     itemId: '0d90d21c-ce7a-4990-ad18-e9d2cf991027',
                     itemName: 'Test Flaregun',
-                    itemAuthor: 'hifiDave',
                     itemPrice: (debugError ? 10 : 17),
                     itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
                 },
@@ -108,7 +108,7 @@
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
-        onCommerceScreen = type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
         wireEventBridge(onCommerceScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {

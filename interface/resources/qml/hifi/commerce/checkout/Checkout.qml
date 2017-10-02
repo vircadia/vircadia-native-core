@@ -26,15 +26,16 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
+    objectName: "checkout"
     property string activeView: "initialize";
     property bool purchasesReceived: false;
     property bool balanceReceived: false;
+    property string itemName;
     property string itemId;
-    property string itemPreviewImageUrl;
     property string itemHref;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
-    property int itemPrice: 0;
+    property int itemPrice;
     property bool itemIsJson: true;
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
@@ -105,6 +106,19 @@ Rectangle {
                 root.setBuyText();
             }
         }
+    }
+
+    onItemIdChanged: {
+        commerce.inventory();
+        itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
+    }
+
+    onItemHrefChanged: {
+        itemIsJson = root.itemHref.indexOf('.json') !== -1;
+    }
+
+    onItemPriceChanged: {
+        commerce.balance();
     }
 
     Timer {
@@ -271,7 +285,6 @@ Rectangle {
 
             Image {
                 id: itemPreviewImage;
-                source: root.itemPreviewImageUrl;
                 anchors.left: parent.left;
                 anchors.top: parent.top;
                 anchors.bottom: parent.bottom;
@@ -281,6 +294,7 @@ Rectangle {
 
             RalewaySemiBold {
                 id: itemNameText;
+                text: root.itemName;
                 // Text size
                 size: 26;
                 // Anchors
@@ -305,7 +319,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.right: parent.right;
                 height: 30;
-                width: childrenRect.width;
+                width: itemPriceTextLabel.width + itemPriceText.width + 20;
 
                 // "HFC" balance label
                 HiFiGlyphs {
@@ -325,7 +339,7 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: "--";
+                    text: root.itemPrice;
                     // Text size
                     size: 26;
                     // Anchors
@@ -414,7 +428,7 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter;
 
                     onLinkActivated: {
-                        sendToScript({method: 'checkout_goToPurchases', filterText: itemNameText.text});
+                        sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
                     }
                 }
             }
@@ -498,7 +512,7 @@ Rectangle {
 
         RalewaySemiBold {
             id: completeText2;
-            text: "The item " + '<font color="' + hifi.colors.blueAccent + '"><a href="#">' + itemNameText.text + '</a></font>' +
+            text: "The item " + '<font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
             " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
             // Text size
             size: 20;
@@ -814,14 +828,9 @@ Rectangle {
         switch (message.method) {
             case 'updateCheckoutQML':
                 itemId = message.params.itemId;
-                itemNameText.text = message.params.itemName;
+                itemName = message.params.itemName;
                 root.itemPrice = message.params.itemPrice;
-                itemPriceText.text = root.itemPrice;
                 itemHref = message.params.itemHref;
-                itemPreviewImageUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
-                if (itemHref.indexOf('.json') === -1) {
-                    root.itemIsJson = false;
-                }
                 setBuyText();
             break;
             default:
@@ -882,12 +891,6 @@ Rectangle {
             root.activeView = "checkoutMain";
         } else {
             root.activeView = "checkoutSuccess";
-        }
-        if (!balanceReceived) {
-            commerce.balance();
-        }
-        if (!purchasesReceived) {
-            commerce.inventory();
         }
     }
 
