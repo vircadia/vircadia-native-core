@@ -76,6 +76,8 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "enter current passphrase";
+        activeFocusOnPress: true;
+        activeFocusOnTab: true;
 
         onFocusChanged: {
             if (focus) {
@@ -87,9 +89,9 @@ Item {
 
         MouseArea {
             anchors.fill: parent;
-            onClicked: {
-                parent.focus = true;
+            onPressed: {
                 sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                mouse.accepted = false;
             }
         }
 
@@ -109,6 +111,16 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: root.isShowingTip ? "" : "enter new passphrase";
+        activeFocusOnPress: true;
+        activeFocusOnTab: true;
+
+        MouseArea {
+            anchors.fill: parent;
+            onPressed: {
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                mouse.accepted = false;
+            }
+        }
 
         onFocusChanged: {
             if (focus) {
@@ -118,18 +130,11 @@ Item {
             }
         }
 
-        MouseArea {
-            anchors.fill: parent;
-            onClicked: {
-                parent.focus = true;
-                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
-            }
-        }
-
         onAccepted: {
             passphraseFieldAgain.focus = true;
         }
     }
+
     HifiControlsUit.TextField {
         id: passphraseFieldAgain;
         colorScheme: hifi.colorSchemes.dark;
@@ -140,20 +145,22 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: root.isShowingTip ? "" : "re-enter new passphrase";
+        activeFocusOnPress: true;
+        activeFocusOnTab: true;
+
+        MouseArea {
+            anchors.fill: parent;
+            onPressed: {
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                mouse.accepted = false;
+            }
+        }
 
         onFocusChanged: {
             if (focus) {
                 sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
             } else if (!passphraseField.focus) {
                 sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent;
-            onClicked: {
-                parent.focus = true;
-                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
             }
         }
 
