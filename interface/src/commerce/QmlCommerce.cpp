@@ -29,34 +29,37 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(ledger.data(), &Ledger::historyResult, this, &QmlCommerce::historyResult);
     connect(wallet.data(), &Wallet::keyFilePathIfExistsResult, this, &QmlCommerce::keyFilePathIfExistsResult);
     connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
+    connect(ledger.data(), &Ledger::accountResult, this, [&]() {
+        auto wallet = DependencyManager::get<Wallet>();
+        auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+        uint status;
+
+        if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
+            status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
+        } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
+            status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+        } else {
+            status = (uint)WalletStatus::WALLET_STATUS_READY;
+        }
+
+        walletScriptingInterface->setWalletStatus(status);
+        emit walletStatusResult(status);
+    });
 }
 
 void QmlCommerce::getWalletStatus() {
-    auto wallet = DependencyManager::get<Wallet>();
-    auto ledger = DependencyManager::get<Ledger>();
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
     uint status;
 
     if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
         // This will set account info for the wallet, allowing us to decrypt and display the security image.
-        ledger->account();
+        account();
     } else {
         status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
         emit walletStatusResult(status);
         walletScriptingInterface->setWalletStatus(status);
         return;
     }
-
-    if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
-        status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
-    } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
-        status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
-    } else {
-        status = (uint)WalletStatus::WALLET_STATUS_READY;
-    }
-
-    walletScriptingInterface->setWalletStatus(status);
-    emit walletStatusResult(status);
 }
 
 void QmlCommerce::getLoginStatus() {
