@@ -215,6 +215,14 @@
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
                 tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+            } else if (parsedJsonMessage.type === "MY_ITEMS") {
+                referrerURL = MARKETPLACE_URL_INITIAL;
+                filterText = "";
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'purchases_showMyItems'
+                });
             }
         }
     }

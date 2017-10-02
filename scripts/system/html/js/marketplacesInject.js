@@ -207,6 +207,29 @@
         }
     }
 
+    function changeDropdownMenu() {
+        var logInOrOutButton = document.createElement('a');
+        logInOrOutButton.id = "logInOrOutButton";
+        logInOrOutButton.setAttribute('href', "#");
+        logInOrOutButton.innerHTML = userIsLoggedIn ? "Log Out" : "Log In";
+        logInOrOutButton.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "LOGIN"
+            }));
+        };
+
+        $($('.dropdown-menu').find('li')[0]).append(logInOrOutButton);
+
+        $('a[href="/marketplace?view=mine"]').each(function () {
+            $(this).attr('href', '#');
+            $(this).on('click', function () {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "MY_ITEMS"
+                }));
+            });
+        });
+    }
+
     function buyButtonClicked(id, name, author, price, href) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
@@ -284,6 +307,7 @@
 
             maybeAddLogInButton();
             maybeAddSetupWalletButton();
+            changeDropdownMenu();
 
             var target = document.getElementById('templated-items');
             // MutationObserver is necessary because the DOM is populated after the page is loaded.
@@ -312,6 +336,7 @@
 
             maybeAddLogInButton();
             maybeAddSetupWalletButton();
+            changeDropdownMenu();
 
             var purchaseButton = $('#side-info').find('.btn').first();
 
