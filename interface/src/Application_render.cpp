@@ -15,6 +15,10 @@
 #include <FramebufferCache.h>
 #include "ui/Stats.h"
 #include "FrameTimingsScriptingInterface.h"
+#include <SceneScriptingInterface.h>
+#include "Util.h"
+
+FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
 // Statically provided display and input plugins
 extern DisplayPluginList getDisplayPlugins();
@@ -58,14 +62,6 @@ void Application::paintGL() {
         }
     }
 
-    // update the avatar with a fresh HMD pose
-    //   {
-    //      PROFILE_RANGE(render, "/updateAvatar");
-    //       getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
-    //   }
-
-    //  auto lodManager = DependencyManager::get<LODManager>();
-
     RenderArgs renderArgs;
     float sensorToWorldScale;
     glm::mat4  HMDSensorPose;
@@ -90,39 +86,8 @@ void Application::paintGL() {
         });
     }
 
-    //float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
-    //{
-    //    PROFILE_RANGE(render, "/buildFrustrumAndArgs");
-    //    {
-    //        QMutexLocker viewLocker(&_viewMutex);
-    //        // adjust near clip plane to account for sensor scaling.
-    //        auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
-    //                                                   _viewFrustum.getAspectRatio(),
-    //                                                   DEFAULT_NEAR_CLIP * sensorToWorldScale,
-    //                                                   _viewFrustum.getFarClip());
-    //        _viewFrustum.setProjection(adjustedProjection);
-    //        _viewFrustum.calculate();
-    //    }
-    //    renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
-    //        lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
-    //        RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-    //    {
-    //        QMutexLocker viewLocker(&_viewMutex);
-    //        renderArgs.setViewFrustum(_viewFrustum);
-    //    }
-    //}
-
-    //{
-    //    PROFILE_RANGE(render, "/resizeGL");
-    //    PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
-    //    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    //    PerformanceWarning warn(showWarnings, "Application::paintGL()");
-    //    resizeGL();
-    //}
-
     {
         PROFILE_RANGE(render, "/gpuContextReset");
-        //   _gpuContext->beginFrame(getHMDSensorPose());
         _gpuContext->beginFrame(HMDSensorPose);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
@@ -160,67 +125,14 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
-    //auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-    //float ipdScale = hmdInterface->getIPDScale();
-
-    //// scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
-    //ipdScale *= sensorToWorldScale;
-
     {
-        //PROFILE_RANGE(render, "/mainRender");
-        //PerformanceTimer perfTimer("mainRender");
-        //// FIXME is this ever going to be different from the size previously set in the render args
-        //// in the overlay render?
-        //// Viewport is assigned to the size of the framebuffer
-        //renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
-        //auto baseProjection = renderArgs.getViewFrustum().getProjection();
-        //if (displayPlugin->isStereo()) {
-        //    // Stereo modes will typically have a larger projection matrix overall,
-        //    // so we ask for the 'mono' projection matrix, which for stereo and HMD
-        //    // plugins will imply the combined projection for both eyes.
-        //    //
-        //    // This is properly implemented for the Oculus plugins, but for OpenVR
-        //    // and Stereo displays I'm not sure how to get / calculate it, so we're
-        //    // just relying on the left FOV in each case and hoping that the
-        //    // overall culling margin of error doesn't cause popping in the
-        //    // right eye.  There are FIXMEs in the relevant plugins
-        //    _myCamera.setProjection(displayPlugin->getCullingProjection(baseProjection));
-        //    renderArgs._context->enableStereo(true);
-        //    mat4 eyeOffsets[2];
-        //    mat4 eyeProjections[2];
-
-        //    // FIXME we probably don't need to set the projection matrix every frame,
-        //    // only when the display plugin changes (or in non-HMD modes when the user
-        //    // changes the FOV manually, which right now I don't think they can.
-        //    for_each_eye([&](Eye eye) {
-        //        // For providing the stereo eye views, the HMD head pose has already been
-        //        // applied to the avatar, so we need to get the difference between the head
-        //        // pose applied to the avatar and the per eye pose, and use THAT as
-        //        // the per-eye stereo matrix adjustment.
-        //        mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
-        //        // Grab the translation
-        //        vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-        //        // Apply IPD scaling
-        //        mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
-        //        eyeOffsets[eye] = eyeOffsetTransform;
-        //        eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
-        //    });
-        //    renderArgs._context->setStereoProjections(eyeProjections);
-        //    renderArgs._context->setStereoViews(eyeOffsets);
-
-        //    // Configure the type of display / stereo
-        //    renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
-        //}
-
         if (isStereo) {
             renderArgs._context->enableStereo(true);
             renderArgs._context->setStereoProjections(stereoEyeProjections);
             renderArgs._context->setStereoViews(stereoEyeOffsets);
-            //         renderArgs._displayMode
         }
 
         renderArgs._blitFramebuffer = finalFramebuffer;
-        // displaySide(&renderArgs, _myCamera);
         runRenderFrame(&renderArgs);
     }
 
@@ -291,49 +203,34 @@ namespace render {
 }
 
 void Application::runRenderFrame(RenderArgs* renderArgs) {
-
-    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
-    // Then we can move this logic into the Avatar::simulate call.
-    //   auto myAvatar = getMyAvatar();
-    //   myAvatar->preDisplaySide(renderArgs);
-
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::runRenderFrame()");
 
-    // load the view frustum
-    //  {
-    //     QMutexLocker viewLocker(&_viewMutex);
-    //     theCamera.loadViewFrustum(_displayViewFrustum);
-    // }
-
     // The pending changes collecting the changes here
     render::Transaction transaction;
 
-    // Assuming nothing gets rendered through that
-    //if (!selfAvatarOnly) {
-    {
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-            // render models...
-            PerformanceTimer perfTimer("entities");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::runRenderFrame() ... entities...");
+    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+        // render models...
+        PerformanceTimer perfTimer("entities");
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+            "Application::runRenderFrame() ... entities...");
 
-            RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
+        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-                renderDebugFlags = static_cast<RenderArgs::DebugFlags>(renderDebugFlags |
-                    static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
-            }
-            renderArgs->_debugFlags = renderDebugFlags;
+        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
+            renderDebugFlags = static_cast<RenderArgs::DebugFlags>(renderDebugFlags |
+                static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
         }
+        renderArgs->_debugFlags = renderDebugFlags;
     }
 
-    // FIXME: Move this out of here!, WorldBox should be driven by the entity content just like the other entities
     // Make sure the WorldBox is in the scene
+    // For the record, this one RenderItem is the first one we created and added to the scene.
+    // We could meoee that code elsewhere but you know...
     if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
-        auto worldBoxRenderData = make_shared<WorldBoxRenderData>();
-        auto worldBoxRenderPayload = make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
+        auto worldBoxRenderData = std::make_shared<WorldBoxRenderData>();
+        auto worldBoxRenderPayload = std::make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
 
         WorldBoxRenderData::_item = _main3DScene->allocateID();
 
@@ -341,20 +238,9 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
         _main3DScene->enqueueTransaction(transaction);
     }
 
-
-    // For now every frame pass the renderContext
     {
         PerformanceTimer perfTimer("EngineRun");
-
-        /*   {
-        QMutexLocker viewLocker(&_viewMutex);
-        renderArgs->setViewFrustum(_displayViewFrustum);
-        }*/
-        //   renderArgs->_cameraMode = (int8_t)theCamera.getMode(); // HACK
-        renderArgs->_scene = getMain3DScene();
         _renderEngine->getRenderContext()->args = renderArgs;
-
-        // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
     }
 }
