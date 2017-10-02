@@ -47,7 +47,6 @@ HazeStage::Index HazeStage::findHaze(const HazePointer& haze) const {
     } else {
         return (*found).second;
     }
-
 }
 
 HazeStage::Index HazeStage::addHaze(const HazePointer& haze) {
