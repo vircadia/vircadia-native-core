@@ -1577,7 +1577,7 @@ float EntityItem::getRadius() const {
 // Checking Certifiable Properties
 #define ADD_STRING_PROPERTY(n, N) if (!propertySet.get##N().isEmpty()) json[#n] = propertySet.get##N()
 #define ADD_ENUM_PROPERTY(n, N) json[#n] = propertySet.get##N##AsString()
-#define ADD_INT_PROPERTY(n, N) if (propertySet.get##N() != 0) json[#n] = (propertySet.get##N() == -1) ? -1.0 : ((double) propertySet.get##N())
+#define ADD_INT_PROPERTY(n, N) if (propertySet.get##N() != 0) json[#n] = (propertySet.get##N() == (quint32) -1) ? -1.0 : ((double) propertySet.get##N())
 QByteArray EntityItem::getStaticCertificateJSON() const {
     // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
     // The static certificate properties include all an only those properties that cannot be changed without altering the identity

@@ -1767,7 +1767,7 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
 }
 
 bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& entityID) {
-    bool result;
+    bool result = false;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
@@ -1781,7 +1781,7 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
 
 #ifdef DEBUG_CERT
 QString EntityScriptingInterface::computeCertificateID(const QUuid& entityID) {
-    QString result;
+    QString result = false;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
