@@ -1935,10 +1935,13 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid::createUuid());
         }
 
+        auto nodeList = DependencyManager::get<NodeList>();
+        const QUuid myNodeID = nodeList->getSessionUUID();
         if (properties.getClientOnly()) {
-            auto nodeList = DependencyManager::get<NodeList>();
-            const QUuid myNodeID = nodeList->getSessionUUID();
             properties.setOwningAvatarID(myNodeID);
+        }
+        if (properties.getParentID() == AVATAR_SELF_ID) {
+            properties.setParentID(myNodeID);
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);
