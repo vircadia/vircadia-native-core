@@ -178,7 +178,7 @@
             }
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
-            if (!Window.isPointOnDesktopWindow(point2d)) {
+            if (!Window.isPointOnDesktopWindow(point2d) && !controllerData.triggerClicks[this.hand]) {
                 this.exitModule();
                 return false;
             }

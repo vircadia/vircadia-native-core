@@ -304,10 +304,10 @@ FocusScope {
             if (child.visible) {
                 if (child.hasOwnProperty("modality")) {
                     var mappedPoint = child.mapFromGlobal(point.x, point.y);
-                    console.log(mappedPoint);
-                    if (child.contains(mappedPoint)) {
+                    var outLine = child.frame.children[2];
+                    var framePoint = outLine.mapFromGlobal(point.x, point.y);
+                    if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
                         return true;
-                        console.log(child);
                     }
                 }
             }

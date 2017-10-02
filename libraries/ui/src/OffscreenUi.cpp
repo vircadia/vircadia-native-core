@@ -141,7 +141,6 @@ bool OffscreenUi::isPointOnDesktopWindow(QVariant point) {
     BLOCKING_INVOKE_METHOD(_desktop, "isPointOnWindow",
                            Q_RETURN_ARG(QVariant, result),
                            Q_ARG(QVariant, point));
-    qDebug() << "------> invoke method isPointOnWindow <------";
     return result.toBool();
 }
 
