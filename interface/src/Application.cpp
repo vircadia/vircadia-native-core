@@ -289,6 +289,10 @@ static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
 
+static const QString DISABLE_WATCHDOG_FLAG("HIFI_DISABLE_WATCHDOG");
+static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
+
+
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
 // For processing on QThreadPool, we target a number of threads after reserving some
@@ -805,8 +809,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     nodeList->startThread();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
-    _deadlockWatchdogThread = new DeadlockWatchdogThread();
-    _deadlockWatchdogThread->start();
+    if (!DISABLE_WATCHDOG) {
+        (new DeadlockWatchdogThread())->start();
+    }
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -1933,7 +1938,7 @@ void Application::showCursor(const Cursor::Icon& cursor) {
 }
 
 void Application::updateHeartbeat() const {
-    static_cast<DeadlockWatchdogThread*>(_deadlockWatchdogThread)->updateHeartbeat();
+    DeadlockWatchdogThread::updateHeartbeat();
 }
 
 void Application::onAboutToQuit() {
@@ -4696,12 +4701,8 @@ void Application::resetPhysicsReadyInformation() {
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
-        _viewFrustum.setOrientation(glm::quat());
-    }
-    // Clear entities out of view frustum
+    // Query the octree to refresh everything in view
+    _lastQueriedTime = 0;
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
     DependencyManager::get<AssetClient>()->clearCache();
@@ -4859,13 +4860,9 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        bool timeout = false;
         const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
-        if (_lastPhysicsCheckTime > 0 && now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT) {
-            timeout = true;
-        }
 
-        if (timeout || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
+        if (now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -5303,7 +5300,7 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend) {
+void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
@@ -5457,16 +5454,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                 _octreeQuery.setMaxQueryPacketsPerSecond(perUnknownServer);
             } else {
                 _octreeQuery.setMaxQueryPacketsPerSecond(0);
-            }
-
-            // if asked to forceResend, then set the query's position/orientation to be degenerate in a manner
-            // that will cause our next query to be guarenteed to be different and the server will resend to us
-            if (forceResend) {
-                _octreeQuery.setCameraPosition(glm::vec3(-0.1, -0.1, -0.1));
-                const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
-                _octreeQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
-                _octreeQuery.setCameraNearClip(0.1f);
-                _octreeQuery.setCameraFarClip(0.1f);
             }
 
             // encode the query data
@@ -5717,8 +5704,6 @@ void Application::clearDomainOctreeDetails() {
 
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
-    _recentlyClearedDomain = true;
-
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
@@ -5765,14 +5750,10 @@ void Application::nodeActivated(SharedNodePointer node) {
         }
     }
 
-    // If we get a new EntityServer activated, do a "forceRedraw" query. This will send a degenerate
-    // query so that the server will think our next non-degenerate query is "different enough" to send
-    // us a full scene
-    if (_recentlyClearedDomain && node->getType() == NodeType::EntityServer) {
-        _recentlyClearedDomain = false;
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-            queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions, true);
-        }
+    // If we get a new EntityServer activated, reset lastQueried time
+    // so we will do a proper query during update
+    if (node->getType() == NodeType::EntityServer) {
+        _lastQueriedTime = 0;
     }
 
     if (node->getType() == NodeType::AudioMixer) {
@@ -6403,7 +6384,7 @@ void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
-    static const QUrl url { "AssetServer.qml" };
+    static const QUrl url { "hifi/AssetServer.qml" };
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){
         if (!filePath.isEmpty()) {

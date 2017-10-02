@@ -12,6 +12,11 @@
 #ifndef hifi_MovingEntitiesOperator_h
 #define hifi_MovingEntitiesOperator_h
 
+#include <QSet>
+
+#include "EntityTypes.h"
+#include "EntityTreeElement.h"
+
 class EntityToMoveDetails {
 public:
     EntityItemPointer entity;
@@ -34,7 +39,7 @@ inline bool operator==(const EntityToMoveDetails& a, const EntityToMoveDetails& 
 
 class MovingEntitiesOperator : public RecurseOctreeOperator {
 public:
-    MovingEntitiesOperator(EntityTreePointer tree);
+    MovingEntitiesOperator();
     ~MovingEntitiesOperator();
 
     void addEntityToMoveList(EntityItemPointer entity, const AACube& newCube);
@@ -42,16 +47,15 @@ public:
     virtual bool postRecursion(const OctreeElementPointer& element) override;
     virtual OctreeElementPointer possiblyCreateChildAt(const OctreeElementPointer& element, int childIndex) override;
     bool hasMovingEntities() const { return _entitiesToMove.size() > 0; }
+    void reset();
 private:
-    EntityTreePointer _tree;
-    QSet<EntityToMoveDetails> _entitiesToMove;
-    quint64 _changeTime;
-    int _foundOldCount;
-    int _foundNewCount;
-    int _lookingCount;
     bool shouldRecurseSubTree(const OctreeElementPointer& element);
-    
-    bool _wantDebug;
+
+    QSet<EntityToMoveDetails> _entitiesToMove;
+    int _foundOldCount { 0 };
+    int _foundNewCount { 0 };
+    int _lookingCount { 0 };
+    bool _wantDebug { false };
 };
 
 #endif // hifi_MovingEntitiesOperator_h

@@ -584,7 +584,7 @@ void MyAvatar::simulate(float deltaTime) {
             }
             auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            MovingEntitiesOperator moveOperator(entityTree);
+            MovingEntitiesOperator moveOperator;
             forEachDescendant([&](SpatiallyNestablePointer object) {
                 // if the queryBox has changed, tell the entity-server
                 if (object->getNestableType() == NestableType::Entity && object->checkAndMaybeUpdateQueryAACube()) {

@@ -96,6 +96,9 @@ public:
     static void trackTreeWaitTime(float time);
     static float getAverageTreeWaitTime() { return _averageTreeWaitTime.getAverage(); }
 
+    static void trackTreeTraverseTime(float time) { _averageTreeTraverseTime.updateAverage(time); }
+    static float getAverageTreeTraverseTime() { return _averageTreeTraverseTime.getAverage(); }
+
     static void trackNodeWaitTime(float time) { _averageNodeWaitTime.updateAverage(time); }
     static float getAverageNodeWaitTime() { return _averageNodeWaitTime.getAverage(); }
 
@@ -227,6 +230,8 @@ protected:
     static int _longTreeWait;
     static int _shortTreeWait;
     static int _noTreeWait;
+
+    static SimpleMovingAverage _averageTreeTraverseTime;
 
     static SimpleMovingAverage _averageNodeWaitTime;
 
