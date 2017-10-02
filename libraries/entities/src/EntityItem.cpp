@@ -14,8 +14,7 @@
 #include <QtCore/QObject>
 #include <QtEndian>
 #include <QJsonDocument>
-#include <openssl/err.h> // see comments for DEBUG_CERT
-#include <openssl/rsa.h>
+#include <openssl/rsa.h>  // see comments for DEBUG_CERT
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
@@ -1637,6 +1636,7 @@ KxHof+LmYSYZAiB4U+yEh9SsXdq40W/3fpLMPuNq1PRezJ5jGidGMcvF+wIgUNec\n\
     unsigned int signatureLength = 0;
     const int signOK = RSA_sign(NID_sha256, text, textLength, reinterpret_cast<unsigned char*>(signature.data()), &signatureLength, rsa);
     BIO_free(bio);
+    RSA_free(rsa);
     if (!signOK) {
         qCWarning(entities) << "Unable to compute signature for" << getName() << getEntityItemID();
         return "";
@@ -1670,6 +1670,8 @@ AqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==\n\
     RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
     bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
     BIO_free(bio);
+    RSA_free(rsa);
+    EVP_PKEY_free(evp_key);
     return answer;
 }
 
