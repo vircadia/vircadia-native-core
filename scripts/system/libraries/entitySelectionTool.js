@@ -1042,7 +1042,7 @@ SelectionDisplay = (function() {
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
     Script.scriptEnding.connect(that.triggerMapping.disable);
-    that.TRIGGER_GRAB_VALUE = 0.85;  //  From handControllerGrab/Pointer.js. Should refactor.
+    that.TRIGGER_GRAB_VALUE = 0.85; //  From handControllerGrab/Pointer.js. Should refactor.
     that.TRIGGER_ON_VALUE = 0.4;
     that.TRIGGER_OFF_VALUE = 0.15;
     that.triggered = false;
@@ -1103,7 +1103,7 @@ SelectionDisplay = (function() {
 
         if (!grabberTools.hasOwnProperty(toolHandle)) {
             print("WARNING: entitySelectionTool.isActiveTool - Encountered unknown grabberToolHandle: " + toolHandle + ". Tools should be egistered via addGrabberTool.");
-            //--EARLY EXIT--
+            // EARLY EXIT
             return false;
         }
 
@@ -1472,11 +1472,11 @@ SelectionDisplay = (function() {
 
         var rotateHandlesVisible = true;
         var rotationOverlaysVisible = false;
-        //note:  Commented out as these are currently unused here; however,
-        //       leaving them around as they document intent of state as it
-        //       relates to modes that may be useful later.
-        //var translateHandlesVisible = true;
-        //var selectionBoxVisible = true;
+        // note:  Commented out as these are currently unused here; however,
+        //         leaving them around as they document intent of state as it
+        //         relates to modes that may be useful later.
+        // var translateHandlesVisible = true;
+        // var selectionBoxVisible = true;
         var isPointLight = false;
         if (selectionManager.selections.length === 1) {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
@@ -1487,14 +1487,14 @@ SelectionDisplay = (function() {
                 isActiveTool(rollHandle) || isActiveTool(selectionBox) || isActiveTool(grabberCloner)) {
             rotationOverlaysVisible = true;
             rotateHandlesVisible = false;
-            //translateHandlesVisible = false;
-            //selectionBoxVisible = false;
+            // translateHandlesVisible = false;
+            // selectionBoxVisible = false;
         } else if (isActiveTool(grabberMoveUp) || isPointLight) {
             rotateHandlesVisible = false;
         } else if (activeTool) {
             // every other mode is a stretch mode...
             rotateHandlesVisible = false;
-            //translateHandlesVisible = false;
+            // translateHandlesVisible = false;
         }
 
         Overlays.editOverlay(rotateZeroOverlay, {
@@ -1622,7 +1622,7 @@ SelectionDisplay = (function() {
             return;
         }
 
-        //print("    Triggering updateRotationHandles");
+        // print("    Triggering updateRotationHandles");
         that.updateRotationHandles();
 
         var rotation, dimensions, position, registrationPoint;
@@ -1938,7 +1938,7 @@ SelectionDisplay = (function() {
                         visible: true,
                     });
 
-                } else { //..it's a PointLight
+                } else { // ..it's a PointLight
                     that.setSpotLightHandlesVisible(false);
 
                     var showEdgePointGrabbers = !inModeTranslate;
@@ -2003,11 +2003,11 @@ SelectionDisplay = (function() {
                         visible: true,
                     });
                 }
-            } else { //..it's not a light at all
+            } else { // ..it's not a light at all
                 that.setSpotLightHandlesVisible(false);
                 that.setPointLightHandlesVisible(false);
             }
-        }//--end of isSingleSelection
+        }// end of isSingleSelection
 
 
 
@@ -2290,7 +2290,7 @@ SelectionDisplay = (function() {
         var visibilityUpdate = { visible: isVisible };
         for (var toolKey in grabberTools) {
             if (!grabberTools.hasOwnProperty(toolKey)) {
-                //--EARLY ITERATION EXIT--(On to the next one)
+                // EARLY ITERATION EXIT--(On to the next one)
                 continue;
             }
 
@@ -2411,14 +2411,14 @@ SelectionDisplay = (function() {
                     print("    "+ translateXZTool.mode + "Pick ray does not intersect XZ plane.");
                 }
                 
-                //--EARLY EXIT--(Invalid ray detected.)
+                // EARLY EXIT--(Invalid ray detected.)
                 return;
             }
 
             var vector = Vec3.subtract(pick, initialXZPick);
 
             // If the mouse is too close to the horizon of the pick plane, stop moving
-            var MIN_ELEVATION = 0.02;   //  largest dimension of object divided by distance to it
+            var MIN_ELEVATION = 0.02; //  largest dimension of object divided by distance to it
             var elevation = translateXZTool.elevation(pickRay.origin, pick);
             if (wantDebug) {
                     print("Start Elevation: " + translateXZTool.startingElevation + ", elevation: " + elevation);
@@ -2429,12 +2429,12 @@ SelectionDisplay = (function() {
                     print("    "+ translateXZTool.mode + " - too close to horizon!");
                 }
 
-                //--EARLY EXIT--(Don't proceed past the reached limit.)
+                // EARLY EXIT--(Don't proceed past the reached limit.)
                 return;
             }
 
             //  If the angular size of the object is too small, stop moving
-            var MIN_ANGULAR_SIZE = 0.01;   //  Radians
+            var MIN_ANGULAR_SIZE = 0.01; //  Radians
             if (translateXZTool.greatestDimension > 0) {
                 var angularSize = Math.atan(translateXZTool.greatestDimension / Vec3.distance(pickRay.origin, pick));
                 if (wantDebug) {
@@ -2592,7 +2592,7 @@ SelectionDisplay = (function() {
                 print("                event.y:" + event.y);
                 Vec3.print("        newIntersection:", newIntersection);
                 Vec3.print("                 vector:", vector);
-                //Vec3.print("            newPosition:", newPosition);
+                // Vec3.print("            newPosition:", newPosition);
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var id = SelectionManager.selections[i];
@@ -2970,10 +2970,10 @@ SelectionDisplay = (function() {
                 var wantDebug = false;
                 if (wantDebug) {
                     print(stretchMode);
-                    //Vec3.print("        newIntersection:", newIntersection);
+                    // Vec3.print("        newIntersection:", newIntersection);
                     Vec3.print("                 vector:", vector);
-                    //Vec3.print("           oldPOS:", oldPOS);
-                    //Vec3.print("                newPOS:", newPOS);
+                    // Vec3.print("           oldPOS:", oldPOS);
+                    // Vec3.print("                newPOS:", newPOS);
                     Vec3.print("            changeInDimensions:", changeInDimensions);
                     Vec3.print("                 newDimensions:", newDimensions);
 
@@ -2983,7 +2983,7 @@ SelectionDisplay = (function() {
             }
 
             SelectionManager._update();
-        };//--End of onMove def
+        };// End of onMove def
 
         return {
             mode: stretchMode,
@@ -3581,7 +3581,7 @@ SelectionDisplay = (function() {
         if (!rotationChange) {
             print("ERROR: entitySelectionTool.updateSelectionsRotation - Invalid arg specified!!");
 
-            //--EARLY EXIT--
+            // EARLY EXIT
             return;
         }
         
@@ -3677,14 +3677,14 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("================== " + getMode() + "(rotation helper onBegin) <- =======================");
         }
-    }//--End_Function(helperRotationHandleOnBegin)
+    }// End_Function(helperRotationHandleOnBegin)
 
     function helperRotationHandleOnMove(event, rotAroundAxis, rotCenter, handleRotation) {
 
         if (!rotZero) {
             print("ERROR: entitySelectionTool.handleRotationHandleOnMove - Invalid RotationZero Specified (missed rotation target plane?)");
 
-            //--EARLY EXIT--
+            // EARLY EXIT
             return;
         }
 
@@ -3777,12 +3777,12 @@ SelectionDisplay = (function() {
                     minorTickMarksLength: 0.1,
                 });
             }
-        }//--End_If(results.intersects)
+        }// End_If(results.intersects)
 
         if (wantDebug) {
             print("================== "+ getMode() + "(rotation helper onMove) <- =======================");
         }
-    }//--End_Function(helperRotationHandleOnMove)
+    }// End_Function(helperRotationHandleOnMove)
 
     function helperRotationHandleOnEnd() {
         var wantDebug = false;
@@ -3807,7 +3807,7 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("================== " + getMode() + "(onEnd) <- =======================");
         }
-    }//--End_Function(helperRotationHandleOnEnd)
+    }// End_Function(helperRotationHandleOnEnd)
 
 
     // YAW GRABBER TOOL DEFINITION
@@ -3860,7 +3860,7 @@ SelectionDisplay = (function() {
         if (SelectionManager.hasSelection()) {
 
             // FIXME - this cause problems with editing in the entity properties window
-            //SelectionManager._update();
+            // SelectionManager._update();
 
             if (!Vec3.equal(Camera.getPosition(), lastCameraPosition) ||
                 !Quat.equal(Camera.getOrientation(), lastCameraOrientation)) {
@@ -3923,12 +3923,12 @@ SelectionDisplay = (function() {
             print("=============== eST::MousePressEvent BEG =======================");
         }
         if (!event.isLeftButton && !that.triggered) {
-            //--EARLY EXIT-(if another mouse button than left is pressed ignore it)
+            // EARLY EXIT-(if another mouse button than left is pressed ignore it)
             return false;
         }
 
         var pickRay = generalComputePickRay(event.x, event.y);
-        //TODO_Case6491:  Move this out to setup just to make it once
+        // TODO_Case6491:  Move this out to setup just to make it once
         var interactiveOverlays = [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, selectionBox];
         for (var key in grabberTools) {
             if (grabberTools.hasOwnProperty(key)) {
@@ -3943,7 +3943,7 @@ SelectionDisplay = (function() {
         if (results.intersects) {
             var hitOverlayID = results.overlayID;
             if ((hitOverlayID === HMD.tabletID) || (hitOverlayID === HMD.tabletScreenID) || (hitOverlayID === HMD.homeButtonID)) {
-                //--EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
+                // EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
                 return false;
             }
 
@@ -3959,8 +3959,8 @@ SelectionDisplay = (function() {
                 }
             } else {
                 print("ERROR: entitySelectionTool.mousePressEvent - Hit unexpected object, check interactiveOverlays");
-            }//--End_if (hitTool)
-        }//--End_If(results.intersects)
+            }// End_if (hitTool)
+        }// End_If(results.intersects)
 
         if (wantDebug) {
             print("    DisplayMode: " + getMode());
@@ -3992,7 +3992,7 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("=============== eST::MouseMoveEvent END =======================");
             }
-            //--EARLY EXIT--(Move handled via active tool)
+            // EARLY EXIT--(Move handled via active tool)
             return true;
         }
 
@@ -4156,7 +4156,7 @@ SelectionDisplay = (function() {
             
         }
 
-        showHandles = activeTool;//<base on prior tool value
+        showHandles = activeTool; // base on prior tool value
         activeTool = null;
 
         // if something is selected, then reset the "original" properties for any potential next click+move operation
