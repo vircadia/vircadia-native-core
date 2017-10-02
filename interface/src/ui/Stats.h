@@ -146,7 +146,7 @@ public:
     void updateStats(bool force = false);
 
     bool isExpanded() { return _expanded; }
-    bool isTimingExpanded() { return _timingExpanded; }
+    bool isTimingExpanded() { return _showTimingDetails; }
 
     void setExpanded(bool expanded) {
         if (_expanded != expanded) {
@@ -264,7 +264,8 @@ private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon{ true };
     bool _expanded{ false };
-    bool _timingExpanded{ false };
+    bool _showTimingDetails{ false };
+    bool _showGameUpdateStats{ false };
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
     QStringList _downloadUrls = QStringList();

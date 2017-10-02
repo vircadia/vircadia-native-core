@@ -117,10 +117,9 @@ void Stats::updateStats(bool force) {
         }
     }
 
-    bool shouldDisplayTimingDetail = Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-        Menu::getInstance()->isOptionChecked(MenuOption::Stats) && isExpanded();
-    if (shouldDisplayTimingDetail != PerformanceTimer::isActive()) {
-        PerformanceTimer::setActive(shouldDisplayTimingDetail);
+    bool performanceTimerShouldBeActive = Menu::getInstance()->isOptionChecked(MenuOption::Stats) && _expanded;
+    if (performanceTimerShouldBeActive != PerformanceTimer::isActive()) {
+        PerformanceTimer::setActive(performanceTimerShouldBeActive);
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -406,10 +405,11 @@ void Stats::updateStats(bool force) {
     }
 
     bool performanceTimerIsActive = PerformanceTimer::isActive();
-    bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
-    if (displayPerf && performanceTimerIsActive) {
-        if (!_timingExpanded) {
-            _timingExpanded = true;
+
+    if (performanceTimerShouldBeActive &&
+        Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+        if (!_showTimingDetails) {
+            _showTimingDetails = true;
             emit timingExpandedChanged();
         }
         PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
@@ -452,8 +452,15 @@ void Stats::updateStats(bool force) {
         }
         _timingStats = perfLines;
         emit timingStatsChanged();
+    } else if (_showTimingDetails) {
+        _showTimingDetails = false;
+        emit timingExpandedChanged();
+    }
 
-        // build _gameUpdateStats
+    if (_expanded && performanceTimerIsActive) {
+        if (!_showGameUpdateStats) {
+            _showGameUpdateStats = true;
+        }
         class SortableStat {
         public:
             SortableStat(QString a, float p) : message(a), priority(p) {}
@@ -462,6 +469,7 @@ void Stats::updateStats(bool force) {
             bool operator<(const SortableStat& other) const { return priority < other.priority; }
         };
 
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
         std::priority_queue<SortableStat> idleUpdateStats;
         auto itr = allRecords.find("/idle/update");
         if (itr != allRecords.end()) {
@@ -488,9 +496,8 @@ void Stats::updateStats(bool force) {
             _gameUpdateStats = "";
             emit gameUpdateStatsChanged();
         }
-    } else if (_timingExpanded) {
-        _timingExpanded = false;
-        emit timingExpandedChanged();
+    } else if (_showGameUpdateStats) {
+        _showGameUpdateStats = false;
         _gameUpdateStats = "";
         emit gameUpdateStatsChanged();
     }
