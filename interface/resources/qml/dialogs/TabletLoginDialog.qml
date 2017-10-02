@@ -32,8 +32,14 @@ TabletModalWindow {
     //fake root for shared components expecting root here
     property var root: QtObject {
         id: root
-        property alias title: realRoot.title
 
+        property bool keyboardEnabled: false
+        property bool keyboardRaised: false
+        property bool punctuationMode: false
+
+        readonly property bool isTablet: true
+
+        property alias title: realRoot.title
         property real width: realRoot.width
         property real height: realRoot.height
 
@@ -64,10 +70,6 @@ TabletModalWindow {
     property string label: ""
 
     //onTitleWidthChanged: d.resize();
-
-    property bool keyboardEnabled: false
-    property bool keyboardRaised: false
-    property bool punctuationMode: false
 
     //onKeyboardRaisedChanged: d.resize();
 
@@ -120,6 +122,18 @@ TabletModalWindow {
                 anchors.horizontalCenter: parent.horizontalCenter
                 source: loginDialog.isSteamRunning() ? "../LoginDialog/SignInBody.qml" : "../LoginDialog/LinkAccountBody.qml"
             }
+        }
+    }
+
+    Keyboard {
+        raised: root.keyboardEnabled && root.keyboardRaised
+        numeric: root.punctuationMode
+        enabled: true
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            bottomMargin: root.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
     }
 

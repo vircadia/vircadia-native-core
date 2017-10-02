@@ -27,6 +27,8 @@ ModalWindow {
     destroyOnHidden: true
     visible: true
 
+    readonly property bool isTablet: false
+
     property string iconText: ""
     property int iconSize: 50
 
