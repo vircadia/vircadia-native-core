@@ -15,6 +15,9 @@
 #include <QtCore/QObject>
 #include <DependencyManager.h>
 
+#include "scripting/HMDScriptingInterface.h"
+#include <ui/TabletScriptingInterface.h>
+
 
 class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -26,6 +29,8 @@ public:
 
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
     void setWalletStatus(const uint& status) { _walletStatus = status; }
+
+    Q_INVOKABLE void buy();
 
 signals:
     void walletStatusChanged();

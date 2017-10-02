@@ -60,6 +60,7 @@
     var onCommerceScreen = false;
 
     var debugCheckout = false;
+    var debugError = false;
     function showMarketplace() {
         if (!debugCheckout) {
             UserActivityLogger.openedMarketplace();
@@ -71,7 +72,7 @@
                     itemId: '0d90d21c-ce7a-4990-ad18-e9d2cf991027',
                     itemName: 'Test Flaregun',
                     itemAuthor: 'hifiDave',
-                    itemPrice: 17,
+                    itemPrice: (debugError ? 10 : 17),
                     itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
                 },
                 canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified

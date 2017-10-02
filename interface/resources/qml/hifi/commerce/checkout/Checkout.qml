@@ -75,7 +75,7 @@ Rectangle {
 
         onBuyResult: {
             if (result.status !== 'success') {
-                failureErrorText.text = "Here's some more info about the error:<br><br>" + (result.message);
+                failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
             } else {
                 root.activeView = "checkoutSuccess";
@@ -312,12 +312,12 @@ Rectangle {
                     id: itemPriceTextLabel;
                     text: hifi.glyphs.hfc;
                     // Size
-                    size: 36;
+                    size: 30;
                     // Anchors
                     anchors.right: itemPriceText.left;
                     anchors.rightMargin: 4;
                     anchors.top: parent.top;
-                    anchors.topMargin: -4;
+                    anchors.topMargin: 0;
                     width: paintedWidth;
                     height: paintedHeight;
                     // Style
@@ -395,7 +395,7 @@ Rectangle {
                     verticalAlignment: Text.AlignTop;
                 }
 
-                RalewaySemiBold {
+                RalewayRegular {
                     id: buyText;
                     // Text size
                     size: 18;
@@ -699,7 +699,9 @@ Rectangle {
         anchors.top: titleBarContainer.bottom;
         anchors.bottom: root.bottom;
         anchors.left: parent.left;
+        anchors.leftMargin: 16;
         anchors.right: parent.right;
+        anchors.rightMargin: 16;
 
         RalewayRegular {
             id: failureHeaderText;
@@ -708,57 +710,65 @@ Rectangle {
             size: 24;
             // Anchors
             anchors.top: parent.top;
-            anchors.topMargin: 80;
+            anchors.topMargin: 40;
             height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
             // Style
             color: hifi.colors.black;
             wrapMode: Text.WordWrap;
-            // Alignment
-            horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;
         }
 
-        RalewayRegular {
-            id: failureErrorText;
-            // Text size
-            size: 16;
-            // Anchors
+        Rectangle {
+            id: failureErrorTextContainer;
             anchors.top: failureHeaderText.bottom;
             anchors.topMargin: 35;
-            height: paintedHeight;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            // Style
-            color: hifi.colors.black;
-            wrapMode: Text.WordWrap;
-            // Alignment
-            horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;
+            height: failureErrorText.height + 30;
+            radius: 4;
+            border.width: 2;
+            border.color: "#F3808F";
+            color: "#FFC3CD";
+
+            AnonymousProRegular {
+                id: failureErrorText;
+                // Text size
+                size: 16;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 15;
+                anchors.left: parent.left;
+                anchors.leftMargin: 8;
+                anchors.right: parent.right;
+                anchors.rightMargin: 8;
+                height: paintedHeight;
+                // Style
+                color: hifi.colors.black;
+                wrapMode: Text.Wrap;
+                verticalAlignment: Text.AlignVCenter;
+            }
         }
 
         Item {
             id: backToMarketplaceButtonContainer;
             // Size
             width: root.width;
-            height: 130;
+            height: 50;
             // Anchors
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 8;
+            anchors.bottomMargin: 16;
             // "Back to Marketplace" button
             HifiControlsUit.Button {
                 id: backToMarketplaceButton;
-                color: hifi.buttons.black;
+                color: hifi.buttons.noneBorderlessGray;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: parent.top;
-                anchors.topMargin: 3;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
-                anchors.right: parent.right;
-                anchors.rightMargin: 20;
-                width: parent.width/2 - anchors.rightMargin*2;
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
+                width: parent.width/2 - anchors.leftMargin*2;
                 text: "Back to Marketplace";
                 onClicked: {
                     sendToScript({method: 'checkout_continueShopping', itemId: itemId});
@@ -806,7 +816,7 @@ Rectangle {
                 itemId = message.params.itemId;
                 itemNameText.text = message.params.itemName;
                 root.itemPrice = message.params.itemPrice;
-                itemPriceText.text = root.itemPrice === 0 ? "Free" : root.itemPrice;
+                itemPriceText.text = root.itemPrice;
                 itemHref = message.params.itemHref;
                 itemPreviewImageUrl = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
                 if (itemHref.indexOf('.json') === -1) {
@@ -834,10 +844,10 @@ Rectangle {
             if (root.purchasesReceived && root.balanceReceived) {
                 if (root.balanceAfterPurchase < 0) {
                     if (root.alreadyOwned) {
-                        buyText.text = "Your Wallet does not have sufficient funds to purchase this item again.<br>" +
-                        '<font color="' + hifi.colors.blueAccent + '"><a href="#">View the copy you own in My Purchases</a></font>';
+                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.<br>" +
+                        '<font color="' + hifi.colors.blueAccent + '"><a href="#">View the copy you own in My Purchases</a></font></b>';
                     } else {
-                        buyText.text = "Your Wallet does not have sufficient funds to purchase this item.";
+                        buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
                     }
                     buyTextContainer.color = "#FFC3CD";
                     buyTextContainer.border.color = "#F3808F";
@@ -845,8 +855,8 @@ Rectangle {
                     buyGlyph.size = 54;
                 } else {
                     if (root.alreadyOwned) {
-                        buyText.text = 'You already own this item.<br>Purchasing it will buy another copy.<br><font color="'
-                        + hifi.colors.blueAccent + '"><a href="#">View this item in My Purchases</a></font>';
+                        buyText.text = '<b>You already own this item.<br>Purchasing it will buy another copy.<br><font color="'
+                        + hifi.colors.blueAccent + '"><a href="#">View this item in My Purchases</a></font></b>';
                         buyTextContainer.color = "#FFD6AD";
                         buyTextContainer.border.color = "#FAC07D";
                         buyGlyph.text = hifi.glyphs.alert;
@@ -859,7 +869,7 @@ Rectangle {
                 buyText.text = "";
             }
         } else {
-            buyText.text = "This Marketplace item isn't an entity. It <b>will not</b> be added to your <b>Purchases</b>.";
+            buyText.text = "This free item <b>will not</b> be added to your <b>Purchases</b>. Non-entities can't yet be purchased for HFC.";
             buyTextContainer.color = "#FFD6AD";
             buyTextContainer.border.color = "#FAC07D";
             buyGlyph.text = hifi.glyphs.alert;

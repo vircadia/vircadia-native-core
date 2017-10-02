@@ -192,7 +192,7 @@
             var dropDownElement = document.getElementById('user-dropdown');
             purchasesElement.id = "purchasesButton";
             purchasesElement.setAttribute('href', "#");
-            purchasesElement.innerHTML = "MY PURCHASES";
+            purchasesElement.innerHTML = "My Purchases";
             // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
             //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
             purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
