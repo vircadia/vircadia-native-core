@@ -429,7 +429,7 @@ public:
                 // Don't actually crash in debug builds, in case this apparent deadlock is simply from
                 // the developer actively debugging code
                 #ifdef NDEBUG
-                  //  deadlockDetectionCrash();
+                    deadlockDetectionCrash();
                 #endif
             }
         }
@@ -5036,9 +5036,6 @@ void Application::update(float deltaTime) {
     }
 
     editRenderArgs([this](AppRenderArgs& appRenderArgs) {
-        
-        appRenderArgs._renderArgs._scene = getMain3DScene();
-        
         appRenderArgs._headPose= getHMDSensorPose();
 
         auto myAvatar = getMyAvatar();
@@ -5068,6 +5065,8 @@ void Application::update(float deltaTime) {
             appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
                 lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+            appRenderArgs._renderArgs._scene = getMain3DScene();
+
             {
                 QMutexLocker viewLocker(&_viewMutex);
                 appRenderArgs._renderArgs.setViewFrustum(_viewFrustum);
