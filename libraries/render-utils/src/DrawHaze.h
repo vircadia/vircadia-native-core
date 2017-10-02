@@ -52,7 +52,7 @@ public:
     float hazeRangeKeyLight_m{ model::initialHazeKeyLightRange_m };
     float hazeAltitudeKeyLight_m{ model::initialHazeKeyLightAltitude_m };
 
-    float backgroundBlendValue{ model::initialBackgroundBlendValue };
+    float hazeBackgroundBlendValue{ model::initialHazeBackgroundBlendValue };
 
     // methods
     void setHazeColorR(const float value);

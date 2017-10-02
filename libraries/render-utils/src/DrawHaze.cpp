@@ -84,7 +84,7 @@ void HazeConfig::setHazeAltitudeKeyLight_m(const float value) {
 }
 
 void HazeConfig::setBackgroundBlendValue(const float value) {
-    backgroundBlendValue = value;
+    hazeBackgroundBlendValue = value;
 }
 
 const int HazeEffect_ParamsSlot = 0;

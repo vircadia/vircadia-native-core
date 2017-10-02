@@ -154,18 +154,18 @@ void Haze::setHazeKeyLightAltitudeFactor(const float hazeKeyLightAltitudeFactor)
     }
 }
 
-void Haze::setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue) {
-    auto& params = _parametersBuffer.get<Parameters>();
-
-    if (params.hazeBackgroundBlendValue != hazeBackgroundBlendValue) {
-        _parametersBuffer.edit<Parameters>().hazeBackgroundBlendValue = hazeBackgroundBlendValue;
-    }
-}
-
 void Haze::setHazeBaseReference(const float hazeBaseReference) {
     auto& params = _parametersBuffer.get<Parameters>();
 
     if (params.hazeBaseReference != hazeBaseReference) {
         _parametersBuffer.edit<Parameters>().hazeBaseReference = hazeBaseReference;
+    }
+}
+
+void Haze::setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue) {
+    auto& params = _parametersBuffer.get<Parameters>();
+
+    if (params.hazeBackgroundBlendValue != hazeBackgroundBlendValue) {
+        _parametersBuffer.edit<Parameters>().hazeBackgroundBlendValue = hazeBackgroundBlendValue;
     }
 }

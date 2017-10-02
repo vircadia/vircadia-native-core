@@ -2,7 +2,7 @@
 //  HazeMode.h
 //  libraries/entities/src
 //
-//  Created by Nissim hadar on 9/21/17.
+//  Created by Nissim Hadar on 9/21/17.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

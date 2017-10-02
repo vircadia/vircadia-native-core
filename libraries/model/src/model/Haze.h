@@ -50,7 +50,7 @@ namespace model {
     const float initialHazeKeyLightRange_m{ 150.0f };
     const float initialHazeKeyLightAltitude_m{ 150.0f };
 
-    const float initialBackgroundBlendValue{ 0.0f };
+    const float initialHazeBackgroundBlendValue{ 0.0f };
 
     const glm::vec3 initialColorModulationFactor{
         convertHazeRangeToHazeRangeFactor(initialHazeRange_m),
@@ -108,7 +108,7 @@ namespace model {
             float hazeKeyLightAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(initialHazeKeyLightAltitude_m) };
 
             // Amount of background (skybox) to display, overriding the haze effect for the background
-            float hazeBackgroundBlendValue{ initialBackgroundBlendValue };
+            float hazeBackgroundBlendValue{ initialHazeBackgroundBlendValue };
 
             Parameters() {}
         };
