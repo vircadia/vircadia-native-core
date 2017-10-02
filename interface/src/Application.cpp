@@ -1545,15 +1545,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         auto displayPlugin = qApp->getActiveDisplayPlugin();
 
-        properties["fps"] = _frameCounter.rate();
-        properties["target_frame_rate"] = getTargetFrameRate();
-        properties["render_rate"] = displayPlugin->renderRate();
+        properties["render_rate"] = _renderLoopCounter.rate();
+        properties["target_render_rate"] = getTargetRenderFrameRate();
         properties["present_rate"] = displayPlugin->presentRate();
         properties["new_frame_present_rate"] = displayPlugin->newFramePresentRate();
         properties["dropped_frame_rate"] = displayPlugin->droppedFrameRate();
         properties["stutter_rate"] = displayPlugin->stutterRate();
-        properties["sim_rate"] = getAverageSimsPerSecond();
-        properties["avatar_sim_rate"] = getAvatarSimrate();
+        properties["game_rate"] = getGameLoopRate();
         properties["has_async_reprojection"] = displayPlugin->hasAsyncReprojection();
         properties["hardware_stats"] = displayPlugin->getHardwareStats();
 
@@ -2388,11 +2386,11 @@ void Application::paintGL() {
         return;
     }
 
-    _frameCount++;
+    _renderFrameCount++;
     _lastTimeRendered.start();
 
     auto lastPaintBegin = usecTimestampNow();
-    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_renderFrameCount);
     PerformanceTimer perfTimer("paintGL");
 
     if (nullptr == _displayPlugin) {
@@ -2409,7 +2407,7 @@ void Application::paintGL() {
         PROFILE_RANGE(render, "/pluginBeginFrameRender");
         // If a display plugin loses it's underlying support, it
         // needs to be able to signal us to not use it
-        if (!displayPlugin->beginFrameRender(_frameCount)) {
+        if (!displayPlugin->beginFrameRender(_renderFrameCount)) {
             updateDisplayMode();
             return;
         }
@@ -2564,14 +2562,14 @@ void Application::paintGL() {
             }
             // Update camera position
             if (!isHMDMode()) {
-                _myCamera.update(1.0f / _frameCounter.rate());
+                _myCamera.update();
             }
         }
     }
 
     {
         PROFILE_RANGE(render, "/updateCompositor");
-        getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
+        getApplicationCompositor().setFrameInfo(_renderFrameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
     }
 
     gpu::FramebufferPointer finalFramebuffer;
@@ -2652,7 +2650,7 @@ void Application::paintGL() {
     }
 
     auto frame = _gpuContext->endFrame();
-    frame->frameIndex = _frameCount;
+    frame->frameIndex = _renderFrameCount;
     frame->framebuffer = finalFramebuffer;
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
@@ -2663,7 +2661,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(render, "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        _frameCounter.increment();
+        _renderLoopCounter.increment();
         displayPlugin->submitFrame(frame);
     }
 
@@ -4041,7 +4039,7 @@ void Application::idle() {
     if (displayPlugin) {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
     }
-    PROFILE_COUNTER_IF_CHANGED(app, "fps", float, _frameCounter.rate());
+    PROFILE_COUNTER_IF_CHANGED(app, "renderLoopRate", float, _renderLoopCounter.rate());
     PROFILE_COUNTER_IF_CHANGED(app, "currentDownloads", int, ResourceCache::getLoadingRequests().length());
     PROFILE_COUNTER_IF_CHANGED(app, "pendingDownloads", int, ResourceCache::getPendingRequestCount());
     PROFILE_COUNTER_IF_CHANGED(app, "currentProcessing", int, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
@@ -4076,8 +4074,6 @@ void Application::idle() {
     checkChangeCursor();
 
     Stats::getInstance()->updateStats();
-
-    _simCounter.increment();
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -4158,6 +4154,7 @@ void Application::idle() {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
         cameraMenuChanged();
     }
+    _gameLoopCounter.increment();
 }
 
 ivec2 Application::getMouse() const {
@@ -4844,7 +4841,7 @@ static bool domainLoadingInProgress = false;
 
 void Application::update(float deltaTime) {
 
-    PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_frameCount + 1);
+    PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
@@ -5138,22 +5135,22 @@ void Application::update(float deltaTime) {
 
     // AvatarManager update
     {
-        PerformanceTimer perfTimer("AvatarManager");
-        _avatarSimCounter.increment();
-
         {
+            PerformanceTimer perfTimer("otherAvatars");
             PROFILE_RANGE_EX(simulation, "OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
 
-        qApp->updateMyAvatarLookAtPosition();
-
         {
             PROFILE_RANGE_EX(simulation, "MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PerformanceTimer perfTimer("MyAvatar");
+            qApp->updateMyAvatarLookAtPosition();
             avatarManager->updateMyAvatar(deltaTime);
         }
     }
 
+    PerformanceTimer perfTimer("misc");
+    // TODO: break these out into distinct perfTimers when they prove interesting
     {
         PROFILE_RANGE(app, "RayPickManager");
         _rayPickManager.update();
@@ -5471,7 +5468,7 @@ bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
 
-float Application::getTargetFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }
+float Application::getTargetRenderFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() const {
     QRect applicationGeometry = getWindow()->geometry();
