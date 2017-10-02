@@ -338,7 +338,7 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
 
     const auto& haze = editHaze();
 
-    haze->setIsHazeActive(entity->getHazeMode() == HAZE_MODE_ENABLED);
+    haze->setHazeActive(entity->getHazeMode() == HAZE_MODE_ENABLED);
 
     haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(entity->getHazeRange()));
     xColor hazeBlendInColor = entity->getHazeBlendInColor();

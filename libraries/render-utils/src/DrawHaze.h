@@ -39,10 +39,10 @@ class MakeHazeConfig : public render::Job::Config {
     Q_PROPERTY(float hazeDirectionalLightColorB MEMBER hazeDirectionalLightColorB WRITE setDirectionalLightColorB NOTIFY dirty);
     Q_PROPERTY(float hazeBaseReference MEMBER hazeBaseReference WRITE setHazeBaseReference NOTIFY dirty);
 
-    Q_PROPERTY(bool isHazeActive MEMBER isHazeActive WRITE setIsHazeActive NOTIFY dirty);
-    Q_PROPERTY(bool isAltitudeBased MEMBER isAltitudeBased WRITE setIsAltitudeBased NOTIFY dirty);
-    Q_PROPERTY(bool isDirectionaLightAttenuationActive MEMBER isDirectionaLightAttenuationActive WRITE setIsDirectionaLightAttenuationActive NOTIFY dirty);
-    Q_PROPERTY(bool isModulateColorActive MEMBER isModulateColorActive WRITE setIsModulateColorActive NOTIFY dirty);
+    Q_PROPERTY(bool isHazeActive MEMBER isHazeActive WRITE setHazeActive NOTIFY dirty);
+    Q_PROPERTY(bool isAltitudeBased MEMBER isAltitudeBased WRITE setAltitudeBased NOTIFY dirty);
+    Q_PROPERTY(bool isDirectionaLightAttenuationActive MEMBER isDirectionaLightAttenuationActive WRITE setDirectionaLightAttenuationActive NOTIFY dirty);
+    Q_PROPERTY(bool isModulateColorActive MEMBER isModulateColorActive WRITE setModulateColorActive NOTIFY dirty);
 
     Q_PROPERTY(float hazeRange_m MEMBER hazeRange_m WRITE setHazeRange_m NOTIFY dirty);
     Q_PROPERTY(float hazeAltitude_m MEMBER hazeAltitude_m WRITE setHazeAltitude_m NOTIFY dirty);
@@ -89,10 +89,10 @@ public slots:
     void setDirectionalLightColorB(const float value) { hazeDirectionalLightColorB = value; emit dirty(); }
     void setHazeBaseReference(const float value) { hazeBaseReference = value; ; emit dirty(); }
 
-    void setIsHazeActive(const bool active) { isHazeActive = active; emit dirty(); }
-    void setIsAltitudeBased(const bool active) { isAltitudeBased = active; emit dirty(); }
-    void setIsDirectionaLightAttenuationActive(const bool active) { isDirectionaLightAttenuationActive = active; emit dirty(); }
-    void setIsModulateColorActive(const bool active) { isModulateColorActive = active; emit dirty(); }
+    void setHazeActive(const bool active) { isHazeActive = active; emit dirty(); }
+    void setAltitudeBased(const bool active) { isAltitudeBased = active; emit dirty(); }
+    void setDirectionaLightAttenuationActive(const bool active) { isDirectionaLightAttenuationActive = active; emit dirty(); }
+    void setModulateColorActive(const bool active) { isModulateColorActive = active; emit dirty(); }
 
     void setHazeRange_m(const float value) { hazeRange_m = value; emit dirty(); }
     void setHazeAltitude_m(const float value) { hazeAltitude_m = value; emit dirty(); }
@@ -159,10 +159,10 @@ public:
     void setDirectionalLightColorB(const float value);
     void setHazeBaseReference(const float value);
 
-    void setIsHazeActive(const bool active);
-    void setIsAltitudeBased(const bool active);
+    void setHazeActive(const bool active);
+    void setAltitudeBased(const bool active);
     void setIsdirectionalLightAttenuationActive(const bool active);
-    void setIsModulateColorActive(const bool active);
+    void setModulateColorActive(const bool active);
 
     void setHazeRange_m(const float value);
     void setHazeAltitude_m(const float value);

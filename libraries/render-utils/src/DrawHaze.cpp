@@ -51,11 +51,11 @@ void HazeConfig::setHazeBaseReference(const float value) {
     hazeBaseReference = value; 
 }
 
-void HazeConfig::setIsHazeActive(const bool active) { 
+void HazeConfig::setHazeActive(const bool active) { 
     isHazeActive = active; 
 }
 
-void HazeConfig::setIsAltitudeBased(const bool active) { 
+void HazeConfig::setAltitudeBased(const bool active) { 
     isAltitudeBased = active; 
 }
 
@@ -63,7 +63,7 @@ void HazeConfig::setIsdirectionalLightAttenuationActive(const bool active) {
     isDirectionalLightAttenuationActive = active;
 }
 
-void HazeConfig::setIsModulateColorActive(const bool active) { 
+void HazeConfig::setModulateColorActive(const bool active) { 
     isModulateColorActive = active; 
 }
 
@@ -98,10 +98,10 @@ void MakeHaze::configure(const Config& config) {
     _haze->setDirectionalLightColor(glm::vec3(config.hazeDirectionalLightColorR, config.hazeDirectionalLightColorG, config.hazeDirectionalLightColorB));
     _haze->setHazeBaseReference(config.hazeBaseReference);
 
-    _haze->setIsHazeActive(config.isHazeActive);
-    _haze->setIsAltitudeBased(config.isAltitudeBased);
-    _haze->setIsDirectionaLightAttenuationActive(config.isDirectionaLightAttenuationActive);
-    _haze->setIsModulateColorActive(config.isModulateColorActive);
+    _haze->setHazeActive(config.isHazeActive);
+    _haze->setAltitudeBased(config.isAltitudeBased);
+    _haze->setDirectionaLightAttenuationActive(config.isDirectionaLightAttenuationActive);
+    _haze->setModulateColorActive(config.isModulateColorActive);
 
     _haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeRange_m));
     _haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(config.hazeAltitude_m));

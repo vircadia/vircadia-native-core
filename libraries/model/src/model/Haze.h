@@ -70,10 +70,10 @@ namespace model {
         void setDirectionalLightColor(const glm::vec3 directionalLightColor);
         void setHazeBaseReference(const float hazeBaseReference);
 
-        void setIsHazeActive(const bool isHazeActive);
-        void setIsAltitudeBased(const bool isAltitudeBased);
-        void setIsDirectionaLightAttenuationActive(const bool isDirectionaLightAttenuationActive);
-        void setIsModulateColorActive(const bool isModulateColorActive);
+        void setHazeActive(const bool isHazeActive);
+        void setAltitudeBased(const bool isAltitudeBased);
+        void setDirectionaLightAttenuationActive(const bool isDirectionaLightAttenuationActive);
+        void setModulateColorActive(const bool isModulateColorActive);
 
         void setHazeRangeFactor(const float hazeRange);
         void setHazeAltitudeFactor(const float hazeAltitude);

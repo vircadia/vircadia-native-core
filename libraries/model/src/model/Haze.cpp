@@ -78,7 +78,7 @@ void Haze::setDirectionalLightColor(const glm::vec3 hazeDirectionalLightColor) {
         _parametersBuffer.edit<Parameters>().directionalLightColor.b = hazeDirectionalLightColor.b;
     }
 }
-void Haze::setIsHazeActive(const bool isHazeActive) {
+void Haze::setHazeActive(const bool isHazeActive) {
     auto& params = _parametersBuffer.get<Parameters>();
 
     if (((params.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE )&& !isHazeActive) {
@@ -89,7 +89,7 @@ void Haze::setIsHazeActive(const bool isHazeActive) {
     }
 }
 
-void Haze::setIsAltitudeBased(const bool isAltitudeBased) {
+void Haze::setAltitudeBased(const bool isAltitudeBased) {
     auto& params = _parametersBuffer.get<Parameters>();
 
     if (((params.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) == HAZE_MODE_IS_ALTITUDE_BASED )&& !isAltitudeBased) {
@@ -100,7 +100,7 @@ void Haze::setIsAltitudeBased(const bool isAltitudeBased) {
     }
 }
 
-void Haze::setIsDirectionaLightAttenuationActive(const bool isDirectionaLightAttenuationActive) {
+void Haze::setDirectionaLightAttenuationActive(const bool isDirectionaLightAttenuationActive) {
     auto& params = _parametersBuffer.get<Parameters>();
 
     if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) == HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED ) && !isDirectionaLightAttenuationActive) {
@@ -111,7 +111,7 @@ void Haze::setIsDirectionaLightAttenuationActive(const bool isDirectionaLightAtt
     }
 }
 
-void Haze::setIsModulateColorActive(const bool isModulateColorActive) {
+void Haze::setModulateColorActive(const bool isModulateColorActive) {
     auto& params = _parametersBuffer.get<Parameters>();
 
     if (((params.hazeMode & HAZE_MODE_IS_MODULATE_COLOR) == HAZE_MODE_IS_MODULATE_COLOR ) && !isModulateColorActive) {

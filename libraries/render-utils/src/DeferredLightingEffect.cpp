@@ -774,7 +774,6 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         if (hazeStage) {
 
             auto haze = std::make_shared<model::Haze>();
-            haze->setIsHazeActive(false);
 
             _defaultHaze = haze;
             _defaultHazeID = hazeStage->addHaze(_defaultHaze);

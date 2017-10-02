@@ -26,10 +26,10 @@ void FetchHazeStage::configure(const Config& config) {
     _haze->setDirectionalLightColor(glm::vec3(config.hazeDirectionalLightColorR, config.hazeDirectionalLightColorG, config.hazeDirectionalLightColorB));
     _haze->setHazeBaseReference(config.hazeBaseReference);
 
-    _haze->setIsHazeActive(config.isHazeActive);
-    _haze->setIsAltitudeBased(config.isAltitudeBased);
-    _haze->setIsDirectionaLightAttenuationActive(config.isDirectionaLightAttenuationActive);
-    _haze->setIsModulateColorActive(config.isModulateColorActive);
+    _haze->setHazeActive(config.isHazeActive);
+    _haze->setAltitudeBased(config.isAltitudeBased);
+    _haze->setDirectionaLightAttenuationActive(config.isDirectionaLightAttenuationActive);
+    _haze->setModulateColorActive(config.isModulateColorActive);
 
     _haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeRange_m));
     _haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(config.hazeAltitude_m));
