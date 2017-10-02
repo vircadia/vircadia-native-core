@@ -334,10 +334,8 @@ void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
     glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) *
         inputCalibrationData.defaultHeadMat;
 
-    controller::Pose hmdHeadPose = pose.transform(sensorToAvatar);
-
     pose.valid = true;
-    _poseStateMap[controller::HEAD] = hmdHeadPose.postTransform(defaultHeadOffset);
+    _poseStateMap[controller::HEAD] = pose.postTransform(defaultHeadOffset).transform(sensorToAvatar);
 }
 
 void OculusControllerManager::TouchDevice::handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,

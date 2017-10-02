@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AddEntityOperator.h"
+
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
-#include "AddEntityOperator.h"
-
 AddEntityOperator::AddEntityOperator(EntityTreePointer tree, EntityItemPointer newEntity) :
     _tree(tree),
     _newEntity(newEntity),
-    _foundNew(false),
-    _changeTime(usecTimestampNow()),
-    _newEntityBox()
+    _newEntityBox(),
+    _foundNew(false)
 {
     // caller must have verified existence of newEntity
     assert(_newEntity);
