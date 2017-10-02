@@ -228,7 +228,6 @@ protected:
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;
-    mutable HazePointer _haze;
 
     float _dayTime = 12.0f;
     int _yearTime = 0;

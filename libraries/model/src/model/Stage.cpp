@@ -139,8 +139,7 @@ const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;
 
 SunSkyStage::SunSkyStage() :
     _sunLight(std::make_shared<Light>()),
-    _skybox(std::make_shared<Skybox>()),
-    _haze(std::make_shared<Haze>())
+    _skybox(std::make_shared<Skybox>())
 {
     _sunLight->setType(Light::SUN);
     // Default ambient sphere (for lack of skybox)
