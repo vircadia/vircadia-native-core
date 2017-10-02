@@ -140,12 +140,12 @@ SelectionManager = (function() {
         if (entityID) {
             var idx = -1;
             for (var i = 0; i < that.selections.length; i++) {
-                if (entityID == that.selections[i]) {
+                if (entityID === that.selections[i]) {
                     idx = i;
                     break;
                 }
             }
-            if (idx == -1) {
+            if (idx === -1) {
                 that.selections.push(entityID);
             } else if (toggleSelection) {
                 that.selections.splice(idx, 1);
@@ -175,7 +175,7 @@ SelectionManager = (function() {
             that.localPosition = null;
             that.worldDimensions = null;
             that.worldPosition = null;
-        } else if (that.selections.length == 1) {
+        } else if (that.selections.length === 1) {
             properties = Entities.getEntityProperties(that.selections[0]);
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
@@ -1186,7 +1186,7 @@ SelectionDisplay = (function() {
         var top, far, left, bottom, near, right, boundsCenter, objectCenter, BLN, BRN, BLF, TLN, TRN, TLF, TRF;
 
         var dimensions, rotation;
-        if (spaceMode == SPACE_LOCAL) {
+        if (spaceMode === SPACE_LOCAL) {
             rotation = SelectionManager.localRotation;
         } else {
             rotation = SelectionManager.worldRotation;
@@ -1478,9 +1478,9 @@ SelectionDisplay = (function() {
         //var translateHandlesVisible = true;
         //var selectionBoxVisible = true;
         var isPointLight = false;
-        if (selectionManager.selections.length == 1) {
+        if (selectionManager.selections.length === 1) {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
-            isPointLight = properties.type == "Light" && !properties.isSpotlight;
+            isPointLight = (properties.type === "Light") && !properties.isSpotlight;
         }
 
         if (isActiveTool(yawHandle) || isActiveTool(pitchHandle) || 
@@ -1567,7 +1567,7 @@ SelectionDisplay = (function() {
             print("======> SetSpaceMode called. ========");
         }
 
-        if (spaceMode != newSpaceMode) {
+        if (spaceMode !== newSpaceMode) {
             if (wantDebug) {
                 print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
             }
@@ -1587,7 +1587,7 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("========> ToggleSpaceMode called. =========");
         }
-        if (spaceMode == SPACE_WORLD && SelectionManager.selections.length > 1) {
+        if ((spaceMode === SPACE_WORLD) && (SelectionManager.selections.length > 1)) {
             if (wantDebug) {
                 print("Local space editing is not available with multiple selections");
             }
@@ -1596,7 +1596,7 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("PreToggle: " + spaceMode);
         }
-        spaceMode = spaceMode == SPACE_LOCAL ? SPACE_WORLD : SPACE_LOCAL;
+        spaceMode = (spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL;
         that.updateHandles();
         if (wantDebug) {
             print("PostToggle: " + spaceMode);        
@@ -1627,7 +1627,7 @@ SelectionDisplay = (function() {
 
         var rotation, dimensions, position, registrationPoint;
 
-        if (spaceMode == SPACE_LOCAL) {
+        if (spaceMode === SPACE_LOCAL) {
             rotation = SelectionManager.localRotation;
             dimensions = SelectionManager.localDimensions;
             position = SelectionManager.localPosition;
@@ -1852,17 +1852,17 @@ SelectionDisplay = (function() {
 
         var inModeRotate = (isActiveTool(yawHandle) || isActiveTool(pitchHandle) || isActiveTool(rollHandle));
         var inModeTranslate = (isActiveTool(selectionBox) || isActiveTool(grabberCloner) || isActiveTool(grabberMoveUp));
-        var stretchHandlesVisible = !(inModeRotate || inModeTranslate) && (spaceMode == SPACE_LOCAL);
+        var stretchHandlesVisible = !(inModeRotate || inModeTranslate) && (spaceMode === SPACE_LOCAL);
         var extendedStretchHandlesVisible = (stretchHandlesVisible && showExtendedStretchHandles);
         var cloneHandleVisible = !(inModeRotate || inModeTranslate);
         if (wantDebug) {
             print("    Set Non-Light Grabbers Visible - Norm: " + stretchHandlesVisible + " Ext: " + extendedStretchHandlesVisible);
         }
-        var isSingleSelection = (selectionManager.selections.length == 1);
+        var isSingleSelection = (selectionManager.selections.length === 1);
 
         if (isSingleSelection) {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
-            var isLightSelection = (properties.type == "Light");
+            var isLightSelection = (properties.type === "Light");
             if (isLightSelection) {
                 if (wantDebug) {
                     print("    Light Selection revoking Non-Light Grabbers Visibility!");
@@ -2691,9 +2691,9 @@ SelectionDisplay = (function() {
         var onBegin = function(event, pickRay, pickResult) {
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
-            rotation = spaceMode == SPACE_LOCAL ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
+            rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
 
-            if (spaceMode == SPACE_LOCAL) {
+            if (spaceMode === SPACE_LOCAL) {
                 rotation = SelectionManager.localRotation;
                 initialPosition = SelectionManager.localPosition;
                 initialDimensions = SelectionManager.localDimensions;
@@ -2739,7 +2739,7 @@ SelectionDisplay = (function() {
             }
             var start = null;
             var end = null;
-            if (numDimensions == 1 && mask.x) {
+            if ((numDimensions === 1) && mask.x) {
                 start = Vec3.multiplyQbyV(rotation, {
                     x: -10000,
                     y: 0,
@@ -2758,7 +2758,7 @@ SelectionDisplay = (function() {
                     visible: true,
                 });
             }
-            if (numDimensions == 1 && mask.y) {
+            if ((numDimensions === 1) && mask.y) {
                 start = Vec3.multiplyQbyV(rotation, {
                     x: 0,
                     y: -10000,
@@ -2777,7 +2777,7 @@ SelectionDisplay = (function() {
                     visible: true,
                 });
             }
-            if (numDimensions == 1 && mask.z) {
+            if ((numDimensions === 1) && mask.z) {
                 start = Vec3.multiplyQbyV(rotation, {
                     x: 0,
                     y: 0,
@@ -2796,14 +2796,14 @@ SelectionDisplay = (function() {
                     visible: true,
                 });
             }
-            if (numDimensions == 1) {
-                if (mask.x == 1) {
+            if (numDimensions === 1) {
+                if (mask.x === 1) {
                     planeNormal = {
                         x: 0,
                         y: 1,
                         z: 0
                     };
-                } else if (mask.y == 1) {
+                } else if (mask.y === 1) {
                     planeNormal = {
                         x: 1,
                         y: 0,
@@ -2816,7 +2816,7 @@ SelectionDisplay = (function() {
                         z: 0
                     };
                 }
-            } else if (numDimensions == 2) {
+            } else if (numDimensions === 2) {
                 if (mask.x === 0) {
                     planeNormal = {
                         x: 1,
@@ -2873,10 +2873,10 @@ SelectionDisplay = (function() {
         };
 
         var onMove = function(event) {
-            var proportional = spaceMode == SPACE_WORLD || event.isShifted || isActiveTool(grabberSpotLightRadius);
+            var proportional = (spaceMode === SPACE_WORLD) || event.isShifted || isActiveTool(grabberSpotLightRadius);
 
             var position, dimensions, rotation;
-            if (spaceMode == SPACE_LOCAL) {
+            if (spaceMode === SPACE_LOCAL) {
                 position = SelectionManager.localPosition;
                 dimensions = SelectionManager.localDimensions;
                 rotation = SelectionManager.localRotation;
@@ -3942,7 +3942,7 @@ SelectionDisplay = (function() {
         var results = testRayIntersect(pickRay, interactiveOverlays);
         if (results.intersects) {
             var hitOverlayID = results.overlayID;
-            if ((hitOverlayID == HMD.tabletID) || (hitOverlayID == HMD.tabletScreenID) || (hitOverlayID == HMD.homeButtonID)) {
+            if ((hitOverlayID === HMD.tabletID) || (hitOverlayID === HMD.tabletScreenID) || (hitOverlayID === HMD.homeButtonID)) {
                 //--EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
                 return false;
             }
