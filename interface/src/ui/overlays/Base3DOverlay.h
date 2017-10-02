@@ -47,7 +47,7 @@ public:
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
-    void setDrawInFront(bool value) { _drawInFront = value; }
+    virtual void setDrawInFront(bool value) { _drawInFront = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
 
     virtual AABox getBounds() const override = 0;
@@ -72,7 +72,7 @@ protected:
     virtual void parentDeleted() override;
 
     mutable Transform _renderTransform;
-    virtual Transform evalRenderTransform() const;
+    virtual Transform evalRenderTransform();
     virtual void setRenderTransform(const Transform& transform);
     const Transform& getRenderTransform() const { return _renderTransform; }
 

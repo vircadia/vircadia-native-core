@@ -21,6 +21,8 @@
 
 const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 20.0;
 const float DEFAULT_HMD_LOD_DOWN_FPS = 20.0;
+const float DEFAULT_DESKTOP_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_DESKTOP_LOD_DOWN_FPS; // msec
+const float DEFAULT_HMD_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_HMD_LOD_DOWN_FPS; // msec
 const float MAX_LIKELY_DESKTOP_FPS = 59.0; // this is essentially, V-synch - 1 fps
 const float MAX_LIKELY_HMD_FPS = 74.0; // this is essentially, V-synch - 1 fps
 const float INCREASE_LOD_GAP = 15.0f;
@@ -56,13 +58,13 @@ public:
     Q_INVOKABLE void setAutomaticLODAdjust(bool value) { _automaticLODAdjust = value; }
     Q_INVOKABLE bool getAutomaticLODAdjust() const { return _automaticLODAdjust; }
 
-    Q_INVOKABLE void setDesktopLODDecreaseFPS(float value) { _desktopLODDecreaseFPS = value; }
-    Q_INVOKABLE float getDesktopLODDecreaseFPS() const { return _desktopLODDecreaseFPS; }
-    Q_INVOKABLE float getDesktopLODIncreaseFPS() const { return glm::min(_desktopLODDecreaseFPS + INCREASE_LOD_GAP, MAX_LIKELY_DESKTOP_FPS); }
+    Q_INVOKABLE void setDesktopLODDecreaseFPS(float value);
+    Q_INVOKABLE float getDesktopLODDecreaseFPS() const;
+    Q_INVOKABLE float getDesktopLODIncreaseFPS() const;
 
-    Q_INVOKABLE void setHMDLODDecreaseFPS(float value) { _hmdLODDecreaseFPS = value; }
-    Q_INVOKABLE float getHMDLODDecreaseFPS() const { return _hmdLODDecreaseFPS; }
-    Q_INVOKABLE float getHMDLODIncreaseFPS() const { return glm::min(_hmdLODDecreaseFPS + INCREASE_LOD_GAP, MAX_LIKELY_HMD_FPS); }
+    Q_INVOKABLE void setHMDLODDecreaseFPS(float value);
+    Q_INVOKABLE float getHMDLODDecreaseFPS() const;
+    Q_INVOKABLE float getHMDLODIncreaseFPS() const;
     
     // User Tweakable LOD Items
     Q_INVOKABLE QString getLODFeedbackText();
@@ -76,7 +78,7 @@ public:
     Q_INVOKABLE float getLODIncreaseFPS();
     
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
-    void autoAdjustLOD(float currentFPS);
+    void autoAdjustLOD(float batchTime, float engineRunTime, float deltaTimeSec);
     
     void loadSettings();
     void saveSettings();
@@ -90,8 +92,9 @@ private:
     LODManager();
     
     bool _automaticLODAdjust = true;
-    float _desktopLODDecreaseFPS = DEFAULT_DESKTOP_LOD_DOWN_FPS;
-    float _hmdLODDecreaseFPS = DEFAULT_HMD_LOD_DOWN_FPS;
+    float _avgRenderTime { 0.0 };
+    float _desktopMaxRenderTime { DEFAULT_DESKTOP_MAX_RENDER_TIME };
+    float _hmdMaxRenderTime { DEFAULT_HMD_MAX_RENDER_TIME };
 
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;

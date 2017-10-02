@@ -36,6 +36,9 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
+protected:
+    Transform evalRenderTransform() override;
+
 private:
     float _borderSize;
     // edges on a cube

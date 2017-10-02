@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PathUtils.h"
+
 #include <QCoreApplication>
 #include <QString>
 #include <QVector>
@@ -16,7 +18,6 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QUrl>
-#include "PathUtils.h"
 #include <QtCore/QStandardPaths>
 #include <mutex> // std::once
 #include "shared/GlobalAppProperties.h"
@@ -105,18 +106,17 @@ QUrl PathUtils::defaultScriptsLocation(const QString& newDefaultPath) {
     if (!overriddenDefaultScriptsLocation.isEmpty()) {
         path = overriddenDefaultScriptsLocation;
     } else {
-#ifdef Q_OS_WIN
-        path = QCoreApplication::applicationDirPath() + "/scripts";
-#elif defined(Q_OS_OSX)
+#if defined(Q_OS_OSX)
         path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
+#elif defined(Q_OS_ANDROID)
+        path = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/scripts";
 #else
         path = QCoreApplication::applicationDirPath() + "/scripts";
 #endif
     }
 
     // turn the string into a legit QUrl
-    QFileInfo fileInfo(path);
-    return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
+    return QUrl::fromLocalFile(QFileInfo(path).canonicalFilePath());
 }
 
 QString PathUtils::stripFilename(const QUrl& url) {

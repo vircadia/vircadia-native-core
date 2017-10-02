@@ -5,10 +5,5 @@ if (UNIX)
     target_link_libraries(${TARGET_NAME} pthread)
 endif(UNIX)
 GroupSources("src")
-
 target_opengl()
-target_nsight()
 
-if (NOT ANDROID)
-  target_glew()
-endif ()

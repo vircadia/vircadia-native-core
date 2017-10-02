@@ -37,18 +37,15 @@ class OffscreenQmlSurface;
 /**jsdoc
  * @namespace Tablet
  */
-
 class TabletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
-
-
 public:
     enum TabletAudioEvents { ButtonClick, ButtonHover, TabletOpen, TabletHandsIn, TabletHandsOut, Last};
     Q_ENUM(TabletAudioEvents)
 
     TabletScriptingInterface();
     virtual ~TabletScriptingInterface();
-
+    static const QString QML;
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 

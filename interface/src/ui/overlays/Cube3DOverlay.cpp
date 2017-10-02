@@ -53,18 +53,11 @@ void Cube3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    // TODO: handle registration point??
-    // FIXME Start using the _renderTransform instead of calling for Transform from here, do the custom things needed in evalRenderTransform()
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
+
 
     auto batch = args->_batch;
-
     if (batch) {
-        Transform transform;
-        transform.setTranslation(position);
-        transform.setRotation(rotation);
+        Transform transform = getRenderTransform();
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto shapePipeline = args->_shapePipeline;
         if (!shapePipeline) {
@@ -72,12 +65,12 @@ void Cube3DOverlay::render(RenderArgs* args) {
         }
 
         if (_isSolid) {
-            transform.setScale(dimensions);
             batch->setModelTransform(transform);
             geometryCache->renderSolidCubeInstance(args, *batch, cubeColor, shapePipeline);
         } else {
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
+                auto dimensions = transform.getScale();
                 transform.setScale(1.0f);
                 batch->setModelTransform(transform);
 
@@ -108,7 +101,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor, _geometryIds[11]);
 
             } else {
-                transform.setScale(dimensions);
                 batch->setModelTransform(transform);
                 geometryCache->renderWireCubeInstance(args, *batch, cubeColor, shapePipeline);
             }
@@ -148,4 +140,17 @@ QVariant Cube3DOverlay::getProperty(const QString& property) {
     }
 
     return Volume3DOverlay::getProperty(property);
+}
+
+Transform Cube3DOverlay::evalRenderTransform() {
+    // TODO: handle registration point??
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
+    glm::quat rotation = getRotation();
+
+    Transform transform;
+    transform.setScale(dimensions);
+    transform.setTranslation(position);
+    transform.setRotation(rotation);
+    return transform;
 }

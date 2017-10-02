@@ -14,17 +14,19 @@ QUuid LaserPointerManager::createLaserPointer(const QVariant& rayProps, const La
     const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) {
     std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(rayProps, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
     if (!laserPointer->getRayUID().isNull()) {
-        QWriteLocker lock(&_addLock);
+        QWriteLocker containsLock(&_containsLock);
         QUuid id = QUuid::createUuid();
-        _laserPointersToAdd.push(std::pair<QUuid, std::shared_ptr<LaserPointer>>(id, laserPointer));
+        _laserPointers[id] = laserPointer;
+        _laserPointerLocks[id] = std::make_shared<QReadWriteLock>();
         return id;
     }
     return QUuid();
 }
 
 void LaserPointerManager::removeLaserPointer(const QUuid uid) {
-    QWriteLocker lock(&_removeLock);
-    _laserPointersToRemove.push(uid);
+    QWriteLocker lock(&_containsLock);
+    _laserPointers.remove(uid);
+    _laserPointerLocks.remove(uid);
 }
 
 void LaserPointerManager::enableLaserPointer(const QUuid uid) {
@@ -69,31 +71,11 @@ const RayPickResult LaserPointerManager::getPrevRayPickResult(const QUuid uid) {
 }
 
 void LaserPointerManager::update() {
+    QReadLocker lock(&_containsLock);
     for (QUuid& uid : _laserPointers.keys()) {
         // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
         QReadLocker laserLock(_laserPointerLocks[uid].get());
         _laserPointers[uid]->update();
-    }
-
-    QWriteLocker containsLock(&_containsLock);
-    {
-        QWriteLocker lock(&_addLock);
-        while (!_laserPointersToAdd.empty()) {
-            std::pair<QUuid, std::shared_ptr<LaserPointer>> laserPointerToAdd = _laserPointersToAdd.front();
-            _laserPointersToAdd.pop();
-            _laserPointers[laserPointerToAdd.first] = laserPointerToAdd.second;
-            _laserPointerLocks[laserPointerToAdd.first] = std::make_shared<QReadWriteLock>();
-        }
-    }
-
-    {
-        QWriteLocker lock(&_removeLock);
-        while (!_laserPointersToRemove.empty()) {
-            QUuid uid = _laserPointersToRemove.front();
-            _laserPointersToRemove.pop();
-            _laserPointers.remove(uid);
-            _laserPointerLocks.remove(uid);
-        }
     }
 }
 
@@ -102,6 +84,14 @@ void LaserPointerManager::setPrecisionPicking(QUuid uid, const bool precisionPic
     if (_laserPointers.contains(uid)) {
         QWriteLocker laserLock(_laserPointerLocks[uid].get());
         _laserPointers[uid]->setPrecisionPicking(precisionPicking);
+    }
+}
+
+void LaserPointerManager::setLaserLength(QUuid uid, const float laserLength) {
+    QReadLocker lock(&_containsLock);
+    if (_laserPointers.contains(uid)) {
+        QWriteLocker laserLock(_laserPointerLocks[uid].get());
+        _laserPointers[uid]->setLaserLength(laserLength);
     }
 }
 

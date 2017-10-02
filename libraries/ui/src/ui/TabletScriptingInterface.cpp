@@ -30,6 +30,8 @@
 // FIXME move to global app properties
 const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
+const QString TabletScriptingInterface::QML = "hifi/tablet/TabletRoot.qml";
+
 
 static Setting::Handle<QStringList> tabletSoundsButtonClick("TabletSounds", QStringList { "/sounds/Button06.wav",
                                                                                "/sounds/Button04.wav",

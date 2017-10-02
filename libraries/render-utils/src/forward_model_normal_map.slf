@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_normal_map.frag
+//  forward_model_normal_map.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 10/29/13.
@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredBufferWrite.slh@>
+<@include ForwardBufferWrite.slh@>
 
 <@include model/Material.slh@>
 
@@ -47,12 +47,12 @@ void main(void) {
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
     vec3 viewNormal;
-    <$tangentToViewSpaceLOD(_position, normalTex, _normal, _tangent, viewNormal)$>
+    <$tangentToViewSpace(normalTex, _normal, _tangent, viewNormal)$>
 
     float scattering = getMaterialScattering(mat);
     <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
 
-    packDeferredFragment(
+    packForwardFragment(
         viewNormal, 
         opacity,
         albedo,

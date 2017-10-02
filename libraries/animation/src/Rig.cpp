@@ -249,6 +249,7 @@ void Rig::reset(const FBXGeometry& geometry) {
     _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
     if (!_animGraphURL.isEmpty()) {
+        _animNode.reset();
         initAnimGraph(_animGraphURL);
     }
 }
@@ -1619,28 +1620,30 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 }
 
 void Rig::initAnimGraph(const QUrl& url) {
-    _animGraphURL = url;
+    if (_animGraphURL != url || !_animNode) {
+        _animGraphURL = url;
 
-    _animNode.reset();
+        _animNode.reset();
 
-    // load the anim graph
-    _animLoader.reset(new AnimNodeLoader(url));
-    connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
-        _animNode = nodeIn;
-        _animNode->setSkeleton(_animSkeleton);
+        // load the anim graph
+        _animLoader.reset(new AnimNodeLoader(url));
+        connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
+            _animNode = nodeIn;
+            _animNode->setSkeleton(_animSkeleton);
 
-        if (_userAnimState.clipNodeEnum != UserAnimState::None) {
-            // restore the user animation we had before reset.
-            UserAnimState origState = _userAnimState;
-            _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
-            overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
-        }
+            if (_userAnimState.clipNodeEnum != UserAnimState::None) {
+                // restore the user animation we had before reset.
+                UserAnimState origState = _userAnimState;
+                _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
+                overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
+            }
 
-        emit onLoadComplete();
-    });
-    connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
-        qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
-    });
+            emit onLoadComplete();
+        });
+        connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
+            qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+        });
+    }
 }
 
 bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const {

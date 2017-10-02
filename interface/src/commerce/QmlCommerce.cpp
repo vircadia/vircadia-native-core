@@ -54,7 +54,7 @@ void QmlCommerce::chooseSecurityImage(const QString& imageFile) {
     wallet->chooseSecurityImage(imageFile);
 }
 
-void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
+void QmlCommerce::buy(const QString& assetId, int cost, const bool controlledFailure) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
@@ -64,7 +64,7 @@ void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUser
     }
     QString key = keys[0];
     // For now, we receive at the same key that pays for it.
-    ledger->buy(key, cost, assetId, key, buyerUsername);
+    ledger->buy(key, cost, assetId, key, controlledFailure);
 }
 
 void QmlCommerce::balance() {

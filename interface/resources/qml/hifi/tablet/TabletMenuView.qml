@@ -38,7 +38,6 @@ FocusScope {
         //color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
 
-
     ListView {
         id: listView
         x: 0
@@ -70,8 +69,8 @@ FocusScope {
         delegate: TabletMenuItem {
             text: name
             source: item
-            onImplicitHeightChanged: listView.recalcSize()
-            onImplicitWidthChanged: listView.recalcSize()
+            onImplicitHeightChanged: listView !== null ? listView.recalcSize() : 0
+            onImplicitWidthChanged: listView !== null ? listView.recalcSize() : 0
 
             MouseArea {
                 anchors.fill: parent
@@ -130,8 +129,6 @@ FocusScope {
     function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
     function selectCurrentItem() { if (listView.currentIndex != -1) root.selected(currentItem.source); }
     function previousPage() { root.parent.pop(); }
-
-    
 }
 
 
