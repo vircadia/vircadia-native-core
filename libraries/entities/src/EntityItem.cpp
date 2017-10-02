@@ -2938,7 +2938,7 @@ type EntityItem::get##accessor() const {            \
 }
 
 #define DEFINE_PROPERTY_SETTER(type, accessor, var)   \
-void EntityItem::set##accessor(const type##& value) { \
+void EntityItem::set##accessor(const type & value) { \
     withWriteLock([&] {                               \
        _##var = value;                                \
     });                                               \
