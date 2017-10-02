@@ -23,7 +23,6 @@
 
 #include <FSTReader.h>
 #include <NumericalConstants.h>
-#include <ShapeEntityItem.h>
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
@@ -53,7 +52,12 @@
 
 //#define WANT_DEBUG
 
-static std::array<GeometryCache::Shape, entity::NUM_SHAPES> MAPPING{ {
+// @note: Originally size entity::NUM_SHAPES
+//        As of Commit b93e91b9, render-utils no longer retains knowledge of
+//        entity lib, and thus doesn't know about entity::NUM_SHAPES.  Should
+//        the enumerations be altered, this will need to be updated.
+// @see ShapeEntityItem.h
+static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING{ {
         GeometryCache::Triangle,
         GeometryCache::Quad,
         GeometryCache::Hexagon,
@@ -88,16 +92,11 @@ static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
 
-void GeometryCache::computeSimpleHullPointListForShape(const ShapeEntityItem * const shapePtr, QVector<glm::vec3> &outPointList){
-
-    if (shapePtr == nullptr){
-        //--EARLY EXIT--
-        return;
-    }
+void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityHalfExtents, QVector<glm::vec3> &outPointList) {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    const GeometryCache::Shape entityGeometryShape = GeometryCache::getShapeForEntityShape(shapePtr->getShape());
-    const GeometryCache::ShapeData * shapeData = geometryCache->getShapeData( entityGeometryShape );
+    const GeometryCache::Shape geometryShape = GeometryCache::getShapeForEntityShape( entityShape );
+    const GeometryCache::ShapeData * shapeData = geometryCache->getShapeData( geometryShape );
     if (!shapeData){
         //--EARLY EXIT--( data isn't ready for some reason... )
         return;
@@ -107,12 +106,11 @@ void GeometryCache::computeSimpleHullPointListForShape(const ShapeEntityItem * c
     assert(shapeVerts._size == shapeNorms._size);
 
     const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
-    const glm::vec3 halfExtents = shapePtr->getDimensions() * 0.5f;
 
     outPointList.reserve((int)numItems);
     for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
         const geometry::Vec &curNorm = shapeNorms.get<geometry::Vec>(i);
-        outPointList.push_back(curNorm * halfExtents);
+        outPointList.push_back(curNorm * entityHalfExtents);
     }
 }
 
@@ -488,14 +486,17 @@ void GeometryCache::buildShapes() {
     extrudePolygon<64>(_shapes[Cone], _shapeVertices, _shapeIndices, true);
     //Circle
     drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
-    // Not implememented yet:
+    // Not implemented yet:
     //Quad,
     //Torus, 
  
 }
 
 const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) const {
-    if (((int)shape < 0) || ((int)shape >= (int)_shapes.size())){
+    if (((int)shape < 0) || ((int)shape >= (int)_shapes.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeData - Invalid shape " << shape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( No valid shape data for shape )
         return nullptr;
     }
 
@@ -503,7 +504,10 @@ const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) 
 }
 
 GeometryCache::Shape GeometryCache::getShapeForEntityShape(int entityShape) {
-    if ((entityShape < 0) || (entityShape >= (int)MAPPING.size())){
+    if ((entityShape < 0) || (entityShape >= (int)MAPPING.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeForEntityShape - Invalid shape " << entityShape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( fall back to default assumption )
         return GeometryCache::Sphere;
     }
 

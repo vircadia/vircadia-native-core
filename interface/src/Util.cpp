@@ -396,11 +396,18 @@ void runUnitTests() {
 }
 
 void shapeInfoCalculator(const ShapeEntityItem * const shapeEntity, ShapeInfo &shapeInfo) {
+
+    if (shapeEntity == nullptr) {
+
+        //--EARLY EXIT--
+        return;
+    }
+
     ShapeInfo::PointCollection pointCollection;
     ShapeInfo::PointList points;
     pointCollection.push_back(points);
 
-    GeometryCache::computeSimpleHullPointListForShape(shapeEntity, pointCollection.back());
+    GeometryCache::computeSimpleHullPointListForShape((int)shapeEntity->getShape(), shapeEntity->getDimensions() * 0.5f, pointCollection.back());
     shapeInfo.setPointCollection(pointCollection);
 }
 

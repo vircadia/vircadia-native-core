@@ -32,7 +32,6 @@
 #include <model/Asset.h>
 
 class SimpleProgramKey;
-class ShapeEntityItem;
 
 typedef QPair<glm::vec2, float> Vec2FloatPair;
 typedef QPair<Vec2FloatPair, Vec2FloatPair> Vec2FloatPairPair;
@@ -155,7 +154,7 @@ public:
     ///         specified entityShapeEnum
     static GeometryCache::Shape getShapeForEntityShape(int entityShapeEnum);
 
-    static void computeSimpleHullPointListForShape(const ShapeEntityItem * const shapePtr, QVector<glm::vec3> &outPointList);
+    static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityHalfExtents, QVector<glm::vec3> &outPointList);
 
     static uint8_t CUSTOM_PIPELINE_NUMBER;
     static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
