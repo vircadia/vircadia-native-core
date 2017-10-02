@@ -683,6 +683,7 @@ Item {
                         instructions02Container.visible = true;
                         keysReadyPageFinishButton.visible = true;
                         Qt.openUrlExternally("https://www.highfidelity.com/");
+                        Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                     }
                 }
             }
