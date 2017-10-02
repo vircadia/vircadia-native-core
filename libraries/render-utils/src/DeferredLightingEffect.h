@@ -187,8 +187,8 @@ protected:
     model::LightPointer _defaultLight;
     LightStage::Index _defaultLightID{ LightStage::INVALID_INDEX };
     model::SunSkyStagePointer _defaultBackground;
-    model::HazePointer _defaultHaze{ nullptr };
     BackgroundStage::Index _defaultBackgroundID{ BackgroundStage::INVALID_INDEX };
+    model::HazePointer _defaultHaze{ nullptr };
     HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
     gpu::TexturePointer _defaultSkyboxTexture;
