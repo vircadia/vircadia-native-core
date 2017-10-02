@@ -63,7 +63,6 @@ void Application::paintGL() {
     }
 
     RenderArgs renderArgs;
-    float sensorToWorldScale;
     glm::mat4  HMDSensorPose;
     glm::mat4  eyeToWorld;
     glm::mat4  sensorToWorld;
@@ -78,7 +77,6 @@ void Application::paintGL() {
         HMDSensorPose = _appRenderArgs._headPose;
         eyeToWorld = _appRenderArgs._eyeToWorld;
         sensorToWorld = _appRenderArgs._sensorToWorld;
-        sensorToWorldScale = _appRenderArgs._sensorToWorldScale;
         isStereo = _appRenderArgs._isStereo;
         for_each_eye([&](Eye eye) {
             stereoEyeOffsets[eye] = _appRenderArgs._eyeOffsets[eye];
@@ -110,7 +108,6 @@ void Application::paintGL() {
     //   updateCamera(renderArgs);
     {
         PROFILE_RANGE(render, "/updateCompositor");
-        //    getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
         getApplicationCompositor().setFrameInfo(_frameCount, eyeToWorld, sensorToWorld);
     }
 
