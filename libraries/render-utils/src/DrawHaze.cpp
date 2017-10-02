@@ -125,8 +125,13 @@ const int HazeEffect_LinearDepthMapSlot = 3;
 void DrawHaze::configure(const Config& config) {
 }
 
+#pragma optimize("", off)
 void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     const auto haze = inputs.get0();
+    if (haze == nullptr) {
+        return;
+    }
+
     const auto inputBuffer = inputs.get1()->getRenderBuffer(0);
     const auto framebuffer = inputs.get2();
     const auto transformBuffer = inputs.get3();
@@ -169,7 +174,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
         batch.setPipeline(_hazePipeline);
 
-        batch.setUniformBuffer(HazeEffect_ParamsSlot, haze->getParametersBuffer());
+        batch.setUniformBuffer(HazeEffect_ParamsSlot, haze->getHazeParametersBuffer());
         batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
 
         batch.setResourceTexture(HazeEffect_LightingMapSlot, inputBuffer);

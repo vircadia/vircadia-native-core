@@ -83,7 +83,7 @@ namespace model {
 
         void setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue);
 
-        UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
+        UniformBufferView getHazeParametersBuffer() const { return _parametersBuffer; }
 
     protected:
         class Parameters {

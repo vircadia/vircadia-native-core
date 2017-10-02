@@ -552,8 +552,10 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         deferredLightingEffect->setupKeyLightBatch(args, batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         // Haze
-        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getParametersBuffer());
-
+        if (haze != nullptr) {
+	        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
+        }
+		
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
