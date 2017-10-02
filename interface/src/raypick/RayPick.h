@@ -16,6 +16,7 @@
 
 #include "EntityItemID.h"
 #include "ui/overlays/Overlay.h"
+#include <QReadWriteLock>
 
 class RayPickFilter {
 public:
@@ -127,6 +128,8 @@ public:
     void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { _ignoreAvatars = qVectorEntityItemIDFromScriptValue(ignoreAvatars); }
     void setIncludeAvatars(const QScriptValue& includeAvatars) { _includeAvatars = qVectorEntityItemIDFromScriptValue(includeAvatars); }
 
+    QReadWriteLock* getLock() { return &_lock; }
+
 private:
     RayPickFilter _filter;
     float _maxDistance;
@@ -139,6 +142,8 @@ private:
     QVector<OverlayID> _includeOverlays;
     QVector<EntityItemID> _ignoreAvatars;
     QVector<EntityItemID> _includeAvatars;
+
+    QReadWriteLock _lock;
 };
 
 #endif // hifi_RayPick_h

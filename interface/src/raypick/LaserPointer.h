@@ -75,6 +75,8 @@ public:
 
     void setLockEndUUID(QUuid objectID, const bool isOverlay) { _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay); }
 
+    QReadWriteLock* getLock() { return &_lock; }
+
     void update();
 
 private:
@@ -89,6 +91,7 @@ private:
     std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
 
     QUuid _rayPickUID;
+    QReadWriteLock _lock;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);
