@@ -204,6 +204,10 @@ Hand = function (side) {
             }
             if (entityID) {
                 intersectionPosition = Entities.getEntityProperties(entityID, "position").position;
+                if (Vec3.distance(palmPosition, intersectionPosition) > NEAR_GRAB_RADIUS) {
+                    intersectionPosition = Vec3.sum(palmPosition,
+                        Vec3.multiply(NEAR_GRAB_RADIUS, Vec3.normalize(Vec3.subtract(intersectionPosition, palmPosition))));
+                }
             }
         }
 
