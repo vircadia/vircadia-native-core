@@ -359,6 +359,18 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     qCDebug(entities) << (senderNode ? senderNode->getUUID() : "null") << "physical edits suppressed";
                 }
             }
+
+            // Clear Certificate ID if any static certificate property is changed
+            if (properties.itemNameChanged() || properties.itemDescriptionChanged() || properties.itemCategoriesChanged() ||
+                properties.itemArtistChanged() || properties.itemLicenseChanged() || properties.limitedRunChanged() ||
+                properties.editionNumberChanged() || properties.entityInstanceNumberChanged() || properties.certificateIDChanged()) {
+                qCDebug(entities) << "A static certificate property on Entity" << entity->getID() << "has changed."
+                    << "Clearing Certificate ID.";
+                QWriteLocker locker(&_entityCertificateIDMapLock);
+                _entityCertificateIDMap.remove(entity->getCertificateID());
+                properties.setCertificateID("");
+                properties.setCertificateIDChanged(true);
+            }
         }
         // else client accepts what the server says
 
@@ -653,6 +665,9 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         if (_simulation) {
             _simulation->prepareEntityForDelete(theEntity);
         }
+
+        QWriteLocker locker(&_entityCertificateIDMapLock);
+        _entityCertificateIDMap.remove(theEntity->getProperties(PROP_CERTIFICATE_ID).getCertificateID());
     }
 }
 
@@ -1257,13 +1272,17 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     _totalUpdates++;
                 } else if (isAdd) {
                     bool failedAdd = !allowed;
+                    bool isCertified = !properties.getCertificateID().isEmpty();
                     if (!allowed) {
                         qCDebug(entities) << "Filtered entity add. ID:" << entityItemID;
                     } else if (!senderNode->getCanRez() && !senderNode->getCanRezTmp()) {
                         failedAdd = true;
                         qCDebug(entities) << "User without 'rez rights' [" << senderNode->getUUID()
                                           << "] attempted to add an entity ID:" << entityItemID;
-
+                    } else if (isCertified && !senderNode->getCanRezCertified() && !senderNode->getCanRezTmpCertified()) {
+                        failedAdd = true;
+                        qCDebug(entities) << "User without 'certified rez rights' [" << senderNode->getUUID()
+                            << "] attempted to add a certified entity with ID:" << entityItemID;
                     } else {
                         // this is a new entity... assign a new entityID
                         properties.setCreated(properties.getLastEdited());
@@ -1272,6 +1291,41 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         EntityItemPointer newEntity = addEntity(entityItemID, properties);
                         endCreate = usecTimestampNow();
                         _totalCreates++;
+
+                        if (newEntity && isCertified) {
+                            if (!newEntity->verifyStaticCertificateProperties()) {
+                                qCDebug(entities) << "User" << senderNode->getUUID()
+                                    << "attempted to add a certified entity with ID" << entityItemID << "which failed"
+                                    << "static certificate verification.";
+                                // Delete the entity we just added if it doesn't pass static certificate verification
+                                deleteEntity(entityItemID, true);
+                            } else {
+                                QString certID = properties.getCertificateID();
+                                EntityItemID existingEntityItemID;
+
+                                {
+                                    QReadLocker locker(&_entityCertificateIDMapLock);
+                                    existingEntityItemID = _entityCertificateIDMap.value(certID);
+                                }
+
+                                // Delete an already-existing entity from the tree if it has the same
+                                //     CertificateID as the entity we're trying to add.
+                                if (!existingEntityItemID.isNull()) {
+                                    qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
+                                        << existingEntityItemID << ". Deleting existing entity.";
+                                    deleteEntity(existingEntityItemID, true);
+                                }
+
+                                {
+                                    QWriteLocker locker(&_entityCertificateIDMapLock);
+                                    _entityCertificateIDMap.insert(certID, entityItemID);
+                                    qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID;
+                                }
+
+                                // Start owner verification
+                            }
+                        }
+
                         if (newEntity) {
                             newEntity->markAsChangedOnServer();
                             notifyNewlyCreatedEntity(*newEntity, senderNode);

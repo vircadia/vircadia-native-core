@@ -316,6 +316,9 @@ protected:
     mutable QReadWriteLock _entityMapLock;
     QHash<EntityItemID, EntityItemPointer> _entityMap;
 
+    mutable QReadWriteLock _entityCertificateIDMapLock;
+    QHash<QString, EntityItemID> _entityCertificateIDMap;
+
     EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
