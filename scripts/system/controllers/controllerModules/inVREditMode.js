@@ -20,7 +20,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.hand = hand;
         this.disableModules = false;
         this.parameters = makeDispatcherModuleParameters(
-            200,  // Not too high otherwise the tablet laser doesn't work.
+            200, // Not too high otherwise the tablet laser doesn't work.
             this.hand === RIGHT_HAND
                 ? ["rightHand", "rightHandEquip", "rightHandTrigger"]
                 : ["leftHand", "leftHandEquip", "leftHandTrigger"],
