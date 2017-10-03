@@ -1,4 +1,4 @@
-name = Avocado
+name = DamagedHelmet
 type = body+head
 scale = 1
 filename = DamagedHelmet/DamagedHelmet.gltf
