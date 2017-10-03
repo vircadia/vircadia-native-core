@@ -474,7 +474,7 @@ void Stats::updateStats(bool force) {
         std::priority_queue<SortableStat> idleUpdateStats;
         auto itr = allRecords.find("/idle/update");
         if (itr != allRecords.end()) {
-            uint64_t dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+            float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
             _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
 
             QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
@@ -482,7 +482,7 @@ void Stats::updateStats(bool force) {
                 QString recordKey = "/idle/update/" + categories[j];
                 itr = allRecords.find(recordKey);
                 if (itr != allRecords.end()) {
-                    uint64_t dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                    float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
                     QString message = QString("\n    %1 = %2").arg(categories[j]).arg(dt);
                     idleUpdateStats.push(SortableStat(message, dt));
                 }
