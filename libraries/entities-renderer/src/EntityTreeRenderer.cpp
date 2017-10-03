@@ -260,12 +260,24 @@ void EntityTreeRenderer::update(bool simulate) {
             }
         }
 
-        auto scene = _viewState->getMain3DScene();
-        if (scene) {
-            render::Transaction transaction;
-            addPendingEntities(scene, transaction);
-            updateChangedEntities(scene, transaction);
-            scene->enqueueTransaction(transaction);
+        {
+            PerformanceTimer sceneTimer("scene");
+            auto scene = _viewState->getMain3DScene();
+            if (scene) {
+                render::Transaction transaction;
+                {
+                    PerformanceTimer foo("add");
+                    addPendingEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer foo("change");
+                    updateChangedEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer foo("enqueue");
+                    scene->enqueueTransaction(transaction);
+                }
+            }
         }
     }
 }
