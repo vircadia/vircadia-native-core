@@ -148,6 +148,8 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     auto strokeWidthsChanged = entity->strokeWidthsChanged();
     auto normalsChanged = entity->normalsChanged();
     auto strokeColorsChanged = entity->strokeColorsChanged();
+    
+
     bool isUVModeStretch = entity->getIsUVModeStretch();
     entity->resetPolyLineChanged();
 
