@@ -1097,6 +1097,29 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
     return false;
 }
 
+void EntityTree::popStatusSuccess(QNetworkReply& reply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(reply.readAll()).object();
+    qCDebug(entities) << "ZRF FIXME" << jsonObject;
+    //if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+    //    qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
+    //    deleteEntity(entityItemID, true);
+    //} else if (jsonObject["transfer_status"].toString() == "failed") {
+    //    qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
+    //    deleteEntity(entityItemID, true);
+    //} else {
+    //    //auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + sizeof(encryptedText));
+    //    //challengeOwnershipPacket->write(senderNode->getUUID());
+    //    //challengeOwnershipPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
+    //}
+}
+
+void EntityTree::popStatusFailure(QNetworkReply& reply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(reply.readAll()).object();
+    qCDebug(entities) << "ZRF FIXME" << jsonObject;
+    //qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
+    //deleteEntity(entityItemID, true);
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -1322,7 +1345,22 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                     qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID;
                                 }
 
-                                // Start owner verification
+                                // Start owner verification.
+                                //     First, asynchronously hit "proof_of_purchase_status?transaction_type=transfer" endpoint.
+                                const QString endpoint("proof_of_purchase_status?transaction_type=transfer");
+                                QJsonObject request;
+                                request["certificate_id"] = certID;
+                                request["domain_id"] = DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
+
+                                auto accountManager = DependencyManager::get<AccountManager>();
+                                const QString URL = "/api/v1/commerce/";
+                                JSONCallbackParameters callbackParams(this, "popStatusSuccess", this, "popStatusFailure");
+                                qCDebug(entities) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
+                                accountManager->sendRequest(URL + endpoint,
+                                    AccountManagerAuth::None,
+                                    QNetworkAccessManager::PostOperation,
+                                    callbackParams,
+                                    QJsonDocument(request).toJson());
                             }
                         }
 

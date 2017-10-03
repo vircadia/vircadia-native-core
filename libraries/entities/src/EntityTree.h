@@ -15,6 +15,11 @@
 #include <QSet>
 #include <QVector>
 
+#include "AccountManager.h"
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QtNetwork/QNetworkReply>
+
 #include <Octree.h>
 #include <SpatialParentFinder.h>
 
@@ -276,6 +281,10 @@ signals:
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
+
+private slots:
+    void popStatusSuccess(QNetworkReply& reply);
+    void popStatusFailure(QNetworkReply& reply);
 
 protected:
 
