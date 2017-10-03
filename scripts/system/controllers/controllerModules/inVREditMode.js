@@ -41,9 +41,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 return makeRunningValues(false, [], []);
             }
 
-            // 2D overlay lasers.
-            // These are automatically enabled.
-
             // Tablet stylus.
             // Includes the tablet laser.
             var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
