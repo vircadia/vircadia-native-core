@@ -1765,3 +1765,31 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
     }
     return result;
 }
+
+bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& entityID) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->verifyStaticCertificateProperties();
+            }
+        });
+    }
+    return result;
+}
+
+#ifdef DEBUG_CERT
+QString EntityScriptingInterface::computeCertificateID(const QUuid& entityID) {
+    QString result { "" };
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->computeCertificateID();
+            }
+        });
+    }
+    return result;
+}
+#endif
