@@ -136,6 +136,14 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     shownProperty.write(!shownProperty.read().toBool());
 }
 
+bool OffscreenUi::isPointOnDesktopWindow(QVariant point) {
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_desktop, "isPointOnWindow",
+                           Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QVariant, point));
+    return result.toBool();
+}
+
 void OffscreenUi::hide(const QString& name) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     if (item) {

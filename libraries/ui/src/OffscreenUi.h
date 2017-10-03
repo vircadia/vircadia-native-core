@@ -78,6 +78,7 @@ public:
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
     void addMenuInitializer(std::function<void(VrMenu*)> f);
     QObject* getFlags();
+    Q_INVOKABLE bool isPointOnDesktopWindow(QVariant point);
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
     QObject* getRootMenu();

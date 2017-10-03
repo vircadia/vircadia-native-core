@@ -187,7 +187,19 @@ enum EntityPropertyList {
     PROP_SERVER_SCRIPTS,
 
     PROP_FILTER_URL,
-    
+
+    // Certificable Properties
+    PROP_ITEM_NAME,
+    PROP_ITEM_DESCRIPTION,
+    PROP_ITEM_CATEGORIES,
+    PROP_ITEM_ARTIST,
+    PROP_ITEM_LICENSE,
+    PROP_LIMITED_RUN,
+    // PROP_MARKETPLACE_ID is above
+    PROP_EDITION_NUMBER,
+    PROP_ENTITY_INSTANCE_NUMBER,
+    PROP_CERTIFICATE_ID,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
