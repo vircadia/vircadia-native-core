@@ -201,7 +201,8 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        if (_commerceSettingSwitch.get()) {
+        Setting::Handle<bool> _settingSwitch{ "commerce", false };
+        if (_settingSwitch.get()) {
             openInspectionCertificate();
         } else {
             openMarketplace();

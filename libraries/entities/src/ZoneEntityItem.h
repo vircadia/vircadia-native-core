@@ -56,7 +56,7 @@ public:
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
 
     virtual bool isReadyToComputeShape() const override { return false; }
-    void setShapeType(ShapeType type) override { _shapeType = type; }
+    void setShapeType(ShapeType type) override { withWriteLock([&] { _shapeType = type; }); }
     virtual ShapeType getShapeType() const override;
 
     virtual bool hasCompoundShapeURL() const;
