@@ -78,6 +78,7 @@
                 onButtonClicked();
                 break;
             case 'walletReset':
+                Settings.setValue("isFirstUseOfPurchases", true);
                 onButtonClicked();
                 onButtonClicked();
                 break;
