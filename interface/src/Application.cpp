@@ -188,7 +188,6 @@
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
 
-//#include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
@@ -2217,8 +2216,6 @@ void Application::initializeGL() {
     update(0);
 }
 
-//FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
-
 extern void setupPreferences();
 
 void Application::initializeUi() {
@@ -2273,7 +2270,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
     surfaceContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
     surfaceContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-    //surfaceContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface); // TODO: Remove this Context Property ? i don;t see anywhere
+    surfaceContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
     surfaceContext->setContextProperty("Rates", new RatesScriptingInterface(this));
 
     surfaceContext->setContextProperty("TREE_SCALE", TREE_SCALE);

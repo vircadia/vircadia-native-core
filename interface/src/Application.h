@@ -76,6 +76,7 @@
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
+#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -536,6 +537,8 @@ private:
     RateCounter<> _frameCounter;
     RateCounter<> _avatarSimCounter;
     RateCounter<> _simCounter;
+
+    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;

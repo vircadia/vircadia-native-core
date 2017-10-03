@@ -14,11 +14,9 @@
 #include <display-plugins/CompositorHelper.h>
 #include <FramebufferCache.h>
 #include "ui/Stats.h"
-#include "FrameTimingsScriptingInterface.h"
 #include <SceneScriptingInterface.h>
 #include "Util.h"
 
-FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
 // Statically provided display and input plugins
 extern DisplayPluginList getDisplayPlugins();
