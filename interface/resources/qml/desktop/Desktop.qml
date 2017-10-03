@@ -223,7 +223,7 @@ FocusScope {
             //offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
             focusHack.start();
         }
-        
+
         function onWindowFocusChanged() {
             //console.log("Focus item is " + offscreenWindow.activeFocusItem);
 
