@@ -145,9 +145,17 @@ History = (function () {
         return undoPosition < history.length - 1;
     }
 
+    function undoSetProperties(entityID, properties) {
+        Entities.editEntity(entityID, properties);
+        if (properties.gravity) {
+            kickPhysics(entityID);
+        }
+    }
+
     function undo() {
         var undoData,
             entityID,
+            REPEAT_UNDO_DELAY = 500, // ms
             i,
             length;
 
@@ -163,9 +171,16 @@ History = (function () {
 
             if (undoData.setProperties) {
                 for (i = 0, length = undoData.setProperties.length; i < length; i++) {
-                    Entities.editEntity(undoData.setProperties[i].entityID, undoData.setProperties[i].properties);
-                    if (undoData.setProperties[i].properties.gravity) {
-                        kickPhysics(undoData.setProperties[i].entityID);
+                    undoSetProperties(undoData.setProperties[i].entityID, undoData.setProperties[i].properties);
+                    if (undoData.setProperties[i].properties.velocity
+                        && Vec3.equal(undoData.setProperties[i].properties.velocity, Vec3.ZERO)
+                        && undoData.setProperties[i].properties.angularVelocity
+                        && Vec3.equal(undoData.setProperties[i].properties.angularVelocity, Vec3.ZERO)) {
+                        // Work around physics bug wherein the entity doesn't always end up at the correct position.
+                        Script.setTimeout(
+                            undoSetProperties(undoData.setProperties[i].entityID, undoData.setProperties[i].properties),
+                            REPEAT_UNDO_DELAY
+                        );
                     }
                 }
             }
