@@ -288,6 +288,10 @@ static QTimer locationUpdateTimer;
 static QTimer identityPacketTimer;
 static QTimer pingTimer;
 
+static const QString DISABLE_WATCHDOG_FLAG("HIFI_DISABLE_WATCHDOG");
+static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
+
+
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
 // For processing on QThreadPool, we target a number of threads after reserving some
@@ -804,8 +808,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     nodeList->startThread();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
-    _deadlockWatchdogThread = new DeadlockWatchdogThread();
-    _deadlockWatchdogThread->start();
+    if (!DISABLE_WATCHDOG) {
+        (new DeadlockWatchdogThread())->start();
+    }
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -1932,7 +1937,7 @@ void Application::showCursor(const Cursor::Icon& cursor) {
 }
 
 void Application::updateHeartbeat() const {
-    static_cast<DeadlockWatchdogThread*>(_deadlockWatchdogThread)->updateHeartbeat();
+    DeadlockWatchdogThread::updateHeartbeat();
 }
 
 void Application::onAboutToQuit() {
@@ -6185,7 +6190,7 @@ void Application::showAssetServerWidget(QString filePath) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         return;
     }
-    static const QUrl url { "AssetServer.qml" };
+    static const QUrl url { "hifi/AssetServer.qml" };
 
     auto startUpload = [=](QQmlContext* context, QObject* newObject){
         if (!filePath.isEmpty()) {
