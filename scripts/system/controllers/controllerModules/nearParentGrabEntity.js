@@ -223,7 +223,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                     (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
                     continue;
                 }
-                if (entityIsGrabbable(props)) {
+                if (entityIsGrabbable(props) || entityIsCloneable(props)) {
                     // give haptic feedback
                     if (props.id !== this.hapticTargetID) {
                         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
