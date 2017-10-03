@@ -4843,11 +4843,6 @@ void Application::update(float deltaTime) {
 
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
 
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::update()");
-
-    updateLOD(deltaTime);
-
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
@@ -4877,6 +4872,7 @@ void Application::update(float deltaTime) {
         PROFILE_ASYNC_END(app, "Scene Loading", "");
     }
 
+    auto myAvatar = getMyAvatar();
     {
         PerformanceTimer perfTimer("devices");
 
@@ -4910,129 +4906,127 @@ void Application::update(float deltaTime) {
             _lastFaceTrackerUpdate = 0;
         }
 
-    }
+        auto userInputMapper = DependencyManager::get<UserInputMapper>();
 
-    auto myAvatar = getMyAvatar();
-    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+        controller::InputCalibrationData calibrationData = {
+            myAvatar->getSensorToWorldMatrix(),
+            createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
+            myAvatar->getHMDSensorMatrix(),
+            myAvatar->getCenterEyeCalibrationMat(),
+            myAvatar->getHeadCalibrationMat(),
+            myAvatar->getSpine2CalibrationMat(),
+            myAvatar->getHipsCalibrationMat(),
+            myAvatar->getLeftFootCalibrationMat(),
+            myAvatar->getRightFootCalibrationMat(),
+            myAvatar->getRightArmCalibrationMat(),
+            myAvatar->getLeftArmCalibrationMat(),
+            myAvatar->getRightHandCalibrationMat(),
+            myAvatar->getLeftHandCalibrationMat()
+        };
 
-    controller::InputCalibrationData calibrationData = {
-        myAvatar->getSensorToWorldMatrix(),
-        createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
-        myAvatar->getHMDSensorMatrix(),
-        myAvatar->getCenterEyeCalibrationMat(),
-        myAvatar->getHeadCalibrationMat(),
-        myAvatar->getSpine2CalibrationMat(),
-        myAvatar->getHipsCalibrationMat(),
-        myAvatar->getLeftFootCalibrationMat(),
-        myAvatar->getRightFootCalibrationMat(),
-        myAvatar->getRightArmCalibrationMat(),
-        myAvatar->getLeftArmCalibrationMat(),
-        myAvatar->getRightHandCalibrationMat(),
-        myAvatar->getLeftHandCalibrationMat()
-    };
-
-    InputPluginPointer keyboardMousePlugin;
-    for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
-            keyboardMousePlugin = inputPlugin;
-        } else if (inputPlugin->isActive()) {
-            inputPlugin->pluginUpdate(deltaTime, calibrationData);
-        }
-    }
-
-    userInputMapper->setInputCalibrationData(calibrationData);
-    userInputMapper->update(deltaTime);
-
-    if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
-        keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
-    }
-
-    // Transfer the user inputs to the driveKeys
-    // FIXME can we drop drive keys and just have the avatar read the action states directly?
-    myAvatar->clearDriveKeys();
-    if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
-        if (!_controllerScriptingInterface->areActionsCaptured()) {
-            myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
-            myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
-            myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
-            if (deltaTime > FLT_EPSILON) {
-                myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
-                myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
-                myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
+        InputPluginPointer keyboardMousePlugin;
+        for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+            if (inputPlugin->getName() == KeyboardMouseDevice::NAME) {
+                keyboardMousePlugin = inputPlugin;
+            } else if (inputPlugin->isActive()) {
+                inputPlugin->pluginUpdate(deltaTime, calibrationData);
             }
         }
-        myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
-    }
 
-    static const std::vector<controller::Action> avatarControllerActions = {
-        controller::Action::LEFT_HAND,
-        controller::Action::RIGHT_HAND,
-        controller::Action::LEFT_FOOT,
-        controller::Action::RIGHT_FOOT,
-        controller::Action::HIPS,
-        controller::Action::SPINE2,
-        controller::Action::HEAD,
-        controller::Action::LEFT_HAND_THUMB1,
-        controller::Action::LEFT_HAND_THUMB2,
-        controller::Action::LEFT_HAND_THUMB3,
-        controller::Action::LEFT_HAND_THUMB4,
-        controller::Action::LEFT_HAND_INDEX1,
-        controller::Action::LEFT_HAND_INDEX2,
-        controller::Action::LEFT_HAND_INDEX3,
-        controller::Action::LEFT_HAND_INDEX4,
-        controller::Action::LEFT_HAND_MIDDLE1,
-        controller::Action::LEFT_HAND_MIDDLE2,
-        controller::Action::LEFT_HAND_MIDDLE3,
-        controller::Action::LEFT_HAND_MIDDLE4,
-        controller::Action::LEFT_HAND_RING1,
-        controller::Action::LEFT_HAND_RING2,
-        controller::Action::LEFT_HAND_RING3,
-        controller::Action::LEFT_HAND_RING4,
-        controller::Action::LEFT_HAND_PINKY1,
-        controller::Action::LEFT_HAND_PINKY2,
-        controller::Action::LEFT_HAND_PINKY3,
-        controller::Action::LEFT_HAND_PINKY4,
-        controller::Action::RIGHT_HAND_THUMB1,
-        controller::Action::RIGHT_HAND_THUMB2,
-        controller::Action::RIGHT_HAND_THUMB3,
-        controller::Action::RIGHT_HAND_THUMB4,
-        controller::Action::RIGHT_HAND_INDEX1,
-        controller::Action::RIGHT_HAND_INDEX2,
-        controller::Action::RIGHT_HAND_INDEX3,
-        controller::Action::RIGHT_HAND_INDEX4,
-        controller::Action::RIGHT_HAND_MIDDLE1,
-        controller::Action::RIGHT_HAND_MIDDLE2,
-        controller::Action::RIGHT_HAND_MIDDLE3,
-        controller::Action::RIGHT_HAND_MIDDLE4,
-        controller::Action::RIGHT_HAND_RING1,
-        controller::Action::RIGHT_HAND_RING2,
-        controller::Action::RIGHT_HAND_RING3,
-        controller::Action::RIGHT_HAND_RING4,
-        controller::Action::RIGHT_HAND_PINKY1,
-        controller::Action::RIGHT_HAND_PINKY2,
-        controller::Action::RIGHT_HAND_PINKY3,
-        controller::Action::RIGHT_HAND_PINKY4,
-        controller::Action::LEFT_ARM,
-        controller::Action::RIGHT_ARM,
-        controller::Action::LEFT_SHOULDER,
-        controller::Action::RIGHT_SHOULDER,
-        controller::Action::LEFT_FORE_ARM,
-        controller::Action::RIGHT_FORE_ARM,
-        controller::Action::LEFT_LEG,
-        controller::Action::RIGHT_LEG,
-        controller::Action::LEFT_UP_LEG,
-        controller::Action::RIGHT_UP_LEG,
-        controller::Action::LEFT_TOE_BASE,
-        controller::Action::RIGHT_TOE_BASE
-    };
+        userInputMapper->setInputCalibrationData(calibrationData);
+        userInputMapper->update(deltaTime);
 
-    // copy controller poses from userInputMapper to myAvatar.
-    glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
-    glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
-    glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
-    for (auto& action : avatarControllerActions) {
-        controller::Pose pose = userInputMapper->getPoseState(action);
-        myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
+        if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
+            keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
+        }
+
+        // Transfer the user inputs to the driveKeys
+        // FIXME can we drop drive keys and just have the avatar read the action states directly?
+        myAvatar->clearDriveKeys();
+        if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
+            if (!_controllerScriptingInterface->areActionsCaptured()) {
+                myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
+                myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
+                myAvatar->setDriveKey(MyAvatar::TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
+                if (deltaTime > FLT_EPSILON) {
+                    myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
+                    myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
+                    myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
+                }
+            }
+            myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
+        }
+
+        static const std::vector<controller::Action> avatarControllerActions = {
+            controller::Action::LEFT_HAND,
+            controller::Action::RIGHT_HAND,
+            controller::Action::LEFT_FOOT,
+            controller::Action::RIGHT_FOOT,
+            controller::Action::HIPS,
+            controller::Action::SPINE2,
+            controller::Action::HEAD,
+            controller::Action::LEFT_HAND_THUMB1,
+            controller::Action::LEFT_HAND_THUMB2,
+            controller::Action::LEFT_HAND_THUMB3,
+            controller::Action::LEFT_HAND_THUMB4,
+            controller::Action::LEFT_HAND_INDEX1,
+            controller::Action::LEFT_HAND_INDEX2,
+            controller::Action::LEFT_HAND_INDEX3,
+            controller::Action::LEFT_HAND_INDEX4,
+            controller::Action::LEFT_HAND_MIDDLE1,
+            controller::Action::LEFT_HAND_MIDDLE2,
+            controller::Action::LEFT_HAND_MIDDLE3,
+            controller::Action::LEFT_HAND_MIDDLE4,
+            controller::Action::LEFT_HAND_RING1,
+            controller::Action::LEFT_HAND_RING2,
+            controller::Action::LEFT_HAND_RING3,
+            controller::Action::LEFT_HAND_RING4,
+            controller::Action::LEFT_HAND_PINKY1,
+            controller::Action::LEFT_HAND_PINKY2,
+            controller::Action::LEFT_HAND_PINKY3,
+            controller::Action::LEFT_HAND_PINKY4,
+            controller::Action::RIGHT_HAND_THUMB1,
+            controller::Action::RIGHT_HAND_THUMB2,
+            controller::Action::RIGHT_HAND_THUMB3,
+            controller::Action::RIGHT_HAND_THUMB4,
+            controller::Action::RIGHT_HAND_INDEX1,
+            controller::Action::RIGHT_HAND_INDEX2,
+            controller::Action::RIGHT_HAND_INDEX3,
+            controller::Action::RIGHT_HAND_INDEX4,
+            controller::Action::RIGHT_HAND_MIDDLE1,
+            controller::Action::RIGHT_HAND_MIDDLE2,
+            controller::Action::RIGHT_HAND_MIDDLE3,
+            controller::Action::RIGHT_HAND_MIDDLE4,
+            controller::Action::RIGHT_HAND_RING1,
+            controller::Action::RIGHT_HAND_RING2,
+            controller::Action::RIGHT_HAND_RING3,
+            controller::Action::RIGHT_HAND_RING4,
+            controller::Action::RIGHT_HAND_PINKY1,
+            controller::Action::RIGHT_HAND_PINKY2,
+            controller::Action::RIGHT_HAND_PINKY3,
+            controller::Action::RIGHT_HAND_PINKY4,
+            controller::Action::LEFT_ARM,
+            controller::Action::RIGHT_ARM,
+            controller::Action::LEFT_SHOULDER,
+            controller::Action::RIGHT_SHOULDER,
+            controller::Action::LEFT_FORE_ARM,
+            controller::Action::RIGHT_FORE_ARM,
+            controller::Action::LEFT_LEG,
+            controller::Action::RIGHT_LEG,
+            controller::Action::LEFT_UP_LEG,
+            controller::Action::RIGHT_UP_LEG,
+            controller::Action::LEFT_TOE_BASE,
+            controller::Action::RIGHT_TOE_BASE
+        };
+
+        // copy controller poses from userInputMapper to myAvatar.
+        glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+        glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
+        glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
+        for (auto& action : avatarControllerActions) {
+            controller::Pose pose = userInputMapper->getPoseState(action);
+            myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
+        }
     }
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -5040,97 +5034,97 @@ void Application::update(float deltaTime) {
 
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
-    if (_physicsEnabled) {
+    {
         PROFILE_RANGE_EX(simulation_physics, "Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
-
         PerformanceTimer perfTimer("physics");
+        if (_physicsEnabled) {
+            {
+                PROFILE_RANGE_EX(simulation_physics, "UpdateStates", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
 
-        {
-            PROFILE_RANGE_EX(simulation_physics, "UpdateStates", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PerformanceTimer perfTimer("updateStates)");
+                static VectorOfMotionStates motionStates;
+                _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
+                _physicsEngine->removeObjects(motionStates);
+                _entitySimulation->deleteObjectsRemovedFromPhysics();
 
-            PerformanceTimer perfTimer("updateStates)");
-            static VectorOfMotionStates motionStates;
-            _entitySimulation->getObjectsToRemoveFromPhysics(motionStates);
-            _physicsEngine->removeObjects(motionStates);
-            _entitySimulation->deleteObjectsRemovedFromPhysics();
+                getEntities()->getTree()->withReadLock([&] {
+                    _entitySimulation->getObjectsToAddToPhysics(motionStates);
+                    _physicsEngine->addObjects(motionStates);
 
-            getEntities()->getTree()->withReadLock([&] {
-                _entitySimulation->getObjectsToAddToPhysics(motionStates);
-                _physicsEngine->addObjects(motionStates);
-
-            });
-            getEntities()->getTree()->withReadLock([&] {
-                _entitySimulation->getObjectsToChange(motionStates);
-                VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-                _entitySimulation->setObjectsToChange(stillNeedChange);
-            });
-
-            _entitySimulation->applyDynamicChanges();
-
-             avatarManager->getObjectsToRemoveFromPhysics(motionStates);
-            _physicsEngine->removeObjects(motionStates);
-            avatarManager->getObjectsToAddToPhysics(motionStates);
-            _physicsEngine->addObjects(motionStates);
-            avatarManager->getObjectsToChange(motionStates);
-            _physicsEngine->changeObjects(motionStates);
-
-            myAvatar->prepareForPhysicsSimulation();
-            _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
-                dynamic->prepareForPhysicsSimulation();
-            });
-        }
-        {
-            PROFILE_RANGE_EX(simulation_physics, "StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
-            PerformanceTimer perfTimer("stepSimulation");
-            getEntities()->getTree()->withWriteLock([&] {
-                _physicsEngine->stepSimulation();
-            });
-        }
-        {
-            PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
-            PerformanceTimer perfTimer("harvestChanges");
-            if (_physicsEngine->hasOutgoingChanges()) {
-                // grab the collision events BEFORE handleOutgoingChanges() because at this point
-                // we have a better idea of which objects we own or should own.
-                auto& collisionEvents = _physicsEngine->getCollisionEvents();
-
-                getEntities()->getTree()->withWriteLock([&] {
-                    PerformanceTimer perfTimer("handleOutgoingChanges");
-
-                    const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
-                    _entitySimulation->handleChangedMotionStates(outgoingChanges);
-                    avatarManager->handleChangedMotionStates(outgoingChanges);
-
-                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
+                });
+                getEntities()->getTree()->withReadLock([&] {
+                    _entitySimulation->getObjectsToChange(motionStates);
+                    VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
+                    _entitySimulation->setObjectsToChange(stillNeedChange);
                 });
 
-                if (!_aboutToQuit) {
-                    // handleCollisionEvents() AFTER handleOutgoinChanges()
-                    PerformanceTimer perfTimer("entities");
-                    avatarManager->handleCollisionEvents(collisionEvents);
-                    // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                    // deadlock.)
-                    _entitySimulation->handleCollisionEvents(collisionEvents);
+                _entitySimulation->applyDynamicChanges();
 
-                    // NOTE: the getEntities()->update() call below will wait for lock
-                    // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
-                    getEntities()->update(true); // update the models...
-                }
+                 avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+                _physicsEngine->removeObjects(motionStates);
+                avatarManager->getObjectsToAddToPhysics(motionStates);
+                _physicsEngine->addObjects(motionStates);
+                avatarManager->getObjectsToChange(motionStates);
+                _physicsEngine->changeObjects(motionStates);
 
-                myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
-
-                if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-                        Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
-                    _physicsEngine->harvestPerformanceStats();
-                }
-                // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
-                _physicsEngine->dumpStatsIfNecessary();
+                myAvatar->prepareForPhysicsSimulation();
+                _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
+                    dynamic->prepareForPhysicsSimulation();
+                });
             }
+            {
+                PROFILE_RANGE_EX(simulation_physics, "StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PerformanceTimer perfTimer("stepSimulation");
+                getEntities()->getTree()->withWriteLock([&] {
+                    _physicsEngine->stepSimulation();
+                });
+            }
+            {
+                PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PerformanceTimer perfTimer("harvestChanges");
+                if (_physicsEngine->hasOutgoingChanges()) {
+                    // grab the collision events BEFORE handleOutgoingChanges() because at this point
+                    // we have a better idea of which objects we own or should own.
+                    auto& collisionEvents = _physicsEngine->getCollisionEvents();
+
+                    getEntities()->getTree()->withWriteLock([&] {
+                        PerformanceTimer perfTimer("handleOutgoingChanges");
+
+                        const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
+                        _entitySimulation->handleChangedMotionStates(outgoingChanges);
+                        avatarManager->handleChangedMotionStates(outgoingChanges);
+
+                        const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                        _entitySimulation->handleDeactivatedMotionStates(deactivations);
+                    });
+
+                    if (!_aboutToQuit) {
+                        // handleCollisionEvents() AFTER handleOutgoinChanges()
+                        PerformanceTimer perfTimer("entities");
+                        avatarManager->handleCollisionEvents(collisionEvents);
+                        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                        // deadlock.)
+                        _entitySimulation->handleCollisionEvents(collisionEvents);
+
+                        // NOTE: the getEntities()->update() call below will wait for lock
+                        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                        getEntities()->update(true); // update the models...
+                    }
+
+                    myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
+                            Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
+                        _physicsEngine->harvestPerformanceStats();
+                    }
+                    // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
+                    _physicsEngine->dumpStatsIfNecessary();
+                }
+            }
+        } else {
+            // update the rendering without any simulation
+            getEntities()->update(false);
         }
-    } else {
-        // update the rendering without any simulation
-        getEntities()->update(false);
     }
 
     // AvatarManager update
@@ -5150,6 +5144,12 @@ void Application::update(float deltaTime) {
     }
 
     PerformanceTimer perfTimer("misc");
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::update()");
+
+    updateLOD(deltaTime);
+
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
         PROFILE_RANGE(app, "RayPickManager");
