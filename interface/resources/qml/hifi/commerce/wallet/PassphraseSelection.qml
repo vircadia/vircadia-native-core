@@ -43,8 +43,8 @@ Item {
             passphrasePageSecurityImage.source = "image://security/securityImage";
         }
 
-        onWalletAuthenticatedStatusResult: {
-            sendMessageToLightbox({method: 'statusResult', status: isAuthenticated});
+        onChangePassphraseStatusResult: {
+            sendMessageToLightbox({method: 'statusResult', status: changeSuccess});
         }
     }
 
@@ -310,7 +310,7 @@ Item {
             passphraseFieldAgain.error = false;
             currentPassphraseField.error = false;
             setErrorText("");
-            commerce.setPassphrase(passphraseField.text);
+            commerce.changePassphrase(currentPassphraseField.text, passphraseField.text);
             return true;
         }
     }

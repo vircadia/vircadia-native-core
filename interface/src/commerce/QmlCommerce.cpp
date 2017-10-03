@@ -117,13 +117,18 @@ void QmlCommerce::history() {
     ledger->history(wallet->listPublicKeys());
 }
 
+void QmlCommerce::changePassphrase(const QString& oldPassphrase, const QString& newPassphrase) {
+    auto wallet = DependencyManager::get<Wallet>();
+    if ((wallet->getPassphrase()->isEmpty() || wallet->getPassphrase() == oldPassphrase) && !newPassphrase.isEmpty()) {
+        emit changePassphraseStatusResult(wallet->changePassphrase(newPassphrase));
+    } else {
+        emit changePassphraseStatusResult(false);
+    }
+}
+
 void QmlCommerce::setPassphrase(const QString& passphrase) {
     auto wallet = DependencyManager::get<Wallet>();
-    if(wallet->getPassphrase() && !wallet->getPassphrase()->isEmpty() && !passphrase.isEmpty()) {
-        wallet->changePassphrase(passphrase);
-    } else {
-        wallet->setPassphrase(passphrase);
-    }
+    wallet->setPassphrase(passphrase);
     getWalletAuthenticatedStatus();
 }
 

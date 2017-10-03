@@ -41,6 +41,7 @@ signals:
     void keyFilePathIfExistsResult(const QString& path);
     void securityImageResult(bool exists);
     void walletAuthenticatedStatusResult(bool isAuthenticated);
+    void changePassphraseStatusResult(bool changeSuccess);
 
     void buyResult(QJsonObject result);
     // Balance and Inventory are NOT properties, because QML can't change them (without risk of failure), and
@@ -60,6 +61,7 @@ protected:
 
     Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
+    Q_INVOKABLE void changePassphrase(const QString& oldPassphrase, const QString& newPassphrase);
 
     Q_INVOKABLE void buy(const QString& assetId, int cost, const bool controlledFailure = false);
     Q_INVOKABLE void balance();
