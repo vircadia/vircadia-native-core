@@ -191,8 +191,6 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
 
     // Communicate changes to the renderItem if needed
     if (needRenderItemUpdate) {
-        notifyRenderTransformChange();
-
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             render::ScenePointer scene = qApp->getMain3DScene();
@@ -267,7 +265,6 @@ void Base3DOverlay::parentDeleted() {
 }
 
 void Base3DOverlay::update(float duration) {
-
     // In Base3DOverlay, if its location or bound changed, the renderTrasnformDirty flag is true.
     // then the correct transform used for rendering is computed in the update transaction and assigned.
     if (_renderTransformDirty) {
