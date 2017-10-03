@@ -217,7 +217,7 @@ void ModelEntityItem::debugDump() const {
 void ModelEntityItem::setShapeType(ShapeType type) {
     withWriteLock([&] {
         if (type != _shapeType) {
-                if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
+            if (type == SHAPE_TYPE_STATIC_MESH && _dynamic) {
                 // dynamic and STATIC_MESH are incompatible
                 // since the shape is being set here we clear the dynamic bit
                 _dynamic = false;
@@ -260,9 +260,9 @@ void ModelEntityItem::setModelURL(const QString& url) {
 
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
-        if (_compoundShapeURL != url) {
+        if (_compoundShapeURL.get() != url) {
             ShapeType oldType = computeTrueShapeType();
-            _compoundShapeURL = url;
+            _compoundShapeURL.set(url);
             if (oldType != computeTrueShapeType()) {
                 _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
             }
@@ -496,10 +496,8 @@ bool ModelEntityItem::hasModel() const {
         return !_modelURL.isEmpty();
     });
 }
-bool ModelEntityItem::hasCompoundShapeURL() const { 
-    return resultWithReadLock<bool>([&] {
-        return !_compoundShapeURL.isEmpty();
-    });
+bool ModelEntityItem::hasCompoundShapeURL() const {
+    return _compoundShapeURL.get().isEmpty();
 }
 
 QString ModelEntityItem::getModelURL() const {
@@ -509,9 +507,7 @@ QString ModelEntityItem::getModelURL() const {
 }
 
 QString ModelEntityItem::getCompoundShapeURL() const {
-    return resultWithReadLock<QString>([&] {
-        return _compoundShapeURL;
-    });
+    return _compoundShapeURL.get();
 }
 
 void ModelEntityItem::setColor(const rgbColor& value) { 
