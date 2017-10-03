@@ -239,7 +239,7 @@
 
     function cleanup() {
         ControllerDispatcherUtils.disableDispatcherModule("LeftHudOverlayPointer");
-        ControllerDispatcherUtils.disbaleDispatcherModule("RightHudOverlayPointer");
+        ControllerDispatcherUtils.disableDispatcherModule("RightHudOverlayPointer");
     }
     Script.scriptEnding.connect(cleanup);
 
