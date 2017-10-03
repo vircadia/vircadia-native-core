@@ -103,7 +103,6 @@ void Application::paintGL() {
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
-    //   updateCamera(renderArgs);
     {
         PROFILE_RANGE(render, "/updateCompositor");
         getApplicationCompositor().setFrameInfo(_frameCount, eyeToWorld, sensorToWorld);

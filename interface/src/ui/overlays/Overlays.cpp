@@ -152,7 +152,7 @@ void Overlays::render3DHUDOverlays(RenderArgs* renderArgs) {
     foreach(Overlay::Pointer thisOverlay, _overlays3DHUD) {
         // Reset necessary batch pipeline settings between overlays
         batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
-    //    batch.setModelTransform(Transform());
+        batch.setModelTransform(Transform());
 
         renderArgs->_shapePipeline = _shapePlumber->pickPipeline(renderArgs, thisOverlay->getShapeKey());
         thisOverlay->render(renderArgs);
