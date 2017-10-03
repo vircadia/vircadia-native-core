@@ -400,6 +400,17 @@ Rectangle {
                     colorScheme: hifi.colorSchemes.dark
                     anchors.left: parent.left
                     anchors.right: parent.right
+
+                    TableViewColumn {
+                        role: "display";
+                    }
+
+                    onActivated: {
+                        var path = scriptsModel.data(index, 0x100)
+                        if (path) {
+                            loadScript(path)
+                        }
+                    }
                 }
 
                 HifiControls.VerticalSpacer {

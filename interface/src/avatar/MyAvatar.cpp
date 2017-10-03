@@ -584,7 +584,7 @@ void MyAvatar::simulate(float deltaTime) {
             }
             auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            MovingEntitiesOperator moveOperator(entityTree);
+            MovingEntitiesOperator moveOperator;
             forEachDescendant([&](SpatiallyNestablePointer object) {
                 // if the queryBox has changed, tell the entity-server
                 if (object->getNestableType() == NestableType::Entity && object->checkAndMaybeUpdateQueryAACube()) {
@@ -2196,6 +2196,14 @@ float MyAvatar::getDomainMaxScale() {
     return _domainMaximumScale;
 }
 
+void MyAvatar::setGravity(float gravity) {
+    _characterController.setGravity(gravity);
+}
+
+float MyAvatar::getGravity() {
+    return _characterController.getGravity();
+}
+
 void MyAvatar::increaseSize() {
     // make sure we're starting from an allowable scale
     clampTargetScaleToDomainLimits();
@@ -3035,9 +3043,9 @@ glm::mat4 MyAvatar::getCenterEyeCalibrationMat() const {
     if (rightEyeIndex >= 0 && leftEyeIndex >= 0) {
         auto centerEyePos = (getAbsoluteDefaultJointTranslationInObjectFrame(rightEyeIndex) + getAbsoluteDefaultJointTranslationInObjectFrame(leftEyeIndex)) * 0.5f;
         auto centerEyeRot = Quaternions::Y_180;
-        return createMatFromQuatAndPos(centerEyeRot, centerEyePos);
+        return createMatFromQuatAndPos(centerEyeRot, centerEyePos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_MIDDLE_EYE_ROT, DEFAULT_AVATAR_MIDDLE_EYE_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_MIDDLE_EYE_ROT, DEFAULT_AVATAR_MIDDLE_EYE_POS / getSensorToWorldScale());
     }
 }
 
@@ -3047,9 +3055,9 @@ glm::mat4 MyAvatar::getHeadCalibrationMat() const {
     if (headIndex >= 0) {
         auto headPos = getAbsoluteDefaultJointTranslationInObjectFrame(headIndex);
         auto headRot = getAbsoluteDefaultJointRotationInObjectFrame(headIndex);
-        return createMatFromQuatAndPos(headRot, headPos);
+        return createMatFromQuatAndPos(headRot, headPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_HEAD_ROT, DEFAULT_AVATAR_HEAD_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_HEAD_ROT, DEFAULT_AVATAR_HEAD_POS / getSensorToWorldScale());
     }
 }
 
@@ -3059,9 +3067,9 @@ glm::mat4 MyAvatar::getSpine2CalibrationMat() const {
     if (spine2Index >= 0) {
         auto spine2Pos = getAbsoluteDefaultJointTranslationInObjectFrame(spine2Index);
         auto spine2Rot = getAbsoluteDefaultJointRotationInObjectFrame(spine2Index);
-        return createMatFromQuatAndPos(spine2Rot, spine2Pos);
+        return createMatFromQuatAndPos(spine2Rot, spine2Pos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_SPINE2_ROT, DEFAULT_AVATAR_SPINE2_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_SPINE2_ROT, DEFAULT_AVATAR_SPINE2_POS / getSensorToWorldScale());
     }
 }
 
@@ -3071,9 +3079,9 @@ glm::mat4 MyAvatar::getHipsCalibrationMat() const {
     if (hipsIndex >= 0) {
         auto hipsPos = getAbsoluteDefaultJointTranslationInObjectFrame(hipsIndex);
         auto hipsRot = getAbsoluteDefaultJointRotationInObjectFrame(hipsIndex);
-        return createMatFromQuatAndPos(hipsRot, hipsPos);
+        return createMatFromQuatAndPos(hipsRot, hipsPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_HIPS_ROT, DEFAULT_AVATAR_HIPS_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_HIPS_ROT, DEFAULT_AVATAR_HIPS_POS / getSensorToWorldScale());
     }
 }
 
@@ -3083,9 +3091,9 @@ glm::mat4 MyAvatar::getLeftFootCalibrationMat() const {
     if (leftFootIndex >= 0) {
         auto leftFootPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftFootIndex);
         auto leftFootRot = getAbsoluteDefaultJointRotationInObjectFrame(leftFootIndex);
-        return createMatFromQuatAndPos(leftFootRot, leftFootPos);
+        return createMatFromQuatAndPos(leftFootRot, leftFootPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_ROT, DEFAULT_AVATAR_LEFTFOOT_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_ROT, DEFAULT_AVATAR_LEFTFOOT_POS / getSensorToWorldScale());
     }
 }
 
@@ -3095,9 +3103,9 @@ glm::mat4 MyAvatar::getRightFootCalibrationMat() const {
     if (rightFootIndex >= 0) {
         auto rightFootPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightFootIndex);
         auto rightFootRot = getAbsoluteDefaultJointRotationInObjectFrame(rightFootIndex);
-        return createMatFromQuatAndPos(rightFootRot, rightFootPos);
+        return createMatFromQuatAndPos(rightFootRot, rightFootPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_ROT, DEFAULT_AVATAR_RIGHTFOOT_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_ROT, DEFAULT_AVATAR_RIGHTFOOT_POS / getSensorToWorldScale());
     }
 }
 
@@ -3107,9 +3115,9 @@ glm::mat4 MyAvatar::getRightArmCalibrationMat() const {
     if (rightArmIndex >= 0) {
         auto rightArmPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightArmIndex);
         auto rightArmRot = getAbsoluteDefaultJointRotationInObjectFrame(rightArmIndex);
-        return createMatFromQuatAndPos(rightArmRot, rightArmPos);
+        return createMatFromQuatAndPos(rightArmRot, rightArmPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS / getSensorToWorldScale());
     }
 }
 
@@ -3118,9 +3126,9 @@ glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
     if (leftArmIndex >= 0) {
         auto leftArmPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftArmIndex);
         auto leftArmRot = getAbsoluteDefaultJointRotationInObjectFrame(leftArmIndex);
-        return createMatFromQuatAndPos(leftArmRot, leftArmPos);
+        return createMatFromQuatAndPos(leftArmRot, leftArmPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_LEFTARM_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_LEFTARM_POS / getSensorToWorldScale());
     }
 }
 
@@ -3129,9 +3137,9 @@ glm::mat4 MyAvatar::getRightHandCalibrationMat() const {
     if (rightHandIndex >= 0) {
         auto rightHandPos = getAbsoluteDefaultJointTranslationInObjectFrame(rightHandIndex);
         auto rightHandRot = getAbsoluteDefaultJointRotationInObjectFrame(rightHandIndex);
-        return createMatFromQuatAndPos(rightHandRot, rightHandPos);
+        return createMatFromQuatAndPos(rightHandRot, rightHandPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTHAND_ROT, DEFAULT_AVATAR_RIGHTHAND_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTHAND_ROT, DEFAULT_AVATAR_RIGHTHAND_POS / getSensorToWorldScale());
     }
 }
 
@@ -3140,9 +3148,9 @@ glm::mat4 MyAvatar::getLeftHandCalibrationMat() const {
     if (leftHandIndex >= 0) {
         auto leftHandPos = getAbsoluteDefaultJointTranslationInObjectFrame(leftHandIndex);
         auto leftHandRot = getAbsoluteDefaultJointRotationInObjectFrame(leftHandIndex);
-        return createMatFromQuatAndPos(leftHandRot, leftHandPos);
+        return createMatFromQuatAndPos(leftHandRot, leftHandPos / getSensorToWorldScale());
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTHAND_ROT, DEFAULT_AVATAR_LEFTHAND_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTHAND_ROT, DEFAULT_AVATAR_LEFTHAND_POS / getSensorToWorldScale());
     }
 }
 

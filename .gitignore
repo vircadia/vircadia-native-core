@@ -12,6 +12,11 @@ ext/
 Makefile
 *.user
 
+# Android Studio
+*.iml
+local.properties
+android/libraries
+
 # Xcode
 *.xcodeproj
 *.xcworkspace

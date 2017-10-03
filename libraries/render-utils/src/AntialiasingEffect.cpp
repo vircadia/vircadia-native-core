@@ -72,9 +72,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(RenderArgs* ar
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        PrepareStencil::testMaskNoAA(*state);
-
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
+        PrepareStencil::testNoAA(*state);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
@@ -97,7 +96,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
-        PrepareStencil::testMaskNoAA(*state);
+        PrepareStencil::testNoAA(*state);
 
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);

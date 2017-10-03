@@ -318,8 +318,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
-        // hence we assert that all geometries exist and are loaded
-        assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
+        // TODO: assert that all geometries exist and are loaded
+        //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
         const FBXGeometry& collisionGeometry = _compoundShapeResource->getFBXGeometry();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
@@ -407,8 +407,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         }
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        // should never fall in here when model not fully loaded
-        assert(_model && _model->isLoaded());
+        // TODO: assert we never fall in here when model not fully loaded
+        //assert(_model && _model->isLoaded());
 
         updateModelBounds();
         model->updateGeometry();
@@ -904,7 +904,7 @@ using namespace render;
 using namespace render::entities;
 
 ItemKey ModelEntityRenderer::getKey() {
-    return ItemKey::Builder::opaqueShape().withTypeMeta();
+    return ItemKey::Builder().withTypeMeta();
 }
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
@@ -1026,11 +1026,15 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     entity->copyAnimationJointDataToModel();
 }
 
-bool ModelEntityRenderer::needsRenderUpdate() const {
+bool ModelEntityRenderer::needsUpdate() const {
     ModelPointer model;
     withReadLock([&] {
         model = _model;
     });
+
+    if (_modelJustLoaded) {
+        return true;
+    }
 
     if (model) {
         if (_needsJointSimulation || _moving || _animating) {
@@ -1057,10 +1061,10 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
     }
-    return Parent::needsRenderUpdate();
+    return Parent::needsUpdate();
 }
 
-bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+bool ModelEntityRenderer::needsUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (resultWithReadLock<bool>([&] {
         if (entity->hasModel() != _hasModel) {
             return true;
@@ -1122,7 +1126,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     return false;
 }
 
-void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1148,9 +1152,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         return;
     }
 
+    _modelJustLoaded = false;
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());
+        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::handleModelLoaded);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         model->init();
         entity->setModel(model);
@@ -1175,8 +1181,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
         auto extents = model->getMeshExtents();
         properties.setDimensions(extents.maximum - extents.minimum);
-        qCDebug(entitiesrenderer) << "Autoresizing" 
-            << (!entity->getName().isEmpty() ?  entity->getName() : entity->getModelURL()) 
+        qCDebug(entitiesrenderer) << "Autoresizing"
+            << (!entity->getName().isEmpty() ? entity->getName() : entity->getModelURL())
             << "from mesh extents";
 
         QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
@@ -1202,7 +1208,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (entity->needsUpdateModelBounds()) {
         entity->updateModelBounds();
     }
-
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
@@ -1234,12 +1239,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         });
     }
 
-
     if (_animating) {
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }
         animate(entity);
+    }
+}
+
+void ModelEntityRenderer::handleModelLoaded(bool success) {
+    if (success) {
+        _modelJustLoaded = true;
     }
 }
 

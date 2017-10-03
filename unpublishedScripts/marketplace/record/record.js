@@ -486,6 +486,15 @@
             return isFinishOnOpen;
         }
 
+        function onAssetsDirChanged(recording) {
+            Window.assetsDirChanged.disconnect(onAssetsDirChanged);
+            if (recording !== "") {
+                log("Load recording " + recording);
+                UserActivityLogger.logAction("record_load_recording", logDetails());
+                Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
+            }
+        }
+
         function onWebEventReceived(data) {
             var message,
                 recording;
@@ -520,12 +529,8 @@
                     break;
                 case LOAD_RECORDING_ACTION:
                     // User wants to select an ATP recording to play.
-                    recording = Window.browseAssets("Select Recording to Play", "recordings", "*.hfr");
-                    if (recording) {
-                        log("Load recording " + recording);
-                        UserActivityLogger.logAction("record_load_recording", logDetails());
-                        Player.playRecording("atp:" + recording, MyAvatar.position, MyAvatar.orientation);
-                    }
+                    Window.assetsDirChanged.connect(onAssetsDirChanged);
+                    Window.browseAssetsAsync("Select Recording to Play", "recordings", "*.hfr");
                     break;
                 case START_RECORDING_ACTION:
                     // Start making a recording.
@@ -571,7 +576,7 @@
 
     function onTabletScreenChanged(type, url) {
         // Opened/closed dialog in tablet or window.
-        var RECORD_URL = "/scripts/system/html/record.html";
+        var RECORD_URL = "/html/record.html";
 
         if (type === "Web" && url.slice(-RECORD_URL.length) === RECORD_URL) {
             if (Dialog.finishOnOpen()) {

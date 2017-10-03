@@ -280,6 +280,13 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
     memcpy(ckey, wallet->getCKey(), 32);
 }
 
+Wallet::Wallet() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
+
+    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "verifyOwnerChallenge");
+}
+
 Wallet::~Wallet() {
     if (_securityImage) {
         delete _securityImage;
@@ -644,4 +651,31 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
 bool Wallet::changePassphrase(const QString& newPassphrase) {
     qCDebug(commerce) << "changing passphrase";
     return writeWallet(newPassphrase);
+}
+
+void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    QString decryptedText;
+    quint64 encryptedTextSize;
+    quint64 publicKeySize;
+
+    if (verifyOwnerChallenge(packet->read(packet->readPrimitive(&encryptedTextSize)), packet->read(packet->readPrimitive(&publicKeySize)), decryptedText)) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        // setup the packet
+        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + decryptedText.size(), true);
+
+        // write the decrypted text to the packet
+        decryptedTextPacket->write(decryptedText.toUtf8());
+
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text";
+
+        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+    } else {
+        qCDebug(commerce) << "verifyOwnerChallenge() returned false";
+    }
+}
+
+bool Wallet::verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText) {
+    // I have no idea how to do this yet, so here's some dummy code that may not even work.
+    decryptedText = QString("hello");
+    return true;
 }

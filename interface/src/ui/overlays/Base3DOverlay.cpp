@@ -268,22 +268,23 @@ void Base3DOverlay::update(float duration) {
     
     // In Base3DOverlay, if its location or bound changed, the renderTrasnformDirty flag is true.
     // then the correct transform used for rendering is computed in the update transaction and assigned.
-    // TODO: Fix the value to be computed in main thread now and passed by value to the render item.
-    //       This is the simplest fix for the web overlay of the tablet for now
     if (_renderTransformDirty) {
-        _renderTransformDirty = false;
         auto itemID = getRenderItemID();
+        // Capture the render transform value in game loop before 
+        auto latestTransform = evalRenderTransform();
+        _renderTransformDirty = false;
         if (render::Item::isValidID(itemID)) {
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<Overlay>(itemID, [](Overlay& data) {
+            transaction.updateItem<Overlay>(itemID, [latestTransform](Overlay& data) {
                 auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
                 if (overlay3D) {
-                    auto latestTransform = overlay3D->evalRenderTransform();
                     overlay3D->setRenderTransform(latestTransform);
                 }
             });
-            scene->enqueueTransaction(transaction);       
+            scene->enqueueTransaction(transaction);
+        } else {
+            setRenderTransform(latestTransform);
         }
     }
 }
@@ -292,7 +293,7 @@ void Base3DOverlay::notifyRenderTransformChange() const {
     _renderTransformDirty = true;
 }
 
-Transform Base3DOverlay::evalRenderTransform() const {
+Transform Base3DOverlay::evalRenderTransform() {
     return getTransform();
 }
 

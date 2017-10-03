@@ -7,9 +7,9 @@
 //
 #include "GL41Backend.h"
 #include "../gl/GLShader.h"
-//#include <gl/GLShaders.h>
 
 using namespace gpu;
+using namespace gpu::gl;
 using namespace gpu::gl41;
 
 // GLSL version
@@ -84,7 +84,7 @@ int GL41Backend::makeResourceBufferSlots(GLuint glprogram, const Shader::Binding
     return ssboCount;
 }
 
-void GL41Backend::makeProgramBindings(gl::ShaderObject& shaderObject) {
+void GL41Backend::makeProgramBindings(ShaderObject& shaderObject) {
     if (!shaderObject.glprogram) {
         return;
     }

@@ -86,12 +86,13 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
 
 void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
     if (!id.isNull() && props.isValid()) {
-        qApp->getOverlays().editOverlay(id, props);
+        QVariantMap propMap = props.toMap();
+        propMap.remove("visible");
+        qApp->getOverlays().editOverlay(id, propMap);
     }
 }
 
-void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState) {
-    PickRay pickRay = qApp->getRayPickManager().getPickRay(_rayPickUID);
+void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState) {
     if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(pickRay.origin));
@@ -183,12 +184,14 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 
 void LaserPointer::update() {
     RayPickResult prevRayPickResult = DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID);
-    if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() && prevRayPickResult.type != IntersectionType::NONE) {
-        updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, prevRayPickResult.distance, prevRayPickResult.objectID, false);
+    if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
+            (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
+        float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;
+        updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
     } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
         disableRenderState(_renderStates[_currentRenderState]);
-        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), true);
+        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), prevRayPickResult.searchRay, true);
     } else if (!_currentRenderState.empty()) {
         disableRenderState(_renderStates[_currentRenderState]);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);

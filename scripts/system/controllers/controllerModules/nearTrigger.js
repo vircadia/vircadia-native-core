@@ -26,9 +26,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
+        this.startSent = false;
 
         this.parameters = makeDispatcherModuleParameters(
-            520,
+            480,
             this.hand === RIGHT_HAND ? ["rightHandTrigger", "rightHand"] : ["leftHandTrigger", "leftHand"],
             [],
             100);
@@ -76,7 +77,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
                 this.targetEntityID = targetProps.id;
-                this.startNearTrigger(controllerData);
                 return makeRunningValues(true, [this.targetEntityID], []);
             } else {
                 return makeRunningValues(false, [], []);
@@ -84,12 +84,16 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0) {
+            if (!this.startSent) {
+                this.startNearTrigger(controllerData);
+                this.startSent = true;
+            } else if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
                 this.endNearTrigger(controllerData);
+                this.startSent = false;
                 return makeRunningValues(false, [], []);
+            } else {
+                this.continueNearTrigger(controllerData);
             }
-
-            this.continueNearTrigger(controllerData);
             return makeRunningValues(true, [this.targetEntityID], []);
         };
 

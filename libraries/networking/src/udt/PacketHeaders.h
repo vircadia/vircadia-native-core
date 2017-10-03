@@ -122,6 +122,7 @@ public:
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
         OctreeFileReplacementFromUrl,
+        ChallengeOwnership,
         NUM_PACKET_TYPE
     };
 
@@ -140,11 +141,16 @@ public:
 
     const static QSet<PacketTypeEnum::Value> getNonVerifiedPackets() {
         const static QSet<PacketTypeEnum::Value> NON_VERIFIED_PACKETS = QSet<PacketTypeEnum::Value>()
-            << PacketTypeEnum::Value::NodeJsonStats << PacketTypeEnum::Value::EntityQuery
-            << PacketTypeEnum::Value::OctreeDataNack << PacketTypeEnum::Value::EntityEditNack
-            << PacketTypeEnum::Value::DomainListRequest << PacketTypeEnum::Value::StopNode
-            << PacketTypeEnum::Value::DomainDisconnectRequest << PacketTypeEnum::Value::UsernameFromIDRequest
-            << PacketTypeEnum::Value::NodeKickRequest << PacketTypeEnum::Value::NodeMuteRequest;
+            << PacketTypeEnum::Value::NodeJsonStats
+            << PacketTypeEnum::Value::EntityQuery
+            << PacketTypeEnum::Value::OctreeDataNack
+            << PacketTypeEnum::Value::EntityEditNack
+            << PacketTypeEnum::Value::DomainListRequest
+            << PacketTypeEnum::Value::StopNode
+            << PacketTypeEnum::Value::DomainDisconnectRequest
+            << PacketTypeEnum::Value::UsernameFromIDRequest
+            << PacketTypeEnum::Value::NodeKickRequest
+            << PacketTypeEnum::Value::NodeMuteRequest;
         return NON_VERIFIED_PACKETS;
     }
 
@@ -269,7 +275,8 @@ enum class EntityQueryPacketVersion: PacketVersion {
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19,
-    RangeRequestSupport
+    RangeRequestSupport,
+    RedirectedMappings
 };
 
 enum class AvatarMixerPacketVersion : PacketVersion {
