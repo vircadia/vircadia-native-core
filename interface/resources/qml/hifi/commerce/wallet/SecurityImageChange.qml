@@ -1,8 +1,8 @@
 //
-//  SecurityImageSelectionLightbox.qml
+//  SecurityImageChange.qml
 //  qml/hifi/commerce/wallet
 //
-//  SecurityImageSelectionLightbox
+//  SecurityImageChange
 //
 //  Created by Zach Fox on 2017-08-18
 //  Copyright 2017 High Fidelity, Inc.
@@ -20,22 +20,26 @@ import "../../../controls" as HifiControls
 
 // references XXX from root context
 
-Rectangle {
+Item {
     HifiConstants { id: hifi; }
 
     id: root;
     property bool justSubmitted: false;
-    // Style
-    color: hifi.colors.baseGray;
+
+    SecurityImageModel {
+        id: securityImageModel;
+    }
 
     Hifi.QmlCommerce {
         id: commerce;
-
+        
         onSecurityImageResult: {
+            securityImageChangePageSecurityImage.source = "";
+            securityImageChangePageSecurityImage.source = "image://security/securityImage";
             if (exists) { // Success submitting new security image
                 if (root.justSubmitted) {
                     root.resetSubmitButton();
-                    root.visible = false;
+                    sendSignalToWallet({method: "walletSecurity_changeSecurityImageSuccess"});
                     root.justSubmitted = false;
                 }
             } else if (root.justSubmitted) {
@@ -45,71 +49,104 @@ Rectangle {
             }
         }
     }
+    
+
+    // Security Image
+    Item {
+        // Anchors
+        anchors.top: parent.top;
+        anchors.right: parent.right;
+        anchors.rightMargin: 25;
+        width: 130;
+        height: 150;
+        Image {
+            id: securityImageChangePageSecurityImage;
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            anchors.bottom: iconAndTextContainer.top;
+            fillMode: Image.PreserveAspectFit;
+            mipmap: true;
+            source: "image://security/securityImage";
+            cache: false;
+            onVisibleChanged: {
+                commerce.getSecurityImage();
+            }
+        }
+        Item {
+            id: iconAndTextContainer;
+            anchors.left: securityImageChangePageSecurityImage.left;
+            anchors.right: securityImageChangePageSecurityImage.right;
+            anchors.bottom: parent.bottom;
+            height: 22;
+            // Lock icon
+            HiFiGlyphs {
+                id: lockIcon;
+                text: hifi.glyphs.lock;
+                anchors.bottom: parent.bottom;
+                anchors.left: parent.left;
+                anchors.leftMargin: 10;
+                size: 20;
+                width: height;
+                verticalAlignment: Text.AlignBottom;
+                color: hifi.colors.white;
+            }
+            // "Security image" text below pic
+            RalewayRegular {
+                id: securityImageText;
+                text: "SECURITY PIC";
+                // Text size
+                size: 12;
+                // Anchors
+                anchors.bottom: parent.bottom;
+                anchors.right: parent.right;
+                anchors.rightMargin: lockIcon.anchors.leftMargin;
+                width: paintedWidth;
+                height: 22;
+                // Style
+                color: hifi.colors.white;
+                // Alignment
+                horizontalAlignment: Text.AlignRight;
+                verticalAlignment: Text.AlignBottom;
+            }
+        }
+    }
 
     //
     // SECURITY IMAGE SELECTION START
     //
     Item {
-        id: securityImageContainer;
         // Anchors
-        anchors.fill: parent;
+        anchors.top: parent.top;
+        anchors.topMargin: 135;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        anchors.bottom: parent.bottom;
 
-        Item {
-            id: securityImageTitle;
-            // Size
-            width: parent.width;
-            height: 50;
-            // Anchors
-            anchors.left: parent.left;
-            anchors.top: parent.top;
-
-            // Title Bar text
-            RalewaySemiBold {
-                text: "CHANGE SECURITY IMAGE";
-                // Text size
-                size: hifi.fontSizes.overlayTitle;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                anchors.leftMargin: 16;
-                anchors.bottom: parent.bottom;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.faintGray;
-                // Alignment
-                horizontalAlignment: Text.AlignHLeft;
-                verticalAlignment: Text.AlignVCenter;
-            }
-        }
-
-        // Text below title bar
+        // "Change Security Image" text
         RalewaySemiBold {
-            id: securityImageTitleHelper;
-            text: "Choose a Security Picture:";
+            id: securityImageTitle;
+            text: "Change Security Pic:";
             // Text size
-            size: 24;
-            // Anchors
-            anchors.top: securityImageTitle.bottom;
+            size: 18;
+            anchors.top: parent.top;
             anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            height: 50;
-            width: paintedWidth;
+            anchors.leftMargin: 20;
+            anchors.right: parent.right;
+            height: 30;
             // Style
-            color: hifi.colors.faintGray;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
+            color: hifi.colors.blueHighlight;
         }
 
         SecurityImageSelection {
             id: securityImageSelection;
             // Anchors
-            anchors.top: securityImageTitleHelper.bottom;
+            anchors.top: securityImageTitle.bottom;
             anchors.left: parent.left;
             anchors.leftMargin: 16;
             anchors.right: parent.right;
             anchors.rightMargin: 16;
-            height: 280;
+            height: 300;
         
             Connections {
                 onSendSignalToWallet: {
@@ -118,66 +155,43 @@ Rectangle {
             }
         }
 
-        // Text below security images
-        RalewayRegular {
-            text: "<b>Your security picture shows you that the service asking for your passphrase is authorized.</b> You can change your secure picture at any time.";
-            // Text size
-            size: 18;
-            // Anchors
-            anchors.top: securityImageSelection.bottom;
-            anchors.topMargin: 40;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
-            anchors.right: parent.right;
-            anchors.rightMargin: 16;
-            height: paintedHeight;
-            // Style
-            color: hifi.colors.faintGray;
-            wrapMode: Text.WordWrap;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
         // Navigation Bar
         Item {
             id: securityImageNavBar;
             // Size
             width: parent.width;
-            height: 100;
+            height: 40;
             // Anchors:
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 30;
 
             // "Cancel" button
             HifiControlsUit.Button {
-                color: hifi.buttons.black;
+                color: hifi.buttons.noneBorderlessWhite;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
-                anchors.topMargin: 3;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
-                width: 100;
+                width: 150;
                 text: "Cancel"
                 onClicked: {
-                    root.visible = false;
+                    sendSignalToWallet({method: "walletSecurity_changeSecurityImageCancelled"});
                 }
             }
 
             // "Submit" button
             HifiControlsUit.Button {
                 id: securityImageSubmitButton;
-                color: hifi.buttons.black;
+                enabled: securityImageSelection.currentIndex !== -1;
+                color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
-                anchors.topMargin: 3;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
-                width: 100;
+                width: 150;
                 text: "Submit";
                 onClicked: {
                     root.justSubmitted = true;

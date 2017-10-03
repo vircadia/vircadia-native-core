@@ -269,6 +269,8 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
             userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
             userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezPermanentCertifiedEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
             userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
             userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
         } else {
@@ -358,6 +360,8 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
     userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
     userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezPermanentCertifiedEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
     userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
     userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
     newNode->setPermissions(userPerms);

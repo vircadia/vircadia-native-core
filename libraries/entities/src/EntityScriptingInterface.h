@@ -127,6 +127,18 @@ public slots:
     Q_INVOKABLE bool canRezTmp();
 
     /**jsdoc
+    * @function Entities.canRezCertified
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to rez new certified entities
+    */
+    Q_INVOKABLE bool canRezCertified();
+
+    /**jsdoc
+    * @function Entities.canRezTmpCertified
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to rez new temporary certified entities
+    */
+    Q_INVOKABLE bool canRezTmpCertified();
+
+    /**jsdoc
     * @function Entities.canWriteAsseets
     * @return {bool} `true` if the DomainServer will allow this Node/Avatar to write to the asset server
     */
@@ -380,6 +392,8 @@ signals:
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
+    void canRezCertifiedChanged(bool canRez);
+    void canRezTmpCertifiedChanged(bool canRez);
     void canWriteAssetsChanged(bool canWriteAssets);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);

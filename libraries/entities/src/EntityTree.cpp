@@ -22,7 +22,6 @@
 #include "VariantMapToScriptValue.h"
 
 #include "AddEntityOperator.h"
-#include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 #include "QVariantGLM.h"
 #include "EntitiesLogging.h"
@@ -105,6 +104,111 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 
     resetClientEditStats();
     clearDeletedEntities();
+}
+
+void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
+            uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args) {
+    Octree::readBitstreamToTree(bitstream, bufferSizeBytes, args);
+
+    // add entities
+    QHash<EntityItemID, EntityItemPointer>::const_iterator itr;
+    for (itr = _entitiesToAdd.constBegin(); itr != _entitiesToAdd.constEnd(); ++itr) {
+        const EntityItemPointer& entityItem = itr.value();
+        AddEntityOperator theOperator(getThisPointer(), entityItem);
+        recurseTreeWithOperator(&theOperator);
+        postAddEntity(entityItem);
+    }
+    _entitiesToAdd.clear();
+
+    // move entities
+    if (_entityMover.hasMovingEntities()) {
+        PerformanceTimer perfTimer("recurseTreeWithOperator");
+        recurseTreeWithOperator(&_entityMover);
+        _entityMover.reset();
+    }
+}
+
+int EntityTree::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
+    const unsigned char* dataAt = data;
+    int bytesRead = 0;
+    uint16_t numberOfEntities = 0;
+    int expectedBytesPerEntity = EntityItem::expectedBytes();
+
+    args.elementsPerPacket++;
+
+    if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
+        // read our entities in....
+        numberOfEntities = *(uint16_t*)dataAt;
+
+        dataAt += sizeof(numberOfEntities);
+        bytesLeftToRead -= (int)sizeof(numberOfEntities);
+        bytesRead += sizeof(numberOfEntities);
+
+        if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
+            for (uint16_t i = 0; i < numberOfEntities; i++) {
+                int bytesForThisEntity = 0;
+                EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
+                EntityItemPointer entity = findEntityByEntityItemID(entityItemID);
+
+                if (entity) {
+                    QString entityScriptBefore = entity->getScript();
+                    QUuid parentIDBefore = entity->getParentID();
+                    QString entityServerScriptsBefore = entity->getServerScripts();
+                    quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
+
+                    bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                    if (entity->getDirtyFlags()) {
+                        entityChanged(entity);
+                    }
+                    _entityMover.addEntityToMoveList(entity, entity->getQueryAACube());
+
+                    QString entityScriptAfter = entity->getScript();
+                    QString entityServerScriptsAfter = entity->getServerScripts();
+                    quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
+                    bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+
+                    // If the script value has changed on us, or it's timestamp has changed to force
+                    // a reload then we want to send out a script changing signal...
+                    if (reload || entityScriptBefore != entityScriptAfter) {
+                        emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
+                    }
+                    if (reload || entityServerScriptsBefore != entityServerScriptsAfter) {
+                        emitEntityServerScriptChanging(entityItemID, reload); // the entity server script has changed
+                    }
+
+                    QUuid parentIDAfter = entity->getParentID();
+                    if (parentIDBefore != parentIDAfter) {
+                        addToNeedsParentFixupList(entity);
+                    }
+                } else {
+                    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
+                    if (entity) {
+                        bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+
+                        // don't add if we've recently deleted....
+                        if (!isDeletedEntity(entityItemID)) {
+                            _entitiesToAdd.insert(entityItemID, entity);
+
+                            if (entity->getCreated() == UNKNOWN_CREATED_TIME) {
+                                entity->recordCreationTime();
+                            }
+                        #ifdef WANT_DEBUG
+                        } else {
+                                qCDebug(entities) << "Received packet for previously deleted entity [" <<
+                                        entityItemID << "] ignoring. (inside " << __FUNCTION__ << ")";
+                        #endif
+                        }
+                    }
+                }
+                // Move the buffer forward to read more entities
+                dataAt += bytesForThisEntity;
+                bytesLeftToRead -= bytesForThisEntity;
+                bytesRead += bytesForThisEntity;
+            }
+        }
+    }
+
+    return bytesRead;
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -193,7 +297,9 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 }
                 UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, queryCube);
                 recurseTreeWithOperator(&theOperator);
-                entity->setProperties(tempProperties);
+                if (entity->setProperties(tempProperties)) {
+                    emit editingEntityPointer(entity);
+                }
                 _isDirty = true;
             }
         }
@@ -268,7 +374,9 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
         }
         UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newQueryAACube);
         recurseTreeWithOperator(&theOperator);
-        entity->setProperties(properties);
+        if (entity->setProperties(properties)) {
+            emit editingEntityPointer(entity);
+        }
 
         // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
         QQueue<SpatiallyNestablePointer> toProcess;
@@ -350,7 +458,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     }
 
     if (!properties.getClientOnly() && getIsClient() &&
-        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp()) {
+        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
         return nullptr;
     }
 
@@ -442,6 +551,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
 
     unhookChildAvatar(entityID);
     emit deletingEntity(entityID);
+    emit deletingEntityPointer(existingEntity.get());
 
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(getThisPointer(), entityID);
@@ -450,6 +560,10 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
         auto descendantID = descendant->getID();
         theOperator.addEntityIDToDeleteList(descendantID);
         emit deletingEntity(descendantID);
+        EntityItemPointer descendantEntity = std::dynamic_pointer_cast<EntityItem>(descendant);
+        if (descendantEntity) {
+            emit deletingEntityPointer(descendantEntity.get());
+        }
     });
 
     recurseTreeWithOperator(&theOperator);
@@ -499,6 +613,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         unhookChildAvatar(entityID);
         theOperator.addEntityIDToDeleteList(entityID);
         emit deletingEntity(entityID);
+        emit deletingEntityPointer(existingEntity.get());
     }
 
     if (theOperator.getEntities().size() > 0) {
@@ -1076,7 +1191,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             }
 
             if ((isAdd || properties.lifetimeChanged()) &&
-                !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
+                ((!senderNode->getCanRez() && senderNode->getCanRezTmp()) ||
+                (!senderNode->getCanRezCertified() && senderNode->getCanRezTmpCertified()))) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {
@@ -1135,7 +1251,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     if (!isPhysics) {
                         properties.setLastEditedBy(senderNode->getUUID());
                     }
-                    updateEntity(entityItemID, properties, senderNode);
+                    updateEntity(existingEntity, properties, senderNode);
                     existingEntity->markAsChangedOnServer();
                     endUpdate = usecTimestampNow();
                     _totalUpdates++;
@@ -1248,7 +1364,7 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 
 
 void EntityTree::fixupNeedsParentFixups() {
-    MovingEntitiesOperator moveOperator(getThisPointer());
+    MovingEntitiesOperator moveOperator;
 
     QWriteLocker locker(&_needsParentFixupLock);
 
@@ -1321,6 +1437,13 @@ void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
     if (_childrenOfAvatars.contains(avatarID)) {
         deleteEntities(_childrenOfAvatars[avatarID]);
         _childrenOfAvatars.remove(avatarID);
+    }
+}
+
+void EntityTree::removeFromChildrenOfAvatars(EntityItemPointer entity) {
+    QUuid avatarID = entity->getParentID();
+    if (_childrenOfAvatars.contains(avatarID)) {
+        _childrenOfAvatars[avatarID].remove(entity->getID());
     }
 }
 
@@ -1665,7 +1788,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     // add-entity packet to the server.
 
     // fix the queryAACubes of any children that were read in before their parents, get them into the correct element
-    MovingEntitiesOperator moveOperator(localTree);
+    MovingEntitiesOperator moveOperator;
     QHash<EntityItemID, EntityItemID>::iterator i = map.begin();
     while (i != map.end()) {
         EntityItemID newID = i.value();

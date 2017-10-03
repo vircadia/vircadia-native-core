@@ -122,6 +122,7 @@ public:
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
         OctreeFileReplacementFromUrl,
+        ChallengeOwnership,
         NUM_PACKET_TYPE
     };
 

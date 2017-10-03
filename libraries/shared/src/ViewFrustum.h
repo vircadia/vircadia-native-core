@@ -107,12 +107,7 @@ public:
     bool cubeIntersectsKeyhole(const AACube& cube) const;
     bool boxIntersectsKeyhole(const AABox& box) const;
 
-    // some frustum comparisons
-    bool matches(const ViewFrustum& compareTo, bool debug = false) const;
-    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); }
-
-    bool isVerySimilar(const ViewFrustum& compareTo, bool debug = false) const;
-    bool isVerySimilar(const ViewFrustum* compareTo, bool debug = false) const { return isVerySimilar(*compareTo, debug); }
+    bool isVerySimilar(const ViewFrustum& compareTo) const;
 
     PickRay computePickRay(float x, float y);
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;

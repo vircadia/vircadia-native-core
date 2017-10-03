@@ -11,8 +11,13 @@
 import QtQuick 2.0
 import "."
 
-Item {
+Rectangle {
     id: keyboardBase
+
+    anchors.left: parent.left
+    anchors.right: parent.right
+
+    color: "#252525"
 
     property bool raised: false
     property bool numeric: false
@@ -105,6 +110,7 @@ Item {
         height: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
         color: "#252525"
+        anchors.horizontalCenter: parent.horizontalCenter
 
         TextEdit {
             id: mirrorText

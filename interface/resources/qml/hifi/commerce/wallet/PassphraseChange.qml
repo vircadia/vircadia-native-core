@@ -1,8 +1,8 @@
 //
-//  PassphraseSelectionLightbox.qml
+//  PassphraseChange.qml
 //  qml/hifi/commerce/wallet
 //
-//  PassphraseSelectionLightbox
+//  PassphraseChange
 //
 //  Created by Zach Fox on 2017-08-18
 //  Copyright 2017 High Fidelity, Inc.
@@ -20,12 +20,31 @@ import "../../../controls" as HifiControls
 
 // references XXX from root context
 
-Rectangle {
+Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    // Style
-    color: hifi.colors.baseGray;
+
+    SecurityImageModel {
+        id: securityImageModel;
+    }
+
+    // Username Text
+    RalewayRegular {
+        id: usernameText;
+        text: Account.username;
+        // Text size
+        size: 24;
+        // Style
+        color: hifi.colors.white;
+        elide: Text.ElideRight;
+        // Anchors
+        anchors.top: parent.top;
+        anchors.left: parent.left;
+        anchors.leftMargin: 20;
+        width: parent.width/2;
+        height: 80;
+    }
 
     //
     // SECURE PASSPHRASE SELECTION START
@@ -33,60 +52,31 @@ Rectangle {
     Item {
         id: choosePassphraseContainer;
         // Anchors
-        anchors.fill: parent;
+        anchors.top: usernameText.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        anchors.bottom: parent.bottom;
 
-        Item {
-            id: passphraseTitle;
-            // Size
-            width: parent.width;
-            height: 50;
-            // Anchors
-            anchors.left: parent.left;
-            anchors.top: parent.top;
-
-            // Title Bar text
-            RalewaySemiBold {
-                text: "CHANGE PASSPHRASE";
-                // Text size
-                size: hifi.fontSizes.overlayTitle;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                anchors.leftMargin: 16;
-                anchors.bottom: parent.bottom;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.faintGray;
-                // Alignment
-                horizontalAlignment: Text.AlignHLeft;
-                verticalAlignment: Text.AlignVCenter;
-            }
-        }
-
-        // Text below title bar
+        // "Change Passphrase" text
         RalewaySemiBold {
-            id: passphraseTitleHelper;
-            text: "Choose a Secure Passphrase";
+            id: passphraseTitle;
+            text: "Change Passphrase:";
             // Text size
-            size: 24;
-            // Anchors
-            anchors.top: passphraseTitle.bottom;
+            size: 18;
+            anchors.top: parent.top;
             anchors.left: parent.left;
-            anchors.leftMargin: 16;
+            anchors.leftMargin: 20;
             anchors.right: parent.right;
-            anchors.rightMargin: 16;
-            height: 50;
+            height: 30;
             // Style
-            color: hifi.colors.faintGray;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
+            color: hifi.colors.blueHighlight;
         }
 
         PassphraseSelection {
             id: passphraseSelection;
-            anchors.top: passphraseTitleHelper.bottom;
-            anchors.topMargin: 30;
+            isChangingPassphrase: true;
+            anchors.top: passphraseTitle.bottom;
+            anchors.topMargin: 8;
             anchors.left: parent.left;
             anchors.right: parent.right;
             anchors.bottom: passphraseNavBar.top;
@@ -96,11 +86,10 @@ Rectangle {
                     if (msg.method === 'statusResult') {
                         if (msg.status) {
                             // Success submitting new passphrase
-                            root.resetSubmitButton();
-                            root.visible = false;
+                            sendSignalToWallet({method: "walletSecurity_changePassphraseSuccess"});
                         } else {
                             // Error submitting new passphrase
-                            root.resetSubmitButton();
+                            resetSubmitButton();
                             passphraseSelection.setErrorText("Backend error");
                         }
                     } else {
@@ -115,40 +104,37 @@ Rectangle {
             id: passphraseNavBar;
             // Size
             width: parent.width;
-            height: 100;
+            height: 40;
             // Anchors:
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 30;
 
             // "Cancel" button
             HifiControlsUit.Button {
-                color: hifi.buttons.black;
+                color: hifi.buttons.noneBorderlessWhite;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
-                anchors.topMargin: 3;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
-                width: 100;
+                width: 150;
                 text: "Cancel"
                 onClicked: {
-                    root.visible = false;
+                    sendSignalToWallet({method: "walletSecurity_changePassphraseCancelled"});
                 }
             }
 
             // "Submit" button
             HifiControlsUit.Button {
                 id: passphraseSubmitButton;
-                color: hifi.buttons.black;
+                color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.top: parent.top;
-                anchors.topMargin: 3;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 3;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
-                width: 100;
+                width: 150;
                 text: "Submit";
                 onClicked: {
                     if (passphraseSelection.validateAndSubmitPassphrase()) {

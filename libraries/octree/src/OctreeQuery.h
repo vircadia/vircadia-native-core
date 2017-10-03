@@ -89,14 +89,14 @@ public slots:
 
 protected:
     // camera details for the avatar
-    glm::vec3 _cameraPosition = glm::vec3(0.0f);
-    glm::quat _cameraOrientation = glm::quat();
-    float _cameraFov = 0.0f;
-    float _cameraAspectRatio = 1.0f;
-    float _cameraNearClip = 0.0f;
-    float _cameraFarClip = 0.0f;
-    float _cameraCenterRadius { 0.0f };
-    glm::vec3 _cameraEyeOffsetPosition = glm::vec3(0.0f);
+    glm::vec3 _cameraPosition { glm::vec3(0.0f) };
+    glm::quat _cameraOrientation { glm::quat() };
+    float _cameraFov;
+    float _cameraAspectRatio;
+    float _cameraNearClip;
+    float _cameraFarClip;
+    float _cameraCenterRadius;
+    glm::vec3 _cameraEyeOffsetPosition { glm::vec3(0.0f) };
 
     // octree server sending items
     int _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
