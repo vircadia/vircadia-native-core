@@ -47,6 +47,8 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
     connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
+    connect(nodeList.data(), &NodeList::canRezCertifiedChanged, this, &EntityScriptingInterface::canRezCertifiedChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpCertifiedChanged, this, &EntityScriptingInterface::canRezTmpCertifiedChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
 }
 
@@ -74,6 +76,16 @@ bool EntityScriptingInterface::canRez() {
 bool EntityScriptingInterface::canRezTmp() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRezTmp();
+}
+
+bool EntityScriptingInterface::canRezCertified() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezCertified();
+}
+
+bool EntityScriptingInterface::canRezTmpCertified() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmpCertified();
 }
 
 bool EntityScriptingInterface::canWriteAssets() {
@@ -1753,3 +1765,31 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
     }
     return result;
 }
+
+bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& entityID) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->verifyStaticCertificateProperties();
+            }
+        });
+    }
+    return result;
+}
+
+#ifdef DEBUG_CERT
+QString EntityScriptingInterface::computeCertificateID(const QUuid& entityID) {
+    QString result { "" };
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->computeCertificateID();
+            }
+        });
+    }
+    return result;
+}
+#endif

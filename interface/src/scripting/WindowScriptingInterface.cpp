@@ -171,6 +171,11 @@ void WindowScriptingInterface::setPreviousBrowseAssetLocation(const QString& loc
     Setting::Handle<QVariant>(LAST_BROWSE_ASSETS_LOCATION_SETTING).set(location);
 }
 
+bool  WindowScriptingInterface::isPointOnDesktopWindow(QVariant point) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    return offscreenUi->isPointOnDesktopWindow(point);
+}
+
 /// Makes sure that the reticle is visible, use this in blocking forms that require a reticle and
 /// might be in same thread as a script that sets the reticle to invisible
 void WindowScriptingInterface::ensureReticleVisible() const {

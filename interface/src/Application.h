@@ -192,10 +192,9 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-
-    size_t getFrameCount() const { return _frameCount; }
-    float getFps() const { return _frameCounter.rate(); }
-    float getTargetFrameRate() const; // frames/second
+    size_t getRenderFrameCount() const { return _renderFrameCount; }
+    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -266,8 +265,7 @@ public:
 
     void updateMyAvatarLookAtPosition();
 
-    float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
-    float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
     void takeSecondaryCameraSnapshot();
@@ -467,7 +465,7 @@ private:
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
@@ -531,12 +529,11 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
-    uint32_t _frameCount { 0 };
+    uint32_t _renderFrameCount { 0 };
 
     // Frame Rate Measurement
-    RateCounter<> _frameCounter;
-    RateCounter<> _avatarSimCounter;
-    RateCounter<> _simCounter;
+    RateCounter<500> _renderLoopCounter;
+    RateCounter<500> _gameLoopCounter;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
@@ -650,8 +647,6 @@ private:
     Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
 
-    QThread* _deadlockWatchdogThread;
-
     std::map<void*, std::function<void()>> _postUpdateLambdas;
     std::mutex _postUpdateLambdasLock;
 
@@ -659,11 +654,9 @@ private:
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
     uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
     uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
-    quint64 _lastPhysicsCheckTime { 0 }; // when did we last check to see if physics was ready
+    quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
-
-    bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
 

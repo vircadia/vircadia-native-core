@@ -49,8 +49,8 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
-RenderDeferredTask::RenderDeferredTask() {
-    DependencyManager::set<FadeEffect>();
+RenderDeferredTask::RenderDeferredTask()
+{
 }
 
 void RenderDeferredTask::configure(const Config& config)

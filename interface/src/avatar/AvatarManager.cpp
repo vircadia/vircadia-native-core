@@ -252,11 +252,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         qApp->getMain3DScene()->enqueueTransaction(transaction);
     }
 
-    _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
     simulateAvatarFades(deltaTime);
+
+    _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
 }
 
 void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scene) {

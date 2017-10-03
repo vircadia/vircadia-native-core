@@ -48,8 +48,8 @@ public:
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
-    void setDrawInFront(bool value) { _drawInFront = value; }
-    void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
+    virtual void setDrawInFront(bool value) { _drawInFront = value; }
+    virtual void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
 
     virtual AABox getBounds() const override = 0;
