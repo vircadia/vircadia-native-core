@@ -45,7 +45,7 @@ Camera::Camera() :
 {
 }
 
-void Camera::update(float deltaTime) {
+void Camera::update() {
     if (_isKeepLookingAt) {
         lookAt(_lookingAt);
     }
