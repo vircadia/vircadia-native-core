@@ -25,18 +25,18 @@ Laser = function (side) {
 
         searchDistance = 0.0,
 
-        SEARCH_SPHERE_SIZE = 0.013, // Per handControllerGrab.js multiplied by 1.2 per handControllerGrab.js.
+        SEARCH_SPHERE_SIZE = 0.013, // Per farActionGrabEntity.js multiplied by 1.2 per farActionGrabEntity.js.
         MINUMUM_SEARCH_SPHERE_SIZE = 0.006,
-        SEARCH_SPHERE_FOLLOW_RATE = 0.5, // Per handControllerGrab.js.
-        COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 }, // Per handControllgerGrab.js.
-        COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 }, // Per handControllgerGrab.js.
+        SEARCH_SPHERE_FOLLOW_RATE = 0.5,
+        COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 }, // Per controllerDispatcherUtils.js.
+        COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 }, // Per controllerDispatcherUtils.js.
         COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT,
         COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT,
-        BRIGHT_POW = 0.06, // Per handControllerGrab.js.
+        BRIGHT_POW = 0.06, // Per old handControllerGrab.js.
 
         GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 }, // Per HmdDisplayPlugin.cpp and controllers.js.
 
-        PICK_MAX_DISTANCE = 500, // Per handControllerGrab.js.
+        PICK_MAX_DISTANCE = 500, // Per controllerDispatcherUtils.js.
         PRECISION_PICKING = true,
         NO_INCLUDE_IDS = [],
         NO_EXCLUDE_IDS = [],
@@ -56,7 +56,7 @@ Laser = function (side) {
         return new Laser(side);
     }
 
-    function colorPow(color, power) { // Per handControllerGrab.js.
+    function colorPow(color, power) { // Per old handControllerGrab.js.
         return {
             red: Math.pow(color.red / 255, power) * 255,
             green: Math.pow(color.green / 255, power) * 255,
