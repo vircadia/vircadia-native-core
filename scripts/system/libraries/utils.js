@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// note: this constant is currently duplicated in edit.js
-EDIT_SETTING = "io.highfidelity.isEditting";
+// note: this constant is currently duplicated in edit.js and ambientSounds.js
+EDIT_SETTING = "io.highfidelity.isEditing";
 isInEditMode = function isInEditMode() {
     return Settings.getValue(EDIT_SETTING);
 };

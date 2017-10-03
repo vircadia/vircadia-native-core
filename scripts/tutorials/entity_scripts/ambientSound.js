@@ -139,7 +139,7 @@
 
     this._toggle = function(hint) {
         // Toggle between ON/OFF state, but only if not in edit mode
-        if (Settings.getValue("io.highfidelity.isEditting")) {
+        if (Settings.getValue("io.highfidelity.isEditing")) {
             return;
         }
         var props = Entities.getEntityProperties(entity, [ "userData" ]);
