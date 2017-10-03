@@ -16,6 +16,7 @@
 
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
+#include "HazeStage.h"
 
 #include "Haze_frag.h"
 
@@ -140,6 +141,8 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
     auto depthBuffer = framebuffer->getLinearDepthTexture();
 
+    RenderArgs* args = renderContext->args;
+
     if (_hazePipeline == nullptr) {
         gpu::ShaderPointer ps = gpu::Shader::createPixel(std::string(Haze_frag));
         gpu::ShaderPointer vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
@@ -162,19 +165,23 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
     auto sourceFramebufferSize = glm::ivec2(inputBuffer->getDimensions());
 
-    gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setFramebuffer(outputBuffer);
 
-        batch.setViewportTransform(renderContext->args->_viewport);
+        batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
-        batch.setModelTransform(
-            gpu::Framebuffer::evalSubregionTexcoordTransform(sourceFramebufferSize, renderContext->args->_viewport));
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(sourceFramebufferSize, args->_viewport));
 
         batch.setPipeline(_hazePipeline);
 
-        batch.setUniformBuffer(HazeEffect_ParamsSlot, haze->getHazeParametersBuffer());
+        auto hazeStage = args->_scene->getStage<HazeStage>();
+        if (hazeStage && hazeStage->_currentHazeFrame._hazes.size() > 0) {
+            model::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentHazeFrame._hazes.front());
+            batch.setUniformBuffer(HazeEffect_ParamsSlot, hazePointer->getHazeParametersBuffer());
+        }
+
         batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
 
         batch.setResourceTexture(HazeEffect_LightingMapSlot, inputBuffer);

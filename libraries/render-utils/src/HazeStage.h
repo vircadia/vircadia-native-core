@@ -55,9 +55,9 @@ public:
     Hazes _hazes;
     HazeMap _hazeMap;
 
-    class Frame {
+    class HazeFrame {
     public:
-        Frame() {}
+        HazeFrame() {}
         
         void clear() { _hazes.clear(); }
 
@@ -66,7 +66,7 @@ public:
         HazeStage::HazeIndices _hazes;
     };
     
-    Frame _currentFrame;
+    HazeFrame _currentHazeFrame;
 };
 using HazeStagePointer = std::shared_ptr<HazeStage>;
 

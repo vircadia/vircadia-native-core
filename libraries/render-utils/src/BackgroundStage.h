@@ -55,9 +55,9 @@ public:
     Backgrounds _backgrounds;
     BackgroundMap _backgroundMap;
 
-    class Frame {
+    class BackgroundFrame {
     public:
-        Frame() {}
+        BackgroundFrame() {}
         
         void clear() { _backgrounds.clear(); }
 
@@ -66,7 +66,7 @@ public:
         BackgroundStage::BackgroundIndices _backgrounds;
     };
     
-    Frame _currentFrame;
+    BackgroundFrame _currentBackgroundFrame;
 };
 using BackgroundStagePointer = std::shared_ptr<BackgroundStage>;
 

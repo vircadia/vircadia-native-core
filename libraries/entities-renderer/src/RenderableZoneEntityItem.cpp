@@ -149,14 +149,16 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         }
     }
 
-    if (_needHazeUpdate) {
-        if (HazeStage::isIndexInvalid(_hazeIndex)) {
-            _hazeIndex = _hazeStage->addHaze(_haze);
-        }
-        else {
+    {
+        if (_needHazeUpdate) {
+            if (HazeStage::isIndexInvalid(_hazeIndex)) {
+                _hazeIndex = _hazeStage->addHaze(_haze);
+            }
+            else {
 
+            }
+            _needHazeUpdate = false;
         }
-        _needHazeUpdate = false;
     }
 
     if (_visible) {
@@ -171,12 +173,12 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
         // The background only if the mode is not inherit
         if (_backgroundMode != BACKGROUND_MODE_INHERIT) {
-            _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
+            _backgroundStage->_currentBackgroundFrame.pushBackground(_backgroundIndex);
         }
 
         // The haze only if the mode is not inherit
         if (_hazeMode != HAZE_MODE_INHERIT) {
-            _hazeStage->_currentFrame.pushHaze(_hazeIndex);
+            _hazeStage->_currentHazeFrame.pushHaze(_hazeIndex);
         }
     }
 }
@@ -466,6 +468,7 @@ void ZoneEntityRenderer::updateSkyboxMap() {
 void ZoneEntityRenderer::setBackgroundMode(BackgroundMode mode) {
     _backgroundMode = mode;
 }
+
 void ZoneEntityRenderer::setHazeMode(HazeMode mode) {
     _hazeMode = mode;
 }
