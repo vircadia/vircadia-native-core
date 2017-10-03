@@ -266,15 +266,15 @@ void EntityTreeRenderer::update(bool simulate) {
             if (scene) {
                 render::Transaction transaction;
                 {
-                    PerformanceTimer foo("add");
+                    PerformanceTimer pt("add");
                     addPendingEntities(scene, transaction);
                 }
                 {
-                    PerformanceTimer foo("change");
+                    PerformanceTimer pt("change");
                     updateChangedEntities(scene, transaction);
                 }
                 {
-                    PerformanceTimer foo("enqueue");
+                    PerformanceTimer pt("enqueue");
                     scene->enqueueTransaction(transaction);
                 }
             }
