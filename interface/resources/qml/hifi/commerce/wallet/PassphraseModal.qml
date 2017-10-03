@@ -129,6 +129,7 @@ Item {
             width: height;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
+            cache: false;
 
             MouseArea {
                 enabled: titleBarSecurityImage.visible;

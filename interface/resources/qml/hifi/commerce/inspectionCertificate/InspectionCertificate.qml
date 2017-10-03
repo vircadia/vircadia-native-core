@@ -30,12 +30,20 @@ Rectangle {
     property string itemOwner: "--";
     property string itemEdition: "--";
     property string dateOfPurchase: "";
-    property bool closeGoesToPurchases: false;
+    property bool isLightbox: false;
     // Style
     color: hifi.colors.faintGray;
     Hifi.QmlCommerce {
         id: commerce;
-    }    
+    }
+
+    // This object is always used in a popup.
+    // This MouseArea is used to prevent a user from being
+    //     able to click on a button/mouseArea underneath the popup.
+    MouseArea {
+        anchors.fill: parent;
+        propagateComposedEvents: false;
+    }
 
     Image {
         anchors.fill: parent;
@@ -262,7 +270,11 @@ Rectangle {
             height: 50;
             text: "close";
             onClicked: {
-                sendToScript({method: 'inspectionCertificate_closeClicked', closeGoesToPurchases: root.closeGoesToPurchases});
+                if (root.isLightbox) {
+                    root.visible = false;
+                } else {
+                    sendToScript({method: 'inspectionCertificate_closeClicked', closeGoesToPurchases: root.closeGoesToPurchases});
+                }
             }
         }   
 
@@ -303,7 +315,6 @@ Rectangle {
         switch (message.method) {
             case 'inspectionCertificate_setMarketplaceId':
                 root.marketplaceId = message.marketplaceId;
-                root.closeGoesToPurchases = message.closeGoesToPurchases;
             break;
             case 'inspectionCertificate_setItemInfo':
                 root.itemName = message.itemName;

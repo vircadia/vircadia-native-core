@@ -32,8 +32,8 @@ public:
     QStringList listPublicKeys();
     QString signWithKey(const QByteArray& text, const QString& key);
     void chooseSecurityImage(const QString& imageFile);
-    void getSecurityImage();
-    void sendKeyFilePathIfExists();
+    bool getSecurityImage();
+    QString getKeyFilePath();
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }

@@ -43,7 +43,7 @@ Item {
             if (!exists && root.lastPage === "step_2") {
                 // ERROR! Invalid security image.
                 root.activeView = "step_2";
-            } else {
+            } else if (exists) {
                 titleBarSecurityImage.source = "";
                 titleBarSecurityImage.source = "image://security/securityImage";
             }
@@ -116,7 +116,7 @@ Item {
         Image {
             id: titleBarSecurityImage;
             source: "";
-            visible: !securityImageTip.visible && titleBarSecurityImage.source !== "";
+            visible: !securityImageTip.visible && titleBarSecurityImage.source !== "" && root.activeView !== "step_1" && root.activeView !== "step_2";
             anchors.right: parent.right;
             anchors.rightMargin: 6;
             anchors.top: parent.top;
@@ -125,6 +125,7 @@ Item {
             anchors.bottomMargin: 6;
             width: height;
             mipmap: true;
+            cache: false;
 
             MouseArea {
                 enabled: titleBarSecurityImage.visible;
@@ -422,6 +423,7 @@ Item {
             onClicked: {
                 root.hasShownSecurityImageTip = true;
                 securityImageTip.visible = false;
+                passphraseSelection.focusFirstTextField();
             }
         }
     }
@@ -466,6 +468,7 @@ Item {
 
         PassphraseSelection {
             id: passphraseSelection;
+            shouldImmediatelyFocus: root.hasShownSecurityImageTip;
             isShowingTip: securityImageTip.visible;
             anchors.top: passphraseTitleHelper.bottom;
             anchors.topMargin: 30;
@@ -680,6 +683,7 @@ Item {
                         instructions02Container.visible = true;
                         keysReadyPageFinishButton.visible = true;
                         Qt.openUrlExternally("https://www.highfidelity.com/");
+                        Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
                     }
                 }
             }

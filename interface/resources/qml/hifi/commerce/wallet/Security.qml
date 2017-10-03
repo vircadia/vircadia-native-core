@@ -280,6 +280,34 @@ Item {
                 verticalAlignment: Text.AlignVCenter;
             }
 
+            Rectangle {
+                id: removeHmdContainer;
+                z: 998;
+                visible: false;
+                color: hifi.colors.blueHighlight;
+                anchors.fill: backupInstructionsButton;
+                radius: 5;
+                MouseArea {
+                    anchors.fill: parent;
+                    propagateComposedEvents: false;
+                }
+
+                RalewayBold {
+                    anchors.fill: parent;
+                    text: "INSTRUCTIONS OPEN ON DESKTOP";
+                    size: 15;
+                    color: hifi.colors.white;
+                    verticalAlignment: Text.AlignVCenter;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+
+                    Timer {
+                        id: removeHmdContainerTimer;
+                        interval: 5000;
+                        onTriggered: removeHmdContainer.visible = false
+                    }
+            }
+
             HifiControlsUit.Button {
                 id: backupInstructionsButton;
                 text: "View Backup Instructions";
@@ -293,6 +321,9 @@ Item {
 
                 onClicked: {
                     Qt.openUrlExternally("https://www.highfidelity.com/");
+                    Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
+                    removeHmdContainer.visible = true;
+                    removeHmdContainerTimer.start();
                 }
             }
         }

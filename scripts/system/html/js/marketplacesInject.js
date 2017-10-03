@@ -28,6 +28,7 @@
 
     var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
     var userIsLoggedIn = false;
+    var walletNeedsSetup = false;
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -91,6 +92,48 @@
         });
     }
 
+    emitWalletSetupEvent = function() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "WALLET_SETUP"
+        }));
+    }
+
+    function maybeAddSetupWalletButton() {
+        if (userIsLoggedIn && walletNeedsSetup) {
+            var resultsElement = document.getElementById('results');
+            var setupWalletElement = document.createElement('div');
+            setupWalletElement.classList.add("row");
+            setupWalletElement.id = "setupWalletDiv";
+            setupWalletElement.style = "height:60px;margin:20px 10px 10px 10px;padding:12px 5px;" +
+                "background-color:#D6F4D8;border-color:#aee9b2;border-width:2px;border-style:solid;border-radius:5px;";
+
+            var span = document.createElement('span');
+            span.style = "margin:10px 5px;color:#1b6420;font-size:15px;";
+            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Setup your Wallet</a> to get money and shop in Marketplace.";
+
+            var xButton = document.createElement('a');
+            xButton.id = "xButton";
+            xButton.setAttribute('href', "#");
+            xButton.style = "width:50px;height:100%;margin:0;color:#ccc;font-size:20px;";
+            xButton.innerHTML = "X";
+            xButton.onclick = function () {
+                setupWalletElement.remove();
+                dummyRow.remove();
+            };
+
+            setupWalletElement.appendChild(span);
+            setupWalletElement.appendChild(xButton);
+
+            resultsElement.insertBefore(setupWalletElement, resultsElement.firstChild);
+
+            // Dummy row for padding
+            var dummyRow = document.createElement('div');
+            dummyRow.classList.add("row");
+            dummyRow.style = "height:15px;";
+            resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
+        }
+    }
+
     function maybeAddLogInButton() {
         if (!userIsLoggedIn) {
             var resultsElement = document.getElementById('results');
@@ -149,7 +192,7 @@
             var dropDownElement = document.getElementById('user-dropdown');
             purchasesElement.id = "purchasesButton";
             purchasesElement.setAttribute('href', "#");
-            purchasesElement.innerHTML = "MY PURCHASES";
+            purchasesElement.innerHTML = "My Purchases";
             // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
             //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
             purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
@@ -164,12 +207,34 @@
         }
     }
 
+    function changeDropdownMenu() {
+        var logInOrOutButton = document.createElement('a');
+        logInOrOutButton.id = "logInOrOutButton";
+        logInOrOutButton.setAttribute('href', "#");
+        logInOrOutButton.innerHTML = userIsLoggedIn ? "Log Out" : "Log In";
+        logInOrOutButton.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "LOGIN"
+            }));
+        };
+
+        $($('.dropdown-menu').find('li')[0]).append(logInOrOutButton);
+
+        $('a[href="/marketplace?view=mine"]').each(function () {
+            $(this).attr('href', '#');
+            $(this).on('click', function () {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "MY_ITEMS"
+                }));
+            });
+        });
+    }
+
     function buyButtonClicked(id, name, author, price, href) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
             itemName: name,
-            itemAuthor: author,
             itemPrice: price ? parseInt(price, 10) : 0,
             itemHref: href
         }));
@@ -235,9 +300,13 @@
     }
 
     function injectHiFiCode() {
-        if (confirmAllPurchases) {
+        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
+
+            $('body').addClass("code-injected");
 
             maybeAddLogInButton();
+            maybeAddSetupWalletButton();
+            changeDropdownMenu();
 
             var target = document.getElementById('templated-items');
             // MutationObserver is necessary because the DOM is populated after the page is loaded.
@@ -260,9 +329,13 @@
     }
 
     function injectHiFiItemPageCode() {
-        if (confirmAllPurchases) {
+        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
+
+            $('body').addClass("code-injected");
 
             maybeAddLogInButton();
+            maybeAddSetupWalletButton();
+            changeDropdownMenu();
 
             var purchaseButton = $('#side-info').find('.btn').first();
 
@@ -551,7 +624,8 @@
                 if (parsedJsonMessage.type === "marketplaces") {
                     if (parsedJsonMessage.action === "commerceSetting") {
                         confirmAllPurchases = !!parsedJsonMessage.data.commerceMode;
-                        userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn
+                        userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
+                        walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
                         injectCode();
                     }
                 }
@@ -567,4 +641,5 @@
 
     // Load / unload.
     window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
+    window.addEventListener("page:change", onLoad);  // Triggered after Marketplace HTML is changed
 }());
