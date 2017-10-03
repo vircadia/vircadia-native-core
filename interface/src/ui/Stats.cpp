@@ -117,11 +117,6 @@ void Stats::updateStats(bool force) {
         }
     }
 
-    bool performanceTimerShouldBeActive = Menu::getInstance()->isOptionChecked(MenuOption::Stats) && _expanded;
-    if (performanceTimerShouldBeActive != PerformanceTimer::isActive()) {
-        PerformanceTimer::setActive(performanceTimerShouldBeActive);
-    }
-
     auto nodeList = DependencyManager::get<NodeList>();
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
@@ -404,7 +399,14 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
     }
 
-    bool performanceTimerIsActive = PerformanceTimer::isActive();
+
+    bool performanceTimerShouldBeActive = Menu::getInstance()->isOptionChecked(MenuOption::Stats) && _expanded;
+    if (performanceTimerShouldBeActive != PerformanceTimer::isActive()) {
+        PerformanceTimer::setActive(performanceTimerShouldBeActive);
+    }
+    if (performanceTimerShouldBeActive) {
+        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
+    }
 
     if (performanceTimerShouldBeActive &&
         Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
@@ -412,7 +414,6 @@ void Stats::updateStats(bool force) {
             _showTimingDetails = true;
             emit timingExpandedChanged();
         }
-        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
 
         // we will also include room for 1 line per timing record and a header of 4 lines
         // Timing details...
@@ -457,7 +458,7 @@ void Stats::updateStats(bool force) {
         emit timingExpandedChanged();
     }
 
-    if (_expanded && performanceTimerIsActive) {
+    if (_expanded && performanceTimerShouldBeActive) {
         if (!_showGameUpdateStats) {
             _showGameUpdateStats = true;
         }
