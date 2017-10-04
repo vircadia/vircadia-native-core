@@ -107,14 +107,14 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
-
     // Contains a QString property, must be synchronized
     withWriteLock([&] {
         _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
     });
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
 	
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
     _hazePropertiesChanged = _hazeProperties.setProperties(properties);
@@ -185,14 +185,16 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
         requestedProperties += _keyLightProperties.getEntityProperties(params);
     });
 
+    requestedProperties += _stageProperties.getEntityProperties(params);
+
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_BACKGROUND_MODE;
-    requestedProperties += _stageProperties.getEntityProperties(params);
 
     withReadLock([&] {
         requestedProperties += _skyboxProperties.getEntityProperties(params);
     });
+
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
