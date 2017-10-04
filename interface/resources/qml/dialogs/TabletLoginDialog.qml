@@ -28,6 +28,7 @@ TabletModalWindow {
     color: hifi.colors.baseGray
     title: qsTr("Sign in to High Fidelity")
     property alias titleWidth: root.titleWidth
+    property alias punctuationMode: root.punctuationMode
 
     //fake root for shared components expecting root here
     property var root: QtObject {
