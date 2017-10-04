@@ -19,6 +19,7 @@ import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
+import "../inspectionCertificate" as HifiInspectionCertificate
 
 // references XXX from root context
 
@@ -31,54 +32,46 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool canRezCertifiedItems: false;
+    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
     property bool pendingInventoryReply: true;
+    property bool isShowingMyItems: false;
+    property bool isDebuggingFirstUseTutorial: false;
     // Style
     color: hifi.colors.white;
     Hifi.QmlCommerce {
         id: commerce;
 
+        onWalletStatusResult: {
+            if (walletStatus === 0) {
+                if (root.activeView !== "needsLogIn") {
+                    root.activeView = "needsLogIn";
+                }
+            } else if (walletStatus === 1) {
+                if (root.activeView !== "notSetUp") {
+                    root.activeView = "notSetUp";
+                    notSetUpTimer.start();
+                }
+            } else if (walletStatus === 2) {
+                if (root.activeView !== "passphraseModal") {
+                    root.activeView = "passphraseModal";
+                }
+            } else if (walletStatus === 3) {
+                if ((Settings.getValue("isFirstUseOfPurchases", true) || root.isDebuggingFirstUseTutorial) && root.activeView !== "firstUseTutorial") {
+                    root.activeView = "firstUseTutorial";
+                } else if (!Settings.getValue("isFirstUseOfPurchases", true) && root.activeView === "initialize") {
+                    root.activeView = "purchasesMain";
+                    commerce.inventory();
+                }
+            } else {
+                console.log("ERROR in Purchases.qml: Unknown wallet status: " + walletStatus);
+            }
+        }
+
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
-            } else if (isLoggedIn) {
-                root.activeView = "initialize";
-                commerce.account();
-            }
-        }
-
-        onAccountResult: {
-            if (result.status === "success") {
-                commerce.getKeyFilePathIfExists();
             } else {
-                // unsure how to handle a failure here. We definitely cannot proceed.
-            }
-        }
-
-        onKeyFilePathIfExistsResult: {
-            if (path === "" && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-                notSetUpTimer.start();
-            } else if (path !== "" && root.activeView === "initialize") {
-                commerce.getSecurityImage();
-            }
-        }
-
-        onSecurityImageResult: {
-            securityImageResultReceived = true;
-            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
-                root.activeView = "notSetUp";
-                notSetUpTimer.start();
-            } else if (exists && root.activeView === "initialize") {
-                commerce.getWalletAuthenticatedStatus();
-            }
-        }
-
-        onWalletAuthenticatedStatusResult: {
-            if (!isAuthenticated && root.activeView !== "passphraseModal") {
-                root.activeView = "passphraseModal";
-            } else if (isAuthenticated) {
-                sendToScript({method: 'purchases_getIsFirstUse'});
+                commerce.getWalletStatus();
             }
         }
 
@@ -118,6 +111,19 @@ Rectangle {
         interval: 200;
         onTriggered: {
             sendToScript({method: 'checkout_walletNotSetUp'});
+        }
+    }
+
+    HifiInspectionCertificate.InspectionCertificate {
+        id: inspectionCertificate;
+        z: 999;
+        visible: false;
+        anchors.fill: parent;
+
+        Connections {
+            onSendToScript: {
+                sendToScript(message);
+            }
         }
     }
 
@@ -165,6 +171,13 @@ Rectangle {
             }
         }
     }
+    MouseArea {
+        enabled: titleBarContainer.usernameDropdownVisible;
+        anchors.fill: parent;
+        onClicked: {
+            titleBarContainer.usernameDropdownVisible = false;
+        }
+    }
     //
     // TITLE BAR END
     //
@@ -182,7 +195,7 @@ Rectangle {
         Component.onCompleted: {
             securityImageResultReceived = false;
             purchasesReceived = false;
-            commerce.getLoginStatus();
+            commerce.getWalletStatus();
         }
     }
 
@@ -218,7 +231,7 @@ Rectangle {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
                     root.activeView = "initialize";
-                    sendToScript({method: 'purchases_getIsFirstUse'});
+                    commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }
@@ -228,19 +241,16 @@ Rectangle {
 
     FirstUseTutorial {
         id: firstUseTutorial;
+        z: 999;
         visible: root.activeView === "firstUseTutorial";
-        anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: -titleBarContainer.additionalDropdownHeight;
-        anchors.bottom: parent.bottom;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
+        anchors.fill: parent;
 
         Connections {
             onSendSignalToParent: {
                 switch (message.method) {
                     case 'tutorial_skipClicked':
                     case 'tutorial_finished':
-                        sendToScript({method: 'purchases_setIsFirstUse'});
+                        Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "purchasesMain";
                         commerce.inventory();
                     break;
@@ -278,7 +288,7 @@ Rectangle {
             anchors.topMargin: 4;
 
             RalewayRegular {
-                id: myPurchasesText;
+                id: myText;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
                 anchors.bottom: parent.bottom;
@@ -286,7 +296,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 4;
                 width: paintedWidth;
-                text: "My Purchases";
+                text: isShowingMyItems ? "My Items" : "My Purchases";
                 color: hifi.colors.baseGray;
                 size: 28;
             }
@@ -296,7 +306,7 @@ Rectangle {
                 colorScheme: hifi.colorSchemes.faintGray;
                 hasClearButton: true;
                 hasRoundedBorder: true;
-                anchors.left: myPurchasesText.right;
+                anchors.left: myText.right;
                 anchors.leftMargin: 16;
                 anchors.top: parent.top;
                 anchors.bottom: parent.bottom;
@@ -331,7 +341,7 @@ Rectangle {
         ListModel {
             id: previousPurchasesModel;
         }
-        ListModel {
+        HifiCommerceCommon.SortableListModel {
             id: filteredPurchasesModel;
         }
 
@@ -400,7 +410,7 @@ Rectangle {
 
         ListView {
             id: purchasesContentsList;
-            visible: purchasesModel.count !== 0;
+            visible: (root.isShowingMyItems && filteredPurchasesModel.count !== 0) || (!root.isShowingMyItems && filteredPurchasesModel.count !== 0);
             clip: true;
             model: filteredPurchasesModel;
             // Anchors
@@ -417,6 +427,8 @@ Rectangle {
                 itemHref: root_file_url;
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
+                itemEdition: model.edition_number;
+                displayedItemCount: model.displayedItemCount;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
@@ -425,6 +437,8 @@ Rectangle {
                         if (msg.method === 'purchases_itemInfoClicked') {
                             sendToScript({method: 'purchases_itemInfoClicked', itemId: itemId});
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
+                            inspectionCertificate.visible = true;
+                            inspectionCertificate.isLightbox = true;
                             sendToScript(msg);
                         } else if (msg.method === "showInvalidatedLightbox") {
                             lightboxPopup.titleText = "Item Invalidated";
@@ -449,8 +463,54 @@ Rectangle {
         }
 
         Item {
+            id: noItemsAlertContainer;
+            visible: !purchasesContentsList.visible && root.purchasesReceived && root.isShowingMyItems && filterBar.text === "";
+            anchors.top: filterBarContainer.bottom;
+            anchors.topMargin: 12;
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            width: parent.width;
+
+            // Explanitory text
+            RalewayRegular {
+                id: noItemsYet;
+                text: "<b>You haven't submitted anything to the Marketplace yet!</b><br><br>Submit an item to the Marketplace to add it to My Items.";
+                // Text size
+                size: 22;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 150;
+                anchors.left: parent.left;
+                anchors.leftMargin: 24;
+                anchors.right: parent.right;
+                anchors.rightMargin: 24;
+                height: paintedHeight;
+                // Style
+                color: hifi.colors.baseGray;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+            }
+
+            // "Go To Marketplace" button
+            HifiControlsUit.Button {
+                color: hifi.buttons.blue;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.top: noItemsYet.bottom;
+                anchors.topMargin: 20;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                width: parent.width * 2 / 3;
+                height: 50;
+                text: "Visit Marketplace";
+                onClicked: {
+                    sendToScript({method: 'purchases_goToMarketplaceClicked'});
+                }
+            }
+        }
+
+        Item {
             id: noPurchasesAlertContainer;
-            visible: !purchasesContentsList.visible && root.purchasesReceived;
+            visible: !purchasesContentsList.visible && root.purchasesReceived && !root.isShowingMyItems && filterBar.text === "";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -478,7 +538,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter;
             }
 
-            // "Set Up" button
+            // "Go To Marketplace" button
             HifiControlsUit.Button {
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.dark;
@@ -530,17 +590,43 @@ Rectangle {
     // FUNCTION DEFINITIONS START
     //
 
+    function populateDisplayedItemCounts() {
+        var itemCountDictionary = {};
+        var currentItemId;
+        for (var i = 0; i < filteredPurchasesModel.count; i++) {
+            currentItemId = filteredPurchasesModel.get(i).id;
+            if (itemCountDictionary[currentItemId] === undefined) {
+                itemCountDictionary[currentItemId] = 1;
+            } else {
+                itemCountDictionary[currentItemId]++;
+            }
+        }
+
+        for (var i = 0; i < filteredPurchasesModel.count; i++) {
+            filteredPurchasesModel.setProperty(i, "displayedItemCount", itemCountDictionary[filteredPurchasesModel.get(i).id]);
+        }
+    }
+
+    function sortByDate() {
+        filteredPurchasesModel.sortColumnName = "purchase_date";
+        filteredPurchasesModel.isSortingDescending = false;
+        filteredPurchasesModel.quickSort();
+    }
+
     function buildFilteredPurchasesModel() {
         filteredPurchasesModel.clear();
         for (var i = 0; i < purchasesModel.count; i++) {
             if (purchasesModel.get(i).title.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                if (purchasesModel.get(i).status !== "confirmed") {
+                if (purchasesModel.get(i).status !== "confirmed" && !root.isShowingMyItems) {
                     filteredPurchasesModel.insert(0, purchasesModel.get(i));
-                } else {
+                } else if ((root.isShowingMyItems && purchasesModel.get(i).edition_number === -1) || !root.isShowingMyItems) {
                     filteredPurchasesModel.append(purchasesModel.get(i));
                 }
             }
         }
+
+        populateDisplayedItemCounts();
+        sortByDate();
     }
 
     function checkIfAnyItemStatusChanged() {
@@ -581,16 +667,14 @@ Rectangle {
             case 'updatePurchases':
                 referrerURL = message.referrerURL;
                 titleBarContainer.referrerURL = message.referrerURL;
-                root.canRezCertifiedItems = message.canRezCertifiedItems;
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
-            case 'purchases_getIsFirstUseResult':
-                if (message.isFirstUseOfPurchases && root.activeView !== "firstUseTutorial") {
-                    root.activeView = "firstUseTutorial";
-                } else if (!message.isFirstUseOfPurchases && root.activeView === "initialize") {
-                    root.activeView = "purchasesMain";
-                    commerce.inventory();
-                }
+            case 'inspectionCertificate_setMarketplaceId':
+            case 'inspectionCertificate_setItemInfo':
+                inspectionCertificate.fromScript(message);
+            break;
+            case 'purchases_showMyItems':
+                root.isShowingMyItems = true;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

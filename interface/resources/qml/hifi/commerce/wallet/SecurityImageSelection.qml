@@ -65,6 +65,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter;
                     fillMode: Image.PreserveAspectFit;
                     mipmap: true;
+                    cache: false;
                 }
             }
             MouseArea {

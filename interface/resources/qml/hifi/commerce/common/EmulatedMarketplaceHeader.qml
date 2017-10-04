@@ -27,23 +27,28 @@ Item {
     id: root;
     property string referrerURL: "https://metaverse.highfidelity.com/marketplace?";
     readonly property int additionalDropdownHeight: usernameDropdown.height - myUsernameButton.anchors.bottomMargin;
+    property alias usernameDropdownVisible: usernameDropdown.visible;
 
     height: mainContainer.height + additionalDropdownHeight;
 
     Hifi.QmlCommerce {
         id: commerce;
 
-        onLoginStatusResult: {
-            if (!isLoggedIn) {
+        onWalletStatusResult: {
+            if (walletStatus === 0) {
                 sendToParent({method: "needsLogIn"});
+            } else if (walletStatus === 3) {
+                commerce.getSecurityImage();
+            } else {
+                console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
             }
         }
 
-        onAccountResult: {
-            if (result.status === "success") {
-                commerce.getKeyFilePathIfExists();
+        onLoginStatusResult: {
+            if (!isLoggedIn) {
+                sendToParent({method: "needsLogIn"});
             } else {
-                // unsure how to handle a failure here. We definitely cannot proceed.
+                commerce.getWalletStatus();
             }
         }
 
@@ -56,8 +61,7 @@ Item {
     }
 
     Component.onCompleted: {
-        commerce.getLoginStatus();
-        commerce.getSecurityImage();
+        commerce.getWalletStatus();
     }
 
     Connections {
@@ -210,6 +214,7 @@ Item {
             anchors.bottomMargin: 16;
             width: height;
             mipmap: true;
+            cache: false;
 
             MouseArea {
                 enabled: securityImage.visible;

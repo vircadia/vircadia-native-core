@@ -90,7 +90,7 @@ Item {
                         } else {
                             // Error submitting new passphrase
                             resetSubmitButton();
-                            passphraseSelection.setErrorText("Backend error");
+                            passphraseSelection.setErrorText("Current passphrase incorrect - try again");
                         }
                     } else {
                         sendSignalToWallet(msg);
@@ -137,9 +137,10 @@ Item {
                 width: 150;
                 text: "Submit";
                 onClicked: {
-                    if (passphraseSelection.validateAndSubmitPassphrase()) {
-                        passphraseSubmitButton.text = "Submitting...";
-                        passphraseSubmitButton.enabled = false;
+                    passphraseSubmitButton.text = "Submitting...";
+                    passphraseSubmitButton.enabled = false;
+                    if (!passphraseSelection.validateAndSubmitPassphrase()) {
+                        resetSubmitButton();
                     }
                 }
             }
