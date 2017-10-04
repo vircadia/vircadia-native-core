@@ -164,7 +164,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint8_t, setHazeMode);
+    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
 
     int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
         propertyFlags, overwriteLocalData, _hazePropertiesChanged);
@@ -320,12 +320,12 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
     });
 }
 
-void ZoneEntityItem::setHazeMode(const uint8_t value) {
+void ZoneEntityItem::setHazeMode(const uint32_t value) {
     _hazeMode = value;
     _hazePropertiesChanged = true;
 }
 
-uint8_t ZoneEntityItem::getHazeMode() const {
+uint32_t ZoneEntityItem::getHazeMode() const {
     return _hazeMode;
 }
 

@@ -179,7 +179,7 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
 
-    DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint8_t, (uint8_t)HAZE_MODE_INHERIT);
+    DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t, (uint32_t)HAZE_MODE_INHERIT);
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
@@ -244,7 +244,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
     static QString getBackgroundModeString(BackgroundMode mode);
-    static QString getHazeModeString(uint8_t mode);
+    static QString getHazeModeString(uint32_t mode);
 
 
 public:

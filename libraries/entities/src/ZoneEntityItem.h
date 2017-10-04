@@ -70,8 +70,8 @@ public:
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
-    void setHazeMode(const uint8_t value);
-    uint8_t getHazeMode() const;
+    void setHazeMode(const uint32_t value);
+    uint32_t getHazeMode() const;
 
     void setHazeRange(const float hazeRange);
     float getHazeRange()const;

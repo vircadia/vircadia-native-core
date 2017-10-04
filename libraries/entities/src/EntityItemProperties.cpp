@@ -231,7 +231,7 @@ QString EntityItemProperties::getHazeModeAsString() const {
     return HAZE_MODES[_hazeMode].second;
 }
 
-QString EntityItemProperties::getHazeModeString(uint8_t mode) {
+QString EntityItemProperties::getHazeModeString(uint32_t mode) {
     return HAZE_MODES[mode].second;
 }
 
@@ -1153,7 +1153,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
 
-        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint8_t);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, Haze, haze, HazeRange, hazeRange);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeBlendInColor, hazeBlendInColor);
@@ -1727,7 +1727,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FILTER_URL, QString, setFilterURL);
  
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint8_t, setHazeMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
    }
 
