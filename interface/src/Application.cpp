@@ -5639,10 +5639,10 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         return false;
     }
 
+    AABox avatarBox(getMyAvatar()->getPosition() - glm::vec3(0.5f * PHYSICS_READY_RANGE), glm::vec3(PHYSICS_READY_RANGE));
     QVector<EntityItemPointer> entities;
     entityTree->withReadLock([&] {
-        AABox box(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
-        entityTree->findEntities(box, entities);
+        entityTree->findEntities(avatarBox, entities);
     });
 
     // For reasons I haven't found, we don't necessarily have the full scene when we receive a stats packet.  Apply
@@ -5662,11 +5662,18 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         bool result = true;
         foreach (EntityItemPointer entity, entities) {
             if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
-                static QString repeatedMessage =
-                    LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
-                qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
-                // don't break here because we want all the relevant entities to start their downloads
-                result = false;
+                // BUG: the findEntities() query above is sometimes returning objects that don't actually overlap
+                // TODO: investigate and fix findQueries() but in the meantime...
+                // WORKAROUND: test the overlap of each entity to verify it matters
+                bool success = false;
+                AACube entityCube = entity->getQueryAACube(success);
+                if (success && avatarBox.touches(entityCube)) {
+                    static QString repeatedMessage =
+                        LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
+                    qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
+                    // don't break here because we want all the relevant entities to start their downloads
+                    result = false;
+                }
             }
         }
         return result;
