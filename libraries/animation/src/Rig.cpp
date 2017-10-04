@@ -1620,13 +1620,14 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 }
 
 void Rig::initAnimGraph(const QUrl& url) {
-    if (_animGraphURL != url || !_animNode) {
+    if (_animGraphURL != url || (!_animNode && !_animLoading)) {
         _animGraphURL = url;
 
         _animNode.reset();
 
         // load the anim graph
         _animLoader.reset(new AnimNodeLoader(url));
+        _animLoading = true;
         connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
             _animNode = nodeIn;
             _animNode->setSkeleton(_animSkeleton);
@@ -1637,6 +1638,7 @@ void Rig::initAnimGraph(const QUrl& url) {
                 _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
                 overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
             }
+            _animLoading = false;
 
             emit onLoadComplete();
         });
