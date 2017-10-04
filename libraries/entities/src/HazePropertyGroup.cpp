@@ -44,18 +44,18 @@ void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
 }
 
 void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeRange, float, setHazeRange, getHazeRange);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeRange, float, setHazeRange);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBlendInColor, xColor, setHazeBlendInColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBlendOutColor, xColor, setHazeBlendOutColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeLightBlendAngle, float, setHazeLightBlendAngle, getHazeLightBlendAngle);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeLightBlendAngle, float, setHazeLightBlendAngle);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeAltitude, float, setHazeAltitude, getHazeAltitude);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeBaseRef, float, setHazeBaseRef, getHazeBaseRef);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeAltitude, float, setHazeAltitude);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBaseRef, float, setHazeBaseRef);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeBackgroundBlend, float, setHazeBackgroundBlend, getHazeBackgroundBlend);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBackgroundBlend, float, setHazeBackgroundBlend);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeKeyLightRange, float, setHazeKeyLightRange, getHazeKeyLightRange);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeKeyLightAltitude, float, setHazeKeyLightAltitude, getHazeKeyLightAltitude);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeKeyLightRange, float, setHazeKeyLightRange);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeKeyLightAltitude, float, setHazeKeyLightAltitude);
 }
 
 void HazePropertyGroup::merge(const HazePropertyGroup& other) {
@@ -92,34 +92,34 @@ void HazePropertyGroup::debugDump() const {
 
 void HazePropertyGroup::listChangedProperties(QList<QString>& out) {
     if (hazeRangeChanged()) {
-        out << "haze-range";
+        out << "haze-hazeRange";
     }
     if (hazeBlendInColorChanged()) {
-        out << "haze-blendInColor";
+        out << "haze-hazeBlendInColor";
     }
     if (hazeBlendOutColorChanged()) {
-        out << "haze-blendOutColor";
+        out << "haze-hazeBlendOutColor";
     }
     if (hazeLightBlendAngleChanged()) {
-        out << "haze-lightBlendAngle";
+        out << "haze-hazeLightBlendAngle";
     }
 
     if (hazeAltitudeChanged()) {
-        out << "haze-altitude";
+        out << "haze-hazeAltitude";
     }
     if (hazeBaseRefChanged()) {
-        out << "haze-baseRef";
+        out << "haze-hazeBaseRef";
     }
 
     if (hazeBackgroundBlendChanged()) {
-        out << "haze-backgroundBlend";
+        out << "haze-hazeBackgroundBlend";
     }
 
     if (hazeKeyLightRangeChanged()) {
-        out << "haze-keyLightRange";
+        out << "haze-hazeKeyLightRange";
     }
     if (hazeKeyLightAltitudeChanged()) {
-        out << "haze-keyLightAltitude";
+        out << "haze-hazeKeyLightAltitude";
     }
 }
 

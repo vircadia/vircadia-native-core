@@ -120,19 +120,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeRange, setHazeRange);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBlendInColor, setHazeBlendInColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBlendInColor, setHazeBlendInColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeLightBlendAngle, setHazeLightBlendAngle);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeAltitude, setHazeAltitude);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBaseRef, setHazeBaseRef);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeBackgroundBlend, setHazeBackgroundBlend);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeKeyLightRange, setHazeKeyLightRange);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeKeyLightAltitude, setHazeKeyLightAltitude);
+    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
@@ -181,11 +169,9 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint8_t, setHazeMode);
 
-    int bytesFromHaze;
-    withWriteLock([&] {
-        bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-            propertyFlags, overwriteLocalData, _hazePropertiesChanged);
-    });
+    int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+        propertyFlags, overwriteLocalData, _hazePropertiesChanged);
+
     somethingChanged = somethingChanged || _hazePropertiesChanged;
     bytesRead += bytesFromHaze;
     dataAt += bytesFromHaze;
@@ -215,9 +201,7 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_FILTER_URL;
 
     requestedProperties += PROP_HAZE_MODE;
-    withReadLock([&] {
-        requestedProperties += _hazeProperties.getEntityProperties(params);
-    });
+    requestedProperties += _hazeProperties.getEntityProperties(params);
 
     return requestedProperties;
 }
