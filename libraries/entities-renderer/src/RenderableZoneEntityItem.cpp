@@ -142,9 +142,6 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             if (BackgroundStage::isIndexInvalid(_backgroundIndex)) {
                 _backgroundIndex = _backgroundStage->addBackground(_background);
             }
-            else {
-
-            }
             _needBackgroundUpdate = false;
         }
     }
@@ -153,9 +150,6 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         if (_needHazeUpdate) {
             if (HazeStage::isIndexInvalid(_hazeIndex)) {
                 _hazeIndex = _hazeStage->addHaze(_haze);
-            }
-            else {
-
             }
             _needHazeUpdate = false;
         }
@@ -173,12 +167,12 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
         // The background only if the mode is not inherit
         if (_backgroundMode != BACKGROUND_MODE_INHERIT) {
-            _backgroundStage->_currentBackgroundFrame.pushBackground(_backgroundIndex);
+            _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
         }
 
         // The haze only if the mode is not inherit
         if (_hazeMode != HAZE_MODE_INHERIT) {
-            _hazeStage->_currentHazeFrame.pushHaze(_hazeIndex);
+            _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
     }
 }

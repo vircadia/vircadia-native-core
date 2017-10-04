@@ -90,8 +90,8 @@ void FetchHazeStage::run(const render::RenderContextPointer& renderContext, mode
     assert(hazeStage);
 
     haze = nullptr;
-    if (hazeStage->_currentHazeFrame._hazes.size() != 0) {
-        auto hazeId = hazeStage->_currentHazeFrame._hazes.front();
+    if (hazeStage->_currentFrame._hazes.size() != 0) {
+        auto hazeId = hazeStage->_currentFrame._hazes.front();
         haze = hazeStage->getHaze(hazeId);
     }
 }

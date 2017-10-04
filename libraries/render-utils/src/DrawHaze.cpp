@@ -177,8 +177,8 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         batch.setPipeline(_hazePipeline);
 
         auto hazeStage = args->_scene->getStage<HazeStage>();
-        if (hazeStage && hazeStage->_currentHazeFrame._hazes.size() > 0) {
-            model::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentHazeFrame._hazes.front());
+        if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
+            model::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             batch.setUniformBuffer(HazeEffect_ParamsSlot, hazePointer->getHazeParametersBuffer());
         }
 

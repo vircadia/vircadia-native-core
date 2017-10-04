@@ -54,7 +54,12 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& oupu
 void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
     auto backgroundStage = context->_scene->getStage<BackgroundStage>();
     assert(backgroundStage);
-    backgroundStage->_currentBackgroundFrame.clear();
+    backgroundStage->_currentFrame.clear();
+
+    // Haze
+    auto hazeStage = context->_scene->getStage<HazeStage>();
+    assert(hazeStage);
+    hazeStage->_currentFrame.clear();
 
     // call render in the correct order first...
     render::renderItems(context, inputs);
@@ -66,12 +71,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     lightStage->_currentFrame.pushSunLight(0);
     lightStage->_currentFrame.pushAmbientLight(0);
 
-    backgroundStage->_currentBackgroundFrame.pushBackground(0);
-
-    // Haze
-    auto hazeStage = context->_scene->getStage<HazeStage>();
-    assert(hazeStage);
-    hazeStage->_currentHazeFrame.clear();
+    backgroundStage->_currentFrame.pushBackground(0);
 }
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
@@ -160,8 +160,8 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
 
     auto backgroundStage = context->_scene->getStage<BackgroundStage>(BackgroundStage::getName());
     std::vector<model::SkyboxPointer> skyboxStack;
-    if (backgroundStage && backgroundStage->_currentBackgroundFrame._backgrounds.size()) {
-        for (auto index : backgroundStage->_currentBackgroundFrame._backgrounds) {
+    if (backgroundStage && backgroundStage->_currentFrame._backgrounds.size()) {
+        for (auto index : backgroundStage->_currentFrame._backgrounds) {
             auto background = backgroundStage->getBackground(index);
             if (background) {
                 skyboxStack.push_back(background->getSkybox());
