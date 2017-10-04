@@ -59,18 +59,21 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundMode, getBackgroundMode);
-    
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
 
     // Contains a QString property, must be synchronized
     withReadLock([&] {
         _skyboxProperties.getProperties(properties);
-        _hazeProperties.getProperties(properties);
     });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
+    // Contains a QString property, must be synchronized
+    withReadLock([&] {
+        _hazeProperties.getProperties(properties);
+    });
 
     return properties;
 }
@@ -107,6 +110,15 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
 
+    // Contains a QString property, must be synchronized
+    withWriteLock([&] {
+        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
+    });
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeRange, setHazeRange);
@@ -121,15 +133,6 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeKeyLightRange, setHazeKeyLightRange);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeKeyLightAltitude, setHazeKeyLightAltitude);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
-
-    // Contains a QString property, must be synchronized
-    withWriteLock([&] {
-        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
-    });
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
