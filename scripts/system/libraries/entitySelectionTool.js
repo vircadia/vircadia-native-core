@@ -239,13 +239,13 @@ SelectionManager = (function() {
 // Normalize degrees to be in the range (-180, 180]
 function normalizeDegrees(degrees) {
     while (degrees > 180) {
-     degrees -= 360;
+        degrees -= 360;
     }
 
     while (degrees <= -180) {
-     degrees += 360;
+        degrees += 360;
     }
-    
+
     return degrees;
 }
 
