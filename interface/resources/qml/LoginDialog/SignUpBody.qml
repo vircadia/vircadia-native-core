@@ -44,8 +44,7 @@ Item {
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
-                                4 * hifi.dimensions.contentSpacing.y + form.height/* +
-                                hifi.dimensions.contentSpacing.y + buttons.height*/;
+                                4 * hifi.dimensions.contentSpacing.y + form.height;
 
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
@@ -168,8 +167,10 @@ Item {
 
                 onClicked: {
                     bodyLoader.setSource("LinkAccountBody.qml")
-                    bodyLoader.item.width = root.pane.width
-                    bodyLoader.item.height = root.pane.height
+                    if (!root.isTablet) {
+                        bodyLoader.item.width = root.pane.width
+                        bodyLoader.item.height = root.pane.height
+                    }
                 }
             }
         }
@@ -216,7 +217,13 @@ Item {
     Component.onCompleted: {
         root.title = qsTr("Create an Account")
         root.iconText = "<"
-        keyboardEnabled = HMD.active;
+        //dont rise local keyboard
+        keyboardEnabled = !root.isTablet && HMD.active;
+        //but rise Tablet's one instead for Tablet interface
+        if (root.isTablet) {
+            root.keyboardEnabled = HMD.active;
+            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
+        }
         d.resize();
 
         emailField.forceActiveFocus();
@@ -247,8 +254,10 @@ Item {
         onHandleLoginFailed: {
             // we failed to login, show the LoginDialog so the user will try again
             bodyLoader.setSource("LinkAccountBody.qml", { "failAfterSignUp": true })
-            bodyLoader.item.width = root.pane.width
-            bodyLoader.item.height = root.pane.height
+            if (!root.isTablet) {
+                bodyLoader.item.width = root.pane.width
+                bodyLoader.item.height = root.pane.height
+            }
         }
     }
 

@@ -121,8 +121,10 @@ Item {
             console.log("Login Failed")
 
             bodyLoader.source = "CompleteProfileBody.qml"
-            bodyLoader.item.width = root.pane.width
-            bodyLoader.item.height = root.pane.height
+            if (!root.isTablet) {
+                bodyLoader.item.width = root.pane.width
+                bodyLoader.item.height = root.pane.height
+            }
         }
     }
 }

@@ -79,7 +79,7 @@ Item {
             margins: 0
             topMargin: hifi.dimensions.contentSpacing.y
         }
-        width: 250
+        width: parent.width
 
         placeholderText: "Choose your own"
     }
@@ -102,7 +102,7 @@ Item {
             bottom: parent.bottom
             right: parent.right
             margins: 0
-            topMargin: hifi.dimensions.contentSpacing.y
+            bottomMargin: hifi.dimensions.contentSpacing.y
         }
         spacing: hifi.dimensions.contentSpacing.x
         onHeightChanged: d.resize(); onWidthChanged: d.resize();
@@ -129,7 +129,14 @@ Item {
     Component.onCompleted: {
         root.title = qsTr("Complete Your Profile")
         root.iconText = "<"
-        keyboardEnabled = HMD.active;
+        //dont rise local keyboard
+        keyboardEnabled = !root.isTablet && HMD.active;
+        //but rise Tablet's one instead for Tablet interface
+        if (root.isTablet) {
+            root.keyboardEnabled = HMD.active;
+            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
+        }
+
         d.resize();
     }
 

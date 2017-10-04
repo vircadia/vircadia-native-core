@@ -45,8 +45,7 @@ Item {
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
-                    4 * hifi.dimensions.contentSpacing.y + form.height/* +
-                                hifi.dimensions.contentSpacing.y + buttons.height*/;
+                    4 * hifi.dimensions.contentSpacing.y + form.height;
 
             if (additionalInformation.visible) {
                 targetWidth = Math.max(targetWidth, additionalInformation.width);
@@ -118,7 +117,7 @@ Item {
         TextField {
             id: usernameField
             width: parent.width
-
+            focus: true
             label: "Username or Email"
 
             ShortcutText {
@@ -225,8 +224,10 @@ Item {
 
                 onClicked: {
                     bodyLoader.setSource("SignUpBody.qml")
-                    bodyLoader.item.width = root.pane.width
-                    bodyLoader.item.height = root.pane.height
+                    if (!root.isTablet) {
+                        bodyLoader.item.width = root.pane.width
+                        bodyLoader.item.height = root.pane.height
+                    }
                 }
             }
         }
@@ -255,7 +256,7 @@ Item {
             root.keyboardEnabled = HMD.active;
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
         }
-        //d.resize();
+        d.resize();
 
         if (failAfterSignUp) {
             mainTextContainer.text = "Account created successfully."

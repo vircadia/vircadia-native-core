@@ -93,7 +93,6 @@ TabletModalWindow {
         }
     }
 
-
     TabletModalFrame {
         id: mfRoot
 
@@ -103,6 +102,7 @@ TabletModalWindow {
         anchors {
             horizontalCenter: parent.horizontalCenter
             verticalCenter: parent.verticalCenter
+            verticalCenterOffset: -loginKeyboard.height / 2
         }
 
         LoginDialog {
@@ -126,14 +126,13 @@ TabletModalWindow {
     }
 
     Keyboard {
+        id: loginKeyboard
         raised: root.keyboardEnabled && root.keyboardRaised
         numeric: root.punctuationMode
-        enabled: true
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
-            bottomMargin: root.keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
     }
 
