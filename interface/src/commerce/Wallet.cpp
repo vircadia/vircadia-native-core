@@ -293,13 +293,15 @@ Wallet::~Wallet() {
     }
 }
 
-void Wallet::setPassphrase(const QString& passphrase) {
+bool Wallet::setPassphrase(const QString& passphrase) {
     if (_passphrase) {
         delete _passphrase;
     }
     _passphrase = new QString(passphrase);
 
     _publicKeys.clear();
+
+    return true;
 }
 
 bool Wallet::writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath) {

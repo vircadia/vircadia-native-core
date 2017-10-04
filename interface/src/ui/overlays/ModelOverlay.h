@@ -78,6 +78,8 @@ private:
     bool _scaleToFit = { false };
     float _loadPriority { 0.0f };
 
+    bool _visibleDirty { false };
+    bool _drawInFrontDirty { false };
     AnimationPointer _animation;
 
     QUrl _animationURL;
@@ -95,10 +97,6 @@ private:
     QUrl _jointMappingURL;
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
-
-    bool _visibleDirty { false };
-    bool _drawInFrontDirty { false };
-
 };
 
 #endif // hifi_ModelOverlay_h
