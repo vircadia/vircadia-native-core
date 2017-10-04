@@ -35,6 +35,7 @@ TextField {
     font.pixelSize: hifi.fontSizes.textFieldInput
     font.italic: textField.text == ""
     height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
+    property alias textFieldLabel: textFieldLabel
 
     y: textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0
 
