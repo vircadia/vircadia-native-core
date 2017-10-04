@@ -108,13 +108,17 @@ Script.include("/~/system/libraries/controllers.js");
         "userData"
     ];
 
-
+    var MARGIN = 25;
     function FarActionGrabEntity(hand) {
         this.hand = hand;
         this.grabbedThingID = null;
         this.actionID = null; // action this script created...
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
+        this.reticleMinX = MARGIN;
+        this.reticleMaxX;
+        this.reticleMinY = MARGIN;
+        this.reticleMaxY;
 
         var ACTION_TTL = 15; // seconds
 
@@ -344,12 +348,28 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbedThingID = null;
         };
 
+         this.updateRecommendedArea = function() {
+            var dims = Controller.getViewportDimensions();
+            this.reticleMaxX = dims.x - MARGIN;
+            this.reticleMaxY = dims.y - MARGIN;
+        };
+
+        this.calculateNewReticlePosition = function(intersection) {
+            this.updateRecommendedArea();
+            var point2d = HMD.overlayFromWorldPoint(intersection);
+            point2d.x = Math.max(this.reticleMinX, Math.min(point2d.x, this.reticleMaxX));
+            point2d.y = Math.max(this.reticleMinY, Math.min(point2d.y, this.reticleMaxY));
+            return point2d;
+        };
+
         this.notPointingAtEntity = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
             var entityProperty = Entities.getEntityProperties(intersection.objectID);
             var entityType = entityProperty.type;
+            var hudRayPick = controllerData.hudRayPicks[this.hand];
+            var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
             if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web") ||
-                intersection.type === RayPick.INTERSECTED_OVERLAY) {
+                intersection.type === RayPick.INTERSECTED_OVERLAY || Window.isPointOnDesktopWindow(point2d)) {
                 return true;
             }
             return false;

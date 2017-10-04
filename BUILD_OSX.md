@@ -4,7 +4,6 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 [Homebrew](https://brew.sh/) is an excellent package manager for OS X. It makes install of some High Fidelity dependencies very simple.
 
-    brew tap homebrew/versions
     brew install cmake openssl
 
 ### OpenSSL
