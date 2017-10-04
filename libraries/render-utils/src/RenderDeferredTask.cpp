@@ -187,14 +187,19 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     }
 
     // Overlays
-    const auto overlayOpaquesInputs = DrawOverlay3D::Inputs(overlayOpaques, lightingModel).asVarying();
-    const auto overlayTransparentsInputs = DrawOverlay3D::Inputs(overlayTransparents, lightingModel).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
-    task.addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
+    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, Item::LAYER_3D_FRONT);
+    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, Item::LAYER_3D_FRONT);
+    const auto overlaysInFrontOpaque =  filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
+    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
 
-    { // Debug the bounds of the rendered Overlay items, still look at the zbuffer
-        task.addJob<DrawBounds>("DrawOverlayOpaqueBounds", overlayOpaques);
-        task.addJob<DrawBounds>("DrawOverlayTransparentBounds", overlayTransparents);
+    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel).asVarying();
+    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel).asVarying();
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
+    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
+
+    { // Debug the bounds of the rendered Overlay items that are marked drawInFront, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
+        task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
     }
 
      // Debugging stages
@@ -233,8 +238,21 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // AA job to be revisited
     task.addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
 
-    // Composite the HUD
+    // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");
+
+    const auto overlaysHUDOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(1);
+    const auto overlaysHUDTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(1);
+
+    const auto overlayHUDOpaquesInputs = DrawOverlay3D::Inputs(overlaysHUDOpaque, lightingModel).asVarying();
+    const auto overlayHUDTransparentsInputs = DrawOverlay3D::Inputs(overlaysHUDTransparent, lightingModel).asVarying();
+    task.addJob<DrawOverlay3D>("DrawOverlayHUDOpaque", overlayHUDOpaquesInputs, true);
+    task.addJob<DrawOverlay3D>("DrawOverlayHUDTransparent", overlayHUDTransparentsInputs, false);
+
+    { // Debug the bounds of the rendered Overlay items that are marked drawHUDLayer, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawOverlayHUDOpaqueBounds", overlaysHUDOpaque);
+        task.addJob<DrawBounds>("DrawOverlayHUDOpaqueBounds", overlaysHUDTransparent);
+    }
 
     task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
 

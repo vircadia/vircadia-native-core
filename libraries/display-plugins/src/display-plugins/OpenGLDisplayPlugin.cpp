@@ -569,11 +569,11 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin
         batch.setResourceTexture(0, hudTexture);
         if (isStereo()) {
             for_each_eye([&](Eye eye) {
-                batch.setViewportTransform(eyeViewport(eye));
+                batch.setViewportTransform(eyeViewport(eye, getRecommendedRenderSize()));
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             });
         } else {
-            batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     };
@@ -830,6 +830,15 @@ bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 
 ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
     uvec2 vpSize = _compositeFramebuffer->getSize();
+    vpSize.x /= 2;
+    uvec2 vpPos;
+    if (eye == Eye::Right) {
+        vpPos.x = vpSize.x;
+    }
+    return ivec4(vpPos, vpSize);
+}
+
+ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye, uvec2 vpSize) const {
     vpSize.x /= 2;
     uvec2 vpPos;
     if (eye == Eye::Right) {

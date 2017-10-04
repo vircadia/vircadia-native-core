@@ -84,6 +84,7 @@ public:
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
     void setLayeredInFront(bool layered, const render::ScenePointer& scene);
+    void setLayeredInHUD(bool layered, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }

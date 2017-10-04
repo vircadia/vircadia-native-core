@@ -356,8 +356,13 @@ public:
     // Get the bound of the item expressed in world space (or eye space depending on the key.isWorldSpace())
     const Bound getBound() const { return _payload->getBound(); }
 
-    // Get the layer where the item belongs. 0 by default meaning NOT LAYERED
+    // Get the layer where the item belongs.
     int getLayer() const { return _payload->getLayer(); }
+
+    static const int LAYER_2D = 0;
+    static const int LAYER_3D = 1;
+    static const int LAYER_3D_FRONT = 2;
+    static const int LAYER_3D_HUD = 3;
 
     // Render call for the item
     void render(RenderArgs* args) const { _payload->render(args); }

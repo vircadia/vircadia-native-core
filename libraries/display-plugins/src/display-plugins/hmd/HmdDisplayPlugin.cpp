@@ -430,23 +430,25 @@ void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
 std::function<void(gpu::Batch&, const gpu::TexturePointer&)> HmdDisplayPlugin::HUDRenderer::render(HmdDisplayPlugin& plugin) {
     updatePipeline();
     return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
-        batch.setPipeline(pipeline);
+        if (pipeline) {
 
-        batch.setInputFormat(format);
-        gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
-        gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
-        batch.setInputBuffer(gpu::Stream::POSITION, posView);
-        batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
-        batch.setIndexBuffer(gpu::UINT16, indices, 0);
+            batch.setPipeline(pipeline);
+            batch.setInputFormat(format);
+            gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
+            gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
+            batch.setInputBuffer(gpu::Stream::POSITION, posView);
+            batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
+            batch.setIndexBuffer(gpu::UINT16, indices, 0);
 
-        uniformsBuffer->setSubData(0, uniforms);
-        batch.setUniformBuffer(uniformsLocation, uniformsBuffer);
+            uniformsBuffer->setSubData(0, uniforms);
+            batch.setUniformBuffer(uniformsLocation, uniformsBuffer);
 
-        auto compositorHelper = DependencyManager::get<CompositorHelper>();
-        batch.setModelTransform(compositorHelper->getUiTransform());
-        batch.setResourceTexture(0, hudTexture);
+            auto compositorHelper = DependencyManager::get<CompositorHelper>();
+            batch.setModelTransform(compositorHelper->getUiTransform());
+            batch.setResourceTexture(0, hudTexture);
 
-        batch.drawIndexed(gpu::TRIANGLES, indexCount);
+            batch.drawIndexed(gpu::TRIANGLES, indexCount);
+        }
     };
 }
 
