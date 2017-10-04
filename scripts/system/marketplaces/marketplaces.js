@@ -19,7 +19,8 @@
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_CHECKOUT_QML_PATH_BASE = "qml/hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + MARKETPLACE_CHECKOUT_QML_PATH_BASE;
     var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
     var MARKETPLACE_WALLET_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
     var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
@@ -60,6 +61,7 @@
     var onCommerceScreen = false;
 
     var debugCheckout = false;
+    var debugError = false;
     function showMarketplace() {
         if (!debugCheckout) {
             UserActivityLogger.openedMarketplace();
@@ -70,8 +72,7 @@
                 method: 'updateCheckoutQML', params: {
                     itemId: '0d90d21c-ce7a-4990-ad18-e9d2cf991027',
                     itemName: 'Test Flaregun',
-                    itemAuthor: 'hifiDave',
-                    itemPrice: 17,
+                    itemPrice: (debugError ? 10 : 17),
                     itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
                 },
                 canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
@@ -106,8 +107,8 @@
     var referrerURL; // Used for updating Purchases QML
     var filterText; // Used for updating Purchases QML
     function onScreenChanged(type, url) {
-        onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
-        onCommerceScreen = type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+        onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
+        onCommerceScreen = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH_BASE) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
         wireEventBridge(onCommerceScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
@@ -128,12 +129,11 @@
         }
     }
 
-    function setCertificateInfo(currentEntityWithContextOverlay, itemMarketplaceId, closeGoesToPurchases) {
+    function setCertificateInfo(currentEntityWithContextOverlay, itemMarketplaceId) {
         wireEventBridge(true);
         tablet.sendToQml({
             method: 'inspectionCertificate_setMarketplaceId',
-            marketplaceId: itemMarketplaceId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['marketplaceID']).marketplaceID,
-            closeGoesToPurchases: closeGoesToPurchases
+            marketplaceId: itemMarketplaceId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['marketplaceID']).marketplaceID
         });
         // ZRF FIXME! Make a call to the endpoint to get item info instead of this silliness
         Script.setTimeout(function () {
@@ -203,7 +203,8 @@
                     action: "commerceSetting",
                     data: {
                         commerceMode: Settings.getValue("commerce", false),
-                        userIsLoggedIn: Account.loggedIn
+                        userIsLoggedIn: Account.loggedIn,
+                        walletNeedsSetup: Wallet.walletStatus === 1
                     }
                 }));
             } else if (parsedJsonMessage.type === "PURCHASES") {
@@ -212,6 +213,16 @@
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
+            } else if (parsedJsonMessage.type === "WALLET_SETUP") {
+                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+            } else if (parsedJsonMessage.type === "MY_ITEMS") {
+                referrerURL = MARKETPLACE_URL_INITIAL;
+                filterText = "";
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'purchases_showMyItems'
+                });
             }
         }
     }
@@ -325,36 +336,26 @@
             case 'maybeEnableHmdPreview':
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
-            case 'purchases_getIsFirstUse':
-                tablet.sendToQml({
-                    method: 'purchases_getIsFirstUseResult',
-                    isFirstUseOfPurchases: Settings.getValue("isFirstUseOfPurchases", true)
-                });
-                break;
-            case 'purchases_setIsFirstUse':
-                Settings.setValue("isFirstUseOfPurchases", false);
-                break;
             case 'purchases_openGoTo':
                 tablet.loadQMLSource("TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
-                tablet.loadQMLSource("../commerce/inspectionCertificate/InspectionCertificate.qml");
-                setCertificateInfo("", message.itemMarketplaceId, true);
+                setCertificateInfo("", message.itemMarketplaceId);
                 break;
             case 'inspectionCertificate_closeClicked':
-                if (message.closeGoesToPurchases) {
-                    referrerURL = MARKETPLACE_URL_INITIAL;
-                    filterText = "";
-                    tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
-                } else {
-                    tablet.gotoHomeScreen();
-                }
+                tablet.gotoHomeScreen();
                 break;
             case 'inspectionCertificate_showInMarketplaceClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'header_myItemsClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '?view=mine', MARKETPLACES_INJECT_SCRIPT_URL);
+                referrerURL = MARKETPLACE_URL_INITIAL;
+                filterText = "";
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'purchases_showMyItems'
+                });
                 break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));

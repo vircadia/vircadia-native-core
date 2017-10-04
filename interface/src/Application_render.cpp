@@ -33,11 +33,11 @@ void Application::paintGL() {
         return;
     }
 
-    _frameCount++;
+    _renderFrameCount++;
     _lastTimeRendered.start();
 
     auto lastPaintBegin = usecTimestampNow();
-    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
+    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_renderFrameCount);
     PerformanceTimer perfTimer("paintGL");
 
     if (nullptr == _displayPlugin) {
@@ -54,7 +54,7 @@ void Application::paintGL() {
         PROFILE_RANGE(render, "/pluginBeginFrameRender");
         // If a display plugin loses it's underlying support, it
         // needs to be able to signal us to not use it
-        if (!displayPlugin->beginFrameRender(_frameCount)) {
+        if (!displayPlugin->beginFrameRender(_renderFrameCount)) {
             updateDisplayMode();
             return;
         }
@@ -105,7 +105,7 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/updateCompositor");
-        getApplicationCompositor().setFrameInfo(_frameCount, eyeToWorld, sensorToWorld);
+        getApplicationCompositor().setFrameInfo(_renderFrameCount, eyeToWorld, sensorToWorld);
     }
 
     gpu::FramebufferPointer finalFramebuffer;
@@ -141,7 +141,7 @@ void Application::paintGL() {
     }
 
     auto frame = _gpuContext->endFrame();
-    frame->frameIndex = _frameCount;
+    frame->frameIndex = _renderFrameCount;
     frame->framebuffer = finalFramebuffer;
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
@@ -152,7 +152,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(render, "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
-        _frameCounter.increment();
+        _renderLoopCounter.increment();
         displayPlugin->submitFrame(frame);
     }
 
