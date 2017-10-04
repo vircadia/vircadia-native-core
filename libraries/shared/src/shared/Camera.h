@@ -53,7 +53,7 @@ public:
 
     void initialize(); // instantly put the camera at the ideal position and orientation.
 
-    void update( float deltaTime );
+    void update();
 
     CameraMode getMode() const { return _mode; }
     void setMode(CameraMode m);

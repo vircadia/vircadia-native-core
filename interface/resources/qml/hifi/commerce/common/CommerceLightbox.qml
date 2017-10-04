@@ -82,6 +82,7 @@ Rectangle {
             height: 140;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
+            cache: false;
         }
 
         RalewayRegular {

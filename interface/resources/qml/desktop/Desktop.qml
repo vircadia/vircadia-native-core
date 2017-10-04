@@ -298,6 +298,23 @@ FocusScope {
         pinned = !pinned
     }
 
+    function isPointOnWindow(point) {
+        for (var i = 0; i < desktop.visibleChildren.length; i++) {
+            var child = desktop.visibleChildren[i];
+            if (child.visible) {
+                if (child.hasOwnProperty("modality")) {
+                    var mappedPoint = child.mapFromGlobal(point.x, point.y);
+                    var outLine = child.frame.children[2];
+                    var framePoint = outLine.mapFromGlobal(point.x, point.y);
+                    if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     function setPinned(newPinned) {
         pinned = newPinned
     }

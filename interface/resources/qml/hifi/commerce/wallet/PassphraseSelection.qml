@@ -26,6 +26,7 @@ Item {
     id: root;
     property bool isChangingPassphrase: false;
     property bool isShowingTip: false;
+    property bool shouldImmediatelyFocus: true;
 
     // This object is always used in a popup.
     // This MouseArea is used to prevent a user from being
@@ -42,8 +43,8 @@ Item {
             passphrasePageSecurityImage.source = "image://security/securityImage";
         }
 
-        onWalletAuthenticatedStatusResult: {
-            sendMessageToLightbox({method: 'statusResult', status: isAuthenticated});
+        onChangePassphraseStatusResult: {
+            sendMessageToLightbox({method: 'statusResult', status: changeSuccess});
         }
     }
 
@@ -53,10 +54,8 @@ Item {
     // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
-            if (root.isChangingPassphrase) {
-                currentPassphraseField.focus = true;
-            } else {
-                passphraseField.focus = true;
+            if (root.shouldImmediatelyFocus) {
+                focusFirstTextField();
             }
             sendMessageToLightbox({method: 'disableHmdPreview'});
         } else {
@@ -311,7 +310,7 @@ Item {
             passphraseFieldAgain.error = false;
             currentPassphraseField.error = false;
             setErrorText("");
-            commerce.setPassphrase(passphraseField.text);
+            commerce.changePassphrase(currentPassphraseField.text, passphraseField.text);
             return true;
         }
     }
@@ -325,6 +324,14 @@ Item {
         passphraseField.text = "";
         passphraseFieldAgain.text = "";
         setErrorText("");
+    }
+
+    function focusFirstTextField() {
+        if (root.isChangingPassphrase) {
+            currentPassphraseField.focus = true;
+        } else {
+            passphraseField.focus = true;
+        }
     }
 
     signal sendMessageToLightbox(var msg);
