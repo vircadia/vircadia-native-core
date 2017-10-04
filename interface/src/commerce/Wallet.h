@@ -42,7 +42,7 @@ public:
     void setCKey(const QByteArray& ckey) { _ckey = ckey; }
     QByteArray getCKey() { return _ckey; }
 
-    void setPassphrase(const QString& passphrase);
+    bool setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
     bool walletIsAuthenticatedWithPassphrase();
