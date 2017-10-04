@@ -166,8 +166,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint8_t, setHazeMode);
-
     int bytesFromSkybox;
     withWriteLock([&] {
         bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
@@ -177,6 +175,12 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     bytesRead += bytesFromSkybox;
     dataAt += bytesFromSkybox;
 
+    READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
+    READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
+    READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
+
+    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint8_t, setHazeMode);
+
     int bytesFromHaze;
     withWriteLock([&] {
         bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
@@ -185,10 +189,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     somethingChanged = somethingChanged || _hazePropertiesChanged;
     bytesRead += bytesFromHaze;
     dataAt += bytesFromHaze;
-
-    READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
-    READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
-    READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
 
     return bytesRead;
 }
