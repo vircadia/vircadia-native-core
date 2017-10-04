@@ -656,16 +656,29 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     QString decryptedText;
-    quint64 encryptedTextSize;
-    quint64 publicKeySize;
+    int certIDByteArraySize;
+    int encryptedTextByteArraySize;
+    int ownerKeyByteArraySize;
 
-    if (verifyOwnerChallenge(packet->read(packet->readPrimitive(&encryptedTextSize)), packet->read(packet->readPrimitive(&publicKeySize)), decryptedText)) {
+    packet->readPrimitive(&certIDByteArraySize);
+    packet->readPrimitive(&encryptedTextByteArraySize);
+    packet->readPrimitive(&ownerKeyByteArraySize);
+
+    QByteArray certID = packet->read(certIDByteArraySize);
+
+    if (verifyOwnerChallenge(packet->read(encryptedTextByteArraySize), packet->read(ownerKeyByteArraySize), decryptedText)) {
         auto nodeList = DependencyManager::get<NodeList>();
-        // setup the packet
-        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + decryptedText.size(), true);
 
-        // write the decrypted text to the packet
-        decryptedTextPacket->write(decryptedText.toUtf8());
+        QByteArray decryptedTextByteArray = decryptedText.toUtf8();
+        int decryptedTextByteArraySize = decryptedTextByteArray.size();
+        int certIDSize = certID.size();
+        // setup the packet
+        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2*sizeof(int), true);
+
+        decryptedTextPacket->writePrimitive(certIDSize);
+        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+        decryptedTextPacket->write(certID);
+        decryptedTextPacket->write(decryptedTextByteArray);
 
         qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text";
 
@@ -677,6 +690,6 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
 bool Wallet::verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText) {
     // I have no idea how to do this yet, so here's some dummy code that may not even work.
-    decryptedText = QString("hello");
+    decryptedText = QString("fail");
     return true;
 }

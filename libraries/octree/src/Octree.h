@@ -214,6 +214,7 @@ public:
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& sourceNode) { return 0; }
+    virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) { return; }
 
     virtual bool recurseChildrenWithData() const { return true; }
     virtual bool rootElementHasData() const { return false; }

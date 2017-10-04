@@ -1097,6 +1097,30 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
     return false;
 }
 
+void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    int certIDByteArraySize;
+    int decryptedTextByteArraySize;
+
+    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&decryptedTextByteArraySize);
+
+    QString certID(message.read(certIDByteArraySize));
+    QString decryptedText(message.read(decryptedTextByteArraySize));
+
+    emit killChallengeOwnershipTimeoutTimer(certID);
+
+    if (decryptedText == "fail") {
+        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
+        EntityItemID id = _entityCertificateIDMap.value(certID);
+
+        qCDebug(entities) << "Ownership challenge failed, deleting entity" << id;
+        deleteEntity(id, true);
+        QWriteLocker recentlyDeletedLocker(&_recentlyDeletedEntitiesLock);
+        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), id);
+    } else {
+    }
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -1299,6 +1323,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                     << "static certificate verification.";
                                 // Delete the entity we just added if it doesn't pass static certificate verification
                                 deleteEntity(entityItemID, true);
+                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                             } else {
                                 QString certID = properties.getCertificateID();
                                 EntityItemID existingEntityItemID;
@@ -1314,6 +1340,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                     qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
                                         << existingEntityItemID << ". Deleting existing entity.";
                                     deleteEntity(existingEntityItemID, true);
+                                    QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                    _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), existingEntityItemID);
                                 }
 
                                 {
@@ -1323,6 +1351,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 }
 
                                 // Start owner verification.
+                                auto nodeList = DependencyManager::get<NodeList>();
                                 //     First, asynchronously hit "proof_of_purchase_status?transaction_type=transfer" endpoint.
                                 QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
                                 QNetworkRequest networkRequest;
@@ -1331,7 +1360,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 requestURL.setPath("/api/v1/commerce/proof_of_purchase_status?transaction_type=transfer");
                                 QJsonObject request;
                                 request["certificate_id"] = certID;
-                                request["domain_id"] = DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
+                                request["domain_id"] = nodeList->getDomainHandler().getUUID().toString();
                                 networkRequest.setUrl(requestURL);
 
                                 QNetworkReply* networkReply = NULL;
@@ -1340,33 +1369,68 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 connect(networkReply, &QNetworkReply::finished, [=]() {
                                     QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
                                     QJsonDocument doc(jsonObject);
-                                    qCDebug(entities) << "ZRF FIXME" << networkReply->error();
                                     qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
 
                                     if (networkReply->error() == QNetworkReply::NoError) {
-                                        //QJsonObject jsonObject = QJsonDocument::fromJson(reply.readAll()).object();
-                                        //qCDebug(entities) << "ZRF FIXME" << jsonObject;
-                                        //if (!jsonObject["invalid_reason"].toString().isEmpty()) {
-                                        //    qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
-                                        //    deleteEntity(entityItemID, true);
-                                        //} else if (jsonObject["transfer_status"].toString() == "failed") {
-                                        //    qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
-                                        //    deleteEntity(entityItemID, true);
-                                        //} else {
-                                        //    // Second, challenge ownership of the PoP cert
-                                        //    // 1. Encrypt a nonce with the owner's public key
-                                        //    QString ownerKey(jsonObject["owner_public_key"].toString());
-                                        //    QString encryptedText("");
+                                        if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+                                            qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
+                                            deleteEntity(entityItemID, true);
+                                            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                                        } else if (jsonObject["transfer_status"].toString() == "failed") {
+                                            qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
+                                            deleteEntity(entityItemID, true);
+                                            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                                        } else {
+                                            // Second, challenge ownership of the PoP cert
+                                            // 1. Encrypt a nonce with the owner's public key
+                                            QString ownerKey(jsonObject["owner_public_key"].toString());
+                                            QString encryptedText("test");
 
-                                        //    // 2. Send the encrypted text to the rezzing avatar's node
-                                        //    auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + sizeof(encryptedText));
-                                        //    challengeOwnershipPacket->write(senderNode->getUUID());
-                                        //    challengeOwnershipPacket->writePrimitive(encryptedText);
-                                        //    // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
-                                        //}
+                                            // 2. Send the encrypted text to the rezzing avatar's node
+                                            QByteArray certIDByteArray = certID.toUtf8();
+                                            int certIDByteArraySize = certIDByteArray.size();
+                                            QByteArray encryptedTextByteArray = encryptedText.toUtf8();
+                                            int encryptedTextByteArraySize = encryptedTextByteArray.size();
+                                            QByteArray ownerKeyByteArray = ownerKey.toUtf8();
+                                            int ownerKeyByteArraySize = ownerKeyByteArray.size();
+                                            auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
+                                                certIDByteArraySize + encryptedTextByteArraySize + ownerKeyByteArraySize + 3*sizeof(int),
+                                                true);
+                                            challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+                                            challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
+                                            challengeOwnershipPacket->writePrimitive(ownerKeyByteArraySize);
+                                            challengeOwnershipPacket->write(certIDByteArray);
+                                            challengeOwnershipPacket->write(encryptedTextByteArray);
+                                            challengeOwnershipPacket->write(ownerKeyByteArray);
+                                            nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
+
+                                            // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
+                                            QTimer* challengeOwnershipTimeoutTimer = new QTimer(this);
+                                            connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [&](const QString& certID) {
+                                                QReadLocker locker(&_entityCertificateIDMapLock);
+                                                EntityItemID id = _entityCertificateIDMap.value(certID);
+                                                if (entityItemID == id) {
+                                                    challengeOwnershipTimeoutTimer->stop();
+                                                    challengeOwnershipTimeoutTimer->deleteLater();
+                                                }
+                                            });
+                                            connect(challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
+                                                qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
+                                                deleteEntity(entityItemID, true);
+                                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                                            });
+                                            challengeOwnershipTimeoutTimer->setSingleShot(false);
+                                            challengeOwnershipTimeoutTimer->setInterval(10000);
+                                            challengeOwnershipTimeoutTimer->start();
+                                        }
                                     } else {
                                         qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
                                         deleteEntity(entityItemID, true);
+                                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                                     }
 
                                     networkReply->deleteLater();
