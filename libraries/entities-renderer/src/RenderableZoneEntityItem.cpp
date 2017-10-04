@@ -141,6 +141,8 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         if (_needBackgroundUpdate) {
             if (BackgroundStage::isIndexInvalid(_backgroundIndex)) {
                 _backgroundIndex = _backgroundStage->addBackground(_background);
+            } else {
+
             }
             _needBackgroundUpdate = false;
         }
@@ -170,7 +172,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
         }
 
-        // The haze only if the mode is not inherit
+        // Haze only if the mode is not inherit
         if (_hazeMode != HAZE_MODE_INHERIT) {
             _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }

@@ -177,6 +177,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
+    DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
 
     DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint8_t, (uint8_t)HAZE_MODE_INHERIT);
 
@@ -196,7 +197,6 @@ public:
 
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
-    DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);

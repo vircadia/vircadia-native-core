@@ -18,6 +18,7 @@
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
+#include <HazeMode.h>
 
 class ZoneEntityItem : public EntityItem {
 public:

@@ -552,19 +552,17 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Zones only
     if (_type == EntityTypes::Zone) {
         _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
+
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE_TYPE, shapeType);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BACKGROUND_MODE, backgroundMode, backgroundMode);
-
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FILTER_URL, filterURL);
 
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_MODE, hazeMode);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
@@ -1143,6 +1141,18 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LONGITUDE, Stage, stage, Longitude, longitude);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_ALTITUDE, Stage, stage, Altitude, altitude);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_DAY, Stage, stage, Day, day);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
+
+        ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
+        ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
+        ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
+
         ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint8_t);
 
         ADD_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, HazeRange, hazeRange, float);
@@ -1157,18 +1167,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 
         ADD_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float);
         ADD_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_SUN_MODEL_ENABLED, Stage, stage, SunModelEnabled, sunModelEnabled);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LATITUDE, Stage, stage, Latitude, latitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_LONGITUDE, Stage, stage, Longitude, longitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_ALTITUDE, Stage, stage, Altitude, altitude);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_DAY, Stage, stage, Day, day);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_HOUR, Stage, stage, Hour, hour);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_STAGE_AUTOMATIC_HOURDAY, Stage, stage, AutomaticHourDay, automaticHourDay);
-
-        ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
-        ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
-        ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
 
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
@@ -1723,8 +1721,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
-
-        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);

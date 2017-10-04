@@ -21,6 +21,8 @@
 #include <HazeStage.h>
 #include <TextureCache.h>
 #include "RenderableEntityItem.h"
+#include <HazeMode.h>
+
 #if 0
 #include <Model.h>
 #endif
@@ -101,9 +103,9 @@ private:
     bool _needHazeUpdate{ true };
 
     KeyLightPropertyGroup _keyLightProperties;
-    SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
     StagePropertyGroup _stageProperties;
+    SkyboxPropertyGroup _skyboxProperties;
 
     // More attributes used for rendering:
     QString _ambientTextureURL;

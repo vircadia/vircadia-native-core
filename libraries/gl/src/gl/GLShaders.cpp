@@ -2,9 +2,6 @@
 
 #include "GLLogging.h"
 
-#include <iostream>
-#include <fstream>
-
 namespace gl {
 
 
@@ -41,15 +38,15 @@ namespace gl {
     if (!compiled) {
 
         // save the source code to a temp file so we can debug easily
-
+        /*
         std::ofstream filestream;
-        filestream.open("D:\\debugshader.glsl");
+        filestream.open("debugshader.glsl");
         if (filestream.is_open()) {
-            filestream << srcstr[0];
-            filestream << srcstr[1];
-            filestream.close();
+        filestream << srcstr[0];
+        filestream << srcstr[1];
+        filestream.close();
         }
-
+        */
 
         GLint infoLength = 0;
         glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
@@ -58,13 +55,13 @@ namespace gl {
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
 
-
-        filestream.open("D:\\debugshader.glsl.info.txt");
+        /*
+        filestream.open("debugshader.glsl.info.txt");
         if (filestream.is_open()) {
-            filestream << std::string(temp);
-            filestream.close();
+        filestream << std::string(temp);
+        filestream.close();
         }
-
+        */
 
         qCWarning(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
         for (auto s : srcstr) {

@@ -29,7 +29,6 @@
 #include <QUuid>
 
 #include <BackgroundMode.h>
-#include <HazeMode.h>
 #include <SharedUtil.h>
 #include <ShapeInfo.h>
 #include <NLPacket.h>

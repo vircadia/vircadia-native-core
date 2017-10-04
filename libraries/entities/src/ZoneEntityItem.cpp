@@ -70,10 +70,7 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
-    // Contains a QString property, must be synchronized
-    withReadLock([&] {
-        _hazeProperties.getProperties(properties);
-    });
+    _hazeProperties.getProperties(properties);
 
     return properties;
 }
@@ -110,15 +107,15 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
 
-    // Contains a QString property, must be synchronized
-    withWriteLock([&] {
-        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
-    });
-
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
 
+    // Contains a QString property, must be synchronized
+    withWriteLock([&] {
+        _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
+    });
+	
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
     _hazePropertiesChanged = _hazeProperties.setProperties(properties);
 

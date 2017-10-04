@@ -113,8 +113,7 @@ bool SceneScripting::Stage::isSunModelEnabled() const {
 void SceneScripting::Stage::setBackgroundMode(const QString& mode) {
     if (mode == QString("inherit")) {
         _skyStage->setBackgroundMode(model::SunSkyStage::NO_BACKGROUND);
-    }
-    else if (mode == QString("skybox")) {
+    } else if (mode == QString("skybox")) {
         _skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
     }
 }
