@@ -257,7 +257,7 @@ void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {
 }
 
 // Haze
-void SunSkyStage::setHazeMode(HazeMode mode) {
+void SunSkyStage::setHazeMode(uint8_t mode) {
     _hazeMode = mode;
     invalidate();
 }

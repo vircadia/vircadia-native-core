@@ -178,7 +178,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
 
-    DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, HazeMode, HAZE_MODE_INHERIT);
+    DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint8_t, (uint8_t)HAZE_MODE_INHERIT);
 
     DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, HazePropertyGroup::DEFAULT_HAZE_RANGE);
     DEFINE_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor, hazeBlendInColor, xColor, HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR);
@@ -258,7 +258,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
     static QString getBackgroundModeString(BackgroundMode mode);
-    static QString getHazeModeString(HazeMode mode);
+    static QString getHazeModeString(uint8_t mode);
 
 
 public:

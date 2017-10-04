@@ -231,7 +231,7 @@ QString EntityItemProperties::getHazeModeAsString() const {
     return HAZE_MODES[_hazeMode].second;
 }
 
-QString EntityItemProperties::getHazeModeString(HazeMode mode) {
+QString EntityItemProperties::getHazeModeString(uint8_t mode) {
     return HAZE_MODES[mode].second;
 }
 

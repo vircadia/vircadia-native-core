@@ -164,7 +164,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
-    READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, HazeMode, setHazeMode);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, uint8_t, setHazeMode);
 
     int bytesFromSkybox;
     withWriteLock([&] {
@@ -335,12 +335,12 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
 }
 
 #pragma optimize("", off)
-void ZoneEntityItem::setHazeMode(const HazeMode value) {
+void ZoneEntityItem::setHazeMode(const uint8_t value) {
     _hazeMode = value;
     _hazePropertiesChanged = true;
 }
 
-HazeMode ZoneEntityItem::getHazeMode() const {
+uint8_t ZoneEntityItem::getHazeMode() const {
     return _hazeMode;
 }
 

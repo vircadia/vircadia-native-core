@@ -331,7 +331,7 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
 }
 
 void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) {
-    setHazeMode(entity->getHazeMode());
+    setHazeMode((HazeMode)entity->getHazeMode());
 
     const auto& haze = editHaze();
 

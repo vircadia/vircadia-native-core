@@ -69,8 +69,8 @@ public:
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
-    void setHazeMode(const HazeMode value);
-    HazeMode getHazeMode() const;
+    void setHazeMode(const uint8_t value);
+    uint8_t getHazeMode() const;
 
     void setHazeRange(const float hazeRange);
     float getHazeRange()const;
@@ -141,7 +141,7 @@ protected:
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
-    HazeMode _hazeMode{ HAZE_MODE_INHERIT };
+    uint8_t _hazeMode{ (uint8_t)HAZE_MODE_INHERIT };
 
     float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
     xColor _hazeBlendInColor{ HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR };
