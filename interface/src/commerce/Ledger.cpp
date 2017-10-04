@@ -221,8 +221,8 @@ void Ledger::account() {
 }
 
 // The api/failResponse is called just for the side effect of logging.
-void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
-void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("reset", reply); }
+void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("updateLocation", reply); }
+void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("updateLocation", reply); }
 void Ledger::updateLocation(const QString& asset_id, const QString location, const bool controlledFailure) {
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();

@@ -70,6 +70,8 @@ protected:
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void reset();
     Q_INVOKABLE void account();
+
+    Q_INVOKABLE void updatePopLocation(const QString& popId, const bool controlledFailure = false);
 };
 
 #endif // hifi_QmlCommerce_h

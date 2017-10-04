@@ -1107,9 +1107,6 @@ void EntityTree::popStatusSuccess(QNetworkReply& reply) {
     //    qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
     //    deleteEntity(entityItemID, true);
     //} else {
-    //    //auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + sizeof(encryptedText));
-    //    //challengeOwnershipPacket->write(senderNode->getUUID());
-    //    //challengeOwnershipPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
     //}
 }
 
@@ -1358,9 +1355,15 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 qCDebug(entities) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
                                 accountManager->sendRequest(URL + endpoint,
                                     AccountManagerAuth::None,
-                                    QNetworkAccessManager::PostOperation,
+                                    QNetworkAccessManager::GetOperation,
                                     callbackParams,
                                     QJsonDocument(request).toJson());
+
+                                // Second, challenge ownership of the PoP cert
+                                //auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + sizeof(encryptedText));
+                                //challengeOwnershipPacket->write(senderNode->getUUID());
+                                //challengeOwnershipPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
+                                //// Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
                             }
                         }
 

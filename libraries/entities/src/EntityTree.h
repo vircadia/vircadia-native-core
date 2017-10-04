@@ -18,7 +18,6 @@
 #include "AccountManager.h"
 #include <QJsonObject>
 #include <QJsonDocument>
-#include <QtNetwork/QNetworkReply>
 
 #include <Octree.h>
 #include <SpatialParentFinder.h>

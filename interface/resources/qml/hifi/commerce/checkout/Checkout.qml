@@ -579,6 +579,7 @@ Rectangle {
                 }
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
+                commerce.updatePopLocation(root.itemId);
             }
         }
         RalewaySemiBold {

@@ -149,3 +149,9 @@ void QmlCommerce::account() {
     auto ledger = DependencyManager::get<Ledger>();
     ledger->account();
 }
+
+void QmlCommerce::updatePopLocation(const QString& popId, const bool controlledFailure) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto nodeList = DependencyManager::get<NodeList>();
+    ledger->updateLocation(popId, nodeList->getDomainHandler().getUUID().toString(), controlledFailure);
+}
