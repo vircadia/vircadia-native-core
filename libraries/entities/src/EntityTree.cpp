@@ -1097,6 +1097,28 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
     return false;
 }
 
+void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
+    QTimer* _challengeOwnershipTimeoutTimer = new QTimer(this);
+    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [&](const QString& certID) {
+        QReadLocker locker(&_entityCertificateIDMapLock);
+        EntityItemID id = _entityCertificateIDMap.value(certID);
+        if (entityItemID == id) {
+            _challengeOwnershipTimeoutTimer->stop();
+            _challengeOwnershipTimeoutTimer->deleteLater();
+        }
+    });
+    connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
+        qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
+        deleteEntity(entityItemID, true);
+        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+        _challengeOwnershipTimeoutTimer->stop();
+        _challengeOwnershipTimeoutTimer->deleteLater();
+    });
+    _challengeOwnershipTimeoutTimer->setInterval(5000);
+    _challengeOwnershipTimeoutTimer->start();
+}
+
 void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     int certIDByteArraySize;
     int decryptedTextByteArraySize;
@@ -1416,23 +1438,12 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                             nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
 
                                             // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
-                                            QTimer* challengeOwnershipTimeoutTimer = new QTimer(this);
-                                            connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [&](const QString& certID) {
-                                                QReadLocker locker(&_entityCertificateIDMapLock);
-                                                EntityItemID id = _entityCertificateIDMap.value(certID);
-                                                if (entityItemID == id) {
-                                                    challengeOwnershipTimeoutTimer->stop();
-                                                    challengeOwnershipTimeoutTimer->deleteLater();
-                                                }
-                                            });
-                                            connect(challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
-                                                qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
-                                                deleteEntity(entityItemID, true);
-                                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                                            });
-                                            challengeOwnershipTimeoutTimer->setInterval(10000);
-                                            challengeOwnershipTimeoutTimer->start();
+                                            if (thread() != QThread::currentThread()) {
+                                                QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
+                                                return;
+                                            } else {
+                                                startChallengeOwnershipTimer(entityItemID);
+                                            }
                                         }
                                     } else {
                                         qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;

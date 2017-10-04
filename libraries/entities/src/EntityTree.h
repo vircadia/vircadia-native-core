@@ -367,6 +367,8 @@ protected:
 
     MovingEntitiesOperator _entityMover;
     QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
+
+    Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
 };
 
 #endif // hifi_EntityTree_h
