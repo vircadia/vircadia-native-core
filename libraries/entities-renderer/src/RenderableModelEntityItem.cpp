@@ -1026,7 +1026,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     entity->copyAnimationJointDataToModel();
 }
 
-bool ModelEntityRenderer::needsUpdate() const {
+bool ModelEntityRenderer::needsRenderUpdate() const {
     ModelPointer model;
     withReadLock([&] {
         model = _model;
@@ -1061,10 +1061,10 @@ bool ModelEntityRenderer::needsUpdate() const {
             return true;
         }
     }
-    return Parent::needsUpdate();
+    return Parent::needsRenderUpdate();
 }
 
-bool ModelEntityRenderer::needsUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (resultWithReadLock<bool>([&] {
         if (entity->hasModel() != _hasModel) {
             return true;
@@ -1126,7 +1126,7 @@ bool ModelEntityRenderer::needsUpdateFromTypedEntity(const TypedEntityPointer& e
     return false;
 }
 
-void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1250,6 +1250,7 @@ void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& 
 void ModelEntityRenderer::handleModelLoaded(bool success) {
     if (success) {
         _modelJustLoaded = true;
+        emit requestRenderUpdate();
     }
 }
 
