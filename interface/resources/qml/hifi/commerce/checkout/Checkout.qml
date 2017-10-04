@@ -35,7 +35,7 @@ Rectangle {
     property string itemHref;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false;
-    property int itemPrice;
+    property int itemPrice: -1;
     property bool itemIsJson: true;
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
@@ -339,7 +339,7 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: root.itemPrice;
+                    text: (root.itemPrice === -1) ? "--" : root.itemPrice;
                     // Text size
                     size: 26;
                     // Anchors
