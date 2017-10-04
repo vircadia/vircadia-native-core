@@ -210,12 +210,14 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     withReadLock([&] {
         requestedProperties += _skyboxProperties.getEntityProperties(params);
     });
-    withReadLock([&] {
-        requestedProperties += _hazeProperties.getEntityProperties(params);
-    });
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
+
+    requestedProperties += PROP_HAZE_MODE;
+    withReadLock([&] {
+        requestedProperties += _hazeProperties.getEntityProperties(params);
+    });
 
     return requestedProperties;
 }
