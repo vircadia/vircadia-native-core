@@ -65,9 +65,8 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     // Contains a QString property, must be synchronized
     withReadLock([&] {
         _skyboxProperties.getProperties(properties);
+        _hazeProperties.getProperties(properties);
     });
-
-    _hazeProperties.getProperties(properties);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
