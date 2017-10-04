@@ -166,7 +166,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
-    READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, uint8_t, setHazeMode);
+    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint8_t, setHazeMode);
 
     int bytesFromSkybox;
     withWriteLock([&] {
