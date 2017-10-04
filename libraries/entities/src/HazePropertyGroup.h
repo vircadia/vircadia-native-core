@@ -74,8 +74,6 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    static const uint8_t DEFAULT_HAZE_MODE;
-
     static const float DEFAULT_HAZE_RANGE;
     static const xColor DEFAULT_HAZE_BLEND_IN_COLOR;
     static const xColor DEFAULT_HAZE_BLEND_OUT_COLOR;
@@ -88,9 +86,6 @@ public:
 
     static const float DEFAULT_HAZE_KEYLIGHT_RANGE;
     static const float DEFAULT_HAZE_KEYLIGHT_ALTITUDE;
-
-    // Selects whether haze inherits the mode, is off or the mode (range only, range & altitude...) 
-    DEFINE_PROPERTY(PROP_HAZE_MODE, HazeMode, hazeMode, uint8_t, DEFAULT_HAZE_MODE);
 
     // Range only parameters
     DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, DEFAULT_HAZE_RANGE);

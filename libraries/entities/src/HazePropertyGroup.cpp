@@ -15,8 +15,6 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-const uint8_t HazePropertyGroup::DEFAULT_HAZE_MODE{ 0 };
-
 const float HazePropertyGroup::DEFAULT_HAZE_RANGE{ 1000.0f };
 const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR{ 128, 154, 179 };    // Bluish
 const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_OUT_COLOR{ 255, 229, 179 };   // Yellowish
@@ -31,8 +29,6 @@ const float HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_RANGE{ 1000.0 };
 const float HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE{ 200.0f };
 
 void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_MODE, Haze, haze, HazeMode, hazeMode);
-
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeBlendInColor, hazeBlendIncolor);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BLEND_OUT_COLOR, Haze, haze, HazeBlendOutColor, hazeBlendOutcolor);
@@ -48,8 +44,6 @@ void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
 }
 
 void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeMode, uint8_t, setHazeMode, getHazeMode);
-
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(hazeHazeRange, float, setHazeRange, getHazeRange);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBlendInColor, xColor, setHazeBlendInColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBlendOutColor, xColor, setHazeBlendOutColor);
@@ -65,8 +59,6 @@ void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _d
 }
 
 void HazePropertyGroup::merge(const HazePropertyGroup& other) {
-    COPY_PROPERTY_IF_CHANGED(hazeMode);
-
     COPY_PROPERTY_IF_CHANGED(hazeRange);
     COPY_PROPERTY_IF_CHANGED(hazeBlendInColor);
     COPY_PROPERTY_IF_CHANGED(hazeBlendOutColor);
@@ -83,7 +75,6 @@ void HazePropertyGroup::merge(const HazePropertyGroup& other) {
 
 void HazePropertyGroup::debugDump() const {
     qCDebug(entities) << "   HazePropertyGroup: ---------------------------------------------";
-    qCDebug(entities) << "            _hazeMode:" << _hazeMode;
 
     qCDebug(entities) << "            _hazeRange:" << _hazeRange;
     qCDebug(entities) << "            _hazeBlendInColor:" << _hazeBlendInColor;
@@ -100,10 +91,6 @@ void HazePropertyGroup::debugDump() const {
 }
 
 void HazePropertyGroup::listChangedProperties(QList<QString>& out) {
-    if (hazeModeChanged()) {
-        out << "haze-mode";
-    }
-
     if (hazeRangeChanged()) {
         out << "haze-range";
     }
@@ -145,8 +132,6 @@ bool HazePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, getHazeMode());
-
     APPEND_ENTITY_PROPERTY(PROP_HAZE_RANGE, getHazeRange());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, getHazeBlendInColor());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, getHazeBlendOutColor());
@@ -169,8 +154,6 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     bool overwriteLocalData = true;
     bool somethingChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint8_t, setHazeMode);
-
     READ_ENTITY_PROPERTY(PROP_HAZE_RANGE, float, setHazeRange);
     READ_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, xColor, setHazeBlendInColor);
     READ_ENTITY_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, xColor, setHazeBlendOutColor);
@@ -183,8 +166,6 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, float, setHazeKeyLightRange);
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, float, setHazeKeyLightAltitude);
-
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_MODE, HazeMode);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_RANGE, HazeRange);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor);
@@ -207,8 +188,6 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 }
 
 void HazePropertyGroup::markAllChanged() {
-    _hazeModeChanged = true;
-
     _hazeRangeChanged = true;
     _hazeBlendInColorChanged = true;
     _hazeBlendOutColorChanged = true;
@@ -225,8 +204,6 @@ void HazePropertyGroup::markAllChanged() {
 
 EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
-
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_RANGE, hazeRange);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_BLEND_IN_COLOR, hazeBlendInColor);
@@ -245,8 +222,6 @@ EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
 }
 
 void HazePropertyGroup::getProperties(EntityItemProperties& properties) const {
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeMode, getHazeMode);
-
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeRange, getHazeRange);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeBlendInColor, getHazeBlendInColor);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeBlendOutColor, getHazeBlendOutColor);
@@ -263,8 +238,6 @@ void HazePropertyGroup::getProperties(EntityItemProperties& properties) const {
 
 bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
-
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeMode, hazeMode, setHazeMode);
 
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeRange, hazeRange, setHazeRange);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeBlendInColor, hazeBlendInColor, setHazeBlendInColor);
@@ -284,8 +257,6 @@ bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
 
 EntityPropertyFlags HazePropertyGroup::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties;
-
-    requestedProperties += PROP_HAZE_MODE;
 
     requestedProperties += PROP_HAZE_RANGE;
     requestedProperties += PROP_HAZE_BLEND_IN_COLOR;
@@ -313,8 +284,6 @@ void HazePropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeB
 
     bool successPropertyFits = true;
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, getHazeMode());
-
     APPEND_ENTITY_PROPERTY(PROP_HAZE_RANGE, getHazeRange());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, getHazeBlendInColor());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, getHazeBlendOutColor());
@@ -336,8 +305,6 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
-
-    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint8_t, setHazeMode);
 
     READ_ENTITY_PROPERTY(PROP_HAZE_RANGE, float, setHazeRange);
     READ_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, xColor, setHazeBlendInColor);
