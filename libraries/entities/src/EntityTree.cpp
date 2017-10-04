@@ -1107,6 +1107,8 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     QString certID(message.read(certIDByteArraySize));
     QString decryptedText(message.read(decryptedTextByteArraySize));
 
+    qCDebug(entities) << "ZRF FIXME" << decryptedText << certID;
+
     emit killChallengeOwnershipTimeoutTimer(certID);
 
     if (decryptedText == "fail") {
@@ -1371,17 +1373,24 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                     QJsonDocument doc(jsonObject);
                                     qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
 
-                                    if (networkReply->error() == QNetworkReply::NoError) {
-                                        if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+                                    // ZRF FIXME!!!
+                                    //if (networkReply->error() == QNetworkReply::NoError) {
+                                    if (true) {
+                                        // ZRF FIXME!!!
+                                        //if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+                                        if (false) {
                                             qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
                                             deleteEntity(entityItemID, true);
                                             QWriteLocker locker(&_recentlyDeletedEntitiesLock);
                                             _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                                        } else if (jsonObject["transfer_status"].toString() == "failed") {
+                                        // ZRF FIXME!!!
+                                        //} else if (jsonObject["transfer_status"].toString() == "failed") {
+                                        } else if (false) {
                                             qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
                                             deleteEntity(entityItemID, true);
                                             QWriteLocker locker(&_recentlyDeletedEntitiesLock);
                                             _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                                        // ZRF FIXME!!!
                                         } else {
                                             // Second, challenge ownership of the PoP cert
                                             // 1. Encrypt a nonce with the owner's public key
@@ -1422,7 +1431,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                                 QWriteLocker locker(&_recentlyDeletedEntitiesLock);
                                                 _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                                             });
-                                            challengeOwnershipTimeoutTimer->setSingleShot(false);
                                             challengeOwnershipTimeoutTimer->setInterval(10000);
                                             challengeOwnershipTimeoutTimer->start();
                                         }
