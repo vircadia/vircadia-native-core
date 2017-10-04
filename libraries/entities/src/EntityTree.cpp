@@ -1365,9 +1365,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                         //    // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
                                         //}
                                     } else {
-                                        //qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
-                                        //deleteEntity(entityItemID, true);
+                                        qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
+                                        deleteEntity(entityItemID, true);
                                     }
+
+                                    networkReply->deleteLater();
                                 });
                             }
                         }
