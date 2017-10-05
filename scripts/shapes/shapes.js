@@ -113,7 +113,8 @@
     }
 
     function otherHand(hand) {
-        return (hand + 1) % 2;
+        var NUMBER_OF_HANDS = 2;
+        return (hand + 1) % NUMBER_OF_HANDS;
     }
 
     App = {
@@ -1989,7 +1990,8 @@
         Entities.canRezChanged.disconnect(onCanRezChanged);
         Entities.canRezTmpChanged.disconnect(onCanRezChanged);
         Messages.messageReceived.disconnect(onMessageReceived);
-        Messages.unsubscribe(DOMAIN_CHANGED_MESSAGE);
+        // Messages.unsubscribe(DOMAIN_CHANGED_MESSAGE);  Do NOT unsubscribe because edit.js also subscribes and 
+        // Messages.subscribe works client-wide.
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
         MyAvatar.skeletonChanged.disconnect(onSkeletonChanged);
 

@@ -334,8 +334,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function setHand(hand) {
         // Assumes UI is not displaying.
+        var NUMBER_OF_HANDS = 2;
         side = hand;
-        otherSide = (side + 1) % 2;
+        otherSide = (side + 1) % NUMBER_OF_HANDS;
         controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
         controlJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
         paletteLateralOffset = side === LEFT_HAND ? -UIT.dimensions.handLateralOffset : UIT.dimensions.handLateralOffset;

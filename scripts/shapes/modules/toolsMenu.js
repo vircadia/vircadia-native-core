@@ -129,6 +129,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         MENU_HEADER_BACK_PROPERTIES = {
+            // Magic numbers per UI design spec.
             url: Script.resolvePath("../assets/tools/back-icon.svg"),
             dimensions: { x: 0.0069, y: 0.0107 },
             localPosition: {
@@ -200,7 +201,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         SWATCH_HIGHLIGHT_DELTA = 0.0020,
 
         UI_ELEMENTS = {
-            "menuButton": {
+            // Magic numbers per UI design spec.
+            menuButton: {
                 overlay: "cube", // Invisible cube for hit area.
                 properties: {
                     dimensions: UIT.dimensions.itemCollisionZone,
@@ -268,7 +270,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 }
             },
-            "button": {
+            button: {
                 overlay: "cube",
                 properties: {
                     dimensions: UIT.dimensions.buttonDimensions,
@@ -289,7 +291,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.white
                 }
             },
-            "toggleButton": {
+            toggleButton: {
                 overlay: "cube",
                 properties: {
                     dimensions: UIT.dimensions.buttonDimensions,
@@ -327,7 +329,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 offSublabel: { }  // Optional properties to update sublabel with.
                 */
             },
-            "swatch": {
+            swatch: {
                 overlay: "shape",
                 properties: {
                     shape: "Cylinder",
@@ -344,7 +346,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Setting property may optionally include a defaultValue.
                 // A setting value of "" means that the swatch is unpopulated.
             },
-            "swatchHighlight": {
+            swatchHighlight: {
                 overlay: "shape",
                 properties: {
                     shape: "Cylinder",
@@ -364,7 +366,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
 
             },
-            "square": {
+            square: {
                 overlay: "cube", // Emulate a 2D square with a cube.
                 properties: {
                     localRotation: Quat.ZERO,
@@ -375,7 +377,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "image": {
+            image: {
                 overlay: "image3d",
                 properties: {
                     localPosition: { x: 0, y: 0, z: 0 },
@@ -387,7 +389,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "horizontalRule": {
+            horizontalRule: {
                 overlay: "image3d",
                 properties: {
                     url: Script.resolvePath("../assets/horizontal-rule.svg"),
@@ -401,7 +403,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "sphere": {
+            sphere: {
                 overlay: "sphere",
                 properties: {
                     dimensions: { x: 0.01, y: 0.01, z: 0.01 },
@@ -413,7 +415,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "barSlider": {
+            barSlider: {
                 // Invisible cube to catch laser intersections; value and remainder entities move inside.
                 // Values range between 0.0 and 1.0.
                 overlay: "cube",
@@ -470,7 +472,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 }
             },
-            "imageSlider": { // Values range between 0.0 and 1.0.
+            imageSlider: { // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.0160, y: 0.1229, z: UIT.dimensions.buttonDimensions.z },
@@ -485,7 +487,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 imageURL: null,
                 imageOverlayURL: null
             },
-            "sliderPointer": {
+            sliderPointer: {
                 overlay: "shape",
                 properties: {
                     shape: "Cone",
@@ -498,7 +500,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "colorCircle": {
+            colorCircle: {
                 overlay: "shape",
                 properties: {
                     shape: "Cylinder",
@@ -513,7 +515,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 imageURL: null,
                 imageOverlayURL: null
             },
-            "circlePointer": {
+            circlePointer: {
                 overlay: "shape",
                 properties: {
                     shape: "Cone",
@@ -526,7 +528,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "picklist": {
+            picklist: {
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.06, y: 0.02, z: 0.01 },
@@ -542,7 +544,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: UIT.colors.white
                 }
             },
-            "picklistItem": { // Note: When using, declare before picklist item that it's being used in.
+            picklistItem: { // Note: When using, declare before picklist item that it's being used in.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.1416, y: 0.0280, z: UIT.dimensions.buttonDimensions.z },
@@ -589,6 +591,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         OPTONS_PANELS = {
+            // Magic numbers per UI design spec.
             colorOptions: [
                 {
                     id: "colorSwatchesLabel",
@@ -1683,6 +1686,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         MENU_ITEM_YS = [0.086, 0.030, -0.026, -0.082],
 
         MENU_ITEMS = [
+            // Magic numbers per UI design spec.
             {
                 id: "colorButton",
                 type: "menuButton",
@@ -1921,6 +1925,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         DELETE_TOOL = 5,
 
         FOOTER_ITEMS = [
+            // Magic numbers per UI design spec.
             {
                 id: "footerRule",
                 type: "horizontalRule",
@@ -2041,6 +2046,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function setHand(hand) {
         // Assumes UI is not displaying.
+        var NUMBER_OF_HANDS = 2;
         side = hand;
         if (side === LEFT_HAND) {
             controlHand = rightInputs.hand();
@@ -2055,7 +2061,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             menuOriginLocalPosition = PANEL_ORIGIN_POSITION_RIGHT_HAND;
             menuOriginLocalRotation = PANEL_ORIGIN_ROTATION_RIGHT_HAND;
         }
-        otherSide = (side + 1) % 2;
+        otherSide = (side + 1) % NUMBER_OF_HANDS;
     }
 
     setHand(side);

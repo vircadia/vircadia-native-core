@@ -168,14 +168,16 @@ SelectionManager = function (side) {
             for (i = 1, length = selection.length; i < length; i++) {
 
                 registration = selection[i].registrationPoint;
-                corners[0] = { x: -registration.x, y: -registration.y, z: -registration.z };
-                corners[1] = { x: -registration.x, y: -registration.y, z: 1.0 - registration.z };
-                corners[2] = { x: -registration.x, y: 1.0 - registration.y, z: -registration.z };
-                corners[3] = { x: -registration.x, y: 1.0 - registration.y, z: 1.0 - registration.z };
-                corners[4] = { x: 1.0 - registration.x, y: -registration.y, z: -registration.z };
-                corners[5] = { x: 1.0 - registration.x, y: -registration.y, z: 1.0 - registration.z };
-                corners[6] = { x: 1.0 - registration.x, y: 1.0 - registration.y, z: -registration.z };
-                corners[7] = { x: 1.0 - registration.x, y: 1.0 - registration.y, z: 1.0 - registration.z };
+                corners = [
+                    { x: -registration.x, y: -registration.y, z: -registration.z },
+                    { x: -registration.x, y: -registration.y, z: 1.0 - registration.z },
+                    { x: -registration.x, y: 1.0 - registration.y, z: -registration.z },
+                    { x: -registration.x, y: 1.0 - registration.y, z: 1.0 - registration.z },
+                    { x: 1.0 - registration.x, y: -registration.y, z: -registration.z },
+                    { x: 1.0 - registration.x, y: -registration.y, z: 1.0 - registration.z },
+                    { x: 1.0 - registration.x, y: 1.0 - registration.y, z: -registration.z },
+                    { x: 1.0 - registration.x, y: 1.0 - registration.y, z: 1.0 - registration.z }
+                ];
 
                 position = selection[i].position;
                 rotation = selection[i].rotation;
