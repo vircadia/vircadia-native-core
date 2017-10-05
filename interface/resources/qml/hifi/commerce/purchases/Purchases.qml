@@ -430,6 +430,8 @@ Rectangle {
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;
+                numberSold: model.number_sold;
+                limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;

@@ -36,6 +36,8 @@ Item {
     property string itemHref;
     property int displayedItemCount;
     property int itemEdition;
+    property int numberSold;
+    property int limitedRun;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -222,6 +224,8 @@ Item {
                             "PENDING..."
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
+                        } else if (root.numberSold !== -1) {
+                            ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "INFTY" : root.limitedRun))
                         } else {
                             ""
                         }
