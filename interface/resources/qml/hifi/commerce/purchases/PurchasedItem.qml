@@ -52,7 +52,6 @@ Item {
             statusText.text = "CONFIRMED!";
             statusText.color = hifi.colors.blueAccent;
             confirmedTimer.start();
-            root.purchaseStatusChanged = false;
         }
     }
 
@@ -62,6 +61,7 @@ Item {
         onTriggered: {
             statusText.text = root.originalStatusText;
             statusText.color = root.originalStatusColor;
+            root.purchaseStatusChanged = false;
         }
     }
 
@@ -205,7 +205,7 @@ Item {
 
         Item {
             id: statusContainer;
-            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated";
+            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.purchaseStatusChanged;
             anchors.left: itemName.left;
             anchors.top: certificateContainer.bottom;
             anchors.topMargin: 8;
