@@ -979,7 +979,9 @@
                             && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked) {
                         intersectedEntityID = intersection.entityID;
                         rootEntityID = Entities.rootOf(intersectedEntityID);
-                        if (otherEditor.isEditing(rootEntityID)) {
+                        if (isAutoGrab) {
+                            setState(EDITOR_GRABBING);
+                        } else if (otherEditor.isEditing(rootEntityID)) {
                             if (toolSelected !== TOOL_SCALE) {
                                 setState(EDITOR_DIRECT_SCALING);
                             }
@@ -1013,10 +1015,10 @@
                             selection.deleteEntities();
                             setState(EDITOR_SEARCHING);
                         } else {
-                            setState(EDITOR_GRABBING);
+                            log(side, "ERROR: Editor: Unexpected condition A in EDITOR_SEARCHING!");
                         }
                     } else {
-                        log(side, "ERROR: Editor: Unexpected condition in EDITOR_SEARCHING!");
+                        log(side, "ERROR: Editor: Unexpected condition B in EDITOR_SEARCHING!");
                     }
                     break;
                 case EDITOR_HIGHLIGHTING:
