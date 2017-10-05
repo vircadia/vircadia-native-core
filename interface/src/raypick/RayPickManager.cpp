@@ -153,7 +153,6 @@ void RayPickManager::enableRayPick(const QUuid uid) {
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker rayPickLock(rayPick.value()->getLock());
         rayPick.value()->enable();
     }
 }
@@ -162,7 +161,6 @@ void RayPickManager::disableRayPick(const QUuid uid) {
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker rayPickLock(rayPick.value()->getLock());
         rayPick.value()->disable();
     }
 }
@@ -171,7 +169,6 @@ const RayPickResult RayPickManager::getPrevRayPickResult(const QUuid uid) {
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QReadLocker lock(rayPick.value()->getLock());
         return rayPick.value()->getPrevRayPickResult();
     }
     return RayPickResult();
@@ -181,7 +178,6 @@ void RayPickManager::setPrecisionPicking(QUuid uid, const bool precisionPicking)
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker lock(rayPick.value()->getLock());
         rayPick.value()->setPrecisionPicking(precisionPicking);
     }
 }
@@ -190,7 +186,6 @@ void RayPickManager::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEnti
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker lock(rayPick.value()->getLock());
         rayPick.value()->setIgnoreEntities(ignoreEntities);
     }
 }
@@ -199,7 +194,6 @@ void RayPickManager::setIncludeEntities(QUuid uid, const QScriptValue& includeEn
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker lock(rayPick.value()->getLock());
         rayPick.value()->setIncludeEntities(includeEntities);
     }
 }
@@ -208,7 +202,6 @@ void RayPickManager::setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOver
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker lock(rayPick.value()->getLock());
         rayPick.value()->setIgnoreOverlays(ignoreOverlays);
     }
 }
@@ -217,7 +210,6 @@ void RayPickManager::setIncludeOverlays(QUuid uid, const QScriptValue& includeOv
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker lock(rayPick.value()->getLock());
         rayPick.value()->setIncludeOverlays(includeOverlays);
     }
 }
@@ -226,7 +218,6 @@ void RayPickManager::setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvata
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker lock(rayPick.value()->getLock());
         rayPick.value()->setIgnoreAvatars(ignoreAvatars);
     }
 }
@@ -235,7 +226,6 @@ void RayPickManager::setIncludeAvatars(QUuid uid, const QScriptValue& includeAva
     QReadLocker containsLock(&_containsLock);
     auto rayPick = _rayPicks.find(uid);
     if (rayPick != _rayPicks.end()) {
-        QWriteLocker lock(rayPick.value()->getLock());
         rayPick.value()->setIncludeAvatars(includeAvatars);
     }
 }

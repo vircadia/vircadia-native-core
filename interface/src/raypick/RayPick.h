@@ -103,13 +103,13 @@ public:
 
     virtual const PickRay getPickRay(bool& valid) const = 0;
 
-    void enable() { _enabled = true; }
-    void disable() { _enabled = false; }
+    void enable();
+    void disable();
 
     const RayPickFilter& getFilter() { return _filter; }
     float getMaxDistance() { return _maxDistance; }
     bool isEnabled() { return _enabled; }
-    const RayPickResult& getPrevRayPickResult() { return _prevResult; }
+    const RayPickResult& getPrevRayPickResult();
 
     void setPrecisionPicking(bool precisionPicking) { _filter.setFlag(RayPickFilter::PICK_COURSE, !precisionPicking); }
 
@@ -121,12 +121,12 @@ public:
     const QVector<OverlayID>& getIncludeOverlays() { return _includeOverlays; }
     const QVector<EntityItemID>& getIgnoreAvatars() { return _ignoreAvatars; }
     const QVector<EntityItemID>& getIncludeAvatars() { return _includeAvatars; }
-    void setIgnoreEntities(const QScriptValue& ignoreEntities) { _ignoreEntities = qVectorEntityItemIDFromScriptValue(ignoreEntities); }
-    void setIncludeEntities(const QScriptValue& includeEntities) { _includeEntities = qVectorEntityItemIDFromScriptValue(includeEntities); }
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { _ignoreOverlays = qVectorOverlayIDFromScriptValue(ignoreOverlays); }
-    void setIncludeOverlays(const QScriptValue& includeOverlays) { _includeOverlays = qVectorOverlayIDFromScriptValue(includeOverlays); }
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { _ignoreAvatars = qVectorEntityItemIDFromScriptValue(ignoreAvatars); }
-    void setIncludeAvatars(const QScriptValue& includeAvatars) { _includeAvatars = qVectorEntityItemIDFromScriptValue(includeAvatars); }
+    void setIgnoreEntities(const QScriptValue& ignoreEntities);
+    void setIncludeEntities(const QScriptValue& includeEntities);
+    void setIgnoreOverlays(const QScriptValue& ignoreOverlays);
+    void setIncludeOverlays(const QScriptValue& includeOverlays);
+    void setIgnoreAvatars(const QScriptValue& ignoreAvatars);
+    void setIncludeAvatars(const QScriptValue& includeAvatars);
 
     QReadWriteLock* getLock() { return &_lock; }
 

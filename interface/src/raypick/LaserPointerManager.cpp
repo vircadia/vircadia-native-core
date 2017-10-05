@@ -31,7 +31,6 @@ void LaserPointerManager::enableLaserPointer(const QUuid uid) {
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->enable();
     }
 }
@@ -40,7 +39,6 @@ void LaserPointerManager::disableLaserPointer(const QUuid uid) {
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->disable();
     }
 }
@@ -49,7 +47,6 @@ void LaserPointerManager::setRenderState(QUuid uid, const std::string& renderSta
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setRenderState(renderState);
     }
 }
@@ -58,7 +55,6 @@ void LaserPointerManager::editRenderState(QUuid uid, const std::string& state, c
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->editRenderState(state, startProps, pathProps, endProps);
     }
 }
@@ -67,7 +63,6 @@ const RayPickResult LaserPointerManager::getPrevRayPickResult(const QUuid uid) {
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QReadLocker laserLock(laserPointer.value()->getLock());
         return laserPointer.value()->getPrevRayPickResult();
     }
     return RayPickResult();
@@ -76,9 +71,7 @@ const RayPickResult LaserPointerManager::getPrevRayPickResult(const QUuid uid) {
 void LaserPointerManager::update() {
     QReadLocker lock(&_containsLock);
     for (QUuid& uid : _laserPointers.keys()) {
-        // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
         auto laserPointer = _laserPointers.find(uid);
-        QReadLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->update();
     }
 }
@@ -87,7 +80,6 @@ void LaserPointerManager::setPrecisionPicking(QUuid uid, const bool precisionPic
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setPrecisionPicking(precisionPicking);
     }
 }
@@ -96,7 +88,6 @@ void LaserPointerManager::setLaserLength(QUuid uid, const float laserLength) {
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setLaserLength(laserLength);
     }
 }
@@ -105,7 +96,6 @@ void LaserPointerManager::setIgnoreEntities(QUuid uid, const QScriptValue& ignor
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setIgnoreEntities(ignoreEntities);
     }
 }
@@ -114,7 +104,6 @@ void LaserPointerManager::setIncludeEntities(QUuid uid, const QScriptValue& incl
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setIncludeEntities(includeEntities);
     }
 }
@@ -123,7 +112,6 @@ void LaserPointerManager::setIgnoreOverlays(QUuid uid, const QScriptValue& ignor
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setIgnoreOverlays(ignoreOverlays);
     }
 }
@@ -132,7 +120,6 @@ void LaserPointerManager::setIncludeOverlays(QUuid uid, const QScriptValue& incl
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setIncludeOverlays(includeOverlays);
     }
 }
@@ -141,7 +128,6 @@ void LaserPointerManager::setIgnoreAvatars(QUuid uid, const QScriptValue& ignore
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setIgnoreAvatars(ignoreAvatars);
     }
 }
@@ -150,7 +136,6 @@ void LaserPointerManager::setIncludeAvatars(QUuid uid, const QScriptValue& inclu
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setIncludeAvatars(includeAvatars);
     }
 }
@@ -159,7 +144,6 @@ void LaserPointerManager::setLockEndUUID(QUuid uid, QUuid objectID, const bool i
     QReadLocker lock(&_containsLock);
     auto laserPointer = _laserPointers.find(uid);
     if (laserPointer != _laserPointers.end()) {
-        QWriteLocker laserLock(laserPointer.value()->getLock());
         laserPointer.value()->setLockEndUUID(objectID, isOverlay);
     }
 }
