@@ -35,6 +35,7 @@ class FBXBaker : public Baker {
 public:
     FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
              const QString& bakedOutputDir, const QString& originalOutputDir = "");
+    ~FBXBaker() override;
 
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
