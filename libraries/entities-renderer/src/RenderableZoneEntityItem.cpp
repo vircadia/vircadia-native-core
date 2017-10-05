@@ -60,7 +60,6 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
     }
 }
 
-#pragma optimize("", off)
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
 #if 0
     if (ZoneEntityItem::getDrawZoneBoundaries()) {
@@ -339,20 +338,20 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
 
     haze->setHazeActive(entity->getHazeMode() == HAZE_MODE_ENABLED);
 
-    haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(entity->getHazeRange()));
-    xColor hazeBlendInColor = entity->getHazeBlendInColor();
+    haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
+    xColor hazeBlendInColor = _hazeProperties.getHazeBlendInColor();
     haze->setHazeColor(glm::vec3(hazeBlendInColor.red / 255.0, hazeBlendInColor.green / 255.0, hazeBlendInColor.blue / 255.0));
-    xColor hazeBlendOutColor = entity->getHazeBlendOutColor();
+    xColor hazeBlendOutColor = _hazeProperties.getHazeBlendOutColor();
     haze->setHazeColor(glm::vec3(hazeBlendOutColor.red / 255.0, hazeBlendOutColor.green / 255.0, hazeBlendOutColor.blue / 255.0));
-    haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(entity->getHazeLightBlendAngle()));
+    haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(_hazeProperties.getHazeLightBlendAngle()));
 
-    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(entity->getHazeAltitude()));
-    haze->setHazeBaseReference(entity->getHazeBaseRef());
+    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeAltitude()));
+    haze->setHazeBaseReference(_hazeProperties.getHazeBaseRef());
 
-    haze->setHazeBackgroundBlendValue(entity->getHazeBackgroundBlend());
+    haze->setHazeBackgroundBlendValue(_hazeProperties.getHazeBackgroundBlend());
 
-    haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(entity->getHazeRange()));
-    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(entity->getHazeAltitude()));
+    haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
+    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeAltitude()));
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {

@@ -84,7 +84,6 @@ void HazeStageSetup::run(const render::RenderContextPointer& renderContext) {
     }
 }
 
-#pragma optimize("", off)
 void FetchHazeStage::run(const render::RenderContextPointer& renderContext, model::HazePointer& haze) {
     auto hazeStage = renderContext->_scene->getStage<HazeStage>();
     assert(hazeStage);

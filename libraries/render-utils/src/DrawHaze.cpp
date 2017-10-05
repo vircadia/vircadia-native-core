@@ -126,7 +126,6 @@ const int HazeEffect_LinearDepthMapSlot = 3;
 void DrawHaze::configure(const Config& config) {
 }
 
-#pragma optimize("", off)
 void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     const auto haze = inputs.get0();
     if (haze == nullptr) {

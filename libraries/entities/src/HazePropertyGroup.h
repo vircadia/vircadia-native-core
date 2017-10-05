@@ -91,18 +91,18 @@ public:
     DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, DEFAULT_HAZE_RANGE);
     DEFINE_PROPERTY_REF(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor, hazeBlendInColor, xColor, DEFAULT_HAZE_BLEND_IN_COLOR);
     DEFINE_PROPERTY_REF(PROP_HAZE_BLEND_OUT_COLOR, HazeBlendOutColor, hazeBlendOutColor, xColor, DEFAULT_HAZE_BLEND_OUT_COLOR);
-    DEFINE_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float, DEFAULT_HAZE_LIGHT_BLEND_ANGLE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float, DEFAULT_HAZE_LIGHT_BLEND_ANGLE);
 
     // Range & Altitude parameters
-    DEFINE_PROPERTY(PROP_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, DEFAULT_HAZE_ALTITUDE);
-    DEFINE_PROPERTY(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, DEFAULT_HAZE_BASE_REF);
+    DEFINE_PROPERTY_REF(PROP_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, DEFAULT_HAZE_ALTITUDE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, DEFAULT_HAZE_BASE_REF);
 
     // Background (skybox) blend value
-    DEFINE_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, DEFAULT_HAZE_BACKGROUND_BLEND);
+    DEFINE_PROPERTY_REF(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, DEFAULT_HAZE_BACKGROUND_BLEND);
 
     // hazeDirectional light attenuation
-    DEFINE_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, DEFAULT_HAZE_KEYLIGHT_RANGE);
-    DEFINE_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, DEFAULT_HAZE_KEYLIGHT_ALTITUDE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, DEFAULT_HAZE_KEYLIGHT_RANGE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, DEFAULT_HAZE_KEYLIGHT_ALTITUDE);
 };
 
 #endif // hifi_HazePropertyGroup_h

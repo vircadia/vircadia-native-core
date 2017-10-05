@@ -183,8 +183,8 @@ public:
         NUM_HAZE_MODES
     };
 
-    void setHazeMode(uint8_t mode);
-    uint8_t getHazeMode() const { return _hazeMode; }
+    void setHazeMode(uint32_t mode);
+    uint32_t getHazeMode() const { return _hazeMode; }
 
     void setHazeRange(float hazeRange) { _hazeRange = hazeRange; }
     float getHazeRange() const { return _hazeRange; }
