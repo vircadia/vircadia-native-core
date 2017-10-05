@@ -37,8 +37,12 @@ void main() {
         return;
     }
 
-    vec3 nearFragUV = taa_findClosestFragment3x3(fragUV);
-    vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);
+   // vec3 nearFragUV = taa_findClosestFragment3x3(fragUV);
+   // vec2 fragVel = taa_fetchVelocityMap(nearFragUV.xy);
+
+    vec3 fragVelAndZ = taa_fetchVelocityMapBest(fragUV);
+    vec2 fragVel = fragVelAndZ.xy;
+    float fragDepth = fragVelAndZ.z;
 
     vec3 sourceColor;
     vec3 historyColor;
@@ -47,8 +51,8 @@ void main() {
     vec3 nextColor = sourceColor;
  
      if (taa_constrainColor()) {
-	    // clamp history to neighbourhood of current sample
-        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, nearFragUV.z, fragJitterPix, historyColor);
+        // clamp history to neighbourhood of current sample
+        historyColor = taa_evalConstrainColor(sourceColor, fragUV, fragVel, fragDepth, fragJitterPix, historyColor);
     }
     
     if (taa_feedbackColor()) {

@@ -115,8 +115,8 @@ public:
     bool constrainColor{ true };
     bool covarianceClipColor{ true };
     float covarianceGamma{ 1.0f };
-    bool clipExactColor{ true };
-    bool feedbackColor{ true };
+    bool clipExactColor{ false };
+    bool feedbackColor{ false };
 
     float debugX{ 0.0f };
     float debugFXAAX{ 1.0f };

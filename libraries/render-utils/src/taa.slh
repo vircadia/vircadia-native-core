@@ -213,6 +213,48 @@ vec3 taa_findClosestFragment3x3(vec2 uv)
 	return vec3(uv + dd.xy * dmin.xy, dmin.z);
 }
 
+vec3 taa_fetchVelocityMapBest(vec2 uv) {
+    vec2 dd = abs(taa_getTexelSize());
+    vec2 du = vec2(dd.x, 0.0);
+    vec2 dv = vec2(0.0, dd.y);
+
+    vec2 dtl = taa_fetchVelocityMap(uv - dv - du);
+    vec2 dtc = taa_fetchVelocityMap(uv - dv);
+    vec2 dtr = taa_fetchVelocityMap(uv - dv + du);
+
+    vec2 dml = taa_fetchVelocityMap(uv - du);
+    vec2 dmc = taa_fetchVelocityMap(uv);
+    vec2 dmr = taa_fetchVelocityMap(uv + du);
+
+    vec2 dbl = taa_fetchVelocityMap(uv + dv - du);
+    vec2 dbc = taa_fetchVelocityMap(uv + dv);
+    vec2 dbr = taa_fetchVelocityMap(uv + dv + du);
+
+    vec3 best = vec3(dtl, dot(dtl,dtl));
+
+    float testSpeed = dot(dtc,dtc);
+    if (testSpeed > best.z) { best = vec3(dtc, testSpeed); }
+    testSpeed = dot(dtr,dtr);
+    if (testSpeed > best.z) { best = vec3(dtr, testSpeed); }
+
+    testSpeed = dot(dml,dml);
+    if (testSpeed > best.z) { best = vec3(dml, testSpeed); }
+    testSpeed = dot(dmc,dmc);
+    if (testSpeed > best.z) { best = vec3(dmc, testSpeed); }
+    testSpeed = dot(dmr,dmr);
+    if (testSpeed > best.z) { best = vec3(dmr, testSpeed); }
+
+    testSpeed = dot(dbl,dbl);
+    if (testSpeed > best.z) { best = vec3(dbl, testSpeed); }
+    testSpeed = dot(dbc,dbc);
+    if (testSpeed > best.z) { best = vec3(dbc, testSpeed); }
+    testSpeed = dot(dbr,dbr);
+    if (testSpeed > best.z) { best = vec3(dbr, testSpeed); }
+
+
+    return vec3(best.xy, taa_fetchDepth(uv));
+}
+
 vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, vec2 fragJitterPix, out vec3 sourceColor, out vec3 historyColor) {
     sourceColor = taa_fetchSourceMap(fragUV).xyz;
 
@@ -399,7 +441,7 @@ vec3 taa_clampColor(vec3 colorMin, vec3 colorMax, vec3 colorSource, vec3 color) 
 		if (r.z < rmin.z - eps)
 			r *= (rmin.z / r.z);
 
-		return p + r;
+		return clamp(p + r, vec3(0.0), vec3(1.0));
     } else {
 		// note: only clips towards aabb center (but fast!)
 		vec3 p_clip = 0.5 * (colorMax + colorMin);
