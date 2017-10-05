@@ -117,6 +117,9 @@ public:
     // Enqueue transaction to the scene
     void enqueueTransaction(const Transaction& transaction);
 
+    // Enqueue end of frame transactions boundary
+    uint32_t enqueueFrame();
+
     // Process the pending transactions queued
     void processTransactionQueue();
 
@@ -161,6 +164,15 @@ protected:
     std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
     std::mutex _transactionQueueMutex;
     TransactionQueue _transactionQueue;
+
+    
+    std::mutex _transactionFramesMutex;
+    using TransactionFrames = std::list<Transaction>;
+    TransactionFrames _transactionFrames;
+    uint32_t _transactionFrameNumber{ 0 };
+
+    // Process one transaction frame 
+    void processTransactionFrame(const Transaction& transaction);
 
     // The actual database
     // database of items is protected for editing by a mutex
