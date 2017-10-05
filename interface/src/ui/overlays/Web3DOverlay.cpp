@@ -468,7 +468,7 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
 #endif
 
     touchEvent.setTimestamp((ulong)QDateTime::currentMSecsSinceEpoch());
-    touchEvent.setAccepted(false);
+    touchEvent.setAccepted(_touchBeginAccepted);
 
     if (touchType == QEvent::TouchBegin) {
         _touchBeginAccepted = QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
