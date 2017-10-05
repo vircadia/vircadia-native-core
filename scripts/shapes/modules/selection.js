@@ -55,6 +55,7 @@ SelectionManager = function (side) {
             position: properties.position,
             parentID: properties.parentID,
             localPosition: properties.localPosition,
+            localRotation: properties.localRotation,
             registrationPoint: properties.registrationPoint,
             rotation: properties.rotation,
             dimensions: properties.dimensions,
@@ -363,7 +364,8 @@ SelectionManager = function (side) {
         for (i = 1, length = selection.length; i < length; i++) {
             Entities.editEntity(selection[i].id, {
                 dimensions: Vec3.multiply(factor, selection[i].dimensions),
-                localPosition: Vec3.multiply(factor, selection[i].localPosition)
+                localPosition: Vec3.multiply(factor, selection[i].localPosition),
+                localRotation: selection[i].localRotation // Always specify localRotation otherwise rotations can drift.
             });
         }
 
@@ -405,7 +407,8 @@ SelectionManager = function (side) {
                 entityID: selection[i].id,
                 properties: {
                     dimensions: selection[i].dimensions,
-                    localPosition: selection[i].localPosition
+                    localPosition: selection[i].localPosition,
+                    localRotation: selection[i].localRotation
                 }
             });
             selection[i].dimensions = Vec3.multiply(scaleFactor, selection[i].dimensions);
@@ -414,7 +417,8 @@ SelectionManager = function (side) {
                 entityID: selection[i].id,
                 properties: {
                     dimensions: selection[i].dimensions,
-                    localPosition: selection[i].localPosition
+                    localPosition: selection[i].localPosition,
+                    localRotation: selection[i].localRotation
                 }
             });
         }
@@ -476,7 +480,8 @@ SelectionManager = function (side) {
         for (i = 1, length = selection.length; i < length; i++) {
             Entities.editEntity(selection[i].id, {
                 dimensions: Vec3.multiplyVbyV(factor, selection[i].dimensions),
-                localPosition: Vec3.multiplyVbyV(factor, selection[i].localPosition)
+                localPosition: Vec3.multiplyVbyV(factor, selection[i].localPosition),
+                localRotation: selection[i].localRotation // Always specify localRotation otherwise rotations can drift.
             });
         }
 
@@ -518,7 +523,8 @@ SelectionManager = function (side) {
                 entityID: selection[i].id,
                 properties: {
                     dimensions: selection[i].dimensions,
-                    localPosition: selection[i].localPosition
+                    localPosition: selection[i].localPosition,
+                    localRotation: selection[i].localRotation
                 }
             });
             selection[i].dimensions = Vec3.multiplyVbyV(scaleFactor, selection[i].dimensions);
@@ -527,7 +533,8 @@ SelectionManager = function (side) {
                 entityID: selection[i].id,
                 properties: {
                     dimensions: selection[i].dimensions,
-                    localPosition: selection[i].localPosition
+                    localPosition: selection[i].localPosition,
+                    localRotation: selection[i].localRotation
                 }
             });
         }
