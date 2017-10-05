@@ -2429,7 +2429,7 @@ SelectionDisplay = (function() {
             var MIN_ELEVATION = 0.02; //  largest dimension of object divided by distance to it
             var elevation = translateXZTool.elevation(pickRay.origin, pick);
             if (wantDebug) {
-                    print("Start Elevation: " + translateXZTool.startingElevation + ", elevation: " + elevation);
+                print("Start Elevation: " + translateXZTool.startingElevation + ", elevation: " + elevation);
             }
             if ((translateXZTool.startingElevation > 0.0 && elevation < MIN_ELEVATION) ||
                 (translateXZTool.startingElevation < 0.0 && elevation > -MIN_ELEVATION)) {
@@ -2642,11 +2642,11 @@ SelectionDisplay = (function() {
 
     // FUNCTION: VEC 3 MULT
     var vec3Mult = function(v1, v2) {
-            return {
-                x: v1.x * v2.x,
-                y: v1.y * v2.y,
-                z: v1.z * v2.z
-            };
+        return {
+            x: v1.x * v2.x,
+            y: v1.y * v2.y,
+            z: v1.z * v2.z
+        };
     };
 
     // FUNCTION: MAKE STRETCH TOOL
@@ -2740,8 +2740,7 @@ SelectionDisplay = (function() {
                 deltaPivot3D = Vec3.subtract(centeredRP, scaledPivot3D);
                 
                 var scaledOffsetWorld3D = vec3Mult(initialDimensions, 
-                    Vec3.subtract(Vec3.multiply(0.5, Vec3.multiply(-1.0, directionFor3DStretch)), 
-                    centeredRP));
+                    Vec3.subtract(Vec3.multiply(0.5, Vec3.multiply(-1.0, directionFor3DStretch)), centeredRP));
                 
                 pickRayPosition3D = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
             }
@@ -2921,8 +2920,8 @@ SelectionDisplay = (function() {
                 
             } else {
                 newPick = rayPlaneIntersection(pickRay,
-                pickRayPosition,
-                planeNormal);
+                    pickRayPosition,
+                    planeNormal);
                 vector = Vec3.subtract(newPick, lastPick);
 
                 vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
