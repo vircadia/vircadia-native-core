@@ -19,8 +19,10 @@ class OffscreenQmlSurface;
 
 class Web3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
+    using Parent = Billboard3DOverlay;
 
 public:
+
     static const QString QML;
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
@@ -29,8 +31,6 @@ public:
     Web3DOverlay(const Web3DOverlay* Web3DOverlay);
     virtual ~Web3DOverlay();
 
-    QString pickURL();
-    void loadSourceURL();
     void setMaxFPS(uint8_t maxFPS);
     virtual void render(RenderArgs* args) override;
     virtual const render::ShapeKey getShapeKey() override;
@@ -76,7 +76,14 @@ signals:
     void requestWebSurface();
     void releaseWebSurface();
 
+protected:
+    Transform evalRenderTransform() override;
+
 private:
+    void setupQmlSurface();
+    void rebuildWebSurface();
+    bool isWebContent() const;
+
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     gpu::TexturePointer _texture;

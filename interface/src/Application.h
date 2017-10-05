@@ -76,6 +76,7 @@
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
+#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -147,6 +148,8 @@ public:
 
     void initializeGL();
     void initializeUi();
+
+    void updateCamera(RenderArgs& renderArgs);
     void paintGL();
     void resizeGL();
 
@@ -173,7 +176,6 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
-    void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -192,10 +194,9 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-
-    size_t getFrameCount() const { return _frameCount; }
-    float getFps() const { return _frameCounter.rate(); }
-    float getTargetFrameRate() const; // frames/second
+    size_t getRenderFrameCount() const { return _renderFrameCount; }
+    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -218,7 +219,7 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
-    virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
+    virtual void registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) override;
 
     virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override { copyDisplayViewFrustum(viewOut); }
     virtual QThread* getMainThread() override { return thread(); }
@@ -266,8 +267,7 @@ public:
 
     void updateMyAvatarLookAtPosition();
 
-    float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
-    float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
     void takeSecondaryCameraSnapshot();
@@ -429,7 +429,6 @@ private slots:
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
-    bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     bool askToReplaceDomainContent(const QString& url);
 
@@ -464,13 +463,11 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateLOD() const;
+    void updateLOD(float deltaTime) const;
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
-
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
 
     int sendNackPackets();
     void sendAvatarViewFrustum();
@@ -481,7 +478,7 @@ private:
 
     void initializeAcceptedFiles();
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
+    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
@@ -532,12 +529,13 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
-    uint32_t _frameCount { 0 };
+    uint32_t _renderFrameCount { 0 };
 
     // Frame Rate Measurement
-    RateCounter<> _frameCounter;
-    RateCounter<> _avatarSimCounter;
-    RateCounter<> _simCounter;
+    RateCounter<500> _renderLoopCounter;
+    RateCounter<500> _gameLoopCounter;
+
+    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
@@ -554,7 +552,6 @@ private:
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
-    ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
@@ -625,6 +622,24 @@ private:
     render::EnginePointer _renderEngine{ new render::Engine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
+    struct AppRenderArgs {
+        render::Args _renderArgs;
+        glm::mat4 _eyeToWorld;
+        glm::mat4 _eyeOffsets[2];
+        glm::mat4 _eyeProjections[2];
+        glm::mat4 _headPose;
+        glm::mat4 _sensorToWorld;
+        float _sensorToWorldScale { 1.0f };
+        bool _isStereo{ false };
+    };
+    AppRenderArgs _appRenderArgs;
+
+
+    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
+    void editRenderArgs(RenderArgsEditor editor);
+
+
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     OverlayConductor _overlayConductor;
@@ -651,8 +666,6 @@ private:
     Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
 
-    QThread* _deadlockWatchdogThread;
-
     std::map<void*, std::function<void()>> _postUpdateLambdas;
     std::mutex _postUpdateLambdasLock;
 
@@ -660,11 +673,9 @@ private:
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
     uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
     uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
-    quint64 _lastPhysicsCheckTime { 0 }; // when did we last check to see if physics was ready
+    quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
-
-    bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
 

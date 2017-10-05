@@ -19,9 +19,11 @@
 #include <SettingHandle.h>
 #include <Rig.h>
 #include <Sound.h>
+#include <ScriptEngine.h>
 
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
+#include <AvatarConstants.h>
 #include <avatars-renderer/Avatar.h>
 #include <avatars-renderer/ScriptAvatar.h>
 
@@ -102,6 +104,8 @@ class MyAvatar : public Avatar {
      * @property collisionsEnabled {bool} This can be used to disable collisions between the avatar and the world.
      * @property useAdvancedMovementControls {bool} Stores the user preference only, does not change user mappings, this is done in the defaultScript
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
+     * @property userHeight {number} The height of the user in sensor space. (meters).
+     * @property userEyeHeight {number} Estimated height of the users eyes in sensor space. (meters)
      */
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
@@ -146,6 +150,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
     Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
 
+    Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
+    Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
+ 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
@@ -169,7 +176,7 @@ public:
     ~MyAvatar();
 
     void instantiableAvatar() override {};
-    void registerMetaTypes(QScriptEngine* engine);
+    void registerMetaTypes(ScriptEnginePointer engine);
 
     virtual void simulateAttachments(float deltaTime) override;
 
@@ -196,7 +203,7 @@ public:
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 
     void update(float deltaTime);
-    virtual void postUpdate(float deltaTime) override;
+    virtual void postUpdate(float deltaTime, const render::ScenePointer& scene) override;
     void preDisplaySide(RenderArgs* renderArgs);
 
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
@@ -533,12 +540,19 @@ public:
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
 
+    void setUserHeight(float value);
+    float getUserHeight() const;
+    float getUserEyeHeight() const;
+
 public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
     float getDomainMinScale();
     float getDomainMaxScale();
+
+    void setGravity(float gravity);
+    float getGravity();
 
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
@@ -580,6 +594,8 @@ public slots:
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
 
+    virtual void setModelScale(float scale) override;
+
 signals:
     void audioListenerModeChanged();
     void transformChanged();
@@ -592,6 +608,7 @@ signals:
     void wentActive();
     void skeletonChanged();
     void dominantHandChanged(const QString& hand);
+    void sensorToWorldScaleChanged(float sensorToWorldScale);
 
 private:
 
@@ -712,7 +729,7 @@ private:
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
     float _lastDrivenSpeed { 0.0f };
 
-    // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
 
     // cache of the current HMD sensor position and orientation in sensor space.
@@ -778,8 +795,6 @@ private:
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
-    bool _hoverReferenceCameraFacingIsCaptured { false };
-    glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
@@ -806,6 +821,9 @@ private:
     void setAway(bool value);
 
     std::vector<int> _pinnedJoints;
+
+    // height of user in sensor space, when standing erect.
+    ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

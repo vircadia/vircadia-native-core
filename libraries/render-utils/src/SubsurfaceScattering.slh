@@ -105,7 +105,7 @@ vec3 integrate(float cosTheta, float skinRadius) {
     vec3 totalLight = vec3(0.0);
 
     const float _PI = 3.14159265358979523846;
-    const float step = 2.0 * _PI / <$NumIntegrationSteps$>;
+    const float step = 2.0 * _PI / float(<$NumIntegrationSteps$>);
     float a = -(_PI);
 
 

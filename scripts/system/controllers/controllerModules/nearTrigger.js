@@ -6,9 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   enableDispatcherModule, disableDispatcherModule, getGrabbableData, Vec3,
-   TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, makeRunningValues, NEAR_GRAB_RADIUS
+/* global Script, Entities, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, getGrabbableData,
+   Vec3, TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, makeRunningValues, NEAR_GRAB_RADIUS
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -27,9 +26,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
+        this.startSent = false;
 
         this.parameters = makeDispatcherModuleParameters(
-            520,
+            480,
             this.hand === RIGHT_HAND ? ["rightHandTrigger", "rightHand"] : ["leftHandTrigger", "leftHand"],
             [],
             100);
@@ -37,11 +37,12 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.getTargetProps = function (controllerData) {
             // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
+            var sensorScaleFactor = MyAvatar.sensorToWorldScale;
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(props.position, handPosition);
-                if (distance > NEAR_GRAB_RADIUS) {
+                if (distance > NEAR_GRAB_RADIUS * sensorScaleFactor) {
                     continue;
                 }
                 if (entityWantsNearTrigger(props)) {
@@ -63,7 +64,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.endNearTrigger = function (controllerData) {
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "endNearTrigger", args);
+            Entities.callEntityMethod(this.targetEntityID, "stopNearTrigger", args);
         };
 
         this.isReady = function (controllerData) {
@@ -76,7 +77,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
                 this.targetEntityID = targetProps.id;
-                this.startNearTrigger(controllerData);
                 return makeRunningValues(true, [this.targetEntityID], []);
             } else {
                 return makeRunningValues(false, [], []);
@@ -84,12 +84,16 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0) {
+            if (!this.startSent) {
+                this.startNearTrigger(controllerData);
+                this.startSent = true;
+            } else if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
                 this.endNearTrigger(controllerData);
+                this.startSent = false;
                 return makeRunningValues(false, [], []);
+            } else {
+                this.continueNearTrigger(controllerData);
             }
-
-            this.continueNearTrigger(controllerData);
             return makeRunningValues(true, [this.targetEntityID], []);
         };
 

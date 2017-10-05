@@ -36,6 +36,29 @@
 
 static CollisionRenderMeshCache collisionMeshCache;
 
+void ModelEntityWrapper::setModel(const ModelPointer& model) {
+    withWriteLock([&] {
+        if (_model != model) {
+            _model = model;
+            if (_model) {
+                _needsInitialSimulation = true;
+            }
+        }
+    });
+}
+
+ModelPointer ModelEntityWrapper::getModel() const {
+    return resultWithReadLock<ModelPointer>([&] {
+        return _model;
+    });
+}
+
+bool ModelEntityWrapper::isModelLoaded() const {
+    return resultWithReadLock<bool>([&] {
+        return _model.operator bool() && _model->isLoaded();
+    });
+}
+
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()) };
     entity->setProperties(properties);
@@ -43,7 +66,7 @@ EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityI
 }
 
 RenderableModelEntityItem::RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized) :
-    ModelEntityItem(entityItemID),
+    ModelEntityWrapper(entityItemID),
     _dimensionsInitialized(dimensionsInitialized) {
 }
 
@@ -83,41 +106,47 @@ QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextu
 }
 
 void RenderableModelEntityItem::doInitialModelSimulation() {
+    ModelPointer model = getModel();
+    if (!model) {
+        return;
+    }
     // The machinery for updateModelBounds will give existing models the opportunity to fix their
     // translation/rotation/scale/registration.  The first two are straightforward, but the latter two have guards to
     // make sure they don't happen after they've already been set.  Here we reset those guards. This doesn't cause the
     // entity values to change -- it just allows the model to match once it comes in.
-    _model->setScaleToFit(false, getDimensions());
-    _model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
+    model->setScaleToFit(false, getDimensions());
+    model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
 
     // now recalculate the bounds and registration
-    _model->setScaleToFit(true, getDimensions());
-    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-    _model->setRotation(getRotation());
-    _model->setTranslation(getPosition());
+    model->setScaleToFit(true, getDimensions());
+    model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+    model->setRotation(getRotation());
+    model->setTranslation(getPosition());
     {
-        PerformanceTimer perfTimer("_model->simulate");
-        _model->simulate(0.0f);
+        PerformanceTimer perfTimer("model->simulate");
+        model->simulate(0.0f);
     }
     _needsInitialSimulation = false;
 }
 
 void RenderableModelEntityItem::autoResizeJointArrays() {
-    if (_model && _model->isLoaded() && !_needsInitialSimulation) {
-        resizeJointArrays(_model->getJointStateCount());
+    ModelPointer model = getModel();
+    if (model && model->isLoaded() && !_needsInitialSimulation) {
+        resizeJointArrays(model->getJointStateCount());
     }
 }
 
 bool RenderableModelEntityItem::needsUpdateModelBounds() const {
-    if (!hasModel() || !_model) {
+    ModelPointer model = getModel();
+    if (!hasModel() || !model) {
         return false;
     }
 
-    if (!_dimensionsInitialized || !_model->isActive()) {
+    if (!_dimensionsInitialized || !model->isActive()) {
         return false;
     }
 
-    if (_model->needsReload()) {
+    if (model->needsReload()) {
         return true;
     }
 
@@ -129,21 +158,21 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         return true;
     }
 
-    if (_model->getScaleToFitDimensions() != getDimensions()) {
+    if (model->getScaleToFitDimensions() != getDimensions()) {
         return true;
     }
 
-    if (_model->getRegistrationPoint() != getRegistrationPoint()) {
+    if (model->getRegistrationPoint() != getRegistrationPoint()) {
         return true;
     }
 
     bool success;
     auto transform = getTransform(success);
     if (success) {
-        if (_model->getTranslation() != transform.getTranslation()) {
+        if (model->getTranslation() != transform.getTranslation()) {
             return true;
         }
-        if (_model->getRotation() != transform.getRotation()) {
+        if (model->getRotation() != transform.getRotation()) {
             return true;
         }
     }
@@ -158,16 +187,6 @@ void RenderableModelEntityItem::updateModelBounds() {
     }
 }
 
-void RenderableModelEntityItem::setModel(const ModelPointer& model) {
-    withWriteLock([&] {
-        if (_model != model) {
-            _model = model;
-            if (_model) {
-                _needsInitialSimulation = true;
-            }
-        }
-    });
-}
 
 EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = ModelEntityItem::getProperties(desiredProperties); // get the properties from our base class
@@ -175,43 +194,44 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
         properties.setTextureNames(_originalTextures);
     }
 
-    if (_model) {
-        properties.setRenderInfoVertexCount(_model->getRenderInfoVertexCount());
-        properties.setRenderInfoTextureCount(_model->getRenderInfoTextureCount());
-        properties.setRenderInfoTextureSize(_model->getRenderInfoTextureSize());
-        properties.setRenderInfoDrawCalls(_model->getRenderInfoDrawCalls());
-        properties.setRenderInfoHasTransparent(_model->getRenderInfoHasTransparent());
+    ModelPointer model = getModel();
+    if (model) {
+        properties.setRenderInfoVertexCount(model->getRenderInfoVertexCount());
+        properties.setRenderInfoTextureCount(model->getRenderInfoTextureCount());
+        properties.setRenderInfoTextureSize(model->getRenderInfoTextureSize());
+        properties.setRenderInfoDrawCalls(model->getRenderInfoDrawCalls());
+        properties.setRenderInfoHasTransparent(model->getRenderInfoHasTransparent());
+
+        if (model->isLoaded()) {
+            // TODO: improve naturalDimensions in the future,
+            //       for now we've added this hack for setting natural dimensions of models
+            Extents meshExtents = model->getFBXGeometry().getUnscaledMeshExtents();
+            properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+            properties.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
+        }
     }
 
 
-    if (_model && _model->isLoaded()) {
-        // TODO: improve naturalDimensions in the future,
-        //       for now we've added this hack for setting natural dimensions of models
-        Extents meshExtents = _model->getFBXGeometry().getUnscaledMeshExtents();
-        properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
-        properties.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
-    }
 
     return properties;
 }
 
 bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
-    return resultWithReadLock<bool>([&] {
-        return _model && _model->isLoaded();
-    });
+    return isModelLoaded();
 }
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, void** intersectedObject, bool precisionPicking) const {
-    if (!_model) {
+    auto model = getModel();
+    if (!model) {
         return true;
     }
     // qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:"
     //                           << precisionPicking;
 
     QString extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
+    return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
                                                        face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
@@ -242,7 +262,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
-    if (getCompoundShapeURL() != currentCompoundShapeURL || !_model) {
+    if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {
         if (getShapeType() == SHAPE_TYPE_COMPOUND) {
             getCollisionGeometryResource();
         }
@@ -252,17 +272,18 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
 bool RenderableModelEntityItem::isReadyToComputeShape() const {
     ShapeType type = getShapeType();
 
+    auto model = getModel();
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_model || getCompoundShapeURL().isEmpty()) {
+        if (!model || getCompoundShapeURL().isEmpty()) {
             return false;
         }
 
-        if (_model->getURL().isEmpty()) {
+        if (model->getURL().isEmpty()) {
             // we need a render geometry with a scale to proceed, so give up.
             return false;
         }
 
-        if (_model->isLoaded()) {
+        if (model->isLoaded()) {
             if (!getCompoundShapeURL().isEmpty() && !_compoundShapeResource) {
                 const_cast<RenderableModelEntityItem*>(this)->getCollisionGeometryResource();
             }
@@ -281,7 +302,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
         // the model is still being downloaded.
         return false;
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        return (_model && _model->isLoaded());
+        return isModelLoaded();
     }
     return true;
 }
@@ -292,12 +313,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
     ShapeType type = getShapeType();
     glm::vec3 dimensions = getDimensions();
+    auto model = getModel();
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
-        // hence we assert that all geometries exist and are loaded
-        assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
+        // TODO: assert that all geometries exist and are loaded
+        //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
         const FBXGeometry& collisionGeometry = _compoundShapeResource->getFBXGeometry();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
@@ -373,27 +395,27 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        glm::vec3 scaleToFit = dimensions / _model->getFBXGeometry().getUnscaledMeshExtents().size();
+        glm::vec3 scaleToFit = dimensions / model->getFBXGeometry().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
         glm::vec3 registrationOffset = dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
         for (int32_t i = 0; i < pointCollection.size(); i++) {
             for (int32_t j = 0; j < pointCollection[i].size(); j++) {
                 // back compensate for registration so we can apply that offset to the shapeInfo later
-                pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + _model->getOffset()) - registrationOffset;
+                pointCollection[i][j] = scaleToFit * (pointCollection[i][j] + model->getOffset()) - registrationOffset;
             }
         }
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        // should never fall in here when model not fully loaded
-        assert(_model && _model->isLoaded());
+        // TODO: assert we never fall in here when model not fully loaded
+        //assert(_model && _model->isLoaded());
 
         updateModelBounds();
-        _model->updateGeometry();
+        model->updateGeometry();
 
         // compute meshPart local transforms
         QVector<glm::mat4> localTransforms;
-        const FBXGeometry& fbxGeometry = _model->getFBXGeometry();
+        const FBXGeometry& fbxGeometry = model->getFBXGeometry();
         int numFbxMeshes = fbxGeometry.meshes.size();
         int totalNumVertices = 0;
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
@@ -401,7 +423,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
-                auto jointMatrix = _model->getRig().getJointTransform(cluster.jointIndex);
+                auto jointMatrix = model->getRig().getJointTransform(cluster.jointIndex);
                 // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
                 localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
             } else {
@@ -417,7 +439,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             return;
         }
 
-        auto& meshes = _model->getGeometry()->getMeshes();
+        auto& meshes = model->getGeometry()->getMeshes();
         int32_t numMeshes = (int32_t)(meshes.size());
 
         const int MAX_ALLOWED_MESH_COUNT = 1000;
@@ -631,7 +653,8 @@ void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape)
 }
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
-    if (EntityItem::contains(point) && _model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
+    auto model = getModel();
+    if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
         return _compoundShapeResource->getFBXGeometry().convexHullContains(worldToEntity(point));
     }
 
@@ -639,11 +662,12 @@ bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
 }
 
 bool RenderableModelEntityItem::shouldBePhysical() const {
+    auto model = getModel();
     // If we have a model, make sure it hasn't failed to download.
     // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
-    if (_model && getShapeType() == SHAPE_TYPE_COMPOUND && _model->didCollisionGeometryRequestFail()) {
+    if (model && getShapeType() == SHAPE_TYPE_COMPOUND && model->didCollisionGeometryRequestFail()) {
         return false;
-    } else if (_model && getShapeType() != SHAPE_TYPE_NONE && _model->didVisualGeometryRequestFail()) {
+    } else if (model && getShapeType() != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
         return false;
     } else {
         return ModelEntityItem::shouldBePhysical();
@@ -651,9 +675,10 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
 }
 
 glm::quat RenderableModelEntityItem::getAbsoluteJointRotationInObjectFrame(int index) const {
-    if (_model) {
+    auto model = getModel();
+    if (model) {
         glm::quat result;
-        if (_model->getAbsoluteJointRotationInRigFrame(index, result)) {
+        if (model->getAbsoluteJointRotationInRigFrame(index, result)) {
             return result;
         }
     }
@@ -661,9 +686,10 @@ glm::quat RenderableModelEntityItem::getAbsoluteJointRotationInObjectFrame(int i
 }
 
 glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    if (_model) {
+    auto model = getModel();
+    if (model) {
         glm::vec3 result;
-        if (_model->getAbsoluteJointTranslationInRigFrame(index, result)) {
+        if (model->getAbsoluteJointTranslationInRigFrame(index, result)) {
             return result;
         }
     }
@@ -671,10 +697,11 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
 }
 
 bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
-    if (!_model) {
+    auto model = getModel();
+    if (!model) {
         return false;
     }
-    const Rig& rig = _model->getRig();
+    const Rig& rig = model->getRig();
     int jointParentIndex = rig.getJointParentIndex(index);
     if (jointParentIndex == -1) {
         return setLocalJointRotation(index, rotation);
@@ -700,10 +727,11 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
 }
 
 bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
-    if (!_model) {
+    auto model = getModel();
+    if (!model) {
         return false;
     }
-    const Rig& rig = _model->getRig();
+    const Rig& rig = model->getRig();
 
     int jointParentIndex = rig.getJointParentIndex(index);
     if (jointParentIndex == -1) {
@@ -730,9 +758,10 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
 }
 
 glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
-    if (_model) {
+    auto model = getModel();
+    if (model) {
         glm::quat result;
-        if (_model->getJointRotation(index, result)) {
+        if (model->getJointRotation(index, result)) {
             return result;
         }
     }
@@ -740,9 +769,10 @@ glm::quat RenderableModelEntityItem::getLocalJointRotation(int index) const {
 }
 
 glm::vec3 RenderableModelEntityItem::getLocalJointTranslation(int index) const {
-    if (_model) {
+    auto model = getModel();
+    if (model) {
         glm::vec3 result;
-        if (_model->getJointTranslation(index, result)) {
+        if (model->getJointTranslation(index, result)) {
             return result;
         }
     }
@@ -810,19 +840,22 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
 void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
     PerformanceTimer pertTimer("locationChanged");
     EntityItem::locationChanged(tellPhysics);
-    if (_model && _model->isLoaded()) {
-        _model->updateRenderItems();
+    auto model = getModel();
+    if (model && model->isLoaded()) {
+        model->updateRenderItems();
     }
 }
 
 int RenderableModelEntityItem::getJointIndex(const QString& name) const {
-    return (_model && _model->isActive()) ? _model->getRig().indexOfJoint(name) : -1;
+    auto model = getModel();
+    return (model && model->isActive()) ? model->getRig().indexOfJoint(name) : -1;
 }
 
 QStringList RenderableModelEntityItem::getJointNames() const {
     QStringList result;
-    if (_model && _model->isActive()) {
-        const Rig& rig = _model->getRig();
+    auto model = getModel();
+    if (model && model->isActive()) {
+        const Rig& rig = model->getRig();
         int jointCount = rig.getJointStateCount();
         for (int jointIndex = 0; jointIndex < jointCount; jointIndex++) {
             result << rig.nameOfJoint(jointIndex);
@@ -832,19 +865,16 @@ QStringList RenderableModelEntityItem::getJointNames() const {
 }
 
 bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
-    if (!_model || !_model->isLoaded()) {
+    auto model = getModel();
+    if (!model || !model->isLoaded()) {
         return false;
     }
-    BLOCKING_INVOKE_METHOD(_model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
+    BLOCKING_INVOKE_METHOD(model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
     return !result.isEmpty();
 }
 
 void RenderableModelEntityItem::copyAnimationJointDataToModel() {
-    ModelPointer model; 
-    withReadLock([&] {
-        model = _model;
-    });
-
+    auto model = getModel();
     if (!model || !model->isLoaded()) {
         return;
     }
@@ -859,7 +889,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
                 jointData.rotationDirty = false;
             }
             if (jointData.translationDirty) {
-                _model->setJointTranslation(index, true, jointData.joint.translation, 1.0f);
+                model->setJointTranslation(index, true, jointData.joint.translation, 1.0f);
                 jointData.translationDirty = false;
             }
         }
@@ -874,7 +904,7 @@ using namespace render;
 using namespace render::entities;
 
 ItemKey ModelEntityRenderer::getKey() {
-    return ItemKey::Builder::opaqueShape().withTypeMeta();
+    return ItemKey::Builder().withTypeMeta();
 }
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
@@ -996,11 +1026,15 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     entity->copyAnimationJointDataToModel();
 }
 
-bool ModelEntityRenderer::needsRenderUpdate() const {
+bool ModelEntityRenderer::needsUpdate() const {
     ModelPointer model;
     withReadLock([&] {
         model = _model;
     });
+
+    if (_modelJustLoaded) {
+        return true;
+    }
 
     if (model) {
         if (_needsJointSimulation || _moving || _animating) {
@@ -1027,10 +1061,10 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
     }
-    return Parent::needsRenderUpdate();
+    return Parent::needsUpdate();
 }
 
-bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+bool ModelEntityRenderer::needsUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (resultWithReadLock<bool>([&] {
         if (entity->hasModel() != _hasModel) {
             return true;
@@ -1092,7 +1126,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     return false;
 }
 
-void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1118,9 +1152,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         return;
     }
 
+    _modelJustLoaded = false;
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());
+        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::handleModelLoaded);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         model->init();
         entity->setModel(model);
@@ -1145,8 +1181,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
         auto extents = model->getMeshExtents();
         properties.setDimensions(extents.maximum - extents.minimum);
-        qCDebug(entitiesrenderer) << "Autoresizing" 
-            << (!entity->getName().isEmpty() ?  entity->getName() : entity->getModelURL()) 
+        qCDebug(entitiesrenderer) << "Autoresizing"
+            << (!entity->getName().isEmpty() ? entity->getName() : entity->getModelURL())
             << "from mesh extents";
 
         QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
@@ -1173,7 +1209,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         entity->updateModelBounds();
     }
 
-
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
         //        the renderable item. As it stands now the model checks it's visible/invisible state
@@ -1192,7 +1227,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
     // we will watch for that and ask the model to update it's render items
     if (model->getRenderItemsNeedUpdate()) {
-        qDebug() << "QQQ" << __FUNCTION__ << "Update model render items" << model->getURL();
         model->updateRenderItems();
     }
 
@@ -1205,12 +1239,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         });
     }
 
-
     if (_animating) {
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }
         animate(entity);
+    }
+}
+
+void ModelEntityRenderer::handleModelLoaded(bool success) {
+    if (success) {
+        _modelJustLoaded = true;
     }
 }
 

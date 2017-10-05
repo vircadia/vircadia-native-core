@@ -47,6 +47,8 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
     connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
+    connect(nodeList.data(), &NodeList::canRezCertifiedChanged, this, &EntityScriptingInterface::canRezCertifiedChanged);
+    connect(nodeList.data(), &NodeList::canRezTmpCertifiedChanged, this, &EntityScriptingInterface::canRezTmpCertifiedChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
 }
 
@@ -74,6 +76,16 @@ bool EntityScriptingInterface::canRez() {
 bool EntityScriptingInterface::canRezTmp() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanRezTmp();
+}
+
+bool EntityScriptingInterface::canRezCertified() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezCertified();
+}
+
+bool EntityScriptingInterface::canRezTmpCertified() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanRezTmpCertified();
 }
 
 bool EntityScriptingInterface::canWriteAssets() {
@@ -539,7 +551,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 }
 
-void EntityScriptingInterface::setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) {
+void EntityScriptingInterface::setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
     _entitiesScriptEngine = engine;
 }
@@ -659,22 +671,22 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const {
-	EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
+    EntityTypes::EntityType type = EntityTypes::getEntityTypeFromName(entityType);
 
-	QVector<QUuid> result;
-	if (_entityTree) {
-		QVector<EntityItemPointer> entities;
-		_entityTree->withReadLock([&] {
-			_entityTree->findEntities(center, radius, entities);
-		});
+    QVector<QUuid> result;
+    if (_entityTree) {
+        QVector<EntityItemPointer> entities;
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
 
-		foreach(EntityItemPointer entity, entities) {
-			if (entity->getType() == type) {
-				result << entity->getEntityItemID();
-			}
-		}
-	}
-	return result;
+        foreach(EntityItemPointer entity, entities) {
+            if (entity->getType() == type) {
+                result << entity->getEntityItemID();
+            }
+        }
+    }
+    return result;
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
@@ -749,7 +761,7 @@ bool EntityPropertyMetadataRequest::script(EntityItemID entityID, QScriptValue h
         request->deleteLater();
     });
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    entityScriptingInterface->withEntitiesScriptEngine([&](EntitiesScriptEngineProvider* entitiesScriptEngine) {
+    entityScriptingInterface->withEntitiesScriptEngine([&](QSharedPointer<EntitiesScriptEngineProvider> entitiesScriptEngine) {
         if (entitiesScriptEngine) {
             request->setFuture(entitiesScriptEngine->getLocalEntityScriptDetails(entityID));
         }
@@ -1753,3 +1765,31 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
     }
     return result;
 }
+
+bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& entityID) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->verifyStaticCertificateProperties();
+            }
+        });
+    }
+    return result;
+}
+
+#ifdef DEBUG_CERT
+QString EntityScriptingInterface::computeCertificateID(const QUuid& entityID) {
+    QString result { "" };
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->computeCertificateID();
+            }
+        });
+    }
+    return result;
+}
+#endif

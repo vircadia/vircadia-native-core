@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  sdf_text.frag
+//  sdf_text3D.frag
 //  fragment shader
 //
 //  Created by Bradley Austin Davis on 2015-02-04
@@ -38,18 +38,21 @@ void main() {
     // perform adaptive anti-aliasing of the edges
     // The larger we're rendering, the less anti-aliasing we need
     float s = smoothing * length(fwidth(_texCoord0));
-    float w = clamp( s, 0.0, 0.5);
+    float w = clamp(s, 0.0, 0.5);
     float a = smoothstep(0.5 - w, 0.5 + w, sdf);
     
-    // discard if unvisible
+    // discard if invisible
     if (a < 0.01) {
         discard;
     }
-    
-    packDeferredFragmentTranslucent(
+
+    packDeferredFragment(
         normalize(_normal),
         a * Color.a,
         Color.rgb,
-        DEFAULT_FRESNEL,
-        DEFAULT_ROUGHNESS);
+        DEFAULT_ROUGHNESS,
+        DEFAULT_METALLIC,
+        DEFAULT_EMISSIVE,
+        DEFAULT_OCCLUSION,
+        DEFAULT_SCATTERING);
 }

@@ -256,15 +256,46 @@ bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3
 void Base3DOverlay::locationChanged(bool tellPhysics) {
     SpatiallyNestable::locationChanged(tellPhysics);
 
-    auto itemID = getRenderItemID();
-    if (render::Item::isValidID(itemID)) {
-        render::ScenePointer scene = qApp->getMain3DScene();
-        render::Transaction transaction;
-        transaction.updateItem(itemID);
-        scene->enqueueTransaction(transaction);
-    }
+    // Force the actual update of the render transform through the notify call
+    notifyRenderTransformChange();
 }
 
 void Base3DOverlay::parentDeleted() {
     qApp->getOverlays().deleteOverlay(getOverlayID());
+}
+
+void Base3DOverlay::update(float duration) {
+    // In Base3DOverlay, if its location or bound changed, the renderTrasnformDirty flag is true.
+    // then the correct transform used for rendering is computed in the update transaction and assigned.
+    if (_renderTransformDirty) {
+        auto itemID = getRenderItemID();
+        // Capture the render transform value in game loop before 
+        auto latestTransform = evalRenderTransform();
+        _renderTransformDirty = false;
+        if (render::Item::isValidID(itemID)) {
+            render::ScenePointer scene = qApp->getMain3DScene();
+            render::Transaction transaction;
+            transaction.updateItem<Overlay>(itemID, [latestTransform](Overlay& data) {
+                auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
+                if (overlay3D) {
+                    overlay3D->setRenderTransform(latestTransform);
+                }
+            });
+            scene->enqueueTransaction(transaction);
+        } else {
+            setRenderTransform(latestTransform);
+        }
+    }
+}
+
+void Base3DOverlay::notifyRenderTransformChange() const {
+    _renderTransformDirty = true;
+}
+
+Transform Base3DOverlay::evalRenderTransform() {
+    return getTransform();
+}
+
+void Base3DOverlay::setRenderTransform(const Transform& transform) {
+    _renderTransform = transform;
 }

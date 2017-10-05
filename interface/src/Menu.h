@@ -200,6 +200,8 @@ namespace MenuOption {
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
     const QString WorldAxes = "World Axes";
+    const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
+    const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
 }
 
 #endif // hifi_Menu_h

@@ -56,19 +56,19 @@ public:
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
 
     virtual bool isReadyToComputeShape() const override { return false; }
-    void setShapeType(ShapeType type) override { _shapeType = type; }
+    void setShapeType(ShapeType type) override { withWriteLock([&] { _shapeType = type; }); }
     virtual ShapeType getShapeType() const override;
 
     virtual bool hasCompoundShapeURL() const;
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
 
-    const KeyLightPropertyGroup& getKeyLightProperties() const { return _keyLightProperties; }
+    KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
 
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
-    const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
+    SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
     bool getFlyingAllowed() const { return _flyingAllowed; }

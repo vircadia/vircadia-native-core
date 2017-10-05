@@ -30,7 +30,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES;
+            return VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES;
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
@@ -42,6 +42,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
+        case PacketType::AssetMappingOperation:
+        case PacketType::AssetMappingOperationReply:
+            return static_cast<PacketVersion>(AssetServerPacketVersion::RedirectedMappings);
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:
@@ -65,7 +68,6 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
             return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
-
         default:
             return 17;
     }

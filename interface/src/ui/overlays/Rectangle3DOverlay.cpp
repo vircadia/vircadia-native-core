@@ -66,6 +66,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
+        // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
         Transform transform;
         transform.setTranslation(position);
         transform.setRotation(rotation);
@@ -123,3 +124,8 @@ void Rectangle3DOverlay::setProperties(const QVariantMap& properties) {
 Rectangle3DOverlay* Rectangle3DOverlay::createClone() const {
     return new Rectangle3DOverlay(this);
 }
+
+Transform Rectangle3DOverlay::evalRenderTransform() {
+    return getTransform();
+}
+

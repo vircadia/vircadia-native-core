@@ -351,3 +351,66 @@ clamp = function(val, min, max){
 flatten = function(array) {
     return [].concat.apply([], array);
 }
+
+getTabletWidthFromSettings = function () {
+    var DEFAULT_TABLET_WIDTH = 0.4375;
+    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var toolbarMode = tablet.toolbarMode;
+    var DEFAULT_TABLET_SCALE = 100;
+    var tabletScalePercentage = DEFAULT_TABLET_SCALE;
+    if (!toolbarMode) {
+        if (HMD.active) {
+            tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
+        } else {
+            tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
+        }
+    }
+    return DEFAULT_TABLET_WIDTH * (tabletScalePercentage / 100);
+};
+
+resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride) {
+
+    if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID) {
+        return;
+    }
+
+    var sensorScaleFactor = sensorToWorldScaleOverride || MyAvatar.sensorToWorldScale;
+    var sensorScaleOffsetOverride = 1;
+    var SENSOR_TO_ROOM_MATRIX = 65534;
+    var parentJointIndex = newParentJointIndex || Overlays.getProperty(HMD.tabletID, "parentJointIndex");
+    if (parentJointIndex === SENSOR_TO_ROOM_MATRIX) {
+        sensorScaleOffsetOverride = 1 / sensorScaleFactor;
+    }
+
+    // will need to be recaclulated if dimensions of fbx model change.
+    var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
+    var DEFAULT_DPI = 34;
+    var DEFAULT_WIDTH = 0.4375;
+
+    // scale factor of natural tablet dimensions.
+    var tabletWidth = (width || DEFAULT_WIDTH) * sensorScaleFactor;
+    var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+    var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    var tabletDepth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    var tabletDpi = DEFAULT_DPI * (DEFAULT_WIDTH / tabletWidth);
+
+    // update tablet model dimensions
+    Overlays.editOverlay(HMD.tabletID, {
+        dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth }
+    });
+
+    // update webOverlay
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2) * sensorScaleOffsetOverride;
+    var WEB_ENTITY_Y_OFFSET = 0.004 * sensorScaleOffsetOverride;
+    Overlays.editOverlay(HMD.tabletScreenID, {
+        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        dpi: tabletDpi
+    });
+
+    // update homeButton
+    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * sensorScaleOffsetOverride;
+    Overlays.editOverlay(HMD.homeButtonID, {
+        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
+    });
+};

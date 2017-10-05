@@ -34,10 +34,24 @@ class ModelEntityRenderer;
 } }
 
 //#define MODEL_ENTITY_USE_FADE_EFFECT
-
-class RenderableModelEntityItem : public ModelEntityItem {
+class ModelEntityWrapper : public ModelEntityItem {
+    using Parent = ModelEntityItem;
     friend class render::entities::ModelEntityRenderer;
 
+protected:
+    ModelEntityWrapper(const EntityItemID& entityItemID) : Parent(entityItemID) {}
+    void setModel(const ModelPointer& model);
+    ModelPointer getModel() const;
+    bool isModelLoaded() const;
+
+    bool _needsInitialSimulation{ true };
+private:
+    ModelPointer _model;
+};
+
+class RenderableModelEntityItem : public ModelEntityWrapper {
+    friend class render::entities::ModelEntityRenderer;
+    using Parent = ModelEntityWrapper;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -97,14 +111,11 @@ private:
     bool isAnimatingSomething() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
-    void setModel(const ModelPointer& model);
 
     void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
     bool _originalTexturesRead { false };
     QVariantMap _originalTextures;
-    ModelPointer _model;
-    bool _needsInitialSimulation { true };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
     bool _showCollisionGeometry { false };
@@ -127,10 +138,10 @@ protected:
     virtual ItemKey getKey() override;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
 
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-    virtual bool needsRenderUpdate() const override;
+    virtual bool needsUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual bool needsUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
-    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doUpdateTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
@@ -140,6 +151,7 @@ private:
     // Transparency is handled in ModelMeshPartPayload
     virtual bool isTransparent() const override { return false; }
 
+    bool _modelJustLoaded { false };
     bool _hasModel { false };
     ::ModelPointer _model;
     GeometryResource::Pointer _compoundShapeResource;
@@ -167,6 +179,9 @@ private:
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
     float _currentFrame { 0 };
+
+private slots:
+    void handleModelLoaded(bool success);
 };
 
 } } // namespace 

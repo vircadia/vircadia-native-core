@@ -58,6 +58,7 @@ void Image3DOverlay::update(float deltatime) {
         setTransform(transform);
     }
 #endif
+    Parent::update(deltatime);
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
@@ -116,17 +117,8 @@ void Image3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     xColor color = getColor();
     float alpha = getAlpha();
-    
-    Transform transform = getTransform();
-    bool transformChanged = applyTransformTo(transform, true);
-    // If the transform is not modified, setting the transform to
-    // itself will cause drift over time due to floating point errors.
-    if (transformChanged) {
-        setTransform(transform);
-    }
-    transform.postScale(glm::vec3(getDimensions(), 1.0f));
 
-    batch->setModelTransform(transform);
+    batch->setModelTransform(getRenderTransform());
     batch->setResourceTexture(0, _texture->getGPUTexture());
 
     DependencyManager::get<GeometryCache>()->renderQuad(
@@ -247,4 +239,10 @@ bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec
 
 Image3DOverlay* Image3DOverlay::createClone() const {
     return new Image3DOverlay(this);
+}
+
+Transform Image3DOverlay::evalRenderTransform() {
+    auto transform = Parent::evalRenderTransform();
+    transform.postScale(glm::vec3(getDimensions(), 1.0f));
+    return transform;
 }

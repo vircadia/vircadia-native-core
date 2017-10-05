@@ -7,13 +7,10 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
-   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
-   makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Vec3, Quat, getGrabPointSphereOffset,
+   makeRunningValues, Entities, NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC
-
+   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, ZERO_VEC, Overlays
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -459,7 +456,7 @@ Script.include("/~/system/libraries/controllers.js");
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES,
             maxDistance: PICK_MAX_DISTANCE,
-            posOffset: getGrabPointSphereOffset(this.handToController()),
+            posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
             defaultRenderStates: defaultRenderStates
