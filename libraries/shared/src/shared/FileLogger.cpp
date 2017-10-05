@@ -41,7 +41,7 @@ private:
 
 
 
-static const QString FILENAME_FORMAT = "hifi-log%1_%2.txt";
+static const QString FILENAME_FORMAT = "hifi-log_%1%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
 static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
@@ -69,7 +69,7 @@ QString getLogRollerFilename() {
         fileSessionID = "_" + SESSION_ID.toString().replace("{", "").replace("}", "");
     }
 
-    result.append(QString(FILENAME_FORMAT).arg(fileSessionID, now.toString(DATETIME_FORMAT)));
+    result.append(QString(FILENAME_FORMAT).arg(now.toString(DATETIME_FORMAT), fileSessionID));
     return result;
 }
 
