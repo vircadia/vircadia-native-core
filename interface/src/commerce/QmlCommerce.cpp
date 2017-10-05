@@ -119,7 +119,9 @@ void QmlCommerce::history() {
 
 void QmlCommerce::changePassphrase(const QString& oldPassphrase, const QString& newPassphrase) {
     auto wallet = DependencyManager::get<Wallet>();
-    if ((wallet->getPassphrase()->isEmpty() || wallet->getPassphrase() == oldPassphrase) && !newPassphrase.isEmpty()) {
+    if (wallet->getPassphrase()->isEmpty()) {
+        emit changePassphraseStatusResult(wallet->setPassphrase(newPassphrase));
+    } else if (wallet->getPassphrase() == oldPassphrase && !newPassphrase.isEmpty()) {
         emit changePassphraseStatusResult(wallet->changePassphrase(newPassphrase));
     } else {
         emit changePassphraseStatusResult(false);

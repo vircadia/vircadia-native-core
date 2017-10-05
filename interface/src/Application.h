@@ -76,6 +76,7 @@
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
+#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -147,6 +148,8 @@ public:
 
     void initializeGL();
     void initializeUi();
+
+    void updateCamera(RenderArgs& renderArgs);
     void paintGL();
     void resizeGL();
 
@@ -173,7 +176,6 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
-    void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -467,8 +469,6 @@ private:
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
 
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
-
     int sendNackPackets();
     void sendAvatarViewFrustum();
 
@@ -478,7 +478,7 @@ private:
 
     void initializeAcceptedFiles();
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
+    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
@@ -535,6 +535,8 @@ private:
     RateCounter<500> _renderLoopCounter;
     RateCounter<500> _gameLoopCounter;
 
+    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
+
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
@@ -550,7 +552,6 @@ private:
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
-    ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
@@ -620,6 +621,24 @@ private:
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     render::EnginePointer _renderEngine{ new render::Engine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
+
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
+    struct AppRenderArgs {
+        render::Args _renderArgs;
+        glm::mat4 _eyeToWorld;
+        glm::mat4 _eyeOffsets[2];
+        glm::mat4 _eyeProjections[2];
+        glm::mat4 _headPose;
+        glm::mat4 _sensorToWorld;
+        float _sensorToWorldScale { 1.0f };
+        bool _isStereo{ false };
+    };
+    AppRenderArgs _appRenderArgs;
+
+
+    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
+    void editRenderArgs(RenderArgsEditor editor);
+
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
