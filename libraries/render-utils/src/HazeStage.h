@@ -132,7 +132,7 @@ public:
 
     float hazeBackgroundBlendValue{ model::initialHazeBackgroundBlendValue };
 
-    public slots:
+public slots:
     void setHazeColorR(const float value) { hazeColorR = value; emit dirty(); }
     void setHazeColorG(const float value) { hazeColorG = value; emit dirty(); }
     void setHazeColorB(const float value) { hazeColorB = value; emit dirty(); }
