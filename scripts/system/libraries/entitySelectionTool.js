@@ -1176,8 +1176,8 @@ SelectionDisplay = (function() {
 
     // FUNCTION: UPDATE ROTATION HANDLES
     that.updateRotationHandles = function() {
-        var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
-        var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
+        var diagonal = (Vec3.length(SelectionManager.worldDimensions) / 2) * 1.1;
+        var halfDimensions = Vec3.multiply(SelectionManager.worldDimensions, 0.5);
         var innerActive = false;
         var innerAlpha = 0.2;
         var outerAlpha = 0.2;
@@ -1484,8 +1484,8 @@ SelectionDisplay = (function() {
         // var translateHandlesVisible = true;
         // var selectionBoxVisible = true;
         var isPointLight = false;
-        if (selectionManager.selections.length === 1) {
-            var properties = Entities.getEntityProperties(selectionManager.selections[0]);
+        if (SelectionManager.selections.length === 1) {
+            var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             isPointLight = (properties.type === "Light") && !properties.isSpotlight;
         }
 
@@ -1529,8 +1529,8 @@ SelectionDisplay = (function() {
 
     // FUNCTION: UPDATE HANDLE SIZES
     that.updateHandleSizes = function() {
-        if (selectionManager.hasSelection()) {
-            var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
+        if (SelectionManager.hasSelection()) {
+            var diff = Vec3.subtract(SelectionManager.worldPosition, Camera.getPosition());
             var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
             var dimensions = SelectionManager.worldDimensions;
             var avgDimension = (dimensions.x + dimensions.y + dimensions.z) / 3;
@@ -1864,10 +1864,10 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("    Set Non-Light Grabbers Visible - Norm: " + stretchHandlesVisible + " Ext: " + extendedStretchHandlesVisible);
         }
-        var isSingleSelection = (selectionManager.selections.length === 1);
+        var isSingleSelection = (SelectionManager.selections.length === 1);
 
         if (isSingleSelection) {
-            var properties = Entities.getEntityProperties(selectionManager.selections[0]);
+            var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             var isLightSelection = (properties.type === "Light");
             if (isLightSelection) {
                 if (wantDebug) {
@@ -2106,7 +2106,7 @@ SelectionDisplay = (function() {
         });
 
         // Create more selection box overlays if we don't have enough
-        var overlaysNeeded = selectionManager.selections.length - selectionBoxes.length;
+        var overlaysNeeded = SelectionManager.selections.length - selectionBoxes.length;
         for (var i = 0; i < overlaysNeeded; i++) {
             selectionBoxes.push(
                 Overlays.addOverlay("cube", {
@@ -2132,9 +2132,9 @@ SelectionDisplay = (function() {
 
         i = 0;
         // Only show individual selections boxes if there is more than 1 selection
-        if (selectionManager.selections.length > 1) {
-            for (; i < selectionManager.selections.length; i++) {
-                var props = Entities.getEntityProperties(selectionManager.selections[i]);
+        if (SelectionManager.selections.length > 1) {
+            for (; i < SelectionManager.selections.length; i++) {
+                var props = Entities.getEntityProperties(SelectionManager.selections[i]);
 
                 // Adjust overlay position to take registrationPoint into account
                 // centeredRP = registrationPoint with range [-0.5, 0.5]
@@ -2149,7 +2149,7 @@ SelectionDisplay = (function() {
                 var curBoxPosition = Vec3.sum(props.position, offset);
 
                 var color = {red: 255, green: 128, blue: 0};
-                if (i >= selectionManager.selections.length - 1) {
+                if (i >= SelectionManager.selections.length - 1) {
                     color = {red: 255, green: 255, blue: 64};
                 }
 
@@ -2244,13 +2244,13 @@ SelectionDisplay = (function() {
             visible: !inModeRotate,
             solid: true,
             position: {
-                x: selectionManager.worldPosition.x,
+                x: SelectionManager.worldPosition.x,
                 y: grid.getOrigin().y,
-                z: selectionManager.worldPosition.z
+                z: SelectionManager.worldPosition.z
             },
             dimensions: {
-                x: selectionManager.worldDimensions.x,
-                y: selectionManager.worldDimensions.z
+                x: SelectionManager.worldDimensions.x,
+                y: SelectionManager.worldDimensions.z
             },
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0)
         });
@@ -2509,7 +2509,7 @@ SelectionDisplay = (function() {
             }
 
             constrainMajorOnly = event.isControl;
-            var cornerPosition = Vec3.sum(startPosition, Vec3.multiply(-0.5, selectionManager.worldDimensions));
+            var cornerPosition = Vec3.sum(startPosition, Vec3.multiply(-0.5, SelectionManager.worldDimensions));
             vector = Vec3.subtract(
                 grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
                 cornerPosition);
@@ -2604,7 +2604,7 @@ SelectionDisplay = (function() {
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var id = SelectionManager.selections[i];
-                var properties = selectionManager.savedProperties[id];
+                var properties = SelectionManager.savedProperties[id];
 
                 var original = properties.position;
                 var newPosition = Vec3.sum(properties.position, vector);
@@ -3088,7 +3088,7 @@ SelectionDisplay = (function() {
             Vec3.print("Radius stretch: ", vector);
         }
         var length = vector.x + vector.y + vector.z;
-        var props = selectionManager.savedProperties[selectionManager.selections[0]];
+        var props = SelectionManager.savedProperties[SelectionManager.selections[0]];
 
         var radius = props.dimensions.z / 2;
         var originalCutoff = props.cutoff;
@@ -3097,7 +3097,7 @@ SelectionDisplay = (function() {
         var newSize = originalSize + length;
         var cutoff = Math.atan2(newSize, radius) * 180 / Math.PI;
 
-        Entities.editEntity(selectionManager.selections[0], {
+        Entities.editEntity(SelectionManager.selections[0], {
             cutoff: cutoff
         });
 
@@ -3106,7 +3106,7 @@ SelectionDisplay = (function() {
 
     // FUNCTION: RADIUS STRETCH FUNC
     function radiusStretchFunc(vector, change) {
-        var props = selectionManager.savedProperties[selectionManager.selections[0]];
+        var props = SelectionManager.savedProperties[SelectionManager.selections[0]];
 
         // Find the axis being adjusted
         var size;
@@ -3124,7 +3124,7 @@ SelectionDisplay = (function() {
             z: size
         };
 
-        Entities.editEntity(selectionManager.selections[0], {
+        Entities.editEntity(SelectionManager.selections[0], {
             dimensions: newDimensions
         });
 
@@ -3631,8 +3631,8 @@ SelectionDisplay = (function() {
         rotationNormal[rotAroundAxis] = 1;
 
         // Size the overlays to the current selection size
-        var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
-        var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
+        var diagonal = (Vec3.length(SelectionManager.worldDimensions) / 2) * 1.1;
+        var halfDimensions = Vec3.multiply(SelectionManager.worldDimensions, 0.5);
         innerRadius = diagonal;
         outerRadius = diagonal * 1.15;
         var innerAlpha = 0.2;
@@ -3955,7 +3955,7 @@ SelectionDisplay = (function() {
                 return false;
             }
 
-            entityIconOverlayManager.setIconsSelectable(selectionManager.selections, true);
+            entityIconOverlayManager.setIconsSelectable(SelectionManager.selections, true);
 
             var hitTool = grabberTools[ hitOverlayID ];
             if (hitTool) {
