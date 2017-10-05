@@ -4076,7 +4076,6 @@ SelectionDisplay = (function() {
             if (controllerPose.valid && lastControllerPoses[hand].valid) {
                 if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
                     !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
-                    print("setting controller pose");
                     that.mouseMoveEvent({});
                 }
             }
