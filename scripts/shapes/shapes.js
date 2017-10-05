@@ -1043,10 +1043,6 @@
                             wasScaleTool = toolSelected === TOOL_SCALE;
                             doUpdateState = true;
                         }
-                        if (toolSelected === TOOL_COLOR && intersection.entityID !== intersectedEntityID) {
-                            intersectedEntityID = intersection.entityID;
-                            doUpdateState = true;
-                        }
                         if ((toolSelected === TOOL_COLOR || toolSelected === TOOL_PHYSICS)
                                 && intersection.entityID !== intersectedEntityID) {
                             intersectedEntityID = intersection.entityID;
