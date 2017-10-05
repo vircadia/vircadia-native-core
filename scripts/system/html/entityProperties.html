@@ -567,9 +567,24 @@
                     <div class="color-picker" id="property-zone-haze-blend-in-color"></div>
                     <legend>Haze Blend In Color</legend>
                     <div class="tuple">
-                        <div><input type="number" class="red" id="property-zone-haze-blend-in-color-red"><label for="property-zone-haze-blend-in-color-red">Red:</label></div>
-                        <div><input type="number" class="green" id="property-zone-haze-blend-in-color-green"><label for="property-zone-haze-blend-in-color-green">Green:</label></div>
-                        <div><input type="number" class="blue" id="property-zone-haze-blend-in-color-blue"><label for="property-zone-haze-blend-in-color-blue">Blue:</label></div>
+                        <div><input type="number" class="red" id="property-zone-haze-blend-in-color-red" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-in-color-red">Red:</label></div>
+                        <div><input type="number" class="green" id="property-zone-haze-blend-in-color-green" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-in-color-green">Green:</label></div>
+                        <div><input type="number" class="blue" id="property-zone-haze-blend-in-color-blue" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-in-color-blue">Blue:</label></div>
+                    </div>
+                </fieldset>
+                <fieldset class="zone-group zone-section haze-section property rgb fstuple">
+                    <div class="color-picker" id="property-zone-haze-blend-out-color"></div>
+                    <legend>Haze Blend Out Color</legend>
+                    <div class="tuple">
+                        <div><input type="number" class="red" id="property-zone-haze-blend-out-color-red" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-out-color-red">Red:</label></div>
+                        <div><input type="number" class="green" id="property-zone-haze-blend-out-color-green" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-out-color-green">Green:</label></div>
+                        <div><input type="number" class="blue" id="property-zone-haze-blend-out-color-blue" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-out-color-blue">Blue:</label></div>
                     </div>
                 </fieldset>
             </fieldset>

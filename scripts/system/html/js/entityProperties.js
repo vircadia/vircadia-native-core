@@ -664,6 +664,10 @@ function loaded() {
         var elZoneHazeBlendInColorRed = document.getElementById("property-zone-haze-blend-in-color-red");
         var elZoneHazeBlendInColorGreen = document.getElementById("property-zone-haze-blend-in-color-green");
         var elZoneHazeBlendInColorBlue = document.getElementById("property-zone-haze-blend-in-color-blue");
+        var elZoneHazeBlendOutColor = document.getElementById("property-zone-haze-blend-out-color");
+        var elZoneHazeBlendOutColorRed = document.getElementById("property-zone-haze-blend-out-color-red");
+        var elZoneHazeBlendOutColorGreen = document.getElementById("property-zone-haze-blend-out-color-green");
+        var elZoneHazeBlendOutColorBlue = document.getElementById("property-zone-haze-blend-out-color-blue");
         var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
         
         var elZoneHazeAltitude = document.getElementById("property-zone-haze-altitude");
@@ -1017,6 +1021,17 @@ function loaded() {
                             elZoneHazeBlendInColorRed.value = properties.haze.hazeBlendInColor.red;
                             elZoneHazeBlendInColorGreen.value = properties.haze.hazeBlendInColor.green;
                             elZoneHazeBlendInColorBlue.value = properties.haze.hazeBlendInColor.blue;
+                            elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
+
+                            elZoneHazeBlendOutColor.style.backgroundColor = "rgb(" + 
+                                properties.haze.hazeBlendOutColor.red + "," + 
+                                properties.haze.hazeBlendOutColor.green + "," + 
+                                properties.haze.hazeBlendOutColor.blue + ")";
+
+                            elZoneHazeBlendOutColorRed.value = properties.haze.hazeBlendOutColor.red;
+                            elZoneHazeBlendOutColorGreen.value = properties.haze.hazeBlendOutColor.green;
+                            elZoneHazeBlendOutColorBlue.value = properties.haze.hazeBlendOutColor.blue;
+
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
 
                             elZoneHazeAltitude.value = properties.haze.hazeAltitude.toFixed(0);
@@ -1418,6 +1433,7 @@ function loaded() {
         elZoneHazeMode.addEventListener('change', createEmitTextPropertyUpdateFunction('hazeMode'));
 
         elZoneHazeRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeRange'));
+
         colorPickers.push($('#property-zone-haze-blend-in-color').colpick({
             colorScheme: 'dark',
             layout: 'hex',
@@ -1442,6 +1458,32 @@ function loaded() {
         elZoneHazeBlendInColorRed.addEventListener('change', zoneHazeBlendInColorChangeFunction);
         elZoneHazeBlendInColorGreen.addEventListener('change', zoneHazeBlendInColorChangeFunction);
         elZoneHazeBlendInColorBlue.addEventListener('change', zoneHazeBlendInColorChangeFunction);
+
+        colorPickers.push($('#property-zone-haze-blend-out-color').colpick({
+            colorScheme: 'dark',
+            layout: 'hex',
+            color: '000000',
+            onShow: function(colpick) {
+                $('#property-zone-haze-blend-out-color').attr('active', 'true');
+            },
+            onHide: function(colpick) {
+                $('#property-zone-haze-blend-out-color').attr('active', 'false');
+            },
+            onSubmit: function(hsb, hex, rgb, el) {
+                $(el).css('background-color', '#' + hex);
+                $(el).colpickHide();
+                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'hazeBlendOutColor');
+            }
+        }));
+        var zoneHazeBlendOutColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeBlendOutColor', 
+            elZoneHazeBlendOutColorRed, 
+            elZoneHazeBlendOutColorGreen, 
+            elZoneHazeBlendOutColorBlue);
+
+        elZoneHazeBlendOutColorRed.addEventListener('change', zoneHazeBlendOutColorChangeFunction);
+        elZoneHazeBlendOutColorGreen.addEventListener('change', zoneHazeBlendOutColorChangeFunction);
+        elZoneHazeBlendOutColorBlue.addEventListener('change', zoneHazeBlendOutColorChangeFunction);
+
         elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
 
         elZoneHazeAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeAltitude'));
