@@ -1032,10 +1032,6 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
         model = _model;
     });
 
-    if (_modelJustLoaded) {
-        return true;
-    }
-
     if (model) {
         if (_needsJointSimulation || _moving || _animating) {
             return true;
@@ -1149,14 +1145,15 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             model->removeFromScene(scene, transaction);
             withWriteLock([&] { _model.reset(); });
         }
+        emit requestRenderUpdate();
         return;
     }
 
-    _modelJustLoaded = false;
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());
-        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::handleModelLoaded);
+        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::requestRenderUpdate);
+        connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         model->init();
         entity->setModel(model);
@@ -1172,6 +1169,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
     // Nothing else to do unless the model is loaded
     if (!model->isLoaded()) {
+        emit needsRenderUpdate();
         return;
     }
 
@@ -1244,13 +1242,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             mapJoints(entity, model->getJointNames());
         }
         animate(entity);
-    }
-}
-
-void ModelEntityRenderer::handleModelLoaded(bool success) {
-    if (success) {
-        _modelJustLoaded = true;
-        emit requestRenderUpdate();
     }
 }
 
