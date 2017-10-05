@@ -658,7 +658,10 @@ function loaded() {
         var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
 
         var elZoneHazeMode = document.getElementById("property-zone-haze-mode");
+        
         var elZoneHazeRange = document.getElementById("property-zone-haze-range");
+        var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
+        
         var elZoneHazeAltitude = document.getElementById("property-zone-haze-altitude");
        
         var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
@@ -1002,6 +1005,8 @@ function loaded() {
                             setDropdownText(elZoneHazeMode);
 
                             elZoneHazeRange.value = properties.haze.hazeRange.toFixed(2);
+                            elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend;
+
                             elZoneHazeAltitude.value = properties.haze.hazeAltitude.toFixed(2);
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
@@ -1399,8 +1404,11 @@ function loaded() {
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
         elZoneHazeMode.addEventListener('change', createEmitTextPropertyUpdateFunction('hazeMode'));
+
         elZoneHazeRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeRange'));
-        elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeAltitude'));
+        elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
+
+        elZoneHazeAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeAltitude'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
