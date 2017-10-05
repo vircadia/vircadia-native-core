@@ -31,9 +31,6 @@ public:
     /// copies the current view frustum for rendering the view state
     virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const = 0;
 
-    /// copies the shadow view frustum for rendering the view state
-    virtual void copyShadowViewFrustum(ViewFrustum& viewOut) const = 0;
-
     virtual QThread* getMainThread() = 0;
 
     virtual PickRay computePickRay(float x, float y) const = 0;
