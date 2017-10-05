@@ -143,8 +143,8 @@ public:
     float hazeRange_m{ model::initialHazeRange_m };
     float hazeAltitude_m{ model::initialHazeAltitude_m };
 
-    float hazeRangeKeyLight_m{ model::initialHazeKeyLightRange_m };
-    float hazeAltitudeKeyLight_m{ model::initialHazeKeyLightAltitude_m };
+    float hazeKeyLightRange_m{ model::initialHazeKeyLightRange_m };
+    float hazeKeyLightAltitude_m{ model::initialHazeKeyLightAltitude_m };
 
     float hazeBackgroundBlendValue{ model::initialHazeBackgroundBlendValue };
 
@@ -167,8 +167,8 @@ public:
     void setHazeRange_m(const float value);
     void setHazeAltitude_m(const float value);
 
-    void setHazeRangeKeyLight_m(const float value);
-    void setHazeAltitudeKeyLight_m(const float value);
+    void setHazeKeyLightRange_m(const float value);
+    void setHazeKeyLightAltitude_m(const float value);
 
     void setHazeBackgroundBlendValue(const float value);
 };

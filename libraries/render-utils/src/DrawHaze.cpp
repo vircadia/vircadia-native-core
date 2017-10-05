@@ -76,12 +76,12 @@ void HazeConfig::setHazeAltitude_m(const float value) {
     hazeAltitude_m = value; 
 }
 
-void HazeConfig::setHazeRangeKeyLight_m(const float value) { 
-    hazeRangeKeyLight_m = value;
+void HazeConfig::setHazeKeyLightRange_m(const float value) { 
+    hazeKeyLightRange_m = value;
 }
 
-void HazeConfig::setHazeAltitudeKeyLight_m(const float value) {
-    hazeAltitudeKeyLight_m = value;
+void HazeConfig::setHazeKeyLightAltitude_m(const float value) {
+    hazeKeyLightAltitude_m = value;
 }
 
 void HazeConfig::setHazeBackgroundBlendValue(const float value) {
