@@ -231,8 +231,6 @@ int main(int argc, const char* argv[]) {
         // Extend argv to enable WebGL rendering
         std::vector<const char*> argvExtended(&argv[0], &argv[argc]);
         argvExtended.push_back("--ignore-gpu-blacklist");
-        argvExtended.push_back("--enable-embedded-switches");
-        argvExtended.push_back("--disable-overlay-scrollbar");
         int argcExtended = (int)argvExtended.size();
 
         Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);

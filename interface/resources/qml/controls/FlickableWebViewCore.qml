@@ -21,6 +21,7 @@ Item {
     signal newViewRequestedCallback(var request)
     signal loadingChangedCallback(var loadRequest)
 
+    width: parent.width
 
     property bool interactive: false
 
@@ -53,7 +54,8 @@ Item {
     WebEngineView {
         id: webViewCore
 
-        anchors.fill: parent
+        width: parent.width
+        height: parent.height
 
         profile: HFWebEngineProfile;
         settings.pluginsEnabled: true
