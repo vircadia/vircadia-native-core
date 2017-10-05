@@ -199,7 +199,7 @@ void HazePropertyGroup::markAllChanged() {
     _hazeBackgroundBlendChanged = true;
 
     _hazeKeyLightRangeChanged = true;
-    _hazeAltitudeChanged = true;
+    _hazeKeyLightAltitudeChanged = true;
 }
 
 EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
