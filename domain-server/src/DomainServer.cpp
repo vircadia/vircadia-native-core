@@ -1760,11 +1760,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-    // allow sub-handlers to handle requests that do not require authentication
-    if (_settingsManager.handlePublicHTTPRequest(connection, url)) {
-        return true;
-    }
-
     // check if this is a request for a scripted assignment (with a temp unique UUID)
     const QString ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
     QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
@@ -1823,6 +1818,31 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         // this is not an authenticated request
         // return true from the handler since it was handled with a 401 or re-direct to auth
         return true;
+    }
+
+    // Check if we should redirect/prevent access to the wizard
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
+        const QString URI_WIZARD = "/wizard/";
+        const QString WIZARD_COMPLETED_ONCE_KEY_PATH = "wizard.completed_once";
+        const QVariant* wizardCompletedOnce = valueForKeyPath(_settingsManager.getSettingsMap(), WIZARD_COMPLETED_ONCE_KEY_PATH);
+        const bool completedOnce = wizardCompletedOnce && wizardCompletedOnce->toBool();
+
+        if (url.path() != URI_WIZARD && url.path().endsWith('/') && !completedOnce) {
+            // First visit, redirect to the wizard
+            QUrl redirectedURL = url;
+            redirectedURL.setPath(URI_WIZARD);
+
+            Headers redirectHeaders;
+            redirectHeaders.insert("Location", redirectedURL.toEncoded());
+
+            connection->respond(HTTPConnection::StatusCode302,
+                                QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+            return true;
+        } else if (url.path() == URI_WIZARD && completedOnce) {
+            // Wizard already completed, return 404
+            connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
+            return true;
+        }
     }
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
@@ -1937,7 +1957,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     return;
                 }
 
-                static const char* CONTENT_TYPE_JSON { "application/json" };
                 connection->respond(HTTPConnection::StatusCode200, reply->readAll());
             });
             return true;
@@ -1964,7 +1983,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     return;
                 }
 
-                static const char* CONTENT_TYPE_JSON { "application/json" };
                 connection->respond(HTTPConnection::StatusCode200, reply->readAll());
             });
             return true;
@@ -1989,7 +2007,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     return;
                 }
 
-                static const char* CONTENT_TYPE_JSON { "application/json" };
                 connection->respond(HTTPConnection::StatusCode200, reply->readAll());
             });
             return true;
@@ -2072,8 +2089,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         } else if (url.path() == URI_ENTITY_FILE_UPLOAD) {
             // this is an entity file upload, ask the HTTPConnection to parse the data
             QList<FormData> formData = connection->parseFormData();
-
-            Headers redirectHeaders;
 
             if (formData.size() > 0 && formData[0].second.size() > 0) {
                 // invoke our method to hand the new octree file off to the octree server
@@ -2219,7 +2234,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     return;
                 }
 
-                static const char* CONTENT_TYPE_JSON { "application/json" };
                 connection->respond(HTTPConnection::StatusCode200, reply->readAll());
             });
             return true;
@@ -2284,7 +2298,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     return;
                 }
 
-                static const char* CONTENT_TYPE_JSON { "application/json" };
                 connection->respond(HTTPConnection::StatusCode200, reply->readAll());
             });
             return true;

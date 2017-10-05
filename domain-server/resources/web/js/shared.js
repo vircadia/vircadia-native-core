@@ -1,6 +1,5 @@
 Settings = {
   showAdvanced: false,
-  METAVERSE_URL: 'https://staging.highfidelity.com',
   ADVANCED_CLASS: 'advanced-setting',
   DEPRECATED_CLASS: 'deprecated-setting',
   TRIGGER_CHANGE_CLASS: 'trigger-change',
@@ -44,6 +43,11 @@ Settings = {
   DATA_ROW_INDEX: 'data-row-index'
 };
 
+var URLs = {
+  METAVERSE_URL: 'https://metaverse.highfidelity.com',
+  PLACE_URL: 'https://hifi.place',
+};
+
 Strings = {
   LOADING_SETTINGS_ERROR: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
 
@@ -79,6 +83,9 @@ Strings = {
   ADD_PLACE_NO_PLACES_BUTTON: "Create new place",
   ADD_PLACE_UNABLE_TO_LOAD_ERROR: "We were unable to load your place names. Please try again later.",
   ADD_PLACE_LOADING_DIALOG: "Loading your places...",
+
+  ADD_PLACE_NOT_CONNECTED_TITLE: "Access token required",
+  ADD_PLACE_NOT_CONNECTED_MESSAGE: "You must have an access token to query your High Fidelity places.<br><br>Please follow the instructions on the settings page to add an access token.",
 };
 
 var DOMAIN_ID_TYPE_NONE_OR_UNKNOWN = 0;
@@ -154,6 +161,8 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
 
             modal_body = $('<div>');
 
+            modal_body.append($("<p>Choose a place name that you own or <a href='" + URLs.METAVERSE_URL + "/user/places' target='_blank'>register a new place name</a></p>"));
+
             var currentDomainIDType = getCurrentDomainIDType();
             if (currentDomainIDType === DOMAIN_ID_TYPE_TEMP) {
               var warning = "<div class='domain-loading-error alert alert-warning'>";
@@ -216,7 +225,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
                     metaverse: {
                       id: domainID
                     }
-                  } 
+                  }
                   var dialog = showLoadingDialog("Waiting for Domain Server to restart...");
                   $.ajax('/settings.json', {
                     data: JSON.stringify(jsonSettings),
@@ -287,7 +296,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
             modal_buttons["success"] = {
               label: Strings.ADD_PLACE_NO_PLACES_BUTTON,
               callback: function() {
-                window.open(Settings.METAVERSE_URL + "/user/places", '_blank');
+                window.open(URLs.METAVERSE_URL + "/user/places", '_blank');
               }
             }
             modal_body = Strings.ADD_PLACE_NO_PLACES_MESSAGE;
@@ -313,9 +322,67 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
 
   } else {
     bootbox.alert({
-      message: "You must have an access token to query your High Fidelity places.<br><br>" +
-      "Please follow the instructions on the settings page to add an access token.",
-      title: "Access token required"
+      title: Strings.ADD_PLACE_NOT_CONNECTED_TITLE,
+      message: Strings.ADD_PLACE_NOT_CONNECTED_MESSAGE
     })
   }
+}
+
+function sendCreateDomainRequest(onSuccess, onError) {
+  $.ajax({
+    url: '/api/domains',
+    type: 'POST',
+    data: { label: "" },
+    success: function(data) {
+      //if (data.status === 'success') {
+        onSuccess(data.domain_id);
+      //} else {
+        //onError();
+      //}
+    },
+    error: onError
+  });
+}
+
+function waitForDomainServerBackUp(callback) {
+  function checkForDomainUp() {
+    $.ajax('', {
+      success: function() {
+        console.log("Domain is back up");
+        callback();
+      },
+      error: function() {
+        setTimeout(checkForDomainUp, 50);
+        console.log("Fail");
+      }
+    });
+  }
+
+  setTimeout(checkForDomainUp, 10);
+
+}
+
+function prepareAccessTokenPrompt(callback) {
+  swal({
+    title: "Connect Account",
+    type: "input",
+    text: "Paste your created access token here." +
+      "</br></br>If you did not successfully create an access token click cancel below and attempt to connect your account again.</br></br>",
+    showCancelButton: true,
+    closeOnConfirm: false,
+    html: true
+  }, function(inputValue){
+    if (inputValue === false) return false;
+
+    if (inputValue === "") {
+      swal.showInputError("Please paste your access token in the input field.")
+      return false
+    }
+
+    if (callback) {
+      callback(inputValue);
+    }
+
+    swal.close();
+  });
 }

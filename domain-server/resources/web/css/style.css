@@ -244,6 +244,20 @@ table .headers + .headers td {
   animation-delay: -0.16s;
 }
 
+.col-centered {
+    float: none;
+    margin: 0 auto;
+}
+
+.centered-hack-parent {
+  text-align: center;
+}
+
+.centered-hack {
+    text-align: left;
+    display: inline-block;
+}
+
 @-webkit-keyframes bouncedelay {
   0%, 80%, 100% { -webkit-transform: scale(0.0) }
   40% { -webkit-transform: scale(1.0) }
@@ -271,7 +285,7 @@ table .headers + .headers td {
     from { transform: scale(1) rotate(0deg);}
     to { transform: scale(1) rotate(360deg);}
 }
-  
+
 @-webkit-keyframes spinw {
     from { -webkit-transform: rotate(0deg);}
     to { -webkit-transform: rotate(360deg);}
@@ -291,4 +305,28 @@ table .headers + .headers td {
     color: #6FCF97;
     font-size: 30px;
     margin-right: 20px;
+}
+
+#visit-domain-link,
+.blue-link {
+  font-size: 14px;
+  text-decoration-line: underline;
+  font-weight: normal;
+  color: #2F80ED;
+}
+
+#cloud-domains-alert {
+  position:fixed; top: 55px; width: 100%; z-index: 99;
+}
+
+#cloud-domains-alert .glyphicon {
+  font-size: 11px;
+  color: #000000;
+  mix-blend-mode: normal;
+  opacity: 0.2;
+}
+
+#manage-cloud-domains-link {
+  text-align: center;
+  margin-top: 20px;
 }

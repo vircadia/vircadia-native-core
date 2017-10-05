@@ -1522,6 +1522,29 @@
           ]
         }
       ]
+    },
+    {
+      "name": "wizard",
+      "label": "Setup Wizard",
+      "restart": false,
+      "hidden": true,
+      "settings": [
+        {
+          "name": "cloud_domain",
+          "type": "checkbox",
+          "default": false
+        },
+        {
+          "name": "steps_completed",
+          "type": "int",
+          "default": 0
+        },
+        {
+          "name": "completed_once",
+          "type": "checkbox",
+          "default": false
+        }
+      ]
     }
   ]
 }

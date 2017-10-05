@@ -288,7 +288,11 @@ $(document).ready(function(){
 
   $('#' + Settings.FORM_ID).on('click', '#' + Settings.CONNECT_ACCOUNT_BTN_ID, function(e){
     $(this).blur();
-    prepareAccessTokenPrompt();
+    prepareAccessTokenPrompt(function(accessToken) {
+      // we have an access token - set the access token input with this and save settings
+      $(Settings.ACCESS_TOKEN_SELECTOR).val(accessToken).change();
+      saveSettings();
+    });
   });
 
   var panelsSource = $('#panels-template').html()
@@ -323,6 +327,29 @@ $(document).ready(function(){
   });
 });
 
+function getShareName(callback) {
+  getDomainFromAPI(function(data){
+    // check if we have owner_places (for a real domain) or a name (for a temporary domain)
+    if (data && data.status == "success") {
+      var shareName;
+      if (data.domain.default_place_name) {
+        shareName = data.domain.default_place_name;
+      } else if (data.domain.name) {
+        shareName = data.domain.name;
+      } else if (data.domain.network_address) {
+        shareName = data.domain.network_address;
+        if (data.domain.network_port !== 40102) {
+          shareName += ':' + data.domain.network_port;
+        }
+      }
+
+      callback(true, shareName);
+    } else {
+      callback(false);
+    }
+  })
+}
+
 function handleAction() {
   // check if we were passed an action to handle
   var action = qs["action"];
@@ -331,16 +358,8 @@ function handleAction() {
     // figure out if we already have a stored domain ID
     if (Settings.data.values.metaverse.id.length > 0) {
       // we need to ask the API what a shareable name for this domain is
-      getDomainFromAPI(function(data){
-        // check if we have owner_places (for a real domain) or a name (for a temporary domain)
-        if (data && data.status == "success") {
-          var shareName;
-          if (data.domain.owner_places) {
-            shareName = data.domain.owner_places[0].name
-          } else if (data.domain.name) {
-            shareName = data.domain.name;
-          }
-
+      getShareName(function(success, shareName){
+        if (success) {
           var shareLink = "hifi://" + shareName;
 
           console.log(shareLink);
@@ -438,7 +457,7 @@ function setupHFAccountButton() {
     buttonSetting.button_label = "Connect High Fidelity Account";
     buttonSetting.html_id = Settings.CONNECT_ACCOUNT_BTN_ID;
 
-    buttonSetting.href = Settings.METAVERSE_URL + "/user/tokens/new?for_domain_server=true";
+    buttonSetting.href = URLs.METAVERSE_URL + "/user/tokens/new?for_domain_server=true";
 
     // since we do not have an access token we change hide domain ID and auto networking settings
     // without an access token niether of them can do anything
@@ -468,57 +487,6 @@ function disonnectHighFidelityAccount() {
     // reset the domain id to get a new temporary name
     $(Settings.DOMAIN_ID_SELECTOR).val('').change();
     saveSettings();
-  });
-}
-
-function prepareAccessTokenPrompt() {
-  swal({
-    title: "Connect Account",
-    type: "input",
-    text: "Paste your created access token here." +
-      "</br></br>If you did not successfully create an access token click cancel below and attempt to connect your account again.</br></br>",
-    showCancelButton: true,
-    closeOnConfirm: false,
-    html: true
-  }, function(inputValue){
-    if (inputValue === false) return false;
-
-    if (inputValue === "") {
-      swal.showInputError("Please paste your access token in the input field.")
-      return false
-    }
-
-    // we have an input value - set the access token input with this and save settings
-    $(Settings.ACCESS_TOKEN_SELECTOR).val(inputValue).change();
-
-    console.log("Prepping access token prompt");
-
-    swal.close();
-    saveSettings();
-  });
-}
-
-function showDomainIDChoiceAlert() {
-  swal({
-    title: 'Domain ID',
-    type: 'info',
-    text: "You do not currently have a domain ID." +
-      "</br></br>This is required to point place names at your domain and to use automatic networking.</br></br>" +
-      "Would you like to create a domain ID via the Metaverse API?</br></br>",
-    showCancelButton: true,
-    confirmButtonText: "Create new domain ID",
-    cancelButtonText: "Skip",
-    closeOnConfirm: false,
-    html: true
-  }, function(isConfirm){
-    if (isConfirm) {
-      // show the swal to create a new domain via API
-      showDomainCreationAlert(true);
-    } else {
-      // user cancelled, close this swal and save the access token we got
-      swal.close();
-      saveSettings();
-    }
   });
 }
 
@@ -557,12 +525,10 @@ function showDomainCreationAlert(justConnected) {
   });
 }
 
-//function createDomainID()
-
 function createNewDomainID(label, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
   var domainJSON = {
-   "label": label 
+   "label": label
     //"access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
   }
 
@@ -661,7 +627,7 @@ function setupDomainLabelSetting() {
   if (!domainIDIsSet() || !accessTokenIsSet()) {
     $(".panel#label").hide();
     return;
-  }  
+  }
 
   var html = "<div>"
   html += "<label class='control-label'>Specify a label for your domain</label> <a class='domain-loading-hide' href='#'>Edit</a>";
@@ -779,8 +745,8 @@ function setupDomainNetworkingSettings() {
   form = $(form);
 
   form.find('#edit-network-address-port').click(function(ev) {
-    ev.preventDefault(); 
-    
+    ev.preventDefault();
+
     var address = DomainInfo.network_address === null ? '' : DomainInfo.network_address;
     var port = DomainInfo.network_port === null ? '' : DomainInfo.network_port;
     var modal_body = "<div class='form-group'>";
@@ -887,7 +853,7 @@ function setupPlacesTable() {
     label: 'Places',
     html_id: Settings.PLACES_TABLE_ID,
     help: "The following places currently point to this domain.</br>To point places to this domain, "
-      + " go to the <a href='" + Settings.METAVERSE_URL + "/user/places'>My Places</a> "
+      + " go to the <a href='" + URLs.METAVERSE_URL + "/user/places'>My Places</a> "
       + "page in your High Fidelity Metaverse account.",
     read_only: true,
     can_add_new_rows: false,
@@ -1001,16 +967,6 @@ function placeTableRowForPlaceObject(place) {
   return placeTableRow(place.name, placePathOrIndex, false, place.id);
 }
 
-function getDomainFromAPI2(callback) {
-  // we only need to do this if we have a current domain ID
-  var domainID = Settings.data.values.metaverse.id;
-  if (domainID.length > 0) {
-    var domainURL = Settings.METAVERSE_URL + "/api/v1/domains/" + domainID;
-
-    $.getJSON(domainURL, callback).fail(callback);
-  }
-}
-
 function getDomainFromAPI(callback) {
   var domainID = Settings.data.values.metaverse.id;
   $.ajax({
@@ -1091,22 +1047,6 @@ function showDomainSettingsModal(clickedButton) {
     message: modal_body,
     buttons: modal_buttons
   })
-}
-
-function sendCreateDomainRequest(onSuccess, onError) {
-  $.ajax({
-    url: '/api/domains',
-    type: 'POST',
-    data: { label: "" },
-    success: function(data) {
-      //if (data.status === 'success') {
-        onSuccess(data.domain_id);
-      //} else {
-        //onError();
-      //}
-    },
-    error: onError
-  });
 }
 
 function editHighFidelityPlace(placeID, name, path) {
@@ -1237,7 +1177,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
           modal_buttons["success"] = {
             label: 'Create new domain',
             callback: function() {
-              window.open(Settings.METAVERSE_URL + "/user/domains", '_blank');
+              window.open(URLs.METAVERSE_URL + "/user/domains", '_blank');
             }
           }
           modal_body = "<p>You do not have any domains in your High Fidelity account." +
@@ -1284,7 +1224,7 @@ function createTemporaryDomain() {
       showSpinnerAlert('Creating temporary place name');
 
       // make a get request to get a temporary domain
-      $.post(Settings.METAVERSE_URL + '/api/v1/domains/temporary', function(data){
+      $.post(URLs.METAVERSE_URL + '/api/v1/domains/temporary', function(data){
         if (data.status == "success") {
           var domain = data.data.domain;
 
@@ -1309,24 +1249,6 @@ function createTemporaryDomain() {
       });
     }
   });
-}
-
-function waitForDomainServerBackUp(callback) {
-  function checkForDomainUp() {
-    $.ajax('', {
-      success: function() {
-        console.log("Domain is back up");
-        callback();
-      },
-      error: function() {
-        setTimeout(checkForDomainUp, 50);
-        console.log("Fail");
-      }
-    });
-  }
-
-  setTimeout(checkForDomainUp, 10);
-
 }
 
 function reloadSettings(callback) {
@@ -1354,6 +1276,26 @@ function reloadSettings(callback) {
     if (Settings.data.values.metaverse.id.length > 0) {
       // now, ask the API for what places, if any, point to this domain
       reloadDomainInfo();
+
+      // we need to ask the API what a shareable name for this domain is
+      getShareName(function(success, shareName) {
+        if (success) {
+          var shareLink = "https://hifi.place/" + shareName;
+          $('#visit-domain-link').attr("href", shareLink).show();
+        }
+      });
+    }
+
+    if (Settings.data.values.wizard.cloud_domain) {
+      $('#manage-cloud-domains-link').show();
+
+      var cloudWizardExit = qs["cloud-wizard-exit"];
+      if (cloudWizardExit != undefined) {
+        $('#cloud-domains-alert').show();
+        $('#cloud-domains-alert .glyphicon').on('click', function() {
+          $('#cloud-domains-alert').remove();
+        });
+      }
     }
 
     // setup any bootstrap switches

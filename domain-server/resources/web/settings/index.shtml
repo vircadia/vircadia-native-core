@@ -27,6 +27,9 @@
 
         <button id="advanced-toggle-button" class="btn btn-info advanced-toggle">Show advanced</button>
         <button class="btn btn-success save-button" disabled>Save</button>
+        <div id="manage-cloud-domains-link" style="display: none;">
+          <a href="https://highfidelity.com/user/cloud_domains" target="_blank" class="blue-link">Manage Cloud Hosted Domains</a>
+        </div>
       </div>
     </div>
 
@@ -41,6 +44,10 @@
 
         <script id="panels-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
+            <% if (group.hidden) { %>
+              <% $("a[href=#" + group.name + "]").remove() %>
+              <% return %>
+            <% } %>
             <% var settings = _.partition(group.settings, function(value, index) { return !value.deprecated })[0] %>
             <% split_settings = _.partition(settings, function(value, index) { return !value.advanced }) %>
             <% isAdvanced = _.isEmpty(split_settings[0]) && !_.isEmpty(split_settings[1]) %>
@@ -86,9 +93,9 @@
 <script src='/js/underscore-min.js'></script>
 <script src='/js/underscore-keypath.min.js'></script>
 <script src='/js/bootbox.min.js'></script>
+<script src='/js/sha256.js'></script>
+<script src='js/form2js.min.js'></script>
 <script src='js/bootstrap-switch.min.js'></script>
 <script src='/js/shared.js'></script>
 <script src='js/settings.js'></script>
-<script src='js/form2js.min.js'></script>
-<script src='js/sha256.js'></script>
 <!--#include virtual="page-end.html"-->

@@ -40,11 +40,16 @@
             <li><a href="/settings/">Settings</a></li>
           </ul>
           <ul class="nav navbar-right navbar-nav">
+            <li><a id="visit-domain-link" target="_blank" style="display: none;">Visit domain in VR</a></li>
             <li><a href="#" id="restart-server"><span class="glyphicon glyphicon-refresh"></span> Restart</a></li>
           </ul>
         </div>
       </div><!-- /.container-fluid -->
     </nav>
+    <div id="cloud-domains-alert" class="alert alert-info" role="alert" style="display: none;">
+      <span class="alert-link"><a href="https://highfidelity.com/user/cloud_domains" target="_blank" class="blue-link">Visit Cloud Hosted Domains</a> to manage all your cloud domains</span>
+      <a href="javascript:void(0);" class="glyphicon glyphicon-remove pull-right"></a>
+    </div>
 
     <div class="modal fade" id="restart-modal">
       <div class="modal-dialog">
