@@ -78,7 +78,7 @@ void HazePropertyGroup::debugDump() const {
 
     qCDebug(entities) << "            _hazeRange:" << _hazeRange;
     qCDebug(entities) << "            _hazeBlendInColor:" << _hazeBlendInColor;
-    qCDebug(entities) << "            _hazeBlendOutColor:" << _hazeBlendInColor;
+    qCDebug(entities) << "            _hazeBlendOutColor:" << _hazeBlendOutColor;
     qCDebug(entities) << "            _hazeLightBlendAngle:" << _hazeLightBlendAngle;
 
     qCDebug(entities) << "            _hazeAltitude:" << _hazeAltitude;

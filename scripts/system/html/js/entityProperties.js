@@ -1431,7 +1431,7 @@ function loaded() {
             onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
-                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'hazeBlendIn');
+                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'hazeBlendInColor');
             }
         }));
         var zoneHazeBlendInColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeBlendInColor', 
