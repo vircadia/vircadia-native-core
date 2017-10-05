@@ -443,10 +443,6 @@ protected:
         viewOut = _viewFrustum;
     }
 
-    void copyShadowViewFrustum(ViewFrustum& viewOut) const override {
-        viewOut = _shadowViewFrustum;
-    }
-
     QThread* getMainThread() override {
         return QThread::currentThread();
     }
@@ -1118,7 +1114,6 @@ private:
     RenderThread _renderThread;
     QWindowCamera _camera;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _shadowViewFrustum; // current state of view frustum, perspective, orientation, etc.
     model::SunSkyStage _sunSkyStage;
     model::LightPointer _globalLight { std::make_shared<model::Light>() };
     bool _ready { false };

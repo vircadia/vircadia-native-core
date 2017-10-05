@@ -77,7 +77,7 @@ Item {
 
             text: qsTr("Close");
 
-            onClicked: root.destroy()
+            onClicked: root.tryDestroy()
         }
     }
 
