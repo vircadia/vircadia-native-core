@@ -1008,15 +1008,18 @@ function loaded() {
                             elZoneHazeMode.value = properties.hazeMode;
                             setDropdownText(elZoneHazeMode);
 
-                            elZoneHazeRange.value = properties.haze.hazeRange.toFixed(2);
-                            elZoneHazeBlendInColor.style.backgroundColor = "rgb(" + properties.haze.hazeBlendInColor.red + "," + properties.haze.hazeBlendInColor.green + "," + properties.haze.hazeBlendInColor.blue + ")";
+                            elZoneHazeRange.value = properties.haze.hazeRange.toFixed(0);
+                            elZoneHazeBlendInColor.style.backgroundColor = "rgb(" + 
+                                properties.haze.hazeBlendInColor.red + "," + 
+                                properties.haze.hazeBlendInColor.green + "," + 
+                                properties.haze.hazeBlendInColor.blue + ")";
 
                             elZoneHazeBlendInColorRed.value = properties.haze.hazeBlendInColor.red;
                             elZoneHazeBlendInColorGreen.value = properties.haze.hazeBlendInColor.green;
                             elZoneHazeBlendInColorBlue.value = properties.haze.hazeBlendInColor.blue;
-                            elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend;
+                            elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
 
-                            elZoneHazeAltitude.value = properties.haze.hazeAltitude.toFixed(2);
+                            elZoneHazeAltitude.value = properties.haze.hazeAltitude.toFixed(0);
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                             elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -1431,14 +1434,14 @@ function loaded() {
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'hazeBlendIn');
             }
         }));
-        var zoneHazeBlendInColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('hazeBlendIn', 'color', 
+        var zoneHazeBlendInColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeBlendInColor', 
             elZoneHazeBlendInColorRed, 
             elZoneHazeBlendInColorGreen, 
             elZoneHazeBlendInColorBlue);
 
         elZoneHazeBlendInColorRed.addEventListener('change', zoneHazeBlendInColorChangeFunction);
         elZoneHazeBlendInColorGreen.addEventListener('change', zoneHazeBlendInColorChangeFunction);
-        elZoneHazeBlendInColorBlue.addEventListener('change', zoneKeyHazeBlendInColorChangeFunction);
+        elZoneHazeBlendInColorBlue.addEventListener('change', zoneHazeBlendInColorChangeFunction);
         elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
 
         elZoneHazeAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeAltitude'));

@@ -190,7 +190,7 @@ public:
     float getHazeRange() const { return _hazeRange; }
     void setHazeBlendInColor(const xColor hazeBlendInColor) { _hazeBlendInColor = hazeBlendInColor; }
     xColor getHazeBlendInColor() { return _hazeBlendInColor; }
-    void setHazeBlendOutColor(const xColor hazeBlendOutColor) { _hazeBlendInColor = hazeBlendOutColor; }
+    void setHazeBlendOutColor(const xColor hazeBlendOutColor) { _hazeBlendOutColor = hazeBlendOutColor; }
     xColor getHazeBlendOutColor() const { return _hazeBlendOutColor; }
     void setHazeLightBlendAngle(float hazeLightBlendAngle) { _hazeLightBlendAngle = hazeLightBlendAngle; }
     float getHazeLightBlendAngle() const { return _hazeLightBlendAngle; }
