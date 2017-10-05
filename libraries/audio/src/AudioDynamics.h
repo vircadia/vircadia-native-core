@@ -31,6 +31,9 @@
 #define MULQ31(a,b)     ((int32_t)(MUL64(a, b) >> 31))
 #define MULDIV64(a,b,c) (int32_t)(MUL64(a, b) / (c))
 
+#define ADDMOD32(a,b)   (int32_t)((uint32_t)(a) + (uint32_t)(b))
+#define SUBMOD32(a,b)   (int32_t)((uint32_t)(a) - (uint32_t)(b))
+
 //
 // on x86 architecture, assume that SSE2 is present
 //
@@ -399,14 +402,14 @@ public:
         x = MULHI(x, CICGAIN);
 
         _buffer[i] = _acc1;
-        _acc1 += x;                 // integrator
+        _acc1 = ADDMOD32(_acc1, x);         // integrator
         i = (i + CIC1 - 1) & MASK;
-        x = _acc1 - _buffer[i];     // comb
+        x = SUBMOD32(_acc1, _buffer[i]);    // comb
 
         _buffer[i] = _acc2;
-        _acc2 += x;                 // integrator
+        _acc2 = ADDMOD32(_acc2, x);         // integrator
         i = (i + CIC2 - 1) & MASK;
-        x = _acc2 - _buffer[i];     // comb
+        x = SUBMOD32(_acc2, _buffer[i]);    // comb
 
         _index = (i + 1) & MASK;    // skip unused tap
         return x;
@@ -464,14 +467,14 @@ public:
         x = MULHI(x, CICGAIN);
 
         _buffer[i] = _acc1;
-        _acc1 += x;                 // integrator
+        _acc1 = ADDMOD32(_acc1, x);         // integrator
         i = (i + CIC1 - 1) & MASK;
-        x = _acc1 - _buffer[i];     // comb
+        x = SUBMOD32(_acc1, _buffer[i]);    // comb
 
         _buffer[i] = _acc2;
-        _acc2 += x;                 // integrator
+        _acc2 = ADDMOD32(_acc2, x);         // integrator
         i = (i + CIC2 - 1) & MASK;
-        x = _acc2 - _buffer[i];     // comb
+        x = SUBMOD32(_acc2, _buffer[i]);    // comb
 
         _index = (i + 1) & MASK;    // skip unused tap
         return x;

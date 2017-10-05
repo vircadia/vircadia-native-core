@@ -13,10 +13,6 @@
 #include <cstdlib>
 #include "AudioDynamics.h"
 
-#ifdef __clang__
-#pragma clang optimize off
-#endif
-
 // log2 domain headroom bits above 0dB (int32_t)
 static const int LOG2_HEADROOM_Q30 = 1;
 
