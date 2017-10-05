@@ -2016,7 +2016,6 @@ SelectionDisplay = (function() {
         }// end of isSingleSelection
 
 
-
         Overlays.editOverlay(grabberLBN, {
             visible: stretchHandlesVisible,
             rotation: rotation,
@@ -2515,7 +2514,6 @@ SelectionDisplay = (function() {
                 cornerPosition);
 
 
-
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
                 if (!properties) {
@@ -2639,7 +2637,6 @@ SelectionDisplay = (function() {
     });
 
 
-
     // FUNCTION: VEC 3 MULT
     var vec3Mult = function(v1, v2) {
         return {
@@ -2677,8 +2674,7 @@ SelectionDisplay = (function() {
             y: Math.abs(direction.y) > 0 ? 1 : 0,
             z: Math.abs(direction.z) > 0 ? 1 : 0
         };
-        
-        
+
 
         var numDimensions = mask.x + mask.y + mask.z;
 
@@ -4185,7 +4181,6 @@ SelectionDisplay = (function() {
     //       Controller.mousePressEvent.connect(that.mousePressEvent);
     //       Controller.mouseMoveEvent.connect(that.mouseMoveEvent);
     Controller.mouseReleaseEvent.connect(that.mouseReleaseEvent);
-
 
 
     return that;
