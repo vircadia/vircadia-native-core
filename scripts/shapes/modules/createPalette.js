@@ -405,6 +405,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             entityID = Entities.addEntity(properties);
             if (entityID !== Uuid.NULL) {
                 History.prePush(
+                    otherSide,
                     { deleteEntities: [{ entityID: entityID }] },
                     { createEntities: [{ entityID: entityID, properties: properties }] }
                 );

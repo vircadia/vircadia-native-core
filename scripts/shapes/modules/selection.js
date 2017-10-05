@@ -282,6 +282,7 @@ SelectionManager = function (side) {
                 && (!Vec3.equal(startPosition, rootPosition) || !Quat.equal(startOrientation, rootOrientation))) {
             // Positions and orientations can be identical if change grabbing hands when finish scaling.
             History.push(
+                side,
                 {
                     setProperties: [
                         { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
@@ -331,6 +332,7 @@ SelectionManager = function (side) {
         if (Vec3.distance(startPosition, rootPosition) >= MIN_HISTORY_MOVE_DISTANCE
                 || Quat.rotationBetween(startOrientation, rootOrientation) >= MIN_HISTORY_ROTATE_ANGLE) {
             History.push(
+                side,
                 {
                     setProperties: [
                         { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
@@ -426,10 +428,7 @@ SelectionManager = function (side) {
         }
 
         // Add history entry.
-        History.push(
-            { setProperties: undoData },
-            { setProperties: redoData }
-        );
+        History.push(side, { setProperties: undoData }, { setProperties: redoData });
 
         // Update grab start data for its undo.
         startPosition = rootPosition;
@@ -445,6 +444,7 @@ SelectionManager = function (side) {
         if (Vec3.distance(startPosition, rootPosition) >= MIN_HISTORY_MOVE_DISTANCE
                 || Quat.rotationBetween(startOrientation, rootOrientation) >= MIN_HISTORY_ROTATE_ANGLE) {
             History.push(
+                side,
                 {
                     setProperties: [
                         { entityID: rootEntityID, properties: { position: startPosition, rotation: startOrientation } }
@@ -542,10 +542,7 @@ SelectionManager = function (side) {
         }
 
         // Add history entry.
-        History.push(
-            { setProperties: undoData },
-            { setProperties: redoData }
-        );
+        History.push(side, { setProperties: undoData }, { setProperties: redoData });
 
         // Update grab start data for its undo.
         startPosition = rootPosition;
@@ -593,10 +590,7 @@ SelectionManager = function (side) {
         rootEntityID = selection[0].id;
 
         // Add history entry.
-        History.prePush(
-            { deleteEntities: undoData },
-            { createEntities: redoData }
-        );
+        History.prePush(side, { deleteEntities: undoData }, { createEntities: redoData });
     }
 
     function applyColor(color, isApplyToAll) {
@@ -621,7 +615,7 @@ SelectionManager = function (side) {
                 }
             }
             if (undoData.length > 0) {
-                History.push({ setProperties: undoData }, { setProperties: redoData });
+                History.push(side, { setProperties: undoData }, { setProperties: redoData });
             }
         } else {
             properties = Entities.getEntityProperties(intersectedEntityID, ["type", "color"]);
@@ -630,6 +624,7 @@ SelectionManager = function (side) {
                     color: color
                 });
                 History.push(
+                    side,
                     { setProperties: [{ entityID: intersectedEntityID, properties: { color: properties.color } }] },
                     { setProperties: [{ entityID: intersectedEntityID, properties: { color: color } }] }
                 );
@@ -740,10 +735,7 @@ SelectionManager = function (side) {
         });
 
         // Add history entry.
-        History.push(
-            { setProperties: undoData },
-            { setProperties: redoData }
-        );
+        History.push(side, { setProperties: undoData }, { setProperties: redoData });
 
         // Kick off physics if necessary.
         if (physicsProperties.dynamic) {
@@ -759,7 +751,7 @@ SelectionManager = function (side) {
 
     function deleteEntities() {
         if (rootEntityID) {
-            History.push({ createEntities: selectionProperties }, { deleteEntities: [{ entityID: rootEntityID }] });
+            History.push(side, { createEntities: selectionProperties }, { deleteEntities: [{ entityID: rootEntityID }] });
             Entities.deleteEntity(rootEntityID); // Children are automatically deleted.
             clear();
         }

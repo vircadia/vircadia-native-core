@@ -47,8 +47,8 @@ History = (function () {
         ],
         MAX_HISTORY_ITEMS = 1000,
         undoPosition = -1, // The next history item to undo; the next history item to redo = undoIndex + 1.
-        undoData = {},
-        redoData = {};
+        undoData = [{}, {}],
+        redoData = [{}, {}];
 
     function doKick(entityID) {
         var properties,
@@ -73,16 +73,16 @@ History = (function () {
         }, KICK_DELAY);
     }
 
-    function prePush(undo, redo) {
-        // Stores undo and redo data to include in the next history entry.
-        undoData = undo;
-        redoData = redo;
+    function prePush(side, undo, redo) {
+        // Stores undo and redo data to include in the next history entry generated for the side.
+        undoData[side] = undo;
+        redoData[side] = redo;
     }
 
-    function push(undo, redo) {
+    function push(side, undo, redo) {
         // Add a history entry.
-        undoData = Object.merge(undoData, undo);
-        redoData = Object.merge(redoData, redo);
+        undoData[side] = Object.merge(undoData[side], undo);
+        redoData[side] = Object.merge(redoData[side], redo);
 
         // Wipe any redo history after current undo position.
         if (undoPosition < history.length - 1) {
@@ -95,11 +95,11 @@ History = (function () {
             undoPosition = history.length - 1;
         }
 
-        history.push({ undoData: undoData, redoData: redoData });
+        history.push({ undoData: undoData[side], redoData: redoData[side] });
         undoPosition++;
 
-        undoData = {};
-        redoData = {};
+        undoData[side] = {};
+        redoData[side] = {};
     }
 
     function updateEntityIDs(oldEntityID, newEntityID) {
