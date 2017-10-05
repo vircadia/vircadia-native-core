@@ -431,8 +431,8 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&)> HmdDisplayPlugin::H
     updatePipeline();
     return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
         if (pipeline) {
-
             batch.setPipeline(pipeline);
+
             batch.setInputFormat(format);
             gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
             gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);

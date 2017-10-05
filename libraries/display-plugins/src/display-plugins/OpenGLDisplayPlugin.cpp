@@ -564,17 +564,19 @@ void OpenGLDisplayPlugin::updateFrameData() {
 
 std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin::getHUDOperator() {
     return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
-        batch.enableStereo(false);
-        batch.setPipeline(_hudPipeline);
-        batch.setResourceTexture(0, hudTexture);
-        if (isStereo()) {
-            for_each_eye([&](Eye eye) {
-                batch.setViewportTransform(eyeViewport(eye, getRecommendedRenderSize()));
+        if (_hudPipeline) {
+            batch.enableStereo(false);
+            batch.setPipeline(_hudPipeline);
+            batch.setResourceTexture(0, hudTexture);
+            if (isStereo()) {
+                for_each_eye([&](Eye eye) {
+                    batch.setViewportTransform(eyeViewport(eye, getRecommendedRenderSize()));
+                    batch.draw(gpu::TRIANGLE_STRIP, 4);
+                });
+            } else {
+                batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
-            });
-        } else {
-            batch.setViewportTransform(ivec4(uvec2(0), getRecommendedRenderSize()));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            }
         }
     };
 }
