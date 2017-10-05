@@ -13,7 +13,6 @@
 
 #include <memory>
 #include <glm/glm.hpp>
-#include <QReadWriteLock>
 
 #include "LaserPointer.h"
 
@@ -46,7 +45,6 @@ public:
 
 private:
     QHash<QUuid, std::shared_ptr<LaserPointer>> _laserPointers;
-    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _laserPointerLocks;
     QReadWriteLock _containsLock;
 
 };
