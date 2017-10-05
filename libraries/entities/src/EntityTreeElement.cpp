@@ -869,6 +869,14 @@ void EntityTreeElement::getEntities(const ViewFrustum& frustum, QVector<EntityIt
     });
 }
 
+void EntityTreeElement::getEntities(EntityItemFilter& filter,  QVector<EntityItemPointer>& foundEntities) {
+    forEachEntity([&](EntityItemPointer entity) {
+        if (filter(entity)) {
+            foundEntities.push_back(entity);
+        }
+    });
+}
+
 EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id) const {
     EntityItemPointer foundEntity = NULL;
     withReadLock([&] {
