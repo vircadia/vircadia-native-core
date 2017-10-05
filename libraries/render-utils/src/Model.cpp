@@ -267,6 +267,11 @@ void Model::updateRenderItems() {
     });
 }
 
+void Model::setRenderItemsNeedUpdate() {
+    _renderItemsNeedUpdate = true;
+    emit requestRenderUpdate();
+}
+
 void Model::initJointTransforms() {
     if (isLoaded()) {
         glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
@@ -814,13 +819,11 @@ void Model::setTextures(const QVariantMap& textures) {
         _needsUpdateTextures = true;
         _needsFixupInScene = true;
         _renderGeometry->setTextures(textures);
-        emit requestRenderUpdate();
     } else {
         // FIXME(Huffman): Disconnect previously connected lambdas so we don't set textures multiple
         // after the geometry has finished loading.
         connect(&_renderWatcher, &GeometryResourceWatcher::finished, this, [this, textures]() {
             _renderGeometry->setTextures(textures);
-            emit requestRenderUpdate();
         });
     }
 }

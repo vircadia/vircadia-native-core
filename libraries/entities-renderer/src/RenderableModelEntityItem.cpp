@@ -1145,7 +1145,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             model->removeFromScene(scene, transaction);
             withWriteLock([&] { _model.reset(); });
         }
-        emit requestRenderUpdate();
         return;
     }
 
@@ -1169,7 +1168,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
     // Nothing else to do unless the model is loaded
     if (!model->isLoaded()) {
-        emit needsRenderUpdate();
         return;
     }
 

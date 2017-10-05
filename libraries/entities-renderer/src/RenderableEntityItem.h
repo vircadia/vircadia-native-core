@@ -73,12 +73,12 @@ protected:
 
     // Will be called on the main thread from updateInScene.  This can be used to fetch things like 
     // network textures or model geometry from resource caches
-    virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {  }
+    virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity);
 
     // Will be called by the lambda posted to the scene in updateInScene.  
     // This function will execute on the rendering thread, so you cannot use network caches to fetch
     // data in this method if using multi-threaded rendering
-    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity);
+    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity) { }
 
     // Called by the `render` method after `needsRenderUpdate`
     virtual void doRender(RenderArgs* args) = 0;
