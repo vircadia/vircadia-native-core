@@ -47,8 +47,9 @@ History = (function () {
         ],
         MAX_HISTORY_ITEMS = 1000,
         undoPosition = -1, // The next history item to undo; the next history item to redo = undoIndex + 1.
-        undoData = [{}, {}],
-        redoData = [{}, {}];
+        undoData = [{}, {}, {}], // Left side, right side, no side.
+        redoData = [{}, {}, {}],
+        NO_SIDE = 2;
 
     function doKick(entityID) {
         var properties,
@@ -81,6 +82,9 @@ History = (function () {
 
     function push(side, undo, redo) {
         // Add a history entry.
+        if (side === null) {
+            side = NO_SIDE;
+        }
         undoData[side] = Object.merge(undoData[side], undo);
         redoData[side] = Object.merge(redoData[side], redo);
 

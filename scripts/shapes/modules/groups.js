@@ -143,10 +143,7 @@ Groups = function () {
         selections.splice(1, selections.length - 1);
 
         // Add history entry.
-        History.push(
-            { setProperties: undoData },
-            { setProperties: redoData }
-        );
+        History.push(null, { setProperties: undoData }, { setProperties: redoData });
     }
 
     function ungroup() {
@@ -248,10 +245,7 @@ Groups = function () {
         }
 
         // Add history entry.
-        History.push(
-            { setProperties: undoData },
-            { setProperties: redoData }
-        );
+        History.push(null, { setProperties: undoData }, { setProperties: redoData });
     }
 
     function clear() {
