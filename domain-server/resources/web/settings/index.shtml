@@ -9,7 +9,7 @@
 
   <div class="row">
     <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
-      <div id="setup-sidebar" class="hidden-xs" data-spy="affix" data-offset-top="55" data-clampedwidth="#setup-sidebar-col">
+      <div id="setup-sidebar" class="hidden-xs" data-spy="affix" data-offset-top="1" data-clampedwidth="#setup-sidebar-col">
         <script id="list-group-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
             <% panelID = group.name ? group.name : group.html_id %>
@@ -26,7 +26,7 @@
         </ul>
 
         <button id="advanced-toggle-button" class="btn btn-info advanced-toggle">Show advanced</button>
-        <button class="btn btn-success save-button">Save</button>
+        <button class="btn btn-success save-button" disabled>Save</button>
       </div>
     </div>
 
@@ -36,6 +36,7 @@
       </div>
 
       <div class="col-xs-12">
+
         <form id="settings-form" role="form">
 
         <script id="panels-template" type="text/template">

@@ -1,6 +1,7 @@
 body {
   position: relative;
   padding-bottom: 30px;
+  margin-top: 70px;
 }
 
 [hidden] {
@@ -81,7 +82,7 @@ span.port {
 
 #setup-sidebar.affix {
   position: fixed;
-  top: 15px;
+  top: 70px;
 }
 
 #setup-sidebar button {
@@ -254,4 +255,27 @@ table .headers + .headers td {
     transform: scale(1.0);
     -webkit-transform: scale(1.0);
   }
+}
+
+/* From https://gist.github.com/alexandrevicenzi/680147013e902a4eaa5d */
+.glyphicon-refresh-animate {
+    -animation: spin .7s infinite linear;
+    -ms-animation: spin .7s infinite linear;
+    -webkit-animation: spinw .7s infinite linear;
+    -moz-animation: spinm .7s infinite linear;
+}
+
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg);}
+    to { transform: scale(1) rotate(360deg);}
+}
+  
+@-webkit-keyframes spinw {
+    from { -webkit-transform: rotate(0deg);}
+    to { -webkit-transform: rotate(360deg);}
+}
+
+@-moz-keyframes spinm {
+    from { -moz-transform: rotate(0deg);}
+    to { -moz-transform: rotate(360deg);}
 }

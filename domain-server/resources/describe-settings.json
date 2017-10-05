@@ -14,7 +14,8 @@
         {
           "name": "id",
           "label": "Domain ID",
-          "help": "This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank."
+          "help": "This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank.",
+          "advanced": true
         },
         {
           "name": "automatic_networking",

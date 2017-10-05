@@ -79,6 +79,8 @@ public:
     /// Parses the request content as form data, returning a list of header/content pairs.
     QList<FormData> parseFormData () const;
 
+    QHash<QString, QString> parseUrlEncodedForm();
+
     /// Sends a response and closes the connection.
     void respond (const char* code, const QByteArray& content = QByteArray(),
         const char* contentType = DefaultContentType,
