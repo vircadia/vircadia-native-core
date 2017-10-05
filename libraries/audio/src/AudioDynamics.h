@@ -397,6 +397,8 @@ public:
 
         // Fast FIR attack/lowpass filter using a 2-stage CIC filter.
         // The step response reaches final value after N-1 samples.
+        // NOTE: CIC integrators intentionally overflow, using modulo arithmetic.
+        // See E. B. Hogenauer, "An economical class of digital filters for decimation and interpolation"
 
         const int32_t CICGAIN = 0xffffffff / (CIC1 * CIC2); // Q32
         x = MULHI(x, CICGAIN);
@@ -462,6 +464,8 @@ public:
 
         // Fast FIR attack/lowpass filter using a 2-stage CIC filter.
         // The step response reaches final value after N-1 samples.
+        // NOTE: CIC integrators intentionally overflow, using modulo arithmetic.
+        // See E. B. Hogenauer, "An economical class of digital filters for decimation and interpolation"
 
         const int32_t CICGAIN = 0xffffffff / (CIC1 * CIC2); // Q32
         x = MULHI(x, CICGAIN);
