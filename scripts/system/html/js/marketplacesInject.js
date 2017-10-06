@@ -334,7 +334,6 @@
             $('body').addClass("code-injected");
 
             maybeAddLogInButton();
-            maybeAddSetupWalletButton();
             changeDropdownMenu();
 
             var purchaseButton = $('#side-info').find('.btn').first();

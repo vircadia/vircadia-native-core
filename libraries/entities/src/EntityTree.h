@@ -187,6 +187,11 @@ public:
         return _recentlyDeletedEntityItemIDs;
     }
 
+    QHash<QString, EntityItemID> getEntityCertificateIDMap() const {
+        QReadLocker locker(&_entityCertificateIDMapLock);
+        return _entityCertificateIDMap;
+    }
+
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
@@ -369,7 +374,6 @@ protected:
     QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
 
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
-    void startDynamicDomainVerification();
 };
 
 #endif // hifi_EntityTree_h

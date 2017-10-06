@@ -80,6 +80,13 @@ private:
 
     QReadWriteLock _viewerSendingStatsLock;
     QMap<QUuid, QMap<QUuid, ViewerSendingStats>> _viewerSendingStats;
+
+    //static const int MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 45 * 60 * 1000; // 45m
+    //static const int MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 75 * 60 * 1000; // 1h15m
+    static const int MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 5 * 1000; // 5s
+    static const int MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 10 * 1000; // 10s
+    QTimer _dynamicDomainVerificationTimer;
+    void startDynamicDomainVerification();
 };
 
 #endif // hifi_EntityServer_h

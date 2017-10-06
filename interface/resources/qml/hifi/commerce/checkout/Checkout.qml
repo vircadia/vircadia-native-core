@@ -125,7 +125,7 @@ Rectangle {
         id: notSetUpTimer;
         interval: 200;
         onTriggered: {
-            sendToScript({method: 'checkout_walletNotSetUp'});
+            sendToScript({method: 'checkout_walletNotSetUp', itemId: itemId});
         }
     }
 

@@ -78,6 +78,10 @@ Rectangle {
         onInventoryResult: {
             purchasesReceived = true;
 
+            if (root.pendingInventoryReply) {
+                inventoryTimer.start();
+            }
+
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
@@ -98,10 +102,6 @@ Rectangle {
                 previousPurchasesModel.append(inventoryResult);
 
                 buildFilteredPurchasesModel();
-
-                if (root.pendingInventoryReply) {
-                    inventoryTimer.start();
-                }
             }
 
             root.pendingInventoryReply = false;
@@ -112,7 +112,7 @@ Rectangle {
         id: notSetUpTimer;
         interval: 200;
         onTriggered: {
-            sendToScript({method: 'checkout_walletNotSetUp'});
+            sendToScript({method: 'purchases_walletNotSetUp'});
         }
     }
 

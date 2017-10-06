@@ -289,11 +289,17 @@
                 openWallet();
                 break;
             case 'purchases_walletNotSetUp':
-            case 'checkout_walletNotSetUp':
                 wireEventBridge(true);
                 tablet.sendToQml({
                     method: 'updateWalletReferrer',
                     referrer: "purchases"
+                });
+                openWallet();
+            case 'checkout_walletNotSetUp':
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'updateWalletReferrer',
+                    referrer: message.itemId
                 });
                 openWallet();
                 break;

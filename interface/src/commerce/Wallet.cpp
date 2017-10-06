@@ -710,7 +710,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
 bool Wallet::verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText) {
     // I have no idea how to do this yet, so here's some dummy code that may not even work.
-    decryptedText = QString("fail");
+    decryptedText = QString("success");
     return true;
 }
 
