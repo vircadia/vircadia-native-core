@@ -100,10 +100,10 @@ protected:
     int _histogram[NHIST] = {};
 
     // peakhold
-    int32_t _holdMin = 0x7fffffff;
-    int32_t _holdInc = 0x7fffffff;
+    uint32_t _holdMin = 0x7fffffff;
+    uint32_t _holdInc = 0x7fffffff;
     uint32_t _holdMax = 0x7fffffff;
-    int32_t _holdRel = 0x7fffffff;
+    uint32_t _holdRel = 0x7fffffff;
     int32_t _holdPeak = 0x7fffffff;
 
     // hysteresis
@@ -177,7 +177,7 @@ void GateImpl::setThreshold(float threshold) {
 void GateImpl::setHold(float hold) {
 
     const double RELEASE = 100.0;   // release = 100ms
-    const double PROGHOLD = 0.100;  // progressive hold = 100ms
+    const double PROGHOLD = 100.0;  // progressive hold = 100ms
 
     // pure hold = 1 to 1000ms
     hold = MAX(hold, 1.0f);
@@ -185,10 +185,12 @@ void GateImpl::setHold(float hold) {
 
     _holdMin = msToTc(RELEASE, _sampleRate);
 
-    _holdInc = (int32_t)((_holdMin - 0x7fffffff) / (PROGHOLD * _sampleRate));
-    _holdInc = MIN(_holdInc, -1); // prevent 0 on long releases
-
-    _holdMax = 0x7fffffff - (uint32_t)(_holdInc * (double)hold/1000.0 * _sampleRate);
+    double progSamples = PROGHOLD/1000.0 * _sampleRate;
+    _holdInc = (uint32_t)((0x7fffffff - _holdMin) / progSamples);
+    _holdInc = MAX(_holdInc, 1);    // prevent 0 on long releases
+    
+    double holdSamples = (double)hold/1000.0 * _sampleRate;
+    _holdMax = 0x7fffffff + (uint32_t)(_holdInc * holdSamples);
 }
 
 //
@@ -336,10 +338,8 @@ int32_t GateImpl::peakhold(int32_t peak) {
         // (_holdRel > _holdMin) progressive hold
         // (_holdRel = _holdMin) release
 
-        _holdRel += _holdInc;                                   // update progressive hold
-        _holdRel = MAX((uint32_t)_holdRel, (uint32_t)_holdMin); // saturate at final value
-
-        int32_t tc = MIN((uint32_t)_holdRel, 0x7fffffff);
+        _holdRel -= _holdInc;                                   // update progressive hold
+        int32_t tc = MIN(MAX(_holdRel, _holdMin), 0x7fffffff);  // saturate to [_holdMin, 0x7fffffff]
         peak += MULQ31((_holdPeak - peak), tc);                 // apply release
 
     } else {
