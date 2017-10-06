@@ -15,7 +15,6 @@
 
 #include <memory>
 #include <QtCore/QObject>
-#include <QReadWriteLock>
 
 #include "RegisteredMetaTypes.h"
 
@@ -47,7 +46,6 @@ public:
 
 private:
     QHash<QUuid, std::shared_ptr<RayPick>> _rayPicks;
-    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _rayPickLocks;
     QReadWriteLock _containsLock;
 
     typedef QHash<QPair<glm::vec3, glm::vec3>, std::unordered_map<RayPickFilter::Flags, RayPickResult>> RayPickCache;

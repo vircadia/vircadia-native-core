@@ -241,7 +241,7 @@ void Model::updateRenderItems() {
                 if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
-                        
+
                         const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
                         if (state.clusterMatrices.size() == 1) {

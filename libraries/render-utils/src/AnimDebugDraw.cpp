@@ -144,6 +144,7 @@ void AnimDebugDraw::shutdown() {
     if (scene && _itemID) {
         render::Transaction transaction;
         transaction.removeItem(_itemID);
+        render::Item::clearID(_itemID);
         scene->enqueueTransaction(transaction);
     }
 }
@@ -316,7 +317,9 @@ void AnimDebugDraw::update() {
     if (!scene) {
         return;
     }
-
+    if (!render::Item::isValidID(_itemID)) {
+        return;
+    }
     render::Transaction transaction;
     transaction.updateItem<AnimDebugDrawData>(_itemID, [&](AnimDebugDrawData& data) {
 

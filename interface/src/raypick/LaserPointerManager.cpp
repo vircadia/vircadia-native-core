@@ -17,7 +17,6 @@ QUuid LaserPointerManager::createLaserPointer(const QVariant& rayProps, const La
         QWriteLocker containsLock(&_containsLock);
         QUuid id = QUuid::createUuid();
         _laserPointers[id] = laserPointer;
-        _laserPointerLocks[id] = std::make_shared<QReadWriteLock>();
         return id;
     }
     return QUuid();
@@ -26,46 +25,45 @@ QUuid LaserPointerManager::createLaserPointer(const QVariant& rayProps, const La
 void LaserPointerManager::removeLaserPointer(const QUuid uid) {
     QWriteLocker lock(&_containsLock);
     _laserPointers.remove(uid);
-    _laserPointerLocks.remove(uid);
 }
 
 void LaserPointerManager::enableLaserPointer(const QUuid uid) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->enable();
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->enable();
     }
 }
 
 void LaserPointerManager::disableLaserPointer(const QUuid uid) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->disable();
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->disable();
     }
 }
 
 void LaserPointerManager::setRenderState(QUuid uid, const std::string& renderState) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setRenderState(renderState);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setRenderState(renderState);
     }
 }
 
 void LaserPointerManager::editRenderState(QUuid uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->editRenderState(state, startProps, pathProps, endProps);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->editRenderState(state, startProps, pathProps, endProps);
     }
 }
 
 const RayPickResult LaserPointerManager::getPrevRayPickResult(const QUuid uid) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QReadLocker laserLock(_laserPointerLocks[uid].get());
-        return _laserPointers[uid]->getPrevRayPickResult();
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        return laserPointer.value()->getPrevRayPickResult();
     }
     return RayPickResult();
 }
@@ -73,80 +71,79 @@ const RayPickResult LaserPointerManager::getPrevRayPickResult(const QUuid uid) {
 void LaserPointerManager::update() {
     QReadLocker lock(&_containsLock);
     for (QUuid& uid : _laserPointers.keys()) {
-        // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
-        QReadLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->update();
+        auto laserPointer = _laserPointers.find(uid);
+        laserPointer.value()->update();
     }
 }
 
 void LaserPointerManager::setPrecisionPicking(QUuid uid, const bool precisionPicking) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setPrecisionPicking(precisionPicking);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setPrecisionPicking(precisionPicking);
     }
 }
 
 void LaserPointerManager::setLaserLength(QUuid uid, const float laserLength) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setLaserLength(laserLength);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setLaserLength(laserLength);
     }
 }
 
 void LaserPointerManager::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setIgnoreEntities(ignoreEntities);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setIgnoreEntities(ignoreEntities);
     }
 }
 
 void LaserPointerManager::setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setIncludeEntities(includeEntities);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setIncludeEntities(includeEntities);
     }
 }
 
 void LaserPointerManager::setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setIgnoreOverlays(ignoreOverlays);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setIgnoreOverlays(ignoreOverlays);
     }
 }
 
 void LaserPointerManager::setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setIncludeOverlays(includeOverlays);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setIncludeOverlays(includeOverlays);
     }
 }
 
 void LaserPointerManager::setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setIgnoreAvatars(ignoreAvatars);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setIgnoreAvatars(ignoreAvatars);
     }
 }
 
 void LaserPointerManager::setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setIncludeAvatars(includeAvatars);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setIncludeAvatars(includeAvatars);
     }
 }
 
 void LaserPointerManager::setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) {
     QReadLocker lock(&_containsLock);
-    if (_laserPointers.contains(uid)) {
-        QWriteLocker laserLock(_laserPointerLocks[uid].get());
-        _laserPointers[uid]->setLockEndUUID(objectID, isOverlay);
+    auto laserPointer = _laserPointers.find(uid);
+    if (laserPointer != _laserPointers.end()) {
+        laserPointer.value()->setLockEndUUID(objectID, isOverlay);
     }
 }

@@ -64,7 +64,6 @@ void ModelOverlay::update(float deltatime) {
     }
     _isLoaded = _model->isActive();
 
-
     if (isAnimatingSomething()) {
         if (!jointsMapped()) {
             mapAnimationJoints(_model->getJointNames());

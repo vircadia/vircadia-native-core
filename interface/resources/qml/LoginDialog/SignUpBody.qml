@@ -9,7 +9,7 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.4
+import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
@@ -44,8 +44,7 @@ Item {
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
             var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
-                                4 * hifi.dimensions.contentSpacing.y + form.height +
-                                hifi.dimensions.contentSpacing.y + buttons.height;
+                                4 * hifi.dimensions.contentSpacing.y + form.height;
 
             parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth));
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
@@ -96,44 +95,31 @@ Item {
 
     Column {
         id: form
+        width: parent.width
+        onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
         anchors {
             top: mainTextContainer.bottom
-            left: parent.left
-            margins: 0
             topMargin: 2 * hifi.dimensions.contentSpacing.y
         }
         spacing: 2 * hifi.dimensions.contentSpacing.y
 
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
-
-            TextField {
-                id: emailField
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-                width: 350
-
-                label: "Email"
-            }
+        TextField {
+            id: emailField
+            width: parent.width
+            label: "Email"
         }
 
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
-
-            TextField {
-                id: usernameField
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-                width: 350
-
-                label: "Username"
-            }
+        TextField {
+            id: usernameField
+            width: parent.width
+            label: "Username"
 
             ShortcutText {
                 anchors {
-                    verticalCenter: parent.verticalCenter
+                    verticalCenter: parent.textFieldLabel.verticalCenter
+                    left: parent.textFieldLabel.right
+                    leftMargin: 10
                 }
 
                 text: qsTr("No spaces / special chars.")
@@ -145,23 +131,17 @@ Item {
             }
         }
 
-        Row {
-            spacing: hifi.dimensions.contentSpacing.x
-
-            TextField {
-                id: passwordField
-                anchors {
-                    verticalCenter: parent.verticalCenter
-                }
-                width: 350
-
-                label: "Password"
-                echoMode: TextInput.Password
-            }
+        TextField {
+            id: passwordField
+            width: parent.width
+            label: "Password"
+            echoMode: TextInput.Password
 
             ShortcutText {
                 anchors {
-                    verticalCenter: parent.verticalCenter
+                    verticalCenter: parent.textFieldLabel.verticalCenter
+                    left: parent.textFieldLabel.right
+                    leftMargin: 10
                 }
 
                 text: qsTr("At least 6 characters")
@@ -173,6 +153,53 @@ Item {
             }
         }
 
+        Row {
+            id: leftButton
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            spacing: hifi.dimensions.contentSpacing.x
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
+            Button {
+                anchors.verticalCenter: parent.verticalCenter
+
+                text: qsTr("Existing User")
+
+                onClicked: {
+                    bodyLoader.setSource("LinkAccountBody.qml")
+                    if (!root.isTablet) {
+                        bodyLoader.item.width = root.pane.width
+                        bodyLoader.item.height = root.pane.height
+                    }
+                }
+            }
+        }
+
+        Row {
+            id: buttons
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: hifi.dimensions.contentSpacing.x
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
+            Button {
+                id: linkAccountButton
+                anchors.verticalCenter: parent.verticalCenter
+                width: 200
+
+                text: qsTr("Sign Up")
+                color: hifi.buttons.blue
+
+                onClicked: signupBody.signup()
+            }
+
+            Button {
+                anchors.verticalCenter: parent.verticalCenter
+
+                text: qsTr("Cancel")
+
+                onClicked: root.tryDestroy()
+            }
+        }
     }
 
     // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
@@ -182,69 +209,21 @@ Item {
         anchors {
             left: parent.left
             right: parent.right
-            bottom: buttons.top
+            bottom: parent.bottom
             bottomMargin: keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
-        }
-    }
-
-    Row {
-        id: leftButton
-        anchors {
-            left: parent.left
-            bottom: parent.bottom
-            bottomMargin: hifi.dimensions.contentSpacing.y
-        }
-
-        spacing: hifi.dimensions.contentSpacing.x
-        onHeightChanged: d.resize(); onWidthChanged: d.resize();
-
-        Button {
-            anchors.verticalCenter: parent.verticalCenter
-
-            text: qsTr("Existing User")
-
-            onClicked: {
-                bodyLoader.setSource("LinkAccountBody.qml")
-                bodyLoader.item.width = root.pane.width
-                bodyLoader.item.height = root.pane.height
-            }
-        }
-    }
-
-    Row {
-        id: buttons
-        anchors {
-            right: parent.right
-            bottom: parent.bottom
-            bottomMargin: hifi.dimensions.contentSpacing.y
-        }
-        spacing: hifi.dimensions.contentSpacing.x
-        onHeightChanged: d.resize(); onWidthChanged: d.resize();
-
-        Button {
-            id: linkAccountButton
-            anchors.verticalCenter: parent.verticalCenter
-            width: 200
-
-            text: qsTr("Sign Up")
-            color: hifi.buttons.blue
-
-            onClicked: signupBody.signup()
-        }
-
-        Button {
-            anchors.verticalCenter: parent.verticalCenter
-
-            text: qsTr("Cancel")
-
-            onClicked: root.destroy()
         }
     }
 
     Component.onCompleted: {
         root.title = qsTr("Create an Account")
         root.iconText = "<"
-        keyboardEnabled = HMD.active;
+        //dont rise local keyboard
+        keyboardEnabled = !root.isTablet && HMD.active;
+        //but rise Tablet's one instead for Tablet interface
+        if (root.isTablet) {
+            root.keyboardEnabled = HMD.active;
+            root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })
+        }
         d.resize();
 
         emailField.forceActiveFocus();
@@ -275,8 +254,10 @@ Item {
         onHandleLoginFailed: {
             // we failed to login, show the LoginDialog so the user will try again
             bodyLoader.setSource("LinkAccountBody.qml", { "failAfterSignUp": true })
-            bodyLoader.item.width = root.pane.width
-            bodyLoader.item.height = root.pane.height
+            if (!root.isTablet) {
+                bodyLoader.item.width = root.pane.width
+                bodyLoader.item.height = root.pane.height
+            }
         }
     }
 
