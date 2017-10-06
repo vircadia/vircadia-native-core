@@ -323,8 +323,6 @@ void GateImpl::processHistogram(int numFrames) {
 
     // smooth threshold update
     _threshAdapt = threshold + MULQ31((_threshAdapt - threshold), tcThreshold);
-
-    //printf("threshold = %0.1f\n", (_threshAdapt - (LOG2_HEADROOM_Q15 << LOG2_FRACBITS)) * -6.02f / (1 << LOG2_FRACBITS));
 }
 
 //
