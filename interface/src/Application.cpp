@@ -189,7 +189,6 @@
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
 
-#include "FrameTimingsScriptingInterface.h"
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
@@ -798,8 +797,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
-
+    
+    _logger = new FileLogger(this);
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
@@ -814,6 +813,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!DISABLE_WATCHDOG) {
         (new DeadlockWatchdogThread())->start();
     }
+
+    // Set File Logger Session UUID
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    _logger->setSessionID(accountManager->getSessionID());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -931,8 +937,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // send a location update immediately
     discoverabilityManager->updateLocation();
 
-    auto myAvatar = getMyAvatar();
-
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
@@ -942,9 +946,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // you might think we could just do this in NodeList but we only want this connection for Interface
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-
-    // connect to appropriate slots on AccountManager
-    auto accountManager = DependencyManager::get<AccountManager>();
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
@@ -2023,7 +2024,8 @@ void Application::cleanupBeforeQuit() {
     // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual
     // removal of the items.
     // See https://highfidelity.fogbugz.com/f/cases/5328
-    _main3DScene->processTransactionQueue();
+    _main3DScene->enqueueFrame(); // flush all the transactions
+    _main3DScene->processTransactionQueue(); // process and apply deletions
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -2099,7 +2101,6 @@ Application::~Application() {
 
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
-
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -2220,8 +2221,6 @@ void Application::initializeGL() {
     // update before the first render
     update(0);
 }
-
-FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
 extern void setupPreferences();
 
@@ -2383,301 +2382,105 @@ void Application::initializeUi() {
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
-void Application::paintGL() {
-    // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_aboutToQuit || _window->isMinimized()) {
-        return;
-    }
-
-    _renderFrameCount++;
-    _lastTimeRendered.start();
-
-    auto lastPaintBegin = usecTimestampNow();
-    PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_renderFrameCount);
-    PerformanceTimer perfTimer("paintGL");
-
-    if (nullptr == _displayPlugin) {
-        return;
-    }
-
-    DisplayPluginPointer displayPlugin;
-    {
-        PROFILE_RANGE(render, "/getActiveDisplayPlugin");
-        displayPlugin = getActiveDisplayPlugin();
-    }
-
-    {
-        PROFILE_RANGE(render, "/pluginBeginFrameRender");
-        // If a display plugin loses it's underlying support, it
-        // needs to be able to signal us to not use it
-        if (!displayPlugin->beginFrameRender(_renderFrameCount)) {
-            updateDisplayMode();
-            return;
-        }
-    }
-
-    // update the avatar with a fresh HMD pose
-    {
-        PROFILE_RANGE(render, "/updateAvatar");
-        getMyAvatar()->updateFromHMDSensorMatrix(getHMDSensorPose());
-    }
-
-    auto lodManager = DependencyManager::get<LODManager>();
-
-    RenderArgs renderArgs;
-
-    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
-    {
-        PROFILE_RANGE(render, "/buildFrustrumAndArgs");
-        {
-            QMutexLocker viewLocker(&_viewMutex);
-            // adjust near clip plane to account for sensor scaling.
-            auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
-                                                       _viewFrustum.getAspectRatio(),
-                                                       DEFAULT_NEAR_CLIP * sensorToWorldScale,
-                                                       _viewFrustum.getFarClip());
-            _viewFrustum.setProjection(adjustedProjection);
-            _viewFrustum.calculate();
-        }
-        renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
-            lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
-            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-        {
-            QMutexLocker viewLocker(&_viewMutex);
-            renderArgs.setViewFrustum(_viewFrustum);
-        }
-    }
-
-    {
-        PROFILE_RANGE(render, "/resizeGL");
-        PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
-        bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-        PerformanceWarning warn(showWarnings, "Application::paintGL()");
-        resizeGL();
-    }
-
-    {
-        PROFILE_RANGE(render, "/gpuContextReset");
-        _gpuContext->beginFrame(getHMDSensorPose());
-        // Reset the gpu::Context Stages
-        // Back to the default framebuffer;
-        gpu::doInBatch(_gpuContext, [&](gpu::Batch& batch) {
-            batch.resetStages();
-        });
-    }
-
-
-    {
-        PROFILE_RANGE(render, "/renderOverlay");
-        PerformanceTimer perfTimer("renderOverlay");
-        // NOTE: There is no batch associated with this renderArgs
-        // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        QSize size = getDeviceSize();
-        renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
-        _applicationOverlay.renderOverlay(&renderArgs);
-    }
+void Application::updateCamera(RenderArgs& renderArgs) {
+    PROFILE_RANGE(render, "/updateCamera");
+    PerformanceTimer perfTimer("CameraUpdates");
 
     glm::vec3 boomOffset;
-    {
-        PROFILE_RANGE(render, "/updateCamera");
-        {
-            PerformanceTimer perfTimer("CameraUpdates");
+    auto myAvatar = getMyAvatar();
+    boomOffset = myAvatar->getModelScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
 
-            auto myAvatar = getMyAvatar();
-            boomOffset = myAvatar->getModelScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
+    // The render mode is default or mirror if the camera is in mirror mode, assigned further below
+    renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
-            // The render mode is default or mirror if the camera is in mirror mode, assigned further below
-            renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-            // Always use the default eye position, not the actual head eye position.
-            // Using the latter will cause the camera to wobble with idle animations,
-            // or with changes from the face tracker
-            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-                if (isHMDMode()) {
-                    mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                    _myCamera.setPosition(extractTranslation(camMat));
-                    _myCamera.setOrientation(glmExtractRotation(camMat));
-                } else {
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition());
-                    _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
-                }
-            } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-                if (isHMDMode()) {
-                    auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                    _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
-                    _myCamera.setPosition(extractTranslation(hmdWorldMat) +
-                        myAvatar->getOrientation() * boomOffset);
-                } else {
-                    _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
-                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                            + _myCamera.getOrientation() * boomOffset);
-                    } else {
-                        _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                            + myAvatar->getOrientation() * boomOffset);
-                    }
-                }
-            } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                if (isHMDMode()) {
-                    auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
-
-                    glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                    // Mirror HMD yaw and roll
-                    glm::vec3 mirrorHmdEulers = glm::eulerAngles(hmdRotation);
-                    mirrorHmdEulers.y = -mirrorHmdEulers.y;
-                    mirrorHmdEulers.z = -mirrorHmdEulers.z;
-                    glm::quat mirrorHmdRotation = glm::quat(mirrorHmdEulers);
-
-                    glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
-
-                    _myCamera.setOrientation(worldMirrorRotation);
-
-                    glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                    // Mirror HMD lateral offsets
-                    hmdOffset.x = -hmdOffset.x;
-
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                        + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
-                        + mirrorBodyOrientation * hmdOffset);
-                } else {
-                    _myCamera.setOrientation(myAvatar->getOrientation()
-                        * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-                    _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                        + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                        glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-                }
-                renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
-            } else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
-                EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
-                if (cameraEntity != nullptr) {
-                    if (isHMDMode()) {
-                        glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                        _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
-                        glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                        _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
-                    } else {
-                        _myCamera.setOrientation(cameraEntity->getRotation());
-                        _myCamera.setPosition(cameraEntity->getPosition());
-                    }
-                }
+    // Always use the default eye position, not the actual head eye position.
+    // Using the latter will cause the camera to wobble with idle animations,
+    // or with changes from the face tracker
+    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
+        if (isHMDMode()) {
+            mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+            _myCamera.setPosition(extractTranslation(camMat));
+            _myCamera.setOrientation(glmExtractRotation(camMat));
+        }
+        else {
+            _myCamera.setPosition(myAvatar->getDefaultEyePosition());
+            _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
+        }
+    }
+    else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        if (isHMDMode()) {
+            auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+            _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
+            _myCamera.setPosition(extractTranslation(hmdWorldMat) +
+                myAvatar->getOrientation() * boomOffset);
+        }
+        else {
+            _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
+            if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
+                _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                    + _myCamera.getOrientation() * boomOffset);
             }
-            // Update camera position
-            if (!isHMDMode()) {
-                _myCamera.update();
+            else {
+                _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                    + myAvatar->getOrientation() * boomOffset);
             }
         }
     }
+    else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        if (isHMDMode()) {
+            auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
-    {
-        PROFILE_RANGE(render, "/updateCompositor");
-        getApplicationCompositor().setFrameInfo(_renderFrameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
-    }
+            glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
+            // Mirror HMD yaw and roll
+            glm::vec3 mirrorHmdEulers = glm::eulerAngles(hmdRotation);
+            mirrorHmdEulers.y = -mirrorHmdEulers.y;
+            mirrorHmdEulers.z = -mirrorHmdEulers.z;
+            glm::quat mirrorHmdRotation = glm::quat(mirrorHmdEulers);
 
-    gpu::FramebufferPointer finalFramebuffer;
-    QSize finalFramebufferSize;
-    {
-        PROFILE_RANGE(render, "/getOutputFramebuffer");
-        // Primary rendering pass
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        finalFramebufferSize = framebufferCache->getFrameBufferSize();
-        // Final framebuffer that will be handled to the display-plugin
-        finalFramebuffer = framebufferCache->getFramebuffer();
-    }
+            glm::quat worldMirrorRotation = mirrorBodyOrientation * mirrorHmdRotation;
 
-    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-    float ipdScale = hmdInterface->getIPDScale();
+            _myCamera.setOrientation(worldMirrorRotation);
 
-    // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
-    ipdScale *= sensorToWorldScale;
+            glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+            // Mirror HMD lateral offsets
+            hmdOffset.x = -hmdOffset.x;
 
-    {
-        PROFILE_RANGE(render, "/mainRender");
-        PerformanceTimer perfTimer("mainRender");
-        renderArgs._boomOffset = boomOffset;
-        // FIXME is this ever going to be different from the size previously set in the render args
-        // in the overlay render?
-        // Viewport is assigned to the size of the framebuffer
-        renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
-        auto baseProjection = renderArgs.getViewFrustum().getProjection();
-        if (displayPlugin->isStereo()) {
-            // Stereo modes will typically have a larger projection matrix overall,
-            // so we ask for the 'mono' projection matrix, which for stereo and HMD
-            // plugins will imply the combined projection for both eyes.
-            //
-            // This is properly implemented for the Oculus plugins, but for OpenVR
-            // and Stereo displays I'm not sure how to get / calculate it, so we're
-            // just relying on the left FOV in each case and hoping that the
-            // overall culling margin of error doesn't cause popping in the
-            // right eye.  There are FIXMEs in the relevant plugins
-            _myCamera.setProjection(displayPlugin->getCullingProjection(baseProjection));
-            renderArgs._context->enableStereo(true);
-            mat4 eyeOffsets[2];
-            mat4 eyeProjections[2];
-
-            // FIXME we probably don't need to set the projection matrix every frame,
-            // only when the display plugin changes (or in non-HMD modes when the user
-            // changes the FOV manually, which right now I don't think they can.
-            for_each_eye([&](Eye eye) {
-                // For providing the stereo eye views, the HMD head pose has already been
-                // applied to the avatar, so we need to get the difference between the head
-                // pose applied to the avatar and the per eye pose, and use THAT as
-                // the per-eye stereo matrix adjustment.
-                mat4 eyeToHead = displayPlugin->getEyeToHeadTransform(eye);
-                // Grab the translation
-                vec3 eyeOffset = glm::vec3(eyeToHead[3]);
-                // Apply IPD scaling
-                mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
-                eyeOffsets[eye] = eyeOffsetTransform;
-                eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
-            });
-            renderArgs._context->setStereoProjections(eyeProjections);
-            renderArgs._context->setStereoViews(eyeOffsets);
-
-            // Configure the type of display / stereo
-            renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
+            _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
+                + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
+                + mirrorBodyOrientation * hmdOffset);
         }
-        renderArgs._blitFramebuffer = finalFramebuffer;
-        displaySide(&renderArgs, _myCamera);
+        else {
+            _myCamera.setOrientation(myAvatar->getOrientation()
+                * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(myAvatar->getDefaultEyePosition()
+                + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
+                + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+        }
+        renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+    }
+    else if (_myCamera.getMode() == CAMERA_MODE_ENTITY) {
+        EntityItemPointer cameraEntity = _myCamera.getCameraEntityPointer();
+        if (cameraEntity != nullptr) {
+            if (isHMDMode()) {
+                glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
+                _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
+                glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
+                _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
+            }
+            else {
+                _myCamera.setOrientation(cameraEntity->getRotation());
+                _myCamera.setPosition(cameraEntity->getPosition());
+            }
+        }
+    }
+    // Update camera position
+    if (!isHMDMode()) {
+        _myCamera.update();
     }
 
-    gpu::Batch postCompositeBatch;
-    {
-        PROFILE_RANGE(render, "/postComposite");
-        PerformanceTimer perfTimer("postComposite");
-        renderArgs._batch = &postCompositeBatch;
-        renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
-        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
-        _overlays.render3DHUDOverlays(&renderArgs);
-    }
-
-    auto frame = _gpuContext->endFrame();
-    frame->frameIndex = _renderFrameCount;
-    frame->framebuffer = finalFramebuffer;
-    frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer){
-        DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
-    };
-    frame->overlay = _applicationOverlay.getOverlayTexture();
-    frame->postCompositeBatch = postCompositeBatch;
-    // deliver final scene rendering commands to the display plugin
-    {
-        PROFILE_RANGE(render, "/pluginOutput");
-        PerformanceTimer perfTimer("pluginOutput");
-        _renderLoopCounter.increment();
-        displayPlugin->submitFrame(frame);
-    }
-
-    // Reset the framebuffer and stereo state
-    renderArgs._blitFramebuffer.reset();
-    renderArgs._context->enableStereo(false);
-
-    {
-        Stats::getInstance()->setRenderDetails(renderArgs._details);
-    }
-
-    uint64_t lastPaintDuration = usecTimestampNow() - lastPaintBegin;
-    _frameTimingsScriptingInterface.addValue(lastPaintDuration);
+    renderArgs._cameraMode = (int8_t)_myCamera.getMode();
 }
 
 void Application::runTests() {
@@ -5225,6 +5028,7 @@ void Application::update(float deltaTime) {
 
     avatarManager->postUpdate(deltaTime, getMain3DScene());
 
+
     {
         PROFILE_RANGE_EX(app, "PreRenderLambdas", 0xffff0000, (uint64_t)0);
 
@@ -5235,9 +5039,123 @@ void Application::update(float deltaTime) {
         _postUpdateLambdas.clear();
     }
 
+    editRenderArgs([this](AppRenderArgs& appRenderArgs) {
+        appRenderArgs._headPose= getHMDSensorPose();
+
+        auto myAvatar = getMyAvatar();
+
+        // update the avatar with a fresh HMD pose
+        {
+            PROFILE_RANGE(render, "/updateAvatar");
+            myAvatar->updateFromHMDSensorMatrix(appRenderArgs._headPose);
+        }
+
+        auto lodManager = DependencyManager::get<LODManager>();
+
+        float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
+        appRenderArgs._sensorToWorldScale = sensorToWorldScale;
+        {
+            PROFILE_RANGE(render, "/buildFrustrumAndArgs");
+            {
+                QMutexLocker viewLocker(&_viewMutex);
+                // adjust near clip plane to account for sensor scaling.
+                auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
+                    _viewFrustum.getAspectRatio(),
+                    DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                    _viewFrustum.getFarClip());
+                _viewFrustum.setProjection(adjustedProjection);
+                _viewFrustum.calculate();
+            }
+            appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
+                lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+            appRenderArgs._renderArgs._scene = getMain3DScene();
+
+            {
+                QMutexLocker viewLocker(&_viewMutex);
+                appRenderArgs._renderArgs.setViewFrustum(_viewFrustum);
+            }
+        }
+        {
+            PROFILE_RANGE(render, "/resizeGL");
+            PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
+            bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+            PerformanceWarning warn(showWarnings, "Application::paintGL()");
+            resizeGL();
+        }
+
+        this->updateCamera(appRenderArgs._renderArgs);
+        appRenderArgs._isStereo = false;
+
+        {
+            auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
+            float ipdScale = hmdInterface->getIPDScale();
+
+            // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
+            ipdScale *= sensorToWorldScale;
+
+            auto baseProjection = appRenderArgs._renderArgs.getViewFrustum().getProjection();
+            if (getActiveDisplayPlugin()->isStereo()) {
+                // Stereo modes will typically have a larger projection matrix overall,
+                // so we ask for the 'mono' projection matrix, which for stereo and HMD
+                // plugins will imply the combined projection for both eyes.
+                //
+                // This is properly implemented for the Oculus plugins, but for OpenVR
+                // and Stereo displays I'm not sure how to get / calculate it, so we're
+                // just relying on the left FOV in each case and hoping that the
+                // overall culling margin of error doesn't cause popping in the
+                // right eye.  There are FIXMEs in the relevant plugins
+                _myCamera.setProjection(getActiveDisplayPlugin()->getCullingProjection(baseProjection));
+                appRenderArgs._isStereo = true;
+
+                auto& eyeOffsets = appRenderArgs._eyeOffsets;
+                auto& eyeProjections = appRenderArgs._eyeProjections;
+
+                // FIXME we probably don't need to set the projection matrix every frame,
+                // only when the display plugin changes (or in non-HMD modes when the user
+                // changes the FOV manually, which right now I don't think they can.
+                for_each_eye([&](Eye eye) {
+                    // For providing the stereo eye views, the HMD head pose has already been
+                    // applied to the avatar, so we need to get the difference between the head
+                    // pose applied to the avatar and the per eye pose, and use THAT as
+                    // the per-eye stereo matrix adjustment.
+                    mat4 eyeToHead = getActiveDisplayPlugin()->getEyeToHeadTransform(eye);
+                    // Grab the translation
+                    vec3 eyeOffset = glm::vec3(eyeToHead[3]);
+                    // Apply IPD scaling
+                    mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
+                    eyeOffsets[eye] = eyeOffsetTransform;
+                    eyeProjections[eye] = getActiveDisplayPlugin()->getEyeProjection(eye, baseProjection);
+                });
+
+                // Configure the type of display / stereo
+                appRenderArgs._renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
+            }
+        }
+
+        // HACK
+        // load the view frustum
+        // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
+        // Then we can move this logic into the Avatar::simulate call.
+        myAvatar->preDisplaySide(&appRenderArgs._renderArgs);
+
+        {
+            QMutexLocker viewLocker(&_viewMutex);
+            _myCamera.loadViewFrustum(_displayViewFrustum);
+        }
+
+        {
+            QMutexLocker viewLocker(&_viewMutex);
+            appRenderArgs._renderArgs.setViewFrustum(_displayViewFrustum);
+        }
+    });
+
     AnimDebugDraw::getInstance().update();
 
     DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
+
+    // Game loop is done, mark the end of the frame for the scene transactions and the render loop to take over
+    getMain3DScene()->enqueueFrame();
 }
 
 void Application::sendAvatarViewFrustum() {
@@ -5295,7 +5213,6 @@ int Application::sendNackPackets() {
             }
         }
     });
-
 
     return packetsSent;
 }
@@ -5525,116 +5442,6 @@ void Application::copyViewFrustum(ViewFrustum& viewOut) const {
 void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
     QMutexLocker viewLocker(&_viewMutex);
     viewOut = _displayViewFrustum;
-}
-
-void Application::copyShadowViewFrustum(ViewFrustum& viewOut) const {
-    QMutexLocker viewLocker(&_viewMutex);
-    viewOut = _shadowViewFrustum;
-}
-
-// WorldBox Render Data & rendering functions
-
-class WorldBoxRenderData {
-public:
-    typedef render::Payload<WorldBoxRenderData> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    int _val = 0;
-    static render::ItemID _item; // unique WorldBoxRenderData
-};
-
-render::ItemID WorldBoxRenderData::_item { render::Item::INVALID_ITEM_ID };
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
-    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
-    template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
-            PerformanceTimer perfTimer("worldBox");
-
-            auto& batch = *args->_batch;
-            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
-            renderWorldBox(args, batch);
-        }
-    }
-}
-
-void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
-
-    // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
-    // Then we can move this logic into the Avatar::simulate call.
-    auto myAvatar = getMyAvatar();
-    myAvatar->preDisplaySide(renderArgs);
-
-    PROFILE_RANGE(render, __FUNCTION__);
-    PerformanceTimer perfTimer("display");
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
-
-    // load the view frustum
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        theCamera.loadViewFrustum(_displayViewFrustum);
-    }
-
-    // TODO fix shadows and make them use the GPU library
-
-    // The pending changes collecting the changes here
-    render::Transaction transaction;
-
-    // Assuming nothing gets rendered through that
-    if (!selfAvatarOnly) {
-        if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-            // render models...
-            PerformanceTimer perfTimer("entities");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... entities...");
-
-            RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
-
-            if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-                renderDebugFlags = static_cast<RenderArgs::DebugFlags>(renderDebugFlags |
-                    static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
-            }
-            renderArgs->_debugFlags = renderDebugFlags;
-            //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
-        }
-    }
-
-    // FIXME: Move this out of here!, WorldBox should be driven by the entity content just like the other entities
-    // Make sure the WorldBox is in the scene
-    if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
-        auto worldBoxRenderData = make_shared<WorldBoxRenderData>();
-        auto worldBoxRenderPayload = make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
-
-        WorldBoxRenderData::_item = _main3DScene->allocateID();
-
-        transaction.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
-    } else {
-        transaction.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
-            [](WorldBoxRenderData& payload) {
-            payload._val++;
-        });
-    }
-
-    {
-        _main3DScene->enqueueTransaction(transaction);
-    }
-
-    // For now every frame pass the renderContext
-    {
-        PerformanceTimer perfTimer("EngineRun");
-
-        {
-            QMutexLocker viewLocker(&_viewMutex);
-            renderArgs->setViewFrustum(_displayViewFrustum);
-        }
-        renderArgs->_cameraMode = (int8_t)theCamera.getMode(); // HACK
-        renderArgs->_scene = getMain3DScene();
-        _renderEngine->getRenderContext()->args = renderArgs;
-
-        // Before the deferred pass, let's try to use the render engine
-        _renderEngine->run();
-    }
 }
 
 void Application::resetSensors(bool andReload) {
@@ -7677,5 +7484,4 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
 }
-
 #include "Application.moc"

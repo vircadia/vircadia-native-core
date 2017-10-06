@@ -114,8 +114,14 @@
 
         this.run = function(controllerData, deltaTime) {
             var now = Date.now();
-            if (this.mouseActivity.expired(now) || this.triggersPressed(controllerData, now)) {
-                Reticle.visible = false;
+            var hmdActive = HMD.active;
+            if (this.mouseActivity.expired(now) || this.triggersPressed(controllerData, now) || !hmdActive) {
+                if (!hmdActive) {
+                    Reticle.visible = true;
+                } else { 
+                    Reticle.visible = false;
+                }
+
                 return ControllerDispatcherUtils.makeRunningValues(false, [], []);
             }
             this.adjustReticleDepth(controllerData);

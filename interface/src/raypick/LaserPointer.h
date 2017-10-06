@@ -58,22 +58,24 @@ public:
     QUuid getRayUID() { return _rayPickUID; }
     void enable();
     void disable();
-    const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID); }
+    const RayPickResult getPrevRayPickResult();
 
     void setRenderState(const std::string& state);
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
-    void setPrecisionPicking(const bool precisionPicking) { DependencyManager::get<RayPickScriptingInterface>()->setPrecisionPicking(_rayPickUID, precisionPicking); }
-    void setLaserLength(const float laserLength) { _laserLength = laserLength; }
-    void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
-    void setIncludeEntities(const QScriptValue& includeEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeEntities(_rayPickUID, includeEntities); }
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays); }
-    void setIncludeOverlays(const QScriptValue& includeOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeOverlays(_rayPickUID, includeOverlays); }
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreAvatars(_rayPickUID, ignoreAvatars); }
-    void setIncludeAvatars(const QScriptValue& includeAvatars) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeAvatars(_rayPickUID, includeAvatars); }
+    void setPrecisionPicking(const bool precisionPicking);
+    void setLaserLength(const float laserLength);
+    void setLockEndUUID(QUuid objectID, const bool isOverlay);
 
-    void setLockEndUUID(QUuid objectID, const bool isOverlay) { _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay); }
+    void setIgnoreEntities(const QScriptValue& ignoreEntities);
+    void setIncludeEntities(const QScriptValue& includeEntities);
+    void setIgnoreOverlays(const QScriptValue& ignoreOverlays);
+    void setIncludeOverlays(const QScriptValue& includeOverlays);
+    void setIgnoreAvatars(const QScriptValue& ignoreAvatars);
+    void setIncludeAvatars(const QScriptValue& includeAvatars);
+
+    QReadWriteLock* getLock() { return &_lock; }
 
     void update();
 
@@ -89,6 +91,7 @@ private:
     std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
 
     QUuid _rayPickUID;
+    QReadWriteLock _lock;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);
