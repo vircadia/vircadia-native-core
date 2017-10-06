@@ -17,6 +17,7 @@
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 #include "HazeStage.h"
+#include "LightStage.h"
 
 #include "Haze_frag.h"
 
@@ -157,6 +158,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), HazeEffect_TransformBufferSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), HazeEffect_ColorMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), HazeEffect_LinearDepthMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("lights"), HazeEffect_LightingMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         _hazePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
@@ -182,6 +184,15 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         }
 
         batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
+
+	    auto lightStage = args->_scene->getStage<LightStage>();
+	    if (lightStage && lightStage->_currentFrame._sunLights.size() > 0) {
+	    model::LightPointer keyLight;
+	        keyLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
+	        if (keyLight != nullptr) {
+	            batch.setUniformBuffer(HazeEffect_LightingMapSlot, keyLight->getLightSchemaBuffer());
+	        }
+	    }
 
         batch.setResourceTexture(HazeEffect_ColorMapSlot, inputBuffer);
         batch.setResourceTexture(HazeEffect_LinearDepthMapSlot, depthBuffer);
