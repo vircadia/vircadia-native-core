@@ -673,6 +673,9 @@ function loaded() {
         
         var elZoneHazeAltitude = document.getElementById("property-zone-haze-altitude");
         var elZoneHazeBaseRef = document.getElementById("property-zone-haze-altitude-base");
+        
+        var elZoneHazeKeyLightRange = document.getElementById("property-zone-haze-keylight-range");
+        var elZoneHazeKeyLightAltitude = document.getElementById("property-zone-haze-keylight-altitude");
        
         var elZoneStageLatitude = document.getElementById("property-zone-stage-latitude");
         var elZoneStageLongitude = document.getElementById("property-zone-stage-longitude");
@@ -1039,6 +1042,9 @@ function loaded() {
                             elZoneHazeBaseRef.value = properties.haze.hazeBaseRef.toFixed(0);
 
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
+
+                            elZoneHazeKeyLightRange.value = properties.haze.hazeKeyLightRange.toFixed(0);
+                            elZoneHazeKeyLightAltitude.value = properties.haze.hazeKeyLightAltitude.toFixed(0);
 
                             elZoneStageLatitude.value = properties.stage.latitude.toFixed(2);
                             elZoneStageLongitude.value = properties.stage.longitude.toFixed(2);
@@ -1493,6 +1499,9 @@ function loaded() {
         elZoneHazeBaseRef.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBaseRef'));
 
         elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
+
+        elZoneHazeKeyLightRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightRange'));
+        elZoneHazeKeyLightAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightAltitude'));
 
         elZoneStageLatitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'latitude'));
         elZoneStageLongitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('stage', 'longitude'));
