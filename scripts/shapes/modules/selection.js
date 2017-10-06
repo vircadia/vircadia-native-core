@@ -234,7 +234,7 @@ SelectionManager = function (side) {
 
     function kickPhysics(entityID) {
         // Gives entities a small kick to start off physics, if necessary.
-        var KICK_DELAY = 500; // ms
+        var KICK_DELAY = 750; // ms
 
         // Give physics a chance to catch up. Avoids some erratic behavior.
         Script.setTimeout(function () {
