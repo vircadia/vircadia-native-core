@@ -167,6 +167,9 @@ Rectangle {
             }
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter;
+                width: margins.sizeText + margins.sizeLevel
+                anchors.left: parent.left
+                anchors.leftMargin: margins.sizeCheckBox
                 size: 16;
                 color: hifi.colors.lightGrayText;
                 text: qsTr("CHOOSE INPUT DEVICE");
