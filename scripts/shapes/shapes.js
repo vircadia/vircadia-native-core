@@ -1988,8 +1988,8 @@
         Entities.canRezChanged.disconnect(onCanRezChanged);
         Entities.canRezTmpChanged.disconnect(onCanRezChanged);
         Messages.messageReceived.disconnect(onMessageReceived);
-        // Messages.unsubscribe(DOMAIN_CHANGED_MESSAGE);  Do NOT unsubscribe because edit.js also subscribes and 
-        // Messages.subscribe works client-wide.
+        // Messages.unsubscribe(DOMAIN_CHANGED_MESSAGE);  Do not unsubscribe because edit.js also subscribes and 
+        // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
         MyAvatar.skeletonChanged.disconnect(onSkeletonChanged);
 

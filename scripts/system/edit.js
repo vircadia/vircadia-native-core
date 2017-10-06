@@ -1234,7 +1234,8 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
-    Messages.unsubscribe("Toolbar-DomainChanged");
+    // Messages.unsubscribe("Toolbar-DomainChanged"); // Do not unsubscribe because the shapes.js app also subscribes and 
+    // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
     createButton = null;
 });
 
