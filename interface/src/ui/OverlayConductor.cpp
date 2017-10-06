@@ -96,7 +96,6 @@ bool OverlayConductor::updateAvatarHasDriveInput() {
 void OverlayConductor::centerUI() {
     // place the overlay at the current hmd position in sensor space
     auto camMat = cancelOutRollAndPitch(qApp->getHMDSensorPose());
-    qDebug() << "OverlayConductor::centerUI" << camMat;
     qApp->getApplicationCompositor().setModelTransform(Transform(camMat));
 }
 

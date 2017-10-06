@@ -5053,6 +5053,7 @@ void Application::update(float deltaTime) {
 
         float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
         appRenderArgs._sensorToWorldScale = sensorToWorldScale;
+        appRenderArgs._sensorToWorld = getMyAvatar()->getSensorToWorldMatrix();
         {
             PROFILE_RANGE(render, "/buildFrustrumAndArgs");
             {

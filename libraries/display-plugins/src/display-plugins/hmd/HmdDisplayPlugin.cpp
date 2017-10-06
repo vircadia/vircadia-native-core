@@ -444,7 +444,6 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&)> HmdDisplayPlugin::H
             batch.setUniformBuffer(uniformsLocation, uniformsBuffer);
 
             auto compositorHelper = DependencyManager::get<CompositorHelper>();
-            qDebug() << "getUITransform" << compositorHelper->getUiTransform();
             batch.setModelTransform(compositorHelper->getUiTransform());
             batch.setResourceTexture(0, hudTexture);
 

@@ -125,7 +125,6 @@ protected:
     void present();
     virtual void swapBuffers();
     ivec4 eyeViewport(Eye eye) const;
-    ivec4 eyeViewport(Eye eye, uvec2 vpSize) const;
 
     void render(std::function<void(gpu::Batch& batch)> f);
 
