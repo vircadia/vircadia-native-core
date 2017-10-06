@@ -203,6 +203,8 @@ public:
     void setHazeBackgroundBlend(float hazeBackgroundBlend) { _hazeBackgroundBlend = hazeBackgroundBlend; }
     float getHazeBackgroundBlend() const { return _hazeBackgroundBlend; }
 
+    void setHazeAttenuateKeyLight(bool hazeAttenuateKeyLight) { _hazeAttenuateKeyLight = hazeAttenuateKeyLight; }
+    bool getHazeAttenuateKeyLight() const { return _hazeAttenuateKeyLight; }
     void setHazeKeyLightRange(float hazeKeyLightRange) { _hazeKeyLightRange = hazeKeyLightRange; }
     float getHazeKeyLightRange() const { return _hazeKeyLightRange; }
     void setHazeKeyLightAltitude(float hazeKeyLightAltitude) { _hazeKeyLightAltitude = hazeKeyLightAltitude; }
@@ -223,6 +225,7 @@ protected:
 
     float _hazeBackgroundBlend;
 
+    bool _hazeAttenuateKeyLight;
     float _hazeKeyLightRange;
     float _hazeKeyLightAltitude;
 

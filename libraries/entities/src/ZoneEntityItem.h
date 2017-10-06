@@ -90,6 +90,8 @@ public:
     void setHazeBackgroundBlend(const float hazeBackgroundBlend);
     float getHazeBackgroundBlend()const;
 
+    void setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight);
+    bool getHazeAttenuateKeyLight()const;
     void setHazeKeyLightRange(const float hazeKeyLightRange);
     float getHazeKeyLightRange()const;
     void setHazeKeyLightAltitude(const float hazeKeyLightAltitude);
@@ -154,6 +156,7 @@ protected:
 
     float _hazeBackgroundBlend{ HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND };
 
+    float _hazeAttenuateKeyLight{ false };
     float _hazeKeyLightRange{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_RANGE };
     float _hazeKeyLightAltitude{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE };
 

@@ -194,6 +194,12 @@ float SceneScripting::Stage::getHazeBackgroundBlend() const {
     return _skyStage->getHazeBackgroundBlend();
 }
 
+void SceneScripting::Stage::setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight) {
+    _skyStage->setHazeAttenuateKeyLight(hazeAttenuateKeyLight);
+}
+bool SceneScripting::Stage::getHazeAttenuateKeyLight() const {
+    return _skyStage->getHazeAttenuateKeyLight();
+}
 void SceneScripting::Stage::setHazeKeyLightRange(const float hazeKeyLightRange) {
     _skyStage->setHazeKeyLightRange(hazeKeyLightRange);
 }

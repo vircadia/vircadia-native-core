@@ -149,6 +149,9 @@ namespace SceneScripting {
         void setHazeBackgroundBlend(float value);
         float getHazeBackgroundBlend() const;
 
+        Q_PROPERTY(float hazeAttenuateKeyLight READ getHazeAttenuateKeyLight WRITE setHazeAttenuateKeyLight)
+        void setHazeAttenuateKeyLight(bool value);
+        bool getHazeAttenuateKeyLight() const;
         Q_PROPERTY(float hazeKeyLightRange READ getHazeKeyLightRange WRITE setHazeKeyLightRange)
         void setHazeKeyLightRange(float value);
         float getHazeKeyLightRange() const;

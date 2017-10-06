@@ -28,7 +28,7 @@ void FetchHazeStage::configure(const Config& config) {
 
     _haze->setHazeActive(config.isHazeActive);
     _haze->setAltitudeBased(config.isAltitudeBased);
-    _haze->setDirectionaLightAttenuationActive(config.isDirectionaLightAttenuationActive);
+    _haze->setHazeAttenuateKeyLight(config.isHazeAttenuateKeyLight);
     _haze->setModulateColorActive(config.isModulateColorActive);
 
     _haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeRange_m));

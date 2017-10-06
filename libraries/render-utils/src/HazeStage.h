@@ -95,7 +95,7 @@ class FetchHazeConfig : public render::Job::Config {
 
     Q_PROPERTY(bool isHazeActive MEMBER isHazeActive WRITE setHazeActive NOTIFY dirty);
     Q_PROPERTY(bool isAltitudeBased MEMBER isAltitudeBased WRITE setAltitudeBased NOTIFY dirty);
-    Q_PROPERTY(bool isDirectionaLightAttenuationActive MEMBER isDirectionaLightAttenuationActive WRITE setDirectionaLightAttenuationActive NOTIFY dirty);
+    Q_PROPERTY(bool isHazeAttenuateKeyLight MEMBER isHazeAttenuateKeyLight WRITE setHazeAttenuateKeyLight NOTIFY dirty);
     Q_PROPERTY(bool isModulateColorActive MEMBER isModulateColorActive WRITE setModulateColorActive NOTIFY dirty);
 
     Q_PROPERTY(float hazeRange_m MEMBER hazeRange_m WRITE setHazeRange_m NOTIFY dirty);
@@ -121,7 +121,7 @@ public:
 
     bool isHazeActive{ false };
     bool isAltitudeBased{ false };
-    bool isDirectionaLightAttenuationActive{ false };
+    bool isHazeAttenuateKeyLight{ false };
     bool isModulateColorActive{ false };
 
     float hazeRange_m{ model::initialHazeRange_m };
@@ -145,7 +145,7 @@ public slots:
 
     void setHazeActive(const bool active) { isHazeActive = active; emit dirty(); }
     void setAltitudeBased(const bool active) { isAltitudeBased = active; emit dirty(); }
-    void setDirectionaLightAttenuationActive(const bool active) { isDirectionaLightAttenuationActive = active; emit dirty(); }
+    void setHazeAttenuateKeyLight(const bool active) { isHazeAttenuateKeyLight = active; emit dirty(); }
     void setModulateColorActive(const bool active) { isModulateColorActive = active; emit dirty(); }
 
     void setHazeRange_m(const float value) { hazeRange_m = value; emit dirty(); }

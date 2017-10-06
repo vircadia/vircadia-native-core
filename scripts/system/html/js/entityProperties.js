@@ -674,6 +674,7 @@ function loaded() {
         var elZoneHazeAltitude = document.getElementById("property-zone-haze-altitude");
         var elZoneHazeBaseRef = document.getElementById("property-zone-haze-altitude-base");
         
+        var elZoneHazeAttenuateKeyLight = document.getElementById("property-zone-haze-attenuate-keylight");
         var elZoneHazeKeyLightRange = document.getElementById("property-zone-haze-keylight-range");
         var elZoneHazeKeyLightAltitude = document.getElementById("property-zone-haze-keylight-altitude");
        
@@ -1043,6 +1044,7 @@ function loaded() {
 
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
 
+                            elZoneHazeAttenuateKeyLight.checked = properties.haze.hazeAttenuateKeyLight;
                             elZoneHazeKeyLightRange.value = properties.haze.hazeKeyLightRange.toFixed(0);
                             elZoneHazeKeyLightAltitude.value = properties.haze.hazeKeyLightAltitude.toFixed(0);
 
@@ -1500,6 +1502,7 @@ function loaded() {
 
         elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
 
+        elZoneHazeAttenuateKeyLight.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAttenuateKeyLight'));
         elZoneHazeKeyLightRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightRange'));
         elZoneHazeKeyLightAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeKeyLightAltitude'));
 

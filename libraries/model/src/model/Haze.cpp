@@ -100,13 +100,13 @@ void Haze::setAltitudeBased(const bool isAltitudeBased) {
     }
 }
 
-void Haze::setDirectionaLightAttenuationActive(const bool isDirectionaLightAttenuationActive) {
+void Haze::setHazeAttenuateKeyLight(const bool isHazeAttenuateKeyLight) {
     auto& params = _parametersBuffer.get<Parameters>();
 
-    if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) == HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED ) && !isDirectionaLightAttenuationActive) {
+    if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) == HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED ) && !isHazeAttenuateKeyLight) {
         _parametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED;
     }
-    else if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) != HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) && isDirectionaLightAttenuationActive) {
+    else if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) != HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) && isHazeAttenuateKeyLight) {
         _parametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED;
     }
 }

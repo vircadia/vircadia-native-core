@@ -341,9 +341,6 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeActive(isHazeActive);
     haze->setAltitudeBased(hazeMode == HAZE_MODE_RANGE_ALTITUDE);
 
-    // Directional light attenuation is set whenever haze is active
-    haze->setDirectionaLightAttenuationActive(isHazeActive);
-
     haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
     xColor hazeBlendInColor = _hazeProperties.getHazeBlendInColor();
     haze->setHazeColor(glm::vec3(hazeBlendInColor.red / 255.0, hazeBlendInColor.green / 255.0, hazeBlendInColor.blue / 255.0));
@@ -356,6 +353,7 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
 
     haze->setHazeBackgroundBlendValue(_hazeProperties.getHazeBackgroundBlend());
 
+    haze->setHazeAttenuateKeyLight(_hazeProperties.getHazeAttenuateKeyLight());
     haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
     haze->setHazeKeyLightAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
 }

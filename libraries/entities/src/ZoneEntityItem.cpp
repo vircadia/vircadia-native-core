@@ -392,6 +392,14 @@ float ZoneEntityItem::getHazeBackgroundBlend()const{
     return _hazeBackgroundBlend;
 }
 
+void ZoneEntityItem::setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight) {
+    _hazeAttenuateKeyLight = hazeAttenuateKeyLight;
+}
+
+bool ZoneEntityItem::getHazeAttenuateKeyLight()const {
+    return _hazeAttenuateKeyLight;
+}
+
 void ZoneEntityItem::setHazeKeyLightRange(const float hazeKeyLightRange){
     _hazeKeyLightRange = hazeKeyLightRange;
     _hazePropertiesChanged = true;

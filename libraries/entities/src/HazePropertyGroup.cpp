@@ -39,6 +39,7 @@ void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
 
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
 
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
 }
@@ -54,6 +55,7 @@ void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _d
 
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBackgroundBlend, float, setHazeBackgroundBlend);
 
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeAttenuateKeyLight, bool, setHazeAttenuateKeyLight);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeKeyLightRange, float, setHazeKeyLightRange);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeKeyLightAltitude, float, setHazeKeyLightAltitude);
 }
@@ -69,6 +71,7 @@ void HazePropertyGroup::merge(const HazePropertyGroup& other) {
 
     COPY_PROPERTY_IF_CHANGED(hazeBackgroundBlend);
 
+    COPY_PROPERTY_IF_CHANGED(hazeAttenuateKeyLight);
     COPY_PROPERTY_IF_CHANGED(hazeKeyLightRange);
     COPY_PROPERTY_IF_CHANGED(hazeKeyLightAltitude);
 }
@@ -86,6 +89,7 @@ void HazePropertyGroup::debugDump() const {
 
     qCDebug(entities) << "            _hazeBackgroundBlend:" << _hazeBackgroundBlend;
 
+    qCDebug(entities) << "            _hazeAttenuateKeyLight:" << _hazeAttenuateKeyLight;
     qCDebug(entities) << "            _hazeKeyLightRange:" << _hazeKeyLightRange;
     qCDebug(entities) << "            _hazeKeyLightAltitude:" << _hazeKeyLightAltitude;
 }
@@ -115,6 +119,9 @@ void HazePropertyGroup::listChangedProperties(QList<QString>& out) {
         out << "haze-hazeBackgroundBlend";
     }
 
+    if (hazeAttenuateKeyLightChanged()) {
+        out << "haze-hazeAttenuateKeyLight";
+    }
     if (hazeKeyLightRangeChanged()) {
         out << "haze-hazeKeyLightRange";
     }
@@ -142,6 +149,7 @@ bool HazePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
 
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, getHazeBackgroundBlend());
 
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_ATTENUATE_KEYLIGHT, getHazeAttenuateKeyLight());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, getHazeKeyLightRange());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, getHazeKeyLightAltitude());
 
@@ -164,6 +172,7 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 
     READ_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, float, setHazeBackgroundBlend);
 
+    READ_ENTITY_PROPERTY(PROP_HAZE_ATTENUATE_KEYLIGHT, bool, setHazeAttenuateKeyLight);
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, float, setHazeKeyLightRange);
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, float, setHazeKeyLightAltitude);
 
@@ -177,6 +186,7 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend);
 
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_ATTENUATE_KEYLIGHT, HazeAttenuateKeyLight);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude);
 
@@ -198,6 +208,7 @@ void HazePropertyGroup::markAllChanged() {
 
     _hazeBackgroundBlendChanged = true;
 
+    _hazeAttenuateKeyLightChanged = true;
     _hazeKeyLightRangeChanged = true;
     _hazeKeyLightAltitudeChanged = true;
 }
@@ -215,6 +226,7 @@ EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_BACKGROUND_BLEND, hazeBackgroundBlend);
 
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_ATTENUATE_KEYLIGHT, hazeAttenuateKeyLight);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_KEYLIGHT_RANGE, hazeKeyLightRange);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_KEYLIGHT_ALTITUDE, hazeKeyLightAltitude);
 
@@ -232,6 +244,7 @@ void HazePropertyGroup::getProperties(EntityItemProperties& properties) const {
 
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeBackgroundBlend, getHazeBackgroundBlend);
 
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeAttenuateKeyLight, getHazeAttenuateKeyLight);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeKeyLightRange, getHazeKeyLightRange);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeKeyLightAltitude, getHazeKeyLightAltitude);
 }
@@ -249,6 +262,7 @@ bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeBackgroundBlend, hazeBackgroundBlend, setHazeBackgroundBlend);
 
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight, setHazeAttenuateKeyLight);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeKeyLightRange, hazeKeyLightRange, setHazeKeyLightRange);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeKeyLightAltitude, hazeKeyLightAltitude, setHazeKeyLightAltitude);
 
@@ -268,6 +282,7 @@ EntityPropertyFlags HazePropertyGroup::getEntityProperties(EncodeBitstreamParams
 
     requestedProperties += PROP_HAZE_BACKGROUND_BLEND;
 
+    requestedProperties += PROP_HAZE_ATTENUATE_KEYLIGHT;
     requestedProperties += PROP_HAZE_KEYLIGHT_RANGE;
     requestedProperties += PROP_HAZE_KEYLIGHT_ALTITUDE;
 
@@ -294,6 +309,7 @@ void HazePropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeB
 
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, getHazeBackgroundBlend());
 
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_ATTENUATE_KEYLIGHT, getHazeAttenuateKeyLight());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, getHazeKeyLightRange());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, getHazeKeyLightAltitude());
 }
@@ -316,6 +332,7 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
 
     READ_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, float, setHazeBackgroundBlend);
 
+    READ_ENTITY_PROPERTY(PROP_HAZE_ATTENUATE_KEYLIGHT, bool, setHazeAttenuateKeyLight);
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_RANGE, float, setHazeKeyLightRange);
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, float, setHazeKeyLightAltitude);
 
