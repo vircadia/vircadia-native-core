@@ -81,8 +81,10 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
+                var inventoryResult = processInventoryResult(result.data.assets);
+
                 purchasesModel.clear();
-                purchasesModel.append(result.data.assets);
+                purchasesModel.append(inventoryResult);
 
                 if (previousPurchasesModel.count !== 0) {
                     checkIfAnyItemStatusChanged();
@@ -93,7 +95,7 @@ Rectangle {
                         purchasesModel.setProperty(i, "statusChanged", false);
                     }
                 }
-                previousPurchasesModel.append(result.data.assets);
+                previousPurchasesModel.append(inventoryResult);
 
                 buildFilteredPurchasesModel();
 
@@ -428,6 +430,8 @@ Rectangle {
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;
+                numberSold: model.number_sold;
+                limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
@@ -589,6 +593,17 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
+
+    function processInventoryResult(inventory) {
+        for (var i = 0; i < inventory.length; i++) {
+            if (inventory[i].status.length > 1) {
+                console.log("WARNING: Inventory result index " + i + " has a status of length >1!")
+            }
+            inventory[i].status = inventory[i].status[0];
+            inventory[i].categories = inventory[i].categories.join(';');
+        }
+        return inventory;
+    }
 
     function populateDisplayedItemCounts() {
         var itemCountDictionary = {};

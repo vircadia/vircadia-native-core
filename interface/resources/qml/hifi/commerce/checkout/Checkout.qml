@@ -892,6 +892,10 @@ Rectangle {
         } else {
             root.activeView = "checkoutSuccess";
         }
+        root.balanceReceived = false;
+        root.purchasesReceived = false;
+        commerce.inventory();
+        commerce.balance();
     }
 
     //
