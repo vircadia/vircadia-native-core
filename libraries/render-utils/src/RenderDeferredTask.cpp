@@ -186,7 +186,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawZones", zones);
     }
 
-    // Overlays
+    // Layered Overlays
     const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, Item::LAYER_3D_FRONT);
     const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, Item::LAYER_3D_FRONT);
     const auto overlaysInFrontOpaque =  filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
@@ -251,7 +251,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     { // Debug the bounds of the rendered Overlay items that are marked drawHUDLayer, still look at the zbuffer
         task.addJob<DrawBounds>("DrawOverlayHUDOpaqueBounds", overlaysHUDOpaque);
-        task.addJob<DrawBounds>("DrawOverlayHUDOpaqueBounds", overlaysHUDTransparent);
+        task.addJob<DrawBounds>("DrawOverlayHUDTransparentBounds", overlaysHUDTransparent);
     }
 
     task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
