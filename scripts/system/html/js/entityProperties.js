@@ -1459,7 +1459,7 @@ function loaded() {
             onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
-                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'hazeBlendInColor');
+                emitColorPropertyUpdate('hazeBlendInColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
         }));
         var zoneHazeBlendInColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeBlendInColor', 
@@ -1484,7 +1484,7 @@ function loaded() {
             onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
-                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b, 'hazeBlendOutColor');
+                emitColorPropertyUpdate('hazeBlendOutColor', rgb.r, rgb.g, rgb.b, 'haze');
             }
         }));
         var zoneHazeBlendOutColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('haze', 'hazeBlendOutColor', 
