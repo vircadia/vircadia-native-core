@@ -797,8 +797,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
-
+    
+    _logger = new FileLogger(this);
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
@@ -813,6 +813,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!DISABLE_WATCHDOG) {
         (new DeadlockWatchdogThread())->start();
     }
+
+    // Set File Logger Session UUID
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    _logger->setSessionID(accountManager->getSessionID());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -930,8 +937,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // send a location update immediately
     discoverabilityManager->updateLocation();
 
-    auto myAvatar = getMyAvatar();
-
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
@@ -941,9 +946,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // you might think we could just do this in NodeList but we only want this connection for Interface
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-
-    // connect to appropriate slots on AccountManager
-    auto accountManager = DependencyManager::get<AccountManager>();
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
@@ -2099,7 +2101,6 @@ Application::~Application() {
 
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
-
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();

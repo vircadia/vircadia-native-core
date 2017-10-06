@@ -197,6 +197,8 @@ Item {
             height: 50;
             echoMode: TextInput.Password;
             placeholderText: "passphrase";
+            activeFocusOnPress: true;
+            activeFocusOnTab: true;
 
             onFocusChanged: {
                 root.keyboardRaised = focus;
@@ -206,8 +208,8 @@ Item {
                 anchors.fill: parent;
 
                 onClicked: {
-                    parent.focus = true;
                     root.keyboardRaised = true;
+                    mouse.accepted = false;
                 }
             }
 
