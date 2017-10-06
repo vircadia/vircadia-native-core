@@ -6,12 +6,12 @@
 //  Copyright 2017 High Fidelity, Inc.
 //
 
-#include "AudioGate.h"
-
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
-#include <cstdlib>
+
 #include "AudioDynamics.h"
+#include "AudioGate.h"
 
 // log2 domain headroom bits above 0dB (int32_t)
 static const int LOG2_HEADROOM_Q30 = 1;
@@ -418,7 +418,7 @@ void GateMono<N>::process(int16_t* input, int16_t* output, int numFrames) {
         _dc.process(x);
 
         // peak detect
-        int32_t peak = std::abs(x);
+        int32_t peak = abs(x);
 
         // convert to log2 domain
         peak = fixlog2(peak);
