@@ -497,7 +497,7 @@ bool ModelEntityItem::hasModel() const {
     });
 }
 bool ModelEntityItem::hasCompoundShapeURL() const {
-    return _compoundShapeURL.get().isEmpty();
+    return !_compoundShapeURL.get().isEmpty();
 }
 
 QString ModelEntityItem::getModelURL() const {
