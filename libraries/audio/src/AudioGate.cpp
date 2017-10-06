@@ -183,12 +183,15 @@ void GateImpl::setHold(float hold) {
     hold = MAX(hold, 1.0f);
     hold = MIN(hold, 1000.0f);
 
+    // compute final tc
     _holdMin = msToTc(RELEASE, _sampleRate);
 
+    // compute tc increment, to progress from 0x7fffffff to _holdMin in PROGHOLD ms
     double progSamples = PROGHOLD/1000.0 * _sampleRate;
     _holdInc = (uint32_t)((0x7fffffff - _holdMin) / progSamples);
     _holdInc = MAX(_holdInc, 1);    // prevent 0 on long releases
     
+    // compute initial tc, to progress from _holdMax to 0x7fffffff in hold ms
     double holdSamples = (double)hold/1000.0 * _sampleRate;
     _holdMax = 0x7fffffff + (uint32_t)(_holdInc * holdSamples);
 }
