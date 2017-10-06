@@ -347,7 +347,6 @@ Item {
                 if (urlHandler.canHandleUrl(root.itemHref)) {
                     urlHandler.handleUrl(root.itemHref);
                 }
-                commerce.updatePopLocation(root.itemId);
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
             }

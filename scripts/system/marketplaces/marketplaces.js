@@ -129,6 +129,10 @@
         }
     }
 
+    function openWallet() {
+        tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+    }
+
     function setCertificateInfo(currentEntityWithContextOverlay, itemMarketplaceId) {
         wireEventBridge(true);
         tablet.sendToQml({
@@ -158,6 +162,7 @@
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
     ContextOverlay.contextOverlayClicked.connect(setCertificateInfo);
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
+    Wallet.refreshWalletStatus();
 
     function onMessage(message) {
 
@@ -214,7 +219,7 @@
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
-                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+                openWallet();
             } else if (parsedJsonMessage.type === "MY_ITEMS") {
                 referrerURL = MARKETPLACE_URL_INITIAL;
                 filterText = "";
@@ -281,7 +286,7 @@
             case 'purchases_openWallet':
             case 'checkout_openWallet':
             case 'checkout_setUpClicked':
-                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+                openWallet();
                 break;
             case 'purchases_walletNotSetUp':
             case 'checkout_walletNotSetUp':
@@ -290,7 +295,7 @@
                     method: 'updateWalletReferrer',
                     referrer: "purchases"
                 });
-                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+                openWallet();
                 break;
             case 'checkout_cancelClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.params, MARKETPLACES_INJECT_SCRIPT_URL);

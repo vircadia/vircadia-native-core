@@ -369,6 +369,7 @@ protected:
     QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
 
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
+    void startDynamicDomainVerification();
 };
 
 #endif // hifi_EntityTree_h

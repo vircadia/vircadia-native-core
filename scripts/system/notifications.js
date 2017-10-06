@@ -94,13 +94,15 @@
         EDIT_ERROR: 4,
         TABLET: 5,
         CONNECTION: 6,
+        WALLET: 7,
         properties: [
             { text: "Snapshot" },
             { text: "Level of Detail" },
             { text: "Connection Refused" },
             { text: "Edit error" },
             { text: "Tablet" },
-            { text: "Connection" }
+            { text: "Connection" },
+            { text: "Wallet" }
         ],
         getTypeFromMenuItem: function (menuItemName) {
             var type;
@@ -574,6 +576,10 @@
         createNotification(wordWrap("Error trying to make connection: " + error), NotificationType.CONNECTION);
     }
 
+    function walletNotSetup() {
+        createNotification("The action you performed requires you to set up your Wallet. Open the Wallet app.", NotificationType.SNAPSHOT);
+    }
+
     //  handles mouse clicks on buttons
     function mousePressEvent(event) {
         var pickRay,
@@ -682,6 +688,7 @@
     Window.notifyEditError = onEditError;
     Window.notify = onNotify;
     Tablet.tabletNotification.connect(tabletNotification);
+    Wallet.walletNotSetup.connect(walletNotSetup);
     setup();
 
 }()); // END LOCAL_SCOPE

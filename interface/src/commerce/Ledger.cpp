@@ -225,12 +225,20 @@ void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("updateLo
 void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("updateLocation", reply); }
 void Ledger::updateLocation(const QString& asset_id, const QString location, const bool controlledFailure) {
     auto wallet = DependencyManager::get<Wallet>();
-    QStringList keys = wallet->listPublicKeys();
-    QString key = keys[0];
-    QJsonObject transaction;
-    transaction["asset_id"] = asset_id;
-    transaction["location"] = location;
-    QJsonDocument transactionDoc{ transaction };
-    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-    signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
+    auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+    uint walletStatus = walletScriptingInterface->getWalletStatus();
+
+    if (walletStatus != wallet->WALLET_STATUS_READY) {
+        emit walletScriptingInterface->walletNotSetup();
+        qDebug(commerce) << "User attempted to update the location of a certificate, but their wallet wasn't ready. Status:" << walletStatus;
+    } else {
+        QStringList keys = wallet->listPublicKeys();
+        QString key = keys[0];
+        QJsonObject transaction;
+        transaction["asset_id"] = asset_id;
+        transaction["location"] = location;
+        QJsonDocument transactionDoc{ transaction };
+        auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+        signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
+    }
 }

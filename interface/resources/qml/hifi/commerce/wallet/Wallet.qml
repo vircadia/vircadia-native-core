@@ -283,7 +283,7 @@ Rectangle {
         Connections {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
-                    root.activeView = "walletHome";
+                    commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }

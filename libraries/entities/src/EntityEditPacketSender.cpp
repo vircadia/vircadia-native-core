@@ -93,9 +93,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
     bool success;
+    auto nodeList = DependencyManager::get<NodeList>();
     if (properties.parentIDChanged() && properties.getParentID() == AVATAR_SELF_ID) {
         EntityItemProperties propertiesCopy = properties;
-        auto nodeList = DependencyManager::get<NodeList>();
         const QUuid myNodeID = nodeList->getSessionUUID();
         propertiesCopy.setParentID(myNodeID);
         success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut);
@@ -110,6 +110,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
             qCDebug(entities) << "    properties:" << properties;
         #endif
         queueOctreeEditMessage(type, bufferOut);
+        if (type == PacketType::EntityAdd && !properties.getCertificateID().isEmpty()) {
+            emit addingEntityWithCertificate(properties.getCertificateID(), nodeList->getDomainHandler().getUUID().toString());
+        }
     }
 }
 

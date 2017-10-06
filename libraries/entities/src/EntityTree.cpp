@@ -1099,10 +1099,10 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
 
 void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
     QTimer* _challengeOwnershipTimeoutTimer = new QTimer(this);
-    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [&](const QString& certID) {
+    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [=](const QString& certID) {
         QReadLocker locker(&_entityCertificateIDMapLock);
         EntityItemID id = _entityCertificateIDMap.value(certID);
-        if (entityItemID == id) {
+        if (entityItemID == id && _challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
         }
@@ -1112,8 +1112,10 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
         deleteEntity(entityItemID, true);
         QWriteLocker locker(&_recentlyDeletedEntitiesLock);
         _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-        _challengeOwnershipTimeoutTimer->stop();
-        _challengeOwnershipTimeoutTimer->deleteLater();
+        if (_challengeOwnershipTimeoutTimer) {
+            _challengeOwnershipTimeoutTimer->stop();
+            _challengeOwnershipTimeoutTimer->deleteLater();
+        }
     });
     _challengeOwnershipTimeoutTimer->setInterval(5000);
     _challengeOwnershipTimeoutTimer->start();
@@ -1134,14 +1136,18 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     emit killChallengeOwnershipTimeoutTimer(certID);
 
     if (decryptedText == "fail") {
-        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
-        EntityItemID id = _entityCertificateIDMap.value(certID);
-
-        qCDebug(entities) << "Ownership challenge failed, deleting entity" << id;
-        deleteEntity(id, true);
-        QWriteLocker recentlyDeletedLocker(&_recentlyDeletedEntitiesLock);
-        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), id);
-    } else {
+        EntityItemID id;
+        {
+            QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
+            id = _entityCertificateIDMap.value(certID);
+        }
+        
+        if (!id.isNull()) {
+            qCDebug(entities) << "Ownership challenge failed, deleting entity" << id;
+            deleteEntity(id, true);
+            QWriteLocker recentlyDeletedLocker(&_recentlyDeletedEntitiesLock);
+            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), id);
+        }
     }
 }
 
@@ -2173,3 +2179,6 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
+void EntityTree::startDynamicDomainVerification() {
+
+}
