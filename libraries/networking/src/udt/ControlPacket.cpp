@@ -68,7 +68,7 @@ ControlPacket::ControlPacket(std::unique_ptr<char[]> data, qint64 size, const Hi
 }
 
 ControlPacket::ControlPacket(ControlPacket&& other) :
-	BasePacket(std::move(other))
+    BasePacket(std::move(other))
 {
     _type = other._type;
 }

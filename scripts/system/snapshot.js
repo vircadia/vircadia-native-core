@@ -10,7 +10,8 @@
 /* globals Tablet, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar, Snapshot */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
+Script.include("/~/system/libraries/accountUtils.js");
 
 var SNAPSHOT_DELAY = 500; // 500ms
 var FINISH_SOUND_DELAY = 350;
@@ -52,15 +53,7 @@ try {
     print('Failed to resolve request api, error: ' + err);
 }
 
-function openLoginWindow() {
-    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
-        || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
-        Menu.triggerOption("Login / Sign Up");
-    } else {
-        tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
-        HMD.openTablet();
-    }
-}
+
 
 function removeFromStoryIDsToMaybeDelete(story_id) {
     storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(story_id), 1);
@@ -120,15 +113,8 @@ function onMessage(message) {
             openLoginWindow();
             break;
         case 'chooseSnapshotLocation':
-            var snapshotPath = Window.browseDir("Choose Snapshots Directory", "", "");
-
-            if (snapshotPath) { // not cancelled
-                Snapshot.setSnapshotsLocation(snapshotPath);
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: "snapshot",
-                    action: "snapshotLocationChosen"
-                }));
-            }
+            Window.browseDirChanged.connect(snapshotDirChanged);
+            Window.browseDirAsync("Choose Snapshots Directory", "", "");
             break;
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
@@ -579,6 +565,17 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     });
 }
 
+function snapshotDirChanged(snapshotPath) {
+    Window.browseDirChanged.disconnect(snapshotDirChanged);
+    if (snapshotPath !== "") { // not cancelled
+        Snapshot.setSnapshotsLocation(snapshotPath);
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "snapshotLocationChosen"
+        }));
+    }
+}
+
 function processingGifStarted(pathStillSnapshot) {
     Window.processingGifStarted.disconnect(processingGifStarted);
     Window.processingGifCompleted.connect(processingGifCompleted);
@@ -764,8 +761,8 @@ Script.scriptEnding.connect(function () {
     }
     Window.snapshotShared.disconnect(snapshotUploaded);
     Snapshot.snapshotLocationSet.disconnect(snapshotLocationSet);
-    Entities.canRezChanged.disconnect(processRezPermissionChange);
-    Entities.canRezTmpChanged.disconnect(processRezPermissionChange);
+    Entities.canRezChanged.disconnect(updatePrintPermissions);
+    Entities.canRezTmpChanged.disconnect(updatePrintPermissions);
 });
 
 }()); // END LOCAL_SCOPE

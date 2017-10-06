@@ -38,8 +38,11 @@ public:
         SKIN_CLUSTER_INDEX = 5,
         SKIN_CLUSTER_WEIGHT = 6,
         TEXCOORD1 = 7,
-        NUM_INPUT_SLOTS = TEXCOORD1 + 1,
+        TEXCOORD2 = 8,
+        TEXCOORD3 = 9,
+        TEXCOORD4 = 10,
 
+        NUM_INPUT_SLOTS,
 
         DRAW_CALL_INFO = 15, // Reserve last input slot for draw call infos
     };

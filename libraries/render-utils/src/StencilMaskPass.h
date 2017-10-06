@@ -41,17 +41,20 @@ public:
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
 
-    static const gpu::int8 STENCIL_MASK = 2;
-    static const gpu::int8 STENCIL_BACKGROUND = 1;
-    static const gpu::int8 STENCIL_SHAPE = 0;
-
+    // Always use 0 to clear the stencil buffer to set it to background
+    static const gpu::int8 STENCIL_BACKGROUND = 0; // must match values in Skybox.cpp and ProceduralSkybox.cpp
+    static const gpu::int8 STENCIL_MASK =       1 << 0;
+    static const gpu::int8 STENCIL_SHAPE =      1 << 1;
+    static const gpu::int8 STENCIL_NO_AA =      1 << 2;
 
     static void drawMask(gpu::State& state);
+    static void drawBackground(gpu::State& state);
+    static void testNoAA(gpu::State& state);
     static void testMask(gpu::State& state);
     static void testBackground(gpu::State& state);
-    static void testMaskDrawShape(gpu::State& state);
     static void testShape(gpu::State& state);
-
+    static void testMaskDrawShape(gpu::State& state);
+    static void testMaskDrawShapeNoAA(gpu::State& state);
 
 private:
     gpu::PipelinePointer _meshStencilPipeline;

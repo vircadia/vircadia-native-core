@@ -28,6 +28,13 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
     static std::once_flag once;
     std::call_once(once, [] {
+#if defined(QT_OPENGL_ES_3_1)
+        format.setRenderableType(QSurfaceFormat::OpenGLES);
+        format.setRedBufferSize(8);
+        format.setGreenBufferSize(8);
+        format.setBlueBufferSize(8);
+        format.setAlphaBufferSize(8);
+#endif
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
@@ -40,8 +47,11 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
 
 int glVersionToInteger(QString glVersion) {
     QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
-    int majorNumber = versionParts[0].toInt();
-    int minorNumber = versionParts[1].toInt();
+    int majorNumber = 0, minorNumber = 0;
+    if (versionParts.size() >= 2) {
+        majorNumber = versionParts[0].toInt();
+        minorNumber = versionParts[1].toInt();
+    }
     return (majorNumber << 16) | minorNumber;
 }
 

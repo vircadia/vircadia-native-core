@@ -24,11 +24,11 @@ public:
 
 public slots:
     QString convertUrlToPath(QUrl url);
-    void runUnzip(QString path, QUrl url, bool autoAdd, bool isZip);
+    void runUnzip(QString path, QUrl url, bool autoAdd, bool isZip, bool isBlocks);
     QString getTempDir();
 
 signals:
-    void unzipResult(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip);
+    void unzipResult(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip, bool isBlocks);
 
 private:
     bool isTempDir(QString tempDir);

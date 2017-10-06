@@ -42,6 +42,8 @@
     });
     
     function fromQml(message) {
+        console.debug('tablet-goto::fromQml: message = ', JSON.stringify(message));
+
         var response = {id: message.id, jsonrpc: "2.0"};
         switch (message.method) {
         case 'request':
@@ -98,6 +100,8 @@
             button.editProperties({isActive: shouldActivateButton});
             wireEventBridge(true);
             messagesWaiting(false);
+            tablet.sendToQml({ method: 'refreshFeeds' })
+
         } else {
             shouldActivateButton = false;
             onGotoScreen = false;

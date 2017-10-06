@@ -36,6 +36,7 @@ public:
         DEPTH_BIAS,
         WIREFRAME,
         NO_CULL_FACE,
+        FADE,
 
         OWN_PIPELINE,
         INVALID,
@@ -83,6 +84,7 @@ public:
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
         Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); return (*this); }
+        Builder& withFade() { _flags.set(FADE); return (*this); }
 
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
@@ -143,6 +145,9 @@ public:
             Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
             Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
 
+            Builder& withFade() { _flags.set(FADE); _mask.set(FADE); return (*this); }
+            Builder& withoutFade() { _flags.reset(FADE); _mask.set(FADE); return (*this); }
+
             Builder& withCustom(uint8_t custom) { _flags &= (~CUSTOM_MASK); _flags |= (custom << CUSTOM_0); _mask |= (CUSTOM_MASK); return (*this); }
             Builder& withoutCustom() { _flags &= (~CUSTOM_MASK);  _mask |= (CUSTOM_MASK); return (*this); }
 
@@ -170,6 +175,7 @@ public:
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireframe() const { return _flags[WIREFRAME]; }
     bool isCullFace() const { return !_flags[NO_CULL_FACE]; }
+    bool isFaded() const { return _flags[FADE]; }
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
@@ -209,6 +215,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "isDepthBiased:" << key.isDepthBiased()
                 << "isWireframe:" << key.isWireframe()
                 << "isCullFace:" << key.isCullFace()
+                << "isFaded:" << key.isFaded()
                 << "]";
         }
     } else {
@@ -230,6 +237,7 @@ public:
             LIGHTING_MODEL,
             LIGHT,
             LIGHT_AMBIENT_BUFFER,
+            FADE_PARAMETERS,
         };
 
         enum MAP {
@@ -241,6 +249,7 @@ public:
             OCCLUSION,
             SCATTERING,
             LIGHT_AMBIENT,
+            FADE_MASK,
         };
     };
 
@@ -259,6 +268,8 @@ public:
         int lightBufferUnit;
         int lightAmbientBufferUnit;
         int lightAmbientMapUnit;
+        int fadeMaskTextureUnit;
+        int fadeParameterBufferUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
@@ -266,7 +277,7 @@ public:
 
     using ItemSetter = std::function<void(const ShapePipeline&, render::Args*, const render::Item&)>;
 
-    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter, ItemSetter itemSetter) :
+    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter = nullptr, ItemSetter itemSetter = nullptr) :
         pipeline(pipeline),
         locations(locations),
         _batchSetter(batchSetter),

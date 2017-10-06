@@ -626,6 +626,12 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeScene();
     }
 
+    // Clear the depth framebuffer after drawing the scene so that the HUD elements can depth test against each other
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.clearDepthFramebuffer((float) UINT32_MAX);
+    });
 
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
     if (false) // do not compositeoverlay if running nsight debug
@@ -635,15 +641,32 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeOverlay();
     }
 
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    if (compositorHelper->getReticleVisible()) {
-        PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
-        compositePointer();
+    // Only render HUD layer 3D overlays in HMD mode
+    if (isHmd()) {
+        PROFILE_RANGE_EX(render_detail, "compositeHUDOverlays", 0xff0077ff, (uint64_t)presentCount())
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.setFramebuffer(_compositeFramebuffer);
+        });
+        _gpuContext->executeBatch(_currentFrame->postCompositeBatch);
     }
 
     {
         PROFILE_RANGE_EX(render_detail, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
         compositeExtra();
+    }
+
+    // Clear the depth buffer again and draw the pointer last so it's on top of everything
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.clearDepthFramebuffer((float) UINT32_MAX);
+    });
+
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    if (compositorHelper->getReticleVisible()) {
+        PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
+            compositePointer();
     }
 }
 
@@ -775,6 +798,19 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
     return screenshot.mirrored(false, true);
 }
 
+QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() const {
+    auto textureCache = DependencyManager::get<TextureCache>();
+    auto secondaryCameraFramebuffer = textureCache->getSpectatorCameraFramebuffer();
+    gpu::Vec4i region(0, 0, secondaryCameraFramebuffer->getWidth(), secondaryCameraFramebuffer->getHeight());
+
+    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
+    QImage screenshot(region.z, region.w, QImage::Format_ARGB32);
+    withMainThreadContext([&] {
+        glBackend->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
+    });
+    return screenshot.mirrored(false, true);
+}
+
 glm::uvec2 OpenGLDisplayPlugin::getSurfacePixels() const {
     uvec2 result;
     auto window = _container->getPrimaryWidget();
@@ -851,7 +887,8 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = getRecommendedRenderSize();
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+        auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, depthFormat, renderSize.x, renderSize.y));
     }
 }
 

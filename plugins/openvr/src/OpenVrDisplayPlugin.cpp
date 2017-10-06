@@ -357,6 +357,32 @@ bool OpenVrDisplayPlugin::isSupported() const {
     return openVrSupported();
 }
 
+glm::mat4 OpenVrDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
+    if (_system) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        vr::EVREye openVrEye = (eye == Left) ? vr::Eye_Left : vr::Eye_Right;
+        return toGlm(_system->GetProjectionMatrix(openVrEye, baseNearClip, baseFarClip));
+    } else {
+        return baseProjection;
+    }
+}
+
+glm::mat4 OpenVrDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
+    if (_system) {
+        ViewFrustum baseFrustum;
+        baseFrustum.setProjection(baseProjection);
+        float baseNearClip = baseFrustum.getNearClip();
+        float baseFarClip = baseFrustum.getFarClip();
+        // FIXME Calculate the proper combined projection by using GetProjectionRaw values from both eyes
+        return toGlm(_system->GetProjectionMatrix((vr::EVREye)0, baseNearClip, baseFarClip));
+    } else {
+        return baseProjection;
+    }
+}
+
 float OpenVrDisplayPlugin::getTargetFrameRate() const {
     if (forceInterleavedReprojection && !_asyncReprojectionActive) {
         return TARGET_RATE_OpenVr / 2.0f;
@@ -594,9 +620,6 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     }
 
     withNonPresentThreadLock([&] {
-        _uiModelTransform = DependencyManager::get<CompositorHelper>()->getModelTransform();
-        // Make controller poses available to the presentation thread
-        _handPoses = handPoses;
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
     });
     return Parent::beginFrameRender(frameIndex);

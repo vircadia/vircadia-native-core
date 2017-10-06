@@ -92,6 +92,7 @@ FBXTexture FBXReader::getTexture(const QString& textureID) {
         texture.filename = filepath;
     }
 
+    texture.id = textureID;
     texture.name = _textureNames.value(textureID);
     texture.transform.setIdentity();
     texture.texcoordSet = 0;

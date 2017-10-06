@@ -168,7 +168,8 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-const char* HUMANIK_JOINTS[] = {
+/// The names of the joints in the Maya HumanIK rig
+static const std::array<const char*, 16> HUMANIK_JOINTS = {{
     "RightHand",
     "RightForeArm",
     "RightArm",
@@ -184,9 +185,8 @@ const char* HUMANIK_JOINTS[] = {
     "RightLeg",
     "LeftLeg",
     "RightFoot",
-    "LeftFoot",
-    ""
-};
+    "LeftFoot"
+}};
 
 class FBXModel {
 public:
@@ -468,7 +468,7 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
 }
 
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
-    const FBXNode& node = _fbxNode;
+    const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -512,11 +512,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
 
     QVector<QString> humanIKJointNames;
-    for (int i = 0;; i++) {
+    for (int i = 0; i <  (int) HUMANIK_JOINTS.size(); i++) {
         QByteArray jointName = HUMANIK_JOINTS[i];
-        if (jointName.isEmpty()) {
-            break;
-        }
         humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
     }
     QVector<QString> humanIKJointIDs(humanIKJointNames.size());
@@ -846,12 +843,14 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             QByteArray filepath = filename.replace('\\', '/');
                             filename = fileOnUrl(filepath, url);
+                            qDebug() << "Filename" << filepath << filename;
                             _textureFilepaths.insert(getID(object.properties), filepath);
                             _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
                             name = name.left(name.indexOf('['));
+                            qDebug() << "Filename" << name;
                             _textureNames.insert(getID(object.properties), name);
                         } else if (subobject.name == "Texture_Alpha_Source" && subobject.properties.length() >= TEXTURE_ALPHA_SOURCE_MIN_SIZE) {
                             tex.assign<uint8_t>(tex.alphaSource, subobject.properties.at(0).value<int>());
@@ -940,7 +939,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     QByteArray content;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            filepath= subobject.properties.at(0).toByteArray();
+                            filepath = subobject.properties.at(0).toByteArray();
                             filepath = filepath.replace('\\', '/');
 
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
@@ -1682,8 +1681,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         int newIndex = it.value();
 
                         // remember vertices with at least 1/4 weight
-                        const float EXPANSION_WEIGHT_THRESHOLD = 0.99f;
-                        if (weight > EXPANSION_WEIGHT_THRESHOLD) {
+                        const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
+                        if (weight >= EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
                             const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(newIndex));
                             points.push_back(extractTranslation(vertexTransform) * clusterScale);
@@ -1788,6 +1787,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 avgPoint += points[j];
             }
             avgPoint /= (float)points.size();
+            joint.shapeInfo.avgPoint = avgPoint;
 
             // compute a k-Dop bounding volume
             for (uint32_t j = 0; j < cardinalDirections.size(); ++j) {
@@ -1803,8 +1803,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     }
                 }
                 joint.shapeInfo.points.push_back(avgPoint + maxDot * cardinalDirections[j]);
+                joint.shapeInfo.dots.push_back(maxDot);
                 joint.shapeInfo.points.push_back(avgPoint + minDot * cardinalDirections[j]);
+                joint.shapeInfo.dots.push_back(-minDot);
             }
+            generateBoundryLinesForDop14(joint.shapeInfo.dots, joint.shapeInfo.avgPoint, joint.shapeInfo.debugLines);
         }
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
@@ -1836,9 +1839,11 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
-    reader._fbxNode = FBXReader::parseFBX(device);
+    reader._rootNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
+
+    qDebug() << "Reading FBX: " << url;
 
     return reader.extractFBXGeometry(mapping, url);
 }

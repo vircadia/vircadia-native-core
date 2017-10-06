@@ -24,6 +24,7 @@ public:
 public slots:
     void showAddressBar();
     void hideAddressBar();
+    void showLoginDialog();
 
 signals:
     void addressBarShown(bool visible);

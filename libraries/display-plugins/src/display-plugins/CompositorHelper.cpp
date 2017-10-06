@@ -20,6 +20,7 @@
 #include <QtGui/QWindow>
 #include <QQuickWindow>
 
+#include <DebugDraw.h>
 #include <shared/QtHelpers.h>
 #include <ui/Menu.h>
 #include <NumericalConstants.h>
@@ -339,24 +340,29 @@ void CompositorHelper::computeHmdPickRay(const glm::vec2& cursorPos, glm::vec3& 
 glm::mat4 CompositorHelper::getUiTransform() const {
     glm::mat4 modelMat;
     _modelTransform.getMatrix(modelMat);
-    return _currentCamera * glm::inverse(_currentDisplayPlugin->getHeadPose()) * modelMat;
+    return _sensorToWorldMatrix * modelMat;
 }
 
 //Finds the collision point of a world space ray
 bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
-    auto UITransform = getUiTransform();
-    auto relativePosition4 = glm::inverse(UITransform) * vec4(position, 1);
-    auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
-    auto relativeDirection = glm::inverse(glm::quat_cast(UITransform)) * direction;
+    glm::mat4 uiToWorld = getUiTransform();
+    glm::mat4 worldToUi = glm::inverse(uiToWorld);
+    glm::vec3 localPosition = transformPoint(worldToUi, position);
+    glm::vec3 localDirection = glm::normalize(transformVectorFast(worldToUi, direction));
 
-    float uiRadius = _hmdUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
-
+    const float UI_RADIUS = 1.0f;
     float instersectionDistance;
-    if (raySphereIntersect(relativeDirection, relativePosition, uiRadius, &instersectionDistance)){
-        result = position + glm::normalize(direction) * instersectionDistance;
+    if (raySphereIntersect(localDirection, localPosition, UI_RADIUS, &instersectionDistance)) {
+        result = transformPoint(uiToWorld, localPosition + localDirection * instersectionDistance);
+#ifdef WANT_DEBUG
+        DebugDraw::getInstance().drawRay(position, result, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+#endif
         return true;
+    } else {
+#ifdef WANT_DEBUG
+        DebugDraw::getInstance().drawRay(position, position + (direction * 1000.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+#endif
     }
-
     return false;
 }
 
@@ -438,7 +444,7 @@ glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const 
         mousePosition -= 1.0;
         mousePosition.y *= -1.0f;
 
-        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
+        vec2 mouseSize = CURSOR_PIXEL_SIZE * Cursor::Manager::instance().getScale() / canvasSize;
         result = glm::scale(glm::translate(glm::mat4(), vec3(mousePosition, 0.0f)), vec3(mouseSize, 1.0f));
     }
     return result;
@@ -451,4 +457,14 @@ QVariant ReticleInterface::getPosition() const {
 
 void ReticleInterface::setPosition(QVariant position) {
     _compositor->setReticlePosition(vec2FromVariant(position));
+}
+
+float ReticleInterface::getScale() const {
+    auto& cursorManager = Cursor::Manager::instance();
+    return cursorManager.getScale();
+}
+
+void ReticleInterface::setScale(float scale) {
+    auto& cursorManager = Cursor::Manager::instance();
+    cursorManager.setScale(scale);
 }

@@ -22,13 +22,9 @@
 #include "DeferredLightingEffect.h"
 #include "FramebufferCache.h"
 
-#include "model_shadow_vert.h"
-#include "skin_model_shadow_vert.h"
-
-#include "model_shadow_frag.h"
-#include "skin_model_shadow_frag.h"
-
 using namespace render;
+
+extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
                           const render::ShapeBounds& inShapes) {
@@ -46,6 +42,8 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
     const auto& fbo = shadow->framebuffer;
 
     RenderArgs* args = renderContext->args;
+    ShapeKey::Builder defaultKeyBuilder;
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         batch.enableStereo(false);
@@ -62,8 +60,8 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
         batch.setProjectionTransform(shadow->getProjection());
         batch.setViewTransform(shadow->getView(), false);
 
-        auto shadowPipeline = _shapePlumber->pickPipeline(args, ShapeKey());
-        auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, ShapeKey::Builder().withSkinned());
+        auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
+        auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
 
         std::vector<ShapeKey> skinnedShapeKeys{};
 
@@ -100,19 +98,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
-        auto modelVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
-        auto modelPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
-        gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(modelVertex, modelPixel);
-        shapePlumber->addPipeline(
-            ShapeKey::Filter::Builder().withoutSkinned(),
-            modelProgram, state);
-
-        auto skinVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
-        auto skinPixel = gpu::Shader::createPixel(std::string(skin_model_shadow_frag));
-        gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, skinPixel);
-        shapePlumber->addPipeline(
-            ShapeKey::Filter::Builder().withSkinned(),
-            skinProgram, state);
+        initZPassPipelines(*shapePlumber, state);
     }
 
     const auto cachedMode = task.addJob<RenderShadowSetup>("ShadowSetup");

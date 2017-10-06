@@ -56,6 +56,8 @@ Menu* Menu::getInstance() {
     return dynamic_cast<Menu*>(qApp->getWindow()->menuBar());
 }
 
+const char* exclusionGroupKey = "exclusionGroup";
+
 Menu::Menu() {
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -222,31 +224,41 @@ Menu::Menu() {
     cameraModeGroup->setExclusive(true);
 
     // View > First Person
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
+    auto firstPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
                                    viewMenu, MenuOption::FirstPerson, Qt::CTRL | Qt::Key_F,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
+    firstPersonAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+
     // View > Third Person
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
+    auto thirdPersonAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
                                    viewMenu, MenuOption::ThirdPerson, Qt::CTRL | Qt::Key_G,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
+    thirdPersonAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+
     // View > Mirror
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
+    auto viewMirrorAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
                                    viewMenu, MenuOption::FullscreenMirror, Qt::CTRL | Qt::Key_H,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
+    viewMirrorAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+
     // View > Independent [advanced]
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+    auto viewIndependentAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
         MenuOption::IndependentMode, 0,
         false, qApp, SLOT(cameraMenuChanged()),
         UNSPECIFIED_POSITION, "Advanced"));
 
+    viewIndependentAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
+
     // View > Entity Camera [advanced]
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+    auto viewEntityCameraAction = cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
         MenuOption::CameraEntityMode, 0,
         false, qApp, SLOT(cameraMenuChanged()),
         UNSPECIFIED_POSITION, "Advanced"));
+
+    viewEntityCameraAction->setProperty(exclusionGroupKey, QVariant::fromValue(cameraModeGroup));
 
     viewMenu->addSeparator();
 
@@ -353,6 +365,20 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"),
             QString("../../hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
+    });
+
+    // Developer > UI >>>
+    MenuWrapper* uiOptionsMenu = developerMenu->addMenu("UI");
+    action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::DesktopTabletToToolbar, 0,
+                                                    qApp->getDesktopTabletBecomesToolbarSetting());
+    connect(action, &QAction::triggered, [action] {
+        qApp->setDesktopTabletBecomesToolbarSetting(action->isChecked());
+    });
+
+    action = addCheckableActionToQMenuAndActionHash(uiOptionsMenu, MenuOption::HMDTabletToToolbar, 0,
+                                                    qApp->getHmdTabletBecomesToolbarSetting());
+    connect(action, &QAction::triggered, [action] {
+        qApp->setHmdTabletBecomesToolbarSetting(action->isChecked());
     });
 
     // Developer > Render >>>
@@ -532,6 +558,11 @@ Menu::Menu() {
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false);
     connect(action, &QAction::triggered, [this]{ Avatar::setShowOtherLookAtVectors(isOptionChecked(MenuOption::ShowOtherLookAtVectors)); });
 
+    action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableLookAtSnapping, 0, true);
+    connect(action, &QAction::triggered, [this, avatar]{
+            avatar->setProperty("lookAtSnappingEnabled", isOptionChecked(MenuOption::EnableLookAtSnapping));
+        });
+
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawDefaultPose(bool)));
@@ -555,6 +586,8 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableDebugDrawIKConstraints(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKChains, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawIKChains(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderDetailedCollision, 0, false,
+        avatar.get(), SLOT(setEnableDebugDrawDetailedCollision(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),

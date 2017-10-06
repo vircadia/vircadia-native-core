@@ -54,6 +54,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     if (message->getSize() == 0) {
         return;
     }
+    
     QDataStream packetStream(message->getMessage());
 
     // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
@@ -268,24 +269,27 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
             userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
             userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezPermanentCertifiedEntities;
+            userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
             userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
+            userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
         } else {
-            // this node is an agent
-            const QHostAddress& addr = node->getLocalSocket().getAddress();
-            bool isLocalUser = (addr == limitedNodeList->getLocalSockAddr().getAddress() ||
-                                addr == QHostAddress::LocalHost);
-
             // at this point we don't have a sending socket for packets from this node - assume it is the active socket
             // or the public socket if we haven't activated a socket for the node yet
             HifiSockAddr connectingAddr = node->getActiveSocket() ? *node->getActiveSocket() : node->getPublicSocket();
 
             QString hardwareAddress;
             QUuid machineFingerprint;
+            bool isLocalUser { false };
 
             DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
             if (nodeData) {
                 hardwareAddress = nodeData->getHardwareAddress();
                 machineFingerprint = nodeData->getMachineFingerprint();
+
+                auto sendingAddress = nodeData->getSendingSockAddr().getAddress();
+                isLocalUser = (sendingAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
+                               sendingAddress == QHostAddress::LocalHost);
             }
 
             userPerms = setPermissionsForUser(isLocalUser, verifiedUsername, connectingAddr.getAddress(), hardwareAddress, machineFingerprint);
@@ -356,7 +360,10 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.permissions |= NodePermissions::Permission::canAdjustLocks;
     userPerms.permissions |= NodePermissions::Permission::canRezPermanentEntities;
     userPerms.permissions |= NodePermissions::Permission::canRezTemporaryEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezPermanentCertifiedEntities;
+    userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
     userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
+    userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
     newNode->setPermissions(userPerms);
     return newNode;
 }

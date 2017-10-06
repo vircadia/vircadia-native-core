@@ -1,0 +1,169 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Olivier Prat on 04/12/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@if not FADE_SLH@>
+<@def FADE_SLH@>
+
+<@func declareFadeFragmentCommon()@>
+
+
+#define CATEGORY_COUNT    5
+
+<@include Fade_shared.slh@>
+
+layout(std140) uniform fadeParametersBuffer {
+    FadeParameters fadeParameters[CATEGORY_COUNT];
+};
+uniform sampler2D fadeMaskMap;
+
+struct FadeObjectParams {
+    int category;
+    float threshold;
+    vec3 noiseOffset;
+    vec3 baseOffset;
+    vec3 baseInvSize;
+};
+
+vec2 hash2D(vec3 position) {
+    return position.xy* vec2(0.1677,  0.221765) + position.z*0.561;
+}
+
+float noise3D(vec3 position) {
+    float n = textureLod(fadeMaskMap, hash2D(position), 0).r;
+    return pow(n, 1.0/2.2); // Remove sRGB. Need to fix this later directly in the texture
+}
+
+float evalFadeNoiseGradient(FadeObjectParams params, vec3 position) {
+    // Do tri-linear interpolation
+    vec3    noisePosition = position * fadeParameters[params.category]._noiseInvSizeAndLevel.xyz + params.noiseOffset;
+    vec3    noisePositionFloored = floor(noisePosition);
+    vec3    noisePositionFraction = fract(noisePosition);
+
+    noisePositionFraction = noisePositionFraction*noisePositionFraction*(3 - 2*noisePositionFraction);
+
+    float   noiseLowXLowYLowZ = noise3D(noisePositionFloored);
+    float   noiseLowXHighYLowZ = noise3D(noisePositionFloored+vec3(0,1,0));
+    float   noiseHighXLowYLowZ = noise3D(noisePositionFloored+vec3(1,0,0));
+    float   noiseHighXHighYLowZ = noise3D(noisePositionFloored+vec3(1,1,0));
+    float   noiseLowXLowYHighZ = noise3D(noisePositionFloored+vec3(0,0,1));
+    float   noiseLowXHighYHighZ = noise3D(noisePositionFloored+vec3(0,1,1));
+    float   noiseHighXLowYHighZ = noise3D(noisePositionFloored+vec3(1,0,1));
+    float   noiseHighXHighYHighZ = noise3D(noisePositionFloored+vec3(1,1,1));
+    vec4    maskLowZ = vec4(noiseLowXLowYLowZ, noiseLowXHighYLowZ, noiseHighXLowYLowZ, noiseHighXHighYLowZ);
+    vec4    maskHighZ = vec4(noiseLowXLowYHighZ, noiseLowXHighYHighZ, noiseHighXLowYHighZ, noiseHighXHighYHighZ);
+    vec4    maskXY = mix(maskLowZ, maskHighZ, noisePositionFraction.z);
+    vec2    maskY = mix(maskXY.xy, maskXY.zw, noisePositionFraction.x);
+
+    float noise = mix(maskY.x, maskY.y, noisePositionFraction.y);
+    noise -= 0.5;   // Center on value 0
+    return noise * fadeParameters[params.category]._noiseInvSizeAndLevel.w;
+}
+
+float evalFadeBaseGradient(FadeObjectParams params, vec3 position) {
+    float gradient = length((position - params.baseOffset) * params.baseInvSize.xyz);
+    gradient = gradient-0.5;  // Center on value 0.5
+    gradient *= fadeParameters[params.category]._baseLevel;
+    return gradient;
+}
+
+float evalFadeGradient(FadeObjectParams params, vec3 position) {
+    float baseGradient = evalFadeBaseGradient(params, position);
+    float noiseGradient = evalFadeNoiseGradient(params, position);
+    float gradient = noiseGradient+baseGradient+0.5;
+
+    return gradient;
+}
+
+float evalFadeAlpha(FadeObjectParams params, vec3 position) {
+    return evalFadeGradient(params, position)-params.threshold;
+}
+
+void applyFadeClip(FadeObjectParams params, vec3 position) {
+    if (evalFadeAlpha(params, position) < 0) {
+        discard;
+    }
+}
+
+void applyFade(FadeObjectParams params, vec3 position, out vec3 emissive) {
+    float alpha = evalFadeAlpha(params, position);
+    if (fadeParameters[params.category]._isInverted!=0) {
+        alpha = -alpha;
+    }
+
+    if (alpha < 0) {
+        discard;
+    }
+    
+    float edgeMask = alpha * fadeParameters[params.category]._edgeWidthInvWidth.y;
+    float edgeAlpha = 1.0-clamp(edgeMask, 0, 1);
+
+    edgeMask = step(edgeMask, 1.f);
+    edgeAlpha *= edgeAlpha; // Square to have a nice ease out
+    vec4 color = mix(fadeParameters[params.category]._innerEdgeColor, fadeParameters[params.category]._outerEdgeColor, edgeAlpha);
+    emissive = color.rgb * edgeMask * color.a;
+}
+
+<@endfunc@>
+
+<@func declareFadeFragmentUniform()@>
+
+uniform int fadeCategory;
+uniform vec3 fadeNoiseOffset;
+uniform vec3 fadeBaseOffset;
+uniform vec3 fadeBaseInvSize;
+uniform float fadeThreshold;
+
+<@endfunc@>
+
+<@func fetchFadeObjectParams(fadeParams)@>
+    <$fadeParams$>.category = fadeCategory;
+    <$fadeParams$>.threshold = fadeThreshold;
+    <$fadeParams$>.noiseOffset = fadeNoiseOffset;
+    <$fadeParams$>.baseOffset = fadeBaseOffset;
+    <$fadeParams$>.baseInvSize = fadeBaseInvSize;
+<@endfunc@>
+
+<@func declareFadeFragmentVertexInput()@>
+
+in vec4 _fadeData1;
+in vec4 _fadeData2;
+in vec4 _fadeData3;
+
+<@endfunc@>
+
+<@func fetchFadeObjectParamsInstanced(fadeParams)@>
+    <$fadeParams$>.category = int(_fadeData1.w);
+    <$fadeParams$>.threshold = _fadeData2.w;
+    <$fadeParams$>.noiseOffset = _fadeData1.xyz;
+    <$fadeParams$>.baseOffset = _fadeData2.xyz;
+    <$fadeParams$>.baseInvSize = _fadeData3.xyz;
+<@endfunc@>
+
+<@func declareFadeFragment()@>
+<$declareFadeFragmentCommon()$>
+<$declareFadeFragmentUniform()$>
+<@endfunc@>
+
+<@func declareFadeFragmentInstanced()@>
+<$declareFadeFragmentCommon()$>
+<$declareFadeFragmentVertexInput()$>
+<@endfunc@>
+
+<@func declareFadeVertexInstanced()@>
+out vec4 _fadeData1;
+out vec4 _fadeData2;
+out vec4 _fadeData3;
+<@endfunc@>
+
+<@func passThroughFadeObjectParams()@>
+    _fadeData1 = inTexCoord2;
+    _fadeData2 = inTexCoord3;
+    _fadeData3 = inTexCoord4;    
+<@endfunc@>
+
+<@endif@>

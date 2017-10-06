@@ -141,7 +141,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
 void EntitySimulation::sortEntitiesThatMoved() {
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
-    MovingEntitiesOperator moveOperator(_entityTree);
+    MovingEntitiesOperator moveOperator;
     AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
     SetOfEntities::iterator itemItr = _entitiesToSort.begin();
     while (itemItr != _entitiesToSort.end()) {
@@ -280,24 +280,24 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
 }
 
 void EntitySimulation::addDynamic(EntityDynamicPointer dynamic) {
-    QMutexLocker lock(&_mutex);
+    QMutexLocker lock(&_dynamicsMutex);
     _dynamicsToAdd += dynamic;
 }
 
 void EntitySimulation::removeDynamic(const QUuid dynamicID) {
-    QMutexLocker lock(&_mutex);
+    QMutexLocker lock(&_dynamicsMutex);
     _dynamicsToRemove += dynamicID;
 }
 
 void EntitySimulation::removeDynamics(QList<QUuid> dynamicIDsToRemove) {
-    QMutexLocker lock(&_mutex);
+    QMutexLocker lock(&_dynamicsMutex);
     foreach(QUuid uuid, dynamicIDsToRemove) {
         _dynamicsToRemove.insert(uuid);
     }
 }
 
 void EntitySimulation::applyDynamicChanges() {
-    QMutexLocker lock(&_mutex);
+    QMutexLocker lock(&_dynamicsMutex);
     _dynamicsToAdd.clear();
     _dynamicsToRemove.clear();
 }

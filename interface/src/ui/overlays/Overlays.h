@@ -90,6 +90,7 @@ public:
     void init();
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
+    void render3DHUDOverlays(RenderArgs* renderArgs);
     void disable();
     void enable();
 
@@ -101,6 +102,8 @@ public:
     /// adds an overlay that's already been created
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     OverlayID addOverlay(const Overlay::Pointer& overlay);
+
+    void setOverlayDrawHUDLayer(const OverlayID& id, const bool drawHUDLayer);
 
     bool mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
@@ -212,6 +215,12 @@ public slots:
                                                        const QScriptValue& overlayIDsToDiscard = QScriptValue(),
                                                        bool visibleOnly = false,
                                                        bool collidableOnly = false);
+
+    // Same as above but with QVectors
+    RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+                                                             const QVector<OverlayID>& overlaysToInclude,
+                                                             const QVector<OverlayID>& overlaysToDiscard,
+                                                             bool visibleOnly = false, bool collidableOnly = false);
 
     /**jsdoc
      * Return a list of 3d overlays with bounding boxes that touch the given sphere
@@ -325,7 +334,11 @@ private:
 
     mutable QMutex _mutex { QMutex::Recursive };
     QMap<OverlayID, Overlay::Pointer> _overlaysHUD;
+    QMap<OverlayID, Overlay::Pointer> _overlays3DHUD;
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
+
+    render::ShapePlumberPointer _shapePlumber;
+
 #if OVERLAY_PANELS
     QMap<OverlayID, OverlayPanel::Pointer> _panels;
 #endif
@@ -343,10 +356,6 @@ private:
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
 
-    Q_INVOKABLE RayToOverlayIntersectionResult findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
-                                                               const QVector<OverlayID>& overlaysToInclude,
-                                                               const QVector<OverlayID>& overlaysToDiscard,
-                                                               bool visibleOnly = false, bool collidableOnly = false);
     RayToOverlayIntersectionResult findRayIntersectionForMouseEvent(PickRay ray);
 };
 

@@ -32,10 +32,11 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
     // nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isZip) {
+void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isZip, bool isBlocks) {
     qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
     qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
+    qCDebug(scriptengine) << "Filename: " << fileName;
     QString tempDir = path;
     if (!isZip) {
         tempDir.remove(fileName);
@@ -52,14 +53,17 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     }
 
     QStringList fileList = unzipFile(path, tempDir);
-    QString filename = QUrl::fromLocalFile(fileList.first()).toString();
     
-    if (filename != "") {
-        qCDebug(scriptengine) << "File to upload: " + filename;
+    if (!fileList.isEmpty()) {
+        qCDebug(scriptengine) << "File to upload: " + fileList.first();
     } else {
         qCDebug(scriptengine) << "Unzip failed";
     }
-    emit unzipResult(path, fileList, autoAdd, isZip);
+
+    if (path.contains("vr.google.com/downloads")) {
+        isZip = true;
+    }
+    emit unzipResult(path, fileList, autoAdd, isZip, isBlocks);
 
 }
 

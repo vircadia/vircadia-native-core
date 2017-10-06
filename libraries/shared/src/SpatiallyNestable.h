@@ -66,6 +66,10 @@ public:
 
     static QString nestableTypeToString(NestableType nestableType);
 
+
+    virtual bool isParentPathComplete() const;
+
+
     // world frame
     virtual const Transform getTransform(bool& success, int depth = 0) const;
     virtual const Transform getTransform() const;
@@ -111,17 +115,18 @@ public:
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
 
-    virtual glm::vec3 getScale() const;
-    virtual void setScale(const glm::vec3& scale);
-    virtual void setScale(float value);
+    virtual glm::vec3 getSNScale() const;
+    virtual glm::vec3 getSNScale(bool& success) const;
+    virtual void setSNScale(const glm::vec3& scale);
+    virtual void setSNScale(const glm::vec3& scale, bool& success);
 
     // get world-frame values for a specific joint
     virtual const Transform getTransform(int jointIndex, bool& success, int depth = 0) const;
     virtual glm::vec3 getPosition(int jointIndex, bool& success) const;
-    virtual glm::vec3 getScale(int jointIndex) const;
+    virtual glm::vec3 getSNScale(int jointIndex, bool& success) const;
 
     // object's parent's frame
-    virtual const Transform getLocalTransform() const;
+    virtual Transform getLocalTransform() const;
     virtual void setLocalTransform(const Transform& transform);
 
     virtual glm::vec3 getLocalPosition() const;
@@ -136,8 +141,8 @@ public:
     virtual glm::vec3 getLocalAngularVelocity() const;
     virtual void setLocalAngularVelocity(const glm::vec3& angularVelocity);
 
-    virtual glm::vec3 getLocalScale() const;
-    virtual void setLocalScale(const glm::vec3& scale);
+    virtual glm::vec3 getLocalSNScale() const;
+    virtual void setLocalSNScale(const glm::vec3& scale);
 
     QList<SpatiallyNestablePointer> getChildren() const;
     bool hasChildren() const;
@@ -146,6 +151,7 @@ public:
 
     // this object's frame
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
+    virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const { return glm::vec3(1.0f); }
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { return glm::vec3(); }
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
@@ -158,8 +164,13 @@ public:
 
     SpatiallyNestablePointer getThisPointer() const;
 
-    void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
-    void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
+    using ChildLambda = std::function<void(const SpatiallyNestablePointer&)>;
+    using ChildLambdaTest = std::function<bool(const SpatiallyNestablePointer&)>;
+
+    void forEachChild(const ChildLambda& actor) const;
+    void forEachDescendant(const ChildLambda& actor) const;
+    void forEachChildTest(const ChildLambdaTest&  actor) const;
+    void forEachDescendantTest(const ChildLambdaTest& actor) const;
 
     void die() { _isDead = true; }
     bool isDead() const { return _isDead; }
@@ -184,6 +195,8 @@ public:
     bool scaleChangedSince(quint64 time) const { return _scaleChanged > time; }
     bool tranlationChangedSince(quint64 time) const { return _translationChanged > time; }
     bool rotationChangedSince(quint64 time) const { return _rotationChanged > time; }
+
+    void dump(const QString& prefix = "") const;
 
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData

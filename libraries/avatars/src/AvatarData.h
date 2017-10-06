@@ -353,6 +353,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
+    Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
@@ -374,16 +375,19 @@ class AvatarData : public QObject, public SpatiallyNestable {
     // sessionDisplayName is sanitized, defaulted version displayName that is defined by the AvatarMixer rather than by Interface clients.
     // The result is unique among all avatars present at the time.
     Q_PROPERTY(QString sessionDisplayName READ getSessionDisplayName WRITE setSessionDisplayName)
+    Q_PROPERTY(bool lookAtSnappingEnabled MEMBER _lookAtSnappingEnabled NOTIFY lookAtSnappingChanged)
     Q_PROPERTY(QString skeletonModelURL READ getSkeletonModelURLFromScript WRITE setSkeletonModelURLFromScript)
     Q_PROPERTY(QVector<AttachmentData> attachmentData READ getAttachmentData WRITE setAttachmentData)
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
-    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID NOTIFY sessionUUIDChanged)
 
     Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
     Q_PROPERTY(glm::mat4 controllerLeftHandMatrix READ getControllerLeftHandMatrix)
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
+
+    Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
 
 public:
 
@@ -516,18 +520,18 @@ public:
     Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
     Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
 
-    Q_INVOKABLE void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation);
-    Q_INVOKABLE void setJointRotation(const QString& name, const glm::quat& rotation);
-    Q_INVOKABLE void setJointTranslation(const QString& name, const glm::vec3& translation);
-    Q_INVOKABLE void clearJointData(const QString& name);
-    Q_INVOKABLE bool isJointDataValid(const QString& name) const;
-    Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
-    Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
+    Q_INVOKABLE virtual void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation);
+    Q_INVOKABLE virtual void setJointRotation(const QString& name, const glm::quat& rotation);
+    Q_INVOKABLE virtual void setJointTranslation(const QString& name, const glm::vec3& translation);
+    Q_INVOKABLE virtual void clearJointData(const QString& name);
+    Q_INVOKABLE virtual bool isJointDataValid(const QString& name) const;
+    Q_INVOKABLE virtual glm::quat getJointRotation(const QString& name) const;
+    Q_INVOKABLE virtual glm::vec3 getJointTranslation(const QString& name) const;
 
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE virtual QVector<glm::vec3> getJointTranslations() const;
-    Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
-    Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
+    Q_INVOKABLE virtual void setJointRotations(const QVector<glm::quat>& jointRotations);
+    Q_INVOKABLE virtual void setJointTranslations(const QVector<glm::vec3>& jointTranslations);
 
     Q_INVOKABLE virtual void clearJointsData();
 
@@ -544,7 +548,7 @@ public:
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
     Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
 
-    void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
+    Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -559,6 +563,7 @@ public:
         QString sessionDisplayName;
         bool isReplicated;
         AvatarEntityMap avatarEntityData;
+        bool lookAtSnappingEnabled;
     };
 
     // identityChanged returns true if identity has changed, false otherwise.
@@ -571,6 +576,7 @@ public:
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
+    bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
@@ -617,6 +623,7 @@ public:
 
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+    Q_INVOKABLE float getSensorToWorldScale() const;
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
@@ -662,13 +669,20 @@ public:
 
 signals:
     void displayNameChanged();
+    void lookAtSnappingChanged(bool enabled);
+    void sessionUUIDChanged();
 
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
 
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
+    void setSessionUUID(const QUuid& sessionUUID) {
+        if (sessionUUID != getID()) {
+            setID(sessionUUID);
+            emit sessionUUIDChanged();
+        }
+    }
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
@@ -730,6 +744,7 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
+    bool _lookAtSnappingEnabled { true };
 
     QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _fstJointNames; ///< in order of depth-first traversal
@@ -821,6 +836,43 @@ protected:
     udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
+
+    template <typename T, typename F>
+    T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
+        int index = getFauxJointIndex(name);
+        QReadLocker readLock(&_jointDataLock);
+        if (index == -1) {
+            index = _fstJointIndices.value(name) - 1;
+        }
+
+        // The first conditional is superfluous, but illsutrative
+        if (index == -1 || index < _jointData.size()) {
+            return defaultValue;
+        }
+
+        return f(index);
+    }
+
+    template <typename T, typename F>
+    T readLockWithNamedJointIndex(const QString& name, F f) const {
+        return readLockWithNamedJointIndex(name, T(), f);
+    }
+
+    template <typename F>
+    void writeLockWithNamedJointIndex(const QString& name, F f) {
+        int index = getFauxJointIndex(name);
+        QWriteLocker writeLock(&_jointDataLock);
+        if (index == -1) {
+            index = _fstJointIndices.value(name) - 1;
+        }
+        if (index == -1) {
+            return;
+        }
+        if (_jointData.size() <= index) {
+            _jointData.resize(index + 1);
+        }
+        f(index);
+    }
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

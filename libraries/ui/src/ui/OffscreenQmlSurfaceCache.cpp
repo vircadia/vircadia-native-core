@@ -44,13 +44,10 @@ void OffscreenQmlSurfaceCache::release(const QString& rootSource, const QSharedP
 
 QSharedPointer<OffscreenQmlSurface> OffscreenQmlSurfaceCache::buildSurface(const QString& rootSource) {
     auto surface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface());
-    QOpenGLContext* currentContext = QOpenGLContext::currentContext();
-    QSurface* currentSurface = currentContext->surface();
-    surface->create(currentContext);
+    surface->create();
     surface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     surface->load(rootSource);
     surface->resize(QSize(100, 100));
-    currentContext->makeCurrent(currentSurface);
     return surface;
 }
 

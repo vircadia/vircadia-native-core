@@ -23,10 +23,6 @@
 
 #include "Model.h"
 
-const uint8_t FADE_WAITING_TO_START = 0;
-const uint8_t FADE_IN_PROGRESS = 1;
-const uint8_t FADE_COMPLETE = 2;
-
 class Model;
 
 class MeshPartPayload {
@@ -95,8 +91,6 @@ public:
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
 
-    float computeFadeAlpha();
-
     // Render Item interface
     render::ItemKey getKey() const override;
     int getLayer() const;
@@ -122,8 +116,13 @@ public:
     bool _materialNeedsUpdate { true };
 
 private:
-    quint64 _fadeStartTime { 0 };
-    uint8_t _fadeState { FADE_WAITING_TO_START };
+
+    enum State : uint8_t {
+        WAITING_TO_START = 0,
+        STARTED = 1,
+    };
+
+    mutable State _state { WAITING_TO_START } ;
 };
 
 namespace render {

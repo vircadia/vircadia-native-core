@@ -46,6 +46,8 @@ Item {
     property int stackShadowNarrowing: 5;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
     property int shadowHeight: 10;
+    property bool hovered: false
+
     HifiConstants { id: hifi }
 
     function pastTime(timestamp) { // Answer a descriptive string
@@ -231,6 +233,13 @@ Item {
     // to that which is being hovered over.
     property var hoverThunk: function () { };
     property var unhoverThunk: function () { };
+    Rectangle {
+        anchors.fill: parent;
+        visible: root.hovered
+        color: "transparent";
+        border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight;
+        z: 1;
+    }
     MouseArea {
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;

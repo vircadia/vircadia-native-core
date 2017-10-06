@@ -18,7 +18,7 @@
 #include <mutex>
 #include <queue>
 
-#include <QtCore/qsystemdetection.h>
+#include <QtCore/QtGlobal>
 #include <QtCore/QByteArray>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QObject>
@@ -148,6 +148,9 @@ public:
     QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
     QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
 
+    void enablePeakValues(bool enable) { _enablePeakValues = enable; }
+    bool peakValuesAvailable() const;
+
     static const float CALLBACK_ACCELERATOR_RATIO;
 
     bool getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName);
@@ -170,6 +173,10 @@ public slots:
 
     void sendDownstreamAudioStatsPacket() { _stats.publish(); }
     void handleMicAudioInput();
+#if defined(Q_OS_ANDROID)
+    void audioInputStateChanged(QAudio::State state);
+#endif
+    void handleDummyAudioInput();
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
@@ -223,6 +230,7 @@ signals:
 
     void deviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
     void devicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
+    void peakValueListChanged(const QList<float> peakValueList);
 
     void receivedFirstPacket();
     void disconnected();
@@ -241,9 +249,12 @@ private:
     friend class CheckDevicesThread;
     friend class LocalInjectorsThread;
 
+    // background tasks
+    void checkDevices();
+    void checkPeakValues();
+
     void outputFormatChanged();
     void handleAudioInput(QByteArray& audioBuffer);
-    void checkDevices();
     void prepareLocalAudioInjectors(std::unique_ptr<Lock> localAudioLock = nullptr);
     bool mixLocalAudioInjectors(float* mixBuffer);
     float azimuthForSource(const glm::vec3& relativePosition);
@@ -277,6 +288,7 @@ private:
 
     Mutex _injectorsMutex;
     QAudioInput* _audioInput;
+    QTimer* _dummyAudioInput;
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
@@ -296,6 +308,7 @@ private:
     std::atomic<bool> _localInjectorsAvailable { false };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
+    std::atomic<bool> _enablePeakValues { false };
 
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
@@ -350,8 +363,8 @@ private:
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
-    bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo);
-    bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo);
+    bool switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo, bool isShutdownRequest = false);
+    bool switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo, bool isShutdownRequest = false);
 
     // Callback acceleration dependent calculations
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
@@ -393,7 +406,12 @@ private:
     RateCounter<> _silentInbound;
     RateCounter<> _audioInbound;
 
+#if defined(Q_OS_ANDROID)
+    bool _shouldRestartInputSetup { true }; // Should we restart the input device because of an unintended stop?
+#endif
+    
     QTimer* _checkDevicesTimer { nullptr };
+    QTimer* _checkPeakValuesTimer { nullptr };
 };
 
 

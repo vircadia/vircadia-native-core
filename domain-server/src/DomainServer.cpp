@@ -458,7 +458,7 @@ const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
 
 
 
-bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
+bool DomainServer::isPacketVerified(const udt::Packet& packet) {
     PacketType headerType = NLPacket::typeInHeader(packet);
     PacketVersion headerVersion = NLPacket::versionInHeader(packet);
 
@@ -471,7 +471,48 @@ bool DomainServer::packetVersionMatch(const udt::Packet& packet) {
         DomainGatekeeper::sendProtocolMismatchConnectionDenial(packet.getSenderSockAddr());
     }
 
-    // let the normal nodeList implementation handle all other packets.
+    if (!PacketTypeEnum::getNonSourcedPackets().contains(headerType)) {
+        // this is a sourced packet - first check if we have a node that matches
+        QUuid sourceID = NLPacket::sourceIDInHeader(packet);
+        SharedNodePointer sourceNode = nodeList->nodeWithUUID(sourceID);
+
+        if (sourceNode) {
+            // unverified DS packets (due to a lack of connection secret between DS + node)
+            // must come either from the same public IP address or a local IP address (set by RFC 1918)
+
+            DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(sourceNode->getLinkedData());
+
+            bool exactAddressMatch = nodeData->getSendingSockAddr() == packet.getSenderSockAddr();
+            bool bothPrivateAddresses = nodeData->getSendingSockAddr().hasPrivateAddress()
+                && packet.getSenderSockAddr().hasPrivateAddress();
+
+            if (nodeData && (exactAddressMatch || bothPrivateAddresses)) {
+                // to the best of our ability we've verified that this packet comes from the right place
+                // let the NodeList do its checks now (but pass it the sourceNode so it doesn't need to look it up again)
+                return nodeList->isPacketVerifiedWithSource(packet, sourceNode.data());
+            } else {
+                static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unmatched IP for UUID";
+                static QString repeatedMessage
+                    = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
+
+                qDebug() << "Packet of type" << headerType
+                    << "received from unmatched IP for UUID" << uuidStringWithoutCurlyBraces(sourceID);
+
+                return false;
+            }
+        } else {
+            static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
+            static QString repeatedMessage
+                = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
+
+            qDebug() << "Packet of type" << headerType
+                << "received from unknown node with UUID" << uuidStringWithoutCurlyBraces(sourceID);
+
+            return false;
+        }
+    }
+
+    // fallback to allow the normal NodeList implementation to verify packets
     return nodeList->isPacketVerified(packet);
 }
 
@@ -570,7 +611,7 @@ void DomainServer::setupNodeListAndAssignments() {
     addStaticAssignmentsToQueue();
 
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
-    nodeList->setPacketFilterOperator(&DomainServer::packetVersionMatch);
+    nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
 }
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
@@ -711,8 +752,28 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
 }
 
 void DomainServer::updateICEServerAddresses() {
-    if (_iceAddressLookupID == -1) {
+    if (_iceAddressLookupID == INVALID_ICE_LOOKUP_ID) {
         _iceAddressLookupID = QHostInfo::lookupHost(_iceServerAddr, this, SLOT(handleICEHostInfo(QHostInfo)));
+
+        // there seems to be a 5.9 bug where lookupHost never calls our slot
+        // so we add a single shot manual "timeout" to fire it off again if it hasn't called back yet
+        static const int ICE_ADDRESS_LOOKUP_TIMEOUT_MS = 5000;
+        QTimer::singleShot(ICE_ADDRESS_LOOKUP_TIMEOUT_MS, this, &DomainServer::timeoutICEAddressLookup);
+    }
+}
+
+void DomainServer::timeoutICEAddressLookup() {
+    if (_iceAddressLookupID != INVALID_ICE_LOOKUP_ID) {
+        // we waited 5s and didn't hear back for our ICE DNS lookup
+        // so time that one out and kick off another
+
+        qDebug() << "IP address lookup timed out for" << _iceServerAddr << "- retrying";
+
+        QHostInfo::abortHostLookup(_iceAddressLookupID);
+
+        _iceAddressLookupID = INVALID_ICE_LOOKUP_ID;
+
+        updateICEServerAddresses();
     }
 }
 
@@ -853,7 +914,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 }
 
 void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-
     QDataStream packetStream(message->getMessage());
     NodeConnectionData nodeRequestData = NodeConnectionData::fromDataStream(packetStream, message->getSenderSockAddr(), false);
 
@@ -899,7 +959,8 @@ bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedN
 
         bool isAgentWithoutRights = nodeA->getType() == NodeType::Agent
             && nodeB->getType() == NodeType::EntityScriptServer
-            && !nodeA->getCanRez() && !nodeA->getCanRezTmp();
+            && !nodeA->getCanRez() && !nodeA->getCanRezTmp()
+            && !nodeA->getCanRezCertified() && !nodeA->getCanRezTmpCertified();
 
         if (isAgentWithoutRights) {
             return false;
@@ -908,7 +969,7 @@ bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedN
         bool isScriptServerForIneffectiveAgent =
             (nodeA->getType() == NodeType::EntityScriptServer && nodeB->getType() == NodeType::Agent)
             && ((nodeBData && !nodeBData->getNodeInterestSet().contains(NodeType::EntityScriptServer))
-                || (!nodeB->getCanRez() && !nodeB->getCanRezTmp()));
+                || (!nodeB->getCanRez() && !nodeB->getCanRezTmp() && !nodeB->getCanRezCertified() && !nodeB->getCanRezTmpCertified()));
 
         return !isScriptServerForIneffectiveAgent;
     } else {

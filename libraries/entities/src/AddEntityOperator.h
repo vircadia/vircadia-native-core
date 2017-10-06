@@ -12,20 +12,28 @@
 #ifndef hifi_AddEntityOperator_h
 #define hifi_AddEntityOperator_h
 
+#include <memory>
+
+#include <AABox.h>
+#include <Octree.h>
+
+#include "EntityTypes.h"
+
+class EntityTree;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
+
 class AddEntityOperator : public RecurseOctreeOperator {
 public:
     AddEntityOperator(EntityTreePointer tree, EntityItemPointer newEntity);
-                            
+
     virtual bool preRecursion(const OctreeElementPointer& element) override;
     virtual bool postRecursion(const OctreeElementPointer& element) override;
     virtual OctreeElementPointer possiblyCreateChildAt(const OctreeElementPointer& element, int childIndex) override;
 private:
     EntityTreePointer _tree;
     EntityItemPointer _newEntity;
-    bool _foundNew;
-    quint64 _changeTime;
-
     AABox _newEntityBox;
+    bool _foundNew;
 };
 
 

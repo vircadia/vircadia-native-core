@@ -78,7 +78,7 @@ Setting::Handle<int> staticJitterBufferFrames("staticJitterBufferFrames",
 // protect the Qt internal device list
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
-static Mutex _deviceMutex;
+Mutex _deviceMutex;
 
 // thread-safe
 QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
@@ -160,6 +160,7 @@ AudioClient::AudioClient() :
     AbstractAudioInterface(),
     _gate(this),
     _audioInput(NULL),
+    _dummyAudioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
     _numInputCallbackBytes(0),
@@ -226,13 +227,18 @@ AudioClient::AudioClient() :
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
     connect(_checkDevicesTimer, &QTimer::timeout, [this] {
-        QtConcurrent::run(QThreadPool::globalInstance(), [this] {
-            checkDevices();
-        });
+        QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkDevices(); });
     });
     const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
     _checkDevicesTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 
+    // start a thread to detect peak value changes
+    _checkPeakValuesTimer = new QTimer(this);
+    connect(_checkPeakValuesTimer, &QTimer::timeout, [this] {
+        QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
+    });
+    const unsigned long PEAK_VALUES_CHECK_INTERVAL_MSECS = 50;
+    _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_MSECS);
 
     configureReverb();
 
@@ -274,6 +280,7 @@ void AudioClient::cleanupBeforeQuit() {
 
     stop();
     _checkDevicesTimer->stop();
+    _checkPeakValuesTimer->stop();
     guard.trigger();
 }
 
@@ -315,8 +322,6 @@ QString getWinDeviceName(IMMDevice* pEndpoint) {
     QString deviceName;
     IPropertyStore* pPropertyStore;
     pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
-    pEndpoint->Release();
-    pEndpoint = nullptr;
     PROPVARIANT pv;
     PropVariantInit(&pv);
     HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
@@ -345,6 +350,8 @@ QString AudioClient::getWinDeviceName(wchar_t* guid) {
         deviceName = QString("NONE");
     } else {
         deviceName = ::getWinDeviceName(pEndpoint);
+        pEndpoint->Release();
+        pEndpoint = nullptr;
     }
     pMMDeviceEnumerator->Release();
     pMMDeviceEnumerator = nullptr;
@@ -428,6 +435,8 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             deviceName = QString("NONE");
         } else {
             deviceName = getWinDeviceName(pEndpoint);
+            pEndpoint->Release();
+            pEndpoint = nullptr;
         }
         pMMDeviceEnumerator->Release();
         pMMDeviceEnumerator = NULL;
@@ -617,12 +626,11 @@ void AudioClient::start() {
 
 void AudioClient::stop() {
 
-    // "switch" to invalid devices in order to shut down the state
-    qCDebug(audioclient) << "AudioClient::stop(), about to call switchInputToAudioDevice(null)";
-    switchInputToAudioDevice(QAudioDeviceInfo());
+    qCDebug(audioclient) << "AudioClient::stop(), requesting switchInputToAudioDevice() to shut down";
+    switchInputToAudioDevice(QAudioDeviceInfo(), true);
 
-    qCDebug(audioclient) << "AudioClient::stop(), about to call switchOutputToAudioDevice(null)";
-    switchOutputToAudioDevice(QAudioDeviceInfo());
+    qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
+    switchOutputToAudioDevice(QAudioDeviceInfo(), true);
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
@@ -1125,6 +1133,15 @@ void AudioClient::handleMicAudioInput() {
     }
 }
 
+void AudioClient::handleDummyAudioInput() {
+    const int numNetworkBytes = _isStereoInput
+        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
+        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+
+    QByteArray audioBuffer(numNetworkBytes, 0); // silent
+    handleAudioInput(audioBuffer);
+}
+
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
     QByteArray audioBuffer(audio);
     handleAudioInput(audioBuffer);
@@ -1401,7 +1418,7 @@ void AudioClient::outputFormatChanged() {
     _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
 }
 
-bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
+bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -1423,14 +1440,27 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         _inputDeviceInfo = QAudioDeviceInfo();
     }
 
+    if (_dummyAudioInput) {
+        _dummyAudioInput->stop();
+
+        _dummyAudioInput->deleteLater();
+        _dummyAudioInput = NULL;
+    }
+
     if (_inputToNetworkResampler) {
         // if we were using an input to network resampler, delete it here
         delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
     }
+
     if (_audioGate) {
         delete _audioGate;
         _audioGate = nullptr;
+    }
+
+    if (isShutdownRequest) {
+        qCDebug(audioclient) << "The audio input device has shut down.";
+        return true;
     }
 
     if (!inputDeviceInfo.isNull()) {
@@ -1473,6 +1503,11 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
                 _inputRingBuffer.resizeForFrameSize(numFrameSamples);
 
+#if defined(Q_OS_ANDROID)
+                if (_audioInput) {
+                    connect(_audioInput, SIGNAL(stateChanged(QAudio::State)), this, SLOT(audioInputStateChanged(QAudio::State)));
+                }
+#endif
                 _inputDevice = _audioInput->start();
 
                 if (_inputDevice) {
@@ -1480,13 +1515,61 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                     supportedFormat = true;
                 } else {
                     qCDebug(audioclient) << "Error starting audio input -" <<  _audioInput->error();
+                    _audioInput->deleteLater();
+                    _audioInput = NULL;
                 }
             }
         }
     }
 
+    // If there is no working input device, use the dummy input device.
+    // It generates audio callbacks on a timer to simulate a mic stream of silent packets.
+    // This enables clients without a mic to still receive an audio stream from the mixer.
+    if (!_audioInput) {
+        qCDebug(audioclient) << "Audio input device is not available, using dummy input.";
+        _inputDeviceInfo = QAudioDeviceInfo();
+        emit deviceChanged(QAudio::AudioInput, _inputDeviceInfo);
+
+        _inputFormat = _desiredInputFormat;
+        qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
+        qCDebug(audioclient) << "No resampling required for audio input to match desired network format.";
+
+        _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
+        qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
+
+        // generate audio callbacks at the network sample rate
+        _dummyAudioInput = new QTimer(this);
+        connect(_dummyAudioInput, SIGNAL(timeout()), this, SLOT(handleDummyAudioInput()));
+        _dummyAudioInput->start((int)(AudioConstants::NETWORK_FRAME_MSECS + 0.5f));
+    }
+
     return supportedFormat;
 }
+
+#if defined(Q_OS_ANDROID)
+void AudioClient::audioInputStateChanged(QAudio::State state) {
+    switch (state) {
+        case QAudio::StoppedState:
+            if (!_audioInput) {
+                break;
+            }
+                // Stopped on purpose
+            if (_shouldRestartInputSetup) {
+                Lock lock(_deviceMutex);
+                _inputDevice = _audioInput->start();
+                lock.unlock();
+                if (_inputDevice) {
+                    connect(_inputDevice, SIGNAL(readyRead()), this, SLOT(handleMicAudioInput()));
+                }
+            }
+            break;
+        case QAudio::ActiveState:
+            break;
+        default:
+            break;
+    }
+}
+#endif
 
 void AudioClient::outputNotify() {
     int recentUnfulfilled = _audioOutputIODevice.getRecentUnfulfilledReads();
@@ -1518,9 +1601,8 @@ void AudioClient::outputNotify() {
     }
 }
 
-bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
+bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
-
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
@@ -1562,6 +1644,11 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
         delete _localToOutputResampler;
         _localToOutputResampler = NULL;
+    }
+
+    if (isShutdownRequest) {
+        qCDebug(audioclient) << "The audio output device has shut down.";
+        return true;
     }
 
     if (!outputDeviceInfo.isNull()) {
@@ -1667,14 +1754,6 @@ int AudioClient::setOutputBufferSize(int numFrames, bool persist) {
         _sessionOutputBufferSizeFrames = numFrames;
         if (persist) {
             _outputBufferSizeFrames.set(numFrames);
-        }
-
-        if (_audioOutput) {
-            // The buffer size can't be adjusted after QAudioOutput::start() has been called, so
-            // recreate the device by switching to the default.
-            QAudioDeviceInfo outputDeviceInfo = defaultAudioDeviceForMode(QAudio::AudioOutput);
-            qCDebug(audioclient) << __FUNCTION__ << "about to send changeDevice signal outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
-            emit changeDevice(outputDeviceInfo);  // On correct thread, please, as setOutputBufferSize can be called from main thread.
         }
     }
     return numFrames;

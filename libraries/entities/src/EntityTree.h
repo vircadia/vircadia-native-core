@@ -19,11 +19,12 @@
 #include <SpatialParentFinder.h>
 
 class EntityTree;
-typedef std::shared_ptr<EntityTree> EntityTreePointer;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
 
-
+#include "AddEntityOperator.h"
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
+#include "MovingEntitiesOperator.h"
 
 class EntityEditFilters;
 class Model;
@@ -80,6 +81,10 @@ public:
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
+    virtual void readBitstreamToTree(const unsigned char* bitstream,
+            uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args) override;
+    int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const override { return true; }
@@ -109,7 +114,9 @@ public:
     virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const override
                     { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
 
-    virtual void update() override;
+    virtual void update() override { update(true); }
+
+    void update(bool simulate);
 
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);
@@ -252,6 +259,7 @@ public:
     void knowAvatarID(QUuid avatarID) { _avatarIDs += avatarID; }
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
     void deleteDescendantsOfAvatar(QUuid avatarID);
+    void removeFromChildrenOfAvatars(EntityItemPointer entity);
 
     void addToNeedsParentFixupList(EntityItemPointer entity);
 
@@ -259,12 +267,11 @@ public:
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
-public slots:
-    void callLoader(EntityItemID entityID);
-
 signals:
     void deletingEntity(const EntityItemID& entityID);
+    void deletingEntityPointer(EntityItem* entityID);
     void addingEntity(const EntityItemID& entityID);
+    void editingEntityPointer(const EntityItemPointer& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
@@ -347,6 +354,9 @@ protected:
     bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
     QStringList _entityScriptSourceWhitelist;
+
+    MovingEntitiesOperator _entityMover;
+    QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
 };
 
 #endif // hifi_EntityTree_h

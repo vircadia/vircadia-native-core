@@ -178,8 +178,8 @@
                     type: "Row"
                 },
                 {
-                    id: "emitShouldTrail",
-                    name: "Emit Should Trail",
+                    id: "emitterShouldTrail",
+                    name: "Emitter Should Trail",
                     type: "Boolean"
                 },
                 {

@@ -14,6 +14,7 @@
 
 #include <memory>
 #include <set>
+#include <stdint.h>
 
 #include <QHash>
 #include <QObject>
@@ -91,7 +92,8 @@ public:
         OUT_OF_VIEW,
         WAS_IN_VIEW,
         NO_CHANGE,
-        OCCLUDED
+        OCCLUDED,
+        FINISHED
     } reason;
     reason stopReason;
 
@@ -231,7 +233,7 @@ public:
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
-    void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
+    virtual void readBitstreamToTree(const unsigned char* bitstream,  uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args);
     void deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void reaverageOctreeElements(OctreeElementPointer startElement = OctreeElementPointer());
 
@@ -301,13 +303,13 @@ public:
     // Octree importers
     bool readFromFile(const char* filename);
     bool readFromURL(const QString& url); // will support file urls as well...
-    bool readFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID="");
-    bool readSVOFromStream(unsigned long streamLength, QDataStream& inputStream);
-    bool readJSONFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID="");
+    bool readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");
+    bool readSVOFromStream(uint64_t streamLength, QDataStream& inputStream);
+    bool readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID="");
     bool readJSONFromGzippedFile(QString qFileName);
     virtual bool readFromMap(QVariantMap& entityDescription) = 0;
 
-    unsigned long getOctreeElementsCount();
+    uint64_t getOctreeElementsCount();
 
     bool getShouldReaverage() const { return _shouldReaverage; }
 

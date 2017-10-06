@@ -1,0 +1,46 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  model_lightmap_normal_map_fade.vert
+//  vertex shader
+//
+//  Created by Olivier Prat on 06/05/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
+
+out vec4 _position;
+out vec2 _texCoord0;
+out vec2 _texCoord1;
+out vec3 _normal;
+out vec3 _tangent;
+out vec3 _color;
+out vec4 _worldPosition;
+
+void main(void) {
+    // pass along the color in linear space
+    _color = colorToLinearRGB(inColor.xyz);
+
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _texCoord1)$>
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
+    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToWorldDir(cam, obj, inTangent.xyz, _tangent)$>
+}

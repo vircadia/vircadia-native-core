@@ -32,10 +32,7 @@ EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const En
 }
 
 LineEntityItem::LineEntityItem(const EntityItemID& entityItemID) :
-    EntityItem(entityItemID),
-    _lineWidth(DEFAULT_LINE_WIDTH),
-    _points(QVector<glm::vec3>(0)),
-    _pointsChanged(true)
+    EntityItem(entityItemID)
 {
     _type = EntityTypes::Line;
 }
@@ -211,4 +208,10 @@ QVector<glm::vec3> LineEntityItem::getLinePoints() const {
         result = _points;
     });
     return result;
+}
+
+void LineEntityItem::resetPointsChanged() { 
+    withWriteLock([&] {
+        _pointsChanged = false;
+    });
 }

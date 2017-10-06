@@ -4,6 +4,7 @@ import QtQuick.Controls 1.4
 StateImage {
     id: button
 
+    property string captionColorOverride: ""
     property bool buttonEnabled: true
     property bool isActive: false
     property bool isEntered: false
@@ -97,7 +98,7 @@ StateImage {
 
     Text {
         id: caption
-        color: button.isActive ? "#000000" : "#ffffff"
+        color: captionColorOverride !== "" ? captionColorOverride: (button.isActive ? "#000000" : "#ffffff")
         text: button.isActive ? (button.isEntered ? button.activeHoverText : button.activeText) : (button.isEntered ? button.hoverText : button.text)
         font.bold: false
         font.pixelSize: 9

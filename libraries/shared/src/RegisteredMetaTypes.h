@@ -136,6 +136,31 @@ Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
+enum IntersectionType {
+    NONE = 0,
+    ENTITY,
+    OVERLAY,
+    AVATAR,
+    HUD
+};
+
+class RayPickResult {
+public:
+    RayPickResult() {}
+    RayPickResult(const PickRay& searchRay) : searchRay(searchRay) {}
+    RayPickResult(const IntersectionType type, const QUuid& objectID, const float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
+        type(type), objectID(objectID), distance(distance), intersection(intersection), searchRay(searchRay), surfaceNormal(surfaceNormal) {}
+    IntersectionType type { NONE };
+    QUuid objectID;
+    float distance { FLT_MAX };
+    glm::vec3 intersection { NAN };
+    PickRay searchRay;
+    glm::vec3 surfaceNormal { NAN };
+};
+Q_DECLARE_METATYPE(RayPickResult)
+QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResult& rayPickResult);
+void rayPickResultFromScriptValue(const QScriptValue& object, RayPickResult& rayPickResult);
+
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,
     CONTACT_EVENT_TYPE_CONTINUE,
@@ -174,7 +199,7 @@ class AnimationDetails {
 public:
     AnimationDetails();
     AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
-        bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame);
+        bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame, bool allowTranslation);
 
     QString role;
     QUrl url;
@@ -187,6 +212,7 @@ public:
     float lastFrame;
     bool running;
     float currentFrame;
+    bool allowTranslation;
 };
 Q_DECLARE_METATYPE(AnimationDetails);
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);

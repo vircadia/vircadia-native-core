@@ -9,57 +9,52 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/gtx/quaternion.hpp>
-
-#include <gpu/Batch.h>
-#include <GeometryCache.h>
-
-#include <PerfStat.h>
-
 #include "RenderableLineEntityItem.h"
 
-EntityItemPointer RenderableLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity{ new RenderableLineEntityItem(entityID) };
-    entity->setProperties(properties);
-    return entity;
-}
+#include <gpu/Batch.h>
+#include <PerfStat.h>
 
-RenderableLineEntityItem::~RenderableLineEntityItem() {
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    if (geometryCache) {
-        geometryCache->releaseID(_lineVerticesID);
+using namespace render;
+using namespace render::entities;
+
+void LineEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
+    if (_lineVerticesID != GeometryCache::UNKNOWN_ID) {
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        if (geometryCache) {
+            geometryCache->releaseID(_lineVerticesID);
+        }
     }
 }
 
-void RenderableLineEntityItem::updateGeometry() {
+bool LineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+    return entity->pointsChanged();
+}
+
+void LineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    entity->resetPointsChanged();
+    _linePoints = entity->getLinePoints();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
-        _lineVerticesID = geometryCache ->allocateID();
+        _lineVerticesID = geometryCache->allocateID();
     }
-    if (_pointsChanged) {
-        glm::vec4 lineColor(toGlm(getXColor()), getLocalRenderAlpha());
-        geometryCache->updateVertices(_lineVerticesID, getLinePoints(), lineColor);
-        _pointsChanged = false;
-    }
+    glm::vec4 lineColor(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
+    geometryCache->updateVertices(_lineVerticesID, _linePoints, lineColor);
 }
 
+void LineEntityRenderer::doRender(RenderArgs* args) {
+    if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
+        return;
+    }
 
-
-
-void RenderableLineEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
-    Q_ASSERT(getType() == EntityTypes::Line);
-    updateGeometry();
-    
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
     Transform transform = Transform();
-    transform.setTranslation(getPosition());
-    transform.setRotation(getRotation());
+    transform.setTranslation(_modelTransform.getTranslation());
+    transform.setRotation(_modelTransform.getRotation());
     batch.setModelTransform(transform);
-
-    if (getLinePoints().size() > 1) {
+    if (_linePoints.size() > 1) {
         DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
     }
-};
+}

@@ -84,11 +84,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
         batch.setPipeline(args->_shapePipeline->pipeline);
     }
 
-    // FIXME: THe line width of _lineWidth is not supported anymore, we ll need a workaround
-
-    auto transform = getTransform();
-    transform.postScale(glm::vec3(getDimensions(), 1.0f));
-    batch.setModelTransform(transform);
+    batch.setModelTransform(getRenderTransform());
 
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...
@@ -264,10 +260,10 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
 const render::ShapeKey Circle3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withoutCullFace().withUnlit();
-    if (getAlpha() != 1.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
-    if (!getIsSolid()) {
+    if (!getIsSolid() || shouldDrawHUDLayer()) {
         builder.withUnlit().withDepthBias();
     }
     return builder.build();

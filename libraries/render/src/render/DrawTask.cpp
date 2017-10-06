@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <LogHandler.h>
+
 #include "DrawTask.h"
 #include "Logging.h"
 
@@ -42,25 +44,29 @@ void render::renderItems(const RenderContextPointer& renderContext, const ItemBo
 void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, const Item& item, const ShapeKey& globalKey) {
     assert(item.getKey().isShape());
     auto key = item.getShapeKey() | globalKey;
+    args->_itemShapeKey = key._flags.to_ulong();
     if (key.isValid() && !key.hasOwnPipeline()) {
         args->_shapePipeline = shapeContext->pickPipeline(args, key);
         if (args->_shapePipeline) {
             args->_shapePipeline->prepareShapeItem(args, key, item);
             item.render(args);
-        } 
+        }
         args->_shapePipeline = nullptr;
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
         qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
+        static QString repeatedCouldNotBeRendered = LogHandler::getInstance().addRepeatedMessageRegex(
+            "Item could not be rendered with invalid key.*");
     }
+    args->_itemShapeKey = 0;
 }
 
 void render::renderShapes(const RenderContextPointer& renderContext,
     const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems, const ShapeKey& globalKey) {
     auto& scene = renderContext->_scene;
     RenderArgs* args = renderContext->args;
-    
+
     int numItemsToDraw = (int)inItems.size();
     if (maxDrawnItems != -1) {
         numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
@@ -85,10 +91,10 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
     using SortedShapes = std::unordered_map<render::ShapeKey, std::vector<Item>, render::ShapeKey::Hash, render::ShapeKey::KeyEqual>;
     SortedPipelines sortedPipelines;
     SortedShapes sortedShapes;
-    std::vector<Item> ownPipelineBucket;
+    std::vector< std::tuple<Item,ShapeKey> > ownPipelineBucket;
 
     for (auto i = 0; i < numItemsToDraw; ++i) {
-        auto item = scene->getItem(inItems[i].id);
+        auto& item = scene->getItem(inItems[i].id);
 
         {
             assert(item.getKey().isShape());
@@ -100,8 +106,10 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
                 }
                 bucket.push_back(item);
             } else if (key.hasOwnPipeline()) {
-                ownPipelineBucket.push_back(item);
+                ownPipelineBucket.push_back( std::make_tuple(item, key) );
             } else {
+                static QString repeatedCouldNotBeRendered = LogHandler::getInstance().addRepeatedMessageRegex(
+                    "Item could not be rendered with invalid key.*");
                 qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
             }
         }
@@ -111,18 +119,22 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
     for (auto& pipelineKey : sortedPipelines) {
         auto& bucket = sortedShapes[pipelineKey];
         args->_shapePipeline = shapeContext->pickPipeline(args, pipelineKey);
-        if (!args->_shapePipeline) {            
+        if (!args->_shapePipeline) {
             continue;
         }
+        args->_itemShapeKey = pipelineKey._flags.to_ulong();
         for (auto& item : bucket) {
             args->_shapePipeline->prepareShapeItem(args, pipelineKey, item);
             item.render(args);
         }
     }
     args->_shapePipeline = nullptr;
-    for (auto& item : ownPipelineBucket) {
+    for (auto& itemAndKey : ownPipelineBucket) {
+        auto& item = std::get<0>(itemAndKey);
+        args->_itemShapeKey = std::get<1>(itemAndKey)._flags.to_ulong();
         item.render(args);
     }
+    args->_itemShapeKey = 0;
 }
 
 void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds& inLights) {
@@ -176,7 +188,7 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
     if (!_drawBuffer) {
         _drawBuffer = std::make_shared<gpu::Buffer>(sizeOfItemBound);
     }
-    
+
     _drawBuffer->setData(numItems * sizeOfItemBound, (const gpu::Byte*) items.data());
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {

@@ -184,6 +184,9 @@ void Agent::run() {
     // make sure we hear about connected nodes so we can grab an ATP script if a request is pending
     connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &Agent::nodeActivated);
 
+    // make sure we hear about dissappearing nodes so we can clear the entity tree if an entity server goes away
+    connect(nodeList.data(), &LimitedNodeList::nodeKilled, this,  &Agent::nodeKilled);
+
     nodeList->addSetOfNodeTypesToNodeInterestSet({
         NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
     });
@@ -256,6 +259,13 @@ void Agent::nodeActivated(SharedNodePointer activatedNode) {
     }
     if (activatedNode->getType() == NodeType::AudioMixer) {
         negotiateAudioFormat();
+    }
+}
+
+void Agent::nodeKilled(SharedNodePointer killedNode) {
+    if (killedNode->getType() == NodeType::EntityServer) {
+        // an entity server has gone away, ask the headless viewer to clear its tree
+        _entityViewer.clear();
     }
 }
 
@@ -344,15 +354,16 @@ void Agent::scriptRequestFinished() {
 
 
 void Agent::executeScript() {
-    _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload));
+    _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
-    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine.get());
+    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine);
 
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
-    connect(_scriptEngine.get(), SIGNAL(update(float)), scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
+    connect(_scriptEngine.data(), SIGNAL(update(float)),
+            scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
     scriptedAvatar->setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models

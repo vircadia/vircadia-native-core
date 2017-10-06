@@ -8,6 +8,7 @@
 
 #pragma once
 #include <stdint.h>
+#include <DependencyManager.h>
 
 #include <GLMHelpers.h>
 
@@ -39,7 +40,15 @@ namespace Cursor {
         uint16_t _icon;
     };
 
-    class Manager {
+    class MouseInstance : public Instance {
+        Source getType() const override {
+            return Source::MOUSE;
+        }
+    };
+
+    class Manager : public QObject, public Dependency {
+        SINGLETON_DEPENDENCY
+
         Manager();
         Manager(const Manager& other) = delete;
     public:
@@ -52,12 +61,13 @@ namespace Cursor {
         QList<uint16_t> registeredIcons() const;
         const QString& getIconImage(uint16_t icon);
 
-        static QMap<uint16_t, QString> ICONS;
         static QMap<uint16_t, QString> ICON_NAMES;
         static Icon lookupIcon(const QString& name);
         static const QString& getIconName(const Icon& icon);
     private:
+        MouseInstance mouseInstance;
         float _scale{ 1.0f };
+        QMap<uint16_t, QString> ICONS;
     };
 }
 

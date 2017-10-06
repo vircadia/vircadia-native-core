@@ -87,7 +87,6 @@ public:
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
-    bool initWhenReady(const render::ScenePointer& scene);
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction) {
         auto getters = render::Item::Status::Getters(0);
@@ -116,6 +115,7 @@ public:
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
+    bool isAddedToScene() const { return _addedToScene; }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
@@ -267,7 +267,6 @@ signals:
     void setCollisionModelURLFinished(bool success);
 
 protected:
-    bool addedToScene() const { return _addedToScene; }
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
@@ -382,8 +381,8 @@ protected:
     QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
 
-	QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
-	QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
+    QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
+    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
 
     render::ItemIDs _modelMeshRenderItemIDs;
 

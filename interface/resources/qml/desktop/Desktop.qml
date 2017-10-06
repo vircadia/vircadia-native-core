@@ -41,11 +41,31 @@ FocusScope {
     // when they're opened.
     signal showDesktop();
 
+    // This is for JS/QML communication, which is unused in the Desktop,
+    // but not having this here results in spurious warnings about a
+    // missing signal
+    signal sendToScript(var message);
+
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
 
     // The VR version of the primary menu
-    property var rootMenu: Menu { objectName: "rootMenu" }
+    property var rootMenu: Menu { 
+        objectName: "rootMenu" 
+
+        // for some reasons it is not possible to use just '({})' here as it gets empty when passed to TableRoot/DesktopRoot
+        property var exclusionGroupsByMenuItem : ListModel {}
+
+        function addExclusionGroup(menuItem, exclusionGroup)
+        {
+            exclusionGroupsByMenuItem.append(
+                {
+                    'menuItem' : menuItem.toString(), 
+                    'exclusionGroup' : exclusionGroup.toString()
+                }
+            );
+        }
+    }
 
     // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX/AMD
     //        because shaders are 4.2, and do not include #version declarations.
@@ -276,6 +296,23 @@ FocusScope {
 
     function togglePinned() {
         pinned = !pinned
+    }
+
+    function isPointOnWindow(point) {
+        for (var i = 0; i < desktop.visibleChildren.length; i++) {
+            var child = desktop.visibleChildren[i];
+            if (child.visible) {
+                if (child.hasOwnProperty("modality")) {
+                    var mappedPoint = child.mapFromGlobal(point.x, point.y);
+                    var outLine = child.frame.children[2];
+                    var framePoint = outLine.mapFromGlobal(point.x, point.y);
+                    if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     function setPinned(newPinned) {

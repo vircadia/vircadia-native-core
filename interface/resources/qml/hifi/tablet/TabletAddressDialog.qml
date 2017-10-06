@@ -39,11 +39,24 @@ StackView {
     property var rpcCounter: 0;
     signal sendToScript(var message);
     function rpc(method, parameters, callback) {
+        console.debug('TabletAddressDialog: rpc: method = ', method, 'parameters = ', parameters, 'callback = ', callback)
+
         rpcCalls[rpcCounter] = callback;
         var message = {method: method, params: parameters, id: rpcCounter++, jsonrpc: "2.0"};
         sendToScript(message);
     }
     function fromScript(message) {
+        if (message.method === 'refreshFeeds') {
+            var feeds = [happeningNow, places, snapshots];
+            console.debug('TabletAddressDialog::fromScript: refreshFeeds', 'feeds = ', feeds);
+
+            feeds.forEach(function(feed) {
+                Qt.callLater(feed.fillDestinations);
+            });
+
+            return;
+        }
+
         var callback = rpcCalls[message.id];
         if (!callback) {
             console.log('No callback for message fromScript', JSON.stringify(message));

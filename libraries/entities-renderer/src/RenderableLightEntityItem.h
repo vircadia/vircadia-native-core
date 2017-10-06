@@ -12,48 +12,31 @@
 #ifndef hifi_RenderableLightEntityItem_h
 #define hifi_RenderableLightEntityItem_h
 
+#include "RenderableEntityItem.h"
 #include <LightEntityItem.h>
 #include <LightPayload.h>
-#include "RenderableEntityItem.h"
 
+namespace render { namespace entities { 
 
-class RenderableLightEntityItem : public LightEntityItem, public RenderableEntityInterface {
+class LightEntityRenderer final : public TypedEntityRenderer<LightEntityItem> {
+    using Parent = TypedEntityRenderer<LightEntityItem>;
+    friend class EntityRenderer;
+
 public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableLightEntityItem(const EntityItemID& entityItemID);
+    LightEntityRenderer(const EntityItemPointer& entity) : Parent(entity) { }
 
-    RenderableEntityInterface* getRenderableInterface() override { return this; }
+protected:
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
-    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                         bool& keepSearching, OctreeElementPointer& element, float& distance, 
-                         BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) const override;
-
-    void updateLightFromEntity(render::Transaction& transaction);
-
-    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-
-    virtual void somethingChangedNotification() override;
-    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-
-    virtual void locationChanged(bool tellPhysics = true) override;
-
-    virtual void dimensionsChanged() override;
-
-    void checkFading();
-
-    void notifyChanged();
+    virtual ItemKey getKey() override;
+    virtual Item::Bound getBound() override;
+    virtual void doRender(RenderArgs* args) override;
 
 private:
-    bool _prevIsTransparent { isTransparent() };
-    render::ItemID _myItem { render::Item::INVALID_ITEM_ID };
-
-    // Dirty flag turn true when either setSubClassProperties or readEntitySubclassDataFromBuffer is changing a value 
-
-    void updateRenderItemFromEntity(LightPayload& lightPayload);
-
+    const LightPayload::Pointer _lightPayload{ std::make_shared<LightPayload>() };
 };
 
+} } // namespace 
 
 #endif // hifi_RenderableLightEntityItem_h

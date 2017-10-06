@@ -63,6 +63,10 @@ void LocationBookmarks::setHomeLocation() {
     Bookmarks::addBookmarkToFile(HOME_BOOKMARK, bookmarkAddress);
 }
 
+void LocationBookmarks::setHomeLocationToAddress(const QVariant& address) {
+    Bookmarks::insert("Home", address);
+}
+
 void LocationBookmarks::teleportToBookmark() {
     QAction* action = qobject_cast<QAction*>(sender());
     QString address = action->data().toString();
@@ -70,20 +74,21 @@ void LocationBookmarks::teleportToBookmark() {
 }
 
 void LocationBookmarks::addBookmark() {
-    bool ok = false;
-    auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString(), &ok);
-    if (!ok) {
-        return;
-    }
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString());
 
-    bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
-    if (bookmarkName.length() == 0) {
-        return;
-    }
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        auto bookmarkName = response.toString();
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-    QString bookmarkAddress = addressManager->currentAddress().toString();
-    Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
+        bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
+        if (bookmarkName.length() == 0) {
+            return;
+        }
+
+        auto addressManager = DependencyManager::get<AddressManager>();
+        QString bookmarkAddress = addressManager->currentAddress().toString();
+        Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
+    });
 }
 
 void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address) {

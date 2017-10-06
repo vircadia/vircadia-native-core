@@ -27,6 +27,7 @@ public:
 
 public slots:
     void addBookmark();
+    void setHomeLocationToAddress(const QVariant& address);
 
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address) override;

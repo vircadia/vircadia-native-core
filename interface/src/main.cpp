@@ -49,6 +49,10 @@ int main(int argc, const char* argv[]) {
     CrashReporter crashReporter { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION };
 #endif
 
+#ifdef Q_OS_LINUX
+    QApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
+#endif
+
     disableQtBearerPoll(); // Fixes wifi ping spikes
 
     QElapsedTimer startupTime;
@@ -144,25 +148,33 @@ int main(int argc, const char* argv[]) {
 #endif
     }
 
+
+    // FIXME this method of checking the OpenGL version screws up the `QOpenGLContext::globalShareContext()` value, which in turn
+    // leads to crashes when creating the real OpenGL instance.  Disabling for now until we come up with a better way of checking
+    // the GL version on the system without resorting to creating a full Qt application
+#if 0
     // Check OpenGL version.
     // This is done separately from the main Application so that start-up and shut-down logic within the main Application is
     // not made more complicated than it already is.
-    bool override = false;
+    bool overrideGLCheck = false;
+
     QJsonObject glData;
     {
         OpenGLVersionChecker openGLVersionChecker(argc, const_cast<char**>(argv));
         bool valid = true;
-        glData = openGLVersionChecker.checkVersion(valid, override);
+        glData = openGLVersionChecker.checkVersion(valid, overrideGLCheck);
         if (!valid) {
-            if (override) {
+            if (overrideGLCheck) {
                 auto glVersion = glData["version"].toString();
-                qCDebug(interfaceapp, "Running on insufficient OpenGL version: %s.", glVersion.toStdString().c_str());
+                qCWarning(interfaceapp, "Running on insufficient OpenGL version: %s.", glVersion.toStdString().c_str());
             } else {
-                qCDebug(interfaceapp, "Early exit due to OpenGL version.");
+                qCWarning(interfaceapp, "Early exit due to OpenGL version.");
                 return 0;
             }
         }
     }
+#endif
+
 
     // Debug option to demonstrate that the client's local time does not
     // need to be in sync with any other network node. This forces clock
@@ -216,10 +228,16 @@ int main(int argc, const char* argv[]) {
             SandboxUtils::runLocalSandbox(serverContentPath, true, noUpdater);
         }
 
-        Application app(argc, const_cast<char**>(argv), startupTime, runningMarkerExisted);
+        // Extend argv to enable WebGL rendering
+        std::vector<const char*> argvExtended(&argv[0], &argv[argc]);
+        argvExtended.push_back("--ignore-gpu-blacklist");
+        int argcExtended = (int)argvExtended.size();
 
+        Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
+
+#if 0
         // If we failed the OpenGLVersion check, log it.
-        if (override) {
+        if (overrideGLcheck) {
             auto accountManager = DependencyManager::get<AccountManager>();
             if (accountManager->isLoggedIn()) {
                 UserActivityLogger::getInstance().insufficientGLVersion(glData);
@@ -233,6 +251,8 @@ int main(int argc, const char* argv[]) {
                 });
             }
         }
+#endif
+        
 
         // Setup local server
         QLocalServer server { &app };

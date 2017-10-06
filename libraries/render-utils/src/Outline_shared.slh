@@ -1,0 +1,28 @@
+// glsl / C++ compatible source as interface for Outline
+#ifdef __cplusplus
+#   define VEC2 glm::vec2
+#   define VEC3 glm::vec3
+#else
+#   define VEC2 vec2
+#   define VEC3 vec3
+#endif
+
+struct OutlineParameters
+{
+	VEC3 _color;
+    float _intensity;
+
+    VEC2 _size;
+    float _fillOpacityUnoccluded;
+    float _fillOpacityOccluded;
+
+    float _threshold;
+    int _blurKernelSize;
+    float padding2;
+    float padding3;
+};
+
+// <@if 1@>
+// Trigger Scribe include 
+// <@endif@> <!def that !> 
+//

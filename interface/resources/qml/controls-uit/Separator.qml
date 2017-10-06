@@ -12,8 +12,13 @@ import QtQuick 2.5
 import "../styles-uit"
 
 Item {
+    property int colorScheme: 0;
+    
+    readonly property var topColor: [ hifi.colors.baseGrayShadow, hifi.colors.faintGray ];
+    readonly property var bottomColor: [ hifi.colors.baseGrayHighlight, hifi.colors.faintGray ];
+
     // Size
-    height: 2;
+    height: colorScheme === 0 ? 2 : 1;
     Rectangle {
         // Size
         width: parent.width;
@@ -21,18 +26,19 @@ Item {
         // Anchors
         anchors.left: parent.left;
         anchors.bottom: parent.bottom;
-        anchors.bottomMargin: height;
         // Style
-        color: hifi.colors.baseGrayShadow;
+        color: topColor[colorScheme];
     }
     Rectangle {
+        visible: colorScheme === 0;
         // Size
         width: parent.width;
         height: 1;
         // Anchors
         anchors.left: parent.left;
         anchors.bottom: parent.bottom;
+        anchors.bottomMargin: -height;
         // Style
-        color: hifi.colors.baseGrayHighlight;
+        color: bottomColor[colorScheme];
     }
 }

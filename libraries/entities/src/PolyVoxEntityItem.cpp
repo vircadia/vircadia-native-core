@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PolyVoxEntityItem.h"
+
+#include <glm/gtx/transform.hpp>
 
 #include <QByteArray>
 #include <QDebug>
@@ -16,11 +19,23 @@
 
 #include <ByteCountCoding.h>
 
+
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "PolyVoxEntityItem.h"
+
+bool PolyVoxEntityItem::isEdged(PolyVoxSurfaceStyle surfaceStyle) {
+    switch (surfaceStyle) {
+        case PolyVoxEntityItem::SURFACE_CUBIC:
+        case PolyVoxEntityItem::SURFACE_MARCHING_CUBES:
+            return false;
+        case PolyVoxEntityItem::SURFACE_EDGED_CUBIC:
+        case PolyVoxEntityItem::SURFACE_EDGED_MARCHING_CUBES:
+            return true;
+    }
+    return false;
+}
 
 const glm::vec3 PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE = glm::vec3(32, 32, 32);
 const float PolyVoxEntityItem::MAX_VOXEL_DIMENSION = 128.0f;
@@ -51,23 +66,13 @@ QByteArray PolyVoxEntityItem::makeEmptyVoxelData(quint16 voxelXSize, quint16 vox
     return newVoxelData;
 }
 
-PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) :
-    EntityItem(entityItemID),
-    _voxelVolumeSize(PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE),
-    _voxelData(PolyVoxEntityItem::DEFAULT_VOXEL_DATA),
-    _voxelDataDirty(true),
-    _voxelSurfaceStyle(PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE),
-    _xTextureURL(PolyVoxEntityItem::DEFAULT_X_TEXTURE_URL),
-    _yTextureURL(PolyVoxEntityItem::DEFAULT_Y_TEXTURE_URL),
-    _zTextureURL(PolyVoxEntityItem::DEFAULT_Z_TEXTURE_URL) {
+PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::PolyVox;
 }
 
-void PolyVoxEntityItem::setVoxelVolumeSize(glm::vec3 voxelVolumeSize) {
+void PolyVoxEntityItem::setVoxelVolumeSize(const vec3& voxelVolumeSize) {
     withWriteLock([&] {
-        assert((int)_voxelVolumeSize.x == _voxelVolumeSize.x);
-        assert((int)_voxelVolumeSize.y == _voxelVolumeSize.y);
-        assert((int)_voxelVolumeSize.z == _voxelVolumeSize.z);
+        assert(!glm::any(glm::isnan(voxelVolumeSize)));
 
         _voxelVolumeSize = glm::vec3(roundf(voxelVolumeSize.x), roundf(voxelVolumeSize.y), roundf(voxelVolumeSize.z));
         if (_voxelVolumeSize.x < 1) {
@@ -228,14 +233,14 @@ void PolyVoxEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
-void PolyVoxEntityItem::setVoxelData(QByteArray voxelData) {
+void PolyVoxEntityItem::setVoxelData(const QByteArray& voxelData) {
     withWriteLock([&] {
         _voxelData = voxelData;
         _voxelDataDirty = true;
     });
 }
 
-const QByteArray PolyVoxEntityItem::getVoxelData() const {
+QByteArray PolyVoxEntityItem::getVoxelData() const {
     QByteArray voxelDataCopy;
     withReadLock([&] {
         voxelDataCopy = _voxelData;
@@ -365,6 +370,106 @@ EntityItemID PolyVoxEntityItem::getZPNeighborID() const {
     EntityItemID result;
     withReadLock([&] {
         result = _zPNeighborID;
+    });
+    return result;
+}
+
+glm::vec3 PolyVoxEntityItem::getSurfacePositionAdjustment() const {
+    glm::vec3 result;
+    withReadLock([&] {
+        glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
+        if (isEdged()) {
+            result = scale / -2.0f;
+        }
+        return scale / 2.0f;
+    });
+    return result;
+}
+
+glm::mat4 PolyVoxEntityItem::voxelToLocalMatrix() const {
+    glm::vec3 voxelVolumeSize;
+    withReadLock([&] {
+        voxelVolumeSize = _voxelVolumeSize;
+    });
+
+    glm::vec3 dimensions = getDimensions();
+    glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
+    bool success; // TODO -- Does this actually have to happen in world space?
+    glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
+    glm::vec3 position = getPosition(success);
+    glm::vec3 positionToCenter = center - position;
+
+    positionToCenter -= dimensions * Vectors::HALF - getSurfacePositionAdjustment();
+    glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
+    glm::mat4 scaled = glm::scale(centerToCorner, scale);
+    return scaled;
+}
+
+glm::mat4 PolyVoxEntityItem::localToVoxelMatrix() const {
+    glm::mat4 localToModelMatrix = glm::inverse(voxelToLocalMatrix());
+    return localToModelMatrix;
+}
+
+glm::mat4 PolyVoxEntityItem::voxelToWorldMatrix() const {
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 translation = glm::translate(getPosition());
+    return translation * rotation * voxelToLocalMatrix();
+}
+
+glm::mat4 PolyVoxEntityItem::worldToVoxelMatrix() const {
+    glm::mat4 worldToModelMatrix = glm::inverse(voxelToWorldMatrix());
+    return worldToModelMatrix;
+}
+
+glm::vec3 PolyVoxEntityItem::voxelCoordsToWorldCoords(const glm::vec3& voxelCoords) const {
+    glm::vec3 adjustedCoords;
+    if (isEdged()) {
+        adjustedCoords = voxelCoords + Vectors::HALF;
+    } else {
+        adjustedCoords = voxelCoords - Vectors::HALF;
+    }
+    return glm::vec3(voxelToWorldMatrix() * glm::vec4(adjustedCoords, 1.0f));
+}
+
+glm::vec3 PolyVoxEntityItem::worldCoordsToVoxelCoords(const glm::vec3& worldCoords) const {
+    glm::vec3 result = glm::vec3(worldToVoxelMatrix() * glm::vec4(worldCoords, 1.0f));
+    if (isEdged()) {
+        return result - Vectors::HALF;
+    }
+    return result + Vectors::HALF;
+}
+
+glm::vec3 PolyVoxEntityItem::voxelCoordsToLocalCoords(const glm::vec3& voxelCoords) const {
+    return glm::vec3(voxelToLocalMatrix() * glm::vec4(voxelCoords, 0.0f));
+}
+
+glm::vec3 PolyVoxEntityItem::localCoordsToVoxelCoords(const glm::vec3& localCoords) const {
+    return glm::vec3(localToVoxelMatrix() * glm::vec4(localCoords, 0.0f));
+}
+
+ShapeType PolyVoxEntityItem::getShapeType() const {
+    if (_collisionless) {
+        return SHAPE_TYPE_NONE;
+    }
+    return SHAPE_TYPE_COMPOUND;
+}
+
+bool PolyVoxEntityItem::isEdged() const {
+    return isEdged(_voxelSurfaceStyle);
+}
+
+std::array<EntityItemID, 3> PolyVoxEntityItem::getNNeigborIDs() const {
+    std::array<EntityItemID, 3> result;
+    withReadLock([&] {
+        result = { { _xNNeighborID, _yNNeighborID, _zNNeighborID } };
+    });
+    return result;
+}
+
+std::array<EntityItemID, 3> PolyVoxEntityItem::getPNeigborIDs() const {
+    std::array<EntityItemID, 3> result;
+    withReadLock([&] {
+        result = { { _xPNeighborID, _yPNeighborID, _zPNeighborID } };
     });
     return result;
 }

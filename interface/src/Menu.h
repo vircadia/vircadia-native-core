@@ -162,6 +162,7 @@ namespace MenuOption {
     const QString RenderIKTargets = "Show IK Targets";
     const QString RenderIKConstraints = "Show IK Constraints";
     const QString RenderIKChains = "Show IK Chains";
+    const QString RenderDetailedCollision = "Show Detailed Collision";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";
@@ -176,6 +177,7 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowMyLookAtVectors = "Show My Eye Vectors";
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
+    const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
@@ -198,6 +200,8 @@ namespace MenuOption {
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
     const QString WorldAxes = "World Axes";
+    const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
+    const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
 }
 
 #endif // hifi_Menu_h

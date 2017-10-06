@@ -58,6 +58,8 @@ public:
     virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
+    bool shouldDrawHUDLayer() const { return _drawHUDLayer; }
+    virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
     xColor getColor();
     float getAlpha();
     Anchor getAnchor() const { return _anchor; }
@@ -71,7 +73,8 @@ public:
     float getAlphaPulse() const { return _alphaPulse; }
 
     // setters
-    void setVisible(bool visible) { _visible = visible; }
+    virtual void setVisible(bool visible) { _visible = visible; }
+    void setDrawHUDLayer(bool drawHUDLayer);
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
     void setAnchor(Anchor anchor) { _anchor = anchor; }
@@ -114,6 +117,7 @@ protected:
 
     xColor _color;
     bool _visible; // should the overlay be drawn at all
+    bool _drawHUDLayer; // should the overlay be drawn on the HUD layer
     Anchor _anchor;
 
     unsigned int _stackOrder { 0 };

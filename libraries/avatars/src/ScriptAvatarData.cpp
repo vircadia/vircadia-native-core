@@ -15,6 +15,7 @@ ScriptAvatarData::ScriptAvatarData(AvatarSharedPointer avatarData) :
     _avatarData(avatarData)
 {
     QObject::connect(avatarData.get(), &AvatarData::displayNameChanged, this, &ScriptAvatarData::displayNameChanged);
+    QObject::connect(avatarData.get(), &AvatarData::lookAtSnappingChanged, this, &ScriptAvatarData::lookAtSnappingChanged);
 }
 
 //
@@ -161,6 +162,13 @@ bool ScriptAvatarData::getIsReplicated() const {
     }
 }
 
+bool ScriptAvatarData::getLookAtSnappingEnabled() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getLookAtSnappingEnabled();
+    } else {
+        return false;
+    }
+}
 //
 // IDENTIFIER PROPERTIES
 // END

@@ -31,17 +31,7 @@ EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, cons
     return entity;
 }
 
-PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) :
-EntityItem(entityItemID),
-_lineWidth(DEFAULT_LINE_WIDTH),
-_pointsChanged(true),
-_normalsChanged(true),
-_strokeWidthsChanged(true),
-_points(QVector<glm::vec3>(0.0f)),
-_normals(QVector<glm::vec3>(0.0f)),
-_strokeWidths(QVector<float>(0.0f)),
-_textures("")
-{
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::PolyLine;
 }
 
@@ -92,13 +82,12 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
         qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
     }
-    glm::vec3 halfBox = getDimensions() * 0.5f;
-    if ((point.x < -halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < -halfBox.z || point.z > halfBox.z)) {
-        qCDebug(entities) << "Point is outside entity's bounding box";
-        return false;
-    }
+
     _points << point;
     _pointsChanged = true;
+
+    calculateScaleAndRegistrationPoint();
+
     return true;
 }
 
@@ -141,21 +130,54 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
             return;
         }
 
-        for (int i = 0; i < points.size(); i++) {
-            glm::vec3 point = points.at(i);
-            glm::vec3 halfBox = getDimensions() * 0.5f;
-            if ((point.x < -halfBox.x || point.x > halfBox.x) ||
-                (point.y < -halfBox.y || point.y > halfBox.y) ||
-                (point.z < -halfBox.z || point.z > halfBox.z)) {
-                qCDebug(entities) << "Point is outside entity's bounding box";
-                return;
-            }
-        }
         _points = points;
+
         result = true;
     });
 
+    if (result) {
+        calculateScaleAndRegistrationPoint();
+    }
+
     return result;
+}
+
+void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
+    glm::vec3 high(0.0f, 0.0f, 0.0f);
+    glm::vec3 low(0.0f, 0.0f, 0.0f);
+    int pointCount = 0;
+    glm::vec3 firstPoint;
+    withReadLock([&] {
+        pointCount = _points.size();
+        if (pointCount > 0) {
+            firstPoint = _points.at(0);
+        }
+        for (int i = 0; i < pointCount; i++) {
+            const glm::vec3& point = _points.at(i);
+            high = glm::max(point, high);
+            low = glm::min(point, low);
+        }
+    });
+
+    float magnitudeSquared = glm::length2(low - high);
+    vec3 newScale { 1 };
+    vec3 newRegistrationPoint { 0.5f };
+
+    const float EPSILON = 0.0001f;
+    const float EPSILON_SQUARED = EPSILON * EPSILON;
+    const float HALF_LINE_WIDTH = 0.075f; // sadly _strokeWidths() don't seem to correspond to reality, so just use a flat assumption of the stroke width
+    const vec3 QUARTER_LINE_WIDTH { HALF_LINE_WIDTH * 0.5f };
+    if (pointCount > 1 && magnitudeSquared > EPSILON_SQUARED) {
+        newScale = glm::abs(high) + glm::abs(low) + vec3(HALF_LINE_WIDTH);
+        // Center the poly line in the bounding box
+        glm::vec3 startPointInScaleSpace = firstPoint - low;
+        startPointInScaleSpace += QUARTER_LINE_WIDTH;
+        newRegistrationPoint = startPointInScaleSpace / newScale;
+    } 
+
+    // if Polyline has only one or fewer points, use default dimension settings
+    setDimensions(newScale);
+    EntityItem::setRegistrationPoint(newRegistrationPoint);
 }
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,

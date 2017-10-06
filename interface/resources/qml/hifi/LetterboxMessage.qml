@@ -17,9 +17,12 @@ Item {
     property alias text: popupText.text
     property alias headerGlyph: headerGlyph.text
     property alias headerText: headerText.text
+    property alias headerGlyphSize: headerGlyph.size
     property real popupRadius: hifi.dimensions.borderRadius
     property real headerTextPixelSize: 22
     property real popupTextPixelSize: 16
+    property real headerTextMargin: -5
+    property real headerGlyphMargin: -15
     FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
     FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     visible: false
@@ -59,7 +62,7 @@ Item {
                     height: parent.height
                     // Anchors
                     anchors.left: parent.left
-                    anchors.leftMargin: -15
+                    anchors.leftMargin: headerGlyphMargin
                     // Text Size
                     size: headerTextPixelSize*2.5
                     // Style
@@ -75,7 +78,7 @@ Item {
                     height: parent.height
                     // Anchors
                     anchors.left: headerGlyph.right
-                    anchors.leftMargin: -5
+                    anchors.leftMargin: headerTextMargin
                     // Text Size
                     font.pixelSize: headerTextPixelSize
                     // Style
@@ -134,48 +137,11 @@ Item {
             }
         }
     }
-    // Left gray MouseArea
     MouseArea {
-        anchors.left: parent.left;
-        anchors.right: textContainer.left;
-        anchors.top: textContainer.top;
-        anchors.bottom: textContainer.bottom;
+        anchors.fill: parent
         acceptedButtons: Qt.LeftButton
         onClicked: {
-            letterbox.visible = false
-        }
-    }
-    // Right gray MouseArea
-    MouseArea {
-        anchors.left: textContainer.left;
-        anchors.right: parent.left;
-        anchors.top: textContainer.top;
-        anchors.bottom: textContainer.bottom;
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false
-        }
-    }
-    // Top gray MouseArea
-    MouseArea {
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: parent.top;
-        anchors.bottom: textContainer.top;
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false
-        }
-    }
-    // Bottom gray MouseArea
-    MouseArea {
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: textContainer.bottom;
-        anchors.bottom: parent.bottom;
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false
+            letterbox.visible = false;
         }
     }
 }
