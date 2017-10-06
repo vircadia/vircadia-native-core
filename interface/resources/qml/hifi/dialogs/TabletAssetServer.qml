@@ -172,7 +172,7 @@ Rectangle {
     }
 
     function handleGetMappingsError(errorString) {
-        errorMessageBox("There was a problem retreiving the list of assets from your Asset Server.\n" + errorString);
+        errorMessageBox("There was a problem retrieving the list of assets from your Asset Server.\n" + errorString);
     }
 
     function addToWorld() {

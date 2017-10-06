@@ -1162,7 +1162,8 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
     _pendingBakes.remove(originalAssetHash);
 }
 
-void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath, QVector<QString> bakedFilePaths) {
+void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath,
+                                      QString bakedTempOutputDir, QVector<QString> bakedFilePaths) {
     bool errorCompletingBake { false };
     QString errorReason;
 
@@ -1232,6 +1233,16 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             errorReason = "Failed to finalize bake";
             break;
         }
+    }
+
+    for (auto& filePath : bakedFilePaths) {
+        QFile file(filePath);
+        if (!file.remove()) {
+            qWarning() << "Failed to remove temporary file:" << filePath;
+        }
+    }
+    if (!QDir(bakedTempOutputDir).rmdir(".")) {
+        qWarning() << "Failed to remove temporary directory:" << bakedTempOutputDir;
     }
 
     if (!errorCompletingBake) {
