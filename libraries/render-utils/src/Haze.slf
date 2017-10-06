@@ -58,8 +58,7 @@ void main(void) {
     vec3 eyeFragDir = normalize(worldFragPos.xyz);
 
     Light light = getLight();
-    //vec3 lightDirection = getLightDirection(light);
-    vec3 lightDirection = normalize(vec3(-1.0, -1.0, -1.0));
+    vec3 lightDirection = getLightDirection(light);
 
     float directionalLightComponent = max(0.0, dot(eyeFragDir, -lightDirection));
     float power = min(1.0, pow(directionalLightComponent, hazeParams.directionalLightBlend));
