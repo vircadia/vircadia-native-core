@@ -49,14 +49,6 @@ static const glm::mat4 IDENTITY_MATRIX;
 //#define LIVE_SHADER_RELOAD 1
 extern glm::vec3 getPoint(float yaw, float pitch);
 
-static QString readFile(const QString& filename) {
-    QFile file(filename);
-    file.open(QFile::Text | QFile::ReadOnly);
-    QString result;
-    result.append(QTextStream(&file).readAll());
-    return result;
-}
-
 glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
