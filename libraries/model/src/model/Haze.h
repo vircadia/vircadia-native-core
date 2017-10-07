@@ -12,6 +12,7 @@
 #define hifi_model_Haze_h
 
 #include <glm/glm.hpp>
+#include "Transform.h"
 #include "NumericalConstants.h"
 
 namespace model {
@@ -83,7 +84,10 @@ namespace model {
 
         void setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue);
 
-        UniformBufferView getHazeParametersBuffer() const { return _parametersBuffer; }
+        void setZoneOrientation(const glm::quat& zoneOrientation);
+        void setZonePosition(const glm::vec3& zonePosition);
+
+        UniformBufferView getHazeParametersBuffer() const { return _hazeParametersBuffer; }
 
     protected:
         class Parameters {
@@ -100,6 +104,12 @@ namespace model {
                                   // bit 1 - set to add the effect of altitude to the haze attenuation
                                   // bit 2 - set to activate directional light attenuation mode
 
+            glm::vec3 zoneDirection;
+
+            // Amount of background (skybox) to display, overriding the haze effect for the background
+            float hazeBackgroundBlendValue{ initialHazeBackgroundBlendValue };
+            glm::vec3 zonePosition;
+
             // The haze attenuation exponents used by both fragment and directional light attenuation
             float hazeRangeFactor{ convertHazeRangeToHazeRangeFactor(initialHazeRange_m) };
             float hazeAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(initialHazeAltitude_m) };
@@ -107,13 +117,10 @@ namespace model {
             float hazeKeyLightRangeFactor{ convertHazeRangeToHazeRangeFactor(initialHazeKeyLightRange_m) };
             float hazeKeyLightAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(initialHazeKeyLightAltitude_m) };
 
-            // Amount of background (skybox) to display, overriding the haze effect for the background
-            float hazeBackgroundBlendValue{ initialHazeBackgroundBlendValue };
-
             Parameters() {}
         };
 
-        UniformBufferView _parametersBuffer;
+        UniformBufferView _hazeParametersBuffer;
     };
 
     using HazePointer = std::shared_ptr<Haze>;

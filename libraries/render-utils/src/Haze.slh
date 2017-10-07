@@ -25,13 +25,16 @@ struct HazeParams {
     vec3 colorModulationFactor;
     int hazeMode;
 
+    vec3 zoneDirection;
+    float backgroundBlendValue;
+
+    vec3 zonePosition;
+
     float hazeRangeFactor;
     float hazeAltitudeFactor;
 
     float hazeRangeFactorKeyLight;
     float hazeAltitudeFactorKeyLight;
-
-    float backgroundBlendValue;
 };
 
 layout(std140) uniform hazeBuffer {
