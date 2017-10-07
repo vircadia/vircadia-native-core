@@ -544,8 +544,6 @@ public:
     float getUserHeight() const;
     float getUserEyeHeight() const;
 
-    virtual SpatialParentTree* getParentTree() const override;
-
 public slots:
     void increaseSize();
     void decreaseSize();

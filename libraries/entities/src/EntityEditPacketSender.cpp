@@ -45,7 +45,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     }
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
     if (!entity) {
-        qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage can't find entity: " << entityItemID;
+        qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage can't find entity.";
         return;
     }
 
