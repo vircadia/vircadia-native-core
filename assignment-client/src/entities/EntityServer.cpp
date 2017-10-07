@@ -431,39 +431,47 @@ void EntityServer::startDynamicDomainVerification() {
     while (i.hasNext()) {
         i.next();
 
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkRequest networkRequest;
-        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
-        requestURL.setPath("/api/v1/commerce/proof_of_purchase_status");
-        QJsonObject request;
-        request["certificate_id"] = i.key();
-        networkRequest.setUrl(requestURL);
+        if (!tree->findEntityByEntityItemID(i.value())->verifyStaticCertificateProperties()) {
+            qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
+                << "static certificate verification.";
+            // Delete the entity if it doesn't pass static certificate verification
+            tree->deleteEntity(i.value(), true);
+        } else {
 
-        QNetworkReply* networkReply = NULL;
-        networkReply = networkAccessManager.get(networkRequest);
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkRequest networkRequest;
+            networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+            QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+            requestURL.setPath("/api/v1/commerce/proof_of_purchase_status");
+            QJsonObject request;
+            request["certificate_id"] = i.key();
+            networkRequest.setUrl(requestURL);
 
-        connect(networkReply, &QNetworkReply::finished, [=]() {
-            QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
-            QJsonDocument doc(jsonObject);
-            qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
+            QNetworkReply* networkReply = NULL;
+            networkReply = networkAccessManager.get(networkRequest);
 
-            // ZRF FIXME!!!
-            //if (networkReply->error() == QNetworkReply::NoError) {
-            if (true) {
+            connect(networkReply, &QNetworkReply::finished, [=]() {
+                QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+                QJsonDocument doc(jsonObject);
+                qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
+
                 // ZRF FIXME!!!
-                //if (jsonObject["location"].toString() != thisDomainID) {
-                if (false) {
-                    qCDebug(entities) << "invalid_reason not empty, deleting entity" << i.value();
+                //if (networkReply->error() == QNetworkReply::NoError) {
+                if (true) {
+                    // ZRF FIXME!!!
+                    //if (jsonObject["location"].toString() != thisDomainID) {
+                    if (false) {
+                        qCDebug(entities) << "invalid_reason not empty, deleting entity" << i.value();
+                        tree->deleteEntity(i.value(), true);
+                    }
+                } else {
+                    qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << i.value();
                     tree->deleteEntity(i.value(), true);
                 }
-            } else {
-                qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << i.value();
-                tree->deleteEntity(i.value(), true);
-            }
 
-            networkReply->deleteLater();
-        });
+                networkReply->deleteLater();
+            });
+        }
     }
 
     int nextInterval = qrand() % ((MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS + 1) - MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS) + MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;

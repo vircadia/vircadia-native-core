@@ -382,18 +382,6 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     qCDebug(entities) << (senderNode ? senderNode->getUUID() : "null") << "physical edits suppressed";
                 }
             }
-
-            // Clear Certificate ID if any static certificate property is changed
-            if (properties.itemNameChanged() || properties.itemDescriptionChanged() || properties.itemCategoriesChanged() ||
-                properties.itemArtistChanged() || properties.itemLicenseChanged() || properties.limitedRunChanged() ||
-                properties.editionNumberChanged() || properties.entityInstanceNumberChanged() || properties.certificateIDChanged()) {
-                qCDebug(entities) << "A static certificate property on Entity" << entity->getID() << "has changed."
-                    << "Clearing Certificate ID.";
-                QWriteLocker locker(&_entityCertificateIDMapLock);
-                _entityCertificateIDMap.remove(entity->getCertificateID());
-                properties.setCertificateID("");
-                properties.setCertificateIDChanged(true);
-            }
         }
         // else client accepts what the server says
 
