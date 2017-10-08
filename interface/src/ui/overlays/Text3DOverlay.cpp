@@ -88,6 +88,7 @@ void Text3DOverlay::update(float deltatime) {
         applyTransformTo(transform);
         setTransform(transform);
     }
+    Parent::update(deltatime);
 }
 
 void Text3DOverlay::render(RenderArgs* args) {
