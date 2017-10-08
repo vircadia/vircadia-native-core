@@ -1,4 +1,5 @@
-import QtQuick 2.5
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 import QtQuick.Layouts 1.3
 
@@ -176,23 +177,99 @@ Item {
 
         Flickable {
             id: flickable
-            width: parent.width
-            height: parent.height
-            contentWidth: parent.width
-            contentHeight: flowMain.childrenRect.height + flowMain.anchors.topMargin + flowMain.anchors.bottomMargin + flowMain.spacing
-            clip: true
-            Flow {
-                id: flowMain
-                spacing: 16
-                anchors.right: parent.right
-                anchors.rightMargin: 30
-                anchors.left: parent.left
-                anchors.leftMargin: 30
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 30
-                anchors.top: parent.top
-                anchors.topMargin: 30
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                bottom: pageIndicator.top
+                topMargin: 20
+                leftMargin: 30
+                rightMargin: 30
+                bottomMargin: 0
             }
+
+            //required for flick direction calculations
+            property real oldContentX: 0
+
+            //flicking direction
+            property bool flickingLeft: true
+
+            readonly property real pageWidth: width - leftMargin - rightMargin
+            contentWidth:  Math.ceil(flowMain.childrenRect.width / pageWidth) * pageWidth;
+            contentHeight: flowMain.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.HorizontalFlick
+
+            // animate final transition to page edge
+            Behavior on contentX {
+                NumberAnimation { duration: 200; }
+            }
+
+            onContentXChanged: {
+                flickingLeft = (contentX > oldContentX);
+                oldContentX = contentX
+            }
+
+            onFlickEnded: {
+                if (parseFloat(contentX / flickable.pageWidth) !==  pageIndicator.currentIndex * flickable.pageWidth) {
+                    if (flickingLeft) {
+                        pageIndicator.currentIndex++
+                    } else {
+                        pageIndicator.currentIndex--
+                    }
+
+                    contentX = pageIndicator.currentIndex * flickable.pageWidth +
+                            flowMain.rowSpacing * pageIndicator.currentIndex //compensate spacing
+                }
+            }
+
+            Grid {
+                id: flowMain
+                rows: 4
+                height: parent.height - parent.topMargin - parent.bottomMargin
+                rowSpacing: 16
+                columnSpacing: 16
+                flow: Flow.TopToBottom
+            }
+        }
+
+        PageIndicator {
+            id: pageIndicator
+            currentIndex: 0
+
+            delegate: Item {
+                width: 15
+                height: 15
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    opacity: index === pageIndicator.currentIndex ? 0.95 : pressed ? 0.7 : 0.45
+                    implicitWidth: index == pageIndicator.currentIndex ? 15 : 10
+                    implicitHeight: implicitWidth
+                    radius: width/2
+                    color: "white"
+                    Behavior on opacity {
+                        OpacityAnimator {
+                            duration: 100
+                        }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        flickable.contentX = flickable.pageWidth * index  +
+                                flowMain.rowSpacing * index //compensate spacing
+                        pageIndicator.currentIndex = index
+                    }
+                }
+            }
+
+            interactive: false
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            count: Math.ceil(flickable.contentWidth / flickable.pageWidth)
         }
     }
 
