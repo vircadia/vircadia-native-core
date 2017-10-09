@@ -222,7 +222,7 @@ getControllerJointIndex = function (hand) {
         return controllerJointIndex;
     }
 
-    return MyAvatar.getJointIndex("Head");
+    return -1;
 };
 
 propsArePhysical = function (props) {
