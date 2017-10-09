@@ -30,12 +30,14 @@ Item {
         id: commerce;
 
         onKeyFilePathIfExistsResult: {
-            keyFilePath = path;
+            root.keyFilePath = path;
         }
     }
 
-    Component.onCompleted: {
-        commerce.getKeyFilePathIfExists();
+    onVisibleChanged: {
+        if (visible) {
+            commerce.getKeyFilePathIfExists();
+        }
     }
 
     RalewaySemiBold {
