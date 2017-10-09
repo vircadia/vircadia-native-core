@@ -181,7 +181,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
                 _outputFramebuffer->setDepthStencilBuffer(sourceFramebuffer->getDepthStencilBuffer(), sourceFramebuffer->getDepthStencilBufferFormat());
             }*/
             auto blurringSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT);
-            auto blurringTarget = gpu::Texture::create2D(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler);
+            auto blurringTarget = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), sourceFramebuffer->getWidth(), sourceFramebuffer->getHeight(), gpu::Texture::SINGLE_MIP, blurringSampler);
             _outputFramebuffer->setRenderBuffer(0, blurringTarget);
         }
 
@@ -246,13 +246,16 @@ gpu::PipelinePointer BlurGaussian::getBlurHPipeline() {
 }
 
 void BlurGaussian::configure(const Config& config) {
-    auto blurHPipeline = getBlurHPipeline();
+    auto state = getBlurHPipeline()->getState();
 
     _parameters->setFilterRadiusScale(config.filterScale);
     _parameters->setOutputAlpha(config.mix);
-
-    blurHPipeline->getState()->setBlendFunction(config.mix < 1.0f, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+    if (config.mix < 1.0f) {
+        state->setBlendFunction(config.mix < 1.0f, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+    } else {
+        state->setBlendFunction(false);
+    }
 }
 
 
@@ -271,14 +274,15 @@ void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::Fra
 
     auto blurVPipeline = getBlurVPipeline();
     auto blurHPipeline = getBlurHPipeline();
+    glm::ivec4 viewport = { 0, 0, blurredFramebuffer->getWidth(), blurredFramebuffer->getHeight() };
 
-    _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->isStereo());
+    _parameters->setWidthHeight(viewport.z, viewport.w, args->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
-    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
+    _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, viewport));
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
+        batch.setViewportTransform(viewport);
 
         batch.setUniformBuffer(BlurTask_ParamsSlot, _parameters->_parametersBuffer);
 

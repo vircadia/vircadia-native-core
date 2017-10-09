@@ -77,7 +77,7 @@ public:
 
 class DebugBloom {
 public:
-    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet4<gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = DebugBloomConfig;
     using JobModel = render::Job::ModelI<DebugBloom, Inputs, Config>;
 
