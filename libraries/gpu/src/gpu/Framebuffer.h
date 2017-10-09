@@ -132,7 +132,11 @@ public:
 
     float getAspectRatio() const { return getWidth() / (float) getHeight() ; }
 
+#ifndef ANDROID
     static const uint32 MAX_NUM_RENDER_BUFFERS = 8; 
+#else    
+    static const uint32 MAX_NUM_RENDER_BUFFERS = 4;
+#endif
     static uint32 getMaxNumRenderBuffers() { return MAX_NUM_RENDER_BUFFERS; }
 
     const GPUObjectPointer gpuObject {};

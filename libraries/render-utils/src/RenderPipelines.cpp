@@ -21,19 +21,15 @@
 #include "render/DrawTask.h"
 
 #include "model_vert.h"
-#include "model_shadow_vert.h"
 #include "model_normal_map_vert.h"
 #include "model_lightmap_vert.h"
 #include "model_lightmap_normal_map_vert.h"
 #include "skin_model_vert.h"
-#include "skin_model_shadow_vert.h"
 #include "skin_model_normal_map_vert.h"
 
-#include "model_shadow_fade_vert.h"
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
 #include "skin_model_fade_vert.h"
-#include "skin_model_shadow_fade_vert.h"
 #include "skin_model_normal_map_fade_vert.h"
 
 #include "simple_vert.h"
@@ -50,7 +46,6 @@
 
 #include "model_frag.h"
 #include "model_unlit_frag.h"
-#include "model_shadow_frag.h"
 #include "model_normal_map_frag.h"
 #include "model_normal_specular_map_frag.h"
 #include "model_specular_map_frag.h"
@@ -59,7 +54,6 @@
 #include "model_normal_map_fade_vert.h"
 
 #include "model_fade_frag.h"
-#include "model_shadow_fade_frag.h"
 #include "model_unlit_fade_frag.h"
 #include "model_normal_map_fade_frag.h"
 #include "model_normal_specular_map_fade_frag.h"
@@ -95,6 +89,17 @@
 #include "overlay3D_model_unlit_frag.h"
 #include "overlay3D_model_translucent_unlit_frag.h"
 
+#include "model_shadow_vert.h"
+#include "skin_model_shadow_vert.h"
+
+#include "model_shadow_frag.h"
+#include "skin_model_shadow_frag.h"
+
+#include "model_shadow_fade_vert.h"
+#include "skin_model_shadow_fade_vert.h"
+
+#include "model_shadow_fade_frag.h"
+#include "skin_model_shadow_fade_frag.h"
 
 using namespace render;
 using namespace std::placeholders;
@@ -102,6 +107,7 @@ using namespace std::placeholders;
 void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest = false);
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber);
+void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel,
@@ -565,4 +571,34 @@ void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderAr
             pipeline.locations->lightAmbientBufferUnit,
             pipeline.locations->lightAmbientMapUnit);
     }
+}
+
+void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state) {
+    auto modelVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
+    auto modelPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
+    gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(modelVertex, modelPixel);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withoutSkinned().withoutFade(),
+        modelProgram, state);
+
+    auto skinVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
+    auto skinPixel = gpu::Shader::createPixel(std::string(skin_model_shadow_frag));
+    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, skinPixel);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withSkinned().withoutFade(),
+        skinProgram, state);
+
+    auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_shadow_fade_vert));
+    auto modelFadePixel = gpu::Shader::createPixel(std::string(model_shadow_fade_frag));
+    gpu::ShaderPointer modelFadeProgram = gpu::Shader::createProgram(modelFadeVertex, modelFadePixel);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withoutSkinned().withFade(),
+        modelFadeProgram, state);
+
+    auto skinFadeVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_fade_vert));
+    auto skinFadePixel = gpu::Shader::createPixel(std::string(skin_model_shadow_fade_frag));
+    gpu::ShaderPointer skinFadeProgram = gpu::Shader::createProgram(skinFadeVertex, skinFadePixel);
+    shapePlumber.addPipeline(
+        ShapeKey::Filter::Builder().withSkinned().withFade(),
+        skinFadeProgram, state);
 }

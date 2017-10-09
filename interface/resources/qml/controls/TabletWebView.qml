@@ -1,18 +1,14 @@
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtWebEngine 1.2
-import QtWebChannel 1.0
+import QtQuick 2.7
+import QtWebEngine 1.5
 import "../controls-uit" as HiFiControls
 import "../styles" as HifiStyles
 import "../styles-uit"
-import "../"
-import "."
 
 Item {
-    id: web
+    id: root
     HifiConstants { id: hifi }
-    width: parent.width
-    height: parent.height
+    width: parent !== null ? parent.width : undefined
+    height: parent !== null ? parent.height : undefined
     property var parentStackItem: null
     property int headerHeight: 70
     property string url
@@ -21,8 +17,8 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isDesktop: false
-    property alias webView: webview
-    property alias profile: webview.profile
+    property alias webView: web.webViewCore
+    property alias profile: web.webViewCoreProfile
     property bool remove: false
     property bool closeButtonVisible: true
 
@@ -79,7 +75,7 @@ Item {
             color: hifi.colors.baseGray
             font.pixelSize: 12
             verticalAlignment: Text.AlignLeft
-            text: webview.url
+            text: root.url
             anchors {
                 top: nav.bottom
                 horizontalCenter: parent.horizontalCenter;
@@ -104,13 +100,13 @@ Item {
 
     function closeWebEngine() {
         if (remove) {
-            web.destroy();
+            root.destroy();
             return;
         }
         if (parentStackItem) {
             parentStackItem.pop();
         } else {
-            web.visible = false;
+            root.visible = false;
         }
     }
 
@@ -128,67 +124,19 @@ Item {
     }
 
     function loadUrl(url) {
-        webview.url = url
-        web.url = webview.url;
+        web.webViewCore.url = url
+        root.url = web.webViewCore.url;
     }
 
     onUrlChanged: {
         loadUrl(url);
     }
 
-    WebEngineView {
-        id: webview
-        objectName: "webEngineView"
-        x: 0
-        y: 0
+    FlickableWebViewCore {
+        id: web
         width: parent.width
-        height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height - web.headerHeight : parent.height - web.headerHeight
+        height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height - root.headerHeight : parent.height - root.headerHeight
         anchors.top: buttons.bottom
-        profile: HFWebEngineProfile;
-
-        property string userScriptUrl: ""
-
-        // creates a global EventBridge object.
-        WebEngineScript {
-            id: createGlobalEventBridge
-            sourceCode: eventBridgeJavaScriptToInject
-            injectionPoint: WebEngineScript.DocumentCreation
-            worldId: WebEngineScript.MainWorld
-        }
-
-        // detects when to raise and lower virtual keyboard
-        WebEngineScript {
-            id: raiseAndLowerKeyboard
-            injectionPoint: WebEngineScript.Deferred
-            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-            worldId: WebEngineScript.MainWorld
-        }
-
-        // User script.
-        WebEngineScript {
-            id: userScript
-            sourceUrl: webview.userScriptUrl
-            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-            worldId: WebEngineScript.MainWorld
-        }
-
-        property string urlTag: "noDownload=false";
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
-
-        property string newUrl: ""
-
-        Component.onCompleted: {
-            webChannel.registerObject("eventBridge", eventBridge);
-            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-            // Ensure the JS from the web-engine makes it to our logging
-            webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
-            });
-        }
-
-        onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
-        }
 
         onUrlChanged: {
             // Record history, skipping null and duplicate items.
@@ -201,34 +149,16 @@ Item {
             }
         }
 
-        onLoadingChanged: {
+        onLoadingChangedCallback: {
             keyboardRaised = false;
             punctuationMode = false;
             keyboard.resetShiftMode(false);
-            // Required to support clicking on "hifi://" links
-            if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                var url = loadRequest.url.toString();
-                if (urlHandler.canHandleUrl(url)) {
-                    if (urlHandler.handleUrl(url)) {
-                        root.stop();
-                    }
-                }
-            }
-
-            if (WebEngineView.LoadFailedStatus == loadRequest.status) {
-                console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
-            }
-
-            if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-                webview.forceActiveFocus();
-            }
-        }
-        
-        onNewViewRequested: {
-            request.openIn(webview);
+            webViewCore.forceActiveFocus();
         }
 
-        HiFiControls.WebSpinner { }
+        onNewViewRequestedCallback: {
+            request.openIn(webViewCore);
+        }
     }
 
     HiFiControls.Keyboard {
@@ -244,7 +174,7 @@ Item {
     }
     
     Component.onCompleted: {
-        web.isDesktop = (typeof desktop !== "undefined");
+        root.isDesktop = (typeof desktop !== "undefined");
         keyboardEnabled = HMD.active;
     }
 

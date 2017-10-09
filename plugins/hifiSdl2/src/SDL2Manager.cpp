@@ -54,49 +54,6 @@ SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
 }
 
 void SDL2Manager::init() {
-    loadSettings();
-
-    auto preferences = DependencyManager::get<Preferences>();
-    static const QString SDL2_PLUGIN { "Game Controller" };
-    {
-        auto getter = [this]()->bool { return _isEnabled; };
-        auto setter = [this](bool value) {
-            _isEnabled = value;
-            saveSettings();
-        };
-        auto preference = new CheckPreference(SDL2_PLUGIN, "Enabled", getter, setter);
-        preferences->addPreference(preference);
-    }
-
-    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0);
-
-    if (initSuccess) {
-        int joystickCount = SDL_NumJoysticks();
-
-        for (int i = 0; i < joystickCount; i++) {
-            SDL_GameController* controller = SDL_GameControllerOpen(i);
-
-            if (controller) {
-                SDL_JoystickID id = getInstanceId(controller);
-                if (!_openJoysticks.contains(id)) {
-                    //Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
-                    Joystick::Pointer joystick  = std::make_shared<Joystick>(id, controller);
-                    _openJoysticks[id] = joystick;
-                    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-                    userInputMapper->registerDevice(joystick);
-                    auto name = SDL_GameControllerName(controller);
-                    _subdeviceNames << name;
-                    emit joystickAdded(joystick.get());
-                    emit subdeviceConnected(getName(), name);
-                }
-            }
-        }
-
-        _isInitialized = true;
-    }
-    else {
-        qDebug() << "Error initializing SDL2 Manager";
-    }
 }
 
 QStringList SDL2Manager::getSubdeviceNames() {
@@ -110,8 +67,61 @@ void SDL2Manager::deinit() {
 }
 
 bool SDL2Manager::activate() {
+    
+    // FIXME for some reason calling this code in the `init` function triggers a crash
+    // on OSX in PR builds, but not on my local debug build.  Attempting a workaround by
+    //
+    static std::once_flag once;
+    std::call_once(once, [&]{
+        loadSettings();
+        
+        auto preferences = DependencyManager::get<Preferences>();
+        static const QString SDL2_PLUGIN { "Game Controller" };
+        {
+            auto getter = [this]()->bool { return _isEnabled; };
+            auto setter = [this](bool value) {
+                _isEnabled = value;
+                saveSettings();
+            };
+            auto preference = new CheckPreference(SDL2_PLUGIN, "Enabled", getter, setter);
+            preferences->addPreference(preference);
+        }
+        
+        bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0);
+        
+        if (initSuccess) {
+            int joystickCount = SDL_NumJoysticks();
+            
+            for (int i = 0; i < joystickCount; i++) {
+                SDL_GameController* controller = SDL_GameControllerOpen(i);
+                
+                if (controller) {
+                    SDL_JoystickID id = getInstanceId(controller);
+                    if (!_openJoysticks.contains(id)) {
+                        //Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+                        Joystick::Pointer joystick  = std::make_shared<Joystick>(id, controller);
+                        _openJoysticks[id] = joystick;
+                        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+                        userInputMapper->registerDevice(joystick);
+                        auto name = SDL_GameControllerName(controller);
+                        _subdeviceNames << name;
+                        emit joystickAdded(joystick.get());
+                        emit subdeviceConnected(getName(), name);
+                    }
+                }
+            }
+            
+            _isInitialized = true;
+        } else {
+            qDebug() << "Error initializing SDL2 Manager";
+        }
+    });
+    
+    if (!_isInitialized) {
+        return false;
+    }
+    
     InputPlugin::activate();
-
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     for (auto joystick : _openJoysticks) {
         userInputMapper->registerDevice(joystick);

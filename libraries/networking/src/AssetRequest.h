@@ -21,6 +21,8 @@
 
 #include "ByteRange.h"
 
+const QString ATP_SCHEME { "atp:" };
+
 class AssetRequest : public QObject {
    Q_OBJECT
 public:

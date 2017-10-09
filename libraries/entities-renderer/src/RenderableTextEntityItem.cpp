@@ -30,14 +30,11 @@ TextEntityRenderer::TextEntityRenderer(const EntityItemPointer& entity) :
 
 }
 
-
-void TextEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
+TextEntityRenderer::~TextEntityRenderer() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (_geometryID && geometryCache) {
         geometryCache->releaseID(_geometryID);
     }
-    delete _textRenderer;
-    _textRenderer = nullptr;
 }
 
 bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
@@ -105,7 +102,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
         glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
         transformToTopLeft.setRotation(orientation);
     }
-    transformToTopLeft.postTranslate(glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
+    transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
     
     batch.setModelTransform(transformToTopLeft);
@@ -113,7 +110,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     if (!_geometryID) {
         _geometryID = geometryCache->allocateID();
     }
-    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, true);
+    geometryCache->bindSimpleProgram(batch, false, transparent, false, false, false, false);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
     
     float scale = _lineHeight / _textRenderer->getFontSize();

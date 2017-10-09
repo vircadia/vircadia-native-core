@@ -39,9 +39,7 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        Transform transform = getTransform();
-        transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
-        batch->setModelTransform(transform);
+        batch->setModelTransform(getRenderTransform());
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto shapePipeline = args->_shapePipeline;
@@ -70,4 +68,12 @@ const render::ShapeKey Sphere3DOverlay::getShapeKey() {
 
 Sphere3DOverlay* Sphere3DOverlay::createClone() const {
     return new Sphere3DOverlay(this);
+}
+
+Transform Sphere3DOverlay::evalRenderTransform() {
+    Transform transform = getTransform();
+    transform.setScale(1.0f);  // ignore inherited scale from SpatiallyNestable
+    transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
+
+    return transform;
 }

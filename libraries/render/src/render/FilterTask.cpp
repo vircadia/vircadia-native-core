@@ -51,13 +51,20 @@ void SliceItems::run(const RenderContextPointer& renderContext, const ItemBounds
 
 }
 
-void SelectItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+void SelectItems::run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems) {
     auto selection = renderContext->_scene->getSelection(_name);
     const auto& selectedItems = selection.getItems();
-    outItems.clear();
+    const auto& inItems = inputs.get0();
+    const auto itemsToAppend = inputs[1];
+
+    if (itemsToAppend.isNull()) {
+        outItems.clear();
+    } else {
+        outItems = itemsToAppend.get<ItemBounds>();
+    }
 
     if (!selectedItems.empty()) {
-        outItems.reserve(selectedItems.size());
+        outItems.reserve(outItems.size()+selectedItems.size());
 
         for (auto src : inItems) {
             if (selection.contains(src.id)) {
@@ -111,3 +118,21 @@ void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBo
     }
 }
 
+void IDsToBounds::run(const RenderContextPointer& renderContext, const ItemIDs& inItems, ItemBounds& outItems) {
+    auto& scene = renderContext->_scene;
+
+    // Now we have a selection of items to render
+    outItems.clear();
+
+    if (!_disableAABBs) {
+        for (auto id : inItems) {
+            auto& item = scene->getItem(id);
+
+            outItems.emplace_back(ItemBound{ id, item.getBound() });
+        }
+    } else {
+        for (auto id : inItems) {
+            outItems.emplace_back(ItemBound{ id });
+        }
+    }
+}

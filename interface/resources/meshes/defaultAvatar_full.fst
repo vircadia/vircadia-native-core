@@ -1,7 +1,7 @@
-name = DamagedHelmet
+name = mannequin
 type = body+head
 scale = 1
-filename = DamagedHelmet/DamagedHelmet.gltf
+filename = mannequin/mannequin.baked.fbx
 joint = jointEyeLeft = LeftEye
 joint = jointRightHand = RightHand
 joint = jointHead = Head

@@ -70,40 +70,21 @@ EntityRendererPointer EntityTreeRenderer::renderableForEntityId(const EntityItem
     return itr->second;
 }
 
-render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& id) const { 
-    auto renderable = renderableForEntityId(id);  
-    return renderable ? renderable->getRenderItemID() : render::Item::INVALID_ITEM_ID; 
+render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& id) const {
+    auto renderable = renderableForEntityId(id);
+    return renderable ? renderable->getRenderItemID() : render::Item::INVALID_ITEM_ID;
 }
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 
-void entitiesScriptEngineDeleter(ScriptEngine* engine) {
-    class WaitRunnable : public QRunnable {
-        public:
-            WaitRunnable(ScriptEngine* engine) : _engine(engine) {}
-            virtual void run() override {
-                _engine->waitTillDoneRunning();
-                _engine->deleteLater();
-            }
-
-        private:
-            ScriptEngine* _engine;
-    };
-
-    // Wait for the scripting thread from the thread pool to avoid hanging the main thread
-    QThreadPool::globalInstance()->start(new WaitRunnable(engine));
-}
-
 void EntityTreeRenderer::resetEntitiesScriptEngine() {
-    // Keep a ref to oldEngine until newEngine is ready so EntityScriptingInterface has something to use
     auto oldEngine = _entitiesScriptEngine;
-
-    auto newEngine = new ScriptEngine(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT, QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
-    _entitiesScriptEngine = QSharedPointer<ScriptEngine>(newEngine, entitiesScriptEngineDeleter);
-
-    _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine.data());
+    _entitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
+                                                QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
+    _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
     _entitiesScriptEngine->runInThread();
-    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(_entitiesScriptEngine.data());
+    auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_entitiesScriptEngine);
+    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(entitiesScriptEngineProvider);
 }
 
 void EntityTreeRenderer::clear() {
@@ -178,6 +159,78 @@ void EntityTreeRenderer::shutdown() {
     clear(); // always clear() on shutdown
 }
 
+void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
+    // Clear any expired entities 
+    // FIXME should be able to use std::remove_if, but it fails due to some 
+    // weird compilation error related to EntityItemID assignment operators
+    for (auto itr = _entitiesToAdd.begin(); _entitiesToAdd.end() != itr; ) {
+        if (itr->second.expired()) {
+            _entitiesToAdd.erase(itr++);
+        } else {
+            ++itr;
+        }
+    }
+
+    if (!_entitiesToAdd.empty()) {
+        std::unordered_set<EntityItemID> processedIds;
+        for (const auto& entry : _entitiesToAdd) {
+            auto entity = entry.second.lock();
+            if (!entity) {
+                continue;
+            }
+
+            // Path to the parent transforms is not valid, 
+            // don't add to the scene graph yet
+            if (!entity->isParentPathComplete()) {
+                continue;
+            }
+
+            auto entityID = entity->getEntityItemID();
+            processedIds.insert(entityID);
+            auto renderable = EntityRenderer::addToScene(*this, entity, scene, transaction);
+            if (renderable) {
+                _entitiesInScene.insert({ entityID, renderable });
+            }
+        }
+
+
+        if (!processedIds.empty()) {
+            for (const auto& processedId : processedIds) {
+                _entitiesToAdd.erase(processedId);
+            }
+        }
+    }
+}
+
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
+    std::unordered_set<EntityItemID> changedEntities;
+    _changedEntitiesGuard.withWriteLock([&] {
+#if 0
+        // FIXME Weird build failure in latest VC update that fails to compile when using std::swap
+        changedEntities.swap(_changedEntities);
+#else
+        changedEntities.insert(_changedEntities.begin(), _changedEntities.end());
+        _changedEntities.clear();
+#endif
+    });
+
+    for (const auto& entityId : changedEntities) {
+        auto renderable = renderableForEntityId(entityId);
+        if (!renderable) {
+            continue;
+        }
+        _renderablesToUpdate.insert({ entityId, renderable });
+    }
+
+    if (!_renderablesToUpdate.empty()) {
+        for (const auto& entry : _renderablesToUpdate) {
+            const auto& renderable = entry.second;
+            renderable->updateInScene(scene, transaction);
+        }
+        _renderablesToUpdate.clear();
+    }
+}
+
 void EntityTreeRenderer::update(bool simulate) {
     PerformanceTimer perfTimer("ETRupdate");
     if (_tree && !_shuttingDown) {
@@ -197,31 +250,24 @@ void EntityTreeRenderer::update(bool simulate) {
             }
         }
 
-        std::unordered_set<EntityItemID> changedEntities;
-        // FIXME Weird build failure in latest VC update that fails to compile when using std::swap
-        _changedEntitiesGuard.withWriteLock([&] {
-            changedEntities.insert(_changedEntities.begin(), _changedEntities.end());
-            _changedEntities.clear();
-        });
-
-        for (const auto& entityId : changedEntities) {
-            auto renderable = renderableForEntityId(entityId);
-            if (!renderable) {
-                continue;
+        {
+            PerformanceTimer sceneTimer("scene");
+            auto scene = _viewState->getMain3DScene();
+            if (scene) {
+                render::Transaction transaction;
+                {
+                    PerformanceTimer pt("add");
+                    addPendingEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer pt("change");
+                    updateChangedEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer pt("enqueue");
+                    scene->enqueueTransaction(transaction);
+                }
             }
-
-            _renderablesToUpdate.insert({ entityId, renderable });
-        }
-
-        auto scene = _viewState->getMain3DScene();
-        if (scene && !_renderablesToUpdate.empty()) {
-            render::Transaction transaction;
-            for (const auto& entry : _renderablesToUpdate) {
-                const auto& renderable = entry.second;
-                renderable->updateInScene(scene, transaction);
-            }
-            _renderablesToUpdate.clear();
-            scene->enqueueTransaction(transaction);
         }
     }
 }
@@ -708,8 +754,12 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
+    // If it's in the pending queue, remove it
+    _entitiesToAdd.erase(entityID);
+
     auto itr = _entitiesInScene.find(entityID);
     if (_entitiesInScene.end() == itr) {
+        // Not in the scene, and no longer potentially in the pending queue, we're done
         return;
     }
         
@@ -744,24 +794,9 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     checkAndCallPreload(entityID);
     auto entity = std::static_pointer_cast<EntityTree>(_tree)->findEntityByID(entityID);
     if (entity) {
-        addEntityToScene(entity);
+        _entitiesToAdd.insert({ entity->getEntityItemID(),  entity });
     }
 }
-
-void EntityTreeRenderer::addEntityToScene(const EntityItemPointer& entity) {
-    // here's where we add the entity payload to the scene
-    auto scene = _viewState->getMain3DScene();
-    if (!scene) {
-        qCWarning(entitiesrenderer) << "EntityTreeRenderer::addEntityToScene(), Unexpected null scene, possibly during application shutdown";
-        return;
-    }
-
-    auto renderable = EntityRenderer::addToScene(*this, entity, scene);
-    if (renderable) {
-        _entitiesInScene[entity->getEntityItemID()] = renderable;
-    }
-}
-
 
 void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, bool reload) {
     checkAndCallPreload(entityID, reload, true);

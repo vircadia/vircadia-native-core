@@ -88,7 +88,7 @@ ovrSession acquireOculusSession() {
     }
 
     if (!session) {
-    	ovrInitParams initParams {
+        ovrInitParams initParams {
             ovrInit_RequestVersion | ovrInit_MixedRendering, OVR_MINOR_VERSION, nullptr, 0, 0
         };
 

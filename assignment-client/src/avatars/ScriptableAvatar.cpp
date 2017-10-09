@@ -35,7 +35,7 @@ void ScriptableAvatar::startAnimation(const QString& url, float fps, float prior
         return;
     }
     _animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
-    _animationDetails = AnimationDetails("", QUrl(url), fps, 0, loop, hold, false, firstFrame, lastFrame, true, firstFrame);
+    _animationDetails = AnimationDetails("", QUrl(url), fps, 0, loop, hold, false, firstFrame, lastFrame, true, firstFrame, false);
     _maskedJoints = maskedJoints;
 }
 

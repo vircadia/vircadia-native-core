@@ -133,7 +133,7 @@ macro(SET_PACKAGING_PARAMETERS)
       else()
         message( FATAL_ERROR "Visual Studio 2013 or higher required." )
       endif()
-  
+
       if (NOT SIGNTOOL_EXECUTABLE)
         message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
       endif ()
@@ -147,6 +147,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CONSOLE_STARTUP_REG_KEY "ConsoleStartupShortcut")
     set(CLIENT_LAUNCH_NOW_REG_KEY "ClientLaunchAfterInstall")
     set(SERVER_LAUNCH_NOW_REG_KEY "ServerLaunchAfterInstall")
+    set(CUSTOM_INSTALL_REG_KEY "CustomInstall")
   endif ()
 
   # setup component categories for installer
@@ -161,5 +162,6 @@ macro(SET_PACKAGING_PARAMETERS)
   # create a header file our targets can use to find out the application version
   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/includes")
   configure_file("${HF_CMAKE_DIR}/templates/BuildInfo.h.in" "${CMAKE_BINARY_DIR}/includes/BuildInfo.h")
+  include_directories("${CMAKE_BINARY_DIR}/includes")
 
 endmacro(SET_PACKAGING_PARAMETERS)

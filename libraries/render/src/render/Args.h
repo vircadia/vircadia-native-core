@@ -63,12 +63,6 @@ namespace render {
     public:
         enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE, SECONDARY_CAMERA_RENDER_MODE };
         enum DisplayMode { MONO, STEREO_MONITOR, STEREO_HMD };
-        enum OutlineFlags {
-            RENDER_OUTLINE_NONE = 0,
-            RENDER_OUTLINE_WIREFRAMES = 1,
-            RENDER_OUTLINE_MARKETPLACE_MODE = 2,
-            RENDER_OUTLINE_SHADER = 4
-        };
         enum DebugFlags {
             RENDER_DEBUG_NONE = 0,
             RENDER_DEBUG_HULLS = 1
@@ -115,7 +109,6 @@ namespace render {
         int _boundaryLevelAdjust { 0 };
         RenderMode _renderMode { DEFAULT_RENDER_MODE };
         DisplayMode _displayMode { MONO };
-        OutlineFlags _outlineFlags{ RENDER_OUTLINE_NONE };
         DebugFlags _debugFlags { RENDER_DEBUG_NONE };
         gpu::Batch* _batch = nullptr;
 

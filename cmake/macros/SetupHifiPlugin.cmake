@@ -8,7 +8,9 @@
 macro(SETUP_HIFI_PLUGIN)
     set(${TARGET_NAME}_SHARED 1)
     setup_hifi_library(${ARGV})
-    add_dependencies(interface ${TARGET_NAME})
+    if (BUILD_CLIENT)
+        add_dependencies(interface ${TARGET_NAME})
+    endif()
     target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Plugins")
 

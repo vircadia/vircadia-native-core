@@ -85,6 +85,7 @@
     var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
     var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
     var lodTextID = false;
+    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications"
 
     var NotificationType = {
         UNKNOWN: 0,
@@ -207,7 +208,7 @@
             notificationOrientation,
             notificationPosition,
             buttonPosition;
-
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
         // Notification plane positions
         noticeY = -y * NOTIFICATION_3D_SCALE - noticeHeight / 2;
         notificationPosition = { x: 0, y: noticeY, z: 0 };
@@ -221,8 +222,8 @@
 
         // Translate plane
         originOffset = Vec3.multiplyQbyV(Quat.fromPitchYawRollDegrees(0, NOTIFICATIONS_3D_DIRECTION, 0),
-                                         { x: 0, y: 0, z: -NOTIFICATIONS_3D_DISTANCE });
-        originOffset.y += NOTIFICATIONS_3D_ELEVATION;
+                                         { x: 0, y: 0, z: -NOTIFICATIONS_3D_DISTANCE * sensorScaleFactor});
+        originOffset.y += NOTIFICATIONS_3D_ELEVATION * sensorScaleFactor;
         notificationPosition = Vec3.sum(originOffset, notificationPosition);
         buttonPosition = Vec3.sum(originOffset, buttonPosition);
 
@@ -242,7 +243,7 @@
             noticeHeight,
             positions,
             last;
-
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
         if (isOnHMD) {
             // Calculate 3D values from 2D overlay properties.
 
@@ -261,7 +262,7 @@
                 notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
                 notice.bottomMargin = 0;
                 notice.rightMargin = 0;
-                notice.lineHeight = 10.0 * (fontSize / 12.0) * NOTIFICATION_3D_SCALE;
+                notice.lineHeight = 10.0 * (fontSize * sensorScaleFactor / 12.0) * NOTIFICATION_3D_SCALE;
                 notice.isFacingAvatar = false;
 
                 notificationText = Overlays.addOverlay("text3d", notice);
@@ -366,6 +367,7 @@
             buttonProperties,
             i;
 
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
         if (text.length >= breakPoint) {
             breaks = count;
         }
@@ -387,7 +389,7 @@
             alpha: backgroundAlpha,
             topMargin: topMargin,
             leftMargin: leftMargin,
-            font: {size: fontSize},
+            font: {size: fontSize * sensorScaleFactor},
             text: text
         };
 
@@ -448,7 +450,23 @@
         return finishedLines.join('\n');
     }
 
+    function updateNotificationsTexts() {
+        var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+        for (var i = 0; i < notifications.length; i++) {
+            var overlayType = Overlays.getOverlayType(notifications[i]);
+
+            if (overlayType === "text3d") {
+                var props = {
+                    font: {size: fontSize * sensorScaleFactor},
+                    lineHeight: 10.0 * (fontSize * sensorScaleFactor / 12.0) * NOTIFICATION_3D_SCALE
+                };
+                Overlays.editOverlay(notifications[i], props);
+            }
+        }
+    }
+
     function update() {
+        updateNotificationsTexts();
         var noticeOut,
             buttonOut,
             arraysOut,
@@ -529,6 +547,13 @@
 
     function onNotify(msg) {
         createNotification(wordWrap(msg), NotificationType.UNKNOWN); // Needs a generic notification system for user feedback, thus using this
+    }
+
+    function onMessageReceived(channel, message) {
+        if (channel === NOTIFICATIONS_MESSAGE_CHANNEL) {
+            message = JSON.parse(message);
+            createNotification(wordWrap(message.message), message.notificationType);
+        }
     }
 
     function onSnapshotTaken(pathStillSnapshot, notify) {
@@ -623,6 +648,7 @@
             Overlays.deleteOverlay(buttons[notificationIndex]);
         }
         Menu.removeMenu(MENU_NAME);
+        Messages.unsubscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     }
 
     function menuItemEvent(menuItem) {
@@ -665,6 +691,10 @@
     Window.notifyEditError = onEditError;
     Window.notify = onNotify;
     Tablet.tabletNotification.connect(tabletNotification);
+
+    Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
+    Messages.messageReceived.connect(onMessageReceived);
+
     setup();
 
 }()); // END LOCAL_SCOPE

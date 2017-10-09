@@ -102,7 +102,7 @@ static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
         if (_entityViewer.getTree() && !_shuttingDown) {
@@ -116,7 +116,7 @@ void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<Rec
 void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         MessageID messageID;
         message->readPrimitive(&messageID);
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
@@ -415,8 +415,7 @@ void EntityScriptServer::selectAudioFormat(const QString& selectedCodecName) {
 
 void EntityScriptServer::resetEntitiesScriptEngine() {
     auto engineName = QString("about:Entities %1").arg(++_entitiesScriptEngineCount);
-    auto newEngine = QSharedPointer<ScriptEngine>(new ScriptEngine(ScriptEngine::ENTITY_SERVER_SCRIPT, NO_SCRIPT, engineName),
-                                                  &ScriptEngine::deleteLater);
+    auto newEngine = scriptEngineFactory(ScriptEngine::ENTITY_SERVER_SCRIPT, NO_SCRIPT, engineName);
 
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
@@ -437,11 +436,14 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
 
 
     newEngine->runInThread();
-    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngine.data());
+    auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
+    DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);
 
-    disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated, this, &EntityScriptServer::updateEntityPPS);
+    disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
+               this, &EntityScriptServer::updateEntityPPS);
     _entitiesScriptEngine.swap(newEngine);
-    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated, this, &EntityScriptServer::updateEntityPPS);
+    connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
+            this, &EntityScriptServer::updateEntityPPS);
 }
 
 

@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 
+#include <BaseScriptEngine.h>
 #include <DependencyManager.h>
 #include <recording/ClipCache.h>
 #include <recording/Forward.h>
@@ -28,7 +29,7 @@ class RecordingScriptingInterface : public QObject, public Dependency {
 public:
     RecordingScriptingInterface();
 
-    void setScriptEngine(QScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
+    void setScriptEngine(QSharedPointer<BaseScriptEngine> scriptEngine) { _scriptEngine = scriptEngine; }
 
 public slots:
     void loadRecording(const QString& url, QScriptValue callback = QScriptValue());
@@ -85,8 +86,11 @@ protected:
     Flag _useSkeletonModel { false };
     recording::ClipPointer _lastClip;
 
-    QScriptEngine* _scriptEngine;
+    QSharedPointer<BaseScriptEngine> _scriptEngine;
     QSet<recording::NetworkClipLoaderPointer> _clipLoaders;
+
+private:
+    void playClip(recording::NetworkClipLoaderPointer clipLoader, const QString& url, QScriptValue callback);
 };
 
 #endif // hifi_RecordingScriptingInterface_h

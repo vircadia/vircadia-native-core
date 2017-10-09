@@ -89,9 +89,9 @@ var coatButton = new ToggleButtonBuddy(buttonPositionX, buttonPositionY, BUTTON_
 var HAT_ATTACHMENT = {
     modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
     jointName: "Head",
-    translation: {"x": 0, "y": 0.2, "z": 0},
+    translation: {"x": 0, "y": 0.25, "z": 0.03},
     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
-    scale: 1,
+    scale: 0.052,
     isSoft: false
 };
 

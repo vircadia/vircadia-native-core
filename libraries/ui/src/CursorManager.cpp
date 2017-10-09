@@ -24,13 +24,6 @@ namespace Cursor {
         return _icon;
     }
 
-
-    class MouseInstance : public Instance {
-        Source getType() const override {
-            return Source::MOUSE;
-        }
-    };
-
     QMap<uint16_t, QString> Manager::ICON_NAMES {
         { Icon::SYSTEM, "SYSTEM", },
         { Icon::DEFAULT, "DEFAULT", },
@@ -38,7 +31,7 @@ namespace Cursor {
         { Icon::ARROW, "ARROW", },
         { Icon::RETICLE, "RETICLE", },
     };
-    QMap<uint16_t, QString> Manager::ICONS;
+
     static uint16_t _customIconId = Icon::USER_BASE;
 
     Manager::Manager() {
@@ -62,8 +55,8 @@ namespace Cursor {
     }
 
     Manager& Manager::instance() {
-        static Manager instance;
-        return instance;
+        static QSharedPointer<Manager> instance = DependencyManager::get<Cursor::Manager>();
+        return *instance;
     }
 
     QList<uint16_t> Manager::registeredIcons() const {
@@ -76,7 +69,6 @@ namespace Cursor {
 
     Instance* Manager::getCursor(uint8_t index) {
         Q_ASSERT(index < getCount());
-        static MouseInstance mouseInstance;
         if (index == 0) {
             return &mouseInstance;
         }

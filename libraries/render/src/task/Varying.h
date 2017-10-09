@@ -238,6 +238,24 @@ public:
     const T5& get5() const { return std::get<5>((*this)).template get<T5>(); }
     T5& edit5() { return std::get<5>((*this)).template edit<T5>(); }
 
+    virtual Varying operator[] (uint8_t index) const {
+        switch (index) {
+        default:
+            return std::get<0>((*this));
+        case 1:
+            return std::get<1>((*this));
+        case 2:
+            return std::get<2>((*this));
+        case 3:
+            return std::get<3>((*this));
+        case 4:
+            return std::get<4>((*this));
+        case 5:
+            return std::get<5>((*this));
+        };
+    }
+    virtual uint8_t length() const { return 6; }
+
     Varying asVarying() const { return Varying((*this)); }
 };
 

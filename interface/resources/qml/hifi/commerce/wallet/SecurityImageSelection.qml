@@ -24,14 +24,14 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-
-    Hifi.QmlCommerce {
-        id: commerce;
-    }
-
+    property int currentIndex: securityImageGrid.currentIndex;
+    
+    // This will cause a bug -- if you bring up security image selection in HUD mode while
+    // in HMD while having HMD preview enabled, then move, then finish passphrase selection,
+    // HMD preview will stay off.
+    // TODO: Fix this unlikely bug
     onVisibleChanged: {
         if (visible) {
-            commerce.getSecurityImage();
             sendSignalToWallet({method: 'disableHmdPreview'});
         } else {
             sendSignalToWallet({method: 'maybeEnableHmdPreview'});
@@ -44,6 +44,7 @@ Item {
 
     GridView {
         id: securityImageGrid;
+        interactive: false;
         clip: true;
         // Anchors
         anchors.fill: parent;
@@ -57,13 +58,14 @@ Item {
             Item {
                 anchors.fill: parent;
                 Image {
-                    width: parent.width - 8;
-                    height: parent.height - 8;
+                    width: parent.width - 12;
+                    height: parent.height - 12;
                     source: sourcePath;
                     anchors.horizontalCenter: parent.horizontalCenter;
                     anchors.verticalCenter: parent.verticalCenter;
                     fillMode: Image.PreserveAspectFit;
                     mipmap: true;
+                    cache: false;
                 }
             }
             MouseArea {

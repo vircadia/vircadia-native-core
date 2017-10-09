@@ -78,6 +78,8 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
                 texdir += '/';
             }
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
+        } else {
+            _textureBaseUrl = _effectiveBaseURL;
         }
 
         auto animGraphVariant = mapping.value("animGraphUrl");
@@ -174,10 +176,12 @@ void GeometryReader::run() {
 
         QString urlname = _url.path().toLower();
         if (!urlname.isEmpty() && !_url.path().isEmpty() &&
+
             (_url.path().toLower().endsWith(".fbx") ||
                 _url.path().toLower().endsWith(".obj") ||
                 _url.path().toLower().endsWith(".obj.gz") ||
                 _url.path().toLower().endsWith(".gltf"))) {
+
             FBXGeometry::Pointer fbxGeometry;
 
             if (_url.path().toLower().endsWith(".fbx")) {
@@ -200,7 +204,7 @@ void GeometryReader::run() {
 
             }
             else if (_url.path().toLower().endsWith(".gltf")) {
-                std::unique_ptr<GLTFReader> glreader = std::make_unique<GLTFReader>();
+                std::shared_ptr<GLTFReader> glreader = std::make_shared<GLTFReader>();
                 fbxGeometry.reset(glreader->readGLTF(_data, _mapping, _url));
                 if (fbxGeometry->meshes.size() == 0 && fbxGeometry->joints.size() == 0) {
                     throw QString("empty geometry, possibly due to an unsupported GLTF version");
@@ -252,7 +256,9 @@ private:
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, _url, _mapping, data, _combineParts));
+    _url = _effectiveBaseURL;
+    _textureBaseUrl = _effectiveBaseURL;
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
 }
 
 void GeometryDefinitionResource::setGeometryDefinition(FBXGeometry::Pointer fbxGeometry) {
@@ -469,7 +475,7 @@ void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
     _resource = resource;
     if (_resource) {
         if (_resource->isLoaded()) {
-            _geometryRef = std::make_shared<Geometry>(*_resource);
+            resourceFinished(true);
         } else {
             startWatching();
         }

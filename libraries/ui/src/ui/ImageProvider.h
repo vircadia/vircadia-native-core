@@ -20,10 +20,10 @@ public:
     static const QString PROVIDER_NAME;
 
     ImageProvider() : QQuickImageProvider(QQuickImageProvider::Pixmap) {}
-
+    virtual ~ImageProvider();
     QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;
 
-    void setSecurityImage(QPixmap* pixmap);
+    void setSecurityImage(const QPixmap* pixmap);
 protected:
     static QReadWriteLock _rwLock;
     static QPixmap* _securityImage;

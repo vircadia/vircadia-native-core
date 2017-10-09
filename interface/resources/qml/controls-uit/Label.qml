@@ -17,6 +17,19 @@ RalewaySemiBold {
     property int colorScheme: hifi.colorSchemes.light
 
     size: hifi.fontSizes.inputLabel
-    color: enabled ? (colorScheme == hifi.colorSchemes.light ? hifi.colors.lightGray : hifi.colors.lightGrayText)
-                   : (colorScheme == hifi.colorSchemes.light ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight);
+    color: {
+        if (colorScheme === hifi.colorSchemes.dark) {
+            if (enabled) {
+                hifi.colors.lightGrayText
+            } else {
+                hifi.colors.baseGrayHighlight
+            }
+        } else {
+            if (enabled) {
+                hifi.colors.lightGray
+            } else {
+                hifi.colors.lightGrayText
+            }
+        }
+    }
 }

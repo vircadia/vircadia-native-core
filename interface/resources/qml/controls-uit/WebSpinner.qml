@@ -9,10 +9,13 @@
 //
 
 import QtQuick 2.5
+import QtWebEngine 1.5
 
 AnimatedImage {
+    property WebEngineView webview: parent
     source: "../../icons/loader-snake-64-w.gif"
-    visible: parent.loading && /^(http.*|)$/i.test(parent.url.toString())
+    visible: webview.loading && /^(http.*|)$/i.test(webview.url.toString())
+    playing: visible
     z: 10000
     anchors {
         horizontalCenter: parent.horizontalCenter

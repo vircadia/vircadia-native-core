@@ -34,10 +34,24 @@ class ModelEntityRenderer;
 } }
 
 //#define MODEL_ENTITY_USE_FADE_EFFECT
-
-class RenderableModelEntityItem : public ModelEntityItem {
+class ModelEntityWrapper : public ModelEntityItem {
+    using Parent = ModelEntityItem;
     friend class render::entities::ModelEntityRenderer;
 
+protected:
+    ModelEntityWrapper(const EntityItemID& entityItemID) : Parent(entityItemID) {}
+    void setModel(const ModelPointer& model);
+    ModelPointer getModel() const;
+    bool isModelLoaded() const;
+
+    bool _needsInitialSimulation{ true };
+private:
+    ModelPointer _model;
+};
+
+class RenderableModelEntityItem : public ModelEntityWrapper {
+    friend class render::entities::ModelEntityRenderer;
+    using Parent = ModelEntityWrapper;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -97,14 +111,11 @@ private:
     bool isAnimatingSomething() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
-    void setModel(const ModelPointer& model);
 
     void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
     bool _originalTexturesRead { false };
     QVariantMap _originalTextures;
-    ModelPointer _model;
-    bool _needsInitialSimulation { true };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
     bool _showCollisionGeometry { false };
@@ -167,6 +178,7 @@ private:
     bool _animating { false };
     uint64_t _lastAnimated { 0 };
     float _currentFrame { 0 };
+
 };
 
 } } // namespace 

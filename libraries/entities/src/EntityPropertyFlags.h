@@ -40,6 +40,7 @@ enum EntityPropertyList {
     PROP_ANIMATION_FPS,
     PROP_ANIMATION_FRAME_INDEX,
     PROP_ANIMATION_PLAYING,
+    PROP_ANIMATION_ALLOW_TRANSLATION,
 
     // these properties are supported by the EntityItem base class
     PROP_REGISTRATION_POINT,
@@ -78,7 +79,6 @@ enum EntityPropertyList {
 
     PROP_COMPOUND_SHAPE_URL, // used by Model + zones entities
     PROP_MARKETPLACE_ID, // all entities
-    PROP_SHOULD_HIGHLIGHT, // all entities
     PROP_ACCELERATION, // all entities
     PROP_SIMULATION_OWNER, // formerly known as PROP_SIMULATOR_ID
     PROP_NAME, // all entities
@@ -187,7 +187,19 @@ enum EntityPropertyList {
     PROP_SERVER_SCRIPTS,
 
     PROP_FILTER_URL,
-    
+
+    // Certificable Properties
+    PROP_ITEM_NAME,
+    PROP_ITEM_DESCRIPTION,
+    PROP_ITEM_CATEGORIES,
+    PROP_ITEM_ARTIST,
+    PROP_ITEM_LICENSE,
+    PROP_LIMITED_RUN,
+    // PROP_MARKETPLACE_ID is above
+    PROP_EDITION_NUMBER,
+    PROP_ENTITY_INSTANCE_NUMBER,
+    PROP_CERTIFICATE_ID,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

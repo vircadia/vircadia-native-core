@@ -93,9 +93,8 @@ private:
     };
 
 
-    void createParticle(uint64_t now);
+    static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties);
     void stepSimulation();
-    bool emitting() const;
 
     particle::Properties _particleProperties;
     CpuParticles _cpuParticles;

@@ -14,6 +14,7 @@
 
 #include "EntityItem.h"
 #include <JointData.h>
+#include <ThreadSafeValueCache.h>
 #include "AnimationPropertyGroup.h"
 
 class ModelEntityItem : public EntityItem {
@@ -83,7 +84,10 @@ public:
 
     void setAnimationCurrentFrame(float value);
     void setAnimationIsPlaying(bool value);
-    void setAnimationFPS(float value);
+    void setAnimationFPS(float value); 
+
+    void setAnimationAllowTranslation(bool value) { _animationProperties.setAllowTranslation(value); };
+    bool getAnimationAllowTranslation() const { return _animationProperties.getAllowTranslation(); };
 
     void setAnimationLoop(bool loop);
     bool getAnimationLoop() const;
@@ -150,7 +154,8 @@ protected:
 
     rgbColor _color;
     QString _modelURL;
-    QString _compoundShapeURL;
+
+    ThreadSafeValueCache<QString> _compoundShapeURL;
 
     AnimationPropertyGroup _animationProperties;
 

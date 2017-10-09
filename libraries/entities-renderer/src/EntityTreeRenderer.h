@@ -36,6 +36,7 @@ namespace render { namespace entities {
     class EntityRenderer;
     using EntityRendererPointer = std::shared_ptr<EntityRenderer>;
     using EntityRendererWeakPointer = std::weak_ptr<EntityRenderer>;
+
 } }
 
 // Allow the use of std::unordered_map with QUuid keys
@@ -147,6 +148,7 @@ public slots:
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
     void setPrecisionPicking(bool value) { _setPrecisionPickingOperator(_mouseRayPickID, value); }
     EntityRendererPointer renderableForEntityId(const EntityItemID& id) const;
+    render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
 
 protected:
     virtual OctreePointer createTree() override {
@@ -156,13 +158,13 @@ protected:
     }
 
 private:
-    render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
+    void addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction);
+    void updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction);
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 
     void resetEntitiesScriptEngine();
 
-    void addEntityToScene(const EntityItemPointer& entity);
     bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
     bool applyLayeredZones();
@@ -181,7 +183,7 @@ private:
     QVector<EntityItemID> _currentEntitiesInside;
 
     bool _wantScripts;
-    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
+    ScriptEnginePointer _entitiesScriptEngine;
 
     void playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision);
 
@@ -260,6 +262,7 @@ private:
 
     std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
+    std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 

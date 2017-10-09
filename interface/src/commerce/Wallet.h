@@ -15,6 +15,8 @@
 #define hifi_Wallet_h
 
 #include <DependencyManager.h>
+#include <Node.h>
+#include <ReceivedMessage.h>
 
 #include <QPixmap>
 
@@ -23,36 +25,52 @@ class Wallet : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-
+    Wallet();
     ~Wallet();
     // These are currently blocking calls, although they might take a moment.
-    bool createIfNeeded();
     bool generateKeyPair();
     QStringList listPublicKeys();
     QString signWithKey(const QByteArray& text, const QString& key);
     void chooseSecurityImage(const QString& imageFile);
-    void getSecurityImage();
-    void sendKeyFilePathIfExists();
+    bool getSecurityImage();
+    QString getKeyFilePath();
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }
+    void setIv(const QByteArray& iv) { _iv = iv; }
+    QByteArray getIv() { return _iv; }
+    void setCKey(const QByteArray& ckey) { _ckey = ckey; }
+    QByteArray getCKey() { return _ckey; }
 
-    void setPassphrase(const QString& passphrase);
+    bool setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
+    bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
+    bool walletIsAuthenticatedWithPassphrase();
+    bool changePassphrase(const QString& newPassphrase);
+
+    void reset();
 
 signals:
-    void securityImageResult(bool exists) ;
+    void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
+
+private slots:
+    void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
 private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
-    QByteArray _salt {"iamsalt!"};
-    QString* _passphrase { new QString("pwd") };
+    QByteArray _salt;
+    QByteArray _iv;
+    QByteArray _ckey;
+    QString* _passphrase { new QString("") };
 
+    bool writeWallet(const QString& newPassphrase = QString(""));
     void updateImageProvider();
-    bool encryptFile(const QString& inputFilePath, const QString& outputFilePath);
-    bool decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
+    bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
+    bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
+
+    bool verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText);
 };
 
 #endif // hifi_Wallet_h

@@ -33,25 +33,15 @@ void Shape3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    // TODO: handle registration point??
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
-
     auto batch = args->_batch;
-
     if (batch) {
-        Transform transform;
-        transform.setTranslation(position);
-        transform.setRotation(rotation);
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto shapePipeline = args->_shapePipeline;
         if (!shapePipeline) {
             shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
         }
 
-        transform.setScale(dimensions);
-        batch->setModelTransform(transform);
+        batch->setModelTransform(getRenderTransform());
         if (_isSolid) {
             geometryCache->renderSolidShapeInstance(args, *batch, _shape, cubeColor, shapePipeline);
         } else {
@@ -127,4 +117,17 @@ QVariant Shape3DOverlay::getProperty(const QString& property) {
     }
 
     return Volume3DOverlay::getProperty(property);
+}
+
+Transform Shape3DOverlay::evalRenderTransform() {
+    // TODO: handle registration point??
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
+    glm::quat rotation = getRotation();
+
+    Transform transform;
+    transform.setScale(dimensions);
+    transform.setTranslation(position);
+    transform.setRotation(rotation);
+    return transform;
 }

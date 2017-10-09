@@ -71,9 +71,9 @@
         return tabletScalePercentage;
     }
 
-    function updateTabletWidthFromSettings() {
+    function updateTabletWidthFromSettings(force) {
         var newTabletScalePercentage = getTabletScalePercentageFromSettings();
-        if (newTabletScalePercentage !== tabletScalePercentage && UIWebTablet) {
+        if ((force || (newTabletScalePercentage !== tabletScalePercentage)) && UIWebTablet) {
             tabletScalePercentage = newTabletScalePercentage;
             UIWebTablet.setWidth(DEFAULT_WIDTH * (tabletScalePercentage / 100));
         }
@@ -83,6 +83,13 @@
         updateTabletWidthFromSettings();
     }
 
+    function onSensorToWorldScaleChanged(sensorScaleFactor) {
+        if (HMD.active) {
+            var newTabletScalePercentage = getTabletScalePercentageFromSettings();
+            resizeTablet(DEFAULT_WIDTH * (newTabletScalePercentage / 100), undefined, sensorScaleFactor);
+        }
+    }
+
     function rezTablet() {
         if (debugTablet) {
             print("TABLET rezzing");
@@ -90,7 +97,7 @@
         checkTablet()
 
         tabletScalePercentage = getTabletScalePercentageFromSettings();
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
+        UIWebTablet = new WebTablet("hifi/tablet/TabletRoot.qml",
                                     DEFAULT_WIDTH * (tabletScalePercentage / 100),
                                     null, activeHand, true, null, false);
         UIWebTablet.register();
@@ -98,6 +105,7 @@
         HMD.homeButtonID = UIWebTablet.homeButtonID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
         HMD.displayModeChanged.connect(onHmdChanged);
+        MyAvatar.sensorToWorldScaleChanged.connect(onSensorToWorldScaleChanged);
 
         tabletRezzed = true;
     }
@@ -121,6 +129,7 @@
             Overlays.editOverlay(HMD.homeButtonID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
+            updateTabletWidthFromSettings(true);
         }
         gTablet.tabletShown = true;
     }
@@ -183,9 +192,13 @@
             return;
         }
 
-        if (now - validCheckTime > MSECS_PER_SEC) {
+        var needInstantUpdate = UIWebTablet && UIWebTablet.getLandscape() !== landscape;
+
+        if ((now - validCheckTime > MSECS_PER_SEC) || needInstantUpdate) {
             validCheckTime = now;
+
             updateTabletWidthFromSettings();
+
             if (UIWebTablet) {
                 UIWebTablet.setLandscape(landscape);
             }
@@ -260,6 +273,36 @@
     Messages.subscribe("toggleHand");
     Messages.subscribe("home");
     Messages.messageReceived.connect(handleMessage);
+
+    var clickMapping = Controller.newMapping('tabletToggle-click');
+    var wantsMenu = 0;
+    clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
+    clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
+    if (clicked) {
+        //activeHudPoint2d(Controller.Standard.RightHand);
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.RightHand);
+    }
+        wantsMenu = clicked;
+    });
+    
+    clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
+        if (clicked) {
+            //activeHudPoint2d(Controller.Standard.LeftHand);
+            Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
+        }
+        wantsMenu = clicked;
+    });
+    
+    clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
+    if (clicked) {
+        //activeHudPoint2dGamePad();
+        var noHands = -1;
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
+    }
+
+        wantsMenu = clicked;
+    });
+    clickMapping.enable();
 
     Script.setInterval(updateShowTablet, 100);
 

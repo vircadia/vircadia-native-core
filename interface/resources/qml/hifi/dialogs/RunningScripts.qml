@@ -371,6 +371,17 @@ ScrollingWindow {
                 colorScheme: hifi.colorSchemes.dark
                 anchors.left: parent.left
                 anchors.right: parent.right
+                
+                TableViewColumn {
+                    role: "display";
+                }
+
+                onActivated: {
+                    var path = scriptsModel.data(index, 0x100)
+                    if (path) {
+                        loadScript(path)
+                    }
+                }
             }
 
             HifiControls.VerticalSpacer {
@@ -387,9 +398,9 @@ ScrollingWindow {
                 readOnly: true
 
                 Connections {
-                    target: treeView
+                    target: treeView.selection
                     onCurrentIndexChanged: {
-                        var path = scriptsModel.data(treeView.currentIndex, 0x100)
+                        var path = scriptsModel.data(treeView.selection.currentIndex, 0x100)
                         if (path) {
                             selectedScript.text = path
                         } else {

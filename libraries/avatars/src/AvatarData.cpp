@@ -103,7 +103,7 @@ AvatarData::~AvatarData() {
 QUrl AvatarData::_defaultFullAvatarModelUrl = {}; // In C++, if this initialization were in the AvatarInfo, every file would have it's own copy, even for class vars.
 const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     if (_defaultFullAvatarModelUrl.isEmpty()) {
-        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
+        _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "/meshes/defaultAvatar_full.fst");
     }
     return _defaultFullAvatarModelUrl;
 }
@@ -2343,6 +2343,11 @@ AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
 // thread-safe
 glm::mat4 AvatarData::getSensorToWorldMatrix() const {
     return _sensorToWorldMatrixCache.get();
+}
+
+// thread-safe
+float AvatarData::getSensorToWorldScale() const {
+    return extractUniformScale(_sensorToWorldMatrixCache.get());
 }
 
 // thread-safe

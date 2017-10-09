@@ -13,10 +13,12 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
+import "../common" as HifiCommerceCommon
 
 // references XXX from root context
 
@@ -26,40 +28,49 @@ Rectangle {
     id: root;
 
     property string activeView: "initialize";
-    property bool securityImageResultReceived: false;
-    property bool keyFilePathIfExistsResultReceived: false;
     property bool keyboardRaised: false;
 
-    // Style
-    color: hifi.colors.baseGray;
+    Image {
+        anchors.fill: parent;
+        source: "images/wallet-bg.jpg";
+    }
+
     Hifi.QmlCommerce {
         id: commerce;
+
+        onWalletStatusResult: {
+            if (walletStatus === 0) {
+                if (root.activeView !== "needsLogIn") {
+                    root.activeView = "needsLogIn";
+                }
+            } else if (walletStatus === 1) {
+                if (root.activeView !== "walletSetup") {
+                    root.activeView = "walletSetup";
+                }
+            } else if (walletStatus === 2) {
+                if (root.activeView !== "passphraseModal") {
+                    root.activeView = "passphraseModal";
+                }
+            } else if (walletStatus === 3) {
+                root.activeView = "walletHome";
+                commerce.getSecurityImage();
+            } else {
+                console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
+            }
+        }
 
         onLoginStatusResult: {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
-                root.activeView = "initialize";
-                commerce.getSecurityImage();
-                commerce.getKeyFilePathIfExists();
+                commerce.getWalletStatus();
             }
         }
 
         onSecurityImageResult: {
-            securityImageResultReceived = true;
-            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
-                root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && exists && root.keyFilePathIfExistsResultReceived && root.activeView === "initialize") {
-                root.activeView = "walletHome";
-            }
-        }
-
-        onKeyFilePathIfExistsResult: {
-            keyFilePathIfExistsResultReceived = true;
-            if (path === "" && root.activeView !== "notSetUp") {
-                root.activeView = "notSetUp";
-            } else if (root.securityImageResultReceived && root.keyFilePathIfExistsResultReceived && path !== "" && root.activeView === "initialize") {
-                root.activeView = "walletHome";
+            if (exists) {
+                titleBarSecurityImage.source = "";
+                titleBarSecurityImage.source = "image://security/securityImage";
             }
         }
     }
@@ -68,73 +79,11 @@ Rectangle {
         id: securityImageModel;
     }
 
-    Rectangle {
-        id: walletSetupLightboxContainer;
-        visible: walletSetupLightbox.visible || passphraseSelectionLightbox.visible || securityImageSelectionLightbox.visible;
-        z: 998;
+    HifiCommerceCommon.CommerceLightbox {
+        id: lightboxPopup;
+        visible: false;
         anchors.fill: parent;
-        color: "black";
-        opacity: 0.5;
     }
-    WalletSetupLightbox {
-        id: walletSetupLightbox;
-        visible: false;
-        z: 998;
-        anchors.centerIn: walletSetupLightboxContainer;
-        width: walletSetupLightboxContainer.width - 50;
-        height: walletSetupLightboxContainer.height - 50;
-
-        Connections {
-            onSendSignalToWallet: {
-                if (msg.method === 'walletSetup_cancelClicked') {
-                    walletSetupLightbox.visible = false;
-                } else if (msg.method === 'walletSetup_finished') {
-                    root.activeView = "walletHome";
-                } else if (msg.method === 'walletSetup_raiseKeyboard') {
-                    root.keyboardRaised = true;
-                } else if (msg.method === 'walletSetup_lowerKeyboard') {
-                    root.keyboardRaised = false;
-                } else {
-                    sendToScript(msg);
-                }
-            }
-        }
-    }
-    PassphraseSelectionLightbox {
-        id: passphraseSelectionLightbox;
-        visible: false;
-        z: 998;
-        anchors.centerIn: walletSetupLightboxContainer;
-        width: walletSetupLightboxContainer.width - 50;
-        height: walletSetupLightboxContainer.height - 50;
-        
-        Connections {
-            onSendSignalToWallet: {
-                if (msg.method === 'walletSetup_raiseKeyboard') {
-                    root.keyboardRaised = true;
-                } else if (msg.method === 'walletSetup_lowerKeyboard') {
-                    root.keyboardRaised = false;
-                } else {
-                    sendToScript(msg);
-                }
-            }
-        }
-    }
-    SecurityImageSelectionLightbox {
-        id: securityImageSelectionLightbox;
-        visible: false;
-        z: 998;
-        anchors.centerIn: walletSetupLightboxContainer;
-        width: walletSetupLightboxContainer.width - 50;
-        height: walletSetupLightboxContainer.height - 50;
-        
-        Connections {
-            onSendSignalToWallet: {
-                sendToScript(msg);
-            }
-        }
-    }
-
 
     //
     // TITLE BAR START
@@ -149,6 +98,20 @@ Rectangle {
         anchors.left: parent.left;
         anchors.top: parent.top;
 
+        // Wallet icon
+        HiFiGlyphs {
+            id: walletIcon;
+            text: hifi.glyphs.wallet;
+            // Size
+            size: parent.height * 0.8;
+            // Anchors
+            anchors.left: parent.left;
+            anchors.leftMargin: 8;
+            anchors.verticalCenter: parent.verticalCenter;
+            // Style
+            color: hifi.colors.blueHighlight;
+        }
+
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
@@ -157,27 +120,119 @@ Rectangle {
             size: hifi.fontSizes.overlayTitle;
             // Anchors
             anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.leftMargin: 16;
+            anchors.left: walletIcon.right;
+            anchors.leftMargin: 4;
             anchors.bottom: parent.bottom;
             width: paintedWidth;
             // Style
-            color: hifi.colors.faintGray;
+            color: hifi.colors.white;
             // Alignment
-            horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
         }
 
-        // Separator
-        HifiControlsUit.Separator {
-            anchors.left: parent.left;
+        Image {
+            id: titleBarSecurityImage;
+            source: "";
+            visible: titleBarSecurityImage.source !== "" && !securityImageChange.visible;
             anchors.right: parent.right;
+            anchors.rightMargin: 6;
+            anchors.top: parent.top;
+            anchors.topMargin: 6;
             anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 6;
+            width: height;
+            mipmap: true;
+            cache: false;
+
+            MouseArea {
+                enabled: titleBarSecurityImage.visible;
+                anchors.fill: parent;
+                onClicked: {
+                    lightboxPopup.titleText = "Your Security Pic";
+                    lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
+                    lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
+                    lightboxPopup.button1text = "CLOSE";
+                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.visible = true;
+                }
+            }
         }
     }
     //
     // TITLE BAR END
     //
+
+    WalletSetup {
+        id: walletSetup;
+        visible: root.activeView === "walletSetup";
+        z: 998;
+        anchors.fill: parent;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletSetup_finished') {
+                    if (msg.referrer === '') {
+                        root.activeView = "initialize";
+                        commerce.getWalletStatus();
+                    } else if (msg.referrer === 'purchases') {
+                        sendToScript({method: 'goToPurchases'});
+                    }
+                } else if (msg.method === 'walletSetup_raiseKeyboard') {
+                    root.keyboardRaised = true;
+                } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                    root.keyboardRaised = false;
+                } else {
+                    sendToScript(msg);
+                }
+            }
+        }
+    }
+    PassphraseChange {
+        id: passphraseChange;
+        visible: root.activeView === "passphraseChange";
+        z: 998;
+        anchors.top: titleBarContainer.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        anchors.bottom: parent.bottom;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletSetup_raiseKeyboard') {
+                    root.keyboardRaised = true;
+                } else if (msg.method === 'walletSetup_lowerKeyboard') {
+                    root.keyboardRaised = false;
+                } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
+                    root.activeView = "security";
+                } else if (msg.method === 'walletSecurity_changePassphraseSuccess') {
+                    root.activeView = "security";
+                } else {
+                    sendToScript(msg);
+                }
+            }
+        }
+    }
+    SecurityImageChange {
+        id: securityImageChange;
+        visible: root.activeView === "securityImageChange";
+        z: 998;
+        anchors.top: titleBarContainer.bottom;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+        anchors.bottom: parent.bottom;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletSecurity_changeSecurityImageCancelled') {
+                    root.activeView = "security";
+                } else if (msg.method === 'walletSecurity_changeSecurityImageSuccess') {
+                    root.activeView = "security";
+                } else {
+                    sendToScript(msg);
+                }
+            }
+        }
+    }
 
     //
     // TAB CONTENTS START
@@ -193,10 +248,10 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getLoginStatus();
+            commerce.getWalletStatus();
         }
     }
-        
+
     NeedsLogIn {
         id: needsLogIn;
         visible: root.activeView === "needsLogIn";
@@ -218,18 +273,19 @@ Rectangle {
         }
     }
 
-    NotSetUp {
-        id: notSetUp;
-        visible: root.activeView === "notSetUp";
-        anchors.top: titleBarContainer.bottom;
-        anchors.bottom: tabButtonsContainer.top;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        
+    PassphraseModal {
+        id: passphraseModal;
+        visible: root.activeView === "passphraseModal";
+        anchors.fill: parent;
+        titleBarText: "Wallet";
+        titleBarIcon: hifi.glyphs.wallet;
+
         Connections {
-            onSendSignalToWallet: {
-                if (msg.method === 'setUpClicked') {
-                    walletSetupLightbox.visible = true;
+            onSendSignalToParent: {
+                if (msg.method === "authSuccess") {
+                    root.activeView = "walletHome";
+                } else {
+                    sendToScript(msg);
                 }
             }
         }
@@ -239,46 +295,42 @@ Rectangle {
         id: walletHome;
         visible: root.activeView === "walletHome";
         anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: 16;
         anchors.bottom: tabButtonsContainer.top;
-        anchors.bottomMargin: 16;
         anchors.left: parent.left;
-        anchors.leftMargin: 16;
         anchors.right: parent.right;
-        anchors.rightMargin: 16;
+
+        Connections {
+            onSendSignalToWallet: {
+                sendToScript(msg);
+            }
+        }
     }
 
     SendMoney {
         id: sendMoney;
         visible: root.activeView === "sendMoney";
         anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: 16;
         anchors.bottom: tabButtonsContainer.top;
-        anchors.bottomMargin: 16;
         anchors.left: parent.left;
-        anchors.leftMargin: 16;
         anchors.right: parent.right;
-        anchors.rightMargin: 16;
     }
 
     Security {
         id: security;
         visible: root.activeView === "security";
         anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: 16;
         anchors.bottom: tabButtonsContainer.top;
-        anchors.bottomMargin: 16;
         anchors.left: parent.left;
-        anchors.leftMargin: 16;
         anchors.right: parent.right;
-        anchors.rightMargin: 16;
 
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSecurity_changePassphrase') {
-                    passphraseSelectionLightbox.visible = true;
+                    root.activeView = "passphraseChange";
+                    passphraseChange.clearPassphraseFields();
+                    passphraseChange.resetSubmitButton();
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
-                    securityImageSelectionLightbox.visible = true;
+                    root.activeView = "securityImageChange";
                 }
             }
         }
@@ -288,13 +340,17 @@ Rectangle {
         id: help;
         visible: root.activeView === "help";
         anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: 16;
         anchors.bottom: tabButtonsContainer.top;
-        anchors.bottomMargin: 16;
         anchors.left: parent.left;
-        anchors.leftMargin: 16;
         anchors.right: parent.right;
-        anchors.rightMargin: 16;
+
+        Connections {
+            onSendSignalToWallet: {
+                if (msg.method === 'walletReset' || msg.method === 'passphraseReset') {
+                    sendToScript(msg);
+                }
+            }
+        }
     }
 
 
@@ -307,11 +363,11 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        visible: !needsLogIn.visible;
+        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange";
         property int numTabs: 5;
         // Size
         width: root.width;
-        height: 80;
+        height: 90;
         // Anchors
         anchors.left: parent.left;
         anchors.bottom: parent.bottom;
@@ -326,30 +382,46 @@ Rectangle {
         // "WALLET HOME" tab button
         Rectangle {
             id: walletHomeButtonContainer;
-            visible: !notSetUp.visible;
+            visible: !walletSetup.visible;
             color: root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
+        
+            HiFiGlyphs {
+                id: homeTabIcon;
+                text: hifi.glyphs.home2;
+                // Size
+                size: 50;
+                // Anchors
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.top: parent.top;
+                anchors.topMargin: -2;
+                // Style
+                color: root.activeView === "walletHome" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
+            }
 
             RalewaySemiBold {
                 text: "WALLET HOME";
                 // Text size
-                size: hifi.fontSizes.overlayTitle;
+                size: 16;
                 // Anchors
-                anchors.fill: parent;
+                anchors.bottom: parent.bottom;
+                height: parent.height/2;
+                anchors.left: parent.left;
                 anchors.leftMargin: 4;
+                anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.faintGray;
+                color: root.activeView === "walletHome" || walletHomeTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
+                verticalAlignment: Text.AlignTop;
             }
             MouseArea {
-                enabled: !walletSetupLightboxContainer.visible;
+                id: walletHomeTabMouseArea;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
@@ -361,87 +433,136 @@ Rectangle {
             }
         }
 
-        // "SEND MONEY" tab button
+        // "EXCHANGE MONEY" tab button
         Rectangle {
-            id: sendMoneyButtonContainer;
-            visible: !notSetUp.visible;
+            id: exchangeMoneyButtonContainer;
+            visible: !walletSetup.visible;
             color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: walletHomeButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
-
-            RalewaySemiBold {
-                text: "SEND MONEY";
-                // Text size
-                size: 14;
+        
+            HiFiGlyphs {
+                id: exchangeMoneyTabIcon;
+                text: hifi.glyphs.leftRightArrows;
+                // Size
+                size: 50;
                 // Anchors
-                anchors.fill: parent;
-                anchors.leftMargin: 4;
-                anchors.rightMargin: 4;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.top: parent.top;
+                anchors.topMargin: -2;
                 // Style
                 color: hifi.colors.lightGray50;
-                wrapMode: Text.WordWrap;
-                // Alignment
-                horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
             }
-        }
-
-        // "EXCHANGE MONEY" tab button
-        Rectangle {
-            id: exchangeMoneyButtonContainer;
-            visible: !notSetUp.visible;
-            color: hifi.colors.black;
-            anchors.top: parent.top;
-            anchors.left: sendMoneyButtonContainer.right;
-            anchors.bottom: parent.bottom;
-            width: parent.width / tabButtonsContainer.numTabs;
 
             RalewaySemiBold {
                 text: "EXCHANGE MONEY";
                 // Text size
-                size: 14;
+                size: 16;
                 // Anchors
-                anchors.fill: parent;
+                anchors.bottom: parent.bottom;
+                height: parent.height/2;
+                anchors.left: parent.left;
                 anchors.leftMargin: 4;
+                anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
                 color: hifi.colors.lightGray50;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
+                verticalAlignment: Text.AlignTop;
+            }
+        }
+
+
+        // "SEND MONEY" tab button
+        Rectangle {
+            id: sendMoneyButtonContainer;
+            visible: !walletSetup.visible;
+            color: hifi.colors.black;
+            anchors.top: parent.top;
+            anchors.left: exchangeMoneyButtonContainer.right;
+            anchors.bottom: parent.bottom;
+            width: parent.width / tabButtonsContainer.numTabs;
+        
+            HiFiGlyphs {
+                id: sendMoneyTabIcon;
+                text: hifi.glyphs.paperPlane;
+                // Size
+                size: 46;
+                // Anchors
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.top: parent.top;
+                anchors.topMargin: -2;
+                // Style
+                color: hifi.colors.lightGray50;
+            }
+
+            RalewaySemiBold {
+                text: "SEND MONEY";
+                // Text size
+                size: 16;
+                // Anchors
+                anchors.bottom: parent.bottom;
+                height: parent.height/2;
+                anchors.left: parent.left;
+                anchors.leftMargin: 4;
+                anchors.right: parent.right;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.lightGray50;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignTop;
             }
         }
 
         // "SECURITY" tab button
         Rectangle {
             id: securityButtonContainer;
-            visible: !notSetUp.visible;
+            visible: !walletSetup.visible;
             color: root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
-            anchors.left: exchangeMoneyButtonContainer.right;
+            anchors.left: sendMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
+        
+            HiFiGlyphs {
+                id: securityTabIcon;
+                text: hifi.glyphs.lock;
+                // Size
+                size: 38;
+                // Anchors
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.top: parent.top;
+                anchors.topMargin: 2;
+                // Style
+                color: root.activeView === "security" || securityTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
+            }
 
             RalewaySemiBold {
                 text: "SECURITY";
                 // Text size
-                size: hifi.fontSizes.overlayTitle;
+                size: 16;
                 // Anchors
-                anchors.fill: parent;
+                anchors.bottom: parent.bottom;
+                height: parent.height/2;
+                anchors.left: parent.left;
                 anchors.leftMargin: 4;
+                anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.faintGray;
+                color: root.activeView === "security" || securityTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
+                verticalAlignment: Text.AlignTop;
             }
             MouseArea {
-                enabled: !walletSetupLightboxContainer.visible;
+                id: securityTabMouseArea;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
@@ -452,34 +573,50 @@ Rectangle {
                 onExited: parent.color = root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
-
+        
         // "HELP" tab button
         Rectangle {
             id: helpButtonContainer;
-            visible: !notSetUp.visible;
+            visible: !walletSetup.visible;
             color: root.activeView === "help" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: securityButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
+        
+            HiFiGlyphs {
+                id: helpTabIcon;
+                text: hifi.glyphs.question;
+                // Size
+                size: 55;
+                // Anchors
+                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.top: parent.top;
+                anchors.topMargin: -6;
+                // Style
+                color: root.activeView === "help" || helpTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
+            }
 
             RalewaySemiBold {
                 text: "HELP";
                 // Text size
-                size: hifi.fontSizes.overlayTitle;
+                size: 16;
                 // Anchors
-                anchors.fill: parent;
+                anchors.bottom: parent.bottom;
+                height: parent.height/2;
+                anchors.left: parent.left;
                 anchors.leftMargin: 4;
+                anchors.right: parent.right;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.faintGray;
+                color: root.activeView === "help" || helpTabMouseArea.containsMouse ? hifi.colors.white : hifi.colors.blueHighlight;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
+                verticalAlignment: Text.AlignTop;
             }
             MouseArea {
-                enabled: !walletSetupLightboxContainer.visible;
+                id: helpTabMouseArea;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
@@ -490,6 +627,7 @@ Rectangle {
                 onExited: parent.color = root.activeView === "help" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
+
 
         function resetTabButtonColors() {
             walletHomeButtonContainer.color = hifi.colors.black;
@@ -509,7 +647,7 @@ Rectangle {
     }
     //
     // TAB BUTTONS END
-    //    
+    //
 
     Item {
         id: keyboardContainer;
@@ -569,6 +707,9 @@ Rectangle {
     //
     function fromScript(message) {
         switch (message.method) {
+            case 'updateWalletReferrer':
+                walletSetup.referrer = message.referrer;
+            break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
         }

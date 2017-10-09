@@ -354,15 +354,16 @@ void Agent::scriptRequestFinished() {
 
 
 void Agent::executeScript() {
-    _scriptEngine = std::unique_ptr<ScriptEngine>(new ScriptEngine(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload));
+    _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
     _scriptEngine->setParent(this); // be the parent of the script engine so it gets moved when we do
 
-    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine.get());
+    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine);
 
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
-    connect(_scriptEngine.get(), SIGNAL(update(float)), scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
+    connect(_scriptEngine.data(), SIGNAL(update(float)),
+            scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
     scriptedAvatar->setForceFaceTrackerConnected(true);
 
     // call model URL setters with empty URLs so our avatar, if user, will have the default models

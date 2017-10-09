@@ -53,6 +53,8 @@ static const int SCRIPT_FPS = 60;
 static const int DEFAULT_MAX_ENTITY_PPS = 9000;
 static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
 
+class ScriptEngines;
+
 class CallbackData {
 public:
     QScriptValue function;
@@ -242,7 +244,7 @@ signals:
     void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
-    void finished(const QString& fileNameString, ScriptEngine* engine);
+    void finished(const QString& fileNameString, ScriptEnginePointer);
     void cleanupMenuItem(const QString& menuItemString);
     void printedMessage(const QString& message, const QString& scriptName);
     void errorMessage(const QString& message, const QString& scriptName);
@@ -328,6 +330,12 @@ protected:
     static const QString _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS;
 
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
+
+    QSharedPointer<ScriptEngines> _scriptEngines;
 };
+
+ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
+                                        const QString& scriptContents,
+                                        const QString& fileNameString);
 
 #endif // hifi_ScriptEngine_h

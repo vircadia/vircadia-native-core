@@ -33,7 +33,12 @@ void DialogsManagerScriptingInterface::showAddressBar() {
 
 void DialogsManagerScriptingInterface::hideAddressBar() {
     QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
-        "hideAddressBar", Qt::QueuedConnection);
+                              "hideAddressBar", Qt::QueuedConnection);
+}
+
+void DialogsManagerScriptingInterface::showLoginDialog() {
+    QMetaObject::invokeMethod(DependencyManager::get<DialogsManager>().data(),
+        "showLoginDialog", Qt::QueuedConnection);
 }
 
 void DialogsManagerScriptingInterface::showFeed() {

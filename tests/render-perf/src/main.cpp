@@ -42,10 +42,14 @@
 #include <LogHandler.h>
 #include <AssetClient.h>
 
+#include <gl/OffscreenGLCanvas.h>
+
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
 #include <gpu/gl/GLTexture.h>
 #include <gpu/StandardShaderLib.h>
+
+#include <ui/OffscreenQmlSurface.h>
 
 #include <AnimationCache.h>
 #include <SimpleEntitySimulation.h>
@@ -427,16 +431,16 @@ namespace render {
     }
 }
 
+OffscreenGLCanvas* _chromiumShareContext{ nullptr };
+Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
+
+
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow, public AbstractViewStateInterface {
 
 protected:
     void copyCurrentViewFrustum(ViewFrustum& viewOut) const override {
         viewOut = _viewFrustum;
-    }
-
-    void copyShadowViewFrustum(ViewFrustum& viewOut) const override {
-        viewOut = _shadowViewFrustum;
     }
 
     QThread* getMainThread() override {
@@ -506,8 +510,6 @@ public:
         AbstractViewStateInterface::setInstance(this);
         _octree = DependencyManager::set<EntityTreeRenderer>(false, this, nullptr);
         _octree->init();
-        // Prevent web entities from rendering
-        REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
 
         DependencyManager::set<ParentFinder>(_octree->getTree());
         auto nodeList = DependencyManager::get<LimitedNodeList>();
@@ -534,6 +536,23 @@ public:
         // Create the initial context
         _renderThread.initialize(this, _initContext);
         _initContext.makeCurrent();
+
+        if (nsightActive()) {
+            // Prevent web entities from rendering
+            REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
+        } else {
+            _chromiumShareContext = new OffscreenGLCanvas();
+            _chromiumShareContext->setObjectName("ChromiumShareContext");
+            _chromiumShareContext->create(_initContext.qglContext());
+            _chromiumShareContext->makeCurrent();
+            qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+
+            // Make sure all QML surfaces share the main thread GL context
+            OffscreenQmlSurface::setSharedContext(_initContext.qglContext());
+
+            _initContext.makeCurrent();
+        }
+
 
         // FIXME use a wait condition
         QThread::msleep(1000);
@@ -679,6 +698,7 @@ private:
         _renderCount = _renderThread._presentCount.load();
         update();
 
+        _initContext.makeCurrent();
         RenderArgs renderArgs(_renderThread._gpuContext, DEFAULT_OCTREE_SIZE_SCALE,
             0, RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
@@ -1094,7 +1114,6 @@ private:
     RenderThread _renderThread;
     QWindowCamera _camera;
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _shadowViewFrustum; // current state of view frustum, perspective, orientation, etc.
     model::SunSkyStage _sunSkyStage;
     model::LightPointer _globalLight { std::make_shared<model::Light>() };
     bool _ready { false };

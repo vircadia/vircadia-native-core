@@ -381,11 +381,13 @@ class AvatarData : public QObject, public SpatiallyNestable {
 
     Q_PROPERTY(QStringList jointNames READ getJointNames)
 
-    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID)
+    Q_PROPERTY(QUuid sessionUUID READ getSessionUUID NOTIFY sessionUUIDChanged)
 
     Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
     Q_PROPERTY(glm::mat4 controllerLeftHandMatrix READ getControllerLeftHandMatrix)
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
+
+    Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
 
 public:
 
@@ -621,6 +623,7 @@ public:
 
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
+    Q_INVOKABLE float getSensorToWorldScale() const;
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
     Q_INVOKABLE glm::mat4 getControllerRightHandMatrix() const;
 
@@ -667,13 +670,19 @@ public:
 signals:
     void displayNameChanged();
     void lookAtSnappingChanged(bool enabled);
+    void sessionUUIDChanged();
 
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
 
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
+    void setSessionUUID(const QUuid& sessionUUID) {
+        if (sessionUUID != getID()) {
+            setID(sessionUUID);
+            emit sessionUUIDChanged();
+        }
+    }
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;

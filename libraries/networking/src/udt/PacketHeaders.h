@@ -122,6 +122,7 @@ public:
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
         OctreeFileReplacementFromUrl,
+        ChallengeOwnership,
         NUM_PACKET_TYPE
     };
 
@@ -140,11 +141,16 @@ public:
 
     const static QSet<PacketTypeEnum::Value> getNonVerifiedPackets() {
         const static QSet<PacketTypeEnum::Value> NON_VERIFIED_PACKETS = QSet<PacketTypeEnum::Value>()
-            << PacketTypeEnum::Value::NodeJsonStats << PacketTypeEnum::Value::EntityQuery
-            << PacketTypeEnum::Value::OctreeDataNack << PacketTypeEnum::Value::EntityEditNack
-            << PacketTypeEnum::Value::DomainListRequest << PacketTypeEnum::Value::StopNode
-            << PacketTypeEnum::Value::DomainDisconnectRequest << PacketTypeEnum::Value::UsernameFromIDRequest
-            << PacketTypeEnum::Value::NodeKickRequest << PacketTypeEnum::Value::NodeMuteRequest;
+            << PacketTypeEnum::Value::NodeJsonStats
+            << PacketTypeEnum::Value::EntityQuery
+            << PacketTypeEnum::Value::OctreeDataNack
+            << PacketTypeEnum::Value::EntityEditNack
+            << PacketTypeEnum::Value::DomainListRequest
+            << PacketTypeEnum::Value::StopNode
+            << PacketTypeEnum::Value::DomainDisconnectRequest
+            << PacketTypeEnum::Value::UsernameFromIDRequest
+            << PacketTypeEnum::Value::NodeKickRequest
+            << PacketTypeEnum::Value::NodeMuteRequest;
         return NON_VERIFIED_PACKETS;
     }
 
@@ -259,6 +265,9 @@ const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 const PacketVersion VERSION_ENTITIES_HINGE_CONSTRAINT = 69;
 const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
 const PacketVersion VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT = 71;
+const PacketVersion VERSION_ENTITIES_HAS_HIGHLIGHT_SCRIPTING_INTERFACE = 72;
+const PacketVersion VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES = 73;
+const PacketVersion VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES = 74;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
@@ -267,7 +276,8 @@ enum class EntityQueryPacketVersion: PacketVersion {
 
 enum class AssetServerPacketVersion: PacketVersion {
     VegasCongestionControl = 19,
-    RangeRequestSupport
+    RangeRequestSupport,
+    RedirectedMappings
 };
 
 enum class AvatarMixerPacketVersion : PacketVersion {

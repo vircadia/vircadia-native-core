@@ -74,7 +74,7 @@ namespace render {
                 glm::vec3 myAvatarPosition = avatar->getPosition();
                 float angle = glm::degrees(glm::angle(myAvatarRotation));
                 glm::vec3 axis = glm::axis(myAvatarRotation);
-                float myAvatarScale = avatar->getUniformScale();
+                float myAvatarScale = avatar->getModelScale();
                 Transform transform = Transform();
                 transform.setTranslation(myAvatarPosition);
                 transform.setRotation(glm::angleAxis(angle, axis));

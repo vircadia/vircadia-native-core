@@ -136,7 +136,7 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getRotation();
     glm::vec3 position = getPosition() + rotation * 
-            (dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
+            (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
 
     // FIXME - should set face and surfaceNormal
     return findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance);
