@@ -103,7 +103,7 @@ public:
     bool isLayeredInFront() const { return _isLayeredInFront; }
 
     virtual void updateRenderItems();
-    void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
+    void setRenderItemsNeedUpdate();
     bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
     const render::ItemIDs& fetchRenderItemIDs() const;
@@ -265,6 +265,7 @@ public slots:
 signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
+    void requestRenderUpdate();
 
 protected:
 
