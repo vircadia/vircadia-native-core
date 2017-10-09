@@ -170,7 +170,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // Add bloom
-    const auto bloomInputs = lightingFramebuffer;
+    const auto bloomInputs = Bloom::Inputs(deferredFrameTransform, lightingFramebuffer).asVarying();
     task.addJob<Bloom>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping

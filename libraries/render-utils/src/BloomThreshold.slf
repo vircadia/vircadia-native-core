@@ -1,0 +1,40 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  BloomThreshold.slf
+//  Perform a soft threshold on an input texture and downsample to half size in one go.
+//
+//  Created by Olivier Prat on 09/26/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+uniform sampler2D colorMap;
+uniform float threshold;
+
+in vec2 varTexCoord0;
+out vec4 outFragColor;
+
+void main(void) {
+    // Gather 2 by 2 quads from texture, threshold and downsample
+    vec4 reds = textureGather(colorMap, varTexCoord0, 0);
+    vec4 greens = textureGather(colorMap, varTexCoord0, 1);
+    vec4 blues = textureGather(colorMap, varTexCoord0, 2);
+
+    float hardness = 8;
+    vec4 rMask = clamp((reds-threshold) * hardness, 0, 1);
+    vec4 gMask = clamp((greens-threshold) * hardness, 0, 1);
+    vec4 bMask = clamp((blues-threshold) * hardness, 0, 1);
+
+    reds = smoothstep(vec4(0,0,0,0), reds, rMask);
+    greens = smoothstep(vec4(0,0,0,0), greens, gMask);
+    blues = smoothstep(vec4(0,0,0,0), blues, bMask);
+
+    vec3 texel0 = vec3(reds.x, greens.x, blues.x);
+    vec3 texel1 = vec3(reds.y, greens.y, blues.y);
+    vec3 texel2 = vec3(reds.z, greens.z, blues.z);
+    vec3 texel3 = vec3(reds.w, greens.w, blues.w);
+
+    outFragColor = vec4((texel0+texel1+texel2+texel3)/4.0, 1.0);
+}
