@@ -115,7 +115,7 @@ Rectangle {
     }
 
     onItemHrefChanged: {
-        itemIsJson = root.itemHref.indexOf('.json') !== -1;
+        itemIsJson = root.itemHref.endsWith('.json');
     }
 
     onItemPriceChanged: {
@@ -575,8 +575,8 @@ Rectangle {
             anchors.right: parent.right;
             text: "Rez It"
             onClicked: {
-                if (urlHandler.canHandleUrl(itemHref)) {
-                    urlHandler.handleUrl(itemHref);
+                if (urlHandler.canHandleUrl(root.itemHref)) {
+                    urlHandler.handleUrl(root.itemHref);
                 }
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
