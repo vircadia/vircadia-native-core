@@ -95,6 +95,7 @@ EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredP
 }
 
 void ShapeEntityItem::setShape(const entity::Shape& shape) {
+    const entity::Shape prevShape = _shape;
     _shape = shape;
     switch (_shape) {
         case entity::Shape::Cube:
@@ -106,6 +107,11 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
         default:
             _type = EntityTypes::Shape;
             break;
+    }
+
+    if (_shape != prevShape) {
+        // Internally grabs writeLock
+        markDirtyFlags(Simulation::DIRTY_SHAPE);
     }
 }
 
@@ -227,6 +233,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << "SHAPE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
     qCDebug(entities) << "               name:" << _name;
     qCDebug(entities) << "              shape:" << stringFromShape(_shape) << " (EnumId: " << _shape << " )";
+    qCDebug(entities) << " collisionShapeType:" << ShapeInfo::getNameForShapeType(getShapeType());
     qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "           position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());

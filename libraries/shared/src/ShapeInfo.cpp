@@ -15,8 +15,37 @@
 
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
+// Originally within EntityItemProperties.cpp
+const char* shapeTypeNames[] = {
+    "none",
+    "box",
+    "sphere",
+    "capsule-x",
+    "capsule-y",
+    "capsule-z",
+    "cylinder-x",
+    "cylinder-y",
+    "cylinder-z",
+    "hull",
+    "plane",
+    "compound",
+    "simple-hull",
+    "simple-compound",
+    "static-mesh"
+};
+
+static const size_t SHAPETYPE_NAME_COUNT = (sizeof(shapeTypeNames) / sizeof((shapeTypeNames)[0]));
+
 // Bullet doesn't support arbitrarily small shapes
 const float MIN_HALF_EXTENT = 0.005f; // 0.5 cm
+
+QString ShapeInfo::getNameForShapeType(ShapeType type) {
+    if (((int)type <= 0) || ((int)type >= SHAPETYPE_NAME_COUNT)) {
+        type = (ShapeType)0;
+    }
+
+    return shapeTypeNames[(int)type];
+}
 
 void ShapeInfo::clear() {
     _url.clear();

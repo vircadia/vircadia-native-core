@@ -58,6 +58,8 @@ public:
     using PointCollection = QVector<PointList>;
     using TriangleIndices = QVector<int32_t>;
 
+    static QString getNameForShapeType(ShapeType type);
+
     void clear();
 
     void setParams(ShapeType type, const glm::vec3& halfExtents, QString url="");
