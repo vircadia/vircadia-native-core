@@ -15,6 +15,8 @@
 #define hifi_Wallet_h
 
 #include <DependencyManager.h>
+#include <Node.h>
+#include <ReceivedMessage.h>
 
 #include <QPixmap>
 
@@ -23,7 +25,7 @@ class Wallet : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-
+    Wallet();
     ~Wallet();
     // These are currently blocking calls, although they might take a moment.
     bool generateKeyPair();
@@ -52,6 +54,9 @@ signals:
     void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
 
+private slots:
+    void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+
 private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
@@ -64,6 +69,8 @@ private:
     void updateImageProvider();
     bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
     bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
+
+    bool verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText);
 };
 
 #endif // hifi_Wallet_h

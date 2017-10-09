@@ -17,7 +17,7 @@
 #include "BakeWidget.h"
 
 BakeWidget::BakeWidget(QWidget* parent, Qt::WindowFlags flags) :
-	QWidget(parent, flags)
+    QWidget(parent, flags)
 {
 
 }

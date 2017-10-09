@@ -24,6 +24,7 @@
 
 #include "BulletUtil.h"
 #include "CharacterGhostObject.h"
+#include "AvatarConstants.h" 
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -42,14 +43,17 @@ const btScalar MAX_CHARACTER_MOTOR_TIMESCALE = 60.0f; // one minute
 const btScalar MIN_CHARACTER_MOTOR_TIMESCALE = 0.05f;
 
 class CharacterController : public btCharacterControllerInterface {
+
 public:
     CharacterController();
     virtual ~CharacterController();
-
     bool needsRemoval() const;
     bool needsAddition() const;
     virtual void setDynamicsWorld(btDynamicsWorld* world);
     btCollisionObject* getCollisionObject() { return _rigidBody; }
+
+    void setGravity(float gravity);
+    float getGravity();
 
     virtual void updateShapeIfNecessary() = 0;
 
@@ -73,6 +77,7 @@ public:
     void setStepUpEnabled(bool enabled) { _stepUpEnabled = enabled; }
     void computeNewVelocity(btScalar dt, btVector3& velocity);
     void computeNewVelocity(btScalar dt, glm::vec3& velocity);
+    void setScaleFactor(btScalar scaleFactor) { _scaleFactor = scaleFactor; }
 
     // HACK for legacy 'thrust' feature
     void setLinearAcceleration(const glm::vec3& acceleration) { _linearAcceleration = glmToBullet(acceleration); }
@@ -130,7 +135,7 @@ protected:
 #endif
 
     virtual void updateMassProperties() = 0;
-    void updateGravity();
+    void updateCurrentGravity();
     void updateUpAxis(const glm::quat& rotation);
     bool checkForSupport(btCollisionWorld* collisionWorld);
 
@@ -183,9 +188,9 @@ protected:
     bool _stepUpEnabled { true };
     bool _hasSupport;
 
-    btScalar _gravity { 0.0f };
+    btScalar _currentGravity { 0.0f };
+    btScalar _gravity { DEFAULT_AVATAR_GRAVITY };
 
-    btScalar _jumpSpeed;
     btScalar _followTime;
     btVector3 _followLinearDisplacement;
     btQuaternion _followAngularDisplacement;
@@ -203,6 +208,8 @@ protected:
     bool _flyingAllowed { true };
     bool _collisionlessAllowed { true };
     bool _collisionless { false };
+
+    btScalar _scaleFactor { 1.0f };
 };
 
 #endif // hifi_CharacterController_h

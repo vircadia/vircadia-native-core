@@ -211,12 +211,12 @@ class UrlHandler : public QObject {
 public:
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->canAcceptURL(url);
+        return handler && handler->canAcceptURL(url);
     }
 
     Q_INVOKABLE bool handleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        return handler->acceptURL(url);
+        return handler && handler->acceptURL(url);
     }
 };
 
@@ -827,7 +827,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     switch (event->type()) {
         case QEvent::Resize: {
             QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-            QWidget* widget = dynamic_cast<QWidget*>(originalDestination);
+            QWidget* widget = static_cast<QWidget*>(originalDestination);
             if (widget) {
                 this->resize(resizeEvent->size());
             }
@@ -932,7 +932,7 @@ void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
 }
 
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
-    QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+    QQuickItem* item = static_cast<QQuickItem*>(object);
     if (!item) {
         setFocusText(false);
         _currentFocusItem = nullptr;
@@ -987,8 +987,8 @@ static bool equals(const QByteArray& byteArray, const uint8_t* ptr) {
     return ptr[i] == 0x00;
 }
 
-void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
-    auto eventHandler = getEventHandler();
+void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverride) {
+    auto eventHandler = targetOverride ? targetOverride : getEventHandler();
     if (eventHandler) {
         auto utf8Key = key.toUtf8();
 
@@ -1019,6 +1019,10 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
 }
 
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+#if Q_OS_ANDROID
+    return;
+#endif
+
     if (!object) {
         return;
     }

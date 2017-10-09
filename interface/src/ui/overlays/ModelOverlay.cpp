@@ -46,19 +46,38 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
+        Transform transform = evalRenderTransform();
         if (_scaleToFit) {
-            _model->setScaleToFit(true, getScale() * getDimensions());
+            _model->setScaleToFit(true, transform.getScale() * getDimensions());
         } else {
-            _model->setScale(getScale());
+            _model->setScale(transform.getScale());
         }
-        _model->setRotation(getRotation());
-        _model->setTranslation(getPosition());
+        _model->setRotation(transform.getRotation());
+        _model->setTranslation(transform.getTranslation());
         _model->setURL(_url);
         _model->simulate(deltatime, true);
     } else {
         _model->simulate(deltatime);
     }
     _isLoaded = _model->isActive();
+
+    // check to see if when we added our model to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    render::ScenePointer scene = qApp->getMain3DScene();
+    render::Transaction transaction;
+    if (_model->needsFixupInScene()) {
+        _model->removeFromScene(scene, transaction);
+        _model->addToScene(scene, transaction);
+    }
+    if (_visibleDirty) {
+        _visibleDirty = false;
+        _model->setVisibleInScene(getVisible(), scene);
+    }
+    if (_drawInFrontDirty) {
+        _drawInFrontDirty = false;
+        _model->setLayeredInFront(getDrawInFront(), scene);
+    }
+    scene->enqueueTransaction(transaction);
 }
 
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -72,34 +91,27 @@ void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::Scene
     _model->removeFromScene(scene, transaction);
 }
 
-void ModelOverlay::render(RenderArgs* args) {
+void ModelOverlay::setVisible(bool visible) {
+    Overlay::setVisible(visible);
+    _visibleDirty = true;
+}
 
-    // check to see if when we added our model to the scene they were ready, if they were not ready, then
-    // fix them up in the scene
-    render::ScenePointer scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    if (_model->needsFixupInScene()) {
-        _model->removeFromScene(scene, transaction);
-        _model->addToScene(scene, transaction);
-    }
-
-    _model->setVisibleInScene(_visible, scene);
-    _model->setLayeredInFront(getDrawInFront(), scene);
-
-    scene->enqueueTransaction(transaction);
+void ModelOverlay::setDrawInFront(bool drawInFront) {
+    Base3DOverlay::setDrawInFront(drawInFront);
+    _drawInFrontDirty = true;
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto origPosition = getPosition();
     auto origRotation = getRotation();
     auto origDimensions = getDimensions();
-    auto origScale = getScale();
+    auto origScale = getSNScale();
 
     Base3DOverlay::setProperties(properties);
 
     auto scale = properties["scale"];
     if (scale.isValid()) {
-        setScale(vec3FromVariant(scale));
+        setSNScale(vec3FromVariant(scale));
     }
 
     auto dimensions = properties["dimensions"];
@@ -112,7 +124,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _scaleToFit = false;
     }
 
-    if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getScale()) {
+    if (origPosition != getPosition() || origRotation != getRotation() || origDimensions != getDimensions() || origScale != getSNScale()) {
         _updateModel = true;
     }
 
@@ -194,7 +206,7 @@ QVariant ModelOverlay::getProperty(const QString& property) {
         return vec3toVariant(getDimensions());
     }
     if (property == "scale") {
-        return vec3toVariant(getScale());
+        return vec3toVariant(getSNScale());
     }
     if (property == "textures") {
         if (_modelTextures.size() > 0) {
@@ -276,6 +288,12 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
 
 ModelOverlay* ModelOverlay::createClone() const {
     return new ModelOverlay(this);
+}
+
+Transform ModelOverlay::evalRenderTransform() {
+    Transform transform = getTransform();
+    transform.setScale(1.0f); // disable inherited scale
+    return transform;
 }
 
 void ModelOverlay::locationChanged(bool tellPhysics) {

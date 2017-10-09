@@ -13,6 +13,7 @@
 #include <math.h>
 #include <QDebug>
 
+#include <shared/PlatformHacks.h>
 #include <Transform.h>
 
 using namespace gpu;

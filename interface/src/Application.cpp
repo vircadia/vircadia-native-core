@@ -198,6 +198,8 @@
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
 
+#include <FadeEffect.h>
+
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
@@ -682,6 +684,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
 
+    DependencyManager::set<FadeEffect>();
+
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();
 
@@ -963,7 +967,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    scriptEngines->registerScriptInitializer([this](ScriptEngine* engine){
+    scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
         registerScriptEngineWithApplicationServices(engine);
     });
 
@@ -980,7 +984,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(scriptEngines, &ScriptEngines::scriptLoadError,
         scriptEngines, [](const QString& filename, const QString& error){
-        OffscreenUi::warning(nullptr, "Error Loading Script", filename + " failed to load.");
+        OffscreenUi::asyncWarning(nullptr, "Error Loading Script", filename + " failed to load.");
     }, Qt::QueuedConnection);
 
 #ifdef _WIN32
@@ -1845,7 +1849,7 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
         case DomainHandler::ConnectionRefusedReason::Unknown: {
             QString message = "Unable to connect to the location you are visiting.\n";
             message += reasonMessage;
-            OffscreenUi::warning("", message);
+            OffscreenUi::asyncWarning("", message);
             break;
         }
         default:
@@ -2057,6 +2061,7 @@ void Application::cleanupBeforeQuit() {
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioInjectorManager>();
+    DependencyManager::destroy<AudioScriptingInterface>();
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
@@ -2368,6 +2373,7 @@ void Application::initializeUi() {
 
     // Pre-create a couple of Web3D overlays to speed up tablet UI
     auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
     offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
 }
 
@@ -2413,10 +2419,18 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
     RenderArgs renderArgs;
+
+    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
     {
         PROFILE_RANGE(render, "/buildFrustrumAndArgs");
         {
             QMutexLocker viewLocker(&_viewMutex);
+            // adjust near clip plane to account for sensor scaling.
+            auto adjustedProjection = glm::perspective(_viewFrustum.getFieldOfView(),
+                                                       _viewFrustum.getAspectRatio(),
+                                                       DEFAULT_NEAR_CLIP * sensorToWorldScale,
+                                                       _viewFrustum.getFarClip());
+            _viewFrustum.setProjection(adjustedProjection);
             _viewFrustum.calculate();
         }
         renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
@@ -2464,7 +2478,7 @@ void Application::paintGL() {
             PerformanceTimer perfTimer("CameraUpdates");
 
             auto myAvatar = getMyAvatar();
-            boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
+            boomOffset = myAvatar->getModelScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
 
             // The render mode is default or mirror if the camera is in mirror mode, assigned further below
             renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -2476,7 +2490,7 @@ void Application::paintGL() {
                 if (isHMDMode()) {
                     mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
                     _myCamera.setPosition(extractTranslation(camMat));
-                    _myCamera.setOrientation(glm::quat_cast(camMat));
+                    _myCamera.setOrientation(glmExtractRotation(camMat));
                 } else {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition());
                     _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
@@ -2484,7 +2498,7 @@ void Application::paintGL() {
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 if (isHMDMode()) {
                     auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                    _myCamera.setOrientation(glm::normalize(glm::quat_cast(hmdWorldMat)));
+                    _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
                     _myCamera.setPosition(extractTranslation(hmdWorldMat) +
                         myAvatar->getOrientation() * boomOffset);
                 } else {
@@ -2517,14 +2531,14 @@ void Application::paintGL() {
                     hmdOffset.x = -hmdOffset.x;
 
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
+                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
                         + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                         + mirrorBodyOrientation * hmdOffset);
                 } else {
                     _myCamera.setOrientation(myAvatar->getOrientation()
                         * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
+                        + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
                         + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                         glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
                 }
@@ -2552,7 +2566,7 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/updateCompositor");
-        getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
+        getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform(), getMyAvatar()->getSensorToWorldMatrix());
     }
 
     gpu::FramebufferPointer finalFramebuffer;
@@ -2566,7 +2580,12 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
-    mat4 eyeProjections[2];
+    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
+    float ipdScale = hmdInterface->getIPDScale();
+
+    // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
+    ipdScale *= sensorToWorldScale;
+
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -2575,6 +2594,7 @@ void Application::paintGL() {
         // in the overlay render?
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height());
+        auto baseProjection = renderArgs.getViewFrustum().getProjection();
         if (displayPlugin->isStereo()) {
             // Stereo modes will typically have a larger projection matrix overall,
             // so we ask for the 'mono' projection matrix, which for stereo and HMD
@@ -2585,12 +2605,10 @@ void Application::paintGL() {
             // just relying on the left FOV in each case and hoping that the
             // overall culling margin of error doesn't cause popping in the
             // right eye.  There are FIXMEs in the relevant plugins
-            _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
+            _myCamera.setProjection(displayPlugin->getCullingProjection(baseProjection));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
-            auto baseProjection = renderArgs.getViewFrustum().getProjection();
-            auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-            float IPDScale = hmdInterface->getIPDScale();
+            mat4 eyeProjections[2];
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
@@ -2604,7 +2622,7 @@ void Application::paintGL() {
                 // Grab the translation
                 vec3 eyeOffset = glm::vec3(eyeToHead[3]);
                 // Apply IPD scaling
-                mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
+                mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * ipdScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
                 eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
             });
@@ -2625,10 +2643,7 @@ void Application::paintGL() {
         renderArgs._batch = &postCompositeBatch;
         renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
         renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
-        for_each_eye([&](Eye eye) {
-            renderArgs._batch->setProjectionTransform(eyeProjections[eye]);
-            _overlays.render3DHUDOverlays(&renderArgs);
-        });
+        _overlays.render3DHUDOverlays(&renderArgs);
     }
 
     auto frame = _gpuContext->endFrame();
@@ -3731,7 +3746,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
             DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
         }
     } else {
-        OffscreenUi::warning("", "No location details were found in the file\n" +
+        OffscreenUi::asyncWarning("", "No location details were found in the file\n" +
                              snapshotPath + "\nTry dragging in an authentic Hifi snapshot.");
     }
     return true;
@@ -4450,11 +4465,13 @@ void Application::init() {
     }, Qt::QueuedConnection);
 }
 
-void Application::updateLOD() const {
+void Application::updateLOD(float deltaTime) const {
     PerformanceTimer perfTimer("LOD");
     // adjust it unless we were asked to disable this feature, or if we're currently in throttleRendering mode
     if (!isThrottleRendering()) {
-        DependencyManager::get<LODManager>()->autoAdjustLOD(_frameCounter.rate());
+        float batchTime = (float)_gpuContext->getFrameTimerBatchAverage();
+        float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
+        DependencyManager::get<LODManager>()->autoAdjustLOD(batchTime, engineRunTime, deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
     }
@@ -4831,7 +4848,7 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
-    updateLOD();
+    updateLOD(deltaTime);
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
@@ -5141,12 +5158,6 @@ void Application::update(float deltaTime) {
     }
 
     {
-        PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
-        PerformanceTimer perfTimer("overlays");
-        _overlays.update(deltaTime);
-    }
-
-    {
         PROFILE_RANGE(app, "RayPickManager");
         _rayPickManager.update();
     }
@@ -5154,6 +5165,12 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE(app, "LaserPointerManager");
         _laserPointerManager.update();
+    }
+
+    {
+        PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PerformanceTimer perfTimer("overlays");
+        _overlays.update(deltaTime);
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -5930,7 +5947,7 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 void Application::packetSent(quint64 length) {
 }
 
-void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
+void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
 
     scriptEngine->setEmitScriptUpdatesFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -5965,29 +5982,31 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
-    connect(scriptEngine, &ScriptEngine::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
+    connect(scriptEngine.data(), &ScriptEngine::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
-    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue,
+    qScriptRegisterMetaType(scriptEngine.data(), OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("OffscreenFlags", DependencyManager::get<OffscreenUi>()->getFlags());
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
 
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarButtonProxy>, wrapperFromScriptValue<ToolbarButtonProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(),
+                            wrapperToScriptValue<ToolbarButtonProxy>, wrapperFromScriptValue<ToolbarButtonProxy>);
     scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
-    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
+    qScriptRegisterMetaType(scriptEngine.data(),
+                            wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
     scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
 
-
-    DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(DependencyManager::get<ToolbarScriptingInterface>().data());
+    auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>().data();
+    DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(toolbarScriptingInterface);
 
     scriptEngine->registerGlobalObject("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    qScriptRegisterMetaType(scriptEngine, CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), CustomPromptResultToScriptValue, CustomPromptResultFromScriptValue);
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                         LocationScriptingInterface::locationSetter, "Window");
     // register `location` on the global object.
@@ -6019,7 +6038,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
-    qScriptRegisterMetaType(scriptEngine, DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
 
@@ -6047,11 +6066,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine, steamClient.get()));
+        scriptEngine->registerGlobalObject("Steam", new SteamScriptingInterface(scriptEngine.data(), steamClient.get()));
     }
     auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
     scriptEngine->registerGlobalObject("Controller", scriptingInterface.data());
-    UserInputMapper::registerControllerTypes(scriptEngine);
+    UserInputMapper::registerControllerTypes(scriptEngine.data());
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
@@ -6062,14 +6081,19 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Selection", DependencyManager::get<SelectionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
-    qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
+    qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
-    connect(scriptEngine, &ScriptEngine::printedMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
-    connect(scriptEngine, &ScriptEngine::errorMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
-    connect(scriptEngine, &ScriptEngine::warningMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
-    connect(scriptEngine, &ScriptEngine::infoMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
-    connect(scriptEngine, &ScriptEngine::clearDebugWindow, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
+    connect(scriptEngine.data(), &ScriptEngine::printedMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
+    connect(scriptEngine.data(), &ScriptEngine::errorMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
+    connect(scriptEngine.data(), &ScriptEngine::warningMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
+    connect(scriptEngine.data(), &ScriptEngine::infoMessage,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
+    connect(scriptEngine.data(), &ScriptEngine::clearDebugWindow,
+            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
 
 }
 
@@ -6124,7 +6148,7 @@ void Application::setSessionUUID(const QUuid& sessionUUID) const {
 bool Application::askToSetAvatarUrl(const QString& url) {
     QUrl realUrl(url);
     if (realUrl.isLocalFile()) {
-        OffscreenUi::warning("", "You can not use local files for avatar components.");
+        OffscreenUi::asyncWarning("", "You can not use local files for avatar components.");
         return false;
     }
 
@@ -6136,41 +6160,55 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QString modelName = fstMapping["name"].toString();
     QString modelLicense = fstMapping["license"].toString();
 
-    bool agreeToLicence = true; // assume true
+    bool agreeToLicense = true; // assume true
+    //create set avatar callback
+    auto setAvatar = [=] (QString url, QString modelName) {
+        ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Set Avatar",
+                                                              "Would you like to use '" + modelName + "' for your avatar?",
+                                                              QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+
+            bool ok = (QMessageBox::Ok == static_cast<QMessageBox::StandardButton>(answer.toInt()));
+            if (ok) {
+                getMyAvatar()->useFullAvatarURL(url, modelName);
+                emit fullAvatarURLChanged(url, modelName);
+            } else {
+                qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
+            }
+        });
+    };
+
     if (!modelLicense.isEmpty()) {
-        // word wrap the licence text to fit in a reasonable shaped message box.
+        // word wrap the license text to fit in a reasonable shaped message box.
         const int MAX_CHARACTERS_PER_LINE = 90;
         modelLicense = simpleWordWrap(modelLicense, MAX_CHARACTERS_PER_LINE);
 
-        agreeToLicence = QMessageBox::Yes == OffscreenUi::question("Avatar Usage License",
-            modelLicense + "\nDo you agree to these terms?",
-            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-    }
+        ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Avatar Usage License",
+                                                              modelLicense + "\nDo you agree to these terms?",
+                                                              QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=, &agreeToLicense] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
 
-    bool ok = false;
+            agreeToLicense = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            if (agreeToLicense) {
+                switch (modelType) {
+                    case FSTReader::HEAD_AND_BODY_MODEL: {
+                    setAvatar(url, modelName);
+                    break;
+                }
+                default:
+                    OffscreenUi::asyncWarning("", modelName + "Does not support a head and body as required.");
+                    break;
+                }
+            } else {
+                qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+            }
 
-    if (!agreeToLicence) {
-        qCDebug(interfaceapp) << "Declined to agree to avatar license: " << url;
+            //auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        });
     } else {
-        switch (modelType) {
-
-            case FSTReader::HEAD_AND_BODY_MODEL:
-                 ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
-                                   "Would you like to use '" + modelName + "' for your avatar?",
-                                   QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-            break;
-
-            default:
-                OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
-            break;
-        }
-    }
-
-    if (ok) {
-        getMyAvatar()->useFullAvatarURL(url, modelName);
-        emit fullAvatarURLChanged(url, modelName);
-    } else {
-        qCDebug(interfaceapp) << "Declined to use the avatar: " << url;
+        setAvatar(url, modelName);
     }
 
     return true;
@@ -6178,8 +6216,6 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
 
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
-    QMessageBox::StandardButton reply;
-
     QString shortName = scriptFilenameOrURL;
 
     QUrl scriptURL { scriptFilenameOrURL };
@@ -6191,15 +6227,20 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     }
 
     QString message = "Would you like to run this script:\n" + shortName;
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion(getWindow(), "Run Script", message,
+                                                           QMessageBox::Yes | QMessageBox::No);
 
-    reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
+    QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+        const QString& fileName = scriptFilenameOrURL;
+        if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
+            qCDebug(interfaceapp) << "Chose to run the script: " << fileName;
+            DependencyManager::get<ScriptEngines>()->loadScript(fileName);
+        } else {
+            qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
+        }
+        QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+    });
 
-    if (reply == QMessageBox::Yes) {
-        qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;
-        DependencyManager::get<ScriptEngines>()->loadScript(scriptFilenameOrURL);
-    } else {
-        qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
-    }
     return true;
 }
 
@@ -6236,22 +6277,26 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
                     name = nameValue.toString();
                 }
 
-                // display confirmation dialog
-                if (displayAvatarAttachmentConfirmationDialog(name)) {
-
-                    // add attachment to avatar
-                    auto myAvatar = getMyAvatar();
-                    assert(myAvatar);
-                    auto attachmentDataVec = myAvatar->getAttachmentData();
-                    AttachmentData attachmentData;
-                    attachmentData.fromJson(jsonObject);
-                    attachmentDataVec.push_back(attachmentData);
-                    myAvatar->setAttachmentData(attachmentDataVec);
-
-                } else {
-                    qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
-                }
-
+                auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
+                auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?").arg(name);
+                ModalDialogListener* dlg = OffscreenUi::asyncQuestion(avatarAttachmentConfirmationTitle,
+                                           avatarAttachmentConfirmationMessage,
+                                           QMessageBox::Ok | QMessageBox::Cancel);
+                QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+                    QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+                    if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
+                        // add attachment to avatar
+                        auto myAvatar = getMyAvatar();
+                        assert(myAvatar);
+                        auto attachmentDataVec = myAvatar->getAttachmentData();
+                        AttachmentData attachmentData;
+                        attachmentData.fromJson(jsonObject);
+                        attachmentDataVec.push_back(attachmentData);
+                        myAvatar->setAttachmentData(attachmentDataVec);
+                    } else {
+                        qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
+                    }
+                });
             } else {
                 // json parse error
                 auto avatarAttachmentParseErrorString = tr("Error parsing attachment JSON from url: \"%1\"");
@@ -6324,20 +6369,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
 
 void Application::displayAvatarAttachmentWarning(const QString& message) const {
     auto avatarAttachmentWarningTitle = tr("Avatar Attachment Failure");
-    OffscreenUi::warning(avatarAttachmentWarningTitle, message);
-}
-
-bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name) const {
-    auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
-    auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?").arg(name);
-    auto reply = OffscreenUi::question(avatarAttachmentConfirmationTitle,
-                                       avatarAttachmentConfirmationMessage,
-                                       QMessageBox::Ok | QMessageBox::Cancel);
-    if (QMessageBox::Ok == reply) {
-        return true;
-    } else {
-        return false;
-    }
+    OffscreenUi::asyncWarning(avatarAttachmentWarningTitle, message);
 }
 
 void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const {
@@ -6404,7 +6436,12 @@ void Application::addAssetToWorldFromURL(QString url) {
     }
     if (url.contains("vr.google.com/downloads")) {
         filename = url.section('/', -1);
-        filename.remove(".zip");
+        if (url.contains("noDownload")) {
+            filename.remove(".zip?noDownload=false");
+        } else {
+            filename.remove(".zip");
+        }
+        
     }
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
@@ -6434,7 +6471,11 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     }
     if (url.contains("vr.google.com/downloads")) {
         filename = url.section('/', -1);
-        filename.remove(".zip");
+        if (url.contains("noDownload")) {
+            filename.remove(".zip?noDownload=false");
+        } else {
+            filename.remove(".zip");
+        }
         isBlocks = true;
     }
 
@@ -6601,7 +6642,9 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
-    properties.setPosition(getMyAvatar()->getPosition() + getMyAvatar()->getOrientation() * glm::vec3(0.0f, 0.0f, -2.0f));
+    glm::vec3 positionOffset = getMyAvatar()->getOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
+    properties.setPosition(getMyAvatar()->getPosition() + positionOffset);
+    properties.setRotation(getMyAvatar()->getOrientation());
     properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
     auto entityID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
 
@@ -6648,7 +6691,7 @@ void Application::addAssetToWorldCheckModelSize() {
         if (dimensions != DEFAULT_DIMENSIONS) {
 
             // Scale model so that its maximum is exactly specific size.
-            const float MAXIMUM_DIMENSION = 1.0f;
+            const float MAXIMUM_DIMENSION = getMyAvatar()->getSensorToWorldScale();
             auto previousDimensions = dimensions;
             auto scale = std::min(MAXIMUM_DIMENSION / dimensions.x, std::min(MAXIMUM_DIMENSION / dimensions.y,
                 MAXIMUM_DIMENSION / dimensions.z));
@@ -6907,12 +6950,17 @@ void Application::openUrl(const QUrl& url) const {
 
 void Application::loadDialog() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
-    QString fileNameString = OffscreenUi::getOpenFileName(
-        _glWidget, tr("Open Script"), getPreviousScriptLocation(), tr("JavaScript Files (*.js)"));
-    if (!fileNameString.isEmpty() && QFile(fileNameString).exists()) {
-        setPreviousScriptLocation(QFileInfo(fileNameString).absolutePath());
-        DependencyManager::get<ScriptEngines>()->loadScript(fileNameString, true, false, false, true);  // Don't load from cache
-    }
+    ModalDialogListener* dlg = OffscreenUi::getOpenFileNameAsync(_glWidget, tr("Open Script"),
+                                                                 getPreviousScriptLocation(),
+                                                                 tr("JavaScript Files (*.js)"));
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        const QString& response = answer.toString();
+        if (!response.isEmpty() && QFile(response).exists()) {
+            setPreviousScriptLocation(QFileInfo(response).absolutePath());
+            DependencyManager::get<ScriptEngines>()->loadScript(response, true, false, false, true);  // Don't load from cache
+        }
+    });
 }
 
 QString Application::getPreviousScriptLocation() {
@@ -6925,12 +6973,16 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    QString newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
-    if (QUrl(newScript).scheme() == "atp") {
-        OffscreenUi::warning("Error Loading Script", "Cannot load client script over ATP");
-    } else if (!newScript.isEmpty()) {
-        DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
-    }
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        const QString& newScript = response.toString();
+        if (QUrl(newScript).scheme() == "atp") {
+            OffscreenUi::asyncWarning("Error Loading Script", "Cannot load client script over ATP");
+        } else if (!newScript.isEmpty()) {
+            DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
+        }
+    });
 }
 
 void Application::loadLODToolsDialog() {
@@ -7047,7 +7099,7 @@ void Application::notifyPacketVersionMismatch() {
         QString message = "The location you are visiting is running an incompatible server version.\n";
         message += "Content may not display properly.";
 
-        OffscreenUi::warning("", message);
+        OffscreenUi::asyncWarning("", message);
     }
 }
 
@@ -7056,7 +7108,7 @@ void Application::checkSkeleton() const {
         qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
 
         QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
-        OffscreenUi::warning("", message);
+        OffscreenUi::asyncWarning("", message);
 
         getMyAvatar()->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {

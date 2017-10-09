@@ -24,6 +24,12 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
+
+    Image {
+        anchors.fill: parent;
+        source: "images/wallet-bg.jpg";
+    }
+    
     Hifi.QmlCommerce {
         id: commerce;
     }

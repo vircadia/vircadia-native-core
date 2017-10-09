@@ -50,7 +50,7 @@ protected:
     Q_INVOKABLE void chooseSecurityImage(const QString& imageFile);
     Q_INVOKABLE void setPassphrase(const QString& passphrase);
 
-    Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
+    Q_INVOKABLE void buy(const QString& assetId, int cost, const bool controlledFailure = false);
     Q_INVOKABLE void balance();
     Q_INVOKABLE void inventory();
     Q_INVOKABLE void history();

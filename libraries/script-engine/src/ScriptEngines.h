@@ -33,7 +33,7 @@ class ScriptEngines : public QObject, public Dependency {
     Q_PROPERTY(ScriptsModelFilter* scriptsModelFilter READ scriptsModelFilter CONSTANT)
 
 public:
-    using ScriptInitializer = std::function<void(ScriptEngine*)>;
+    using ScriptInitializer = std::function<void(ScriptEnginePointer)>;
 
     ScriptEngines(ScriptEngine::Context context);
     void registerScriptInitializer(ScriptInitializer initializer);
@@ -45,7 +45,7 @@ public:
     void loadDefaultScripts();
     void setScriptsLocation(const QString& scriptsLocation);
     QStringList getRunningScripts();
-    ScriptEngine* getScriptEngine(const QUrl& scriptHash);
+    ScriptEnginePointer getScriptEngine(const QUrl& scriptHash);
 
     ScriptsModel* scriptsModel() { return &_scriptsModel; };
     ScriptsModelFilter* scriptsModelFilter() { return &_scriptsModelFilter; };
@@ -53,7 +53,7 @@ public:
     QString getDefaultScriptsLocation() const;
 
     Q_INVOKABLE void loadOneScript(const QString& scriptFilename);
-    Q_INVOKABLE ScriptEngine* loadScript(const QUrl& scriptFilename = QString(),
+    Q_INVOKABLE ScriptEnginePointer loadScript(const QUrl& scriptFilename = QString(),
         bool isUserLoaded = true, bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
     Q_INVOKABLE bool stopScript(const QString& scriptHash, bool restart = false);
 
@@ -71,6 +71,8 @@ public:
     // Called at shutdown time
     void shutdownScripting();
     bool isStopped() const { return _isStopped; }
+
+    void addScriptEngine(ScriptEnginePointer);
 
 signals:
     void scriptCountChanged();
@@ -92,22 +94,21 @@ public slots:
     void onClearDebugWindow();
 
 protected slots:
-    void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
+    void onScriptFinished(const QString& fileNameString, ScriptEnginePointer engine);
 
 protected:
     friend class ScriptEngine;
 
     void reloadScript(const QString& scriptName) { loadScript(scriptName, true, false, false, true); }
-    void addScriptEngine(ScriptEngine* engine);
-    void removeScriptEngine(ScriptEngine* engine);
+    void removeScriptEngine(ScriptEnginePointer);
     void onScriptEngineLoaded(const QString& scriptFilename);
     void onScriptEngineError(const QString& scriptFilename);
-    void launchScriptEngine(ScriptEngine* engine);
+    void launchScriptEngine(ScriptEnginePointer);
 
     ScriptEngine::Context _context;
     QReadWriteLock _scriptEnginesHashLock;
-    QHash<QUrl, ScriptEngine*> _scriptEnginesHash;
-    QSet<ScriptEngine*> _allKnownScriptEngines;
+    QHash<QUrl, ScriptEnginePointer> _scriptEnginesHash;
+    QSet<ScriptEnginePointer> _allKnownScriptEngines;
     QMutex _allScriptsMutex;
     std::list<ScriptInitializer> _scriptInitializers;
     mutable Setting::Handle<QString> _scriptsLocationHandle;

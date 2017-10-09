@@ -61,7 +61,7 @@ void _writeLines(const QString& filename, const QList<QString>& lines) {
     QTextStream(&file) << json;
 }
 
-JSConsole::JSConsole(QWidget* parent, const QSharedPointer<ScriptEngine>& scriptEngine) :
+JSConsole::JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine) :
     QWidget(parent),
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
@@ -97,7 +97,7 @@ JSConsole::~JSConsole() {
     delete _ui;
 }
 
-void JSConsole::setScriptEngine(const QSharedPointer<ScriptEngine>&  scriptEngine) {
+void JSConsole::setScriptEngine(const ScriptEnginePointer&  scriptEngine) {
     if (_scriptEngine == scriptEngine && scriptEngine != NULL) {
         return;
     }
@@ -111,7 +111,7 @@ void JSConsole::setScriptEngine(const QSharedPointer<ScriptEngine>&  scriptEngin
 
     // if scriptEngine is NULL then create one and keep track of it using _ownScriptEngine
     if (scriptEngine.isNull()) {
-        _scriptEngine = QSharedPointer<ScriptEngine>(DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false), &QObject::deleteLater);
+        _scriptEngine = DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false);
     } else {
         _scriptEngine = scriptEngine;
     }

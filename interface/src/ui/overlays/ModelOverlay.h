@@ -28,7 +28,7 @@ public:
     ModelOverlay(const ModelOverlay* modelOverlay);
 
     virtual void update(float deltatime) override;
-    virtual void render(RenderArgs* args) override;
+    virtual void render(RenderArgs* args) override {};
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
@@ -45,7 +45,12 @@ public:
 
     float getLoadPriority() const { return _loadPriority; }
 
+    void setVisible(bool visible) override;
+    void setDrawInFront(bool drawInFront) override;
+
 protected:
+    Transform evalRenderTransform() override;
+
     // helper to extract metadata from our Model's rigged joints
     template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;
     template <typename vectorType, typename itemType>
@@ -60,6 +65,9 @@ private:
     bool _updateModel = { false };
     bool _scaleToFit = { false };
     float _loadPriority { 0.0f };
+
+    bool _visibleDirty { false };
+    bool _drawInFrontDirty { false };
 };
 
 #endif // hifi_ModelOverlay_h

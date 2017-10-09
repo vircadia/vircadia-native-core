@@ -836,6 +836,9 @@ Section "-Core installation"
   Delete "$INSTDIR\ui_resources_200_percent.pak"
   Delete "$INSTDIR\vccorlib120.dll"
   Delete "$INSTDIR\version"
+  Delete "$INSTDIR\msvcr140.dll"
+  Delete "$INSTDIR\msvcp140.dll"
+  Delete "$INSTDIR\vcruntime140.dll"
   Delete "$INSTDIR\xinput1_3.dll"
 
   ; Delete old desktop shortcuts before they were renamed during Sandbox rename

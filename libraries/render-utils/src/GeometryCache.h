@@ -161,10 +161,10 @@ public:
 
     // Bind the pipeline and get the state to render static geometry
     void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false);
+                                          bool unlit = false, bool depthBias = false, bool isAntiAliased = true);
     // Get the pipeline to render static geometry
     static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool fading = false);
+                                          bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true);
 
     void bindWebBrowserProgram(gpu::Batch& batch, bool transparent = false);
     gpu::PipelinePointer getWebBrowserProgram(bool transparent);

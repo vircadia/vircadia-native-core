@@ -42,6 +42,7 @@ class TabletScriptingInterface : public QObject, public Dependency {
 public:
     TabletScriptingInterface();
     ~TabletScriptingInterface();
+    static const QString QML;
 
     void setToolbarScriptingInterface(ToolbarScriptingInterface* toolbarScriptingInterface) { _toolbarScriptingInterface = toolbarScriptingInterface; }
 
@@ -124,7 +125,7 @@ public:
     Q_INVOKABLE void gotoWebScreen(const QString& url);
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase = false);
 
-    Q_INVOKABLE void loadQMLSource(const QVariant& path);
+    Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
     //        it should be initialized internally so it cannot fail
     Q_INVOKABLE bool pushOntoStack(const QVariant& path);

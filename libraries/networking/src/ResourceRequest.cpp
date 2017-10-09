@@ -36,6 +36,7 @@ QString ResourceRequest::getResultString() const {
         case AccessDenied: return "Access Denied";
         case InvalidURL: return "Invalid URL";
         case NotFound: return "Not Found";
+        case RedirectFail: return "Redirect Fail";
         default: return "Unspecified Error";
     }
 }

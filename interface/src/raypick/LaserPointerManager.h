@@ -32,6 +32,7 @@ public:
     const RayPickResult getPrevRayPickResult(const QUuid uid);
 
     void setPrecisionPicking(QUuid uid, const bool precisionPicking);
+    void setLaserLength(QUuid uid, const float laserLength);
     void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
     void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
     void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);
@@ -46,10 +47,6 @@ public:
 private:
     QHash<QUuid, std::shared_ptr<LaserPointer>> _laserPointers;
     QHash<QUuid, std::shared_ptr<QReadWriteLock>> _laserPointerLocks;
-    QReadWriteLock _addLock;
-    std::queue<std::pair<QUuid, std::shared_ptr<LaserPointer>>> _laserPointersToAdd;
-    QReadWriteLock _removeLock;
-    std::queue<QUuid> _laserPointersToRemove;
     QReadWriteLock _containsLock;
 
 };

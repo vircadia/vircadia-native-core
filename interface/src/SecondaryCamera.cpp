@@ -18,7 +18,6 @@
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
 void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
-
     task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
@@ -30,14 +29,6 @@ void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render
 }
 
 class SecondaryCameraJob {  // Changes renderContext for our framebuffer and view.
-    QUuid _attachedEntityId{};
-    glm::vec3 _position{};
-    glm::quat _orientation{};
-    float _vFoV{};
-    float _nearClipPlaneDistance{};
-    float _farClipPlaneDistance{};
-    EntityPropertyFlags _attachedEntityPropertyFlags;
-    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
 public:
     using Config = SecondaryCameraJobConfig;
     using JobModel = render::Job::ModelO<SecondaryCameraJob, RenderArgsPointer, Config>;
@@ -55,13 +46,15 @@ public:
         _vFoV = config.vFoV;
         _nearClipPlaneDistance = config.nearClipPlaneDistance;
         _farClipPlaneDistance = config.farClipPlaneDistance;
+        _textureWidth = config.textureWidth;
+        _textureHeight = config.textureHeight;
     }
 
     void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
         auto args = renderContext->args;
         auto textureCache = DependencyManager::get<TextureCache>();
         gpu::FramebufferPointer destFramebuffer;
-        destFramebuffer = textureCache->getSpectatorCameraFramebuffer(); // FIXME: Change the destination based on some unimplemented config var
+        destFramebuffer = textureCache->getSpectatorCameraFramebuffer(_textureWidth, _textureHeight); // FIXME: Change the destination based on some unimplemented config var
         if (destFramebuffer) {
             _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
             _cachedArgsPointer->_viewport = args->_viewport;
@@ -98,6 +91,18 @@ public:
 protected:
     RenderArgs _cachedArgs;
     RenderArgsPointer _cachedArgsPointer;
+
+private:
+    QUuid _attachedEntityId;
+    glm::vec3 _position;
+    glm::quat _orientation;
+    float _vFoV;
+    float _nearClipPlaneDistance;
+    float _farClipPlaneDistance;
+    int _textureWidth;
+    int _textureHeight;
+    EntityPropertyFlags _attachedEntityPropertyFlags;
+    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
 };
 
 void SecondaryCameraJobConfig::setPosition(glm::vec3 pos) {
@@ -123,16 +128,10 @@ void SecondaryCameraJobConfig::enableSecondaryCameraRenderConfigs(bool enabled) 
     setEnabled(enabled);
 }
 
-void SecondaryCameraJobConfig::resetSizeSpectatorCamera(int width, int height) { // Carefully adjust the framebuffer / texture.
-    qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>()->resetSize(width, height);
-}
-
-void SecondaryCameraRenderTaskConfig::resetSize(int width, int height) { // FIXME: Add an arg here for "destinationFramebuffer"
-    bool wasEnabled = isEnabled();
-    setEnabled(false);
-    auto textureCache = DependencyManager::get<TextureCache>();
-    textureCache->resetSpectatorCameraFramebuffer(width, height); // FIXME: Call the correct reset function based on the "destinationFramebuffer" arg
-    setEnabled(wasEnabled);
+void SecondaryCameraJobConfig::resetSizeSpectatorCamera(int width, int height) {
+    textureWidth = width;
+    textureHeight = height;
+    emit dirty();
 }
 
 class EndSecondaryCameraFrame {  // Restores renderContext.

@@ -73,7 +73,7 @@ public:
     float getAlphaPulse() const { return _alphaPulse; }
 
     // setters
-    void setVisible(bool visible) { _visible = visible; }
+    virtual void setVisible(bool visible) { _visible = visible; }
     void setDrawHUDLayer(bool drawHUDLayer);
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }

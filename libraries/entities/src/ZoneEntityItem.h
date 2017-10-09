@@ -63,12 +63,12 @@ public:
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
 
-    const KeyLightPropertyGroup& getKeyLightProperties() const { return _keyLightProperties; }
+    KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
 
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
-    const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
+    SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
     bool getFlyingAllowed() const { return _flyingAllowed; }

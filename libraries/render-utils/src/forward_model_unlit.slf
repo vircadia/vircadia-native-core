@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  material_opaque_unlit.frag
+//  forward_model_unlit.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 5/5/2016.
@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredBufferWrite.slh@>
+<@include ForwardBufferWrite.slh@>
 <@include LightingModel.slh@>
 <@include model/Material.slh@>
 
@@ -38,7 +38,7 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
 
-    packDeferredFragmentUnlit(
+    packForwardFragmentUnlit(
         normalize(_normal), 
         opacity,
         albedo * isUnlitEnabled());

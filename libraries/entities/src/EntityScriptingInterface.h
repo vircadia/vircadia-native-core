@@ -99,7 +99,7 @@ public:
 
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
-    void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine);
+    void setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine);
     float calculateCost(float mass, float oldVelocity, float newVelocity);
 
     void resetActivityTracking();
@@ -125,6 +125,18 @@ public slots:
      * @return {bool} `true` if the DomainServer will allow this Node/Avatar to rez new temporary entities
      */
     Q_INVOKABLE bool canRezTmp();
+
+    /**jsdoc
+    * @function Entities.canRezCertified
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to rez new certified entities
+    */
+    Q_INVOKABLE bool canRezCertified();
+
+    /**jsdoc
+    * @function Entities.canRezTmpCertified
+    * @return {bool} `true` if the DomainServer will allow this Node/Avatar to rez new temporary certified entities
+    */
+    Q_INVOKABLE bool canRezTmpCertified();
 
     /**jsdoc
     * @function Entities.canWriteAsseets
@@ -215,12 +227,12 @@ public slots:
     /// this function will not find any models in script engine contexts which don't have access to entities
     Q_INVOKABLE QVector<QUuid> findEntitiesInFrustum(QVariantMap frustum) const;
 
-	/// finds entities of the indicated type within a sphere given by the center point and radius
-	/// @param {QString} string representation of entity type
-	/// @param {vec3} center point
-	/// @param {float} radius to search
-	/// this function will not find any entities in script engine contexts which don't have access to entities
-	Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
+    /// finds entities of the indicated type within a sphere given by the center point and radius
+    /// @param {QString} string representation of entity type
+    /// @param {vec3} center point
+    /// @param {float} radius to search
+    /// this function will not find any entities in script engine contexts which don't have access to entities
+    Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
@@ -380,6 +392,8 @@ signals:
     void canAdjustLocksChanged(bool canAdjustLocks);
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
+    void canRezCertifiedChanged(bool canRez);
+    void canRezTmpCertifiedChanged(bool canRez);
     void canWriteAssetsChanged(bool canWriteAssets);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
@@ -405,7 +419,7 @@ signals:
     void webEventReceived(const EntityItemID& entityItemID, const QVariant& message);
 
 protected:
-    void withEntitiesScriptEngine(std::function<void(EntitiesScriptEngineProvider*)> function) {
+    void withEntitiesScriptEngine(std::function<void(QSharedPointer<EntitiesScriptEngineProvider>)> function) {
         std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
         function(_entitiesScriptEngine);
     };
@@ -427,7 +441,7 @@ private:
     EntityTreePointer _entityTree;
 
     std::recursive_mutex _entitiesScriptEngineLock;
-    EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
+    QSharedPointer<EntitiesScriptEngineProvider> _entitiesScriptEngine;
 
     bool _bidOnSimulationOwnership { false };
     float _currentAvatarEnergy = { FLT_MAX };

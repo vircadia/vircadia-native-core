@@ -350,7 +350,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     }
 
     if (!properties.getClientOnly() && getIsClient() &&
-        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp()) {
+        !nodeList->getThisNodeCanRez() && !nodeList->getThisNodeCanRezTmp() &&
+        !nodeList->getThisNodeCanRezCertified() && !nodeList->getThisNodeCanRezTmpCertified()) {
         return nullptr;
     }
 
@@ -590,7 +591,7 @@ bool EntityTree::findNearPointOperation(const OctreeElementPointer& element, voi
 bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
-    EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
     if (entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->intersectedObject, args->precisionPicking)) {
@@ -1076,7 +1077,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             }
 
             if ((isAdd || properties.lifetimeChanged()) &&
-                !senderNode->getCanRez() && senderNode->getCanRezTmp()) {
+                ((!senderNode->getCanRez() && senderNode->getCanRezTmp()) ||
+                (!senderNode->getCanRezCertified() && senderNode->getCanRezTmpCertified()))) {
                 // this node is only allowed to rez temporary entities.  if need be, cap the lifetime.
                 if (properties.getLifetime() == ENTITY_ITEM_IMMORTAL_LIFETIME ||
                     properties.getLifetime() > _maxTmpEntityLifetime) {

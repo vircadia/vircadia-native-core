@@ -55,6 +55,9 @@ module.exports = {
         "XMLHttpRequest": false,
         "location": false,
         "print": false,
+        "RayPick": false,
+        "LaserPointers": false,
+        "ContextOverlay": false,
         "module": false
     },
     "rules": {

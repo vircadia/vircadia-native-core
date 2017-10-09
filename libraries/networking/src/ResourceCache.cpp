@@ -687,8 +687,9 @@ void Resource::makeRequest() {
         PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID));
         return;
     }
-    
+
     _request->setByteRange(_requestByteRange);
+    _request->setFailOnRedirect(_shouldFailOnRedirect);
 
     qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
     emit loading();
@@ -731,6 +732,11 @@ void Resource::handleReplyFinished() {
     if (result == ResourceRequest::Success) {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+
+        auto relativePathURL = _request->getRelativePathUrl();
+        if (!relativePathURL.isEmpty()) {
+            _effectiveBaseURL = relativePathURL;
+        }
         
         auto data = _request->getData();
         emit loaded(data);
