@@ -4027,11 +4027,13 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
-bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset) {
+bool Application::exportEntities(const QString& filename,
+                                 const QVector<EntityItemID>& entityIDs,
+                                 const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
-    auto accountManager = DependencyManager::get<AccountManager>();
-    auto mySessionID = accountManager->getSessionID();
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myAvatarID = nodeList->getSessionUUID();
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
@@ -4048,7 +4050,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
             if (!givenOffset) {
                 EntityItemID parentID = entityItem->getParentID();
-                bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == mySessionID);
+                bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == myAvatarID);
                 if (!parentIsAvatar && (parentID.isInvalidID() ||
                                         !entityIDs.contains(parentID) ||
                                         !entityTree->findEntityByEntityItemID(parentID))) {
@@ -4073,7 +4075,7 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         for (EntityItemPointer& entityDatum : entities) {
             auto properties = entityDatum->getProperties();
             EntityItemID parentID = properties.getParentID();
-            bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == mySessionID);
+            bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == myAvatarID);
             if (parentIsAvatar) {
                 properties.setParentID(AVATAR_SELF_ID);
             } else {
