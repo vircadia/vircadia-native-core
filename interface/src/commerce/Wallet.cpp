@@ -282,9 +282,27 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
 
 Wallet::Wallet() {
     auto nodeList = DependencyManager::get<NodeList>();
+    auto ledger = DependencyManager::get<Ledger>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
+
+    connect(ledger.data(), &Ledger::accountResult, this, [&]() {
+        auto wallet = DependencyManager::get<Wallet>();
+        auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+        uint status;
+
+        if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
+            status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
+        } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
+            status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+        } else {
+            status = (uint)WalletStatus::WALLET_STATUS_READY;
+        }
+
+        walletScriptingInterface->setWalletStatus(status);
+        emit walletStatusResult(status);
+    });
 }
 
 Wallet::~Wallet() {
@@ -681,4 +699,24 @@ bool Wallet::verifyOwnerChallenge(const QByteArray& encryptedText, const QString
     // I have no idea how to do this yet, so here's some dummy code that may not even work.
     decryptedText = QString("hello");
     return true;
+}
+
+void Wallet::account() {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->account();
+}
+
+void Wallet::getWalletStatus() {
+    auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+    uint status;
+
+    if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
+        // This will set account info for the wallet, allowing us to decrypt and display the security image.
+        account();
+    } else {
+        status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
+        emit walletStatusResult(status);
+        walletScriptingInterface->setWalletStatus(status);
+        return;
+    }
 }

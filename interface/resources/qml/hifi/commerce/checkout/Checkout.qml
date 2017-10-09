@@ -80,7 +80,6 @@ Rectangle {
                 root.activeView = "checkoutFailure";
             } else {
                 root.itemHref = result.data.download_url;
-                console.log("ZRF TEST " + root.itemHref);
                 root.activeView = "checkoutSuccess";
             }
         }
