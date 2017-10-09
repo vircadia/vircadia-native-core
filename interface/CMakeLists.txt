@@ -262,7 +262,7 @@ target_link_libraries(
 )
 
 if (UNIX)
-    target_link_libraries(${TARGET_NAME} pthread)
+    target_link_libraries(${TARGET_NAME} pthread atomic)
 endif(UNIX)
 
 # assume we are using a Qt build without bearer management
