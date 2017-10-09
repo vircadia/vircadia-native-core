@@ -85,6 +85,7 @@
     var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
     var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
     var lodTextID = false;
+    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications"
 
     var NotificationType = {
         UNKNOWN: 0,
@@ -550,6 +551,13 @@
         createNotification(wordWrap(msg), NotificationType.UNKNOWN); // Needs a generic notification system for user feedback, thus using this
     }
 
+    function onMessageReceived(channel, message) {
+        if (channel === NOTIFICATIONS_MESSAGE_CHANNEL) {
+            message = JSON.parse(message);
+            createNotification(wordWrap(message.message), message.notificationType);
+        }
+    }
+
     function onSnapshotTaken(pathStillSnapshot, notify) {
         if (notify) {
             var imageProperties = {
@@ -574,10 +582,6 @@
 
     function connectionError(error) {
         createNotification(wordWrap("Error trying to make connection: " + error), NotificationType.CONNECTION);
-    }
-
-    function walletNotSetup() {
-        createNotification("The action you performed requires you to set up your Wallet. Open the Wallet app.", NotificationType.SNAPSHOT);
     }
 
     //  handles mouse clicks on buttons
@@ -646,6 +650,7 @@
             Overlays.deleteOverlay(buttons[notificationIndex]);
         }
         Menu.removeMenu(MENU_NAME);
+        Messages.unsubscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     }
 
     function menuItemEvent(menuItem) {
@@ -689,6 +694,10 @@
     Window.notify = onNotify;
     Tablet.tabletNotification.connect(tabletNotification);
     Wallet.walletNotSetup.connect(walletNotSetup);
+
+    Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
+    Messages.messageReceived.connect(onMessageReceived);
+
     setup();
 
 }()); // END LOCAL_SCOPE
