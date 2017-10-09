@@ -4030,6 +4030,9 @@ void Application::calibrateEyeTracker5Points() {
 bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
+    auto accountManager = DependencyManager::get<AccountManager>();
+    auto mySessionID = accountManager->getSessionID();
+
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
     exportTree->createRootElement();
@@ -4045,8 +4048,12 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
             if (!givenOffset) {
                 EntityItemID parentID = entityItem->getParentID();
-                if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
-                    auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+                bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == mySessionID);
+                if (!parentIsAvatar && (parentID.isInvalidID() ||
+                                        !entityIDs.contains(parentID) ||
+                                        !entityTree->findEntityByEntityItemID(parentID))) {
+                    // If parent wasn't selected, we want absolute position, which isn't in properties.
+                    auto position = entityItem->getPosition();
                     root.x = glm::min(root.x, position.x);
                     root.y = glm::min(root.y, position.y);
                     root.z = glm::min(root.z, position.z);
@@ -4066,12 +4073,16 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         for (EntityItemPointer& entityDatum : entities) {
             auto properties = entityDatum->getProperties();
             EntityItemID parentID = properties.getParentID();
-            if (parentID.isInvalidID()) {
-                properties.setPosition(properties.getPosition() - root);
+            bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == mySessionID);
+            if (parentIsAvatar) {
+                properties.setParentID(AVATAR_SELF_ID);
+            } else {
+                if (parentID.isInvalidID()) {
+                    properties.setPosition(properties.getPosition() - root);
+                } else if (!entities.contains(parentID)) {
+                    entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
+                } // else valid parent -- don't offset
             }
-            else if (!entities.contains(parentID)) {
-                entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
-            } // else valid parent -- don't offset
             exportTree->addEntity(entityDatum->getEntityItemID(), properties);
         }
     });
