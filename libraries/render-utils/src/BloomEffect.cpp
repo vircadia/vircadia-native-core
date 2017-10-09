@@ -14,8 +14,10 @@
 #include "gpu/StandardShaderLib.h"
 
 #include <render/BlurTask.h>
+#include <render/ResampleTask.h>
 
 #include "BloomThreshold_frag.h"
+#include "BloomApply_frag.h"
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
@@ -46,9 +48,9 @@ void ThresholdAndDownsampleJob::run(const render::RenderContextPointer& renderCo
 
     if (!_downsampledBuffer || _downsampledBuffer->getSize().x != halfSize.x || _downsampledBuffer->getSize().y != halfSize.y) {
         auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputColor->getTexelFormat(), halfSize.x, halfSize.y, 
-                                                gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_POINT_MAG_LINEAR)));
+                                                gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
 
-        _downsampledBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomBlur0"));
+        _downsampledBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
         _downsampledBuffer->setRenderBuffer(0, colorTexture);
     }
 
@@ -89,6 +91,67 @@ void ThresholdAndDownsampleJob::run(const render::RenderContextPointer& renderCo
     });
 
     outputs = _downsampledBuffer;
+}
+
+BloomApply::BloomApply() {
+
+}
+
+void BloomApply::configure(const Config& config) {
+    _intensity = config.intensity;
+}
+
+void BloomApply::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+    RenderArgs* args = renderContext->args;
+
+    static auto BLUR0_SLOT = 0;
+    static auto BLUR1_SLOT = 1;
+    static auto BLUR2_SLOT = 2;
+    static auto INTENSITY_SLOT = 3;
+
+    if (!_pipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
+        auto ps = gpu::Shader::createPixel(std::string(BloomApply_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding("blurMap0", BLUR0_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("blurMap1", BLUR1_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("blurMap2", BLUR2_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("intensity", INTENSITY_SLOT));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
+                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        _pipeline = gpu::Pipeline::create(program, state);
+    }
+
+    const auto frameBuffer = inputs.get0();
+    const auto framebufferSize = frameBuffer->getSize();
+    const auto blur0FB = inputs.get1();
+    const auto blur1FB = inputs.get2();
+    const auto blur2FB = inputs.get3();
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+
+        batch.setFramebuffer(frameBuffer);
+
+        batch.setViewportTransform(args->_viewport);
+        batch.setProjectionTransform(glm::mat4());
+        batch.resetViewTransform();
+        batch.setPipeline(_pipeline);
+
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
+        batch.setResourceTexture(BLUR0_SLOT, blur0FB->getRenderBuffer(0));
+        batch.setResourceTexture(BLUR1_SLOT, blur1FB->getRenderBuffer(0));
+        batch.setResourceTexture(BLUR2_SLOT, blur2FB->getRenderBuffer(0));
+        batch._glUniform1f(INTENSITY_SLOT, _intensity);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
 }
 
 DebugBloom::DebugBloom() {
@@ -155,14 +218,34 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 }
 
 void BloomConfig::setIntensity(float value) {
+    auto task = static_cast<render::Task::TaskConcept*>(_task);
+    auto blurJobIt = task->editJob("BloomApply");
+    assert(blurJobIt != task->_jobs.end());
+    blurJobIt->getConfiguration()->setProperty("intensity", value);
+}
+
+float BloomConfig::getIntensity() const {
+    auto task = static_cast<render::Task::TaskConcept*>(_task);
+    auto blurJobIt = task->getJob("BloomApply");
+    assert(blurJobIt != task->_jobs.end());
+    return blurJobIt->getConfiguration()->property("intensity").toFloat();
 }
 
 void BloomConfig::setSize(float value) {
+    std::string blurName{ "BloomBlurN" };
+    auto sigma = value*3.0f;
+
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
-        auto& blurJob = static_cast<render::Task::TaskConcept*>(_task)->_jobs[i+1];
-        auto& gaussianBlur = blurJob.edit<render::BlurGaussian>();
+        blurName.back() = '0' + i;
+        auto task = static_cast<render::Task::TaskConcept*>(_task);
+        auto blurJobIt = task->editJob(blurName);
+        assert(blurJobIt != task->_jobs.end());
+        auto& gaussianBlur = blurJobIt->edit<render::BlurGaussian>();
         auto gaussianBlurParams = gaussianBlur.getParameters();
-        gaussianBlurParams->setFilterGaussianTaps((BLUR_MAX_NUM_TAPS - 1) / 2, value*7.0f);
+        gaussianBlurParams->setFilterGaussianTaps((BLUR_MAX_NUM_TAPS - 1) / 2, sigma);
+        // Gaussian blur increases at each level to have a slower rolloff on the edge
+        // of the response
+        sigma *= 1.5f;
     }
 }
 
@@ -176,20 +259,24 @@ void Bloom::configure(const Config& config) {
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
         blurName.back() = '0' + i;
         auto blurConfig = config.getConfig<render::BlurGaussian>(blurName);
-        blurConfig->setProperty("filterScale", 3.0f);
+        blurConfig->setProperty("filterScale", 1.0f);
     }
 }
 
 void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
     const auto bloomInputBuffer = task.addJob<ThresholdAndDownsampleJob>("BloomThreshold", inputs);
 
-    // Level 0 blur
+    // Multi-scale blur
     const auto blurFB0 = task.addJob<render::BlurGaussian>("BloomBlur0", bloomInputBuffer);
-    const auto blurFB1 = task.addJob<render::BlurGaussian>("BloomBlur1", blurFB0, true);
-    const auto blurFB2 = task.addJob<render::BlurGaussian>("BloomBlur2", blurFB1, true);
+    const auto halfBlurFB0 = task.addJob<render::HalfDownsample>("BloomHalfBlur0", blurFB0);
+    const auto blurFB1 = task.addJob<render::BlurGaussian>("BloomBlur1", halfBlurFB0, true);
+    const auto halfBlurFB1 = task.addJob<render::HalfDownsample>("BloomHalfBlur1", blurFB1);
+    const auto blurFB2 = task.addJob<render::BlurGaussian>("BloomBlur2", halfBlurFB1, true);
 
     const auto& input = inputs.get<Inputs>();
     const auto& frameBuffer = input[1];
-    const auto debugInput = DebugBloom::Inputs(frameBuffer, blurFB0, blurFB1, blurFB2).asVarying();
-    task.addJob<DebugBloom>("DebugBloom", debugInput);
+
+    const auto applyInput = DebugBloom::Inputs(frameBuffer, blurFB0, blurFB1, blurFB2).asVarying();
+    task.addJob<BloomApply>("BloomApply", applyInput);
+    task.addJob<DebugBloom>("DebugBloom", applyInput);
 }

@@ -48,10 +48,10 @@ void BlurParams::setWidthHeight(int width, int height, bool isStereo) {
     }
 }
 
-void BlurParams::setTexcoordTransform(const glm::vec4 texcoordTransformViewport) {
-    auto texcoordTransform = _parametersBuffer.get<Params>().texcoordTransform;
-    if (texcoordTransformViewport != texcoordTransform) {
-        _parametersBuffer.edit<Params>().texcoordTransform = texcoordTransform;
+void BlurParams::setTexcoordTransform(glm::vec4 texcoordTransformViewport) {
+    auto& params = _parametersBuffer.get<Params>();
+    if (texcoordTransformViewport != params.texcoordTransform) {
+        _parametersBuffer.edit<Params>().texcoordTransform = texcoordTransformViewport;
     }
 }
 
@@ -274,7 +274,7 @@ void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::Fra
 
     auto blurVPipeline = getBlurVPipeline();
     auto blurHPipeline = getBlurHPipeline();
-    glm::ivec4 viewport = { 0, 0, blurredFramebuffer->getWidth(), blurredFramebuffer->getHeight() };
+    glm::ivec4 viewport { 0, 0, blurredFramebuffer->getWidth(), blurredFramebuffer->getHeight() };
 
     _parameters->setWidthHeight(viewport.z, viewport.w, args->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());

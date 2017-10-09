@@ -28,15 +28,14 @@ void main(void) {
     vec3 texel3 = vec3(reds.w, greens.w, blues.w);
 
     vec4 luminances;
-    vec3 luminanceWeights = vec3(0.3,0.5,0.2);
+    vec3 luminanceWeights = vec3(0.333,0.333,0.333);
 
     luminances.x = dot(texel0, luminanceWeights);
     luminances.y = dot(texel1, luminanceWeights);
     luminances.z = dot(texel2, luminanceWeights);
     luminances.w = dot(texel0, luminanceWeights);
 
-    float hardness = 8;
-    vec4 mask = clamp((luminances-threshold) * hardness, 0, 1);
+    vec4 mask = clamp(luminances-threshold, 0, 1);
     vec3 color;
 
     color.x = dot(mask, reds);

@@ -40,7 +40,7 @@ Item {
             integral: false
             config: root.config
             property: "intensity"
-            max: 1.0
+            max: 5.0
             min: 0.0
             width: 280
         }  
@@ -58,7 +58,7 @@ Item {
             integral: false
             config: root.configThreshold
             property: "threshold"
-            max: 1.0
+            max: 2.0
             min: 0.0
             width: 280
         }  

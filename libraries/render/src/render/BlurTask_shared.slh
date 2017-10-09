@@ -7,4 +7,4 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#define BLUR_MAX_NUM_TAPS 25
+#define BLUR_MAX_NUM_TAPS 33

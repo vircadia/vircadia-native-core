@@ -18,17 +18,17 @@
 
 class BloomConfig : public render::Task::Config {
     Q_OBJECT
-        Q_PROPERTY(float intensity MEMBER intensity WRITE setIntensity NOTIFY dirty)
+        Q_PROPERTY(float intensity READ getIntensity WRITE setIntensity NOTIFY dirty)
         Q_PROPERTY(float size MEMBER size WRITE setSize NOTIFY dirty)
 
 public:
 
     BloomConfig() : render::Task::Config(true) {}
 
-    float intensity{ 0.2f };
-    float size{ 0.4f };
+    float size{ 0.45f };
 
     void setIntensity(float value);
+    float getIntensity() const;
     void setSize(float value);
 
 signals:
@@ -41,7 +41,7 @@ class ThresholdConfig : public render::Job::Config {
 
 public:
 
-    float threshold{ 0.25f };
+    float threshold{ 1.25f };
 
 signals:
     void dirty();
@@ -66,12 +66,42 @@ private:
     float _threshold;
 };
 
+
+class BloomApplyConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(float intensity MEMBER intensity NOTIFY dirty)
+
+public:
+
+    float intensity{ 0.5f };
+
+signals:
+    void dirty();
+};
+
+class BloomApply {
+public:
+    using Inputs = render::VaryingSet4<gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Config = BloomApplyConfig;
+    using JobModel = render::Job::ModelI<BloomApply, Inputs, Config>;
+
+    BloomApply();
+
+    void configure(const Config& config);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+private:
+
+    gpu::PipelinePointer _pipeline;
+    float _intensity{ 1.0f };
+};
+
 class DebugBloomConfig : public render::Job::Config {
     Q_OBJECT
 
 public:
 
-    DebugBloomConfig() : render::Job::Config(true) {}
+    DebugBloomConfig() : render::Job::Config(false) {}
 
 };
 
