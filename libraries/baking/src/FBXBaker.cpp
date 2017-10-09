@@ -56,6 +56,17 @@ FBXBaker::FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGet
 
 }
 
+FBXBaker::~FBXBaker() {
+    if (_tempDir.exists()) {
+        if (!_tempDir.remove(_originalFBXFilePath)) {
+            qCWarning(model_baking) << "Failed to remove temporary copy of fbx file:" << _originalFBXFilePath;
+        }
+        if (!_tempDir.rmdir(".")) {
+            qCWarning(model_baking) << "Failed to remove temporary directory:" << _tempDir;
+        }
+    }
+}
+
 void FBXBaker::abort() {
     Baker::abort();
 

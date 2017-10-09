@@ -633,10 +633,12 @@ void ParticleEffectEntityItem::debugDump() const {
 }
 
 void ParticleEffectEntityItem::setShapeType(ShapeType type) {
-    if (type != _shapeType) {
-        _shapeType = type;
-        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-    }
+    withWriteLock([&] {
+        if (type != _shapeType) {
+            _shapeType = type;
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
+    });
 }
 
 void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {

@@ -291,18 +291,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
     });
 }
 
-void EntityRenderer::update(const ScenePointer& scene, Transaction& transaction) {
-    if (!isValidRenderItem()) {
-        return;
-    }
-
-    if (!needsUpdate()) {
-        return;
-    }
-
-    doUpdate(scene, transaction, _entity);
-}
-
 //
 // Internal methods
 //
@@ -314,11 +302,6 @@ bool EntityRenderer::needsRenderUpdate() const {
         return true;
     }
     return needsRenderUpdateFromEntity(_entity);
-}
-
-// Returns true if the item needs to have update called
-bool EntityRenderer::needsUpdate() const {
-    return needsUpdateFromEntity(_entity);
 }
 
 // Returns true if the item in question needs to have updateInScene called because of changes in the entity
@@ -346,25 +329,27 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     return false;
 }
 
-void EntityRenderer::doRenderUpdateAsynchronous(const EntityItemPointer& entity) {
-    auto transparent = isTransparent();
-    if (_prevIsTransparent && !transparent) {
-        _isFading = false;
-    }
-    _prevIsTransparent = transparent;
+void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
+    withWriteLock([&] {
+        auto transparent = isTransparent();
+        if (_prevIsTransparent && !transparent) {
+            _isFading = false;
+        }
+        _prevIsTransparent = transparent;
 
-    bool success = false;
-    auto bound = entity->getAABox(success);
-    if (success) {
-        _bound = bound;
-    }
-    auto newModelTransform = entity->getTransformToCenter(success);
-    if (success) {
-        _modelTransform = newModelTransform;
-    }
+        bool success = false;
+        auto bound = entity->getAABox(success);
+        if (success) {
+            _bound = bound;
+        }
+        auto newModelTransform = entity->getTransformToCenter(success);
+        if (success) {
+            _modelTransform = newModelTransform;
+        }
 
-    _moving = entity->isMovingRelativeToParent();
-    _visible = entity->getVisible();
+        _moving = entity->isMovingRelativeToParent();
+        _visible = entity->getVisible();
+    });
 }
 
 void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {

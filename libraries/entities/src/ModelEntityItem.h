@@ -14,6 +14,7 @@
 
 #include "EntityItem.h"
 #include <JointData.h>
+#include <ThreadSafeValueCache.h>
 #include "AnimationPropertyGroup.h"
 
 class ModelEntityItem : public EntityItem {
@@ -153,7 +154,8 @@ protected:
 
     rgbColor _color;
     QString _modelURL;
-    QString _compoundShapeURL;
+
+    ThreadSafeValueCache<QString> _compoundShapeURL;
 
     AnimationPropertyGroup _animationProperties;
 

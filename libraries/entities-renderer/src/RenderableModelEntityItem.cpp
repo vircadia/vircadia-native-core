@@ -318,8 +318,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
-        // hence we assert that all geometries exist and are loaded
-        assert(model && model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
+        // TODO: assert that all geometries exist and are loaded
+        //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
         const FBXGeometry& collisionGeometry = _compoundShapeResource->getFBXGeometry();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
@@ -407,8 +407,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         }
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        // should never fall in here when model not fully loaded
-        assert(model && model->isLoaded());
+        // TODO: assert we never fall in here when model not fully loaded
+        //assert(_model && _model->isLoaded());
 
         updateModelBounds();
         model->updateGeometry();
@@ -1026,15 +1026,11 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     entity->copyAnimationJointDataToModel();
 }
 
-bool ModelEntityRenderer::needsUpdate() const {
+bool ModelEntityRenderer::needsRenderUpdate() const {
     ModelPointer model;
     withReadLock([&] {
         model = _model;
     });
-
-    if (_modelJustLoaded) {
-        return true;
-    }
 
     if (model) {
         if (_needsJointSimulation || _moving || _animating) {
@@ -1061,10 +1057,10 @@ bool ModelEntityRenderer::needsUpdate() const {
             return true;
         }
     }
-    return Parent::needsUpdate();
+    return Parent::needsRenderUpdate();
 }
 
-bool ModelEntityRenderer::needsUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (resultWithReadLock<bool>([&] {
         if (entity->hasModel() != _hasModel) {
             return true;
@@ -1126,7 +1122,7 @@ bool ModelEntityRenderer::needsUpdateFromTypedEntity(const TypedEntityPointer& e
     return false;
 }
 
-void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1152,11 +1148,11 @@ void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& 
         return;
     }
 
-    _modelJustLoaded = false;
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());
-        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::handleModelLoaded);
+        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::requestRenderUpdate);
+        connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         model->init();
         entity->setModel(model);
@@ -1244,12 +1240,6 @@ void ModelEntityRenderer::doUpdateTyped(const ScenePointer& scene, Transaction& 
             mapJoints(entity, model->getJointNames());
         }
         animate(entity);
-    }
-}
-
-void ModelEntityRenderer::handleModelLoaded(bool success) {
-    if (success) {
-        _modelJustLoaded = true;
     }
 }
 

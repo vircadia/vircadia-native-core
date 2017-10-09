@@ -248,10 +248,17 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.nearGrabWantsToRun = function(controllerData) {
+            var moduleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+            var module = getEnabledModuleByName(moduleName);
+            var ready = module ? module.isReady(controllerData) : makeRunningValues(false, [], []);
+            return ready.active;
+        };
+
         this.processStylus = function(controllerData) {
             this.updateStylusTip();
 
-            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData)) {
+            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.nearGrabWantsToRun(controllerData)) {
                 this.pointFinger(false);
                 this.hideStylus();
                 return false;
@@ -328,7 +335,7 @@ Script.include("/~/system/libraries/controllers.js");
             var SCALED_TABLET_MAX_HOVER_DISTANCE = TABLET_MAX_HOVER_DISTANCE * sensorScaleFactor;
 
             if (nearestStylusTarget && nearestStylusTarget.distance > SCALED_TABLET_MIN_TOUCH_DISTANCE &&
-                nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE) {
+                nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE && !this.getOtherHandController().stylusTouchingTarget) {
 
                 this.requestTouchFocus(nearestStylusTarget);
 

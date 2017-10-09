@@ -87,7 +87,6 @@ public:
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
-    bool initWhenReady(const render::ScenePointer& scene);
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction) {
         auto getters = render::Item::Status::Getters(0);
@@ -104,7 +103,7 @@ public:
     bool isLayeredInFront() const { return _isLayeredInFront; }
 
     virtual void updateRenderItems();
-    void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
+    void setRenderItemsNeedUpdate();
     bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
     const render::ItemIDs& fetchRenderItemIDs() const;
@@ -266,6 +265,7 @@ public slots:
 signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
+    void requestRenderUpdate();
 
 protected:
 
@@ -382,8 +382,8 @@ protected:
     QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
 
-	QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
-	QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
+    QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
+    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
 
     render::ItemIDs _modelMeshRenderItemIDs;
 

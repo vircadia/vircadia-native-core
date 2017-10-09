@@ -19,6 +19,7 @@
 
 class Image3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
+    using Parent = Billboard3DOverlay;
 
 public:
     static QString const TYPE;
@@ -45,6 +46,9 @@ public:
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
 
     virtual Image3DOverlay* createClone() const override;
+
+protected:
+    Transform evalRenderTransform() override;
 
 private:
     QString _url;

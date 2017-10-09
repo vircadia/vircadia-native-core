@@ -1,0 +1,51 @@
+
+//  WalletScriptingInterface.h
+//  interface/src/scripting
+//
+//  Created by Zach Fox on 2017-09-29.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#ifndef hifi_WalletScriptingInterface_h
+#define hifi_WalletScriptingInterface_h
+
+#include <QtCore/QObject>
+#include <DependencyManager.h>
+
+#include "scripting/HMDScriptingInterface.h"
+#include <ui/TabletScriptingInterface.h>
+#include <ui/QmlWrapper.h>
+#include <OffscreenUi.h>
+#include "Application.h"
+
+class CheckoutProxy : public QmlWrapper {
+    Q_OBJECT
+public:
+    CheckoutProxy(QObject* qmlObject, QObject* parent = nullptr);
+};
+
+
+class WalletScriptingInterface : public QObject, public Dependency {
+    Q_OBJECT
+
+    Q_PROPERTY(uint walletStatus READ getWalletStatus WRITE setWalletStatus NOTIFY walletStatusChanged)
+
+public:
+    WalletScriptingInterface();
+
+    Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
+    void setWalletStatus(const uint& status) { _walletStatus = status; }
+
+    Q_INVOKABLE void buy(const QString& name, const QString& id, const int& price, const QString& href);
+
+signals:
+    void walletStatusChanged();
+
+private:
+    uint _walletStatus;
+};
+
+#endif // hifi_WalletScriptingInterface_h
