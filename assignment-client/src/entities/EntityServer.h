@@ -73,6 +73,7 @@ protected:
 
 private slots:
     void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void domainSettingsRequestFailed();
 
 private:
     SimpleEntitySimulationPointer _entitySimulation;
@@ -81,10 +82,10 @@ private:
     QReadWriteLock _viewerSendingStatsLock;
     QMap<QUuid, QMap<QUuid, ViewerSendingStats>> _viewerSendingStats;
 
-    //static const int MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 45 * 60 * 1000; // 45m
-    //static const int MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 75 * 60 * 1000; // 1h15m
-    static const int MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 5 * 1000; // 5s
-    static const int MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 10 * 1000; // 10s
+    static const int DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 45 * 60 * 1000; // 45m
+    static const int DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = 75 * 60 * 1000; // 1h15m
+    int _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS; // 45m
+    int _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS; // 1h15m
     QTimer _dynamicDomainVerificationTimer;
     void startDynamicDomainVerification();
 };

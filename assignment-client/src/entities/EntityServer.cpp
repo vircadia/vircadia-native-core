@@ -98,7 +98,8 @@ void EntityServer::beforeRun() {
     const int PRUNE_DELETED_MODELS_INTERVAL_MSECS = 1 * 1000; // once every second
     _pruneDeletedEntitiesTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);
 
-    startDynamicDomainVerification();
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &EntityServer::domainSettingsRequestFailed);
 }
 
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
@@ -302,6 +303,18 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         tree->setEntityMaxTmpLifetime(EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME);
     }
 
+    int minTime;
+    if (readOptionInt("dynamicDomainVerificationTimeMin", settingsSectionObject, minTime)) {
+        _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = minTime * 1000;
+    }
+
+    int maxTime;
+    if (readOptionInt("dynamicDomainVerificationTimeMax", settingsSectionObject, maxTime)) {
+        _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = maxTime * 1000;
+    }
+
+    startDynamicDomainVerification();
+
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
 
@@ -417,6 +430,15 @@ QString EntityServer::serverSubclassStats() {
     return statsString;
 }
 
+void EntityServer::domainSettingsRequestFailed() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    qCDebug(entities) << "The EntityServer couldn't get the Domain Settings. Starting dynamic domain verification with default values...";
+
+    _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
+    _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
+    startDynamicDomainVerification();
+}
+
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
@@ -474,7 +496,7 @@ void EntityServer::startDynamicDomainVerification() {
         }
     }
 
-    int nextInterval = qrand() % ((MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS + 1) - MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS) + MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
+    int nextInterval = qrand() % ((_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS + 1) - _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS) + _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
     qCDebug(entities) << "Restarting Dynamic Domain Verification timer for" << nextInterval / 1000 << "seconds";
     _dynamicDomainVerificationTimer.start(nextInterval);
 }
