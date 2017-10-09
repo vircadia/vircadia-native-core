@@ -70,21 +70,20 @@ void ThresholdAndDownsampleJob::run(const render::RenderContextPointer& renderCo
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
-/*        batch.setViewportTransform(halfViewport);
+        batch.setViewportTransform(halfViewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(inputFrameBuffer->getSize(), args->_viewport));
-        batch.setPipeline(_pipeline);*/
+        batch.setPipeline(_pipeline);
 
         batch.setFramebuffer(_downsampledBuffer);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, gpu::Vec4(1.0f, 0.2f, 0.9f, 1.f));
-        /*batch.setResourceTexture(COLOR_MAP_SLOT, inputColor);
+        batch.setResourceTexture(COLOR_MAP_SLOT, inputColor);
         batch._glUniform1f(THRESHOLD_SLOT, _threshold);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         batch.setViewportTransform(args->_viewport);
         batch.setResourceTexture(COLOR_MAP_SLOT, nullptr);
-        batch.setFramebuffer(nullptr);*/
+        batch.setFramebuffer(nullptr);
     });
 
     outputs = _downsampledBuffer;
@@ -102,13 +101,14 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
     RenderArgs* args = renderContext->args;
 
     const auto frameBuffer = inputs.get0();
+    const auto framebufferSize = frameBuffer->getSize();
     const auto level0FB = inputs.get1();
     const gpu::TexturePointer levelTextures[1] = {
         level0FB->getRenderBuffer(0)
     };
 
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
@@ -123,19 +123,16 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
-        //batch.setFramebuffer(frameBuffer);
-        batch.setViewportTransform(args->_viewport);
+        batch.setFramebuffer(frameBuffer);
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat, false);
+        batch.setViewportTransform(args->_viewport);
+        batch.setProjectionTransform(glm::mat4());
+        batch.resetViewTransform();
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(glm::ivec2(framebufferSize.x, framebufferSize.y), args->_viewport));
+
         batch.setPipeline(_pipeline);
         batch.setResourceTexture(0, levelTextures[0]);
-
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        batch.setResourceTexture(0, nullptr);
     });
 }
 
@@ -162,7 +159,9 @@ void Bloom::configure(const Config& config) {
 
 void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
     const auto halfSizeBuffer = task.addJob<ThresholdAndDownsampleJob>("BloomThreshold", inputs);
+    const auto& input = inputs.get<Inputs>();
+    const auto& frameBuffer = input[1];
 
-    const auto debugInput = DebugBloom::Inputs(inputs.get<Bloom::Inputs>().get1(), halfSizeBuffer).asVarying();
+    const auto debugInput = DebugBloom::Inputs(frameBuffer, halfSizeBuffer).asVarying();
     task.addJob<DebugBloom>("DebugBloom", debugInput);
 }

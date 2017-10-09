@@ -161,7 +161,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    // LIght Cluster Grid Debuging job
+    // Light Cluster Grid Debuging job
     {
         const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).asVarying();
         task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
