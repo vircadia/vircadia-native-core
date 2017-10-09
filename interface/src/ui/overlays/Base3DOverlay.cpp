@@ -299,3 +299,9 @@ Transform Base3DOverlay::evalRenderTransform() {
 void Base3DOverlay::setRenderTransform(const Transform& transform) {
     _renderTransform = transform;
 }
+
+SpatialParentTree* Base3DOverlay::getParentTree() const {
+    auto entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    return entityTree.get();
+}
