@@ -108,7 +108,7 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
     };
 
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
         auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
@@ -128,7 +128,10 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(glm::ivec2(framebufferSize.x, framebufferSize.y), args->_viewport));
+
+        Transform modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport / 2);
+        modelTransform.postTranslate(glm::vec3(-1.0f, 1.0f, 0.0f));
+        batch.setModelTransform(modelTransform);
 
         batch.setPipeline(_pipeline);
         batch.setResourceTexture(0, levelTextures[0]);
