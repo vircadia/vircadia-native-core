@@ -426,7 +426,7 @@ Rectangle {
                 itemName: title;
                 itemId: id;
                 itemPreviewImageUrl: preview;
-                itemHref: root_file_url;
+                itemHref: download_url;
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;

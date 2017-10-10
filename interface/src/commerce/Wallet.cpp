@@ -41,6 +41,7 @@
 #endif
 
 static const char* KEY_FILE = "hifikey";
+static const char* INSTRUCTIONS_FILE = "backup_instructions.html";
 static const char* IMAGE_HEADER = "-----BEGIN SECURITY IMAGE-----\n";
 static const char* IMAGE_FOOTER = "-----END SECURITY IMAGE-----\n";
 
@@ -104,6 +105,38 @@ RSA* readKeys(const char* filename) {
     return key;
 }
 
+bool writeBackupInstructions() {
+    QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
+    QString filename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
+    QFile outputFile(filename);
+    bool retval = false;
+
+    if (QFile::exists(filename))
+    {
+        QFile::remove(filename);
+    }
+    QFile::copy(inputFilename, filename);
+
+    if (QFile::exists(filename) && outputFile.open(QIODevice::ReadWrite)) {
+
+        QByteArray fileData = outputFile.readAll();
+        QString text(fileData);
+
+        text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
+
+        outputFile.seek(0); // go to the beginning of the file
+        outputFile.write(text.toUtf8()); // write the new text back to the file
+
+        outputFile.close(); // close the file handle.
+
+        retval = true;
+        qCDebug(commerce) << "wrote html file successfully";
+    } else {
+        qCDebug(commerce) << "failed to open output html file" << filename;
+    }
+    return retval;
+}
+
 bool writeKeys(const char* filename, RSA* keys) {
     FILE* fp;
     bool retval = false;
@@ -121,6 +154,8 @@ bool writeKeys(const char* filename, RSA* keys) {
             QFile(QString(filename)).remove();
             return retval;
         }
+        
+        writeBackupInstructions();
 
         retval = true;
         qCDebug(commerce) << "wrote keys successfully";
@@ -302,6 +337,11 @@ Wallet::Wallet() {
 
         walletScriptingInterface->setWalletStatus(status);
         emit walletStatusResult(status);
+    });
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
+        getWalletStatus();
     });
 }
 
@@ -488,7 +528,6 @@ bool Wallet::generateKeyPair() {
 
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
-    emit keyFilePathIfExistsResult(getKeyFilePath());
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
@@ -646,6 +685,7 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
                 QFile(QString(keyFilePath())).remove();
                 QFile(tempFileName).rename(QString(keyFilePath()));
                 qCDebug(commerce) << "wallet written successfully";
+                emit keyFilePathIfExistsResult(getKeyFilePath());
                 return true;
             } else {
                 qCDebug(commerce) << "couldn't write security image to temp wallet";

@@ -895,6 +895,12 @@ void EntityTree::findEntities(const ViewFrustum& frustum, QVector<EntityItemPoin
     foundEntities.swap(args.entities);
 }
 
+// NOTE: assumes caller has handled locking
+void EntityTree::findEntities(RecurseOctreeOperation& elementFilter,
+                              QVector<EntityItemPointer>& foundEntities) {
+    recurseTreeWithOperation(elementFilter, nullptr);
+}
+
 EntityItemPointer EntityTree::findEntityByID(const QUuid& id) {
     EntityItemID entityID(id);
     return findEntityByEntityItemID(entityID);

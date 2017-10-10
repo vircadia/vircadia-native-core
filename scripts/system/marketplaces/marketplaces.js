@@ -98,6 +98,7 @@
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
         } else {
+            Wallet.refreshWalletStatus();
             var entity = HMD.tabletID;
             Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
             showMarketplace();
@@ -157,11 +158,24 @@
         }
     }
 
+    function sendCommerceSettings() {
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "marketplaces",
+            action: "commerceSetting",
+            data: {
+                commerceMode: Settings.getValue("commerce", false),
+                userIsLoggedIn: Account.loggedIn,
+                walletNeedsSetup: Wallet.walletStatus === 1
+            }
+        }));
+    }
+
     marketplaceButton.clicked.connect(onClick);
     tablet.screenChanged.connect(onScreenChanged);
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
     ContextOverlay.contextOverlayClicked.connect(setCertificateInfo);
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
+    Wallet.walletStatusChanged.connect(sendCommerceSettings);
     Wallet.refreshWalletStatus();
 
     function onMessage(message) {
@@ -203,15 +217,7 @@
                     canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
                 });
             } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: "marketplaces",
-                    action: "commerceSetting",
-                    data: {
-                        commerceMode: Settings.getValue("commerce", false),
-                        userIsLoggedIn: Account.loggedIn,
-                        walletNeedsSetup: Wallet.walletStatus === 1
-                    }
-                }));
+                sendCommerceSettings();
             } else if (parsedJsonMessage.type === "PURCHASES") {
                 referrerURL = parsedJsonMessage.referrerURL;
                 filterText = "";
@@ -244,6 +250,7 @@
         tablet.webEventReceived.disconnect(onMessage);
         Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
         GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
+        Wallet.walletStatusChanged.disconnect(sendCommerceSettings);
     });
 
 
