@@ -168,7 +168,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#ffffff"
+                color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
                 text: tabletButton.hoverText
             }
 
@@ -194,7 +194,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeText
             }
 
@@ -225,7 +225,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeHoverText
             }
 
