@@ -222,16 +222,6 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         _renderablesToUpdate.insert({ entityId, renderable });
     }
 
-    // NOTE: Looping over all the entity renderers is likely to be a bottleneck in the future
-    // Currently, this is necessary because the model entity loading logic requires constant polling
-    // This was working fine because the entity server used to send repeated updates as your view changed,
-    // but with the improved entity server logic (PR 11141), updateInScene (below) would not be triggered enough
-    for (const auto& entry : _entitiesInScene) {
-        const auto& renderable = entry.second;
-        if (renderable) {
-            renderable->update(scene, transaction);
-        }
-    }
     if (!_renderablesToUpdate.empty()) {
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;
@@ -260,12 +250,24 @@ void EntityTreeRenderer::update(bool simulate) {
             }
         }
 
-        auto scene = _viewState->getMain3DScene();
-        if (scene) {
-            render::Transaction transaction;
-            addPendingEntities(scene, transaction);
-            updateChangedEntities(scene, transaction);
-            scene->enqueueTransaction(transaction);
+        {
+            PerformanceTimer sceneTimer("scene");
+            auto scene = _viewState->getMain3DScene();
+            if (scene) {
+                render::Transaction transaction;
+                {
+                    PerformanceTimer pt("add");
+                    addPendingEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer pt("change");
+                    updateChangedEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer pt("enqueue");
+                    scene->enqueueTransaction(transaction);
+                }
+            }
         }
     }
 }

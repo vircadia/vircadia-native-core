@@ -241,7 +241,7 @@ void Model::updateRenderItems() {
                 if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
-                        
+
                         const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
                         if (state.clusterMatrices.size() == 1) {
@@ -265,6 +265,11 @@ void Model::updateRenderItems() {
 
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     });
+}
+
+void Model::setRenderItemsNeedUpdate() {
+    _renderItemsNeedUpdate = true;
+    emit requestRenderUpdate();
 }
 
 void Model::initJointTransforms() {

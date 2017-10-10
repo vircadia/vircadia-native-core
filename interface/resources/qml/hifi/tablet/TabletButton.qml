@@ -84,7 +84,7 @@ Item {
     }
 
     function urlHelper(src) {
-        if (src.match(/\bhttp/)) {
+        if (src.match(/\bhttp/) || src.match(/\bfile:/)) {
             return src;
         } else {
             return "../../../" + src;

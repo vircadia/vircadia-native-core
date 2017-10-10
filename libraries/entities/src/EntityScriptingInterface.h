@@ -386,6 +386,11 @@ public slots:
      */
     Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
+    Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
+#ifdef DEBUG_CERT
+    Q_INVOKABLE QString computeCertificateID(const QUuid& entityID);
+#endif
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 

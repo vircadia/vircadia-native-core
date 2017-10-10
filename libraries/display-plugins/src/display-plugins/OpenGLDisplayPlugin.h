@@ -129,10 +129,10 @@ protected:
     bool _vsyncEnabled { true };
     QThread* _presentThread{ nullptr };
     std::queue<gpu::FramePointer> _newFrameQueue;
-    RateCounter<100> _droppedFrameRate;
-    RateCounter<100> _newFrameRate;
-    RateCounter<100> _presentRate;
-    RateCounter<100> _renderRate;
+    RateCounter<200> _droppedFrameRate;
+    RateCounter<200> _newFrameRate;
+    RateCounter<200> _presentRate;
+    RateCounter<200> _renderRate;
 
     gpu::FramePointer _currentFrame;
     gpu::Frame* _lastFrame { nullptr };

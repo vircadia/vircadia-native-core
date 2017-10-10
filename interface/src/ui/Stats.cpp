@@ -8,6 +8,7 @@
 
 #include "Stats.h"
 
+#include <queue>
 #include <sstream>
 #include <QFontDatabase>
 
@@ -116,12 +117,6 @@ void Stats::updateStats(bool force) {
         }
     }
 
-    bool shouldDisplayTimingDetail = Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
-        Menu::getInstance()->isOptionChecked(MenuOption::Stats) && isExpanded();
-    if (shouldDisplayTimingDetail != PerformanceTimer::isActive()) {
-        PerformanceTimer::setActive(shouldDisplayTimingDetail);
-    }
-
     auto nodeList = DependencyManager::get<NodeList>();
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
@@ -129,7 +124,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(updatedAvatarCount, avatarManager->getNumAvatarsUpdated());
     STAT_UPDATE(notUpdatedAvatarCount, avatarManager->getNumAvatarsNotUpdated());
     STAT_UPDATE(serverCount, (int)nodeList->size());
-    STAT_UPDATE_FLOAT(framerate, qApp->getFps(), 0.1f);
+    STAT_UPDATE_FLOAT(renderrate, qApp->getRenderLoopRate(), 0.1f);
     if (qApp->getActiveDisplayPlugin()) {
         auto displayPlugin = qApp->getActiveDisplayPlugin();
         auto stats = displayPlugin->getHardwareStats();
@@ -137,7 +132,6 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(longrenders, stats["long_render_count"].toInt());
         STAT_UPDATE(longsubmits, stats["long_submit_count"].toInt());
         STAT_UPDATE(longframes, stats["long_frame_count"].toInt());
-        STAT_UPDATE_FLOAT(renderrate, displayPlugin->renderRate(), 0.1f);
         STAT_UPDATE_FLOAT(presentrate, displayPlugin->presentRate(), 0.1f);
         STAT_UPDATE_FLOAT(presentnewrate, displayPlugin->newFramePresentRate(), 0.1f);
         STAT_UPDATE_FLOAT(presentdroprate, displayPlugin->droppedFrameRate(), 0.1f);
@@ -150,8 +144,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(presentnewrate, -1);
         STAT_UPDATE(presentdroprate, -1);
     }
-    STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
-    STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
+    STAT_UPDATE(gameLoopRate, (int)qApp->getGameLoopRate());
 
     auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
     STAT_UPDATE(packetInCount, (int)bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());
@@ -406,14 +399,21 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
     }
 
-    bool performanceTimerIsActive = PerformanceTimer::isActive();
-    bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
-    if (displayPerf && performanceTimerIsActive) {
-        if (!_timingExpanded) {
-            _timingExpanded = true;
+
+    bool performanceTimerShouldBeActive = Menu::getInstance()->isOptionChecked(MenuOption::Stats) && _expanded;
+    if (performanceTimerShouldBeActive != PerformanceTimer::isActive()) {
+        PerformanceTimer::setActive(performanceTimerShouldBeActive);
+    }
+    if (performanceTimerShouldBeActive) {
+        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
+    }
+
+    if (performanceTimerShouldBeActive &&
+        Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
+        if (!_showTimingDetails) {
+            _showTimingDetails = true;
             emit timingExpandedChanged();
         }
-        PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
 
         // we will also include room for 1 line per timing record and a header of 4 lines
         // Timing details...
@@ -453,9 +453,54 @@ void Stats::updateStats(bool force) {
         }
         _timingStats = perfLines;
         emit timingStatsChanged();
-    } else if (_timingExpanded) {
-        _timingExpanded = false;
+    } else if (_showTimingDetails) {
+        _showTimingDetails = false;
         emit timingExpandedChanged();
+    }
+
+    if (_expanded && performanceTimerShouldBeActive) {
+        if (!_showGameUpdateStats) {
+            _showGameUpdateStats = true;
+        }
+        class SortableStat {
+        public:
+            SortableStat(QString a, float p) : message(a), priority(p) {}
+            QString message;
+            float priority;
+            bool operator<(const SortableStat& other) const { return priority < other.priority; }
+        };
+
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        std::priority_queue<SortableStat> idleUpdateStats;
+        auto itr = allRecords.find("/idle/update");
+        if (itr != allRecords.end()) {
+            float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+            _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
+
+            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
+            for (int32_t j = 0; j < categories.size(); ++j) {
+                QString recordKey = "/idle/update/" + categories[j];
+                itr = allRecords.find(recordKey);
+                if (itr != allRecords.end()) {
+                    float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                    QString message = QString("\n    %1 = %2").arg(categories[j]).arg(dt);
+                    idleUpdateStats.push(SortableStat(message, dt));
+                }
+            }
+            while (!idleUpdateStats.empty()) {
+                SortableStat stat = idleUpdateStats.top();
+                _gameUpdateStats += stat.message;
+                idleUpdateStats.pop();
+            }
+            emit gameUpdateStatsChanged();
+        } else if (_gameUpdateStats != "") {
+            _gameUpdateStats = "";
+            emit gameUpdateStatsChanged();
+        }
+    } else if (_showGameUpdateStats) {
+        _showGameUpdateStats = false;
+        _gameUpdateStats = "";
+        emit gameUpdateStatsChanged();
     }
 }
 
