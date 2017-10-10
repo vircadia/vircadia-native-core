@@ -54,15 +54,13 @@ uint32_t Header::evalPixelOrBlockDepth(uint32_t level) const {
     return evalMipDimension(level, getPixelDepth());
 }
 
-size_t Header::evalPixelOrBlockSize() const {
+size_t Header::evalPixelOrBlockBitSize() const {
     size_t result = 0;
+    auto format = getGLInternaFormat();
     if (isCompressed()) {
-        auto format = getGLInternaFormat();
-        result = khronos::gl::texture::evalCompressedBlockSize(format);
+        result = khronos::gl::texture::evalCompressedBlockBitSize(format);
     } else {
-        // FIXME should really be using the internal format, not the base internal format
-        auto baseFormat = getGLBaseInternalFormat();
-        result = khronos::gl::texture::evalComponentCount(baseFormat);
+        result = khronos::gl::texture::evalUncompressedBlockBitSize(format);
     }
 
     if (0 == result) {
@@ -73,11 +71,14 @@ size_t Header::evalPixelOrBlockSize() const {
 
 size_t Header::evalRowSize(uint32_t level) const {
     auto pixWidth = evalPixelOrBlockWidth(level);
-    auto pixSize = evalPixelOrBlockSize();
+    auto pixSize = evalPixelOrBlockBitSize();
     if (pixSize == 0) {
         return 0;
     }
-    return evalPaddedSize(pixWidth * pixSize);
+    auto totalByteSize = pixWidth * pixSize;
+    // Round to the nearest upper byte size
+    totalByteSize = (totalByteSize / 8) + (((totalByteSize % 8) != 0) & 1);
+    return evalPaddedSize(totalByteSize);
 }
 
 size_t Header::evalFaceSize(uint32_t level) const {
