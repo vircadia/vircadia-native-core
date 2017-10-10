@@ -42,7 +42,7 @@ static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
     if (uLen == 0.0f) {
         return glm::length(v) <= EPSILON;
     } else {
-        return glm::length(u - v) / glm::length(u) <= EPSILON;
+        return (glm::length(u - v) / uLen) <= EPSILON;
     }
 }
 
