@@ -15,7 +15,6 @@
 
 #include <memory>
 #include <QtCore/QObject>
-#include <QReadWriteLock>
 
 #include "RegisteredMetaTypes.h"
 
@@ -28,7 +27,6 @@ class RayPickManager {
 
 public:
     void update();
-    const PickRay getPickRay(const QUuid uid);
 
     QUuid createRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const RayPickFilter& filter, const float maxDistance, const bool enabled);
     QUuid createRayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled);
@@ -48,11 +46,6 @@ public:
 
 private:
     QHash<QUuid, std::shared_ptr<RayPick>> _rayPicks;
-    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _rayPickLocks;
-    QReadWriteLock _addLock;
-    std::queue<std::pair<QUuid, std::shared_ptr<RayPick>>> _rayPicksToAdd;
-    QReadWriteLock _removeLock;
-    std::queue<QUuid> _rayPicksToRemove;
     QReadWriteLock _containsLock;
 
     typedef QHash<QPair<glm::vec3, glm::vec3>, std::unordered_map<RayPickFilter::Flags, RayPickResult>> RayPickCache;

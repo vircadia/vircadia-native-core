@@ -1,19 +1,56 @@
 Please read the [general build guide](BUILD.md) for information on dependencies required for all platforms. Only Android specific instructions are found in this file.
 
-### Android Dependencies
+# Android Dependencies
 
 You will need the following tools to build our Android targets.
 
-* [cmake](http://www.cmake.org/download/) ~> 3.5.1
-* [Qt](http://www.qt.io/download-open-source/#) ~> 5.6.2
-* [ant](http://ant.apache.org/bindownload.cgi) ~> 1.9.4
-* [Android NDK](https://developer.android.com/tools/sdk/ndk/index.html) ~> r10d
-* [Android SDK](http://developer.android.com/sdk/installing/index.html) ~> 24.4.1.1
-  * Install the latest Platform-tools
-  * Install the latest Build-tools
-  * Install the SDK Platform for API Level 19
-  * Install Sources for Android SDK for API Level 19
-  * Install the ARM EABI v7a System Image if you want to run an emulator.
+* [Qt](http://www.qt.io/download-open-source/#) ~> 5.9.1
+* [Android Studio](https://developer.android.com/studio/index.html)
+* [Google VR SDK](https://github.com/googlevr/gvr-android-sdk/releases)
+* [Gradle](https://gradle.org/releases/)
+
+### Qt
+
+Download the Qt online installer.  Run the installer and select the android_armv7 binaries.  Installing to the default path is recommended
+
+### Android Studio
+
+Download the Android Studio installer and run it.   Once installed, at the welcome screen, click configure in the lower right corner and select SDK manager
+
+From the SDK Platforms tab, select API level 26.  
+
+* Install the ARM EABI v7a System Image if you want to run an emulator.
+
+From the SDK Tools tab select the following
+
+* Android SDK Build-Tools
+* GPU Debugging Tools
+* CMake (even if you have a separate CMake installation)
+* LLDB 
+* Android SDK Platform-Tools
+* Android SDK Tools
+* Android SDK Tools
+* NDK (even if you have the NDK installed separately)
+
+### Google VR SDK
+
+Download the 1.8 Google VR SDK [release](https://github.com/googlevr/gvr-android-sdk/archive/v1.80.0.zip).  Unzip the archive to a location on your drive.  
+
+### Gradle
+
+Download [Gradle 4.1](https://services.gradle.org/distributions/gradle-4.1-all.zip) and unzip it on your local drive.  You may wish to add the location of the bin directory within the archive to your path 
+
+#### Set up machine specific Gradle properties
+
+Create a `gradle.properties` file in ~/.gradle.   Edit the file to contain the following
+
+    QT5_ROOT=C\:\\Qt\\5.9.1\\android_armv7
+    GVR_ROOT=C\:\\Android\\gvr-android-sdk
+
+Replace the paths with your local installations of Qt5 and the Google VR SDK
+
+
+# TODO fix the rest
 
 You will also need to cross-compile the dependencies required for all platforms for Android, and help CMake find these compiled libraries on your machine.
 

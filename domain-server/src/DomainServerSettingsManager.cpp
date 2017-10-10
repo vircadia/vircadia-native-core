@@ -302,6 +302,14 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canReplaceDomainContent);
             packPermissions();
         }
+
+        if (oldVersion < 1.9) {
+            unpackPermissions();
+            // This was prior to addition of canRez(Tmp)Certified; add those to localhost permissions by default
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canRezPermanentCertifiedEntities);
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canRezTemporaryCertifiedEntities);
+            packPermissions();
+        }
     }
 
     unpackPermissions();

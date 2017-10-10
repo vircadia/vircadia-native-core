@@ -29,10 +29,14 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
+#ifdef Q_OS_ANDROID
+const QString DEFAULT_HIFI_ADDRESS = "hifi://android/0.0,0.0,-200";
+#else
 #if USE_STABLE_GLOBAL_SERVICES
 const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
 #else
 const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
+#endif
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";

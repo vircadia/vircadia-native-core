@@ -18,6 +18,8 @@ class Baker : public QObject {
     Q_OBJECT
 
 public:
+    virtual ~Baker() = default;
+
     bool shouldStop();
 
     bool hasErrors() const { return !_errorList.isEmpty(); }

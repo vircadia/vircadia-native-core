@@ -77,13 +77,13 @@ QScriptValue PointerEvent::toScriptValue(QScriptEngine* engine, const PointerEve
     normal.setProperty("x", event._normal.x);
     normal.setProperty("y", event._normal.y);
     normal.setProperty("z", event._normal.z);
-    obj.setProperty("pos3D", normal);
+    obj.setProperty("normal", normal);
 
     QScriptValue direction = engine->newObject();
     direction.setProperty("x", event._direction.x);
     direction.setProperty("y", event._direction.y);
     direction.setProperty("z", event._direction.z);
-    obj.setProperty("pos3D", direction);
+    obj.setProperty("direction", direction);
 
     bool isPrimaryButton = false;
     bool isSecondaryButton = false;

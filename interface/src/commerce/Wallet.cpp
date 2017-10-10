@@ -280,19 +280,28 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
     memcpy(ckey, wallet->getCKey(), 32);
 }
 
+Wallet::Wallet() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
+
+    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
+}
+
 Wallet::~Wallet() {
     if (_securityImage) {
         delete _securityImage;
     }
 }
 
-void Wallet::setPassphrase(const QString& passphrase) {
+bool Wallet::setPassphrase(const QString& passphrase) {
     if (_passphrase) {
         delete _passphrase;
     }
     _passphrase = new QString(passphrase);
 
     _publicKeys.clear();
+
+    return true;
 }
 
 bool Wallet::writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath) {
@@ -461,7 +470,7 @@ bool Wallet::generateKeyPair() {
 
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
-    sendKeyFilePathIfExists();
+    emit keyFilePathIfExistsResult(getKeyFilePath());
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
@@ -552,14 +561,14 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     emit securityImageResult(success);
 }
 
-void Wallet::getSecurityImage() {
+bool Wallet::getSecurityImage() {
     unsigned char* data;
     int dataLen;
 
     // if already decrypted, don't do it again
     if (_securityImage) {
         emit securityImageResult(true);
-        return;
+        return true;
     }
 
     bool success = false;
@@ -578,14 +587,15 @@ void Wallet::getSecurityImage() {
         success = true;
     }
     emit securityImageResult(success);
+    return success;
 }
-void Wallet::sendKeyFilePathIfExists() {
+QString Wallet::getKeyFilePath() {
     QString filePath(keyFilePath());
     QFileInfo fileInfo(filePath);
     if (fileInfo.exists()) {
-        emit keyFilePathIfExistsResult(filePath);
+        return filePath;
     } else {
-        emit keyFilePathIfExistsResult("");
+        return "";
     }
 }
 
@@ -644,4 +654,31 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
 bool Wallet::changePassphrase(const QString& newPassphrase) {
     qCDebug(commerce) << "changing passphrase";
     return writeWallet(newPassphrase);
+}
+
+void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    QString decryptedText;
+    quint64 encryptedTextSize;
+    quint64 publicKeySize;
+
+    if (verifyOwnerChallenge(packet->read(packet->readPrimitive(&encryptedTextSize)), packet->read(packet->readPrimitive(&publicKeySize)), decryptedText)) {
+        auto nodeList = DependencyManager::get<NodeList>();
+        // setup the packet
+        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + decryptedText.size(), true);
+
+        // write the decrypted text to the packet
+        decryptedTextPacket->write(decryptedText.toUtf8());
+
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text";
+
+        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+    } else {
+        qCDebug(commerce) << "verifyOwnerChallenge() returned false";
+    }
+}
+
+bool Wallet::verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText) {
+    // I have no idea how to do this yet, so here's some dummy code that may not even work.
+    decryptedText = QString("hello");
+    return true;
 }

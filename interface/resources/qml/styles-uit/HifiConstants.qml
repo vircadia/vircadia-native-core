@@ -138,6 +138,7 @@ Item {
         id: colorSchemes
         readonly property int light: 0
         readonly property int dark: 1
+        readonly property int faintGray: 2
     }
 
     Item {
@@ -178,7 +179,7 @@ Item {
         readonly property real tableHeading: dimensions.largeScreen ? 12 : 10
         readonly property real tableHeadingIcon: dimensions.largeScreen ? 60 : 33
         readonly property real tableText: dimensions.largeScreen ? 15 : 12
-        readonly property real buttonLabel: dimensions.largeScreen ? 13 : 9
+        readonly property real buttonLabel: dimensions.largeScreen ? 14 : 9
         readonly property real iconButton: dimensions.largeScreen ? 13 : 9
         readonly property real listItem: dimensions.largeScreen ? 15 : 11
         readonly property real tabularData: dimensions.largeScreen ? 15 : 11
@@ -209,11 +210,15 @@ Item {
         readonly property int blue: 1
         readonly property int red: 2
         readonly property int black: 3
-        readonly property var textColor: [ colors.darkGray, colors.white, colors.white, colors.white ]
-        readonly property var colorStart: [ colors.white, colors.primaryHighlight, "#d42043", "#343434" ]
-        readonly property var colorFinish: [ colors.lightGrayText, colors.blueAccent, "#94132e", colors.black ]
-        readonly property var hoveredColor: [ colorStart[white], colorStart[blue], colorStart[red], colorFinish[black] ]
-        readonly property var pressedColor: [ colorFinish[white], colorFinish[blue], colorFinish[red], colorStart[black] ]
+        readonly property int none: 4
+        readonly property int noneBorderless: 5
+        readonly property int noneBorderlessWhite: 6
+        readonly property int noneBorderlessGray: 7
+        readonly property var textColor: [ colors.darkGray, colors.white, colors.white, colors.white, colors.white, colors.blueAccent, colors.white, colors.darkGray ]
+        readonly property var colorStart: [ colors.white, colors.primaryHighlight, "#d42043", "#343434", Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0) ]
+        readonly property var colorFinish: [ colors.lightGrayText, colors.blueAccent, "#94132e", colors.black, Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0), Qt.rgba(0, 0, 0, 0) ]
+        readonly property var hoveredColor: [ colorStart[white], colorStart[blue], colorStart[red], colorFinish[black], colorStart[none], colorStart[noneBorderless], colorStart[noneBorderlessWhite], colorStart[noneBorderlessGray] ]
+        readonly property var pressedColor: [ colorFinish[white], colorFinish[blue], colorFinish[red], colorStart[black], colorStart[none], colorStart[noneBorderless], colorStart[noneBorderlessWhite], colorStart[noneBorderlessGray] ]
         readonly property var disabledColorStart: [ colorStart[white], colors.baseGrayHighlight]
         readonly property var disabledColorFinish: [ colorFinish[white], colors.baseGrayShadow]
         readonly property var disabledTextColor: [ colors.lightGrayText, colors.baseGrayShadow]
@@ -338,6 +343,15 @@ Item {
         readonly property string stop_square: "\ue01e"
         readonly property string avatarTPose: "\ue01f"
         readonly property string lock: "\ue006"
-        readonly property string check_2_01: "\ue020"
+        readonly property string checkmark: "\ue020"
+        readonly property string leftRightArrows: "\ue021"
+        readonly property string hfc: "\ue022"
+        readonly property string home2: "\ue023"
+        readonly property string walletKey: "\ue024"
+        readonly property string lightning: "\ue025"
+        readonly property string securityImage: "\ue026"
+        readonly property string wallet: "\ue027"
+        readonly property string paperPlane: "\ue028"
+        readonly property string passphrase: "\ue029"
     }
 }

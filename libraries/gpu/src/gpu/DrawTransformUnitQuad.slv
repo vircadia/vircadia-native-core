@@ -32,5 +32,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    varTexCoord0 = (pos.xy + 1) * 0.5;
+    varTexCoord0 = (pos.xy + 1.0) * 0.5;
 }

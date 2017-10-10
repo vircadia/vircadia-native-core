@@ -106,30 +106,30 @@ void AvatarBookmarks::changeToBookmarkedAvatar() {
 }
 
 void AvatarBookmarks::addBookmark() {
-    bool ok = false;
-    auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Avatar", "Name", QString(), &ok);
-    if (!ok) {
-        return;
-    }
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_PLACEMARK, "Bookmark Avatar", "Name", QString());
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        auto bookmarkName = response.toString();
+        bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
+        if (bookmarkName.length() == 0) {
+            return;
+        }
 
-    bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
-    if (bookmarkName.length() == 0) {
-        return;
-    }
+        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
+        const QVariant& avatarScale = myAvatar->getAvatarScale();
 
-    const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
-    const QVariant& avatarScale = myAvatar->getAvatarScale();
+        // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
+        QVariantMap *bookmark = new QVariantMap;
+        bookmark->insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
+        bookmark->insert(ENTRY_AVATAR_URL, avatarUrl);
+        bookmark->insert(ENTRY_AVATAR_SCALE, avatarScale);
+        bookmark->insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
 
-    // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
-    QVariantMap *bookmark = new QVariantMap;
-    bookmark->insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
-    bookmark->insert(ENTRY_AVATAR_URL, avatarUrl);
-    bookmark->insert(ENTRY_AVATAR_SCALE, avatarScale);
-    bookmark->insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
-    
-    Bookmarks::addBookmarkToFile(bookmarkName, *bookmark);
+        Bookmarks::addBookmarkToFile(bookmarkName, *bookmark);
+    });
+
 }
 
 void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {

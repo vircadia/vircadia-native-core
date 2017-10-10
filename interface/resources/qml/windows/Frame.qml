@@ -26,6 +26,7 @@ Item {
     readonly property int frameMarginRight: frame.decoration ? frame.decoration.frameMarginRight : 0
     readonly property int frameMarginTop: frame.decoration ? frame.decoration.frameMarginTop : 0
     readonly property int frameMarginBottom: frame.decoration ? frame.decoration.frameMarginBottom : 0
+    readonly property int offsetCorrection: 20
 
     // Frames always fill their parents, but their decorations may extend
     // beyond the window via negative margin sizes
@@ -73,7 +74,7 @@ Item {
     Rectangle {
         id: sizeOutline
         x: -frameMarginLeft
-        y: -frameMarginTop
+        y: -frameMarginTop - offsetCorrection
         width: window ? window.width + frameMarginLeft + frameMarginRight + 2 : 0
         height: window ? window.height + frameMarginTop + frameMarginBottom + 2 : 0
         color: hifi.colors.baseGrayHighlight15

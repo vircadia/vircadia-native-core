@@ -13,6 +13,10 @@
 
 #include <QtCore/QObject>
 #include <QtEndian>
+#include <QJsonDocument>
+#include <openssl/rsa.h>  // see comments for DEBUG_CERT
+#include <openssl/pem.h>
+#include <openssl/x509.h>
 
 #include <glm/gtx/transform.hpp>
 
@@ -32,6 +36,8 @@
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
 
+Q_DECLARE_METATYPE(EntityItemPointer);
+int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
@@ -94,7 +100,19 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DYNAMIC;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
+
+    // Certifiable properties
+    requestedProperties += PROP_ITEM_NAME;
+    requestedProperties += PROP_ITEM_DESCRIPTION;
+    requestedProperties += PROP_ITEM_CATEGORIES;
+    requestedProperties += PROP_ITEM_ARTIST;
+    requestedProperties += PROP_ITEM_LICENSE;
+    requestedProperties += PROP_LIMITED_RUN;
     requestedProperties += PROP_MARKETPLACE_ID;
+    requestedProperties += PROP_EDITION_NUMBER;
+    requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
+    requestedProperties += PROP_CERTIFICATE_ID;
+
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
@@ -239,7 +257,19 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
+
+        // Certifiable Properties
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, getItemName());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, getItemDescription());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, getItemCategories());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, getItemArtist());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, getItemLicense());
+        APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, getLimitedRun());
+        APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
+        APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
+        APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
+
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
@@ -790,6 +820,17 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
         READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     }
+    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES) {
+        READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
+        READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
+        READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
+        READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
+        READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
+        READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
+        READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+        READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
+        READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    }
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
@@ -1207,7 +1248,19 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dynamic, getDynamic);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+
+    // Certifiable Properties
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemName, getItemName);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemDescription, getItemDescription);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemCategories, getItemCategories);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemArtist, getItemArtist);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemLicense, getItemLicense);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(limitedRun, getLimitedRun);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityInstanceNumber, getEntityInstanceNumber);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
@@ -1302,7 +1355,19 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+
+    // Certifiable Properties
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemName, setItemName);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemDescription, setItemDescription);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemCategories, setItemCategories);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemArtist, setItemArtist);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemLicense, setItemLicense);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(limitedRun, setLimitedRun);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
@@ -1368,7 +1433,7 @@ void EntityItem::recordCreationTime() {
 const Transform EntityItem::getTransformToCenter(bool& success) const {
     Transform result = getTransform(success);
     if (getRegistrationPoint() != ENTITY_ITEM_HALF_VEC3) { // If it is not already centered, translate to center
-        result.postTranslate(ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()); // Position to center
+        result.postTranslate((ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()) * getDimensions()); // Position to center
     }
     return result;
 }
@@ -1509,6 +1574,107 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(getDimensions());
 }
 
+// Checking Certifiable Properties
+#define ADD_STRING_PROPERTY(n, N) if (!propertySet.get##N().isEmpty()) json[#n] = propertySet.get##N()
+#define ADD_ENUM_PROPERTY(n, N) json[#n] = propertySet.get##N##AsString()
+#define ADD_INT_PROPERTY(n, N) if (propertySet.get##N() != 0) json[#n] = (propertySet.get##N() == (quint32) -1) ? -1.0 : ((double) propertySet.get##N())
+QByteArray EntityItem::getStaticCertificateJSON() const {
+    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
+    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
+    // of the entity as reviewed during the certification submission.
+
+    QJsonObject json;
+    EntityItemProperties propertySet = getProperties(); // Note: neither EntityItem nor EntityitemProperties "properties" are QObject "properties"!
+    // It is important that this be reproducible in the same order each time. Since we also generate these on the server, we do it alphabetically
+    // to help maintainence in two different code bases.
+    if (!propertySet.getAnimation().getURL().isEmpty()) {
+        json["animation.url"] = propertySet.getAnimation().getURL();
+    }
+    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
+    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
+    ADD_INT_PROPERTY(editionNumber, EditionNumber);
+    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
+    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
+    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
+    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
+    ADD_STRING_PROPERTY(itemLicense, ItemLicense);
+    ADD_STRING_PROPERTY(itemName, ItemName);
+    ADD_INT_PROPERTY(limitedRun, LimitedRun);
+    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
+    ADD_STRING_PROPERTY(modelURL, ModelURL);
+    ADD_STRING_PROPERTY(script, Script);
+    ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    json["type"] = EntityTypes::getEntityTypeName(propertySet.getType());
+
+    return QJsonDocument(json).toJson(QJsonDocument::Compact);
+}
+QByteArray EntityItem::getStaticCertificateHash() const {
+    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
+}
+
+#ifdef DEBUG_CERT
+QString EntityItem::computeCertificateID() {
+    // Until the marketplace generates it, compute and answer the certificateID here.
+    // Does not set it, as that will have to be done from script engine in order to update server, etc.
+    const auto hash = getStaticCertificateHash();
+    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
+    const unsigned int textLength = hash.length();
+
+    const char privateKey[] = "-----BEGIN RSA PRIVATE KEY-----\n\
+MIIBOQIBAAJBALCoBiDAZOClO26tC5pd7JikBL61WIgpAqbcNnrV/TcG6LPI7Zbi\n\
+MjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQJABvOlwhYwIhL+gr12jm2R\n\
+yPPzZ9nVEQ6kFxLlZfIT09119fd6OU1X5d4sHWfMfSIEgjwQIDS3ZU1kY3XKo87X\n\
+zQIhAOPHlYa1OC7BLhaTouy68qIU2vCKLP8mt4S31/TT0UOnAiEAxor6gU6yupTQ\n\
+yuyV3yHvr5LkZKBGqhjmOTmDfgtX7ncCIChGbgX3nQuHVOLhD/nTxHssPNozVGl5\n\
+KxHof+LmYSYZAiB4U+yEh9SsXdq40W/3fpLMPuNq1PRezJ5jGidGMcvF+wIgUNec\n\
+3Kg2U+CVZr8/bDT/vXRrsKj1zfobYuvbfVH02QY=\n\
+-----END RSA PRIVATE KEY-----";
+    BIO* bio = BIO_new_mem_buf((void*)privateKey, sizeof(privateKey));
+    RSA* rsa = PEM_read_bio_RSAPrivateKey(bio, NULL, NULL, NULL);
+
+    QByteArray signature(RSA_size(rsa), 0);
+    unsigned int signatureLength = 0;
+    const int signOK = RSA_sign(NID_sha256, text, textLength, reinterpret_cast<unsigned char*>(signature.data()), &signatureLength, rsa);
+    BIO_free(bio);
+    RSA_free(rsa);
+    if (!signOK) {
+        qCWarning(entities) << "Unable to compute signature for" << getName() << getEntityItemID();
+        return "";
+    }
+    return signature.toBase64();
+#endif
+}
+
+bool EntityItem::verifyStaticCertificateProperties() {
+    // True IIF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+
+    if (getCertificateID().isEmpty()) {
+        return false;
+    }
+    const auto signatureBytes = QByteArray::fromBase64(getCertificateID().toLatin1());
+    const auto signature = reinterpret_cast<const unsigned char*>(signatureBytes.constData());
+    const unsigned int signatureLength = signatureBytes.length();
+
+    const auto hash = getStaticCertificateHash();
+    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
+    const unsigned int textLength = hash.length();
+    
+    // After DEBUG_CERT ends, we will get/cache this once from the marketplace when needed, and it likely won't be RSA.
+    const char publicKey[] = "-----BEGIN PUBLIC KEY-----\n\
+MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALCoBiDAZOClO26tC5pd7JikBL61WIgp\n\
+AqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==\n\
+-----END PUBLIC KEY-----";
+    BIO *bio = BIO_new_mem_buf((void*)publicKey, sizeof(publicKey));
+    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
+    bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
+    BIO_free(bio);
+    RSA_free(rsa);
+    EVP_PKEY_free(evp_key);
+    return answer;
+}
+
 void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
     if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
         glm::mat4 scale = glm::scale(getDimensions());
@@ -1570,13 +1736,17 @@ void EntityItem::updatePosition(const glm::vec3& value) {
 }
 
 void EntityItem::updateParentID(const QUuid& value) {
-    if (getParentID() != value) {
+    QUuid oldParentID = getParentID();
+    if (oldParentID != value) {
+        EntityTreePointer tree = getTree();
+        if (!oldParentID.isNull()) {
+            tree->removeFromChildrenOfAvatars(getThisPointer());
+        }
         setParentID(value);
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
 
-        EntityTreePointer tree = getTree();
         if (tree) {
             tree->addToNeedsParentFixupList(getThisPointer());
         }
@@ -2020,7 +2190,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
-        EntityTreeElementPointer element = _element; // use local copy of _element for logic below
+            EntityTreeElementPointer element = _element; // use local copy of _element for logic below
             EntityTreePointer entityTree = element ? element->getTree() : nullptr;
             simulation = entityTree ? entityTree->getSimulation() : nullptr;
         }
@@ -2757,19 +2927,33 @@ void EntityItem::setUserData(const QString& value) {
     });
 }
 
-QString EntityItem::getMarketplaceID() const { 
-    QString result;
-    withReadLock([&] {
-        result = _marketplaceID;
-    });
-    return result;
+// Certifiable Properties
+#define DEFINE_PROPERTY_GETTER(type, accessor, var) \
+type EntityItem::get##accessor() const {            \
+    type result;         \
+    withReadLock([&] {   \
+        result = _##var; \
+    });                  \
+    return result;       \
 }
 
-void EntityItem::setMarketplaceID(const QString& value) { 
-    withWriteLock([&] {
-        _marketplaceID = value;
-    });
+#define DEFINE_PROPERTY_SETTER(type, accessor, var)   \
+void EntityItem::set##accessor(const type & value) { \
+    withWriteLock([&] {                               \
+       _##var = value;                                \
+    });                                               \
 }
+#define DEFINE_PROPERTY_ACCESSOR(type, accessor, var) DEFINE_PROPERTY_GETTER(type, accessor, var) DEFINE_PROPERTY_SETTER(type, accessor, var)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemName, itemName)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemDescription, itemDescription)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemCategories, itemCategories)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemArtist, itemArtist)
+DEFINE_PROPERTY_ACCESSOR(QString, ItemLicense, itemLicense)
+DEFINE_PROPERTY_ACCESSOR(quint32, LimitedRun, limitedRun)
+DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
+DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
+DEFINE_PROPERTY_ACCESSOR(quint32, EntityInstanceNumber, entityInstanceNumber)
+DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
 
 uint32_t EntityItem::getDirtyFlags() const { 
     uint32_t result;

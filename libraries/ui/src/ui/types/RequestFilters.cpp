@@ -61,7 +61,7 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info)
 
     // During the period in which we have HFC commerce in the system, but not applied everywhere:
     const QString tokenStringCommerce{ "Chrome/48.0 (HighFidelityInterface WithHFC)" };
-    static Setting::Handle<bool> _settingSwitch{ "commerce", false };
+    Setting::Handle<bool> _settingSwitch{ "commerce", false };
     bool isMoney = _settingSwitch.get();
 
     const QString tokenString = !isAuthable ? tokenStringMobile : (isMoney ? tokenStringCommerce : tokenStringMetaverse);
