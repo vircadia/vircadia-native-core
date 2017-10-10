@@ -1638,12 +1638,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
         QJsonObject bytesDownloaded;
-        bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["file"] = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["total"] = bytesDownloaded["atp"].toInt() + bytesDownloaded["http"].toInt()
-            + bytesDownloaded["file"].toInt();
-        properties["bytesDownloaded"] = bytesDownloaded;
+        auto atpBytes = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto httpBytes = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto fileBytes = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toLongLong();
+        bytesDownloaded["atp"] = atpBytes;
+        bytesDownloaded["http"] = httpBytes;
+        bytesDownloaded["file"] = fileBytes;
+        bytesDownloaded["total"] = atpBytes + httpBytes + fileBytes;
+        properties["bytes_downloaded"] = bytesDownloaded;
 
         auto myAvatar = getMyAvatar();
         glm::vec3 avatarPosition = myAvatar->getPosition();
