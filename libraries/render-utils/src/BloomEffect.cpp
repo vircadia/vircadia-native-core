@@ -21,15 +21,15 @@
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
-ThresholdAndDownsampleJob::ThresholdAndDownsampleJob() {
+BloomThreshold::BloomThreshold() {
 
 }
 
-void ThresholdAndDownsampleJob::configure(const Config& config) {
+void BloomThreshold::configure(const Config& config) {
     _threshold = config.threshold;
 }
 
-void ThresholdAndDownsampleJob::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+void BloomThreshold::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -40,25 +40,23 @@ void ThresholdAndDownsampleJob::run(const render::RenderContextPointer& renderCo
 
     assert(inputFrameBuffer->hasColor());
 
-    auto inputColor = inputFrameBuffer->getRenderBuffer(0);
+    auto inputBuffer = inputFrameBuffer->getRenderBuffer(0);
     auto sourceViewport = args->_viewport;
-    auto fullSize = glm::ivec2(inputColor->getDimensions());
-    auto halfSize = fullSize / 2;
-    auto halfViewport = args->_viewport >> 1;
+    auto bufferSize = glm::ivec2(inputBuffer->getDimensions());
 
-    if (!_downsampledBuffer || _downsampledBuffer->getSize().x != halfSize.x || _downsampledBuffer->getSize().y != halfSize.y) {
-        auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputColor->getTexelFormat(), halfSize.x, halfSize.y, 
+    if (!_outputBuffer || _outputBuffer->getSize() != inputFrameBuffer->getSize()) {
+        auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputBuffer->getTexelFormat(), bufferSize.x, bufferSize.y,
                                                 gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
 
-        _downsampledBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
-        _downsampledBuffer->setRenderBuffer(0, colorTexture);
+        _outputBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
+        _outputBuffer->setRenderBuffer(0, colorTexture);
     }
 
     static const int COLOR_MAP_SLOT = 0;
     static const int THRESHOLD_SLOT = 1;
 
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
         auto ps = gpu::Shader::createPixel(std::string(BloomThreshold_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
@@ -74,23 +72,19 @@ void ThresholdAndDownsampleJob::run(const render::RenderContextPointer& renderCo
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
-        batch.setViewportTransform(halfViewport);
+        batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(inputFrameBuffer->getSize(), args->_viewport));
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, args->_viewport));
         batch.setPipeline(_pipeline);
 
-        batch.setFramebuffer(_downsampledBuffer);
-        batch.setResourceTexture(COLOR_MAP_SLOT, inputColor);
+        batch.setFramebuffer(_outputBuffer);
+        batch.setResourceTexture(COLOR_MAP_SLOT, inputBuffer);
         batch._glUniform1f(THRESHOLD_SLOT, _threshold);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-        batch.setViewportTransform(args->_viewport);
-        batch.setResourceTexture(COLOR_MAP_SLOT, nullptr);
-        batch.setFramebuffer(nullptr);
     });
 
-    outputs = _downsampledBuffer;
+    outputs = _outputBuffer;
 }
 
 BloomApply::BloomApply() {
@@ -287,14 +281,27 @@ void Bloom::configure(const Config& config) {
 }
 
 void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
-    const auto bloomInputBuffer = task.addJob<ThresholdAndDownsampleJob>("BloomThreshold", inputs);
+    const auto bloomInputBuffer = task.addJob<BloomThreshold>("BloomThreshold", inputs);
+    const auto bloomHalfInputBuffer = task.addJob<render::HalfDownsample>("BloomHalf", bloomInputBuffer);
+    const auto bloomQuarterInputBuffer = task.addJob<render::HalfDownsample>("BloomQuarter", bloomHalfInputBuffer);
 
+#if 1
     // Multi-scale blur
-    const auto blurFB0 = task.addJob<render::BlurGaussian>("BloomBlur0", bloomInputBuffer);
+    const auto blurFB0 = task.addJob<render::BlurGaussian>("BloomBlur0", bloomQuarterInputBuffer);
     const auto halfBlurFB0 = task.addJob<render::HalfDownsample>("BloomHalfBlur0", blurFB0);
     const auto blurFB1 = task.addJob<render::BlurGaussian>("BloomBlur1", halfBlurFB0, true);
     const auto halfBlurFB1 = task.addJob<render::HalfDownsample>("BloomHalfBlur1", blurFB1);
     const auto blurFB2 = task.addJob<render::BlurGaussian>("BloomBlur2", halfBlurFB1, true);
+#else
+    // Multi-scale downsampling debug
+    const auto blurFB0 = bloomQuarterInputBuffer;
+    const auto blurFB1 = task.addJob<render::HalfDownsample>("BloomHalfBlur1", blurFB0);
+    const auto blurFB2 = task.addJob<render::HalfDownsample>("BloomHalfBlur2", blurFB1);
+    // This is only needed so as not to crash as we expect to have the three blur jobs
+    task.addJob<render::BlurGaussian>("BloomBlur0", bloomHalfInputBuffer, true);
+    task.addJob<render::BlurGaussian>("BloomBlur1", blurFB1, true);
+    task.addJob<render::BlurGaussian>("BloomBlur2", blurFB2, true);
+#endif
 
     const auto& input = inputs.get<Inputs>();
     const auto& frameBuffer = input[1];

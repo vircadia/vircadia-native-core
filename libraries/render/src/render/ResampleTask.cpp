@@ -48,15 +48,12 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
 
     resampledFrameBuffer = getResampledFrameBuffer(sourceFramebuffer);
 
-    static auto TEXCOORD_RECT_SLOT = 1;
-
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTexcoordRectTransformUnitQuadVS();
+        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
         auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("texcoordRect"), TEXCOORD_RECT_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -80,9 +77,6 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
 
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, viewport));
         batch.setResourceTexture(0, sourceFramebuffer->getRenderBuffer(0));
-        // Add half a texel of offset to be sure to sample in the middle of 4 neighbouring texture pixels
-        // to perform box filtering.
-        batch._glUniform4f(TEXCOORD_RECT_SLOT, 0.5f / sourceSize.x, 0.5f / sourceSize.y, 1.f, 1.f);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }

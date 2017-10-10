@@ -25,7 +25,7 @@ public:
 
     BloomConfig() : render::Task::Config(true) {}
 
-    float size{ 0.45f };
+    float size{ 0.8f };
 
     void setIntensity(float value);
     float getIntensity() const;
@@ -35,7 +35,7 @@ signals:
     void dirty();
 };
 
-class ThresholdConfig : public render::Job::Config {
+class BloomThresholdConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
 
@@ -47,21 +47,21 @@ signals:
     void dirty();
 };
 
-class ThresholdAndDownsampleJob {
+class BloomThreshold {
 public:
     using Inputs = render::VaryingSet2<DeferredFrameTransformPointer, gpu::FramebufferPointer>;
     using Outputs = gpu::FramebufferPointer;
-    using Config = ThresholdConfig;
-    using JobModel = render::Job::ModelIO<ThresholdAndDownsampleJob, Inputs, Outputs, Config>;
+    using Config = BloomThresholdConfig;
+    using JobModel = render::Job::ModelIO<BloomThreshold, Inputs, Outputs, Config>;
 
-    ThresholdAndDownsampleJob();
+    BloomThreshold();
 
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
 private:
 
-    gpu::FramebufferPointer _downsampledBuffer;
+    gpu::FramebufferPointer _outputBuffer;
     gpu::PipelinePointer _pipeline;
     float _threshold;
 };
@@ -73,7 +73,7 @@ class BloomApplyConfig : public render::Job::Config {
 
 public:
 
-    float intensity{ 0.5f };
+    float intensity{ 0.8f };
 
 signals:
     void dirty();
