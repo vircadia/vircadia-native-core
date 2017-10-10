@@ -126,18 +126,10 @@ void Application::paintGL() {
             renderArgs._context->setStereoViews(stereoEyeOffsets);
         }
 
+        renderArgs._hudOperator = displayPlugin->getHUDOperator();
+        renderArgs._hudTexture = _applicationOverlay.getOverlayTexture();
         renderArgs._blitFramebuffer = finalFramebuffer;
         runRenderFrame(&renderArgs);
-    }
-
-    gpu::Batch postCompositeBatch;
-    {
-        PROFILE_RANGE(render, "/postComposite");
-        PerformanceTimer perfTimer("postComposite");
-        renderArgs._batch = &postCompositeBatch;
-        renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
-        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
-        _overlays.render3DHUDOverlays(&renderArgs);
     }
 
     auto frame = _gpuContext->endFrame();
@@ -146,8 +138,6 @@ void Application::paintGL() {
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
     };
-    frame->overlay = _applicationOverlay.getOverlayTexture();
-    frame->postCompositeBatch = postCompositeBatch;
     // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(render, "/pluginOutput");

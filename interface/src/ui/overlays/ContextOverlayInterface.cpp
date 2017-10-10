@@ -41,6 +41,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
+    _entityPropertyFlags += PROP_CERTIFICATE_ID;
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
@@ -176,7 +177,12 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
 bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
-    return (entityProperties.getMarketplaceID().length() != 0);
+    Setting::Handle<bool> _settingSwitch{ "commerce", false };
+    if (_settingSwitch.get()) {
+        return (entityProperties.getCertificateID().length() != 0);
+    } else {
+        return (entityProperties.getMarketplaceID().length() != 0);
+    }
 }
 
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {

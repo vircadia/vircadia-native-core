@@ -51,6 +51,7 @@ public:
 
     void setVisible(bool visible) override;
     void setDrawInFront(bool drawInFront) override;
+    void setDrawHUDLayer(bool drawHUDLayer) override;
 
 protected:
     Transform evalRenderTransform() override;
@@ -78,8 +79,6 @@ private:
     bool _scaleToFit = { false };
     float _loadPriority { 0.0f };
 
-    bool _visibleDirty { false };
-    bool _drawInFrontDirty { false };
     AnimationPointer _animation;
 
     QUrl _animationURL;
@@ -97,6 +96,11 @@ private:
     QUrl _jointMappingURL;
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
+
+    bool _visibleDirty { false };
+    bool _drawInFrontDirty { false };
+    bool _drawInHUDDirty { false };
+
 };
 
 #endif // hifi_ModelOverlay_h

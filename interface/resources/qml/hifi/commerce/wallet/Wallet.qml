@@ -176,6 +176,8 @@ Rectangle {
                         commerce.getWalletStatus();
                     } else if (msg.referrer === 'purchases') {
                         sendToScript({method: 'goToPurchases'});
+                    } else {
+                        sendToScript({method: 'goToMarketplaceItemPage', itemId: msg.referrer});
                     }
                 } else if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
@@ -283,7 +285,7 @@ Rectangle {
         Connections {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
-                    root.activeView = "walletHome";
+                    commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }
