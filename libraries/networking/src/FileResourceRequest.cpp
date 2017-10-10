@@ -69,8 +69,7 @@ void FileResourceRequest::doSend() {
 
     if (_result == ResourceRequest::Success) {
         statTracker->incrementStat(STAT_FILE_REQUEST_SUCCESS);
-        // Recording FILE bytes downloaded in stats
-        statTracker->updateStat(STAT_FILE_RESOURCE_TOTAL_BYTES,fileSize);
+        statTracker->updateStat(STAT_FILE_RESOURCE_TOTAL_BYTES, fileSize);
     } else {
         statTracker->incrementStat(STAT_FILE_REQUEST_FAILED);
     }

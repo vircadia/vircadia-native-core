@@ -1638,12 +1638,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
         QJsonObject bytesDownloaded;
-        bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["file"] = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["total"] = bytesDownloaded["atp"].toInt() + bytesDownloaded["http"].toInt()
-            + bytesDownloaded["file"].toInt();
-        properties["bytesDownloaded"] = bytesDownloaded;
+        auto atpBytes = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto httpBytes = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto fileBytes = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toLongLong();
+        bytesDownloaded["atp"] = atpBytes;
+        bytesDownloaded["http"] = httpBytes;
+        bytesDownloaded["file"] = fileBytes;
+        bytesDownloaded["total"] = atpBytes + httpBytes + fileBytes;
+        properties["bytes_downloaded"] = bytesDownloaded;
 
         auto myAvatar = getMyAvatar();
         glm::vec3 avatarPosition = myAvatar->getPosition();
@@ -5634,14 +5636,37 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         return false;
     }
 
+    // We don't want to use EntityTree::findEntities(AABox, ...) method because that scan will snarf parented entities
+    // whose bounding boxes cannot be computed (it is too loose for our purposes here).  Instead we manufacture
+    // custom filters and use the general-purpose EntityTree::findEntities(filter, ...)
     QVector<EntityItemPointer> entities;
+    AABox avatarBox(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
+    // create two functions that use avatarBox (entityScan and elementScan), the second calls the first
+    std::function<bool (EntityItemPointer&)> entityScan = [=](EntityItemPointer& entity) {
+            if (entity->shouldBePhysical()) {
+                bool success = false;
+                AABox entityBox = entity->getAABox(success);
+                // important: bail for entities that cannot supply a valid AABox
+                return success && avatarBox.touches(entityBox);
+            }
+            return false;
+        };
+    std::function<bool(const OctreeElementPointer&, void*)> elementScan = [&](const OctreeElementPointer& element, void* unused) {
+            if (element->getAACube().touches(avatarBox)) {
+                EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+                entityTreeElement->getEntities(entityScan, entities);
+                return true;
+            }
+            return false;
+        };
+
     entityTree->withReadLock([&] {
-        AABox box(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
-        entityTree->findEntities(box, entities);
+        // Pass the second function to the general-purpose EntityTree::findEntities()
+        // which will traverse the tree, apply the two filter functions (to element, then to entities)
+        // as it traverses.  The end result will be a list of entities that match.
+        entityTree->findEntities(elementScan, entities);
     });
 
-    // For reasons I haven't found, we don't necessarily have the full scene when we receive a stats packet.  Apply
-    // a heuristic to try to decide when we actually know about all of the nearby entities.
     uint32_t nearbyCount = entities.size();
     if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
         _nearbyEntitiesStabilityCount++;
