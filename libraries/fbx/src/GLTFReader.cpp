@@ -36,7 +36,8 @@ GLTFReader::GLTFReader() {
 
 }
 
-bool GLTFReader::getStringVal(const QJsonObject& object, const QString& fieldname, QString& value, QMap<QString, bool>&  defined) {
+bool GLTFReader::getStringVal(const QJsonObject& object, const QString& fieldname, 
+                              QString& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isString());
     if (_defined) {
         value = object[fieldname].toString();
@@ -45,7 +46,8 @@ bool GLTFReader::getStringVal(const QJsonObject& object, const QString& fieldnam
     return _defined;
 }
 
-bool GLTFReader::getBoolVal(const QJsonObject& object, const QString& fieldname, bool& value, QMap<QString, bool>&  defined) {
+bool GLTFReader::getBoolVal(const QJsonObject& object, const QString& fieldname,
+                            bool& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isBool());
     if (_defined) {
         value = object[fieldname].toBool();
@@ -54,7 +56,8 @@ bool GLTFReader::getBoolVal(const QJsonObject& object, const QString& fieldname,
     return _defined;
 }
 
-bool GLTFReader::getIntVal(const QJsonObject& object, const QString& fieldname, int& value, QMap<QString, bool>&  defined) {
+bool GLTFReader::getIntVal(const QJsonObject& object, const QString& fieldname, 
+                           int& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && !object[fieldname].isNull());
     if (_defined) {
         value = object[fieldname].toInt();
@@ -63,7 +66,8 @@ bool GLTFReader::getIntVal(const QJsonObject& object, const QString& fieldname, 
     return _defined;
 }
 
-bool GLTFReader::getDoubleVal(const QJsonObject& object, const QString& fieldname, double& value, QMap<QString, bool>&  defined) {
+bool GLTFReader::getDoubleVal(const QJsonObject& object, const QString& fieldname, 
+                              double& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isDouble());
     if (_defined) {
         value = object[fieldname].toDouble();
@@ -71,7 +75,8 @@ bool GLTFReader::getDoubleVal(const QJsonObject& object, const QString& fieldnam
     defined.insert(fieldname, _defined);
     return _defined;
 }
-bool GLTFReader::getObjectVal(const QJsonObject& object, const QString& fieldname, QJsonObject& value, QMap<QString, bool>&  defined) {
+bool GLTFReader::getObjectVal(const QJsonObject& object, const QString& fieldname, 
+                              QJsonObject& value, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isObject());
     if (_defined) {
         value = object[fieldname].toObject();
@@ -80,7 +85,8 @@ bool GLTFReader::getObjectVal(const QJsonObject& object, const QString& fieldnam
     return _defined;
 }
 
-bool GLTFReader::getIntArrayVal(const QJsonObject& object, const QString& fieldname, QVector<int>& values, QMap<QString, bool>&  defined) {
+bool GLTFReader::getIntArrayVal(const QJsonObject& object, const QString& fieldname, 
+                                QVector<int>& values, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
         QJsonArray arr = object[fieldname].toArray();
@@ -94,7 +100,8 @@ bool GLTFReader::getIntArrayVal(const QJsonObject& object, const QString& fieldn
     return _defined;
 }
 
-bool GLTFReader::getDoubleArrayVal(const QJsonObject& object, const QString& fieldname, QVector<double>& values, QMap<QString, bool>&  defined) {
+bool GLTFReader::getDoubleArrayVal(const QJsonObject& object, const QString& fieldname, 
+                                   QVector<double>& values, QMap<QString, bool>&  defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
         QJsonArray arr = object[fieldname].toArray();
@@ -108,7 +115,8 @@ bool GLTFReader::getDoubleArrayVal(const QJsonObject& object, const QString& fie
     return _defined;
 }
 
-bool GLTFReader::getObjectArrayVal(const QJsonObject& object, const QString& fieldname, QJsonArray& objects, QMap<QString, bool>& defined) {
+bool GLTFReader::getObjectArrayVal(const QJsonObject& object, const QString& fieldname, 
+                                   QJsonArray& objects, QMap<QString, bool>& defined) {
     bool _defined = (object.contains(fieldname) && object[fieldname].isArray());
     if (_defined) {
         objects = object[fieldname].toArray();
@@ -119,53 +127,97 @@ bool GLTFReader::getObjectArrayVal(const QJsonObject& object, const QString& fie
 
 int GLTFReader::getMeshPrimitiveRenderingMode(const QString& type)
 {
-    if (type == "POINTS") return GLTFMeshPrimitivesRenderingMode::POINTS;
-    if (type == "LINES") return GLTFMeshPrimitivesRenderingMode::LINES;
-    if (type == "LINE_LOOP") return GLTFMeshPrimitivesRenderingMode::LINE_LOOP;
-    if (type == "LINE_STRIP") return GLTFMeshPrimitivesRenderingMode::LINE_STRIP;
-    if (type == "TRIANGLES") return GLTFMeshPrimitivesRenderingMode::TRIANGLES;
-    if (type == "TRIANGLE_STRIP") return GLTFMeshPrimitivesRenderingMode::TRIANGLE_STRIP;
-    if (type == "TRIANGLE_FAN") return GLTFMeshPrimitivesRenderingMode::TRIANGLE_FAN;
+    if (type == "POINTS") {
+        return GLTFMeshPrimitivesRenderingMode::POINTS;
+    }
+    if (type == "LINES") {
+        return GLTFMeshPrimitivesRenderingMode::LINES;
+    }
+    if (type == "LINE_LOOP") {
+        return GLTFMeshPrimitivesRenderingMode::LINE_LOOP;
+    }
+    if (type == "LINE_STRIP") {
+        return GLTFMeshPrimitivesRenderingMode::LINE_STRIP;
+    }
+    if (type == "TRIANGLES") {
+        return GLTFMeshPrimitivesRenderingMode::TRIANGLES;
+    }
+    if (type == "TRIANGLE_STRIP") {
+        return GLTFMeshPrimitivesRenderingMode::TRIANGLE_STRIP;
+    }
+    if (type == "TRIANGLE_FAN") {
+        return GLTFMeshPrimitivesRenderingMode::TRIANGLE_FAN;
+    }
     return GLTFMeshPrimitivesRenderingMode::TRIANGLES;
 }
 
 int GLTFReader::getAccessorType(const QString& type)
 {
-    if (type == "SCALAR") return GLTFAccessorType::SCALAR;
-    if (type == "VEC2") return GLTFAccessorType::VEC2;
-    if (type == "VEC3") return GLTFAccessorType::VEC3;
-    if (type == "VEC4") return GLTFAccessorType::VEC4;
-    if (type == "MAT2") return GLTFAccessorType::MAT2;
-    if (type == "MAT3") return GLTFAccessorType::MAT3;
-    if (type == "MAT4") return GLTFAccessorType::MAT4;
+    if (type == "SCALAR") {
+        return GLTFAccessorType::SCALAR;
+    }
+    if (type == "VEC2") {
+        return GLTFAccessorType::VEC2;
+    }
+    if (type == "VEC3") {
+        return GLTFAccessorType::VEC3;
+    }
+    if (type == "VEC4") {
+        return GLTFAccessorType::VEC4;
+    }
+    if (type == "MAT2") {
+        return GLTFAccessorType::MAT2;
+    }
+    if (type == "MAT3") {
+        return GLTFAccessorType::MAT3;
+    }
+    if (type == "MAT4") {
+        return GLTFAccessorType::MAT4;
+    }
     return GLTFAccessorType::SCALAR;
 }
 
 int GLTFReader::getMaterialAlphaMode(const QString& type)
 {
-    if (type == "OPAQUE") return GLTFMaterialAlphaMode::OPAQUE;
-    if (type == "MASK") return GLTFMaterialAlphaMode::MASK;
-    if (type == "BLEND") return GLTFMaterialAlphaMode::BLEND;
+    if (type == "OPAQUE") {
+        return GLTFMaterialAlphaMode::OPAQUE;
+    }
+    if (type == "MASK") {
+        return GLTFMaterialAlphaMode::MASK;
+    }
+    if (type == "BLEND") {
+        return GLTFMaterialAlphaMode::BLEND;
+    }
     return GLTFMaterialAlphaMode::OPAQUE;
 }
 
 int GLTFReader::getCameraType(const QString& type)
 {
-    if (type == "orthographic") return GLTFCameraTypes::ORTHOGRAPHIC;
-    if (type == "perspective") return GLTFCameraTypes::PERSPECTIVE;
+    if (type == "orthographic") {
+        return GLTFCameraTypes::ORTHOGRAPHIC;
+    }
+    if (type == "perspective") {
+        return GLTFCameraTypes::PERSPECTIVE;
+    }
     return GLTFCameraTypes::PERSPECTIVE;
 }
 
 int GLTFReader::getImageMimeType(const QString& mime)
 {
-    if (mime == "image/jpeg") return GLTFImageMimetype::JPEG;
-    if (mime == "image/png") return GLTFImageMimetype::PNG;
+    if (mime == "image/jpeg") {
+        return GLTFImageMimetype::JPEG;
+    }
+    if (mime == "image/png") {
+        return GLTFImageMimetype::PNG;
+    }
     return GLTFImageMimetype::JPEG;
 }
 
 int GLTFReader::getAnimationSamplerInterpolation(const QString& interpolation)
 {
-    if (interpolation == "LINEAR") return GLTFAnimationSamplerInterpolation::LINEAR;
+    if (interpolation == "LINEAR") {
+        return GLTFAnimationSamplerInterpolation::LINEAR;
+    }
     return GLTFAnimationSamplerInterpolation::LINEAR;
 }
 
@@ -173,7 +225,8 @@ bool GLTFReader::setAsset(const QJsonObject& object) {
     QJsonObject jsAsset;
     bool isAssetDefined = getObjectVal(object, "asset", jsAsset, _file.defined);
     if (isAssetDefined) {
-        if (!getStringVal(jsAsset, "version", _file.asset.version, _file.asset.defined) || _file.asset.version != "2.0") {
+        if (!getStringVal(jsAsset, "version", _file.asset.version, 
+                          _file.asset.defined) || _file.asset.version != "2.0") {
             return false;
         }
         getStringVal(jsAsset, "generator", _file.asset.generator, _file.asset.defined);
@@ -280,15 +333,13 @@ bool GLTFReader::addCamera(const QJsonObject& object) {
         getDoubleVal(jsPerspective, "zfar", camera.perspective.zfar, camera.perspective.defined);
         getDoubleVal(jsPerspective, "znear", camera.perspective.znear, camera.perspective.defined);
         camera.type = GLTFCameraTypes::PERSPECTIVE;
-    }
-    else if (getObjectVal(object, "orthographic", jsOrthographic, camera.defined)) {
+    } else if (getObjectVal(object, "orthographic", jsOrthographic, camera.defined)) {
         getDoubleVal(jsOrthographic, "zfar", camera.orthographic.zfar, camera.orthographic.defined);
         getDoubleVal(jsOrthographic, "znear", camera.orthographic.znear, camera.orthographic.defined);
         getDoubleVal(jsOrthographic, "xmag", camera.orthographic.xmag, camera.orthographic.defined);
         getDoubleVal(jsOrthographic, "ymag", camera.orthographic.ymag, camera.orthographic.defined);
         camera.type = GLTFCameraTypes::ORTHOGRAPHIC;
-    }
-    else if (getStringVal(object, "type", type, camera.defined)) {
+    } else if (getStringVal(object, "type", type, camera.defined)) {
         camera.type = getCameraType(type);
     }
     
@@ -312,7 +363,8 @@ bool GLTFReader::addImage(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFReader::getIndexFromObject(const QJsonObject& object, const QString& field, int& outidx, QMap<QString, bool>& defined) {
+bool GLTFReader::getIndexFromObject(const QJsonObject& object, const QString& field, 
+                                    int& outidx, QMap<QString, bool>& defined) {
     QJsonObject subobject;
     if (getObjectVal(object, field, subobject, defined)) {
         QMap<QString, bool> tmpdefined = QMap<QString, bool>();
@@ -331,18 +383,29 @@ bool GLTFReader::addMaterial(const QJsonObject& object) {
     getIndexFromObject(object, "occlusionTexture", material.occlusionTexture, material.defined);
     getBoolVal(object, "doubleSided", material.doubleSided, material.defined);
     QString alphamode;
-    if (getStringVal(object, "alphaMode", alphamode, material.defined)) material.alphaMode = getMaterialAlphaMode(alphamode);
+    if (getStringVal(object, "alphaMode", alphamode, material.defined)) {
+        material.alphaMode = getMaterialAlphaMode(alphamode);
+    }
     getDoubleVal(object, "alphaCutoff", material.alphaCutoff, material.defined);
     QJsonObject jsMetallicRoughness;
     if (getObjectVal(object, "pbrMetallicRoughness", jsMetallicRoughness, material.defined)) {
-        getDoubleArrayVal(jsMetallicRoughness, "baseColorFactor", material.pbrMetallicRoughness.baseColorFactor, material.pbrMetallicRoughness.defined);
-        getIndexFromObject(jsMetallicRoughness, "baseColorTexture", material.pbrMetallicRoughness.baseColorTexture, material.pbrMetallicRoughness.defined);
-        getDoubleVal(jsMetallicRoughness, "metallicFactor", material.pbrMetallicRoughness.metallicFactor, material.pbrMetallicRoughness.defined);
-        getDoubleVal(jsMetallicRoughness, "roughnessFactor", material.pbrMetallicRoughness.roughnessFactor, material.pbrMetallicRoughness.defined);
-        getIndexFromObject(jsMetallicRoughness, "metallicRoughnessTexture", material.pbrMetallicRoughness.metallicRoughnessTexture, material.pbrMetallicRoughness.defined);
+        getDoubleArrayVal(jsMetallicRoughness, "baseColorFactor", 
+                          material.pbrMetallicRoughness.baseColorFactor, 
+                          material.pbrMetallicRoughness.defined);
+        getIndexFromObject(jsMetallicRoughness, "baseColorTexture", 
+                           material.pbrMetallicRoughness.baseColorTexture, 
+                           material.pbrMetallicRoughness.defined);
+        getDoubleVal(jsMetallicRoughness, "metallicFactor", 
+                     material.pbrMetallicRoughness.metallicFactor, 
+                     material.pbrMetallicRoughness.defined);
+        getDoubleVal(jsMetallicRoughness, "roughnessFactor", 
+                     material.pbrMetallicRoughness.roughnessFactor, 
+                     material.pbrMetallicRoughness.defined);
+        getIndexFromObject(jsMetallicRoughness, "metallicRoughnessTexture", 
+                           material.pbrMetallicRoughness.metallicRoughnessTexture, 
+                           material.pbrMetallicRoughness.defined);
     }
    _file.materials.push_back(material);
-
     return true;
 }
 
@@ -477,102 +540,127 @@ bool GLTFReader::parseGLTF(const QByteArray& model) {
         QJsonArray accessors;
         if (getObjectArrayVal(jsFile, "accessors", accessors, _file.defined)) {
             foreach(const QJsonValue & accVal, accessors) {
-                if (accVal.isObject()) addAccessor(accVal.toObject());
+                if (accVal.isObject()) {
+                    addAccessor(accVal.toObject());
+                }
             }
         }
 
         QJsonArray animations;
         if (getObjectArrayVal(jsFile, "animations", animations, _file.defined)) {
             foreach(const QJsonValue & animVal, accessors) {
-                if (animVal.isObject()) addAnimation(animVal.toObject());
+                if (animVal.isObject()) {
+                    addAnimation(animVal.toObject());
+                }
             }
         }
 
         QJsonArray bufferViews;
         if (getObjectArrayVal(jsFile, "bufferViews", bufferViews, _file.defined)) {
             foreach(const QJsonValue & bufviewVal, bufferViews) {
-                if (bufviewVal.isObject()) addBufferView(bufviewVal.toObject());
+                if (bufviewVal.isObject()) {
+                    addBufferView(bufviewVal.toObject());
+                }
             }
         }
 
         QJsonArray buffers;
         if (getObjectArrayVal(jsFile, "buffers", buffers, _file.defined)) {
             foreach(const QJsonValue & bufVal, buffers) {
-                if (bufVal.isObject()) addBuffer(bufVal.toObject());
+                if (bufVal.isObject()) {
+                    addBuffer(bufVal.toObject());
+                }
             }
         }
 
         QJsonArray cameras;
         if (getObjectArrayVal(jsFile, "cameras", cameras, _file.defined)) {
             foreach(const QJsonValue & camVal, cameras) {
-                if (camVal.isObject()) addCamera(camVal.toObject());
+                if (camVal.isObject()) {
+                    addCamera(camVal.toObject());
+                }
             }
         }
 
         QJsonArray images;
         if (getObjectArrayVal(jsFile, "images", images, _file.defined)) {
             foreach(const QJsonValue & imgVal, images) {
-                if (imgVal.isObject()) addImage(imgVal.toObject());
+                if (imgVal.isObject()) {
+                    addImage(imgVal.toObject());
+                }
             }
         }
 
         QJsonArray materials;
         if (getObjectArrayVal(jsFile, "materials", materials, _file.defined)) {
             foreach(const QJsonValue & matVal, materials) {
-                if (matVal.isObject()) addMaterial(matVal.toObject());
+                if (matVal.isObject()) {
+                    addMaterial(matVal.toObject());
+                }
             }
         }
 
         QJsonArray meshes;
         if (getObjectArrayVal(jsFile, "meshes", meshes, _file.defined)) {
             foreach(const QJsonValue & meshVal, meshes) {
-                if (meshVal.isObject()) addMesh(meshVal.toObject());
+                if (meshVal.isObject()) {
+                    addMesh(meshVal.toObject());
+                }
             }
         }
 
         QJsonArray nodes;
         if (getObjectArrayVal(jsFile, "nodes", nodes, _file.defined)) {
             foreach(const QJsonValue & nodeVal, nodes) {
-                if (nodeVal.isObject()) addNode(nodeVal.toObject());
+                if (nodeVal.isObject()) {
+                    addNode(nodeVal.toObject());
+                }
             }
         }
 
         QJsonArray samplers;
         if (getObjectArrayVal(jsFile, "samplers", samplers, _file.defined)) {
             foreach(const QJsonValue & samVal, samplers) {
-                if (samVal.isObject()) addSampler(samVal.toObject());
+                if (samVal.isObject()) {
+                    addSampler(samVal.toObject());
+                }
             }
         }
 
         QJsonArray scenes;
         if (getObjectArrayVal(jsFile, "scenes", scenes, _file.defined)) {
             foreach(const QJsonValue & sceneVal, scenes) {
-                if (sceneVal.isObject()) addScene(sceneVal.toObject());
+                if (sceneVal.isObject()) {
+                    addScene(sceneVal.toObject());
+                }
             }
         }
 
         QJsonArray skins;
         if (getObjectArrayVal(jsFile, "skins", skins, _file.defined)) {
             foreach(const QJsonValue & skinVal, skins) {
-                if (skinVal.isObject()) addSkin(skinVal.toObject());
+                if (skinVal.isObject()) {
+                    addSkin(skinVal.toObject());
+                }
             }
         }
 
         QJsonArray textures;
         if (getObjectArrayVal(jsFile, "textures", textures, _file.defined)) {
             foreach(const QJsonValue & texVal, textures) {
-                if (texVal.isObject()) addTexture(texVal.toObject());
+                if (texVal.isObject()) {
+                    addTexture(texVal.toObject());
+                }
             }
         }
-    }
-    else {
+    } else {
         qCDebug(modelformat) << "Error parsing GLTF file.";
         return false;
     }
     return true;
 }
 
-glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
+const glm::mat4& GLTFReader::getModelTransform(const GLTFNode& node) {
     glm::mat4 tmat = glm::mat4(1.0);
 
     if (node.defined["matrix"] && node.matrix.size() == 16) {
@@ -580,11 +668,11 @@ glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
             node.matrix[4], node.matrix[5], node.matrix[6], node.matrix[7],
             node.matrix[8], node.matrix[9], node.matrix[10], node.matrix[11],
             node.matrix[12], node.matrix[13], node.matrix[14], node.matrix[15]);
-    }
-    else {
+    } else {
 
         if (node.defined["rotation"] && node.rotation.size() == 4) {
-            glm::quat rotquat = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]); //quat(x,y,z,w) to quat(w,x,y,z)
+            //quat(x,y,z,w) to quat(w,x,y,z)
+            glm::quat rotquat = glm::quat(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
             tmat = glm::mat4_cast(rotquat) * tmat;
         }
 
@@ -618,13 +706,16 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
     
     nodecount = 0;
     foreach(auto &node, _file.nodes) {
-        _file.nodes[nodecount].transforms.push_back(getModelTransform(node)); // collect node transform
+        // collect node transform
+        _file.nodes[nodecount].transforms.push_back(getModelTransform(node)); 
         if (nodeDependencies[nodecount].size() == 1) {
             int parentidx = nodeDependencies[nodecount][0];
             while (true) { // iterate parents
-                _file.nodes[nodecount].transforms.push_back(getModelTransform(_file.nodes[parentidx])); // collect parents transforms
-                if (nodeDependencies[parentidx].size() == 1) parentidx = nodeDependencies[parentidx][0];
-                else break;
+                // collect parents transforms
+                _file.nodes[nodecount].transforms.push_back(getModelTransform(_file.nodes[parentidx])); 
+                if (nodeDependencies[parentidx].size() == 1) {
+                    parentidx = nodeDependencies[parentidx][0];
+                } else break;
             }
         }
         
@@ -721,8 +812,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                         for (int n = 0; n < vertices.size(); n = n + 3) {
                             mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
                         }
-                    }
-                    else if (key == "NORMAL") {
+                    } else if (key == "NORMAL") {
                         QVector<float> normals;
                         addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
@@ -733,8 +823,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                         for (int n = 0; n < normals.size(); n = n + 3) {
                             mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                         }
-                    }
-                    else if (key == "TEXCOORD_0") {
+                    } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
                         addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
@@ -745,8 +834,7 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                         for (int n = 0; n < texcoords.size(); n = n + 2) {
                             mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                         }
-                    }
-                    else if (key == "TEXCOORD_1") {
+                    } else if (key == "TEXCOORD_1") {
                         QVector<float> texcoords;
                         addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
@@ -761,11 +849,15 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
 
                 }
 
-                if (primitive.defined["material"]) part.materialID = materialIDs[primitive.material];
+                if (primitive.defined["material"]) {
+                    part.materialID = materialIDs[primitive.material];
+                }
                 mesh.parts.push_back(part);
 
                 // populate the texture coordenates if they don't exist
-                if (mesh.texCoords.size() == 0) for (int i = 0; i < part.triangleIndices.size(); i++) mesh.texCoords.push_back(glm::vec2(0.0, 1.0));
+                if (mesh.texCoords.size() == 0) {
+                    for (int i = 0; i < part.triangleIndices.size(); i++) mesh.texCoords.push_back(glm::vec2(0.0, 1.0));
+                }
                 mesh.meshExtents.reset();
                 foreach(const glm::vec3& vertex, mesh.vertices) {
                     mesh.meshExtents.addPoint(vertex);
@@ -793,7 +885,8 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
     return true;
 }
 
-FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps, float lightmapLevel) {
+FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping, 
+                                  const QUrl& url, bool loadLightmaps, float lightmapLevel) {
     _url = url;
 
     parseGLTF(model);
@@ -839,8 +932,7 @@ std::tuple<bool, QByteArray> GLTFReader::requestData(QUrl& url) {
 
     if (request->getResult() == ResourceRequest::Success) {
         return std::make_tuple(true, request->getData());
-    }
-    else {
+    } else {
         return std::make_tuple(false, QByteArray());
     }
 }
@@ -870,7 +962,7 @@ QNetworkReply* GLTFReader::request(QUrl& url, bool isTest) {
     return netReply;                // trying to sync later on.
 }
 
-FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
+const FBXTexture& GLTFReader::getFBXTexture(const GLTFTexture& texture) {
     FBXTexture fbxtex = FBXTexture();
     fbxtex.texcoordSet = 0;
     
@@ -889,10 +981,14 @@ FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
 void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& material) {
 
 
-    if (material.defined["name"]) fbxmat.name = fbxmat.materialID = material.name;
+    if (material.defined["name"]) {
+        fbxmat.name = fbxmat.materialID = material.name;
+    }
     
     if (material.defined["emissiveFactor"] && material.emissiveFactor.size() == 3) {
-        glm::vec3 emissive = glm::vec3(material.emissiveFactor[0], material.emissiveFactor[1], material.emissiveFactor[2]);
+        glm::vec3 emissive = glm::vec3(material.emissiveFactor[0], 
+                                       material.emissiveFactor[1], 
+                                       material.emissiveFactor[2]);
         fbxmat._material->setEmissive(emissive);
     }
 
@@ -914,7 +1010,9 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
     if (material.defined["pbrMetallicRoughness"]) {
         fbxmat.isPBSMaterial = true;
         
-        if (material.pbrMetallicRoughness.defined["metallicFactor"]) fbxmat.metallic = material.pbrMetallicRoughness.metallicFactor;
+        if (material.pbrMetallicRoughness.defined["metallicFactor"]) {
+            fbxmat.metallic = material.pbrMetallicRoughness.metallicFactor;
+        }
         if (material.pbrMetallicRoughness.defined["baseColorTexture"]) {
             fbxmat.opacityTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
             fbxmat.albedoTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
@@ -927,9 +1025,14 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
             fbxmat.useRoughnessMap = true;
 
         }
-        if (material.pbrMetallicRoughness.defined["roughnessFactor"]) fbxmat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
-        if (material.pbrMetallicRoughness.defined["baseColorFactor"] && material.pbrMetallicRoughness.baseColorFactor.size() == 4) {
-            glm::vec3 dcolor =  glm::vec3(material.pbrMetallicRoughness.baseColorFactor[0], material.pbrMetallicRoughness.baseColorFactor[1], material.pbrMetallicRoughness.baseColorFactor[2]);
+        if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
+            fbxmat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
+        }
+        if (material.pbrMetallicRoughness.defined["baseColorFactor"] && 
+            material.pbrMetallicRoughness.baseColorFactor.size() == 4) {
+            glm::vec3 dcolor =  glm::vec3(material.pbrMetallicRoughness.baseColorFactor[0], 
+                                          material.pbrMetallicRoughness.baseColorFactor[1], 
+                                          material.pbrMetallicRoughness.baseColorFactor[2]);
             fbxmat.diffuseColor = dcolor;
             fbxmat._material->setAlbedo(dcolor);
             fbxmat._material->setOpacity(material.pbrMetallicRoughness.baseColorFactor[3]);
@@ -939,7 +1042,8 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
 }
 
 template<typename T, typename L>
-bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength, QVector<L>& outarray, int accessorType) {
+bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength, 
+                           QVector<L>& outarray, int accessorType) {
     
     QDataStream blobstream(bin);
     blobstream.setByteOrder(QDataStream::LittleEndian);
@@ -954,22 +1058,25 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength
 
 
     while (outarray.size() < vsize) {
-        T value1, value2, value3, value4, value5, value6, value7, value8, value9, value10, value11, value12, value13, value14, value15, value16;
+        
+        T value1, value2, value3, value4, 
+          value5, value6, value7, value8, 
+          value9, value10, value11, value12, 
+          value13, value14, value15, value16;
+
         if (accessorType == GLTFAccessorType::SCALAR) {
 
             blobstream >> value1;
 
             outarray.push_back(value1);
-        }
-        else if (accessorType == GLTFAccessorType::VEC2) {
+        } else if (accessorType == GLTFAccessorType::VEC2) {
 
             blobstream >> value1; 
             blobstream >> value2;
 
             outarray.push_back(value1);
             outarray.push_back(value2);
-        }
-        else if (accessorType == GLTFAccessorType::VEC3) {
+        } else if (accessorType == GLTFAccessorType::VEC3) {
 
             blobstream >> value1;
             blobstream >> value2;
@@ -978,8 +1085,7 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength
             outarray.push_back(value1);
             outarray.push_back(value2);
             outarray.push_back(value3);
-        }
-        else if (accessorType == GLTFAccessorType::VEC4 || accessorType == GLTFAccessorType::MAT2) {
+        } else if (accessorType == GLTFAccessorType::VEC4 || accessorType == GLTFAccessorType::MAT2) {
 
             blobstream >> value1;
             blobstream >> value2;
@@ -990,8 +1096,7 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength
             outarray.push_back(value2);
             outarray.push_back(value3);
             outarray.push_back(value4);
-        }
-        else if (accessorType == GLTFAccessorType::MAT3) {
+        } else if (accessorType == GLTFAccessorType::MAT3) {
 
             blobstream >> value1;
             blobstream >> value2;
@@ -1012,8 +1117,7 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength
             outarray.push_back(value7);
             outarray.push_back(value8);
             outarray.push_back(value9);
-        }
-        else if (accessorType == GLTFAccessorType::MAT4) {
+        } else if (accessorType == GLTFAccessorType::MAT4) {
 
             blobstream >> value1;
             blobstream >> value2;
@@ -1055,7 +1159,8 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength
     return true;
 }
 template<typename T>
-bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, QVector<T>& outarray, int accessorType, int componentType) {
+bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, 
+                                QVector<T>& outarray, int accessorType, int componentType) {
     
     switch (componentType) {
     case GLTFAccessorComponentType::BYTE: {}
@@ -1083,8 +1188,9 @@ bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int byteL
     return true;
 }
 
-void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices, const QVector<glm::vec3>& in_normals,
-    QVector<int>& outIndices, QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals) {
+void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices, 
+                               const QVector<glm::vec3>& in_normals, QVector<int>& outIndices, 
+                               QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals) {
     for (int i = 0; i < inIndices.size(); i = i + 3) {
 
         int idx1 = inIndices[i];

@@ -12,10 +12,11 @@
 #ifndef hifi_GLTFReader_h
 #define hifi_GLTFReader_h
 
-#include "FBXReader.h"
+#include <memory.h>
 #include <QtNetwork/QNetworkReply>
 #include "ModelFormatLogging.h"
-#include <memory.h>
+#include "FBXReader.h"
+
 
 struct GLTFAsset {
     QString generator;
@@ -23,9 +24,15 @@ struct GLTFAsset {
     QString copyright;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["generator"]) qCDebug(modelformat) << "generator: " << generator;
-        if (defined["version"]) qCDebug(modelformat) << "version: " << version;
-        if (defined["copyright"]) qCDebug(modelformat) << "copyright: " << copyright;
+        if (defined["generator"]) {
+            qCDebug(modelformat) << "generator: " << generator;
+        }
+        if (defined["version"]) {
+            qCDebug(modelformat) << "version: " << version;
+        }
+        if (defined["copyright"]) {
+            qCDebug(modelformat) << "copyright: " << copyright;
+        }
     }
 };
 
@@ -44,17 +51,39 @@ struct GLTFNode {
     QString jointName;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["name"]) qCDebug(modelformat) << "name: " << name;
-        if (defined["camera"]) qCDebug(modelformat) << "camera: " << camera;
-        if (defined["mesh"]) qCDebug(modelformat) << "mesh: " << mesh;
-        if (defined["skin"]) qCDebug(modelformat) << "skin: " << skin;
-        if (defined["jointName"]) qCDebug(modelformat) << "jointName: " << jointName;
-        if (defined["children"]) qCDebug(modelformat) << "children: " << children;   
-        if (defined["translation"]) qCDebug(modelformat) << "translation: " << translation;
-        if (defined["rotation"]) qCDebug(modelformat) << "rotation: " << rotation;
-        if (defined["scale"]) qCDebug(modelformat) << "scale: " << scale;     
-        if (defined["matrix"]) qCDebug(modelformat) << "matrix: " << matrix;  
-        if (defined["skeletons"]) qCDebug(modelformat) << "skeletons: " << skeletons;
+        if (defined["name"]) {
+            qCDebug(modelformat) << "name: " << name;
+        }
+        if (defined["camera"]) {
+            qCDebug(modelformat) << "camera: " << camera;
+        }
+        if (defined["mesh"]) {
+            qCDebug(modelformat) << "mesh: " << mesh;
+        }
+        if (defined["skin"]) {
+            qCDebug(modelformat) << "skin: " << skin;
+        }
+        if (defined["jointName"]) {
+            qCDebug(modelformat) << "jointName: " << jointName;
+        }
+        if (defined["children"]) {
+            qCDebug(modelformat) << "children: " << children;
+        }
+        if (defined["translation"]) {
+            qCDebug(modelformat) << "translation: " << translation;
+        }
+        if (defined["rotation"]) {
+            qCDebug(modelformat) << "rotation: " << rotation;
+        }
+        if (defined["scale"]) {
+            qCDebug(modelformat) << "scale: " << scale;
+        }
+        if (defined["matrix"]) {
+            qCDebug(modelformat) << "matrix: " << matrix;
+        }
+        if (defined["skeletons"]) {
+            qCDebug(modelformat) << "skeletons: " << skeletons;
+        }
     }
 };
 
@@ -66,9 +95,15 @@ struct GLTFMeshPrimitivesTarget {
     int tangent;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["normal"]) qCDebug(modelformat) << "normal: " << normal;
-        if (defined["position"]) qCDebug(modelformat) << "position: " << position;
-        if (defined["tangent"]) qCDebug(modelformat) << "tangent: " << tangent;
+        if (defined["normal"]) {
+            qCDebug(modelformat) << "normal: " << normal;
+        }
+        if (defined["position"]) {
+            qCDebug(modelformat) << "position: " << position;
+        }
+        if (defined["tangent"]) {
+            qCDebug(modelformat) << "tangent: " << tangent;
+        }
     }
 };
 
@@ -90,7 +125,9 @@ struct GLTFMeshPrimitiveAttr {
     void dump() {
         QList<QString> keys = values.keys();
         qCDebug(modelformat) << "values: ";
-        foreach(auto k, keys) qCDebug(modelformat) << k << ": " << values[k];
+        foreach(auto k, keys) {
+            qCDebug(modelformat) << k << ": " << values[k];
+        }
     }
 };
 
@@ -106,9 +143,15 @@ struct GLTFMeshPrimitive {
             qCDebug(modelformat) << "attributes: ";
             attributes.dump();
         }
-        if (defined["indices"]) qCDebug(modelformat) << "indices: " << indices;
-        if (defined["material"]) qCDebug(modelformat) << "material: " << material;
-        if (defined["mode"]) qCDebug(modelformat) << "mode: " << mode;
+        if (defined["indices"]) {
+            qCDebug(modelformat) << "indices: " << indices;
+        }
+        if (defined["material"]) {
+            qCDebug(modelformat) << "material: " << material;
+        }
+        if (defined["mode"]) {
+            qCDebug(modelformat) << "mode: " << mode;
+        }
         if (defined["targets"]) {
             qCDebug(modelformat) << "targets: ";
             foreach(auto t, targets) t.dump();
@@ -122,12 +165,16 @@ struct GLTFMesh {
     QVector<double> weights;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["name"]) qCDebug(modelformat) << "name: " << name;
+        if (defined["name"]) {
+            qCDebug(modelformat) << "name: " << name;
+        }
         if (defined["primitives"]) {
             qCDebug(modelformat) << "primitives: ";
             foreach(auto prim, primitives) prim.dump();
         }
-        if (defined["weights"]) qCDebug(modelformat) << "weights: " << weights;
+        if (defined["weights"]) {
+            qCDebug(modelformat) << "weights: " << weights;
+        }
     }
 };
 
@@ -147,10 +194,18 @@ struct GLTFBufferView {
     int target;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["buffer"]) qCDebug(modelformat) << "buffer: " << buffer;
-        if (defined["byteLength"]) qCDebug(modelformat) << "byteLength: " << byteLength;
-        if (defined["byteOffset"]) qCDebug(modelformat) << "byteOffset: " << byteOffset;
-        if (defined["target"]) qCDebug(modelformat) << "target: " << target;
+        if (defined["buffer"]) {
+            qCDebug(modelformat) << "buffer: " << buffer;
+        }
+        if (defined["byteLength"]) {
+            qCDebug(modelformat) << "byteLength: " << byteLength;
+        }
+        if (defined["byteOffset"]) {
+            qCDebug(modelformat) << "byteOffset: " << byteOffset;
+        }
+        if (defined["target"]) {
+            qCDebug(modelformat) << "target: " << target;
+        }
     }
 };
 
@@ -162,9 +217,15 @@ struct GLTFBuffer {
     QByteArray blob;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["byteLength"]) qCDebug(modelformat) << "byteLength: " << byteLength;
-        if (defined["uri"]) qCDebug(modelformat) << "uri: " << uri;
-        if (defined["blob"]) qCDebug(modelformat) << "blob: " << "DEFINED";
+        if (defined["byteLength"]) {
+            qCDebug(modelformat) << "byteLength: " << byteLength;
+        }
+        if (defined["uri"]) {
+            qCDebug(modelformat) << "uri: " << uri;
+        }
+        if (defined["blob"]) {
+            qCDebug(modelformat) << "blob: " << "DEFINED";
+        }
     }
 };
 
@@ -195,10 +256,18 @@ struct GLTFSampler {
     int wrapT;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["magFilter"]) qCDebug(modelformat) << "magFilter: " << magFilter;
-        if (defined["minFilter"]) qCDebug(modelformat) << "minFilter: " << minFilter;
-        if (defined["wrapS"]) qCDebug(modelformat) << "wrapS: " << wrapS;
-        if (defined["wrapT"]) qCDebug(modelformat) << "wrapT: " << wrapT;
+        if (defined["magFilter"]) {
+            qCDebug(modelformat) << "magFilter: " << magFilter;
+        }
+        if (defined["minFilter"]) {
+            qCDebug(modelformat) << "minFilter: " << minFilter;
+        }
+        if (defined["wrapS"]) {
+            qCDebug(modelformat) << "wrapS: " << wrapS;
+        }
+        if (defined["wrapT"]) {
+            qCDebug(modelformat) << "wrapT: " << wrapT;
+        }
     }
 };
 
@@ -211,10 +280,18 @@ struct GLTFCameraPerspective {
     double znear; //required
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["zfar"]) qCDebug(modelformat) << "zfar: " << zfar;
-        if (defined["znear"]) qCDebug(modelformat) << "znear: " << znear;
-        if (defined["aspectRatio"]) qCDebug(modelformat) << "aspectRatio: " << aspectRatio;
-        if (defined["yfov"]) qCDebug(modelformat) << "yfov: " << yfov;
+        if (defined["zfar"]) {
+            qCDebug(modelformat) << "zfar: " << zfar;
+        }
+        if (defined["znear"]) {
+            qCDebug(modelformat) << "znear: " << znear;
+        }
+        if (defined["aspectRatio"]) {
+            qCDebug(modelformat) << "aspectRatio: " << aspectRatio;
+        }
+        if (defined["yfov"]) {
+            qCDebug(modelformat) << "yfov: " << yfov;
+        }
     }
 };
 
@@ -225,10 +302,18 @@ struct GLTFCameraOrthographic {
     double ymag; //required
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["zfar"]) qCDebug(modelformat) << "zfar: " << zfar;
-        if (defined["znear"]) qCDebug(modelformat) << "znear: " << znear;
-        if (defined["xmag"]) qCDebug(modelformat) << "xmag: " << xmag;
-        if (defined["ymag"]) qCDebug(modelformat) << "ymag: " << ymag;
+        if (defined["zfar"]) {
+            qCDebug(modelformat) << "zfar: " << zfar;
+        }
+        if (defined["znear"]) {
+            qCDebug(modelformat) << "znear: " << znear;
+        }
+        if (defined["xmag"]) {
+            qCDebug(modelformat) << "xmag: " << xmag;
+        }
+        if (defined["ymag"]) {
+            qCDebug(modelformat) << "ymag: " << ymag;
+        }
     }
 };
 
@@ -246,10 +331,18 @@ struct GLTFCamera {
     int type; 
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["name"]) qCDebug(modelformat) << "name: " << name;
-        if (defined["type"]) qCDebug(modelformat) << "type: " << type;
-        if (defined["perspective"]) perspective.dump();
-        if (defined["orthographic"]) orthographic.dump();
+        if (defined["name"]) {
+            qCDebug(modelformat) << "name: " << name;
+        }
+        if (defined["type"]) {
+            qCDebug(modelformat) << "type: " << type;
+        }
+        if (defined["perspective"]) {
+            perspective.dump();
+        }
+        if (defined["orthographic"]) {
+            orthographic.dump();
+        }
     }
 };
 
@@ -268,9 +361,15 @@ struct GLTFImage {
     int bufferView;   //required (or)
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["uri"]) qCDebug(modelformat) << "uri: " << uri;
-        if (defined["mimeType"]) qCDebug(modelformat) << "mimeType: " << mimeType;
-        if (defined["bufferView"]) qCDebug(modelformat) << "bufferView: " << bufferView;
+        if (defined["uri"]) {
+            qCDebug(modelformat) << "uri: " << uri;
+        }
+        if (defined["mimeType"]) {
+            qCDebug(modelformat) << "mimeType: " << mimeType;
+        }
+        if (defined["bufferView"]) {
+            qCDebug(modelformat) << "bufferView: " << bufferView;
+        }
     }
 };
 
@@ -284,12 +383,24 @@ struct GLTFpbrMetallicRoughness {
     double roughnessFactor;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["baseColorFactor"]) qCDebug(modelformat) << "baseColorFactor: " << baseColorFactor;
-        if (defined["baseColorTexture"]) qCDebug(modelformat) << "baseColorTexture: " << baseColorTexture;
-        if (defined["metallicRoughnessTexture"]) qCDebug(modelformat) << "metallicRoughnessTexture: " << metallicRoughnessTexture;
-        if (defined["metallicFactor"]) qCDebug(modelformat) << "metallicFactor: " << metallicFactor;
-        if (defined["roughnessFactor"]) qCDebug(modelformat) << "roughnessFactor: " << roughnessFactor;
-        if (defined["baseColorFactor"]) qCDebug(modelformat) << "baseColorFactor: " << baseColorFactor;
+        if (defined["baseColorFactor"]) {
+            qCDebug(modelformat) << "baseColorFactor: " << baseColorFactor;
+        }
+        if (defined["baseColorTexture"]) {
+            qCDebug(modelformat) << "baseColorTexture: " << baseColorTexture;
+        }
+        if (defined["metallicRoughnessTexture"]) {
+            qCDebug(modelformat) << "metallicRoughnessTexture: " << metallicRoughnessTexture;
+        }
+        if (defined["metallicFactor"]) {
+            qCDebug(modelformat) << "metallicFactor: " << metallicFactor;
+        }
+        if (defined["roughnessFactor"]) {
+            qCDebug(modelformat) << "roughnessFactor: " << roughnessFactor;
+        }
+        if (defined["baseColorFactor"]) {
+            qCDebug(modelformat) << "baseColorFactor: " << baseColorFactor;
+        }
     }
 };
 
@@ -313,12 +424,24 @@ struct GLTFMaterial {
     GLTFpbrMetallicRoughness pbrMetallicRoughness;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["name"]) qCDebug(modelformat) << "name: " << name;
-        if (defined["emissiveTexture"]) qCDebug(modelformat) << "emissiveTexture: " << emissiveTexture;
-        if (defined["normalTexture"]) qCDebug(modelformat) << "normalTexture: " << normalTexture;
-        if (defined["occlusionTexture"]) qCDebug(modelformat) << "occlusionTexture: " << occlusionTexture;
-        if (defined["emissiveFactor"]) qCDebug(modelformat) << "emissiveFactor: " << emissiveFactor;
-        if (defined["pbrMetallicRoughness"]) pbrMetallicRoughness.dump();
+        if (defined["name"]) {
+            qCDebug(modelformat) << "name: " << name;
+        }
+        if (defined["emissiveTexture"]) {
+            qCDebug(modelformat) << "emissiveTexture: " << emissiveTexture;
+        }
+        if (defined["normalTexture"]) {
+            qCDebug(modelformat) << "normalTexture: " << normalTexture;
+        }
+        if (defined["occlusionTexture"]) {
+            qCDebug(modelformat) << "occlusionTexture: " << occlusionTexture;
+        }
+        if (defined["emissiveFactor"]) {
+            qCDebug(modelformat) << "emissiveFactor: " << emissiveFactor;
+        }
+        if (defined["pbrMetallicRoughness"]) {
+            pbrMetallicRoughness.dump();
+        }
     }
 };
 
@@ -356,19 +479,35 @@ struct GLTFAccessor {
     QVector<double> min;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["bufferView"]) qCDebug(modelformat) << "bufferView: " << bufferView;
-        if (defined["byteOffset"]) qCDebug(modelformat) << "byteOffset: " << byteOffset;
-        if (defined["componentType"]) qCDebug(modelformat) << "componentType: " << componentType;
-        if (defined["count"]) qCDebug(modelformat) << "count: " << count;
-        if (defined["type"]) qCDebug(modelformat) << "type: " << type;
-        if (defined["normalized"]) qCDebug(modelformat) << "normalized: " << (normalized ? "TRUE" : "FALSE");
+        if (defined["bufferView"]) {
+            qCDebug(modelformat) << "bufferView: " << bufferView;
+        }
+        if (defined["byteOffset"]) {
+            qCDebug(modelformat) << "byteOffset: " << byteOffset;
+        }
+        if (defined["componentType"]) {
+            qCDebug(modelformat) << "componentType: " << componentType;
+        }
+        if (defined["count"]) {
+            qCDebug(modelformat) << "count: " << count;
+        }
+        if (defined["type"]) {
+            qCDebug(modelformat) << "type: " << type;
+        }
+        if (defined["normalized"]) {
+            qCDebug(modelformat) << "normalized: " << (normalized ? "TRUE" : "FALSE");
+        }
         if (defined["max"]) {
             qCDebug(modelformat) << "max: ";
-            foreach(float m, max) qCDebug(modelformat) << m;
+            foreach(float m, max) {
+                qCDebug(modelformat) << m;
+            }
         }
         if (defined["min"]) {
             qCDebug(modelformat) << "min: ";
-            foreach(float m, min) qCDebug(modelformat) << m;
+            foreach(float m, min) {
+                qCDebug(modelformat) << m;
+            }
         }
     }
 };
@@ -388,8 +527,12 @@ struct GLTFChannelTarget {
     int path;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["node"]) qCDebug(modelformat) << "node: " << node;
-        if (defined["path"]) qCDebug(modelformat) << "path: " << path;
+        if (defined["node"]) {
+            qCDebug(modelformat) << "node: " << node;
+        }
+        if (defined["path"]) {
+            qCDebug(modelformat) << "path: " << path;
+        }
     }
 };
 
@@ -398,8 +541,12 @@ struct GLTFChannel {
     GLTFChannelTarget target;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["sampler"]) qCDebug(modelformat) << "sampler: " << sampler;
-        if (defined["target"]) target.dump();
+        if (defined["sampler"]) {
+            qCDebug(modelformat) << "sampler: " << sampler;
+        }
+        if (defined["target"]) {
+            target.dump();
+        }
     }
 };
 
@@ -415,9 +562,15 @@ struct GLTFAnimationSampler {
     int interpolation;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["input"]) qCDebug(modelformat) << "input: " << input;
-        if (defined["output"]) qCDebug(modelformat) << "output: " << output;
-        if (defined["interpolation"]) qCDebug(modelformat) << "interpolation: " << interpolation;
+        if (defined["input"]) {
+            qCDebug(modelformat) << "input: " << input;
+        }
+        if (defined["output"]) {
+            qCDebug(modelformat) << "output: " << output;
+        }
+        if (defined["interpolation"]) {
+            qCDebug(modelformat) << "interpolation: " << interpolation;
+        }
     }
 };
 
@@ -426,8 +579,12 @@ struct GLTFAnimation {
     QVector<GLTFAnimationSampler> samplers;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["channels"]) foreach(auto channel, channels) channel.dump();
-        if (defined["samplers"]) foreach(auto sampler, samplers) sampler.dump();
+        if (defined["channels"]) {
+            foreach(auto channel, channels) channel.dump();
+        }
+        if (defined["samplers"]) {
+            foreach(auto sampler, samplers) sampler.dump();
+        }
     }
 };
 
@@ -436,7 +593,9 @@ struct GLTFScene {
     QVector<int> nodes;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["name"]) qCDebug(modelformat) << "name: " << name;
+        if (defined["name"]) {
+            qCDebug(modelformat) << "name: " << name;
+        }
         if (defined["nodes"]) {
             qCDebug(modelformat) << "nodes: ";
             foreach(int node, nodes) qCDebug(modelformat) << node;
@@ -450,8 +609,12 @@ struct GLTFSkin {
     int skeleton;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["inverseBindMatrices"]) qCDebug(modelformat) << "inverseBindMatrices: " << inverseBindMatrices;
-        if (defined["skeleton"]) qCDebug(modelformat) << "skeleton: " << skeleton;
+        if (defined["inverseBindMatrices"]) {
+            qCDebug(modelformat) << "inverseBindMatrices: " << inverseBindMatrices;
+        }
+        if (defined["skeleton"]) {
+            qCDebug(modelformat) << "skeleton: " << skeleton;
+        }
         if (defined["joints"]) {
             qCDebug(modelformat) << "joints: ";
             foreach(int joint, joints) qCDebug(modelformat) << joint;
@@ -464,8 +627,12 @@ struct GLTFTexture {
     int source;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["sampler"]) qCDebug(modelformat) << "sampler: " << sampler;
-        if (defined["source"]) qCDebug(modelformat) << "source: " << sampler;
+        if (defined["sampler"]) {
+            qCDebug(modelformat) << "sampler: " << sampler;
+        }
+        if (defined["source"]) {
+            qCDebug(modelformat) << "source: " << sampler;
+        }
     }
 };
 
@@ -487,21 +654,51 @@ struct GLTFFile {
     QVector<GLTFTexture> textures;
     QMap<QString, bool> defined;
     void dump() {
-        if (defined["asset"]) asset.dump();
-        if (defined["scene"]) qCDebug(modelformat) << "scene: " << scene;
-        if (defined["accessors"]) foreach(auto acc, accessors) acc.dump();
-        if (defined["animations"]) foreach(auto ani, animations) ani.dump();
-        if (defined["bufferviews"]) foreach(auto bv, bufferviews) bv.dump();
-        if (defined["buffers"]) foreach(auto b, buffers) b.dump();
-        if (defined["cameras"]) foreach(auto c, cameras) c.dump();
-        if (defined["images"]) foreach(auto i, images) i.dump();
-        if (defined["materials"]) foreach(auto mat, materials) mat.dump();
-        if (defined["meshes"]) foreach(auto mes, meshes) mes.dump();
-        if (defined["nodes"]) foreach(auto nod, nodes) nod.dump();
-        if (defined["samplers"]) foreach(auto sa, samplers) sa.dump();
-        if (defined["scenes"]) foreach(auto sc, scenes) sc.dump();
-        if (defined["skins"]) foreach(auto sk, nodes) sk.dump();
-        if (defined["textures"]) foreach(auto tex, textures) tex.dump();
+        if (defined["asset"]) {
+            asset.dump();
+        }
+        if (defined["scene"]) {
+            qCDebug(modelformat) << "scene: " << scene;
+        }
+        if (defined["accessors"]) {
+            foreach(auto acc, accessors) acc.dump();
+        }
+        if (defined["animations"]) {
+            foreach(auto ani, animations) ani.dump();
+        }
+        if (defined["bufferviews"]) {
+            foreach(auto bv, bufferviews) bv.dump();
+        }
+        if (defined["buffers"]) {
+            foreach(auto b, buffers) b.dump();
+        }
+        if (defined["cameras"]) {
+            foreach(auto c, cameras) c.dump();
+        }
+        if (defined["images"]) {
+            foreach(auto i, images) i.dump();
+        }
+        if (defined["materials"]) {
+            foreach(auto mat, materials) mat.dump();
+        }
+        if (defined["meshes"]) {
+            foreach(auto mes, meshes) mes.dump();
+        }
+        if (defined["nodes"]) {
+            foreach(auto nod, nodes) nod.dump();
+        }
+        if (defined["samplers"]) {
+            foreach(auto sa, samplers) sa.dump();
+        }
+        if (defined["scenes"]) {
+            foreach(auto sc, scenes) sc.dump();
+        }
+        if (defined["skins"]) {
+            foreach(auto sk, nodes) sk.dump();
+        }
+        if (defined["textures"]) {
+            foreach(auto tex, textures) tex.dump();
+        }
     }
 };
 
@@ -509,24 +706,33 @@ class GLTFReader : public QObject {
     Q_OBJECT
 public:
     GLTFReader();
-    FBXGeometry* readGLTF(QByteArray& model, const QVariantHash& mapping, const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
+    FBXGeometry* readGLTF(QByteArray& model, const QVariantHash& mapping, 
+                          const QUrl& url, bool loadLightmaps = true, float lightmapLevel = 1.0f);
 private:
     GLTFFile _file;
     QUrl _url;
 
-    glm::mat4 getModelTransform(const GLTFNode& node);
+    const glm::mat4& getModelTransform(const GLTFNode& node);
 
     bool buildGeometry(FBXGeometry& geometry, const QUrl& url);
     bool parseGLTF(const QByteArray& model);
     
-    bool getStringVal(const QJsonObject& object, const QString& fieldname, QString& value, QMap<QString, bool>&  defined);
-    bool getBoolVal(const QJsonObject& object, const QString& fieldname, bool& value, QMap<QString, bool>&  defined);
-    bool getIntVal(const QJsonObject& object, const QString& fieldname, int& value, QMap<QString, bool>&  defined);
-    bool getDoubleVal(const QJsonObject& object, const QString& fieldname, double& value, QMap<QString, bool>&  defined);
-    bool getObjectVal(const QJsonObject& object, const QString& fieldname, QJsonObject& value, QMap<QString, bool>&  defined);
-    bool getIntArrayVal(const QJsonObject& object, const QString& fieldname, QVector<int>& values, QMap<QString, bool>&  defined);
-    bool getDoubleArrayVal(const QJsonObject& object, const QString& fieldname, QVector<double>& values, QMap<QString, bool>&  defined);
-    bool getObjectArrayVal(const QJsonObject& object, const QString& fieldname, QJsonArray& objects, QMap<QString, bool>& defined);
+    bool getStringVal(const QJsonObject& object, const QString& fieldname, 
+                      QString& value, QMap<QString, bool>&  defined);
+    bool getBoolVal(const QJsonObject& object, const QString& fieldname, 
+                    bool& value, QMap<QString, bool>&  defined);
+    bool getIntVal(const QJsonObject& object, const QString& fieldname, 
+                   int& value, QMap<QString, bool>&  defined);
+    bool getDoubleVal(const QJsonObject& object, const QString& fieldname, 
+                      double& value, QMap<QString, bool>&  defined);
+    bool getObjectVal(const QJsonObject& object, const QString& fieldname, 
+                      QJsonObject& value, QMap<QString, bool>&  defined);
+    bool getIntArrayVal(const QJsonObject& object, const QString& fieldname, 
+                        QVector<int>& values, QMap<QString, bool>&  defined);
+    bool getDoubleArrayVal(const QJsonObject& object, const QString& fieldname, 
+                           QVector<double>& values, QMap<QString, bool>&  defined);
+    bool getObjectArrayVal(const QJsonObject& object, const QString& fieldname, 
+                           QJsonArray& objects, QMap<QString, bool>& defined);
     
     int getMaterialAlphaMode(const QString& type);
     int getAccessorType(const QString& type);
@@ -535,7 +741,8 @@ private:
     int getImageMimeType(const QString& mime);
     int getMeshPrimitiveRenderingMode(const QString& type);
 
-    bool getIndexFromObject(const QJsonObject& object, const QString& field, int& outidx, QMap<QString, bool>& defined);
+    bool getIndexFromObject(const QJsonObject& object, const QString& field, 
+                            int& outidx, QMap<QString, bool>& defined);
 
     bool setAsset(const QJsonObject& object);
     bool addAccessor(const QJsonObject& object);
@@ -555,13 +762,16 @@ private:
     bool readBinary(const QString& url, QByteArray& outdata);
 
     template<typename T, typename L>
-    bool readArray(const QByteArray& bin, int byteOffset, int byteLength, QVector<L>& outarray, int accessorType);
+    bool readArray(const QByteArray& bin, int byteOffset, int byteLength, 
+                   QVector<L>& outarray, int accessorType);
     
     template<typename T>
-    bool addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, QVector<T>& outarray, int accessorType, int componentType);
+    bool addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, 
+                        QVector<T>& outarray, int accessorType, int componentType);
 
-    void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, const QVector<glm::vec3>& in_normals,
-        QVector<int>& out_indices, QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
+    void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
+                       const QVector<glm::vec3>& in_normals, QVector<int>& out_indices, 
+                       QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
 
     std::tuple<bool, QByteArray> requestData(QUrl& url);
     QNetworkReply* request(QUrl& url, bool isTest);
@@ -569,7 +779,7 @@ private:
 
 
     void setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& material);
-    FBXTexture getFBXTexture(const GLTFTexture& texture);
+    const FBXTexture& getFBXTexture(const GLTFTexture& texture);
     void fbxDebugDump(const FBXGeometry& fbxgeo);
 };
 
