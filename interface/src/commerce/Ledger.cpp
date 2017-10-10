@@ -46,7 +46,6 @@ Handler(buy)
 Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
-Handler(certificateInfo)
 
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -235,6 +234,24 @@ void Ledger::updateLocation(const QString& asset_id, const QString location, con
     signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
 }
 
+void Ledger::certificateInfoSuccess(QNetworkReply& reply) {
+    auto wallet = DependencyManager::get<Wallet>();
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    QByteArray response = reply.readAll();
+    QJsonObject replyObject = QJsonDocument::fromJson(response).object();
+
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() != 0) {
+        QJsonObject data = replyObject["data"].toObject();
+        if (data["transfer_recipient_key"].toString() == keys[0]) {
+            replyObject.insert("isMyCert", true);
+        }
+    }
+    qInfo(commerce) << "certificateInfo" << "response" << QJsonDocument(replyObject).toJson(QJsonDocument::Compact);
+    emit certificateInfoResult(replyObject);
+}
+void Ledger::certificateInfoFailure(QNetworkReply& reply) { failResponse("certificateInfo", reply); }
 void Ledger::certificateInfo(const QString& certificateId) {
     QString endpoint = "proof_of_purchase_status/transfer/" + certificateId;
     QJsonObject request;

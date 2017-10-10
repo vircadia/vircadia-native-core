@@ -32,6 +32,7 @@ Rectangle {
     property string itemEdition: "--";
     property string dateOfPurchase: "--";
     property bool isLightbox: false;
+    property bool isMyCert: false;
     // Style
     color: hifi.colors.faintGray;
     Hifi.QmlCommerce {
@@ -42,7 +43,9 @@ Rectangle {
                 console.log("Failed to get certificate info", result.message);
             } else {
                 root.marketplaceUrl = result.data.marketplace_item_url;
-                root.itemOwner = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+                root.isMyCert = result.isMyCert ? result.isMyCert : false;
+                root.itemOwner = root.isMyCert ? Account.username :
+                "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
                 root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
                 root.dateOfPurchase = getFormattedDate(result.data.transfer_created_at * 1000);
                 root.itemName = result.data.marketplace_item_name;
@@ -80,6 +83,7 @@ Rectangle {
             root.itemEdition = "--";
             root.dateOfPurchase = "--";
             root.marketplaceUrl = "";
+            root.isMyCert = false;
             errorText.text = "";
         }
     }
@@ -162,7 +166,7 @@ Rectangle {
             size: 28;
             // Anchors
             anchors.top: itemNameHeader.bottom;
-            anchors.topMargin: 4;
+            anchors.topMargin: 8;
             anchors.left: itemNameHeader.left;
             anchors.right: itemNameHeader.right;
             height: paintedHeight;
@@ -187,14 +191,20 @@ Rectangle {
             size: 16;
             // Anchors
             anchors.top: itemName.bottom;
-            anchors.topMargin: 20;
+            anchors.topMargin: 28;
             anchors.left: parent.left;
             anchors.leftMargin: 45;
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: paintedHeight;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.lightGray;
+        }
+        FontLoader { id: ralewayRegular; source: "../../../../fonts/Raleway-Regular.ttf"; }
+        TextMetrics {
+            id: textMetrics;
+            font.family: ralewayRegular.name
+            text: root.itemOwner;
         }
         RalewayRegular {
             id: ownedBy;
@@ -203,13 +213,30 @@ Rectangle {
             size: 22;
             // Anchors
             anchors.top: ownedByHeader.bottom;
-            anchors.topMargin: 4;
+            anchors.topMargin: 8;
             anchors.left: ownedByHeader.left;
-            anchors.right: ownedByHeader.right;
-            height: paintedHeight;
+            height: textMetrics.height;
+            width: root.isMyCert ? textMetrics.width + 25 : ownedByHeader.width;
             // Style
             color: hifi.colors.darkGray;
             elide: Text.ElideRight;
+        }
+        AnonymousProRegular {
+            id: isMyCertText;
+            visible: root.isMyCert;
+            text: "(Private)";
+            size: 18;
+            // Anchors
+            anchors.top: ownedBy.top;
+            anchors.topMargin: 4;
+            anchors.bottom: ownedBy.bottom;
+            anchors.left: ownedBy.right;
+            anchors.leftMargin: 4;
+            anchors.right: ownedByHeader.right;
+            // Style
+            color: hifi.colors.lightGray;
+            elide: Text.ElideRight;
+            verticalAlignment: Text.AlignVCenter;
         }
 
         RalewayRegular {
@@ -219,23 +246,23 @@ Rectangle {
             size: 16;
             // Anchors
             anchors.top: ownedBy.bottom;
-            anchors.topMargin: 20;
+            anchors.topMargin: 28;
             anchors.left: parent.left;
             anchors.leftMargin: 45;
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: paintedHeight;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.lightGray;
         }
         AnonymousProRegular {
             id: edition;
             text: root.itemEdition;
             // Text size
-            size: 22;
+            size: 18;
             // Anchors
             anchors.top: editionHeader.bottom;
-            anchors.topMargin: 4;
+            anchors.topMargin: 8;
             anchors.left: editionHeader.left;
             anchors.right: editionHeader.right;
             height: paintedHeight;
@@ -250,23 +277,23 @@ Rectangle {
             size: 16;
             // Anchors
             anchors.top: edition.bottom;
-            anchors.topMargin: 20;
+            anchors.topMargin: 28;
             anchors.left: parent.left;
             anchors.leftMargin: 45;
             anchors.right: parent.right;
             anchors.rightMargin: 16;
             height: paintedHeight;
             // Style
-            color: hifi.colors.baseGray;
+            color: hifi.colors.lightGray;
         }
         AnonymousProRegular {
             id: dateOfPurchase;
             text: root.dateOfPurchase;
             // Text size
-            size: 22;
+            size: 18;
             // Anchors
             anchors.top: dateOfPurchaseHeader.bottom;
-            anchors.topMargin: 4;
+            anchors.topMargin: 8;
             anchors.left: dateOfPurchaseHeader.left;
             anchors.right: dateOfPurchaseHeader.right;
             height: paintedHeight;
@@ -280,7 +307,7 @@ Rectangle {
             size: 20;
             // Anchors
             anchors.top: dateOfPurchase.bottom;
-            anchors.topMargin: 40;
+            anchors.topMargin: 36;
             anchors.left: dateOfPurchase.left;
             anchors.right: dateOfPurchase.right;
             anchors.bottom: parent.bottom;
@@ -297,7 +324,7 @@ Rectangle {
     Item {
         id: buttonsContainer;
         anchors.bottom: parent.bottom;
-        anchors.bottomMargin: 50;
+        anchors.bottomMargin: 30;
         anchors.left: parent.left;
         anchors.right: parent.right;
         height: 50;
@@ -386,7 +413,7 @@ Rectangle {
 
         var min = a.getMinutes();
         var sec = a.getSeconds();
-        return year + '-' + month + '-' + day + ' ' + drawnHour + ':' + min + amOrPm;
+        return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
     }
     //
     // FUNCTION DEFINITIONS END
