@@ -253,7 +253,8 @@ void Ledger::certificateInfoSuccess(QNetworkReply& reply) {
 }
 void Ledger::certificateInfoFailure(QNetworkReply& reply) { failResponse("certificateInfo", reply); }
 void Ledger::certificateInfo(const QString& certificateId) {
-    QString endpoint = "proof_of_purchase_status/transfer/" + certificateId;
+    QString endpoint = "proof_of_purchase_status/transfer";
     QJsonObject request;
-    send(endpoint, "certificateInfoSuccess", "certificateInfoFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::None, request);
+    request["certificate_id"] = certificateId;
+    send(endpoint, "certificateInfoSuccess", "certificateInfoFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::None, request);
 }
