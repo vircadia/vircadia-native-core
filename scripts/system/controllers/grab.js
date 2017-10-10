@@ -427,7 +427,7 @@ Grabber.prototype.releaseEvent = function(event) {
         }
 
         if (this.madeDynamic) {
-            var entityProps = Entities.getEntityProperties(this.entityID, ["dynamic", "localVelocity"]);
+            var entityProps = {};
             entityProps.dynamic = false;
             entityProps.localVelocity = {x: 0, y: 0, z: 0};
             Entities.editEntity(this.entityID, entityProps);

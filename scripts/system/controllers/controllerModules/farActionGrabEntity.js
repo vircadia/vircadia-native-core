@@ -346,7 +346,7 @@ Script.include("/~/system/libraries/controllers.js");
             Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
 
             if (this.madeDynamic) {
-                var props = Entities.getEntityProperties(this.grabbedThingID, ["dynamic", "localVelocity"]);
+                var props = {};
                 props.dynamic = false;
                 props.localVelocity = {x: 0, y: 0, z: 0};
                 Entities.editEntity(this.grabbedThingID, props);
