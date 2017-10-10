@@ -40,7 +40,7 @@ class MonoDCBlock {
 public:
     void process(int32_t& x) {
 
-        x <<= 15;               // scale to Q30
+        x *= (1 << 15);         // scale to Q30
         x -= _dcOffset;         // remove DC
         _dcOffset += x >> 13;   // pole = (1.0 - 2^-13) = 0.9999
     }
@@ -53,8 +53,8 @@ class StereoDCBlock {
 public:
     void process(int32_t& x0, int32_t& x1) {
 
-        x0 <<= 15;
-        x1 <<= 15;
+        x0 *= (1 << 15);
+        x1 *= (1 << 15);
 
         x0 -= _dcOffset[0];
         x1 -= _dcOffset[1];
@@ -71,10 +71,10 @@ class QuadDCBlock {
 public:
     void process(int32_t& x0, int32_t& x1, int32_t& x2, int32_t& x3) {
 
-        x0 <<= 15;
-        x1 <<= 15;
-        x2 <<= 15;
-        x3 <<= 15;
+        x0 *= (1 << 15);
+        x1 *= (1 << 15);
+        x2 *= (1 << 15);
+        x3 *= (1 << 15);
 
         x0 -= _dcOffset[0];
         x1 -= _dcOffset[1];
