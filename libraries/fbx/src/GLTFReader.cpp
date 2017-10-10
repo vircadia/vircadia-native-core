@@ -660,7 +660,7 @@ bool GLTFReader::parseGLTF(const QByteArray& model) {
     return true;
 }
 
-const glm::mat4& GLTFReader::getModelTransform(const GLTFNode& node) {
+glm::mat4 GLTFReader::getModelTransform(const GLTFNode& node) {
     glm::mat4 tmat = glm::mat4(1.0);
 
     if (node.defined["matrix"] && node.matrix.size() == 16) {
@@ -962,7 +962,7 @@ QNetworkReply* GLTFReader::request(QUrl& url, bool isTest) {
     return netReply;                // trying to sync later on.
 }
 
-const FBXTexture& GLTFReader::getFBXTexture(const GLTFTexture& texture) {
+FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
     FBXTexture fbxtex = FBXTexture();
     fbxtex.texcoordSet = 0;
     

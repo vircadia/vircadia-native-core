@@ -712,7 +712,7 @@ private:
     GLTFFile _file;
     QUrl _url;
 
-    const glm::mat4& getModelTransform(const GLTFNode& node);
+    glm::mat4 getModelTransform(const GLTFNode& node);
 
     bool buildGeometry(FBXGeometry& geometry, const QUrl& url);
     bool parseGLTF(const QByteArray& model);
@@ -779,7 +779,7 @@ private:
 
 
     void setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& material);
-    const FBXTexture& getFBXTexture(const GLTFTexture& texture);
+    FBXTexture getFBXTexture(const GLTFTexture& texture);
     void fbxDebugDump(const FBXGeometry& fbxgeo);
 };
 
