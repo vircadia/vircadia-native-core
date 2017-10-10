@@ -74,9 +74,7 @@ glm::uvec2 rectifyToSparseSize(const glm::uvec2& size) {
 
 namespace image {
 
-enum {
-    QIMAGE_HDR_FORMAT = QImage::Format_RGB30
-};
+QImage::Format QIMAGE_HDR_FORMAT = QImage::Format_RGB30;
 
 TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
     switch (type) {
@@ -440,10 +438,8 @@ void generateHDRMips(gpu::Texture* texture, const QImage& image, const std::atom
     auto mipFormat = texture->getStoredMipFormat();
     std::function<glm::vec3(uint32)> unpackFunc;
 
-    nvtt::TextureType textureType = nvtt::TextureType_2D;
     nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
     nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
-    nvtt::RoundMode roundMode = nvtt::RoundMode_None;
     nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
 
     nvtt::CompressionOptions compressionOptions;
