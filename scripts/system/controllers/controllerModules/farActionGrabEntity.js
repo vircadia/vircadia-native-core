@@ -516,7 +516,6 @@ Script.include("/~/system/libraries/controllers.js");
                                 targetProps.dynamic = true;
                                 Entities.editEntity(entityID, targetProps);
                                 this.madeDynamic = true;
-                                // make distance grabbale
                             }
                             
                             if (!this.distanceRotating) {
