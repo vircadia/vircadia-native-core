@@ -119,6 +119,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
+        this.madeDynamic = false;
 
         var ACTION_TTL = 15; // seconds
 
@@ -344,6 +345,13 @@ Script.include("/~/system/libraries/controllers.js");
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
 
+            if (this.madeDynamic) {
+                var props = Entities.getEntityProperties(this.grabbedThingID, ["dynamic", "localVelocity"]);
+                props.dynamic = false;
+                props.localVelocity = {x: 0, y: 0, z: 0};
+                Entities.editEntity(this.grabbedThingID, props);
+                this.madeDynamic = false;
+            }
             this.actionID = null;
             this.grabbedThingID = null;
         };
@@ -503,12 +511,19 @@ Script.include("/~/system/libraries/controllers.js");
                             this.destroyContextOverlay();
                         }
 
-                        if (entityIsDistanceGrabbable(targetProps)) {
+                        if (entityIsGrabbable(targetProps)) {
+                            if (!entityIsDistanceGrabbable(targetProps)) {
+                                targetProps.dynamic = true;
+                                Entities.editEntity(entityID, targetProps);
+                                this.madeDynamic = true;
+                                // make distance grabbale
+                            }
+                            
                             if (!this.distanceRotating) {
                                 this.grabbedThingID = entityID;
                                 this.grabbedDistance = rayPickInfo.distance;
                             }
-
+                            
                             if (otherFarGrabModule.grabbedThingID === this.grabbedThingID && otherFarGrabModule.distanceHolding) {
                                 this.prepareDistanceRotatingData(controllerData);
                                 this.distanceRotate(otherFarGrabModule);
