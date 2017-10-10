@@ -523,7 +523,7 @@ Script.include("/~/system/libraries/controllers.js");
                                 this.grabbedThingID = entityID;
                                 this.grabbedDistance = rayPickInfo.distance;
                             }
-                            
+
                             if (otherFarGrabModule.grabbedThingID === this.grabbedThingID && otherFarGrabModule.distanceHolding) {
                                 this.prepareDistanceRotatingData(controllerData);
                                 this.distanceRotate(otherFarGrabModule);
