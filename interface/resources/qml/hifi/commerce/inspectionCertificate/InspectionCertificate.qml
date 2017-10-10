@@ -30,7 +30,7 @@ Rectangle {
     property string itemName: "--";
     property string itemOwner: "--";
     property string itemEdition: "--";
-    property string dateOfPurchase: "";
+    property string dateOfPurchase: "--";
     property bool isLightbox: false;
     // Style
     color: hifi.colors.faintGray;
@@ -45,17 +45,43 @@ Rectangle {
                 root.itemOwner = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
                 root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
                 root.dateOfPurchase = getFormattedDate(result.data.transfer_created_at * 1000);
+                root.itemName = result.data.marketplace_item_name;
 
-                if (result.data.invalid_reason) {
-                    errorText.text = "Here we will display some text if there's an <b>error</b> with the certificate " +
-            "(DMCA takedown, invalid cert, location of item updated)";
+                if (result.data.invalid_reason || result.data.transfer_status[0] === "failed") {
+                    titleBarText.text = "Invalid Certificate";
+                    titleBarText.color = hifi.colors.redHighlight;
+                    popText.text = "";
+                    if (result.data.invalid_reason) {
+                        errorText.text = result.data.invalid_reason;
+                    }
+                } else if (result.data.transfer_status[0] === "pending") {
+                    titleBarText.text = "Certificate Pending";
+                    errorText.text = "The status of this item is still pending confirmation. If the purchase is not confirmed, " +
+                    "this entity will be cleaned up by the domain.";
+                    errorText.color = hifi.colors.baseGray;
                 }
             }
         }
     }
 
     onCertificateIdChanged: {
-        commerce.certificateInfo(certificateId);
+        if (certificateId !== "") {
+            commerce.certificateInfo(certificateId);
+        }
+    }
+
+    onVisibleChanged: {
+        if (!visible) {
+            titleBarText.text = "Certificate";
+            popText.text = "PROOF OF PURCHASE";
+            root.certificateId = "";
+            root.itemName = "--";
+            root.itemOwner = "--";
+            root.itemEdition = "--";
+            root.dateOfPurchase = "--";
+            root.marketplaceUrl = "";
+            errorText.text = "";
+        }
     }
 
     // This object is always used in a popup.
@@ -298,6 +324,7 @@ Rectangle {
         // "Show In Marketplace" button
         HifiControlsUit.Button {
             id: showInMarketplaceButton;
+            enabled: root.marketplaceUrl;
             color: hifi.buttons.blue;
             colorScheme: hifi.colorSchemes.light;
             anchors.top: parent.top;

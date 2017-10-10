@@ -427,6 +427,7 @@ Rectangle {
                 itemId: id;
                 itemPreviewImageUrl: preview;
                 itemHref: download_url;
+                certificateId: certificate_id;
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;
