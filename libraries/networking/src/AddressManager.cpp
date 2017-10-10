@@ -668,13 +668,11 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
                     qCDebug(networking) << "Orientation parsed from lookup string is invalid. Will not use for location change.";
                 }
             }
-
-            if (trigger == LookupTrigger::VisitUserFromPAL) {
-                qCDebug(networking) << "trigger is VisitUserFromPAL -- applying Quat.cancelOutRollAndPitch";
-                newOrientation = cancelOutRollAndPitch(newOrientation);                
-            }
-
-            emit locationChangeRequired(newPosition, orientationChanged, newOrientation, shouldFace);
+            
+            emit locationChangeRequired(newPosition, orientationChanged, 
+                LookupTrigger::VisitUserFromPAL ? cancelOutRollAndPitch(newOrientation): newOrientation,
+                shouldFace
+            );
 
         } else {
             qCDebug(networking) << "Could not jump to position from lookup string because it has an invalid value.";
