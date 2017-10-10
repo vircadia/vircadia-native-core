@@ -267,6 +267,11 @@ void Model::updateRenderItems() {
     });
 }
 
+void Model::setRenderItemsNeedUpdate() {
+    _renderItemsNeedUpdate = true;
+    emit requestRenderUpdate();
+}
+
 void Model::initJointTransforms() {
     if (isLoaded()) {
         glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);

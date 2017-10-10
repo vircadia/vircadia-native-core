@@ -78,7 +78,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                     request->send();
                 } else {
                     ++_errorCount;
-                    qWarning() << "Count not create request for asset at" << migrationURL.toString();
+                    qWarning() << "Could not create request for asset at" << migrationURL.toString();
                 }
 
             };
