@@ -98,6 +98,7 @@
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
         } else {
+            Wallet.refreshWalletStatus();
             var entity = HMD.tabletID;
             Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
             showMarketplace();
@@ -129,6 +130,10 @@
         }
     }
 
+    function openWallet() {
+        tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+    }
+
     function setCertificateInfo(currentEntityWithContextOverlay, itemMarketplaceId) {
         wireEventBridge(true);
         tablet.sendToQml({
@@ -153,11 +158,25 @@
         }
     }
 
+    function sendCommerceSettings() {
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "marketplaces",
+            action: "commerceSetting",
+            data: {
+                commerceMode: Settings.getValue("commerce", false),
+                userIsLoggedIn: Account.loggedIn,
+                walletNeedsSetup: Wallet.walletStatus === 1
+            }
+        }));
+    }
+
     marketplaceButton.clicked.connect(onClick);
     tablet.screenChanged.connect(onScreenChanged);
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
     ContextOverlay.contextOverlayClicked.connect(setCertificateInfo);
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
+    Wallet.walletStatusChanged.connect(sendCommerceSettings);
+    Wallet.refreshWalletStatus();
 
     function onMessage(message) {
 
@@ -198,15 +217,7 @@
                     canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
                 });
             } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: "marketplaces",
-                    action: "commerceSetting",
-                    data: {
-                        commerceMode: Settings.getValue("commerce", false),
-                        userIsLoggedIn: Account.loggedIn,
-                        walletNeedsSetup: Wallet.walletStatus === 1
-                    }
-                }));
+                sendCommerceSettings();
             } else if (parsedJsonMessage.type === "PURCHASES") {
                 referrerURL = parsedJsonMessage.referrerURL;
                 filterText = "";
@@ -214,7 +225,7 @@
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
-                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+                openWallet();
             } else if (parsedJsonMessage.type === "MY_ITEMS") {
                 referrerURL = MARKETPLACE_URL_INITIAL;
                 filterText = "";
@@ -239,6 +250,7 @@
         tablet.webEventReceived.disconnect(onMessage);
         Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
         GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
+        Wallet.walletStatusChanged.disconnect(sendCommerceSettings);
     });
 
 
@@ -281,16 +293,22 @@
             case 'purchases_openWallet':
             case 'checkout_openWallet':
             case 'checkout_setUpClicked':
-                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+                openWallet();
                 break;
             case 'purchases_walletNotSetUp':
-            case 'checkout_walletNotSetUp':
                 wireEventBridge(true);
                 tablet.sendToQml({
                     method: 'updateWalletReferrer',
                     referrer: "purchases"
                 });
-                tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+                openWallet();
+            case 'checkout_walletNotSetUp':
+                wireEventBridge(true);
+                tablet.sendToQml({
+                    method: 'updateWalletReferrer',
+                    referrer: message.itemId
+                });
+                openWallet();
                 break;
             case 'checkout_cancelClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.params, MARKETPLACES_INJECT_SCRIPT_URL);

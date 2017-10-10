@@ -165,6 +165,11 @@ public:
     /// \param foundEntities[out] vector of EntityItemPointer
     void findEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
 
+    /// finds all entities that match scanOperator
+    /// \parameter scanOperator function that scans entities that match criteria
+    /// \parameter foundEntities[out] vector of EntityItemPointer
+    void findEntities(RecurseOctreeOperation& scanOperator, QVector<EntityItemPointer>& foundEntities);
+
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
