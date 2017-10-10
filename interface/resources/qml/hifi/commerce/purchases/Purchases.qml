@@ -684,8 +684,7 @@ Rectangle {
                 titleBarContainer.referrerURL = message.referrerURL;
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
-            case 'inspectionCertificate_setMarketplaceId':
-            case 'inspectionCertificate_setItemInfo':
+            case 'inspectionCertificate_setCertificateId':
                 inspectionCertificate.fromScript(message);
             break;
             case 'purchases_showMyItems':

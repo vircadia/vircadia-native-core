@@ -13,7 +13,6 @@
 #include <QJsonArray>
 #include <QTimeZone>
 #include <QJsonDocument>
-#include "AccountManager.h"
 #include "Wallet.h"
 #include "Ledger.h"
 #include "CommerceLogging.h"
@@ -47,14 +46,15 @@ Handler(buy)
 Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
+Handler(certificateInfo)
 
-void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, QJsonObject request) {
+void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
     const QString URL = "/api/v1/commerce/";
     JSONCallbackParameters callbackParams(this, success, this, fail);
     qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
     accountManager->sendRequest(URL + endpoint,
-        AccountManagerAuth::Required,
+        authType,
         method,
         callbackParams,
         QJsonDocument(request).toJson());
@@ -70,14 +70,14 @@ void Ledger::signedSend(const QString& propertyName, const QByteArray& text, con
     } else {
         request["signature"] = QString("controlled failure!");
     }
-    send(endpoint, success, fail, QNetworkAccessManager::PutOperation, request);
+    send(endpoint, success, fail, QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 
 void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
     auto wallet = DependencyManager::get<Wallet>();
     QJsonObject request;
     request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
-    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, request);
+    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, AccountManagerAuth::Required, request);
 }
 
 void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure) {
@@ -192,7 +192,7 @@ void Ledger::history(const QStringList& keys) {
 void Ledger::resetSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
 void Ledger::resetFailure(QNetworkReply& reply) { failResponse("reset", reply); }
 void Ledger::reset() {
-    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, QJsonObject());
+    send("reset_user_hfc_account", "resetSuccess", "resetFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, QJsonObject());
 }
 
 void Ledger::accountSuccess(QNetworkReply& reply) {
@@ -217,7 +217,7 @@ void Ledger::accountFailure(QNetworkReply& reply) {
     failResponse("account", reply);
 }
 void Ledger::account() {
-    send("hfc_account", "accountSuccess", "accountFailure", QNetworkAccessManager::PutOperation, QJsonObject());
+    send("hfc_account", "accountSuccess", "accountFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, QJsonObject());
 }
 
 // The api/failResponse is called just for the side effect of logging.
@@ -233,4 +233,10 @@ void Ledger::updateLocation(const QString& asset_id, const QString location, con
     QJsonDocument transactionDoc{ transaction };
     auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
     signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
+}
+
+void Ledger::certificateInfo(const QString& certificateId) {
+    QString endpoint = "proof_of_purchase_status/transfer/" + certificateId;
+    QJsonObject request;
+    send(endpoint, "certificateInfoSuccess", "certificateInfoFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::None, request);
 }

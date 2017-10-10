@@ -25,7 +25,8 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string marketplaceId: "";
+    property string marketplaceUrl;
+    property string certificateId;
     property string itemName: "--";
     property string itemOwner: "--";
     property string itemEdition: "--";
@@ -35,6 +36,26 @@ Rectangle {
     color: hifi.colors.faintGray;
     Hifi.QmlCommerce {
         id: commerce;
+
+        onCertificateInfoResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get certificate info", result.message);
+            } else {
+                root.marketplaceUrl = result.data.marketplace_item_url;
+                root.itemOwner = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+                root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
+                root.dateOfPurchase = getFormattedDate(result.data.transfer_created_at * 1000);
+
+                if (result.data.invalid_reason) {
+                    errorText.text = "Here we will display some text if there's an <b>error</b> with the certificate " +
+            "(DMCA takedown, invalid cert, location of item updated)";
+                }
+            }
+        }
+    }
+
+    onCertificateIdChanged: {
+        commerce.certificateInfo(certificateId);
     }
 
     // This object is always used in a popup.
@@ -126,7 +147,7 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', itemId: root.marketplaceId});
+                    sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', marketplaceUrl: root.marketplaceUrl});
                 }
                 onEntered: itemName.color = hifi.colors.blueHighlight;
                 onExited: itemName.color = hifi.colors.blueAccent;
@@ -199,11 +220,10 @@ Rectangle {
         RalewayRegular {
             id: dateOfPurchaseHeader;
             text: "DATE OF PURCHASE";
-            visible: root.dateOfPurchase !== "";
             // Text size
             size: 16;
             // Anchors
-            anchors.top: ownedBy.bottom;
+            anchors.top: edition.bottom;
             anchors.topMargin: 20;
             anchors.left: parent.left;
             anchors.leftMargin: 45;
@@ -216,14 +236,13 @@ Rectangle {
         AnonymousProRegular {
             id: dateOfPurchase;
             text: root.dateOfPurchase;
-            visible: root.dateOfPurchase !== "";
             // Text size
             size: 22;
             // Anchors
-            anchors.top: editionHeader.bottom;
+            anchors.top: dateOfPurchaseHeader.bottom;
             anchors.topMargin: 4;
-            anchors.left: editionHeader.left;
-            anchors.right: editionHeader.right;
+            anchors.left: dateOfPurchaseHeader.left;
+            anchors.right: dateOfPurchaseHeader.right;
             height: paintedHeight;
             // Style
             color: hifi.colors.darkGray;
@@ -231,15 +250,13 @@ Rectangle {
 
         RalewayRegular {
             id: errorText;
-            text: "Here we will display some text if there's an <b>error</b> with the certificate " +
-            "(DMCA takedown, invalid cert, location of item updated)";
             // Text size
             size: 20;
             // Anchors
-            anchors.top: root.dateOfPurchase !== "" ? dateOfPurchase.bottom : edition.bottom;
+            anchors.top: dateOfPurchase.bottom;
             anchors.topMargin: 40;
-            anchors.left: root.dateOfPurchase !== "" ? dateOfPurchase.left : edition.left;
-            anchors.right: root.dateOfPurchase !== "" ? dateOfPurchase.right : edition.right;
+            anchors.left: dateOfPurchase.left;
+            anchors.right: dateOfPurchase.right;
             anchors.bottom: parent.bottom;
             // Style
             wrapMode: Text.WordWrap;
@@ -290,7 +307,7 @@ Rectangle {
             height: 50;
             text: "View In Market"
             onClicked: {
-                sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', itemId: root.marketplaceId});
+                sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', marketplaceUrl: root.marketplaceUrl});
             }
         }
     }
@@ -313,19 +330,37 @@ Rectangle {
     //
     function fromScript(message) {
         switch (message.method) {
-            case 'inspectionCertificate_setMarketplaceId':
-                root.marketplaceId = message.marketplaceId;
-            break;
-            case 'inspectionCertificate_setItemInfo':
-                root.itemName = message.itemName;
-                root.itemOwner = message.itemOwner;
-                root.itemEdition = message.itemEdition;
+            case 'inspectionCertificate_setCertificateId':
+                root.certificateId = message.certificateId;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
         }
     }
     signal sendToScript(var message);
+
+    function getFormattedDate(timestamp) {
+        var a = new Date(timestamp);
+        var year = a.getFullYear();
+        var month = a.getMonth();
+        var day = a.getDate();
+        var hour = a.getHours();
+        var drawnHour = hour;
+        if (hour === 0) {
+            drawnHour = 12;
+        } else if (hour > 12) {
+            drawnHour -= 12;
+        }
+        
+        var amOrPm = "AM";
+        if (hour >= 12) {
+            amOrPm = "PM";
+        }
+
+        var min = a.getMinutes();
+        var sec = a.getSeconds();
+        return year + '-' + month + '-' + day + ' ' + drawnHour + ':' + min + amOrPm;
+    }
     //
     // FUNCTION DEFINITIONS END
     //
