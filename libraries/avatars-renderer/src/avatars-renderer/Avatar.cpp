@@ -446,7 +446,8 @@ void Avatar::applyPositionDelta(const glm::vec3& delta) {
 void Avatar::measureMotionDerivatives(float deltaTime) {
     PerformanceTimer perfTimer("derivatives");
     // linear
-    float invDeltaTime = 1.0f / deltaTime;
+    const float safeDeltaTime = (deltaTime == 0.0f) ? 0.001f : deltaTime;
+    float invDeltaTime = 1.0f / safeDeltaTime;
     // Floating point error prevents us from computing velocity in a naive way
     // (e.g. vel = (pos - oldPos) / dt) so instead we use _positionOffsetAccumulator.
     glm::vec3 velocity = _positionDeltaAccumulator * invDeltaTime;

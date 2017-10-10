@@ -54,6 +54,7 @@ void LODManager::autoAdjustLOD(float batchTime, float engineRunTime, float delta
     float renderTime = batchTime + OVERLAY_AND_SWAP_TIME_BUDGET;
     float maxTime = glm::max(renderTime, engineRunTime);
     const float BLEND_TIMESCALE = 0.3f; // sec
+    const float safeDeltaTime = (deltaTime == 0.0f) ? 0.001f : deltaTime;
     float blend = BLEND_TIMESCALE / deltaTimeSec;
     if (blend > 1.0f) {
         blend = 1.0f;
