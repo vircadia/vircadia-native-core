@@ -18,7 +18,6 @@ CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(q
 WalletScriptingInterface::WalletScriptingInterface() {
 }
 
-static const QString CHECKOUT_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/checkout/Checkout.qml";
 void WalletScriptingInterface::buy(const QString& name, const QString& id, const int& price, const QString& href) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "buy", Q_ARG(const QString&, name), Q_ARG(const QString&, id), Q_ARG(const int&, price), Q_ARG(const QString&, href));
@@ -28,6 +27,7 @@ void WalletScriptingInterface::buy(const QString& name, const QString& id, const
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
 
+    const QString CHECKOUT_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/checkout/Checkout.qml";
     tablet->loadQMLSource(CHECKOUT_QML_PATH);
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 
