@@ -78,6 +78,7 @@ protected:
     // Will be called by the lambda posted to the scene in updateInScene.  
     // This function will execute on the rendering thread, so you cannot use network caches to fetch
     // data in this method if using multi-threaded rendering
+    
     virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity) { }
 
     // Called by the `render` method after `needsRenderUpdate`

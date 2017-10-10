@@ -248,17 +248,20 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.nearGrabWantsToRun = function(controllerData) {
-            var moduleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
-            var module = getEnabledModuleByName(moduleName);
-            var ready = module ? module.isReady(controllerData) : makeRunningValues(false, [], []);
-            return ready.active;
+        this.otherModuleNeedsToRun = function(controllerData) {
+            var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+            var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
+            var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
+            var farGrabModule = getEnabledModuleByName(farGrabModuleName);
+            var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            return grabOverlayModuleReady.active || farGrabModuleReady.active;
         };
 
         this.processStylus = function(controllerData) {
             this.updateStylusTip();
 
-            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.nearGrabWantsToRun(controllerData)) {
+            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.otherModuleNeedsToRun(controllerData)) {
                 this.pointFinger(false);
                 this.hideStylus();
                 return false;
