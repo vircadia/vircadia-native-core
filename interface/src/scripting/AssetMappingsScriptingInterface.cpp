@@ -105,12 +105,8 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
 
     startedCallback.call();
 
-    QFile file { path };
-    int64_t size { 0 };
-    if (file.open(QIODevice::ReadOnly)) {
-        size = file.size();
-        file.close();
-    }
+    QFileInfo fileInfo { path };
+    int64_t size { fileInfo.size() };
 
     QString extension = "";
     auto idx = path.lastIndexOf(".");
