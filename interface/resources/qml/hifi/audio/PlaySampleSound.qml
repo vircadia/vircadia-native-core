@@ -29,12 +29,22 @@ RowLayout {
     function playSound() {
         // FIXME: MyAvatar is not properly exposed to QML; MyAvatar.qmlPosition is a stopgap
         // FIXME: Audio.playSystemSound should not require position
-        sample = Audio.playSystemSound(sound, MyAvatar.qmlPosition);
-        isPlaying = true;
-        sample.finished.connect(function() { isPlaying = false; sample = null; });
+        if (sample === null && !isPlaying) {
+            sample = Audio.playSystemSound(sound, MyAvatar.qmlPosition);
+            isPlaying = true;
+            sample.finished.connect(reset);
+        }
     }
     function stopSound() {
-        sample && sample.stop();
+        if (sample && isPlaying) {
+            sample.stop();
+        }
+    }
+
+    function reset() {
+        sample.finished.disconnect(reset);
+        isPlaying = false;
+        sample = null;
     }
 
     Component.onCompleted: createSampleSound();
