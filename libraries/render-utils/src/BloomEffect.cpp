@@ -250,7 +250,7 @@ float BloomConfig::getIntensity() const {
 
 void BloomConfig::setSize(float value) {
     std::string blurName{ "BloomBlurN" };
-    auto sigma = value*3.0f;
+    auto sigma = 0.5f+value*3.5f;
 
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
         blurName.back() = '0' + i;
