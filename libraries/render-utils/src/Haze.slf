@@ -65,8 +65,14 @@ void main(void) {
 
     vec4 directionalLightColor = vec4(hazeParams.directionalLightColor, 1.0);
 
-    vec4 blendedHazeColor = 
-        mix(hazeColor, directionalLightColor, power);
+    // Use the haze colour for the belnd-out colour, if blend is not enabled
+    vec4 blendedHazeColor;
+    if ((hazeParams.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) {
+        blendedHazeColor = mix(hazeColor, directionalLightColor, power);
+    }
+    else {
+        blendedHazeColor = hazeColor;
+    }
 
     vec4 potentialFragColor;
 

@@ -91,6 +91,7 @@ public:
     DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, DEFAULT_HAZE_RANGE);
     DEFINE_PROPERTY_REF(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor, hazeBlendInColor, xColor, DEFAULT_HAZE_BLEND_IN_COLOR);
     DEFINE_PROPERTY_REF(PROP_HAZE_BLEND_OUT_COLOR, HazeBlendOutColor, hazeBlendOutColor, xColor, DEFAULT_HAZE_BLEND_OUT_COLOR);
+    DEFINE_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, HazeEnableLightBlend, hazeEnableLightBlend, bool, false);
     DEFINE_PROPERTY_REF(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float, DEFAULT_HAZE_LIGHT_BLEND_ANGLE);
 
     // Range & Altitude parameters

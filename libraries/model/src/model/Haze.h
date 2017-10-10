@@ -75,6 +75,7 @@ namespace model {
         void setAltitudeBased(const bool isAltitudeBased);
         void setHazeAttenuateKeyLight(const bool isHazeAttenuateKeyLight);
         void setModulateColorActive(const bool isModulateColorActive);
+        void setHazeEnableLightBlend(const bool isHazeEnableLightBlend);
 
         void setHazeRangeFactor(const float hazeRange);
         void setHazeAltitudeFactor(const float hazeAltitude);
@@ -84,8 +85,7 @@ namespace model {
 
         void setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue);
 
-        void setZoneOrientation(const glm::quat& zoneOrientation);
-        void setZonePosition(const glm::vec3& zonePosition);
+        void setZoneTransform(const glm::mat4& zoneTransform);
 
         UniformBufferView getHazeParametersBuffer() const { return _hazeParametersBuffer; }
 
@@ -103,12 +103,12 @@ namespace model {
             int hazeMode{ 0 };    // bit 0 - set to activate haze attenuation of fragment color
                                   // bit 1 - set to add the effect of altitude to the haze attenuation
                                   // bit 2 - set to activate directional light attenuation mode
+                                  // bit 3 - set to blend between blend-in and blend-out colours
 
-            glm::vec3 zoneDirection;
+            glm::mat4 zoneTransform;
 
             // Amount of background (skybox) to display, overriding the haze effect for the background
             float hazeBackgroundBlendValue{ initialHazeBackgroundBlendValue };
-            glm::vec3 zonePosition;
 
             // The haze attenuation exponents used by both fragment and directional light attenuation
             float hazeRangeFactor{ convertHazeRangeToHazeRangeFactor(initialHazeRange_m) };

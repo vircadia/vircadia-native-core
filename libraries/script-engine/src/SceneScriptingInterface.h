@@ -128,12 +128,19 @@ namespace SceneScripting {
         Q_PROPERTY(float hazeRange READ getHazeRange WRITE setHazeRange)
         void setHazeRange(float value);
         float getHazeRange() const;
+
         Q_PROPERTY(xColor hazeBlendInColor READ getHazeBlendInColor WRITE setHazeBlendInColor)
         void setHazeBlendInColor(xColor value);
         xColor getHazeBlendInColor() const;
+
         Q_PROPERTY(xColor hazeBlendOutColor READ getHazeBlendOutColor WRITE setHazeBlendOutColor)
         void setHazeBlendOutColor(xColor value);
         xColor getHazeBlendOutColor() const;
+
+        Q_PROPERTY(bool hazeEnableLightBlend READ getHazeEnableLightBlend WRITE setHazeEnableLightBlend)
+        void setHazeEnableLightBlend(bool value);
+        bool getHazeEnableLightBlend() const;
+
         Q_PROPERTY(float hazeLightBlendAngle READ getHazeLightBlendAngle WRITE setHazeLightBlendAngle)
         void setHazeLightBlendAngle(float value);
         float getHazeLightBlendAngle() const;
@@ -141,6 +148,7 @@ namespace SceneScripting {
         Q_PROPERTY(float hazeAltitude READ getHazeAltitude WRITE setHazeAltitude)
         void setHazeAltitude(float value);
         float getHazeAltitude() const;
+
         Q_PROPERTY(float hazeBaseRef READ getHazeBaseRef WRITE setHazeBaseRef)
         void setHazeBaseRef(float value);
         float getHazeBaseRef() const;
@@ -149,12 +157,14 @@ namespace SceneScripting {
         void setHazeBackgroundBlend(float value);
         float getHazeBackgroundBlend() const;
 
-        Q_PROPERTY(float hazeAttenuateKeyLight READ getHazeAttenuateKeyLight WRITE setHazeAttenuateKeyLight)
+        Q_PROPERTY(bool hazeAttenuateKeyLight READ getHazeAttenuateKeyLight WRITE setHazeAttenuateKeyLight)
         void setHazeAttenuateKeyLight(bool value);
         bool getHazeAttenuateKeyLight() const;
+
         Q_PROPERTY(float hazeKeyLightRange READ getHazeKeyLightRange WRITE setHazeKeyLightRange)
         void setHazeKeyLightRange(float value);
         float getHazeKeyLightRange() const;
+
         Q_PROPERTY(float hazeKeyLightAltitude READ getHazeKeyLightAltitude WRITE setHazeKeyLightAltitude)
         void setHazeKeyLightAltitude(float value);
         float getHazeKeyLightAltitude() const;

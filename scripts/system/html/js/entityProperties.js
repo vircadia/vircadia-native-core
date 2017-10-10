@@ -668,11 +668,13 @@ function loaded() {
         var elZoneHazeBlendOutColorRed = document.getElementById("property-zone-haze-blend-out-color-red");
         var elZoneHazeBlendOutColorGreen = document.getElementById("property-zone-haze-blend-out-color-green");
         var elZoneHazeBlendOutColorBlue = document.getElementById("property-zone-haze-blend-out-color-blue");
-        var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
+        var elZoneHazeEnableLightBlend = document.getElementById("property-zone-haze-enable-light-blend");
         var elZoneHazeLightBlendAngle = document.getElementById("property-zone-haze-blend-angle");
         
         var elZoneHazeAltitude = document.getElementById("property-zone-haze-altitude");
         var elZoneHazeBaseRef = document.getElementById("property-zone-haze-altitude-base");
+
+        var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
         
         var elZoneHazeAttenuateKeyLight = document.getElementById("property-zone-haze-attenuate-keylight");
         var elZoneHazeKeyLightRange = document.getElementById("property-zone-haze-keylight-range");
@@ -1037,6 +1039,8 @@ function loaded() {
                             elZoneHazeBlendOutColorRed.value = properties.haze.hazeBlendOutColor.red;
                             elZoneHazeBlendOutColorGreen.value = properties.haze.hazeBlendOutColor.green;
                             elZoneHazeBlendOutColorBlue.value = properties.haze.hazeBlendOutColor.blue;
+
+                            elZoneHazeEnableLightBlend.checked = properties.haze.hazeEnableLightBlend;
                             elZoneHazeLightBlendAngle.value = properties.haze.hazeLightBlendAngle.toFixed(0);
 
                             elZoneHazeAltitude.value = properties.haze.hazeAltitude.toFixed(0);
@@ -1495,6 +1499,8 @@ function loaded() {
         elZoneHazeBlendOutColorRed.addEventListener('change', zoneHazeBlendOutColorChangeFunction);
         elZoneHazeBlendOutColorGreen.addEventListener('change', zoneHazeBlendOutColorChangeFunction);
         elZoneHazeBlendOutColorBlue.addEventListener('change', zoneHazeBlendOutColorChangeFunction);
+
+        elZoneHazeEnableLightBlend.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableLightBlend'));
         elZoneHazeLightBlendAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeLightBlendAngle'));
 
         elZoneHazeAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeAltitude'));

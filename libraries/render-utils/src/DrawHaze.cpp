@@ -69,6 +69,10 @@ void HazeConfig::setModulateColorActive(const bool active) {
     isModulateColorActive = active; 
 }
 
+void HazeConfig::setHazeEnableLightBlend(const bool active) {
+    isHazeEnableLightBlend = active;
+}
+
 void HazeConfig::setHazeRange_m(const float value) { 
     hazeRange_m = value;
 }
@@ -104,6 +108,7 @@ void MakeHaze::configure(const Config& config) {
     _haze->setAltitudeBased(config.isAltitudeBased);
     _haze->setHazeAttenuateKeyLight(config.isHazeAttenuateKeyLight);
     _haze->setModulateColorActive(config.isModulateColorActive);
+    _haze->setHazeEnableLightBlend(config.isHazeEnableLightBlend);
 
     _haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeRange_m));
     _haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(config.hazeAltitude_m));

@@ -24,7 +24,8 @@ enum HazeModes {
     HAZE_MODE_IS_ACTIVE                        = 1 << 0,
     HAZE_MODE_IS_ALTITUDE_BASED                = 1 << 1,
     HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED  = 1 << 2,
-    HAZE_MODE_IS_MODULATE_COLOR                = 1 << 3
+    HAZE_MODE_IS_MODULATE_COLOR                = 1 << 3,
+    HAZE_MODE_IS_ENABLE_LIGHT_BLEND            = 1 << 4
 };
 
 // For color modulated mode, the colour values are used as range values, which are then converted to range factors
@@ -54,6 +55,17 @@ void Haze::setHazeColor(const glm::vec3 hazeColor) {
         float range = hazeColor.b * 2995.0f + 5.0f;
         float factor = convertHazeRangeToHazeRangeFactor(range);
         _hazeParametersBuffer.edit<Parameters>().colorModulationFactor.b = factor;
+    }
+}
+
+void Haze::setHazeEnableLightBlend(const bool isHazeEnableLightBlend) {
+    auto& params = _hazeParametersBuffer.get<Parameters>();
+
+    if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && !isHazeEnableLightBlend) {
+        _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_ENABLE_LIGHT_BLEND;
+    }
+    else if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) != HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && isHazeEnableLightBlend) {
+        _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_ENABLE_LIGHT_BLEND;
     }
 }
 
@@ -170,19 +182,11 @@ void Haze::setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue) {
     }
 }
 
-void Haze::setZoneOrientation(const glm::quat& zoneOrientation) {
+void Haze::setZoneTransform(const glm::mat4& zoneTransform) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    glm::vec3 zoneDirection = zoneOrientation * glm::vec3(0.0f, 0.0f, -1.0f);
-    if (params.zoneDirection == zoneDirection) {
-        _hazeParametersBuffer.edit<Parameters>().zoneDirection = zoneDirection;
+    if (params.zoneTransform == zoneTransform) {
+        _hazeParametersBuffer.edit<Parameters>().zoneTransform = zoneTransform;
     }
 }
 
-void Haze::setZonePosition(const glm::vec3& zonePosition) {
-    auto& params = _hazeParametersBuffer.get<Parameters>();
-
-    if (params.zonePosition != zonePosition) {
-        _hazeParametersBuffer.edit<Parameters>().zonePosition = zonePosition;
-    }
-}

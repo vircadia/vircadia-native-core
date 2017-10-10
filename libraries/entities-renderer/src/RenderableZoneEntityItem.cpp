@@ -346,6 +346,7 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeColor(glm::vec3(hazeBlendInColor.red / 255.0, hazeBlendInColor.green / 255.0, hazeBlendInColor.blue / 255.0));
     xColor hazeBlendOutColor = _hazeProperties.getHazeBlendOutColor();
     haze->setDirectionalLightColor(glm::vec3(hazeBlendOutColor.red / 255.0, hazeBlendOutColor.green / 255.0, hazeBlendOutColor.blue / 255.0));
+    haze->setHazeEnableLightBlend(_hazeProperties.getHazeEnableLightBlend());
     haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(_hazeProperties.getHazeLightBlendAngle()));
 
     haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeAltitude()));
@@ -357,8 +358,7 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
     haze->setHazeKeyLightAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
 
-    haze->setZoneOrientation(_lastRotation);
-    haze->setZonePosition(_lastPosition);
+    haze->setZoneTransform(entity->getTransform().getMatrix());
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {

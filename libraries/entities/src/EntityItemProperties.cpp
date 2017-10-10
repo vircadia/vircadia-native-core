@@ -1159,9 +1159,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeBlendInColor, hazeBlendInColor);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BLEND_OUT_COLOR, Haze, haze, HazeBlendOutColor, hazeBlendOutColor);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ENABLE_LIGHT_BLEND, Haze, haze, HazeEnableLightBlend, hazeEnableLightBlend);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_LIGHT_BLEND_ANGLE, Haze, haze, HazeLightBlendAngle, hazeLightBlendAngle);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE, Haze, haze, HazeAltitude, hazeAltitude);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
 

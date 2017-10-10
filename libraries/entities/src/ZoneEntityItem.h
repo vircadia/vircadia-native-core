@@ -74,28 +74,30 @@ public:
     uint32_t getHazeMode() const;
 
     void setHazeRange(const float hazeRange);
-    float getHazeRange()const;
+    float getHazeRange() const;
     void setHazeBlendInColor(const xColor hazeBlendInColor);
-    xColor getHazeBlendInColor()const;
+    xColor getHazeBlendInColor() const;
     void setHazeBlendOutColor(const xColor hazeBlendOutColor);
-    xColor getHazeBlendOutColor()const;
+    xColor getHazeBlendOutColor() const;
+    void setHazeEnableLightBlend(const bool hazeEnableLightBlend);
+    bool getHazeEnableLightBlend() const;
     void setHazeLightBlendAngle(const float hazeLightBlendAngle);
-    float getHazeLightBlendAngle()const;
+    float getHazeLightBlendAngle() const;
 
     void setHazeAltitude(const float hazeAltitude);
-    float getHazeAltitude()const;
+    float getHazeAltitude() const;
     void setHazeBaseRef(const float hazeBaseRef);
-    float getHazeBaseRef()const;
+    float getHazeBaseRef() const;
 
     void setHazeBackgroundBlend(const float hazeBackgroundBlend);
-    float getHazeBackgroundBlend()const;
+    float getHazeBackgroundBlend() const;
 
     void setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight);
-    bool getHazeAttenuateKeyLight()const;
+    bool getHazeAttenuateKeyLight() const;
     void setHazeKeyLightRange(const float hazeKeyLightRange);
-    float getHazeKeyLightRange()const;
+    float getHazeKeyLightRange() const;
     void setHazeKeyLightAltitude(const float hazeKeyLightAltitude);
-    float getHazeKeyLightAltitude()const;
+    float getHazeKeyLightAltitude() const;
 
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
@@ -149,6 +151,7 @@ protected:
     float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
     xColor _hazeBlendInColor{ HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR };
     xColor _hazeBlendOutColor{ HazePropertyGroup::DEFAULT_HAZE_BLEND_OUT_COLOR };
+    bool _hazeEnableLightBlend{ false };
     float _hazeLightBlendAngle{ HazePropertyGroup::DEFAULT_HAZE_LIGHT_BLEND_ANGLE };
 
     float _hazeAltitude{ HazePropertyGroup::DEFAULT_HAZE_ALTITUDE };
@@ -156,7 +159,7 @@ protected:
 
     float _hazeBackgroundBlend{ HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND };
 
-    float _hazeAttenuateKeyLight{ false };
+    bool _hazeAttenuateKeyLight{ false };
     float _hazeKeyLightRange{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_RANGE };
     float _hazeKeyLightAltitude{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE };
 
