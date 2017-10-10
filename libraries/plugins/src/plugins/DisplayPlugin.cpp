@@ -34,3 +34,12 @@ void DisplayPlugin::waitForPresent() {
         }
     }
 }
+
+std::function<void(gpu::Batch&, const gpu::TexturePointer&)> DisplayPlugin::getHUDOperator() {
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&)> hudOperator;
+    {
+        QMutexLocker locker(&_presentMutex);
+        hudOperator = _hudOperator;
+    }
+    return hudOperator;
+}

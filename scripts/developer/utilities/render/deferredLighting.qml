@@ -178,15 +178,26 @@ Column {
             onCheckedChanged: { mainViewTask.getConfig("DrawTransparentBounds")["enabled"] = checked }
         }
         CheckBox {
-            text: "Overlay Opaques"
-            checked: mainViewTask.getConfig("DrawOverlayOpaqueBounds")["enabled"]
-            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayOpaqueBounds")["enabled"] = checked }
+            text: "Opaques in Front"
+            checked: mainViewTask.getConfig("DrawOverlayInFrontOpaqueBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayInFrontOpaqueBounds")["enabled"] = checked }
         }
         CheckBox {
-            text: "Overlay Transparents"
-            checked: mainViewTask.getConfig("DrawOverlayTransparentBounds")["enabled"]
-            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayTransparentBounds")["enabled"] = checked }
+            text: "Transparents in Front"
+            checked: mainViewTask.getConfig("DrawOverlayInFrontTransparentBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayInFrontTransparentBounds")["enabled"] = checked }
         }
+        CheckBox {
+            text: "Opaques in HUD"
+            checked: mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"] = checked }
+        }
+        CheckBox {
+            text: "Transparents in HUD"
+            checked: mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
+        }
+
     }
     Column {
         CheckBox {

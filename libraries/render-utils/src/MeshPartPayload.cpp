@@ -385,7 +385,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
             builder.withInvisible();
         }
 
-        if (model->isLayeredInFront()) {
+        if (model->isLayeredInFront() || model->isLayeredInHUD()) {
             builder.withLayered();
         }
 
@@ -404,15 +404,15 @@ ItemKey ModelMeshPartPayload::getKey() const {
 }
 
 int ModelMeshPartPayload::getLayer() const {
-    // MAgic number while we are defining the layering mechanism:
-    const int LAYER_3D_FRONT = 1;
-    const int LAYER_3D = 0;
     ModelPointer model = _model.lock();
-    if (model && model->isLayeredInFront()) {
-        return LAYER_3D_FRONT;
-    } else {
-        return LAYER_3D;
+    if (model) {
+        if (model->isLayeredInFront()) {
+            return Item::LAYER_3D_FRONT;
+        } else if (model->isLayeredInHUD()) {
+            return Item::LAYER_3D_HUD;
+        }
     }
+    return Item::LAYER_3D;
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {

@@ -58,7 +58,6 @@ public:
     virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
-    bool shouldDrawHUDLayer() const { return _drawHUDLayer; }
     virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
     xColor getColor();
     float getAlpha();
@@ -117,7 +116,6 @@ protected:
 
     xColor _color;
     bool _visible; // should the overlay be drawn at all
-    bool _drawHUDLayer; // should the overlay be drawn on the HUD layer
     Anchor _anchor;
 
     unsigned int _stackOrder { 0 };
