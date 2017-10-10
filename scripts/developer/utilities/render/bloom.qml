@@ -28,11 +28,64 @@ Item {
                 root.config["enabled"] = checked;
             }
         }
-        CheckBox {
-            text: "Debug"
-            checked: root.configDebug["enabled"]
-            onCheckedChanged: {
-                root.configDebug["enabled"] = checked;
+        GroupBox {
+            title: "Debug"
+            Row {
+                ExclusiveGroup { id: debugGroup }
+                RadioButton {
+                    text : "Off"
+                    checked : !root.configDebug["enabled"]
+                    onCheckedChanged: {
+                        if (checked) {
+                            root.configDebug["enabled"] = false
+                        }
+                    }
+                    exclusiveGroup : debugGroup
+                }
+                RadioButton {
+                    text : "Lvl 0"
+                    checked :root.configDebug["enabled"] && root.configDebug["mode"]==0
+                    onCheckedChanged: {
+                        if (checked) {
+                            root.configDebug["enabled"] = true
+                            root.configDebug["mode"] = 0
+                        }
+                    }
+                    exclusiveGroup : debugGroup
+                }
+                RadioButton {
+                    text : "Lvl 1"
+                    checked : root.configDebug["enabled"] && root.configDebug["mode"]==1
+                    onCheckedChanged: {
+                        if (checked) {
+                            root.configDebug["enabled"] = true
+                            root.configDebug["mode"] = 1
+                        }
+                    }
+                    exclusiveGroup : debugGroup
+                }
+                RadioButton {
+                    text : "Lvl 2"
+                    checked : root.configDebug["enabled"] && root.configDebug["mode"]==2
+                    onCheckedChanged: {
+                        if (checked) {
+                            root.configDebug["enabled"] = true
+                            root.configDebug["mode"] = 2
+                        }
+                    }
+                    exclusiveGroup : debugGroup
+                }
+                RadioButton {
+                    text : "All"
+                    checked : root.configDebug["enabled"] && root.configDebug["mode"]==3
+                    onCheckedChanged: {
+                        if (checked) {
+                            root.configDebug["enabled"] = true
+                            root.configDebug["mode"] = 3
+                        }
+                    }
+                    exclusiveGroup : debugGroup
+                }
             }
         }
         ConfigSlider {

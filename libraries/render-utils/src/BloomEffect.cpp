@@ -157,7 +157,9 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
 DebugBloom::DebugBloom() {
 }
 
-DebugBloom::~DebugBloom() {
+void DebugBloom::configure(const Config& config) {
+    _mode = static_cast<DebugBloomConfig::Mode>(config.mode);
+    assert(_mode < DebugBloomConfig::MODE_COUNT);
 }
 
 void DebugBloom::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -176,12 +178,15 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
         level2FB->getRenderBuffer(0)
     };
 
+    static auto TEXCOORD_RECT_SLOT = 1;
+
     if (!_pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
+        auto vs = gpu::StandardShaderLib::getDrawTexcoordRectTransformUnitQuadVS();
         auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("texcoordRect"), TEXCOORD_RECT_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -199,21 +204,39 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
         batch.resetViewTransform();
         batch.setPipeline(_pipeline);
 
-        Transform modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport / 2);
-        modelTransform.postTranslate(glm::vec3(-1.0f, 1.0f, 0.0f));
-        batch.setModelTransform(modelTransform);
-        batch.setResourceTexture(0, levelTextures[0]);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        Transform modelTransform;
+        if (_mode == DebugBloomConfig::MODE_ALL_LEVELS) {
+            batch._glUniform4f(TEXCOORD_RECT_SLOT, 0.0f, 0.0f, 1.f, 1.f);
 
-        modelTransform.postTranslate(glm::vec3(2.0f, 0.0f, 0.0f));
-        batch.setModelTransform(modelTransform);
-        batch.setResourceTexture(0, levelTextures[1]);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
+            modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport / 2);
+            modelTransform.postTranslate(glm::vec3(-1.0f, 1.0f, 0.0f));
+            batch.setModelTransform(modelTransform);
+            batch.setResourceTexture(0, levelTextures[0]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        modelTransform.postTranslate(glm::vec3(-2.0f, -2.0f, 0.0f));
-        batch.setModelTransform(modelTransform);
-        batch.setResourceTexture(0, levelTextures[2]);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
+            modelTransform.postTranslate(glm::vec3(2.0f, 0.0f, 0.0f));
+            batch.setModelTransform(modelTransform);
+            batch.setResourceTexture(0, levelTextures[1]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            modelTransform.postTranslate(glm::vec3(-2.0f, -2.0f, 0.0f));
+            batch.setModelTransform(modelTransform);
+            batch.setResourceTexture(0, levelTextures[2]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        } else {
+            auto viewport = args->_viewport;
+            auto blurLevel = _mode - DebugBloomConfig::MODE_LEVEL0;
+
+            viewport.z /= 2;
+
+            batch._glUniform4f(TEXCOORD_RECT_SLOT, 0.5f, 0.0f, 0.5f, 1.f);
+
+            modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, viewport);
+            modelTransform.postTranslate(glm::vec3(-1.0f, 0.0f, 0.0f));
+            batch.setModelTransform(modelTransform);
+            batch.setResourceTexture(0, levelTextures[blurLevel]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        }
     });
 }
 

@@ -98,11 +98,25 @@ private:
 
 class DebugBloomConfig : public render::Job::Config {
     Q_OBJECT
+        Q_PROPERTY(int mode MEMBER mode NOTIFY dirty)
 
 public:
 
+    enum Mode {
+        MODE_LEVEL0 = 0,
+        MODE_LEVEL1,
+        MODE_LEVEL2,
+        MODE_ALL_LEVELS,
+
+        MODE_COUNT
+    };
+
     DebugBloomConfig() : render::Job::Config(false) {}
 
+    int mode{ MODE_ALL_LEVELS };
+
+signals:
+    void dirty();
 };
 
 class DebugBloom {
@@ -112,13 +126,13 @@ public:
     using JobModel = render::Job::ModelI<DebugBloom, Inputs, Config>;
 
     DebugBloom();
-    ~DebugBloom();
 
-    void configure(const Config& config) {}
+    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 private:
     gpu::PipelinePointer _pipeline;
+    DebugBloomConfig::Mode _mode;
 };
 
 class Bloom {
