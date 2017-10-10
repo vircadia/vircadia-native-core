@@ -88,31 +88,33 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
 
         _color = vec4(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
+
+        _shape = entity->getShape();
+        _position = entity->getPosition();
+        _dimensions = entity->getDimensions();
+        _orientation = entity->getOrientation();
+
+        if (_shape == entity::Sphere) {
+            _modelTransform.postScale(SPHERE_ENTITY_SCALE);
+        }
+
+        _modelTransform.postScale(_dimensions);
     });
 }
 
 void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    if (_procedural.isEnabled() && _procedural.isFading()) {
-        float isFading = Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) < 1.0f;
-        _procedural.setIsFading(isFading);
-    }
-
-    _shape = entity->getShape();
-    _position = entity->getPosition();
-    _dimensions = entity->getDimensions();
-    _orientation = entity->getOrientation();
-
-    if (_shape == entity::Sphere) {
-        _modelTransform.postScale(SPHERE_ENTITY_SCALE);
-    }
-
-    _modelTransform.postScale(_dimensions);
+    withReadLock([&] {
+        if (_procedural.isEnabled() && _procedural.isFading()) {
+            float isFading = Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) < 1.0f;
+            _procedural.setIsFading(isFading);
+        }
+    });
 }
 
 bool ShapeEntityRenderer::isTransparent() const {
     if (_procedural.isEnabled() && _procedural.isFading()) {
         return Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) < 1.0f;
-    } 
+    }
     
     //        return _entity->getLocalRenderAlpha() < 1.0f || Parent::isTransparent();
     return Parent::isTransparent();
@@ -126,15 +128,16 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
 
-    auto geometryShape = MAPPING[_shape];
-    batch.setModelTransform(_modelTransform); // use a transform with scale, rotation, registration point and translation
-
+    GeometryCache::Shape geometryShape;
     bool proceduralRender = false;
-    glm::vec4 outColor = _color;
+    glm::vec4 outColor;
     withReadLock([&] {
+        geometryShape = MAPPING[_shape];
+        batch.setModelTransform(_modelTransform); // use a transform with scale, rotation, registration point and translation
+        outColor = _color;
         if (_procedural.isReady()) {
             _procedural.prepare(batch, _position, _dimensions, _orientation);
-            auto outColor = _procedural.getColor(_color);
+            outColor = _procedural.getColor(_color);
             outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
             proceduralRender = true;
         }
@@ -149,13 +152,13 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         }
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
-        _color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+        outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto pipeline = _color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
+        auto pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShapeInstance(args, batch, geometryShape, _color, pipeline);
+            geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {
-            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, _color, pipeline);
+            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
     }
 
