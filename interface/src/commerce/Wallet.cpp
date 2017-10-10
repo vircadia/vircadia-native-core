@@ -338,6 +338,11 @@ Wallet::Wallet() {
         walletScriptingInterface->setWalletStatus(status);
         emit walletStatusResult(status);
     });
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
+        getWalletStatus();
+    });
 }
 
 Wallet::~Wallet() {

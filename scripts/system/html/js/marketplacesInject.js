@@ -26,7 +26,7 @@
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
 
-    var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
+    var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
 
@@ -99,7 +99,9 @@
     }
 
     function maybeAddSetupWalletButton() {
-        if (userIsLoggedIn && walletNeedsSetup) {
+        if (!$('body').hasClass("walletsetup-injected") && userIsLoggedIn && walletNeedsSetup) {
+            $('body').addClass("walletsetup-injected");
+
             var resultsElement = document.getElementById('results');
             var setupWalletElement = document.createElement('div');
             setupWalletElement.classList.add("row");
@@ -135,7 +137,8 @@
     }
 
     function maybeAddLogInButton() {
-        if (!userIsLoggedIn) {
+        if (!$('body').hasClass("login-injected") && !userIsLoggedIn) {
+            $('body').addClass("login-injected");
             var resultsElement = document.getElementById('results');
             var logInElement = document.createElement('div');
             logInElement.classList.add("row");
@@ -300,68 +303,72 @@
     }
 
     function injectHiFiCode() {
-        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
-
-            $('body').addClass("code-injected");
-
+        if (commerceMode) {
             maybeAddLogInButton();
             maybeAddSetupWalletButton();
-            changeDropdownMenu();
 
-            var target = document.getElementById('templated-items');
-            // MutationObserver is necessary because the DOM is populated after the page is loaded.
-            // We're searching for changes to the element whose ID is '#templated-items' - this is
-            //     the element that gets filled in by the AJAX.
-            var observer = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    injectBuyButtonOnMainPage();
+            if (!$('body').hasClass("code-injected")) {
+
+                $('body').addClass("code-injected");
+                changeDropdownMenu();
+
+                var target = document.getElementById('templated-items');
+                // MutationObserver is necessary because the DOM is populated after the page is loaded.
+                // We're searching for changes to the element whose ID is '#templated-items' - this is
+                //     the element that gets filled in by the AJAX.
+                var observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
+                        injectBuyButtonOnMainPage();
+                    });
+                    //observer.disconnect();
                 });
-                //observer.disconnect();
-            });
-            var config = { attributes: true, childList: true, characterData: true };
-            observer.observe(target, config);
+                var config = { attributes: true, childList: true, characterData: true };
+                observer.observe(target, config);
 
-            // Try this here in case it works (it will if the user just pressed the "back" button,
-            //     since that doesn't trigger another AJAX request.
-            injectBuyButtonOnMainPage();
-            maybeAddPurchasesButton();
+                // Try this here in case it works (it will if the user just pressed the "back" button,
+                //     since that doesn't trigger another AJAX request.
+                injectBuyButtonOnMainPage();
+                maybeAddPurchasesButton();
+            }
         }
     }
 
     function injectHiFiItemPageCode() {
-        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
-
-            $('body').addClass("code-injected");
-
+        if (commerceMode) {
             maybeAddLogInButton();
-            changeDropdownMenu();
 
-            var purchaseButton = $('#side-info').find('.btn').first();
+            if (!$('body').hasClass("code-injected")) {
 
-            var href = purchaseButton.attr('href');
-            purchaseButton.attr('href', '#');
-            purchaseButton.css({
-                "background": "linear-gradient(#00b4ef, #0093C5)",
-                "color": "#FFF",
-                "font-weight": "600",
-                "padding-bottom": "10px"
-            });
+                $('body').addClass("code-injected");
+                changeDropdownMenu();
 
-            var cost = $('.item-cost').text();
+                var purchaseButton = $('#side-info').find('.btn').first();
 
-            if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
-                purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' + 
-                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                var href = purchaseButton.attr('href');
+                purchaseButton.attr('href', '#');
+                purchaseButton.css({
+                    "background": "linear-gradient(#00b4ef, #0093C5)",
+                    "color": "#FFF",
+                    "font-weight": "600",
+                    "padding-bottom": "10px"
+                });
+
+                var cost = $('.item-cost').text();
+
+                if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
+                    purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                        'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                }
+
+                purchaseButton.on('click', function () {
+                    buyButtonClicked(window.location.pathname.split("/")[3],
+                        $('#top-center').find('h1').text(),
+                        $('#creator').find('.value').text(),
+                        cost,
+                        href);
+                });
+                maybeAddPurchasesButton();
             }
-
-            purchaseButton.on('click', function () {
-                buyButtonClicked(window.location.pathname.split("/")[3],
-                    $('#top-center').find('h1').text(),
-                    $('#creator').find('.value').text(),
-                    cost,
-                    href);
-            });
-            maybeAddPurchasesButton();
         }
     }
 
@@ -622,7 +629,7 @@
 
                 if (parsedJsonMessage.type === "marketplaces") {
                     if (parsedJsonMessage.action === "commerceSetting") {
-                        confirmAllPurchases = !!parsedJsonMessage.data.commerceMode;
+                        commerceMode = !!parsedJsonMessage.data.commerceMode;
                         userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
                         walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
                         injectCode();

@@ -105,7 +105,7 @@ Item {
         ListElement {
             isExpanded: false;
             question: "What is a 'Security Pic'?"
-            answer: qsTr("Your Security Pic is an encrypted image that you selected during Wallet Setup. <b>It acts as an extra layer of Wallet security.</b><br><br>When you see your Security Pic, you know that your actions and data are securely making use of your private keys.<br><br><b>If you don't see your Security Pic on a page that is asking you for your Wallet passphrase, someone untrustworthy may be trying to gain access to your Wallet.</b><br><br>The Pic is stored on your hard drive inside the same file as your private keys.");
+            answer: qsTr("Your Security Pic is an encrypted image that you selected during Wallet Setup. <b>It acts as an extra layer of Wallet security.</b><br><br>When you see your Security Pic, you know that your actions and data are securely making use of your private keys.<br><br><b>If you don't see your Security Pic on a page that is asking you for your Wallet passphrase, someone untrustworthy may be trying to gain access to your Wallet.</b><br><br>The encrypted Pic is stored on your hard drive inside the same file as your private keys.");
         }
         ListElement {
             isExpanded: false;
