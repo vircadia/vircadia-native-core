@@ -11,27 +11,30 @@ Item {
     objectName: "tablet"
     property int rowIndex: 0
     property int columnIndex: 0
-    property int count: (flowMain.children.length - 1)
+    property int count: 0
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
         if (!uuid) {
             return -1;
         }
-
-        for (var i in flowMain.children) {
-            var child = flowMain.children[i];
-            if (child.uuid === uuid) {
-                return i;
+        for (var gridIndex = 0;  gridIndex < swipeView.count; gridIndex++) {
+            var grid = swipeView.itemAt(gridIndex)
+            for (var i in grid.children) {
+                var child = grid.children[i];
+                if (child.uuid === uuid) {
+                    return { page: gridIndex, index: i};
+                }
             }
         }
         return -1;
     }
 
-    function sortButtons() {
+    function sortButtons(gridIndex) {
         var children = [];
-        for (var i = 0; i < flowMain.children.length; i++) {
-            children[i] = flowMain.children[i];
+        var grid = swipeView.itemAt(gridIndex)
+        for (var i = 0; i < grid.children.length; i++) {
+            children[i] = grid.children[i];
         }
 
         children.sort(function (a, b) {
@@ -43,13 +46,11 @@ Item {
             }
         });
 
-        flowMain.children = children;
+        grid.children = children;
     }
 
-    // called by C++ code when a button should be added to the tablet
-    function addButtonProxy(properties) {
-        var component = Qt.createComponent("TabletButton.qml");
-        var button = component.createObject(flowMain);
+    function doAddButton(grid, gridIndex, component, properties) {
+        var button = component.createObject(grid);
 
         // copy all properites to button
         var keys = Object.keys(properties).forEach(function (key) {
@@ -63,18 +64,37 @@ Item {
             button.tabletRoot = parent.parent;
         }
 
-        sortButtons();
+        sortButtons(gridIndex);
 
+        tablet.count++
         return button;
+    }
+
+    Component {
+        id: pageComponent
+        Grid { rows: 4; columns: 3; rowSpacing: 16; columnSpacing: 16; }
+    }
+
+    // called by C++ code when a button should be added to the tablet
+    function addButtonProxy(properties) {
+        var component = Qt.createComponent("TabletButton.qml");
+        var grid = swipeView.itemAt(swipeView.count - 1)
+        if (grid === null || grid.children.length === 12) {
+            grid = pageComponent.createObject(swipeView)
+            swipeView.addItem(grid)
+        }
+        return doAddButton(grid, swipeView.count - 1, component, properties)
     }
 
     // called by C++ code when a button should be removed from the tablet
     function removeButtonProxy(properties) {
         var index = findButtonIndex(properties.uuid);
-        if (index < 0) {
+        if (index.index < 0) {
             console.log("Warning: Tablet.qml could not find button with uuid = " + properties.uuid);
         } else {
-            flowMain.children[index].destroy();
+            var grid = swipeView.itemAt(index.page)
+            grid.children[index.index].destroy();
+            tablet.count--
         }
     }
 
@@ -175,8 +195,10 @@ Item {
         anchors.top: bgTopBar.bottom
         anchors.topMargin: 0
 
-        Flickable {
-            id: flickable
+        SwipeView {
+            id: swipeView
+            clip: true
+            currentIndex: pageIndicator.currentIndex
             anchors {
                 left: parent.left
                 right: parent.right
@@ -187,56 +209,11 @@ Item {
                 rightMargin: 30
                 bottomMargin: 0
             }
-
-            //required for flick direction calculations
-            property real oldContentX: 0
-
-            //flicking direction
-            property bool flickingLeft: true
-
-            readonly property real pageWidth: width - leftMargin - rightMargin
-            contentWidth:  Math.ceil(flowMain.childrenRect.width / pageWidth) * pageWidth;
-            contentHeight: flowMain.height
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            flickableDirection: Flickable.HorizontalFlick
-
-            // animate final transition to page edge
-            Behavior on contentX {
-                NumberAnimation { duration: 200; }
-            }
-
-            onContentXChanged: {
-                flickingLeft = (contentX > oldContentX);
-                oldContentX = contentX
-            }
-
-            onFlickEnded: {
-                if (parseFloat(contentX / flickable.pageWidth) !==  pageIndicator.currentIndex * flickable.pageWidth) {
-                    if (flickingLeft) {
-                        pageIndicator.currentIndex++
-                    } else {
-                        pageIndicator.currentIndex--
-                    }
-
-                    contentX = pageIndicator.currentIndex * flickable.pageWidth +
-                            flowMain.rowSpacing * pageIndicator.currentIndex //compensate spacing
-                }
-            }
-
-            Grid {
-                id: flowMain
-                rows: 4
-                height: parent.height - parent.topMargin - parent.bottomMargin
-                rowSpacing: 16
-                columnSpacing: 16
-                flow: Flow.TopToBottom
-            }
         }
 
         PageIndicator {
             id: pageIndicator
-            currentIndex: 0
+            currentIndex: swipeView.currentIndex
 
             delegate: Item {
                 width: 15
@@ -255,29 +232,28 @@ Item {
                         }
                     }
                 }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        flickable.contentX = flickable.pageWidth * index  +
-                                flowMain.rowSpacing * index //compensate spacing
-                        pageIndicator.currentIndex = index
-                    }
-                }
             }
 
-            interactive: false
+            interactive: true
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
-            count: Math.ceil(flickable.contentWidth / flickable.pageWidth)
+            count: swipeView.count
         }
+    }
+
+    function getPage(row, column) {
+        var pageIndex = Math.floor((row + column) / 12)
+        var index = (row + column) % 12
+        var page = swipeView.itemAt(pageIndex)
+        return { page: page, index: index, pageIndex: pageIndex }
     }
 
     function setCurrentItemState(state) {
         var index = rowIndex + columnIndex;
-
         if (index >= 0 && index <= count ) {
-            flowMain.children[index].state = state;
+            var grid = getPage(rowIndex, columnIndex)
+            grid.page.children[grid.index].state = state;
+            swipeView.currentIndex = grid.pageIndex
         }
     }
 
@@ -285,7 +261,7 @@ Item {
         setCurrentItemState("base state");
         var nextColumnIndex = (columnIndex + 3 + 1) % 3;
         var nextIndex = rowIndex + nextColumnIndex;
-        if(nextIndex <= count) {
+        if(nextIndex < count) {
             columnIndex = nextColumnIndex;
         };
         setCurrentItemState("hover state");
@@ -294,7 +270,7 @@ Item {
     function previousItem() {
         setCurrentItemState("base state");
         var prevIndex = (columnIndex + 3 - 1) % 3;
-        if((rowIndex + prevIndex) <= count){
+        if((rowIndex + prevIndex) < count){
             columnIndex = prevIndex;
         }
         setCurrentItemState("hover state");
@@ -324,7 +300,8 @@ Item {
     }
 
     function selectItem() {
-        flowMain.children[rowIndex + columnIndex].clicked();
+        var grid = getPage(rowIndex, columnIndex)
+        grid.page.children[grid.index].clicked();
         if (tabletRoot) {
             tabletRoot.playButtonClickSound();
         }
