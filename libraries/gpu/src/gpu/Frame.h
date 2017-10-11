@@ -32,14 +32,10 @@ namespace gpu {
         Mat4 pose;
         /// The collection of batches which make up the frame
         Batches batches;
-        /// Single batch containing overlays to be drawn in the composite framebuffer
-        Batch postCompositeBatch;
         /// The main thread updates to buffers that are applicable for this frame.
         BufferUpdates bufferUpdates;
         /// The destination framebuffer in which the results will be placed
         FramebufferPointer framebuffer;
-        /// The destination texture containing the 2D overlay
-        TexturePointer overlay;
         /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
         FramebufferRecycler framebufferRecycler;
 

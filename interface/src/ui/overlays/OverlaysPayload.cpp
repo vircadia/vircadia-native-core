@@ -34,7 +34,8 @@ namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
         auto builder = ItemKey::Builder().withTypeShape();
         if (overlay->is3D()) {
-            if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
+            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
+            if (overlay3D->getDrawInFront() || overlay3D->getDrawHUDLayer()) {
                 builder.withLayered();
             }
             if (overlay->isTransparent()) {
@@ -49,20 +50,17 @@ namespace render {
         return overlay->getBounds();
     }
     template <> int payloadGetLayer(const Overlay::Pointer& overlay) {
-        // Magic number while we are defining the layering mechanism:
-        const int LAYER_2D = 2;
-        const int LAYER_3D_FRONT = 1;
-        const int LAYER_3D = 0;
-
         if (overlay->is3D()) {
             auto overlay3D = std::dynamic_pointer_cast<Base3DOverlay>(overlay);
             if (overlay3D->getDrawInFront()) {
-                return LAYER_3D_FRONT;
+                return Item::LAYER_3D_FRONT;
+            } else if (overlay3D->getDrawHUDLayer()) {
+                return Item::LAYER_3D_HUD;
             } else {
-                return LAYER_3D;
+                return Item::LAYER_3D;
             }
         } else {
-            return LAYER_2D;
+            return Item::LAYER_2D;
         }
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {

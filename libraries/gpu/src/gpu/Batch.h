@@ -92,7 +92,7 @@ public:
     void captureNamedDrawCallInfo(std::string name);
 
     Batch();
-    explicit Batch(const Batch& batch);
+    Batch(const Batch& batch);
     ~Batch();
 
     void clear();

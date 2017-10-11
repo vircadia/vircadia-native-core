@@ -134,22 +134,12 @@
         tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
     }
 
-    function setCertificateInfo(currentEntityWithContextOverlay, itemMarketplaceId) {
+    function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
         tablet.sendToQml({
-            method: 'inspectionCertificate_setMarketplaceId',
-            marketplaceId: itemMarketplaceId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['marketplaceID']).marketplaceID
+            method: 'inspectionCertificate_setCertificateId',
+            certificateId: itemCertificateId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID
         });
-        // ZRF FIXME! Make a call to the endpoint to get item info instead of this silliness
-        Script.setTimeout(function () {
-            var randomNumber = Math.floor((Math.random() * 150) + 1);
-            tablet.sendToQml({
-                method: 'inspectionCertificate_setItemInfo',
-                itemName: "The Greatest Item",
-                itemOwner: "ABCDEFG1234567",
-                itemEdition: (Math.floor(Math.random() * randomNumber) + " / " + randomNumber)
-            });
-        }, 500);
     }
 
     function onUsernameChanged() {
@@ -358,13 +348,13 @@
                 tablet.loadQMLSource("TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
-                setCertificateInfo("", message.itemMarketplaceId);
+                setCertificateInfo("", message.itemCertificateId);
                 break;
             case 'inspectionCertificate_closeClicked':
                 tablet.gotoHomeScreen();
                 break;
             case 'inspectionCertificate_showInMarketplaceClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                tablet.gotoWebScreen(message.marketplaceUrl, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'header_myItemsClicked':
                 referrerURL = MARKETPLACE_URL_INITIAL;
