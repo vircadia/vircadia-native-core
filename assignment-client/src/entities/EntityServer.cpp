@@ -483,9 +483,7 @@ void EntityServer::startDynamicDomainVerification() {
                 QJsonDocument doc(jsonObject);
                 qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
 
-                // ZRF FIXME!!!
-                //if (networkReply->error() == QNetworkReply::NoError) {
-                if (true) {
+                if (networkReply->error() == QNetworkReply::NoError) {
                     // ZRF FIXME!!!
                     //if (jsonObject["location"].toString() != thisDomainID) {
                     if (false) {

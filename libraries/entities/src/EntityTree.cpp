@@ -1249,7 +1249,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
             } else {
                 // Second, challenge ownership of the PoP cert
                 // 1. Encrypt a nonce with the owner's public key
-                QString ownerKey(jsonObject["owner_public_key"].toString());
+                QString ownerKey(jsonObject["transfer_recipient_key"].toString());
                 QString encryptedText = computeEncryptedNonce(certID, ownerKey);
 
                 if (encryptedText == "") {
