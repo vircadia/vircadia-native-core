@@ -71,14 +71,14 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     } else {
         QUrl url = _url.resolved(filename);
 
-        QString texdir = mapping.value("texdir").toString();
+        QString texdir = mapping.value(TEXDIR_FIELD).toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
             }
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         } else {
-            _textureBaseUrl = _effectiveBaseURL;
+            _textureBaseUrl = url.resolved(QUrl("."));
         }
 
         auto animGraphVariant = mapping.value("animGraphUrl");
@@ -241,8 +241,10 @@ private:
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    _url = _effectiveBaseURL;
-    _textureBaseUrl = _effectiveBaseURL;
+    if (_url != _effectiveBaseURL) {
+        _url = _effectiveBaseURL;
+        _textureBaseUrl = _effectiveBaseURL;
+    }
     QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
 }
 
