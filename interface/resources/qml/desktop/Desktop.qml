@@ -301,17 +301,17 @@ FocusScope {
     function isPointOnWindow(point) {
         for (var i = 0; i < desktop.visibleChildren.length; i++) {
             var child = desktop.visibleChildren[i];
-            var childName = child.objectName;
             if (child.hasOwnProperty("modality")) {
                 var mappedPoint = child.mapFromGlobal(point.x, point.y);
-                var outLine = child.frame.children[2];
-                var framePoint = outLine.mapFromGlobal(point.x, point.y);
-                if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
-                    return true;
+                if (child.hasOwnProperty("frame")) {
+                    var outLine = child.frame.children[2];
+                    var framePoint = outLine.mapFromGlobal(point.x, point.y);
+                    if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
+                        return true;
+                    }
                 }
-            } else if (childName === "StatsItem") {
-                var mappedPoint = child.statsObject.mapFromGlobal(point.x, point.y);
-                if (child.statsObject.contains(mappedPoint)) {
+
+                if (child.contains(mappedPoint)) {
                     return true;
                 }
             }
