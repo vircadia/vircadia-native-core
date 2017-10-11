@@ -101,13 +101,14 @@ void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, co
         //--EARLY EXIT--( data isn't ready for some reason... )
         return;
     }
-    const gpu::BufferView & shapeVerts = shapeData->_positionView;
+
     const gpu::BufferView & shapeNorms = shapeData->_normalView;
-    assert(shapeVerts._size == shapeNorms._size);
+    assert(shapeData->_positionView._size == shapeNorms._size);
 
     const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
 
     outPointList.reserve((int)numItems);
+
     for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
         const geometry::Vec &curNorm = shapeNorms.get<geometry::Vec>(i);
         outPointList.push_back(curNorm * entityHalfExtents);
