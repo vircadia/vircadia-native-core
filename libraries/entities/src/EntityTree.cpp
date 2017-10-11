@@ -1159,28 +1159,32 @@ void EntityTree::startPendingTransferStatusTimer(const QString& certID, const En
     transferStatusRetryTimer->start(90000);
 }
 
-QString EntityTree::computeEncryptedNonce(const QString& certID, const QString& ownerKey) {
+QString EntityTree::computeEncryptedNonce(const QString& certID, const QString ownerKey) {
     QUuid nonce = QUuid::createUuid();
     const auto text = reinterpret_cast<const unsigned char*>(qPrintable(nonce.toString()));
     const unsigned int textLength = nonce.toString().length();
 
-    const auto publicKey = reinterpret_cast<const unsigned char*>(ownerKey.toUtf8().toBase64().constData());
-    BIO* bio = BIO_new_mem_buf((void*)publicKey, sizeof(publicKey));
+    BIO* bio = BIO_new_mem_buf((void*)ownerKey.toUtf8().constData(), -1);
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NEWLINE
     RSA* rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
 
-    QByteArray encryptedText(RSA_size(rsa), 0);
-    const int encryptStatus = RSA_public_encrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
-    BIO_free(bio);
-    RSA_free(rsa);
-    if (encryptStatus == -1) {
-        qCWarning(entities) << "Unable to compute encrypted nonce for" << certID;
-        return "";
-    }
+    //if (rsa) {
+        QByteArray encryptedText(RSA_size(rsa), 0);
+        const int encryptStatus = RSA_public_encrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
+        BIO_free(bio);
+        RSA_free(rsa);
+        if (encryptStatus == -1) {
+            qCWarning(entities) << "Unable to compute encrypted nonce for" << certID;
+            return "";
+        }
 
-    QWriteLocker locker(&_certNonceMapLock);
-    _certNonceMap.insert(certID, nonce);
+        QWriteLocker locker(&_certNonceMapLock);
+        _certNonceMap.insert(certID, nonce);
 
-    return encryptedText.toBase64();
+        return encryptedText.toBase64();
+    //} else {
+    //    return "";
+    //}
 }
 
 bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce) {
@@ -1246,8 +1250,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
             } else {
                 // Second, challenge ownership of the PoP cert
                 // 1. Encrypt a nonce with the owner's public key
-                QString ownerKey(jsonObject["transfer_recipient_key"].toString());
-                QString encryptedText = computeEncryptedNonce(certID, ownerKey);
+                QString encryptedText = computeEncryptedNonce(certID, jsonObject["transfer_recipient_key"].toString());
 
                 if (encryptedText == "") {
                     qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce. Deleting entity...";
@@ -1260,8 +1263,6 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                     int certIDByteArraySize = certIDByteArray.size();
                     QByteArray encryptedTextByteArray = encryptedText.toUtf8();
                     int encryptedTextByteArraySize = encryptedTextByteArray.size();
-                    QByteArray ownerKeyByteArray = ownerKey.toUtf8();
-                    int ownerKeyByteArraySize = ownerKeyByteArray.size();
                     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
                         certIDByteArraySize + encryptedTextByteArraySize + 2 * sizeof(int),
                         true);

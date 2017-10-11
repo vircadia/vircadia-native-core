@@ -730,28 +730,32 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
 
-    const int decryptionStatus = RSA_private_decrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
-    RSA_free(rsa);
+    if (rsa) {
+        const int decryptionStatus = RSA_private_decrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
+        RSA_free(rsa);
 
-    if (decryptionStatus != -1) {
-        auto nodeList = DependencyManager::get<NodeList>();
+        if (decryptionStatus != -1) {
+            auto nodeList = DependencyManager::get<NodeList>();
 
-        QByteArray decryptedTextByteArray = decryptedText.toUtf8();
-        int decryptedTextByteArraySize = decryptedTextByteArray.size();
-        int certIDSize = certID.size();
-        // setup the packet
-        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2*sizeof(int), true);
+            QByteArray decryptedTextByteArray = decryptedText.toUtf8();
+            int decryptedTextByteArraySize = decryptedTextByteArray.size();
+            int certIDSize = certID.size();
+            // setup the packet
+            auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
 
-        decryptedTextPacket->writePrimitive(certIDSize);
-        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-        decryptedTextPacket->write(certID);
-        decryptedTextPacket->write(decryptedTextByteArray);
+            decryptedTextPacket->writePrimitive(certIDSize);
+            decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+            decryptedTextPacket->write(certID);
+            decryptedTextPacket->write(decryptedTextByteArray);
 
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text";
+            qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text";
 
-        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+            nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+        } else {
+            qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
+        }
     } else {
-        qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
+        qCDebug(commerce) << "During entity ownership challenge, creating the RSA object failed.";
     }
 }
 
