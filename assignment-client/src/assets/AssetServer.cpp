@@ -404,7 +404,7 @@ void AssetServer::completeSetup() {
     // get file size limit for an asset
     static const QString ASSETS_FILESIZE_LIMIT_OPTION = "assets_filesize_limit";
     auto assetsFilesizeLimitJSONValue = assetServerObject[ASSETS_FILESIZE_LIMIT_OPTION];
-    auto assetsFilesizeLimit = assetsFilesizeLimitJSONValue.toInt(MAX_UPLOAD_SIZE);
+    auto assetsFilesizeLimit = (uint64_t)assetsFilesizeLimitJSONValue.toInt(MAX_UPLOAD_SIZE);
 
     if (assetsFilesizeLimit != 0 && assetsFilesizeLimit < MAX_UPLOAD_SIZE) {
         _filesizeLimit = assetsFilesizeLimit * BITS_PER_MEGABITS;
