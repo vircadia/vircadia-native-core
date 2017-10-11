@@ -120,7 +120,7 @@ void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
 }
 
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
-    gpu::Buffer::Size numIndices = _indicesView.getNumElements();
+    uint32_t numIndices = (uint32_t)_indicesView.getNumElements();
     if (numIndices > 0) {
         setupBatch(batch);
         batch.drawIndexed(gpu::TRIANGLES, numIndices, 0);
@@ -128,7 +128,7 @@ void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
 }
 
 void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
-    gpu::Buffer::Size numIndices = _wireIndicesView.getNumElements();
+    uint32_t numIndices = (uint32_t)_wireIndicesView.getNumElements();
     if (numIndices > 0) {
         batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
         batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
@@ -138,7 +138,7 @@ void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
 }
 
 void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) const {
-    gpu::Buffer::Size numIndices = _indicesView.getNumElements();
+    uint32_t numIndices = (uint32_t)_indicesView.getNumElements();
     if (numIndices > 0) {
         setupBatch(batch);
         batch.drawIndexedInstanced((gpu::uint32)count, gpu::TRIANGLES, numIndices, 0);
@@ -146,7 +146,7 @@ void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) co
 }
 
 void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count) const {
-    gpu::Buffer::Size numIndices = _wireIndicesView.getNumElements();
+    uint32_t numIndices = (uint32_t)_wireIndicesView.getNumElements();
     if (numIndices > 0) {
         batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
         batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
