@@ -741,13 +741,6 @@ void Overlays::sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& ev
 }
 
 OverlayID Overlays::getKeyboardFocusOverlay() {
-    if (QThread::currentThread() != thread()) {
-        OverlayID result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getKeyboardFocusOverlay", Q_RETURN_ARG(OverlayID, result));
-        return result;
-    }
-
     return qApp->getKeyboardFocusOverlay();
 }
 
