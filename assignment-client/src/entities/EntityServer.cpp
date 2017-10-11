@@ -465,17 +465,21 @@ void EntityServer::startDynamicDomainVerification() {
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkRequest networkRequest;
             networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+            networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
             QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
-            requestURL.setPath("/api/v1/commerce/proof_of_purchase_status");
+            requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
             QJsonObject request;
             request["certificate_id"] = i.key();
             networkRequest.setUrl(requestURL);
 
             QNetworkReply* networkReply = NULL;
-            networkReply = networkAccessManager.get(networkRequest);
+            networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
             connect(networkReply, &QNetworkReply::finished, [=]() {
                 QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+                jsonObject = jsonObject["data"].toObject();
+
+                // ZRF FIXME Remove these two lines
                 QJsonDocument doc(jsonObject);
                 qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
 
