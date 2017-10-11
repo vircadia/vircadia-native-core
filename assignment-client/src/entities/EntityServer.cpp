@@ -453,7 +453,9 @@ void EntityServer::startDynamicDomainVerification() {
     while (i.hasNext()) {
         i.next();
 
-        if (!tree->findEntityByEntityItemID(i.value())->verifyStaticCertificateProperties()) {
+        // ZRF FIXME!!!
+        //if (!tree->findEntityByEntityItemID(i.value())->verifyStaticCertificateProperties()) {
+        if (false) {
             qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
                 << "static certificate verification.";
             // Delete the entity if it doesn't pass static certificate verification
