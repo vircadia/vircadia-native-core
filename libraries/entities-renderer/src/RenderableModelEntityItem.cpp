@@ -1240,6 +1240,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             mapJoints(entity, model->getJointNames());
         }
         animate(entity);
+        emit requestRenderUpdate();
     }
 }
 

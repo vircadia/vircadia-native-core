@@ -155,6 +155,7 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
             case AssetRequest::Error::NoError:
                 _data = req->getData();
                 _result = Success;
+                recordBytesDownloadedInStats(STAT_ATP_RESOURCE_TOTAL_BYTES, _data.size());
                 break;
             case AssetRequest::InvalidHash:
                 _result = InvalidURL;
@@ -202,9 +203,8 @@ void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytes
     emit progress(bytesReceived, bytesTotal);
 
     auto now = p_high_resolution_clock::now();
-    
-    // Recording ATP bytes downloaded in stats
-    DependencyManager::get<StatTracker>()->updateStat(STAT_ATP_RESOURCE_TOTAL_BYTES, bytesReceived);
+
+    recordBytesDownloadedInStats(STAT_ATP_RESOURCE_TOTAL_BYTES, bytesReceived);
 
     // if we haven't received the full asset check if it is time to output progress to log
     // we do so every X seconds to assist with ATP download tracking

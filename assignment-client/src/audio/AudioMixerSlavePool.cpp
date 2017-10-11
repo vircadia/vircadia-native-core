@@ -97,7 +97,11 @@ void AudioMixerSlavePool::run(ConstIter begin, ConstIter end) {
 #else
     // fill the queue
     std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+#if defined(__clang__) && defined(Q_OS_LINUX)
+        _queue.push(node);
+#else
         _queue.emplace(node);
+#endif
     });
 
     {

@@ -21,6 +21,7 @@
 #include <NetworkLogging.h>
 #include <NodeList.h>
 #include <OffscreenUi.h>
+#include <UserActivityLogger.h>
 
 static const int AUTO_REFRESH_INTERVAL = 1000;
 
@@ -103,6 +104,21 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     }
 
     startedCallback.call();
+
+    QFileInfo fileInfo { path };
+    int64_t size { fileInfo.size() };
+
+    QString extension = "";
+    auto idx = path.lastIndexOf(".");
+    if (idx >= 0) {
+        extension = path.mid(idx + 1);
+    }
+
+    UserActivityLogger::getInstance().logAction("uploading_asset", {
+        { "size", (qint64)size },
+        { "mapping", mapping },
+        { "extension", extension}
+    });
 
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
