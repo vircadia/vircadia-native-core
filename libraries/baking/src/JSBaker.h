@@ -21,12 +21,10 @@ class JSBaker : public Baker {
     Q_OBJECT
 public:
     JSBaker(const QUrl& jsURL, const QString& bakedOutputDir);
-
-    public slots:
-    virtual void bake() override;
-
-public:
     static bool bakeJS(const QByteArray* inputFile, QByteArray* outputFile);
+
+public slots:
+    virtual void bake() override;
 
 private:
     QUrl _jsURL;
