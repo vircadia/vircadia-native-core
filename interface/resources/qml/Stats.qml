@@ -8,6 +8,7 @@ Item {
 
     anchors.leftMargin: 300
     objectName: "StatsItem"
+    property var statsObject: root
 
     Component.onCompleted: {
         stats.parentChanged.connect(fill);
