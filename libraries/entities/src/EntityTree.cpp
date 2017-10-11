@@ -1143,6 +1143,109 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     _challengeOwnershipTimeoutTimer->start(5000);
 }
 
+void EntityTree::startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
+    qCDebug(entities) << "'transfer_status' is 'pending', checking again in 10 seconds..." << entityItemID;
+    QTimer* transferStatusRetryTimer = new QTimer(this);
+    connect(transferStatusRetryTimer, &QTimer::timeout, this, [=]() {
+        validatePop(certID, entityItemID, senderNode, true);
+    });
+    transferStatusRetryTimer->setSingleShot(true);
+    transferStatusRetryTimer->start(10000);
+}
+
+void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {
+    // Start owner verification.
+    auto nodeList = DependencyManager::get<NodeList>();
+    //     First, asynchronously hit "proof_of_purchase_status?transaction_type=transfer" endpoint.
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
+    QJsonObject request;
+    request["certificate_id"] = certID;
+    networkRequest.setUrl(requestURL);
+
+    QNetworkReply* networkReply = NULL;
+    networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+
+    connect(networkReply, &QNetworkReply::finished, [=]() {
+        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+        QJsonDocument doc(jsonObject);
+        qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
+
+        if (networkReply->error() == QNetworkReply::NoError) {
+            if (!jsonObject["invalid_reason"].toString().isEmpty()) {
+                qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
+                deleteEntity(entityItemID, true);
+                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+            } else if (jsonObject["transfer_status"].toString() == "failed") {
+                qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
+                deleteEntity(entityItemID, true);
+                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+            } else if (jsonObject["transfer_status"].toString() == "pending") {
+                if (isRetryingValidation) {
+                    qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
+                    deleteEntity(entityItemID, true);
+                    QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                    _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                } else {
+                    if (thread() != QThread::currentThread()) {
+                        QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
+                            Q_ARG(const QString&, certID),
+                            Q_ARG(const EntityItemID&, entityItemID),
+                            Q_ARG(const SharedNodePointer&, senderNode));
+                        return;
+                    } else {
+                        startPendingTransferStatusTimer(certID, entityItemID, senderNode);
+                    }
+                }
+            } else {
+                // Second, challenge ownership of the PoP cert
+                // 1. Encrypt a nonce with the owner's public key
+                QString ownerKey(jsonObject["owner_public_key"].toString());
+                QString encryptedText("test");
+
+                // 2. Send the encrypted text to the rezzing avatar's node
+                QByteArray certIDByteArray = certID.toUtf8();
+                int certIDByteArraySize = certIDByteArray.size();
+                QByteArray encryptedTextByteArray = encryptedText.toUtf8();
+                int encryptedTextByteArraySize = encryptedTextByteArray.size();
+                QByteArray ownerKeyByteArray = ownerKey.toUtf8();
+                int ownerKeyByteArraySize = ownerKeyByteArray.size();
+                auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
+                    certIDByteArraySize + encryptedTextByteArraySize + ownerKeyByteArraySize + 3 * sizeof(int),
+                    true);
+                challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+                challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
+                challengeOwnershipPacket->writePrimitive(ownerKeyByteArraySize);
+                challengeOwnershipPacket->write(certIDByteArray);
+                challengeOwnershipPacket->write(encryptedTextByteArray);
+                challengeOwnershipPacket->write(ownerKeyByteArray);
+                nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
+
+                // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
+                if (thread() != QThread::currentThread()) {
+                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
+                    return;
+                } else {
+                    startChallengeOwnershipTimer(entityItemID);
+                }
+            }
+        } else {
+            qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
+            deleteEntity(entityItemID, true);
+            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+        }
+
+        networkReply->deleteLater();
+    });
+}
+
 void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     int certIDByteArraySize;
     int decryptedTextByteArraySize;
@@ -1378,88 +1481,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                 QWriteLocker locker(&_recentlyDeletedEntitiesLock);
                                 _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                             } else {
-                                QString certID = properties.getCertificateID();
-
-                                // Start owner verification.
-                                auto nodeList = DependencyManager::get<NodeList>();
-                                //     First, asynchronously hit "proof_of_purchase_status?transaction_type=transfer" endpoint.
-                                QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-                                QNetworkRequest networkRequest;
-                                networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-                                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
-                                requestURL.setPath("/api/v1/commerce/proof_of_purchase_status?transaction_type=transfer");
-                                QJsonObject request;
-                                request["certificate_id"] = certID;
-                                request["domain_id"] = nodeList->getDomainHandler().getUUID().toString();
-                                networkRequest.setUrl(requestURL);
-
-                                QNetworkReply* networkReply = NULL;
-                                networkReply = networkAccessManager.get(networkRequest);
-
-                                connect(networkReply, &QNetworkReply::finished, [=]() {
-                                    QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
-                                    QJsonDocument doc(jsonObject);
-                                    qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
-
-                                    // ZRF FIXME!!!
-                                    //if (networkReply->error() == QNetworkReply::NoError) {
-                                    if (true) {
-                                        // ZRF FIXME!!!
-                                        //if (!jsonObject["invalid_reason"].toString().isEmpty()) {
-                                        if (false) {
-                                            qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
-                                            deleteEntity(entityItemID, true);
-                                            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                                            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                                        // ZRF FIXME!!!
-                                        //} else if (jsonObject["transfer_status"].toString() == "failed") {
-                                        } else if (false) {
-                                            qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
-                                            deleteEntity(entityItemID, true);
-                                            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                                            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                                        // ZRF FIXME!!!
-                                        } else {
-                                            // Second, challenge ownership of the PoP cert
-                                            // 1. Encrypt a nonce with the owner's public key
-                                            QString ownerKey(jsonObject["owner_public_key"].toString());
-                                            QString encryptedText("test");
-
-                                            // 2. Send the encrypted text to the rezzing avatar's node
-                                            QByteArray certIDByteArray = certID.toUtf8();
-                                            int certIDByteArraySize = certIDByteArray.size();
-                                            QByteArray encryptedTextByteArray = encryptedText.toUtf8();
-                                            int encryptedTextByteArraySize = encryptedTextByteArray.size();
-                                            QByteArray ownerKeyByteArray = ownerKey.toUtf8();
-                                            int ownerKeyByteArraySize = ownerKeyByteArray.size();
-                                            auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-                                                certIDByteArraySize + encryptedTextByteArraySize + ownerKeyByteArraySize + 3*sizeof(int),
-                                                true);
-                                            challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-                                            challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
-                                            challengeOwnershipPacket->writePrimitive(ownerKeyByteArraySize);
-                                            challengeOwnershipPacket->write(certIDByteArray);
-                                            challengeOwnershipPacket->write(encryptedTextByteArray);
-                                            challengeOwnershipPacket->write(ownerKeyByteArray);
-                                            nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
-
-                                            // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
-                                            if (thread() != QThread::currentThread()) {
-                                                QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
-                                                return;
-                                            } else {
-                                                startChallengeOwnershipTimer(entityItemID);
-                                            }
-                                        }
-                                    } else {
-                                        qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
-                                        deleteEntity(entityItemID, true);
-                                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                                    }
-
-                                    networkReply->deleteLater();
-                                });
+                                validatePop(properties.getCertificateID(), entityItemID, senderNode, false);
                             }
                         }
 

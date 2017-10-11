@@ -379,6 +379,10 @@ protected:
     QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
 
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
+    Q_INVOKABLE void startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
+
+private:
+    void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 };
 
 #endif // hifi_EntityTree_h
