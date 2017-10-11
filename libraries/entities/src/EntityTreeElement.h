@@ -27,6 +27,7 @@ class EntityTreeElement;
 using EntityItems = QVector<EntityItemPointer>;
 using EntityTreeElementWeakPointer = std::weak_ptr<EntityTreeElement>;
 using EntityTreeElementPointer = std::shared_ptr<EntityTreeElement>;
+using EntityItemFilter = std::function<bool(EntityItemPointer&)>;
 
 class EntityTreeUpdateArgs {
 public:
@@ -198,6 +199,11 @@ public:
     /// \param frustum the query frustum
     /// \param entities[out] vector of non-const EntityItemPointer
     void getEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
+
+    /// finds all entities that match filter
+    /// \param filter function that adds matching entities to foundEntities
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(EntityItemFilter& filter,  QVector<EntityItemPointer>& foundEntities);
 
     EntityItemPointer getEntityWithID(uint32_t id) const;
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;

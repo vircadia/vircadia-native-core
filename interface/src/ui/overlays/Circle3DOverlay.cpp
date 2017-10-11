@@ -263,7 +263,7 @@ const render::ShapeKey Circle3DOverlay::getShapeKey() {
     if (isTransparent()) {
         builder.withTranslucent();
     }
-    if (!getIsSolid() || shouldDrawHUDLayer()) {
+    if (!getIsSolid()) {
         builder.withUnlit().withDepthBias();
     }
     return builder.build();

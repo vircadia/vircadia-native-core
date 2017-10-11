@@ -79,6 +79,7 @@ Rectangle {
                 failureErrorText.text = result.message;
                 root.activeView = "checkoutFailure";
             } else {
+                root.itemHref = result.data.download_url;
                 root.activeView = "checkoutSuccess";
             }
         }
@@ -114,7 +115,7 @@ Rectangle {
     }
 
     onItemHrefChanged: {
-        itemIsJson = root.itemHref.indexOf('.json') !== -1;
+        itemIsJson = root.itemHref.endsWith('.json');
     }
 
     onItemPriceChanged: {
@@ -125,7 +126,7 @@ Rectangle {
         id: notSetUpTimer;
         interval: 200;
         onTriggered: {
-            sendToScript({method: 'checkout_walletNotSetUp'});
+            sendToScript({method: 'checkout_walletNotSetUp', itemId: itemId});
         }
     }
 
@@ -574,8 +575,8 @@ Rectangle {
             anchors.right: parent.right;
             text: "Rez It"
             onClicked: {
-                if (urlHandler.canHandleUrl(itemHref)) {
-                    urlHandler.handleUrl(itemHref);
+                if (urlHandler.canHandleUrl(root.itemHref)) {
+                    urlHandler.handleUrl(root.itemHref);
                 }
                 rezzedNotifContainer.visible = true;
                 rezzedNotifContainerTimer.start();
