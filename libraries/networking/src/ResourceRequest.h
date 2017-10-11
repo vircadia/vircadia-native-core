@@ -85,6 +85,7 @@ signals:
 
 protected:
     virtual void doSend() = 0;
+    void recordBytesDownloadedInStats(const QString& statName, int64_t bytesReceived);
 
     QUrl _url;
     QUrl _relativePathURL;
@@ -97,6 +98,7 @@ protected:
     ByteRange _byteRange;
     bool _rangeRequestSuccessful { false };
     uint64_t _totalSizeOfResource { 0 };
+    int64_t _lastRecordedBytesDownloaded { 0 };
 };
 
 #endif

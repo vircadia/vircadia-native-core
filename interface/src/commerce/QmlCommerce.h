@@ -27,13 +27,6 @@ class QmlCommerce : public OffscreenQmlDialog {
 public:
     QmlCommerce(QQuickItem* parent = nullptr);
 
-    enum WalletStatus {
-        WALLET_STATUS_NOT_LOGGED_IN = 0,
-        WALLET_STATUS_NOT_SET_UP,
-        WALLET_STATUS_NOT_AUTHENTICATED,
-        WALLET_STATUS_READY
-    };
-
 signals:
     void walletStatusResult(uint walletStatus);
 

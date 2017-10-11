@@ -1,0 +1,37 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  hmd_ui.frag
+//  fragment shader
+//
+//  Created by Sam Gondelman on 9/28/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+uniform sampler2D hudTexture;
+
+struct HUDData {
+    float alpha;
+};
+
+layout(std140) uniform hudBuffer {
+    HUDData hud;
+};
+
+in vec2 _texCoord0;
+
+out vec4 fragColor0;
+
+void main() {
+    vec4 color = texture(hudTexture, _texCoord0);
+    color.a *= hud.alpha;
+    if (color.a <= 0.0) {
+        discard;
+    }
+
+    fragColor0 = color;
+}
