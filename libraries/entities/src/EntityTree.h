@@ -336,6 +336,9 @@ protected:
     mutable QReadWriteLock _entityCertificateIDMapLock;
     QHash<QString, EntityItemID> _entityCertificateIDMap;
 
+    mutable QReadWriteLock _certNonceMapLock;
+    QHash<QString, QUuid> _certNonceMap;
+
     EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
@@ -382,6 +385,8 @@ protected:
     Q_INVOKABLE void startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
 private:
+    QString computeEncryptedNonce(const QString& certID, const QString& ownerKey);
+    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 };
 

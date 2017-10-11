@@ -81,8 +81,6 @@ private:
     bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
     bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
 
-    bool verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText);
-
     void account();
 };
 

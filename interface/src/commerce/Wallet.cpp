@@ -718,15 +718,22 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     QString decryptedText;
     int certIDByteArraySize;
     int encryptedTextByteArraySize;
-    int ownerKeyByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
     packet->readPrimitive(&encryptedTextByteArraySize);
-    packet->readPrimitive(&ownerKeyByteArraySize);
 
     QByteArray certID = packet->read(certIDByteArraySize);
+    QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
 
-    if (verifyOwnerChallenge(packet->read(encryptedTextByteArraySize), packet->read(ownerKeyByteArraySize), decryptedText)) {
+    const auto text = reinterpret_cast<const unsigned char*>(encryptedText.constData());
+    const unsigned int textLength = encryptedText.length();
+
+    RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
+
+    const int decryptionStatus = RSA_private_decrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
+    RSA_free(rsa);
+
+    if (decryptionStatus != -1) {
         auto nodeList = DependencyManager::get<NodeList>();
 
         QByteArray decryptedTextByteArray = decryptedText.toUtf8();
@@ -744,14 +751,8 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
         nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
     } else {
-        qCDebug(commerce) << "verifyOwnerChallenge() returned false";
+        qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
     }
-}
-
-bool Wallet::verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText) {
-    // I have no idea how to do this yet, so here's some dummy code that may not even work.
-    decryptedText = QString("success");
-    return true;
 }
 
 void Wallet::account() {
