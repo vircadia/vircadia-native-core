@@ -18,9 +18,10 @@ const int ASCII_CHARACTERS_UPPER_LIMIT = 126;
 
 JSBaker::JSBaker(const QUrl& jsURL, const QString& bakedOutputDir) :
     _jsURL(jsURL),
-    _bakedOutputDir(bakedOutputDir) {
+    _bakedOutputDir(bakedOutputDir)
+{
 
-};
+}
 
 void JSBaker::bake() {
     qCDebug(js_baking) << "JS Baker " << _jsURL << "bake starting";
@@ -40,7 +41,7 @@ void JSBaker::bake() {
     bool success = bakeJS(&inputJS, &outputJS);
     if (!success) {
         qCDebug(js_baking) << "Bake Failed";
-        handleError("Error unterminated multi line comment");
+        handleError("Unterminated multi-line comment");
         return;
     }
 
@@ -62,7 +63,7 @@ void JSBaker::bake() {
 
     // Export successful
     _outputFiles.push_back(_bakedJSFilePath);
-    qCDebug(js_baking) << "Exported" << _jsURL << "with re-written paths to" << _bakedJSFilePath;
+    qCDebug(js_baking) << "Exported" << _jsURL << "minified to" << _bakedJSFilePath;
 
     // emit signal to indicate the JS baking is finished
     emit finished();
