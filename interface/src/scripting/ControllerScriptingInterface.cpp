@@ -91,8 +91,8 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     return qApp->getUiSize();
 }
 
-QVariant ControllerScriptingInterface::getRecommendedOverlayRect() const {
-    auto rect = qApp->getRecommendedOverlayRect();
+QVariant ControllerScriptingInterface::getRecommendedHUDRect() const {
+    auto rect = qApp->getRecommendedHUDRect();
     return qRectToVariant(rect);
 }
 
