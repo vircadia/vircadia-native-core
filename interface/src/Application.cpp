@@ -5052,6 +5052,7 @@ void Application::update(float deltaTime) {
 
         float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
         appRenderArgs._sensorToWorldScale = sensorToWorldScale;
+        appRenderArgs._sensorToWorld = getMyAvatar()->getSensorToWorldMatrix();
         {
             PROFILE_RANGE(render, "/buildFrustrumAndArgs");
             {
@@ -5093,6 +5094,7 @@ void Application::update(float deltaTime) {
             ipdScale *= sensorToWorldScale;
 
             auto baseProjection = appRenderArgs._renderArgs.getViewFrustum().getProjection();
+
             if (getActiveDisplayPlugin()->isStereo()) {
                 // Stereo modes will typically have a larger projection matrix overall,
                 // so we ask for the 'mono' projection matrix, which for stereo and HMD
@@ -7028,11 +7030,11 @@ glm::uvec2 Application::getUiSize() const {
     return result;
 }
 
-QRect Application::getRecommendedOverlayRect() const {
+QRect Application::getRecommendedHUDRect() const {
     auto uiSize = getUiSize();
     QRect result(0, 0, uiSize.x, uiSize.y);
     if (_displayPlugin) {
-        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+        result = getActiveDisplayPlugin()->getRecommendedHUDRect();
     }
     return result;
 }

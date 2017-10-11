@@ -17,6 +17,7 @@
 #include <QJsonObject>
 #include <DependencyManager.h>
 #include <QtNetwork/QNetworkReply>
+#include "AccountManager.h"
 
 
 class Ledger : public QObject, public Dependency {
@@ -32,6 +33,7 @@ public:
     void account();
     void reset();
     void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
+    void certificateInfo(const QString& certificateId);
 
 signals:
     void buyResult(QJsonObject result);
@@ -41,6 +43,7 @@ signals:
     void historyResult(QJsonObject result);
     void accountResult(QJsonObject result);
     void locationUpdateResult(QJsonObject result);
+    void certificateInfoResult(QJsonObject result);
 
 public slots:
     void buySuccess(QNetworkReply& reply);
@@ -59,11 +62,13 @@ public slots:
     void accountFailure(QNetworkReply& reply);
     void updateLocationSuccess(QNetworkReply& reply);
     void updateLocationFailure(QNetworkReply& reply);
+    void certificateInfoSuccess(QNetworkReply& reply);
+    void certificateInfoFailure(QNetworkReply& reply);
 
 private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
     QJsonObject failResponse(const QString& label, QNetworkReply& reply);
-    void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, QJsonObject request);
+    void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request);
     void keysQuery(const QString& endpoint, const QString& success, const QString& fail);
     void signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail, const bool controlled_failure = false);
 };
