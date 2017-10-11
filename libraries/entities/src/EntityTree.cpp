@@ -151,63 +151,63 @@ int EntityTree::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         if (bytesLeftToRead >= (int)(numberOfEntities * expectedBytesPerEntity)) {
             for (uint16_t i = 0; i < numberOfEntities; i++) {
                 int bytesForThisEntity = 0;
-EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
-EntityItemPointer entity = findEntityByEntityItemID(entityItemID);
+                EntityItemID entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
+                EntityItemPointer entity = findEntityByEntityItemID(entityItemID);
 
-if (entity) {
-    QString entityScriptBefore = entity->getScript();
-    QUuid parentIDBefore = entity->getParentID();
-    QString entityServerScriptsBefore = entity->getServerScripts();
-    quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
+                if (entity) {
+                    QString entityScriptBefore = entity->getScript();
+                    QUuid parentIDBefore = entity->getParentID();
+                    QString entityServerScriptsBefore = entity->getServerScripts();
+                    quint64 entityScriptTimestampBefore = entity->getScriptTimestamp();
 
-    bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-    if (entity->getDirtyFlags()) {
-        entityChanged(entity);
-    }
-    _entityMover.addEntityToMoveList(entity, entity->getQueryAACube());
+                    bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                    if (entity->getDirtyFlags()) {
+                        entityChanged(entity);
+                    }
+                    _entityMover.addEntityToMoveList(entity, entity->getQueryAACube());
 
-    QString entityScriptAfter = entity->getScript();
-    QString entityServerScriptsAfter = entity->getServerScripts();
-    quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
-    bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+                    QString entityScriptAfter = entity->getScript();
+                    QString entityServerScriptsAfter = entity->getServerScripts();
+                    quint64 entityScriptTimestampAfter = entity->getScriptTimestamp();
+                    bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
 
-    // If the script value has changed on us, or it's timestamp has changed to force
-    // a reload then we want to send out a script changing signal...
-    if (reload || entityScriptBefore != entityScriptAfter) {
-        emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
-    }
-    if (reload || entityServerScriptsBefore != entityServerScriptsAfter) {
-        emitEntityServerScriptChanging(entityItemID, reload); // the entity server script has changed
-    }
+                    // If the script value has changed on us, or it's timestamp has changed to force
+                    // a reload then we want to send out a script changing signal...
+                    if (reload || entityScriptBefore != entityScriptAfter) {
+                        emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
+                    }
+                    if (reload || entityServerScriptsBefore != entityServerScriptsAfter) {
+                        emitEntityServerScriptChanging(entityItemID, reload); // the entity server script has changed
+                    }
 
-    QUuid parentIDAfter = entity->getParentID();
-    if (parentIDBefore != parentIDAfter) {
-        addToNeedsParentFixupList(entity);
-    }
-} else {
-    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
-    if (entity) {
-        bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+                    QUuid parentIDAfter = entity->getParentID();
+                    if (parentIDBefore != parentIDAfter) {
+                        addToNeedsParentFixupList(entity);
+                    }
+                } else {
+                    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
+                    if (entity) {
+                        bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
 
-        // don't add if we've recently deleted....
-        if (!isDeletedEntity(entityItemID)) {
-            _entitiesToAdd.insert(entityItemID, entity);
+                        // don't add if we've recently deleted....
+                        if (!isDeletedEntity(entityItemID)) {
+                            _entitiesToAdd.insert(entityItemID, entity);
 
-            if (entity->getCreated() == UNKNOWN_CREATED_TIME) {
-                entity->recordCreationTime();
-            }
-#ifdef WANT_DEBUG
-        } else {
-            qCDebug(entities) << "Received packet for previously deleted entity [" <<
-                entityItemID << "] ignoring. (inside " << __FUNCTION__ << ")";
-#endif
-        }
-    }
-}
-// Move the buffer forward to read more entities
-dataAt += bytesForThisEntity;
-bytesLeftToRead -= bytesForThisEntity;
-bytesRead += bytesForThisEntity;
+                            if (entity->getCreated() == UNKNOWN_CREATED_TIME) {
+                                entity->recordCreationTime();
+                            }
+                        #ifdef WANT_DEBUG
+                        } else {
+                                qCDebug(entities) << "Received packet for previously deleted entity [" <<
+                                        entityItemID << "] ignoring. (inside " << __FUNCTION__ << ")";
+                        #endif
+                        }
+                    }
+                }
+                // Move the buffer forward to read more entities
+                dataAt += bytesForThisEntity;
+                bytesLeftToRead -= bytesForThisEntity;
+                bytesRead += bytesForThisEntity;
             }
         }
     }
@@ -218,33 +218,19 @@ bytesRead += bytesForThisEntity;
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
     // we handle these types of "edit" packets
     switch (packetType) {
-    case PacketType::EntityAdd:
-    case PacketType::EntityEdit:
-    case PacketType::EntityErase:
-    case PacketType::EntityPhysics:
-        return true;
-    default:
-        return false;
+        case PacketType::EntityAdd:
+        case PacketType::EntityEdit:
+        case PacketType::EntityErase:
+        case PacketType::EntityPhysics:
+            return true;
+        default:
+            return false;
     }
 }
 
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItemPointer entity) {
     assert(entity);
-    // check to see if we need to simulate this entity..
-    if (_simulation) {
-        _simulation->addEntity(entity);
-    }
-
-    if (!entity->getParentID().isNull()) {
-        addToNeedsParentFixupList(entity);
-    }
-
-    _isDirty = true;
-    emit addingEntity(entity->getEntityItemID());
-
-    // find and hook up any entities with this entity as a (previously) missing parent
-    fixupNeedsParentFixups();
 
     if (getIsServer()) {
         QString certID(entity->getCertificateID());
@@ -266,8 +252,24 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
             qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
                 << existingEntityItemID << ". Deleting existing entity.";
             deleteEntity(existingEntityItemID, true);
+            return;
         }
     }
+    
+    // check to see if we need to simulate this entity..
+    if (_simulation) {
+        _simulation->addEntity(entity);
+    }
+
+    if (!entity->getParentID().isNull()) {
+        addToNeedsParentFixupList(entity);
+    }
+
+    _isDirty = true;
+    emit addingEntity(entity->getEntityItemID());
+
+    // find and hook up any entities with this entity as a (previously) missing parent
+    fixupNeedsParentFixups();
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -2250,3 +2252,4 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     }
     return entity->getJointNames();
 }
+
