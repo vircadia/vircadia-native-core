@@ -436,7 +436,6 @@ Script.include("/~/system/libraries/controllers.js");
             this.distanceRotating = false;
 
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                this.updateLaserPointer(controllerData);
                 this.prepareDistanceRotatingData(controllerData);
                 return makeRunningValues(true, [], []);
             } else {
