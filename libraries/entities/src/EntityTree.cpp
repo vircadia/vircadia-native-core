@@ -1177,20 +1177,15 @@ QString EntityTree::computeEncryptedNonce(const QString& certID, const QString& 
         return "";
     }
 
-    {
-        QWriteLocker locker(&_certNonceMapLock);
-        _certNonceMap.insert(certID, nonce);
-    }
+    QWriteLocker locker(&_certNonceMapLock);
+    _certNonceMap.insert(certID, nonce);
 
     return encryptedText.toBase64();
 }
 
 bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce) {
-    QString actualNonce;
-    {
-        QWriteLocker locker(&_certNonceMapLock);
-        actualNonce = _certNonceMap.take(certID).toString();
-    }
+    QWriteLocker locker(&_certNonceMapLock);
+    QString actualNonce = _certNonceMap.take(certID).toString();
 
     return actualNonce == decryptedNonce;
 }
