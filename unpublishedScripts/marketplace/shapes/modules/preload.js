@@ -34,8 +34,10 @@ Preload = (function () {
 
             for (property in item) {
                 if (item.hasOwnProperty(property)) {
-                    if (property === "url") {
-                        urls.push(item.url);
+                    if (property === "url" || property === "imageURL" || property === "imageOverlayURL") {
+                        if (item[property]) {
+                            urls.push(item[property]);
+                        }
                     } else if (typeof item[property] === "object") {
                         findURLsInObject(item[property]);
                     }
@@ -89,6 +91,14 @@ Preload = (function () {
                         visible: false
                     },
                     svg: {
+                        overlay: "image3d",
+                        scale: 0.001,
+                        position: DOMAIN_CORNER,
+                        ignoreRayIntersection: true,
+                        alpha: 0.0,
+                        visible: false
+                    },
+                    png: {
                         overlay: "image3d",
                         scale: 0.001,
                         position: DOMAIN_CORNER,
