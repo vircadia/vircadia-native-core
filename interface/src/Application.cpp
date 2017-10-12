@@ -5758,9 +5758,9 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 void Application::packetSent(quint64 length) {
 }
 
-void Application::addingEntityWithCertificate(const QString& certificateID, const QString& domainID) {
+void Application::addingEntityWithCertificate(const QString& certificateID, const QString& placeName) {
     auto ledger = DependencyManager::get<Ledger>();
-    ledger->updateLocation(certificateID, domainID);
+    ledger->updateLocation(certificateID, placeName);
 }
 
 void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {

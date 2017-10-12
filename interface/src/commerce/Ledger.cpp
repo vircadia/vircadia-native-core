@@ -234,8 +234,8 @@ void Ledger::updateLocation(const QString& asset_id, const QString location, con
         QStringList keys = wallet->listPublicKeys();
         QString key = keys[0];
         QJsonObject transaction;
-        transaction["asset_id"] = asset_id;
-        transaction["location"] = location;
+        transaction["certificate_id"] = asset_id;
+        transaction["place_name"] = location;
         QJsonDocument transactionDoc{ transaction };
         auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
         signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);

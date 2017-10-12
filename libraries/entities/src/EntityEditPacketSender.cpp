@@ -111,7 +111,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
         #endif
         queueOctreeEditMessage(type, bufferOut);
         if (type == PacketType::EntityAdd && !properties.getCertificateID().isEmpty()) {
-            emit addingEntityWithCertificate(properties.getCertificateID(), nodeList->getDomainHandler().getUUID().toString());
+            emit addingEntityWithCertificate(properties.getCertificateID(), DependencyManager::get<AddressManager>()->currentAddress().authority());
         }
     }
 }

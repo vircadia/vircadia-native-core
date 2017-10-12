@@ -715,7 +715,7 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 }
 
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
-    QString decryptedText;
+    unsigned char decryptedText[64];
     int certIDByteArraySize;
     int encryptedTextByteArraySize;
 
@@ -725,19 +725,24 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     QByteArray certID = packet->read(certIDByteArraySize);
     QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
 
-    const auto text = reinterpret_cast<const unsigned char*>(encryptedText.constData());
-    const unsigned int textLength = encryptedText.length();
+    const auto encryptedTextBuf = reinterpret_cast<const unsigned char*>(encryptedText.constData());
+    const unsigned int textLength = (int)strlen((char*)encryptedTextBuf);
 
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
 
     if (rsa) {
-        const int decryptionStatus = RSA_private_decrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
+        const int decryptionStatus = RSA_private_decrypt(textLength, encryptedTextBuf, decryptedText, rsa, RSA_PKCS1_OAEP_PADDING);
+
+        long error = ERR_get_error();
+        const char* error_str = ERR_error_string(error, NULL);
+        qDebug() << "ZRF HERE\n\nEncrypted Text:" << encryptedTextBuf << "\nEncrypted Text Length:" << textLength << "\nDecrypted Text:" << decryptedText << "\nError:" << error_str;
+
         RSA_free(rsa);
 
         if (decryptionStatus != -1) {
             auto nodeList = DependencyManager::get<NodeList>();
 
-            QByteArray decryptedTextByteArray = decryptedText.toUtf8();
+            QByteArray decryptedTextByteArray = QByteArray(reinterpret_cast<char*>(decryptedText), (int)strlen((char*)decryptedText));
             int decryptedTextByteArraySize = decryptedTextByteArray.size();
             int certIDSize = certID.size();
             // setup the packet

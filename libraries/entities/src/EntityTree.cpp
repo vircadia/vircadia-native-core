@@ -13,6 +13,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QQueue>
 
+#include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
@@ -1164,14 +1165,14 @@ QString EntityTree::computeEncryptedNonce(const QString& certID, const QString o
     const auto text = reinterpret_cast<const unsigned char*>(qPrintable(nonce.toString()));
     const unsigned int textLength = nonce.toString().length();
 
-    BIO* bio = BIO_new_mem_buf((void*)ownerKey.toUtf8().constData(), -1);
+    QString ownerKeyWithHeaders = ("-----BEGIN RSA PUBLIC KEY-----\n" + ownerKey + "\n-----END RSA PUBLIC KEY-----");
+    BIO* bio = BIO_new_mem_buf((void*)ownerKeyWithHeaders.toUtf8().constData(), -1);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NEWLINE
     RSA* rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
 
-    //if (rsa) {
+    if (rsa) {
         QByteArray encryptedText(RSA_size(rsa), 0);
         const int encryptStatus = RSA_public_encrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
-        BIO_free(bio);
         RSA_free(rsa);
         if (encryptStatus == -1) {
             qCWarning(entities) << "Unable to compute encrypted nonce for" << certID;
@@ -1181,10 +1182,10 @@ QString EntityTree::computeEncryptedNonce(const QString& certID, const QString o
         QWriteLocker locker(&_certNonceMapLock);
         _certNonceMap.insert(certID, nonce);
 
-        return encryptedText.toBase64();
-    //} else {
-    //    return "";
-    //}
+        return encryptedText;
+    } else {
+        return "";
+    }
 }
 
 bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce) {
@@ -1302,7 +1303,7 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     QString certID(message.read(certIDByteArraySize));
     QString decryptedText(message.read(decryptedTextByteArraySize));
 
-    qCDebug(entities) << "ZRF FIXME" << decryptedText << certID;
+    qCDebug(entities) << "ZRF FIXME FJAOPISEJFPAOISEJFOA" << decryptedText << certID;
 
     emit killChallengeOwnershipTimeoutTimer(certID);
 
