@@ -38,14 +38,12 @@ Rectangle {
     OpenSearchEngine {
         id: searchEngine
         name: "Google";
-        //icon: ":icons/sites/google.png"
         searchUrlTemplate: "https://www.google.com/search?client=hifibrowser&q={searchTerms}";
         suggestionsUrlTemplate: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
         suggestionsUrl: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
 
         onSuggestions: {
             if (suggestions.length > 0) {
-                console.log("suggestions:", suggestions)
                 suggestionsList = []
                 suggestionsList.push(addressBar.editText) //do not overwrite edit text
                 for(var i = 0; i < suggestions.length; i++) {
@@ -128,7 +126,7 @@ Rectangle {
                     goTo(textAt(index))
                 }
 
-                popup.bottomPadding: keyboard.height
+                popup.height: webEngineView.height
 
                 onFocusChanged: {
                     if (focus) {
