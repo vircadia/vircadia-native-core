@@ -1139,8 +1139,6 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
         deleteEntity(entityItemID, true);
-        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
         if (_challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1224,19 +1222,13 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                 qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
-                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
             } else if (jsonObject["transfer_status"].toString() == "failed") {
                 qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
-                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
             } else if (jsonObject["transfer_status"].toString() == "pending") {
                 if (isRetryingValidation) {
                     qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
                     deleteEntity(entityItemID, true);
-                    QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                    _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                 } else {
                     if (thread() != QThread::currentThread()) {
                         QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
@@ -1281,8 +1273,6 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
         } else {
             qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
             deleteEntity(entityItemID, true);
-            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
         }
 
         networkReply->deleteLater();
@@ -1299,21 +1289,21 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     QString certID(message.read(certIDByteArraySize));
     QString decryptedText(message.read(decryptedTextByteArraySize));
 
+    EntityItemID id;
+    {
+        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
+        id = _entityCertificateIDMap.value(certID);
+    }
+
     emit killChallengeOwnershipTimeoutTimer(certID);
 
     if (!verifyDecryptedNonce(certID, decryptedText)) {
-        EntityItemID id;
-        {
-            QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
-            id = _entityCertificateIDMap.value(certID);
-        }
-        
         if (!id.isNull()) {
-            qCDebug(entities) << "Ownership challenge failed, deleting entity" << id;
+            qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed; deleting entity" << id;
             deleteEntity(id, true);
-            QWriteLocker recentlyDeletedLocker(&_recentlyDeletedEntitiesLock);
-            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), id);
         }
+    } else {
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded; keeping entity" << id;
     }
 }
 
@@ -1521,8 +1511,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                     << "static certificate verification.";
                                 // Delete the entity we just added if it doesn't pass static certificate verification
                                 deleteEntity(entityItemID, true);
-                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                             } else {
                                 validatePop(properties.getCertificateID(), entityItemID, senderNode, false);
                             }
