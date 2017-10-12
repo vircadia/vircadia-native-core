@@ -1627,43 +1627,40 @@ void EntityScriptingInterface::setKeyboardFocusEntity(QUuid id) {
     QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::DirectConnection, Q_ARG(EntityItemID, id));
 }
 
-// FIXME: the following methods need to be calling EntityTreeRenderer::mouseXXX methods
-// Otherwise, like right now, they will not trigger entity script callbacks
-// They should still work on web entities and with Interface script event handlers
 void EntityScriptingInterface::sendMousePressOnEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->mousePressOnEntity(id, event);
+    emit mousePressOnEntity(id, event);
 }
 
 void EntityScriptingInterface::sendMouseMoveOnEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->mouseMoveOnEntity(id, event);
+    emit mouseMoveOnEntity(id, event);
 }
 
 void EntityScriptingInterface::sendMouseReleaseOnEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->mouseReleaseOnEntity(id, event);
+    emit mouseReleaseOnEntity(id, event);
 }
 
 void EntityScriptingInterface::sendClickDownOnEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->clickDownOnEntity(id, event);
+    emit clickDownOnEntity(id, event);
 }
 
 void EntityScriptingInterface::sendHoldingClickOnEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->holdingClickOnEntity(id, event);
+    emit holdingClickOnEntity(id, event);
 }
 
 void EntityScriptingInterface::sendClickReleaseOnEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->clickReleaseOnEntity(id, event);
+    emit clickReleaseOnEntity(id, event);
 }
 
 void EntityScriptingInterface::sendHoverEnterEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->hoverEnterEntity(id, event);
+    emit hoverEnterEntity(id, event);
 }
 
 void EntityScriptingInterface::sendHoverOverEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->hoverOverEntity(id, event);
+    emit hoverOverEntity(id, event);
 }
 
 void EntityScriptingInterface::sendHoverLeaveEntity(EntityItemID id, PointerEvent event) {
-    emit DependencyManager::get<EntityScriptingInterface>()->hoverLeaveEntity(id, event);
+    emit hoverLeaveEntity(id, event);
 }
 
 bool EntityScriptingInterface::wantsHandControllerPointerEvents(QUuid id) {
