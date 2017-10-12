@@ -79,8 +79,6 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/gl/GLBackend.h>
-#include <HFActionEvent.h>
-#include <HFBackEvent.h>
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
@@ -797,8 +795,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
-
+    
+    _logger = new FileLogger(this);
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
@@ -813,6 +811,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!DISABLE_WATCHDOG) {
         (new DeadlockWatchdogThread())->start();
     }
+
+    // Set File Logger Session UUID
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+    auto accountManager = DependencyManager::get<AccountManager>();
+
+    _logger->setSessionID(accountManager->getSessionID());
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -930,8 +935,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // send a location update immediately
     discoverabilityManager->updateLocation();
 
-    auto myAvatar = getMyAvatar();
-
     connect(nodeList.data(), &NodeList::nodeAdded, this, &Application::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &Application::nodeKilled);
     connect(nodeList.data(), &NodeList::nodeActivated, this, &Application::nodeActivated);
@@ -941,9 +944,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // you might think we could just do this in NodeList but we only want this connection for Interface
     connect(nodeList.data(), &NodeList::limitOfSilentDomainCheckInsReached, nodeList.data(), &NodeList::reset);
-
-    // connect to appropriate slots on AccountManager
-    auto accountManager = DependencyManager::get<AccountManager>();
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
@@ -1636,12 +1636,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
         QJsonObject bytesDownloaded;
-        bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["file"] = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["total"] = bytesDownloaded["atp"].toInt() + bytesDownloaded["http"].toInt()
-            + bytesDownloaded["file"].toInt();
-        properties["bytesDownloaded"] = bytesDownloaded;
+        auto atpBytes = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto httpBytes = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto fileBytes = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toLongLong();
+        bytesDownloaded["atp"] = atpBytes;
+        bytesDownloaded["http"] = httpBytes;
+        bytesDownloaded["file"] = fileBytes;
+        bytesDownloaded["total"] = atpBytes + httpBytes + fileBytes;
+        properties["bytes_downloaded"] = bytesDownloaded;
 
         auto myAvatar = getMyAvatar();
         glm::vec3 avatarPosition = myAvatar->getPosition();
@@ -2099,7 +2101,6 @@ Application::~Application() {
 
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
-
 
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
@@ -2688,15 +2689,10 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
 bool Application::importJSONFromURL(const QString& urlString) {
     // we only load files that terminate in just .json (not .svo.json and not .ava.json)
-    // if they come from the High Fidelity Marketplace Assets CDN
     QUrl jsonURL { urlString };
 
-    if (jsonURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
-        emit svoImportRequested(urlString);
-        return true;
-    } else {
-        return false;
-    }
+    emit svoImportRequested(urlString);
+    return true;
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
@@ -2858,10 +2854,6 @@ bool Application::event(QEvent* event) {
 
         default:
             break;
-    }
-
-    if (HFActionEvent::types().contains(event->type())) {
-        _controllerScriptingInterface->handleMetaEvent(static_cast<HFMetaEvent*>(event));
     }
 
     return QApplication::event(event);
@@ -3168,25 +3160,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 getMyAvatar()->resetSize();
                 break;
-            case Qt::Key_Space: {
-                if (!event->isAutoRepeat()) {
-                    // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                    // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   computePickRay(getMouse().x, getMouse().y));
-                    sendEvent(this, &startActionEvent);
-                }
-
-                break;
-            }
             case Qt::Key_Escape: {
                 getActiveDisplayPlugin()->abandonCalibration();
-                if (!event->isAutoRepeat()) {
-                    // this starts the HFCancelEvent
-                    HFBackEvent startBackEvent(HFBackEvent::startType());
-                    sendEvent(this, &startBackEvent);
-                }
-
                 break;
             }
 
@@ -3211,30 +3186,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
-    }
-
-    switch (event->key()) {
-        case Qt::Key_Space: {
-            if (!event->isAutoRepeat()) {
-                // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             computePickRay(getMouse().x, getMouse().y));
-                sendEvent(this, &endActionEvent);
-            }
-            break;
-        }
-        case Qt::Key_Escape: {
-            if (!event->isAutoRepeat()) {
-                // this ends the HFCancelEvent
-                HFBackEvent endBackEvent(HFBackEvent::endType());
-                sendEvent(this, &endBackEvent);
-            }
-            break;
-        }
-        default:
-            event->ignore();
-            break;
     }
 }
 
@@ -3372,13 +3323,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
-
-        if (event->button() == Qt::LeftButton) {
-            // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
-        }
     }
 }
 
@@ -3432,13 +3376,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
     if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mouseReleaseEvent(event);
-        }
-
-        if (event->button() == Qt::LeftButton) {
-            // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
         }
     }
 }
@@ -5053,6 +4990,7 @@ void Application::update(float deltaTime) {
 
         float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
         appRenderArgs._sensorToWorldScale = sensorToWorldScale;
+        appRenderArgs._sensorToWorld = getMyAvatar()->getSensorToWorldMatrix();
         {
             PROFILE_RANGE(render, "/buildFrustrumAndArgs");
             {
@@ -5094,6 +5032,7 @@ void Application::update(float deltaTime) {
             ipdScale *= sensorToWorldScale;
 
             auto baseProjection = appRenderArgs._renderArgs.getViewFrustum().getProjection();
+
             if (getActiveDisplayPlugin()->isStereo()) {
                 // Stereo modes will typically have a larger projection matrix overall,
                 // so we ask for the 'mono' projection matrix, which for stereo and HMD
@@ -5638,14 +5577,37 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
         return false;
     }
 
+    // We don't want to use EntityTree::findEntities(AABox, ...) method because that scan will snarf parented entities
+    // whose bounding boxes cannot be computed (it is too loose for our purposes here).  Instead we manufacture
+    // custom filters and use the general-purpose EntityTree::findEntities(filter, ...)
     QVector<EntityItemPointer> entities;
+    AABox avatarBox(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
+    // create two functions that use avatarBox (entityScan and elementScan), the second calls the first
+    std::function<bool (EntityItemPointer&)> entityScan = [=](EntityItemPointer& entity) {
+            if (entity->shouldBePhysical()) {
+                bool success = false;
+                AABox entityBox = entity->getAABox(success);
+                // important: bail for entities that cannot supply a valid AABox
+                return success && avatarBox.touches(entityBox);
+            }
+            return false;
+        };
+    std::function<bool(const OctreeElementPointer&, void*)> elementScan = [&](const OctreeElementPointer& element, void* unused) {
+            if (element->getAACube().touches(avatarBox)) {
+                EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
+                entityTreeElement->getEntities(entityScan, entities);
+                return true;
+            }
+            return false;
+        };
+
     entityTree->withReadLock([&] {
-        AABox box(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
-        entityTree->findEntities(box, entities);
+        // Pass the second function to the general-purpose EntityTree::findEntities()
+        // which will traverse the tree, apply the two filter functions (to element, then to entities)
+        // as it traverses.  The end result will be a list of entities that match.
+        entityTree->findEntities(elementScan, entities);
     });
 
-    // For reasons I haven't found, we don't necessarily have the full scene when we receive a stats packet.  Apply
-    // a heuristic to try to decide when we actually know about all of the nearby entities.
     uint32_t nearbyCount = entities.size();
     if (nearbyCount == _nearbyEntitiesCountAtLastPhysicsCheck) {
         _nearbyEntitiesStabilityCount++;
@@ -7001,11 +6963,11 @@ glm::uvec2 Application::getUiSize() const {
     return result;
 }
 
-QRect Application::getRecommendedOverlayRect() const {
+QRect Application::getRecommendedHUDRect() const {
     auto uiSize = getUiSize();
     QRect result(0, 0, uiSize.x, uiSize.y);
     if (_displayPlugin) {
-        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+        result = getActiveDisplayPlugin()->getRecommendedHUDRect();
     }
     return result;
 }

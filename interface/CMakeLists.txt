@@ -262,7 +262,13 @@ target_link_libraries(
 )
 
 if (UNIX)
-    target_link_libraries(${TARGET_NAME} pthread)
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+        # Linux
+        target_link_libraries(${TARGET_NAME} pthread atomic)
+    else ()
+        # OSX
+        target_link_libraries(${TARGET_NAME} pthread)
+    endif ()
 endif(UNIX)
 
 # assume we are using a Qt build without bearer management

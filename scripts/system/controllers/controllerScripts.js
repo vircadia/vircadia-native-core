@@ -25,6 +25,7 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/overlayLaserInput.js",
     "controllerModules/webEntityLaserInput.js",
     "controllerModules/inEditMode.js",
+    "controllerModules/inVREditMode.js",
     "controllerModules/disableOtherModule.js",
     "controllerModules/farTrigger.js",
     "controllerModules/teleport.js",
