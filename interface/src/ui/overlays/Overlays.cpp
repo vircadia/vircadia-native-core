@@ -747,11 +747,6 @@ OverlayID Overlays::getKeyboardFocusOverlay() {
 }
 
 void Overlays::setKeyboardFocusOverlay(OverlayID id) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setKeyboardFocusOverlay", Q_ARG(OverlayID, id));
-        return;
-    }
-
     qApp->setKeyboardFocusOverlay(id);
 }
 

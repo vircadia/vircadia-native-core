@@ -1463,11 +1463,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    // If the user clicks somewhere where there is NO entity at all, we will release focus
-    connect(getEntities().data(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
-        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-    });
-
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
     connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {

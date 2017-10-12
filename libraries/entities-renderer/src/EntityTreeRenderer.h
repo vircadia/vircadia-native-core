@@ -117,8 +117,6 @@ public:
     void onEntityChanged(const EntityItemID& id);
 
 signals:
-    void mousePressOffEntity();
-
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

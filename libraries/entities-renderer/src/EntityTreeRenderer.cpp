@@ -563,7 +563,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         _lastPointerEventValid = true;
 
     } else {
-        emit mousePressOffEntity();
+        // If the user clicks somewhere where there is NO entity at all, we will release focus
+        QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::DirectConnection, Q_ARG(EntityItemID, UNKNOWN_ENTITY_ID));
     }
 }
 

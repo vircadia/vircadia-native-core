@@ -376,7 +376,7 @@ public slots:
     void setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions);
 
     QUuid getKeyboardFocusEntity() const;  // thread-safe
-    void setKeyboardFocusEntity(EntityItemID entityItemID);
+    Q_INVOKABLE void setKeyboardFocusEntity(EntityItemID entityItemID);
 
     OverlayID getKeyboardFocusOverlay();
     void setKeyboardFocusOverlay(OverlayID overlayID);
