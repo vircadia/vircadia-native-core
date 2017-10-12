@@ -180,6 +180,12 @@ float SceneScripting::Stage::getHazeLightBlendAngle() const {
     return _skyStage->getHazeLightBlendAngle();
 }
 
+void SceneScripting::Stage::setHazeAltitudeEffect(const bool hazeAltitudeEffect) {
+    _skyStage->setHazeAltitudeEffect(hazeAltitudeEffect);
+}
+bool SceneScripting::Stage::getHazeAltitudeEffect() const {
+    return _skyStage->getHazeAltitudeEffect();
+}
 void SceneScripting::Stage::setHazeCeiling(const float hazeCeiling) {
     _skyStage->setHazeCeiling(hazeCeiling);
 }

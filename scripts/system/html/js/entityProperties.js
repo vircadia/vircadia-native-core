@@ -671,6 +671,7 @@ function loaded() {
         var elZoneHazeEnableLightBlend = document.getElementById("property-zone-haze-enable-light-blend");
         var elZoneHazeLightBlendAngle = document.getElementById("property-zone-haze-blend-angle");
         
+        var elZoneHazeAltitudeEffect = document.getElementById("property-zone-haze-altitude-effect");
         var elZoneHazeBaseRef = document.getElementById("property-zone-haze-base");
         var elZoneHazeCeiling = document.getElementById("property-zone-haze-ceiling");
 
@@ -1043,6 +1044,7 @@ function loaded() {
                             elZoneHazeEnableLightBlend.checked = properties.haze.hazeEnableLightBlend;
                             elZoneHazeLightBlendAngle.value = properties.haze.hazeLightBlendAngle.toFixed(0);
 
+                            elZoneHazeAltitudeEffect.checked = properties.haze.hazeAltitudeEffect;
                             elZoneHazeBaseRef.value = properties.haze.hazeBaseRef.toFixed(0);
                             elZoneHazeCeiling.value = properties.haze.hazeCeiling.toFixed(0);
 
@@ -1503,6 +1505,7 @@ function loaded() {
         elZoneHazeEnableLightBlend.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableLightBlend'));
         elZoneHazeLightBlendAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeLightBlendAngle'));
 
+        elZoneHazeAltitudeEffect.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAltitudeEffect'));
         elZoneHazeCeiling.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeCeiling'));
         elZoneHazeBaseRef.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBaseRef'));
 

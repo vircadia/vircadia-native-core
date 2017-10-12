@@ -94,8 +94,9 @@ public:
     DEFINE_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, HazeEnableLightBlend, hazeEnableLightBlend, bool, false);
     DEFINE_PROPERTY_REF(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float, DEFAULT_HAZE_LIGHT_BLEND_ANGLE);
 
-    // Range & Altitude parameters
-    DEFINE_PROPERTY_REF(PROP_HAZE_ALTITUDE, HazeCeiling, hazeCeiling, float, DEFAULT_HAZE_CEILING);
+    // Altitude parameters
+    DEFINE_PROPERTY(PROP_HAZE_ALTITUDE_EFFECT, HazeAltitudeEffect, hazeAltitudeEffect, bool, false);
+    DEFINE_PROPERTY_REF(PROP_HAZE_CEILING, HazeCeiling, hazeCeiling, float, DEFAULT_HAZE_CEILING);
     DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, DEFAULT_HAZE_BASE_REF);
 
     // Background (skybox) blend value
