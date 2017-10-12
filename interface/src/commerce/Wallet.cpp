@@ -734,10 +734,6 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
             rsa,
             RSA_PKCS1_OAEP_PADDING);
 
-        long error = ERR_get_error();
-        const char* error_str = ERR_error_string(error, NULL);
-        qDebug() << "ZRF HERE\n\nEncrypted Text:" << encryptedText << "\nEncrypted Text ByteArray Size:" << encryptedTextByteArraySize << "\nEncrypted Text Length:" << encryptedText.length() << "\nDecrypted Text:" << decryptedText << "\nError:" << error_str;
-
         RSA_free(rsa);
 
         if (decryptionStatus != -1) {

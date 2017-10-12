@@ -442,8 +442,7 @@ void EntityServer::domainSettingsRequestFailed() {
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
-    auto nodeList = DependencyManager::get<NodeList>();
-    QString thisDomainID = nodeList->getDomainHandler().getUUID().toString();
+    QString thisPlaceName = DependencyManager::get<AddressManager>()->currentAddress().authority();
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
@@ -485,9 +484,9 @@ void EntityServer::startDynamicDomainVerification() {
 
                 if (networkReply->error() == QNetworkReply::NoError) {
                     // ZRF FIXME!!!
-                    //if (jsonObject["location"].toString() != thisDomainID) {
+                    //if (jsonObject["place_name"].toString() != thisPlaceName) {
                     if (false) {
-                        qCDebug(entities) << "invalid_reason not empty, deleting entity" << i.value();
+                        qCDebug(entities) << "Entity's cert's place name isn't the current place name; deleting entity" << i.value();
                         tree->deleteEntity(i.value(), true);
                     }
                 } else {

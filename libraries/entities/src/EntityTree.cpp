@@ -1182,8 +1182,6 @@ QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QStrin
         QWriteLocker locker(&_certNonceMapLock);
         _certNonceMap.insert(certID, nonce);
 
-        qDebug() << "ZRF HERE\n\nEncrypted Text:" << encryptedText << "\nEncrypted Text Length:" << encryptedText.length();
-
         return encryptedText;
     } else {
         return "";
@@ -1300,8 +1298,6 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
 
     QString certID(message.read(certIDByteArraySize));
     QString decryptedText(message.read(decryptedTextByteArraySize));
-
-    qCDebug(entities) << "ZRF FIXME FJAOPISEJFPAOISEJFOA" << decryptedText << certID;
 
     emit killChallengeOwnershipTimeoutTimer(certID);
 
