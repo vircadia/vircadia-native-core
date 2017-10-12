@@ -1139,6 +1139,8 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
         deleteEntity(entityItemID, true);
+        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
         if (_challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1200,6 +1202,8 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
             qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed; deleting entity" << id
                 << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
                 deleteEntity(id, true);
+                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), id);
         }
     } else {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded; keeping entity" << id;
@@ -1233,13 +1237,19 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                 qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
+                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
                 qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
+                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
                 if (isRetryingValidation) {
                     qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
                     deleteEntity(entityItemID, true);
+                    QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                    _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                 } else {
                     if (thread() != QThread::currentThread()) {
                         QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
@@ -1284,6 +1294,8 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
         } else {
             qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
             deleteEntity(entityItemID, true);
+            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
         }
 
         networkReply->deleteLater();
@@ -1509,6 +1521,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                     << "static certificate verification.";
                                 // Delete the entity we just added if it doesn't pass static certificate verification
                                 deleteEntity(entityItemID, true);
+                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
                             } else {
                                 validatePop(properties.getCertificateID(), entityItemID, senderNode, false);
                             }
