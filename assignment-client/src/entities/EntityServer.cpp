@@ -459,6 +459,7 @@ void EntityServer::startDynamicDomainVerification() {
                 << "static certificate verification.";
             // Delete the entity if it doesn't pass static certificate verification
             tree->deleteEntity(i.value(), true);
+            tree->insertRecentlyDeletedEntityIDs(i.value());
         } else {
 
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -483,12 +484,14 @@ void EntityServer::startDynamicDomainVerification() {
                         qCDebug(entities) << "Entity's cert's place name" << jsonObject["place_name"].toString()
                             << "isn't the current place name" << thisPlaceName << "; deleting entity" << i.value();
                         tree->deleteEntity(i.value(), true);
+                        tree->insertRecentlyDeletedEntityIDs(i.value());
                     } else {
                         qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
                     }
                 } else {
                     qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << i.value();
                     tree->deleteEntity(i.value(), true);
+                    tree->insertRecentlyDeletedEntityIDs(i.value());
                 }
 
                 networkReply->deleteLater();
