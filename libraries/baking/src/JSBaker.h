@@ -21,7 +21,7 @@ class JSBaker : public Baker {
     Q_OBJECT
 public:
     JSBaker(const QUrl& jsURL, const QString& bakedOutputDir);
-    static bool bakeJS(const QByteArray* inputFile, QByteArray* outputFile);
+    static bool bakeJS(const QByteArray& inputFile, QByteArray& outputFile);
 
 public slots:
     virtual void bake() override;
@@ -31,8 +31,8 @@ private:
     QString _bakedOutputDir;
     QString _bakedJSFilePath;
 
-    static void handleSingleLineComments(QTextStream* in);
-    static bool handleMultiLineComments(QTextStream* in);
+    static void handleSingleLineComments(QTextStream& in);
+    static bool handleMultiLineComments(QTextStream& in);
 
     static bool canOmitSpace(QChar previousCharacter, QChar nextCharacter);
     static bool canOmitNewLine(QChar previousCharacter, QChar nextCharacter);
