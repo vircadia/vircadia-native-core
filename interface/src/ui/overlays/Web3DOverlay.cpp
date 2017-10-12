@@ -402,8 +402,6 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         touchType = QEvent::TouchEnd;
     } 
 
-    static QTouchEvent::TouchPoint oldTouchPoint;
-
     {
         QTouchEvent::TouchPoint point;
         point.setId(event.getID());
@@ -425,9 +423,11 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
             oldTouchPoint = point;
         } else {
             //const QTouchEvent::TouchPoint& oldTouchPoint = _activeTouchPoints[event.getID()];
-            point.setStartScenePos(oldTouchPoint.startScenePos());
-            point.setLastPos(oldTouchPoint.pos());
-            point.setLastScenePos(oldTouchPoint.scenePos());
+            if (oldTouchPoint.id() != -1) {
+                point.setStartScenePos(oldTouchPoint.startScenePos());
+                point.setLastPos(oldTouchPoint.pos());
+                point.setLastScenePos(oldTouchPoint.scenePos());
+            }
         }
         _activeTouchPoints[event.getID()] = point;
     }
