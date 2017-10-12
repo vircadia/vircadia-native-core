@@ -364,6 +364,7 @@ public:
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
     void updateVelocityFromNetwork(const glm::vec3& value);
+    void updateQueryAACubeFromNetwork(const AACube& value);
     void updateDamping(float value);
     void updateRestitution(float value);
     void updateFriction(float value);
@@ -631,12 +632,14 @@ protected:
     glm::vec3 _lastUpdatedVelocityValue;
     glm::vec3 _lastUpdatedAngularVelocityValue;
     glm::vec3 _lastUpdatedAccelerationValue;
+    AACube _lastUpdatedQueryAACubeValue;
 
     quint64 _lastUpdatedPositionTimestamp { 0 };
     quint64 _lastUpdatedRotationTimestamp { 0 };
     quint64 _lastUpdatedVelocityTimestamp { 0 };
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
+    quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
 
 };
 

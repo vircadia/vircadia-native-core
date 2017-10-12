@@ -717,6 +717,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
         }
     }
+
+    auto lastEdited = lastEditedFromBufferAdjusted;
+    bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
+    auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+        bool simulationChanged = lastEdited > updatedTimestamp;
+        return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
+    };
+
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
         // we also want to ignore any duplicate packets that have the same "recently updated" values
         // as a packet we've already recieved. This is because we want multiple edits of the same
@@ -729,12 +737,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         // Note: duplicate packets are expected and not wrong. They may be sent for any number of
         // reasons and the contract is that the client handles them in an idempotent manner.
-        auto lastEdited = lastEditedFromBufferAdjusted;
-        bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
-        auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
-            bool simulationChanged = lastEdited > updatedTimestamp;
-            return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
-        };
         auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
             if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
                 updatePositionFromNetwork(value);
@@ -780,8 +782,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, customUpdateVelocityFromNetwork);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, customUpdateAngularVelocityFromNetwork);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
-
-
     }
 
     READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
@@ -846,7 +846,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         overwriteLocalData = oldOverwrite;
     }
 
-    READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
+
+    {
+        auto customUpdateQueryAACubeFromNetwork = [this, shouldUpdate, lastEdited](AACube value){
+            if (shouldUpdate(_lastUpdatedQueryAACubeTimestamp, value != _lastUpdatedQueryAACubeValue)) {
+                updateQueryAACubeFromNetwork(value);
+                _lastUpdatedQueryAACubeTimestamp = lastEdited;
+                _lastUpdatedQueryAACubeValue = value;
+            }
+        };
+        READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, customUpdateQueryAACubeFromNetwork);
+    }
+
     READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
@@ -1844,6 +1855,13 @@ void EntityItem::updateVelocityFromNetwork(const glm::vec3& value) {
         return;
     }
     updateVelocity(value);
+}
+
+void EntityItem::updateQueryAACubeFromNetwork(const AACube& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    setQueryAACube(value);
 }
 
 void EntityItem::updateDamping(float value) {
