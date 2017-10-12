@@ -337,7 +337,7 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     const auto& haze = editHaze();
 
     const uint32_t hazeMode = entity->getHazeMode();
-    haze->setHazeActive(hazeMode == HAZE_MODE_RANGE_ONLY);
+    haze->setHazeActive(hazeMode == HAZE_MODE_ENABLED);
 ////    haze->setAltitudeBased(hazeMode == HAZE_MODE_RANGE_ALTITUDE);
 
     haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
