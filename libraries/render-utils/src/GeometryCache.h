@@ -339,14 +339,10 @@ public:
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
     struct ShapeData {
-        size_t _indexOffset{ 0 };
-        size_t _indexCount{ 0 };
-        size_t _wireIndexOffset{ 0 };
-        size_t _wireIndexCount{ 0 };
-
         gpu::BufferView _positionView;
         gpu::BufferView _normalView;
-        gpu::BufferPointer _indices;
+        gpu::BufferView _indicesView;
+        gpu::BufferView _wireIndicesView;
 
         void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
         void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);

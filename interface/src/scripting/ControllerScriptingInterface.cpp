@@ -13,22 +13,9 @@
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
-#include <HFBackEvent.h>
 #include <plugins/PluginManager.h>
 
 #include "Application.h"
-
-void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
-    if (event->type() == HFActionEvent::startType()) {
-        emit actionStartEvent(static_cast<HFActionEvent&>(*event));
-    } else if (event->type() == HFActionEvent::endType()) {
-        emit actionEndEvent(static_cast<HFActionEvent&>(*event));
-    } else if (event->type() == HFBackEvent::startType()) {
-        emit backStartEvent();
-    } else if (event->type() == HFBackEvent::endType()) {
-        emit backEndEvent();
-    }
-}
 
 bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
     return isKeyCaptured(KeyEvent(*event));
@@ -91,8 +78,8 @@ glm::vec2 ControllerScriptingInterface::getViewportDimensions() const {
     return qApp->getUiSize();
 }
 
-QVariant ControllerScriptingInterface::getRecommendedOverlayRect() const {
-    auto rect = qApp->getRecommendedOverlayRect();
+QVariant ControllerScriptingInterface::getRecommendedHUDRect() const {
+    auto rect = qApp->getRecommendedHUDRect();
     return qRectToVariant(rect);
 }
 

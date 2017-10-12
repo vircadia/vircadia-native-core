@@ -79,8 +79,6 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/gl/GLBackend.h>
-#include <HFActionEvent.h>
-#include <HFBackEvent.h>
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
@@ -1638,12 +1636,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
         QJsonObject bytesDownloaded;
-        bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["file"] = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toInt();
-        bytesDownloaded["total"] = bytesDownloaded["atp"].toInt() + bytesDownloaded["http"].toInt()
-            + bytesDownloaded["file"].toInt();
-        properties["bytesDownloaded"] = bytesDownloaded;
+        auto atpBytes = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto httpBytes = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toLongLong();
+        auto fileBytes = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toLongLong();
+        bytesDownloaded["atp"] = atpBytes;
+        bytesDownloaded["http"] = httpBytes;
+        bytesDownloaded["file"] = fileBytes;
+        bytesDownloaded["total"] = atpBytes + httpBytes + fileBytes;
+        properties["bytes_downloaded"] = bytesDownloaded;
 
         auto myAvatar = getMyAvatar();
         glm::vec3 avatarPosition = myAvatar->getPosition();
@@ -2689,15 +2689,10 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
 bool Application::importJSONFromURL(const QString& urlString) {
     // we only load files that terminate in just .json (not .svo.json and not .ava.json)
-    // if they come from the High Fidelity Marketplace Assets CDN
     QUrl jsonURL { urlString };
 
-    if (jsonURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
-        emit svoImportRequested(urlString);
-        return true;
-    } else {
-        return false;
-    }
+    emit svoImportRequested(urlString);
+    return true;
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
@@ -2859,10 +2854,6 @@ bool Application::event(QEvent* event) {
 
         default:
             break;
-    }
-
-    if (HFActionEvent::types().contains(event->type())) {
-        _controllerScriptingInterface->handleMetaEvent(static_cast<HFMetaEvent*>(event));
     }
 
     return QApplication::event(event);
@@ -3169,25 +3160,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 getMyAvatar()->resetSize();
                 break;
-            case Qt::Key_Space: {
-                if (!event->isAutoRepeat()) {
-                    // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                    // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   computePickRay(getMouse().x, getMouse().y));
-                    sendEvent(this, &startActionEvent);
-                }
-
-                break;
-            }
             case Qt::Key_Escape: {
                 getActiveDisplayPlugin()->abandonCalibration();
-                if (!event->isAutoRepeat()) {
-                    // this starts the HFCancelEvent
-                    HFBackEvent startBackEvent(HFBackEvent::startType());
-                    sendEvent(this, &startBackEvent);
-                }
-
                 break;
             }
 
@@ -3212,30 +3186,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
-    }
-
-    switch (event->key()) {
-        case Qt::Key_Space: {
-            if (!event->isAutoRepeat()) {
-                // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             computePickRay(getMouse().x, getMouse().y));
-                sendEvent(this, &endActionEvent);
-            }
-            break;
-        }
-        case Qt::Key_Escape: {
-            if (!event->isAutoRepeat()) {
-                // this ends the HFCancelEvent
-                HFBackEvent endBackEvent(HFBackEvent::endType());
-                sendEvent(this, &endBackEvent);
-            }
-            break;
-        }
-        default:
-            event->ignore();
-            break;
     }
 }
 
@@ -3373,13 +3323,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
-
-        if (event->button() == Qt::LeftButton) {
-            // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
-        }
     }
 }
 
@@ -3433,13 +3376,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
     if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mouseReleaseEvent(event);
-        }
-
-        if (event->button() == Qt::LeftButton) {
-            // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
         }
     }
 }
@@ -5054,6 +4990,7 @@ void Application::update(float deltaTime) {
 
         float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
         appRenderArgs._sensorToWorldScale = sensorToWorldScale;
+        appRenderArgs._sensorToWorld = getMyAvatar()->getSensorToWorldMatrix();
         {
             PROFILE_RANGE(render, "/buildFrustrumAndArgs");
             {
@@ -5095,6 +5032,7 @@ void Application::update(float deltaTime) {
             ipdScale *= sensorToWorldScale;
 
             auto baseProjection = appRenderArgs._renderArgs.getViewFrustum().getProjection();
+
             if (getActiveDisplayPlugin()->isStereo()) {
                 // Stereo modes will typically have a larger projection matrix overall,
                 // so we ask for the 'mono' projection matrix, which for stereo and HMD
@@ -7025,11 +6963,11 @@ glm::uvec2 Application::getUiSize() const {
     return result;
 }
 
-QRect Application::getRecommendedOverlayRect() const {
+QRect Application::getRecommendedHUDRect() const {
     auto uiSize = getUiSize();
     QRect result(0, 0, uiSize.x, uiSize.y);
     if (_displayPlugin) {
-        result = getActiveDisplayPlugin()->getRecommendedOverlayRect();
+        result = getActiveDisplayPlugin()->getRecommendedHUDRect();
     }
     return result;
 }

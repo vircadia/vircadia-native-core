@@ -29,6 +29,11 @@ const float Item::Status::Value::CYAN = 180.0f;
 const float Item::Status::Value::BLUE = 240.0f;
 const float Item::Status::Value::MAGENTA = 300.0f;
 
+const int Item::LAYER_2D = 0;
+const int Item::LAYER_3D = 1;
+const int Item::LAYER_3D_FRONT = 2;
+const int Item::LAYER_3D_HUD = 3;
+
 void Item::Status::Value::setScale(float scale) {
     _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
  }
