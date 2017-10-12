@@ -157,8 +157,6 @@ Script.include("/~/system/libraries/controllers.js");
                 return;
             }
 
-            tabletInterface.playSound(3);//HandsIn
-
             var X_ROT_NEG_90 = { x: -0.70710678, y: 0, z: 0, w: 0.70710678 };
             var modelOrientation = Quat.multiply(this.stylusTip.orientation, X_ROT_NEG_90);
             var modelPositionOffset = Vec3.multiplyQbyV(modelOrientation, { x: 0, y: 0, z: MyAvatar.sensorToWorldScale * -WEB_STYLUS_LENGTH / 2 });
@@ -186,7 +184,6 @@ Script.include("/~/system/libraries/controllers.js");
             if (!this.stylus) {
                 return;
             }
-            tabletInterface.playSound(4);//HandsOut
             Overlays.deleteOverlay(this.stylus);
             this.stylus = null;
         };
