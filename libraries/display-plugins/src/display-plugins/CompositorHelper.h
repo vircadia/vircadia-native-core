@@ -74,6 +74,7 @@ public:
 
     void setModelTransform(const Transform& transform) { _modelTransform = transform; }
     const Transform& getModelTransform() const { return _modelTransform; }
+    glm::mat4 getUiTransform() const;
 
     float getAlpha() const { return _alpha; }
     void setAlpha(float alpha) { if (alpha != _alpha) { emit alphaChanged();  _alpha = alpha; } }
@@ -122,7 +123,6 @@ protected slots:
     void sendFakeMouseEvent();
 
 private:
-    glm::mat4 getUiTransform() const;
     void updateTooltips();
 
     DisplayPluginPointer _currentDisplayPlugin;

@@ -24,15 +24,15 @@ class StatTracker : public Dependency {
 public:
     StatTracker();
     QVariant getStat(const QString& name);
-    void setStat(const QString& name, int value);
-    void updateStat(const QString& name, int mod);
+    void setStat(const QString& name, int64_t value);
+    void updateStat(const QString& name, int64_t mod);
     void incrementStat(const QString& name);
     void decrementStat(const QString& name);
 private:
     using Mutex = std::mutex;
     using Lock = std::lock_guard<Mutex>;
     Mutex _statsLock;
-    QHash<QString, int> _stats;
+    QHash<QString, int64_t> _stats;
 };
 
 class CounterStat {

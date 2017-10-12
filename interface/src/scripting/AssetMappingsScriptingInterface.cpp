@@ -21,6 +21,7 @@
 #include <NetworkLogging.h>
 #include <NodeList.h>
 #include <OffscreenUi.h>
+#include <UserActivityLogger.h>
 
 static const int AUTO_REFRESH_INTERVAL = 1000;
 
@@ -103,6 +104,21 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     }
 
     startedCallback.call();
+
+    QFileInfo fileInfo { path };
+    int64_t size { fileInfo.size() };
+
+    QString extension = "";
+    auto idx = path.lastIndexOf(".");
+    if (idx >= 0) {
+        extension = path.mid(idx + 1);
+    }
+
+    UserActivityLogger::getInstance().logAction("uploading_asset", {
+        { "size", (qint64)size },
+        { "mapping", mapping },
+        { "extension", extension}
+    });
 
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
@@ -239,6 +255,7 @@ void AssetMappingModel::refresh() {
 
     connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
         if (request->getError() == MappingRequest::NoError) {
+            int numPendingBakes = 0;
             auto mappings = request->getMappings();
             auto existingPaths = _pathToItemMap.keys();
             for (auto& mapping : mappings) {
@@ -287,6 +304,9 @@ void AssetMappingModel::refresh() {
                     auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                     lastItem->setData(statusString, Qt::UserRole + 5);
                     lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
+                    if (mapping.second.status == Pending) {
+                        ++numPendingBakes;
+                    }
                 }
 
                 Q_ASSERT(fullPath == path);
@@ -333,6 +353,11 @@ void AssetMappingModel::refresh() {
 
                     item = nextItem;
                 }
+            }
+
+            if (numPendingBakes != _numPendingBakes) {
+                _numPendingBakes = numPendingBakes;
+                emit numPendingBakesChanged(_numPendingBakes);
             }
         } else {
             emit errorGettingMappings(request->getErrorString());

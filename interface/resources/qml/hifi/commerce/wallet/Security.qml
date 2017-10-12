@@ -25,13 +25,13 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string keyFilePath: "";
+    property string keyFilePath;
 
     Hifi.QmlCommerce {
         id: commerce;
 
         onKeyFilePathIfExistsResult: {
-            keyFilePath = path;
+            root.keyFilePath = path;
         }
     }
 
@@ -232,6 +232,12 @@ Item {
             anchors.rightMargin: 55;
             anchors.bottom: parent.bottom;
 
+            onVisibleChanged: {
+                if (visible) {
+                    commerce.getKeyFilePathIfExists();
+                }
+            }
+
             HiFiGlyphs {
                 id: yourPrivateKeysImage;
                 text: hifi.glyphs.walletKey;
@@ -280,6 +286,34 @@ Item {
                 verticalAlignment: Text.AlignVCenter;
             }
 
+            Rectangle {
+                id: removeHmdContainer;
+                z: 998;
+                visible: false;
+                color: hifi.colors.blueHighlight;
+                anchors.fill: backupInstructionsButton;
+                radius: 5;
+                MouseArea {
+                    anchors.fill: parent;
+                    propagateComposedEvents: false;
+                }
+
+                RalewayBold {
+                    anchors.fill: parent;
+                    text: "INSTRUCTIONS OPEN ON DESKTOP";
+                    size: 15;
+                    color: hifi.colors.white;
+                    verticalAlignment: Text.AlignVCenter;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+
+                    Timer {
+                        id: removeHmdContainerTimer;
+                        interval: 5000;
+                        onTriggered: removeHmdContainer.visible = false
+                    }
+            }
+
             HifiControlsUit.Button {
                 id: backupInstructionsButton;
                 text: "View Backup Instructions";
@@ -292,7 +326,11 @@ Item {
                 height: 40;
 
                 onClicked: {
-                    Qt.openUrlExternally("https://www.highfidelity.com/");
+                    var keyPath = "file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/'));
+                    Qt.openUrlExternally(keyPath + "/backup_instructions.html");
+                    Qt.openUrlExternally(keyPath);
+                    removeHmdContainer.visible = true;
+                    removeHmdContainerTimer.start();
                 }
             }
         }

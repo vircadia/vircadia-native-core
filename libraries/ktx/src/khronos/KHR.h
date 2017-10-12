@@ -209,6 +209,137 @@ namespace khronos {
                 COMPRESSED_SIGNED_RG11_EAC = 0x9273,
             };
 
+            inline uint8_t evalUncompressedBlockBitSize(InternalFormat format) {
+                switch (format) {
+                    case InternalFormat::R8:
+                    case InternalFormat::R8_SNORM:
+                        return 8;
+                    case InternalFormat::R16:
+                    case InternalFormat::R16_SNORM:
+                    case InternalFormat::RG8:
+                    case InternalFormat::RG8_SNORM:
+                        return 16;
+                    case InternalFormat::RG16:
+                    case InternalFormat::RG16_SNORM:
+                        return 16;
+                    case InternalFormat::R3_G3_B2:
+                        return 8;
+                    case InternalFormat::RGB4:
+                        return 12;
+                    case InternalFormat::RGB5:
+                    case InternalFormat::RGB565:
+                        return 16;
+                    case InternalFormat::RGB8:
+                    case InternalFormat::RGB8_SNORM:
+                        return 24;
+                    case InternalFormat::RGB10:
+                        // TODO: check if this is really the case
+                        return 32;
+                    case InternalFormat::RGB12:
+                        // TODO: check if this is really the case
+                        return 48;
+                    case InternalFormat::RGB16:
+                    case InternalFormat::RGB16_SNORM:
+                        return 48;
+                    case InternalFormat::RGBA2:
+                        return 8;
+                    case InternalFormat::RGBA4:
+                    case InternalFormat::RGB5_A1:
+                        return 16;
+                    case InternalFormat::RGBA8:
+                    case InternalFormat::RGBA8_SNORM:
+                    case InternalFormat::RGB10_A2:
+                    case InternalFormat::RGB10_A2UI:
+                        return 32;
+                    case InternalFormat::RGBA12:
+                        return 48;
+                    case InternalFormat::RGBA16:
+                    case InternalFormat::RGBA16_SNORM:
+                        return 64;
+                    case InternalFormat::SRGB8:
+                        return 24;
+                    case InternalFormat::SRGB8_ALPHA8:
+                        return 32;
+                    case InternalFormat::R16F:
+                        return 16;
+                    case InternalFormat::RG16F:
+                        return 32;
+                    case InternalFormat::RGB16F:
+                        return 48;
+                    case InternalFormat::RGBA16F:
+                        return 64;
+                    case InternalFormat::R32F:
+                        return 32;
+                    case InternalFormat::RG32F:
+                        return 64;
+                    case InternalFormat::RGB32F:
+                        return 96;
+                    case InternalFormat::RGBA32F:
+                        return 128;
+                    case InternalFormat::R11F_G11F_B10F:
+                    case InternalFormat::RGB9_E5:
+                        return 32;
+                    case InternalFormat::R8I:
+                    case InternalFormat::R8UI:
+                        return 8;
+                    case InternalFormat::R16I:
+                    case InternalFormat::R16UI:
+                        return 16;
+                    case InternalFormat::R32I:
+                    case InternalFormat::R32UI:
+                        return 32;
+                    case InternalFormat::RG8I:
+                    case InternalFormat::RG8UI:
+                        return 16;
+                    case InternalFormat::RG16I:
+                    case InternalFormat::RG16UI:
+                        return 32;
+                    case InternalFormat::RG32I:
+                    case InternalFormat::RG32UI:
+                        return 64;
+                    case InternalFormat::RGB8I:
+                    case InternalFormat::RGB8UI:
+                        return 24;
+                    case InternalFormat::RGB16I:
+                    case InternalFormat::RGB16UI:
+                        return 48;
+                    case InternalFormat::RGB32I:
+                    case InternalFormat::RGB32UI:
+                        return 96;
+                    case InternalFormat::RGBA8I:
+                    case InternalFormat::RGBA8UI:
+                        return 32;
+                    case InternalFormat::RGBA16I:
+                    case InternalFormat::RGBA16UI:
+                        return 64;
+                    case InternalFormat::RGBA32I:
+                    case InternalFormat::RGBA32UI:
+                        return 128;
+                    case InternalFormat::DEPTH_COMPONENT16:
+                        return 16;
+                    case InternalFormat::DEPTH_COMPONENT24:
+                        return 24;
+                    case InternalFormat::DEPTH_COMPONENT32:
+                    case InternalFormat::DEPTH_COMPONENT32F:
+                    case InternalFormat::DEPTH24_STENCIL8:
+                        return 32;
+                    case InternalFormat::DEPTH32F_STENCIL8:
+                        // TODO : check if this true
+                        return 40;
+                    case InternalFormat::STENCIL_INDEX1:
+                        return 1;
+                    case InternalFormat::STENCIL_INDEX4:
+                        return 4;
+                    case InternalFormat::STENCIL_INDEX8:
+                        return 8;
+                    case InternalFormat::STENCIL_INDEX16:
+                        return 16;
+
+                    default:
+                        return 0;
+                }
+            }
+
             template <uint32_t ALIGNMENT> 
             inline uint32_t evalAlignedCompressedBlockCount(uint32_t value) {
                 enum { val = ALIGNMENT && !(ALIGNMENT & (ALIGNMENT - 1)) };
@@ -225,6 +356,7 @@ namespace khronos {
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
                     case InternalFormat::COMPRESSED_RED_RGTC1: // BC4
                     case InternalFormat::COMPRESSED_RG_RGTC2: // BC5
+                    case InternalFormat::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT: // BC6
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM: // BC7
                         return evalAlignedCompressedBlockCount<4>(value);
 
@@ -241,6 +373,7 @@ namespace khronos {
                         return 8;
 
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
+                    case InternalFormat::COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
                     case InternalFormat::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
                     case InternalFormat::COMPRESSED_RG_RGTC2:
                         return 16;
@@ -248,6 +381,10 @@ namespace khronos {
                     default:
                         return 0;
                 }
+            }
+
+            inline uint8_t evalCompressedBlockBitSize(InternalFormat format) {
+                return evalCompressedBlockSize(format) * 8;
             }
 
             enum class BaseInternalFormat : uint32_t {

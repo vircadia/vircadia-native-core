@@ -51,6 +51,7 @@ public:
 
     void setVisible(bool visible) override;
     void setDrawInFront(bool drawInFront) override;
+    void setDrawHUDLayer(bool drawHUDLayer) override;
 
 protected:
     Transform evalRenderTransform() override;
@@ -98,6 +99,7 @@ private:
 
     bool _visibleDirty { false };
     bool _drawInFrontDirty { false };
+    bool _drawInHUDDirty { false };
 
 };
 

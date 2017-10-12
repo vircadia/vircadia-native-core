@@ -64,7 +64,6 @@ void ModelOverlay::update(float deltatime) {
     }
     _isLoaded = _model->isActive();
 
-
     if (isAnimatingSomething()) {
         if (!jointsMapped()) {
             mapAnimationJoints(_model->getJointNames());
@@ -88,6 +87,10 @@ void ModelOverlay::update(float deltatime) {
         _drawInFrontDirty = false;
         _model->setLayeredInFront(getDrawInFront(), scene);
     }
+    if (_drawInHUDDirty) {
+        _drawInHUDDirty = false;
+        _model->setLayeredInHUD(getDrawHUDLayer(), scene);
+    }
     scene->enqueueTransaction(transaction);
 }
 
@@ -110,6 +113,11 @@ void ModelOverlay::setVisible(bool visible) {
 void ModelOverlay::setDrawInFront(bool drawInFront) {
     Base3DOverlay::setDrawInFront(drawInFront);
     _drawInFrontDirty = true;
+}
+
+void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
+    Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
+    _drawInHUDDirty = true;
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
