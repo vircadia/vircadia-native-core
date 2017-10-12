@@ -1187,10 +1187,25 @@ QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QStrin
 }
 
 bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce) {
+
+    QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
+    EntityItemID id = _entityCertificateIDMap.value(certID);
+
     QWriteLocker locker(&_certNonceMapLock);
     QString actualNonce = _certNonceMap.take(certID).toString();
 
-    return actualNonce == decryptedNonce;
+    bool verificationSuccess = (actualNonce == decryptedNonce);
+    if (!verificationSuccess) {
+        if (!id.isNull()) {
+            qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed; deleting entity" << id
+                << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
+                deleteEntity(id, true);
+        }
+    } else {
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded; keeping entity" << id;
+    }
+
+    return verificationSuccess;
 }
 
 void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {
@@ -1289,22 +1304,9 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     QString certID(message.read(certIDByteArraySize));
     QString decryptedText(message.read(decryptedTextByteArraySize));
 
-    EntityItemID id;
-    {
-        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
-        id = _entityCertificateIDMap.value(certID);
-    }
-
     emit killChallengeOwnershipTimeoutTimer(certID);
 
-    if (!verifyDecryptedNonce(certID, decryptedText)) {
-        if (!id.isNull()) {
-            qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed; deleting entity" << id;
-            deleteEntity(id, true);
-        }
-    } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded; keeping entity" << id;
-    }
+    verifyDecryptedNonce(certID, decryptedText);
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,

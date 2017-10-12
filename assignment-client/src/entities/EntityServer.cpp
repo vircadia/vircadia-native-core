@@ -442,7 +442,7 @@ void EntityServer::domainSettingsRequestFailed() {
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
-    QString thisPlaceName = DependencyManager::get<AddressManager>()->currentAddress().authority();
+    QString thisPlaceName = DependencyManager::get<AddressManager>()->getPlaceName();
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
@@ -466,7 +466,7 @@ void EntityServer::startDynamicDomainVerification() {
             networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
             networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
             QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
-            requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
+            requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
             QJsonObject request;
             request["certificate_id"] = i.key();
             networkRequest.setUrl(requestURL);
@@ -486,8 +486,11 @@ void EntityServer::startDynamicDomainVerification() {
                     // ZRF FIXME!!!
                     //if (jsonObject["place_name"].toString() != thisPlaceName) {
                     if (false) {
-                        qCDebug(entities) << "Entity's cert's place name isn't the current place name; deleting entity" << i.value();
+                        qCDebug(entities) << "Entity's cert's place name" << jsonObject["place_name"].toString()
+                            << "isn't the current place name" << thisPlaceName << "; deleting entity" << i.value();
                         tree->deleteEntity(i.value(), true);
+                    } else {
+                        qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
                     }
                 } else {
                     qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << i.value();
