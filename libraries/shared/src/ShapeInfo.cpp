@@ -284,7 +284,7 @@ const DoubleHashKey& ShapeInfo::getHash() const {
 
             assert(_pointCollection.size() == (size_t)1);
             const PointList & points = _pointCollection.back();
-            const size_t numPoints = points.size();
+            const int numPoints = (int)points.size();
             uint32_t hash = _doubleHashKey.getHash();
             uint32_t hash2 = _doubleHashKey.getHash2();
 
