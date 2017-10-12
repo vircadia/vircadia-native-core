@@ -1229,18 +1229,14 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
         QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
         jsonObject = jsonObject["data"].toObject();
 
-        // ZRF FIXME Remove these two lines
-        QJsonDocument doc(jsonObject);
-        qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
-
         if (networkReply->error() == QNetworkReply::NoError) {
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                 qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
-            } else if (jsonObject["transfer_status"].toString() == "failed") {
+            } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
                 qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
-            } else if (jsonObject["transfer_status"].toString() == "pending") {
+            } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
                 if (isRetryingValidation) {
                     qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
                     deleteEntity(entityItemID, true);

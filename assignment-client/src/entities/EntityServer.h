@@ -19,6 +19,7 @@
 #include "EntityItem.h"
 #include "EntityServerConsts.h"
 #include "EntityTree.h"
+#include <QJsonArray>
 
 /// Handles assignments of type EntityServer - sending entities to various clients.
 

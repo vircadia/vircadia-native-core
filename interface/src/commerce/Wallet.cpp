@@ -739,7 +739,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
         if (decryptionStatus != -1) {
             auto nodeList = DependencyManager::get<NodeList>();
 
-            QByteArray decryptedTextByteArray = QByteArray(reinterpret_cast<char*>(decryptedText), (int)strlen((char*)decryptedText));
+            QByteArray decryptedTextByteArray = QByteArray(reinterpret_cast<char*>(decryptedText), decryptionStatus);
             int decryptedTextByteArraySize = decryptedTextByteArray.size();
             int certIDSize = certID.size();
             // setup the packet

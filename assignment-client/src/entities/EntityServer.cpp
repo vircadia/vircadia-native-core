@@ -478,14 +478,8 @@ void EntityServer::startDynamicDomainVerification() {
                 QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
                 jsonObject = jsonObject["data"].toObject();
 
-                // ZRF FIXME Remove these two lines
-                QJsonDocument doc(jsonObject);
-                qCDebug(entities) << "ZRF FIXME" << doc.toJson(QJsonDocument::Compact);
-
                 if (networkReply->error() == QNetworkReply::NoError) {
-                    // ZRF FIXME!!!
-                    //if (jsonObject["place_name"].toString() != thisPlaceName) {
-                    if (false) {
+                    if (jsonObject["location"].toArray().first().toString() != thisPlaceName) {
                         qCDebug(entities) << "Entity's cert's place name" << jsonObject["place_name"].toString()
                             << "isn't the current place name" << thisPlaceName << "; deleting entity" << i.value();
                         tree->deleteEntity(i.value(), true);
