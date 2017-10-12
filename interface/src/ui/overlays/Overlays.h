@@ -107,6 +107,8 @@ public:
     bool mouseMoveEvent(QMouseEvent* event);
 
     void mousePressEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent& event);
     void hoverEnterEvent(const OverlayID& overlayID, const PointerEvent& event);
     void hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event);
 
@@ -318,11 +320,6 @@ signals:
     void overlayDeleted(OverlayID id);
     void panelDeleted(OverlayID id);
 
-    void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
-    void mouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event);
-    void mouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event);
-
-    void hoverLeaveOverlay(OverlayID overlayID, const PointerEvent& event);
     // FIXME: nothing connects to this signal anymore
     void hoverOverOverlay(OverlayID overlayID, const PointerEvent& event);
 

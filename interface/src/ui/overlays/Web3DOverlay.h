@@ -39,7 +39,8 @@ public:
 
     QObject* getEventHandler();
     void setProxyWindow(QWindow* proxyWindow);
-    void handlePointerEvent(const PointerEvent& event);
+    Q_INVOKABLE void hoverLeaveOverlay(const PointerEvent& event);
+    Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
     void handlePointerEventAsTouch(const PointerEvent& event);
     void handlePointerEventAsMouse(const PointerEvent& event);
 
