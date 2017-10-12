@@ -1202,10 +1202,6 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
             formatGPU = HDR_FORMAT;
         }
 
-        if (image.format() != QIMAGE_HDR_FORMAT) {
-            image = convertToHDRFormat(image, HDR_FORMAT);
-        }
-
         // Find the layout of the cubemap in the 2D image
         // Use the original image size since processSourceImage may have altered the size / aspect ratio
         int foundLayout = CubeLayout::findLayout(srcImage.width(), srcImage.height());
@@ -1233,6 +1229,13 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
                     faces.push_back(faceImage);
                 }
             }
+
+            if (image.format() != QIMAGE_HDR_FORMAT) {
+                for (auto& face : faces) {
+                    face = convertToHDRFormat(face, HDR_FORMAT);
+                }
+            }
+
         } else {
             qCDebug(imagelogging) << "Failed to find a known cube map layout from this image:" << QString(srcImageName.c_str());
             return nullptr;
