@@ -34,6 +34,7 @@ Item {
     property string itemId;
     property string itemPreviewImageUrl;
     property string itemHref;
+    property string certificateId;
     property int displayedItemCount;
     property int itemEdition;
     property int numberSold;
@@ -168,7 +169,7 @@ Item {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    sendToPurchases({method: 'purchases_itemCertificateClicked', itemMarketplaceId: root.itemId});
+                    sendToPurchases({method: 'purchases_itemCertificateClicked', itemCertificateId: root.certificateId});
                 }
                 onEntered: {
                     certificateIcon.color = hifi.colors.black;
@@ -225,7 +226,7 @@ Item {
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
                         } else if (root.numberSold !== -1) {
-                            ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "INFTY" : root.limitedRun))
+                            ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "\u221e" : root.limitedRun))
                         } else {
                             ""
                         }

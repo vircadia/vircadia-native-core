@@ -79,8 +79,6 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/gl/GLBackend.h>
-#include <HFActionEvent.h>
-#include <HFBackEvent.h>
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
@@ -2858,10 +2856,6 @@ bool Application::event(QEvent* event) {
             break;
     }
 
-    if (HFActionEvent::types().contains(event->type())) {
-        _controllerScriptingInterface->handleMetaEvent(static_cast<HFMetaEvent*>(event));
-    }
-
     return QApplication::event(event);
 }
 
@@ -3166,25 +3160,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 getMyAvatar()->resetSize();
                 break;
-            case Qt::Key_Space: {
-                if (!event->isAutoRepeat()) {
-                    // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                    // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   computePickRay(getMouse().x, getMouse().y));
-                    sendEvent(this, &startActionEvent);
-                }
-
-                break;
-            }
             case Qt::Key_Escape: {
                 getActiveDisplayPlugin()->abandonCalibration();
-                if (!event->isAutoRepeat()) {
-                    // this starts the HFCancelEvent
-                    HFBackEvent startBackEvent(HFBackEvent::startType());
-                    sendEvent(this, &startBackEvent);
-                }
-
                 break;
             }
 
@@ -3209,30 +3186,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
-    }
-
-    switch (event->key()) {
-        case Qt::Key_Space: {
-            if (!event->isAutoRepeat()) {
-                // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             computePickRay(getMouse().x, getMouse().y));
-                sendEvent(this, &endActionEvent);
-            }
-            break;
-        }
-        case Qt::Key_Escape: {
-            if (!event->isAutoRepeat()) {
-                // this ends the HFCancelEvent
-                HFBackEvent endBackEvent(HFBackEvent::endType());
-                sendEvent(this, &endBackEvent);
-            }
-            break;
-        }
-        default:
-            event->ignore();
-            break;
     }
 }
 
@@ -3370,13 +3323,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
-
-        if (event->button() == Qt::LeftButton) {
-            // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
-        }
     }
 }
 
@@ -3430,13 +3376,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
     if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mouseReleaseEvent(event);
-        }
-
-        if (event->button() == Qt::LeftButton) {
-            // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
         }
     }
 }
