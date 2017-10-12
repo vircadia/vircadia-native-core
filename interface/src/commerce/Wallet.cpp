@@ -725,17 +725,18 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     QByteArray certID = packet->read(certIDByteArraySize);
     QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
 
-    const auto encryptedTextBuf = reinterpret_cast<const unsigned char*>(encryptedText.constData());
-    const unsigned int textLength = (int)strlen((char*)encryptedTextBuf);
-
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
 
     if (rsa) {
-        const int decryptionStatus = RSA_private_decrypt(textLength, encryptedTextBuf, decryptedText, rsa, RSA_PKCS1_OAEP_PADDING);
+        const int decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
+            reinterpret_cast<const unsigned char*>(encryptedText.constData()),
+            decryptedText,
+            rsa,
+            RSA_PKCS1_OAEP_PADDING);
 
         long error = ERR_get_error();
         const char* error_str = ERR_error_string(error, NULL);
-        qDebug() << "ZRF HERE\n\nEncrypted Text:" << encryptedTextBuf << "\nEncrypted Text Length:" << textLength << "\nDecrypted Text:" << decryptedText << "\nError:" << error_str;
+        qDebug() << "ZRF HERE\n\nEncrypted Text:" << encryptedText << "\nEncrypted Text ByteArray Size:" << encryptedTextByteArraySize << "\nEncrypted Text Length:" << encryptedText.length() << "\nDecrypted Text:" << decryptedText << "\nError:" << error_str;
 
         RSA_free(rsa);
 
