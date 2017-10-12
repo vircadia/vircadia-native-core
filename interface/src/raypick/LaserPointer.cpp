@@ -49,11 +49,13 @@ LaserPointer::~LaserPointer() {
 }
 
 void LaserPointer::enable() {
+    QWriteLocker lock(getLock());
     DependencyManager::get<RayPickScriptingInterface>()->enableRayPick(_rayPickUID);
     _renderingEnabled = true;
 }
 
 void LaserPointer::disable() {
+    QWriteLocker lock(getLock());
     DependencyManager::get<RayPickScriptingInterface>()->disableRayPick(_rayPickUID);
     _renderingEnabled = false;
     if (!_currentRenderState.empty()) {
@@ -67,6 +69,7 @@ void LaserPointer::disable() {
 }
 
 void LaserPointer::setRenderState(const std::string& state) {
+    QWriteLocker lock(getLock());
     if (!_currentRenderState.empty() && state != _currentRenderState) {
         if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
             disableRenderState(_renderStates[_currentRenderState]);
@@ -79,6 +82,7 @@ void LaserPointer::setRenderState(const std::string& state) {
 }
 
 void LaserPointer::editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
+    QWriteLocker lock(getLock());
     updateRenderStateOverlay(_renderStates[state].getStartID(), startProps);
     updateRenderStateOverlay(_renderStates[state].getPathID(), pathProps);
     updateRenderStateOverlay(_renderStates[state].getEndID(), endProps);
@@ -86,12 +90,18 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
 
 void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
     if (!id.isNull() && props.isValid()) {
-        qApp->getOverlays().editOverlay(id, props);
+        QVariantMap propMap = props.toMap();
+        propMap.remove("visible");
+        qApp->getOverlays().editOverlay(id, propMap);
     }
 }
 
-void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState) {
-    PickRay pickRay = qApp->getRayPickManager().getPickRay(_rayPickUID);
+const RayPickResult LaserPointer::getPrevRayPickResult() {
+    QReadLocker lock(getLock());
+    return DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID);
+}
+
+void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState) {
     if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(pickRay.origin));
@@ -182,17 +192,66 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 }
 
 void LaserPointer::update() {
+    // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
+    QReadLocker lock(getLock());
     RayPickResult prevRayPickResult = DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID);
-    if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() && prevRayPickResult.type != IntersectionType::NONE) {
-        updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, prevRayPickResult.distance, prevRayPickResult.objectID, false);
+    if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
+            (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
+        float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;
+        updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
     } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
         disableRenderState(_renderStates[_currentRenderState]);
-        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), true);
+        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), prevRayPickResult.searchRay, true);
     } else if (!_currentRenderState.empty()) {
         disableRenderState(_renderStates[_currentRenderState]);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
     }
+}
+
+void LaserPointer::setPrecisionPicking(const bool precisionPicking) {
+    QWriteLocker lock(getLock());
+    DependencyManager::get<RayPickScriptingInterface>()->setPrecisionPicking(_rayPickUID, precisionPicking);
+}
+
+void LaserPointer::setLaserLength(const float laserLength) {
+    QWriteLocker lock(getLock());
+    _laserLength = laserLength;
+}
+
+void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay) {
+    QWriteLocker lock(getLock());
+    _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay);
+}
+
+void LaserPointer::setIgnoreEntities(const QScriptValue& ignoreEntities) {
+    QWriteLocker lock(getLock());
+    DependencyManager::get<RayPickScriptingInterface>()->setIgnoreEntities(_rayPickUID, ignoreEntities);
+}
+
+void LaserPointer::setIncludeEntities(const QScriptValue& includeEntities) {
+    QWriteLocker lock(getLock());
+    DependencyManager::get<RayPickScriptingInterface>()->setIncludeEntities(_rayPickUID, includeEntities);
+}
+
+void LaserPointer::setIgnoreOverlays(const QScriptValue& ignoreOverlays) {
+    QWriteLocker lock(getLock());
+    DependencyManager::get<RayPickScriptingInterface>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays);
+}
+
+void LaserPointer::setIncludeOverlays(const QScriptValue& includeOverlays) {
+    QWriteLocker lock(getLock());
+    DependencyManager::get<RayPickScriptingInterface>()->setIncludeOverlays(_rayPickUID, includeOverlays);
+}
+
+void LaserPointer::setIgnoreAvatars(const QScriptValue& ignoreAvatars) {
+    QWriteLocker lock(getLock());
+    DependencyManager::get<RayPickScriptingInterface>()->setIgnoreAvatars(_rayPickUID, ignoreAvatars);
+}
+
+void LaserPointer::setIncludeAvatars(const QScriptValue& includeAvatars) {
+    QWriteLocker lock(getLock());
+    DependencyManager::get<RayPickScriptingInterface>()->setIncludeAvatars(_rayPickUID, includeAvatars);
 }
 
 RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID) :

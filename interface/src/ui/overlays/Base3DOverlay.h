@@ -41,13 +41,15 @@ public:
     bool getIsSolidLine() const { return !_isDashedLine; }
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
+    bool getDrawHUDLayer() const { return _drawHUDLayer; }
     bool getIsGrabbable() const { return _isGrabbable; }
 
     void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
-    void setDrawInFront(bool value) { _drawInFront = value; }
+    virtual void setDrawInFront(bool value) { _drawInFront = value; }
+    virtual void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
 
     virtual AABox getBounds() const override = 0;
@@ -72,7 +74,7 @@ protected:
     virtual void parentDeleted() override;
 
     mutable Transform _renderTransform;
-    virtual Transform evalRenderTransform() const;
+    virtual Transform evalRenderTransform();
     virtual void setRenderTransform(const Transform& transform);
     const Transform& getRenderTransform() const { return _renderTransform; }
 
@@ -81,6 +83,7 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
+    bool _drawHUDLayer;
     bool _isGrabbable { false };
     mutable bool _renderTransformDirty{ true };
 

@@ -92,16 +92,6 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool { return qApp->getDesktopTabletBecomesToolbarSetting(); };
-        auto setter = [](bool value) { qApp->setDesktopTabletBecomesToolbarSetting(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Desktop Tablet Becomes Toolbar", getter, setter));
-    }
-    {
-        auto getter = []()->bool { return qApp->getHmdTabletBecomesToolbarSetting(); };
-        auto setter = [](bool value) { qApp->setHmdTabletBecomesToolbarSetting(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "HMD Tablet Becomes Toolbar", getter, setter));
-    }
-    {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
@@ -342,30 +332,6 @@ void setupPreferences() {
                 preference->setItems(mainViewShadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
-        }
-        {
-            auto getter = []()->bool { return image::isColorTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setColorTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Color Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isNormalTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setNormalTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Normal Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isGrayscaleTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setGrayscaleTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Grayscale Textures", getter, setter);
-            preferences->addPreference(preference);
-        }
-        {
-            auto getter = []()->bool { return image::isCubeTexturesCompressionEnabled(); };
-            auto setter = [](bool value) { return image::setCubeTexturesCompressionEnabled(value); };
-            auto preference = new CheckPreference(RENDER, "Compress Cube Textures", getter, setter);
-            preferences->addPreference(preference);
         }
     }
     {

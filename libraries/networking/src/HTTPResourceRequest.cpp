@@ -141,6 +141,8 @@ void HTTPResourceRequest::onRequestFinished() {
                 }
             }
 
+            recordBytesDownloadedInStats(STAT_HTTP_RESOURCE_TOTAL_BYTES, _data.size());
+
             break;
 
         case QNetworkReply::TimeoutError:
@@ -201,11 +203,8 @@ void HTTPResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytesT
     _sendTimer->start();
 
     emit progress(bytesReceived, bytesTotal);
-	
-    // Recording HTTP bytes downloaded in stats
-    DependencyManager::get<StatTracker>()->updateStat(STAT_HTTP_RESOURCE_TOTAL_BYTES, bytesReceived);
-	
-	
+
+    recordBytesDownloadedInStats(STAT_HTTP_RESOURCE_TOTAL_BYTES, bytesReceived);
 }
 
 void HTTPResourceRequest::onTimeout() {

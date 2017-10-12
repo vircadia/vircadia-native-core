@@ -288,7 +288,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_SPREAD, radiusSpread);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
+
+    // Certifiable Properties
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_DESCRIPTION, itemDescription);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_CATEGORIES, itemCategories);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_ARTIST, itemArtist);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_LICENSE, itemLicense);
+    CHECK_PROPERTY_CHANGE(PROP_LIMITED_RUN, limitedRun);
     CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
+    CHECK_PROPERTY_CHANGE(PROP_EDITION_NUMBER, editionNumber);
+    CHECK_PROPERTY_CHANGE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
+    CHECK_PROPERTY_CHANGE(PROP_CERTIFICATE_ID, certificateID);
+
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
@@ -405,7 +417,19 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACTION_DATA, actionData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
+
+    // Certifiable Properties
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_NAME, itemName);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_DESCRIPTION, itemDescription);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_CATEGORIES, itemCategories);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_ARTIST, itemArtist);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_LICENSE, itemLicense);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIMITED_RUN, limitedRun);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MARKETPLACE_ID, marketplaceID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EDITION_NUMBER, editionNumber);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CERTIFICATE_ID, certificateID);
+
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
 
@@ -671,7 +695,19 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
+
+    // Certifiable Properties
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemDescription, QString, setItemDescription);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemCategories, QString, setItemCategories);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemArtist, QString, setItemArtist);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemLicense, QString, setItemLicense);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(limitedRun, quint32, setLimitedRun);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(editionNumber, quint32, setEditionNumber);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(entityInstanceNumber, quint32, setEntityInstanceNumber);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(certificateID, QString, setCertificateID);
+
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
@@ -809,7 +845,19 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(radiusSpread);
     COPY_PROPERTY_IF_CHANGED(radiusStart);
     COPY_PROPERTY_IF_CHANGED(radiusFinish);
+
+    // Certifiable Properties
+    COPY_PROPERTY_IF_CHANGED(itemName);
+    COPY_PROPERTY_IF_CHANGED(itemDescription);
+    COPY_PROPERTY_IF_CHANGED(itemCategories);
+    COPY_PROPERTY_IF_CHANGED(itemArtist);
+    COPY_PROPERTY_IF_CHANGED(itemLicense);
+    COPY_PROPERTY_IF_CHANGED(limitedRun);
     COPY_PROPERTY_IF_CHANGED(marketplaceID);
+    COPY_PROPERTY_IF_CHANGED(editionNumber);
+    COPY_PROPERTY_IF_CHANGED(entityInstanceNumber);
+    COPY_PROPERTY_IF_CHANGED(certificateID);
+
     COPY_PROPERTY_IF_CHANGED(name);
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
@@ -981,7 +1029,19 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
+
+        // Certifiable Properties
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_CATEGORIES, ItemCategories, itemCategories, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_ARTIST, ItemArtist, itemArtist, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_LICENSE, ItemLicense, itemLicense, QString);
+        ADD_PROPERTY_TO_MAP(PROP_LIMITED_RUN, LimitedRun, limitedRun, quint32);
         ADD_PROPERTY_TO_MAP(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
+        ADD_PROPERTY_TO_MAP(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32);
+        ADD_PROPERTY_TO_MAP(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32);
+        ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
+
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, xColor);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_AMBIENT_INTENSITY, KeyLightAmbientIntensity, keyLightAmbientIntensity, float);
@@ -1334,11 +1394,22 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
-            APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
             APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+
+            // Certifiable Properties
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, properties.getItemName());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, properties.getItemDescription());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, properties.getItemCategories());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, properties.getItemArtist());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, properties.getItemLicense());
+            APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, properties.getLimitedRun());
+            APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
+            APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
+            APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
+            APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
         }
 
         if (propertyCount > 0) {
@@ -1632,11 +1703,22 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
     }
 
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+
+    // Certifiable Properties
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_NAME, QString, setItemName);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_CATEGORIES, QString, setItemCategories);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_ARTIST, QString, setItemArtist);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_LICENSE, QString, setItemLicense);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIMITED_RUN, quint32, setLimitedRun);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
 
     return valid;
 }
@@ -1746,7 +1828,17 @@ void EntityItemProperties::markAllChanged() {
     //_alphaStartChanged = true;
     //_alphaFinishChanged = true;
 
+    // Certifiable Properties
+    _itemNameChanged = true;
+    _itemDescriptionChanged = true;
+    _itemCategoriesChanged = true;
+    _itemArtistChanged = true;
+    _itemLicenseChanged = true;
+    _limitedRunChanged = true;
     _marketplaceIDChanged = true;
+    _editionNumberChanged = true;
+    _entityInstanceNumberChanged = true;
+    _certificateIDChanged = true;
 
     _keyLight.markAllChanged();
 
@@ -2053,9 +2145,39 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (radiusFinishChanged()) {
         out += "radiusFinish";
     }
+
+    // Certifiable Properties
+    if (itemNameChanged()) {
+        out += "itemName";
+    }
+    if (itemDescriptionChanged()) {
+        out += "itemDescription";
+    }
+    if (itemCategoriesChanged()) {
+        out += "itemCategories";
+    }
+    if (itemArtistChanged()) {
+        out += "itemArtist";
+    }
+    if (itemLicenseChanged()) {
+        out += "itemLicense";
+    }
+    if (limitedRunChanged()) {
+        out += "limitedRun";
+    }
     if (marketplaceIDChanged()) {
         out += "marketplaceID";
     }
+    if (editionNumberChanged()) {
+        out += "editionNumber";
+    }
+    if (entityInstanceNumberChanged()) {
+        out += "entityInstanceNumber";
+    }
+    if (certificateIDChanged()) {
+        out += "certificateID";
+    }
+
     if (backgroundModeChanged()) {
         out += "backgroundMode";
     }

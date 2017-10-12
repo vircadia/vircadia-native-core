@@ -35,19 +35,19 @@ public:
     uint32_t interval() const { return INTERVAL; }
 
 private:
-    mutable uint64_t _start { usecTimestampNow() };
+    mutable uint64_t _expiry { usecTimestampNow() + INTERVAL * USECS_PER_MSEC};
     mutable size_t _count { 0 };
     const float _scale { powf(10, PRECISION) };
     mutable std::atomic<float> _rate;
 
     void checkRate() const {
         auto now = usecTimestampNow();
-        float currentIntervalMs = (now - _start) / (float)USECS_PER_MSEC;
-        if (currentIntervalMs > (float)INTERVAL) {
-            float currentCount = _count;
-            float intervalSeconds = currentIntervalMs / (float)MSECS_PER_SECOND;
-            _rate = roundf(currentCount / intervalSeconds * _scale) / _scale;
-            _start = now;
+        if (now > _expiry) {
+            float MSECS_PER_USEC = 0.001f;
+            float SECS_PER_MSEC = 0.001f;
+            float intervalSeconds = ((float)INTERVAL + (float)(now - _expiry) * MSECS_PER_USEC) * SECS_PER_MSEC;
+            _rate = roundf((float)_count / intervalSeconds * _scale) / _scale;
+            _expiry = now + INTERVAL * USECS_PER_MSEC;
             _count = 0;
         };
     }

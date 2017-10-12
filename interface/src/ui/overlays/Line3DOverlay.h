@@ -15,6 +15,7 @@
 
 class Line3DOverlay : public Base3DOverlay {
     Q_OBJECT
+    using Parent = Base3DOverlay;
 
 public:
     static QString const TYPE;
@@ -55,6 +56,9 @@ public:
     glm::vec3 getLocalEnd() const { return getLocalStart() + _direction * _length; }
     QUuid getEndParentID() const { return _endParentID; }
     quint16 getEndJointIndex() const { return _endParentJointIndex; }
+
+protected:
+    Transform evalRenderTransform() override;
 
 private:
     QUuid _endParentID;

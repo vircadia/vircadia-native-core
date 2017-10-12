@@ -36,6 +36,9 @@
 #include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 
+// FIXME: The server-side marketplace will soon create the certificateID. At that point, all of the DEBUG_CERT stuff will go away.
+#define DEBUG_CERT 1
+
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -62,7 +65,8 @@ class MeshProxyList;
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
-class EntityItem : public SpatiallyNestable, public ReadWriteLockable {
+class EntityItem : public QObject, public SpatiallyNestable, public ReadWriteLockable {
+    Q_OBJECT
     // These two classes manage lists of EntityItem pointers and must be able to cleanup pointers when an EntityItem is deleted.
     // To make the cleanup robust each EntityItem has backpointers to its manager classes (which are only ever set/cleared by
     // the managers themselves, hence they are fiends) whose NULL status can be used to determine which managers still need to
@@ -303,11 +307,33 @@ public:
     uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
     void rememberHasSimulationOwnershipBid() const;
 
+    // Certifiable Properties
+    QString getItemName() const;
+    void setItemName(const QString& value);
+    QString getItemDescription() const;
+    void setItemDescription(const QString& value);
+    QString getItemCategories() const;
+    void setItemCategories(const QString& value);
+    QString getItemArtist() const;
+    void setItemArtist(const QString& value);
+    QString getItemLicense() const;
+    void setItemLicense(const QString& value);
+    quint32 getLimitedRun() const;
+    void setLimitedRun(const quint32&);
     QString getMarketplaceID() const;
     void setMarketplaceID(const QString& value);
-
-    bool getShouldHighlight() const;
-    void setShouldHighlight(const bool value);
+    quint32 getEditionNumber() const;
+    void setEditionNumber(const quint32&);
+    quint32 getEntityInstanceNumber() const;
+    void setEntityInstanceNumber(const quint32&);
+    QString getCertificateID() const;
+    void setCertificateID(const QString& value);
+    QByteArray getStaticCertificateJSON() const;
+    QByteArray getStaticCertificateHash() const;
+    bool verifyStaticCertificateProperties();
+#ifdef DEBUG_CERT
+    QString computeCertificateID();
+#endif
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -526,11 +552,23 @@ protected:
     bool _locked { ENTITY_ITEM_DEFAULT_LOCKED };
     QString _userData { ENTITY_ITEM_DEFAULT_USER_DATA };
     SimulationOwner _simulationOwner;
-    QString _marketplaceID { ENTITY_ITEM_DEFAULT_MARKETPLACE_ID };
     bool _shouldHighlight { false };
     QString _name { ENTITY_ITEM_DEFAULT_NAME };
     QString _href; //Hyperlink href
     QString _description; //Hyperlink description
+
+    // Certifiable Properties
+    QString _itemName { ENTITY_ITEM_DEFAULT_ITEM_NAME };
+    QString _itemDescription { ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION };
+    QString _itemCategories { ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES };
+    QString _itemArtist { ENTITY_ITEM_DEFAULT_ITEM_ARTIST };
+    QString _itemLicense { ENTITY_ITEM_DEFAULT_ITEM_LICENSE };
+    quint32 _limitedRun { ENTITY_ITEM_DEFAULT_LIMITED_RUN };
+    QString _certificateID { ENTITY_ITEM_DEFAULT_CERTIFICATE_ID };
+    quint32 _editionNumber { ENTITY_ITEM_DEFAULT_EDITION_NUMBER };
+    quint32 _entityInstanceNumber { ENTITY_ITEM_DEFAULT_ENTITY_INSTANCE_NUMBER };
+    QString _marketplaceID { ENTITY_ITEM_DEFAULT_MARKETPLACE_ID };
+
 
     // NOTE: Damping is applied like this:  v *= pow(1 - damping, dt)
     //
