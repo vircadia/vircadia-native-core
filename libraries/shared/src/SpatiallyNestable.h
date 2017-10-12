@@ -106,7 +106,7 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
-    bool checkAndMaybeUpdateQueryAACube();
+    bool checkAndMaybeUpdateQueryAACube(bool forcePuffed = false);
     void updateQueryAACube();
 
     virtual void setQueryAACube(const AACube& queryAACube);

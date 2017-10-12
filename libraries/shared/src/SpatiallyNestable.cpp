@@ -963,19 +963,21 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
 
 const float PARENTED_EXPANSION_FACTOR = 3.0f;
 
-bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
+bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube(bool forcePuffed) {
+    bool updated = false;
     bool success = false;
     AACube maxAACube = getMaximumAACube(success);
     if (success) {
         // maybe update _queryAACube
         if (!_queryAACubeSet || (_parentID.isNull() && _children.size() == 0) || !_queryAACube.contains(maxAACube)) {
-            if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
+            if (forcePuffed || _parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
                 // make an expanded AACube centered on the object
                 float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
                 _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
             } else {
                 _queryAACube = maxAACube;
             }
+            updated = true;
 
             forEachDescendant([&](const SpatiallyNestablePointer& descendant) {
                 bool childSuccess;
@@ -991,7 +993,7 @@ bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
             _queryAACubeSet = true;
         }
     }
-    return success;
+    return updated;
 }
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
@@ -1005,6 +1007,12 @@ void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
 
 bool SpatiallyNestable::queryAACubeNeedsUpdate() const {
     if (!_queryAACubeSet) {
+        return true;
+    }
+
+    bool success;
+    AACube maxAACube = getMaximumAACube(success);
+    if (success && !_queryAACube.contains(maxAACube)) {
         return true;
     }
 

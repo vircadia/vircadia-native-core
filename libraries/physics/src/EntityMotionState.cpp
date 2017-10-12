@@ -491,6 +491,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
         return true;
     }
 
+    if (_entity->shouldSuppressLocationEdits()) {
+        return false;
+    }
+
     if (!isLocallyOwned()) {
         // we don't own the simulation
 
@@ -577,7 +581,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     }
 
     if (properties.transformChanged()) {
-        if (_entity->checkAndMaybeUpdateQueryAACube()) {
+        if (_entity->checkAndMaybeUpdateQueryAACube(true)) {
             // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
             properties.setQueryAACube(_entity->getQueryAACube());
         }

@@ -273,6 +273,8 @@ public:
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
 
+    bool isChildOfMyAvatar() const;
+
     bool getCollisionless() const;
     void setCollisionless(bool value);
 
