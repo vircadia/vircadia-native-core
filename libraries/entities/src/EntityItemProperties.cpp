@@ -224,8 +224,7 @@ using HazePair = std::pair<const HazeMode, const QString>;
 const std::array<HazePair, HAZE_MODE_ITEM_COUNT> HAZE_MODES = { {
         HazePair{ HAZE_MODE_INHERIT,{ "inherit" } },
         HazePair{ HAZE_MODE_DISABLED,{ "disabled" } },
-        HazePair{ HAZE_MODE_RANGE_ONLY,{ "range only" } },
-        HazePair{ HAZE_MODE_RANGE_ALTITUDE,{ "range+altitude" } }
+        HazePair{ HAZE_MODE_RANGE_ONLY,{ "range only" } }
 } };
 
 QString EntityItemProperties::getHazeModeAsString() const {
