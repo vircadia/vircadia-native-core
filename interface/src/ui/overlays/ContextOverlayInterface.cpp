@@ -43,10 +43,10 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
     _entityPropertyFlags += PROP_CERTIFICATE_ID;
 
-    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
-    connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
-    connect(entityTreeRenderer, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverEnterEntity(const EntityItemID&, const PointerEvent&)));
-    connect(entityTreeRenderer, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverLeaveEntity(const EntityItemID&, const PointerEvent&)));
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &ContextOverlayInterface::createOrDestroyContextOverlay);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity, this, &ContextOverlayInterface::contextOverlays_hoverEnterEntity);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity, this, &ContextOverlayInterface::contextOverlays_hoverLeaveEntity);
     connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
         if (_contextOverlayJustClicked && _hmdScriptingInterface->isMounted()) {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
@@ -59,7 +59,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
             _contextOverlayJustClicked = false;
         }
     });
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
 
     connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
