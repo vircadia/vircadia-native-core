@@ -105,7 +105,7 @@ void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, co
     const gpu::BufferView & shapeNorms = shapeData->_normalView;
     assert(shapeData->_positionView._size == shapeNorms._size);
 
-    const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
+    const gpu::BufferView::Size numItems = shapeNorms.getNumElements();
 
     outPointList.reserve((int)numItems);
 
