@@ -38,7 +38,7 @@ void JSBaker::bake() {
     QByteArray outputJS;
 
     // Call baking on inputJS and store result in outputJS 
-    bool success = bakeJS(&inputJS, &outputJS);
+    bool success = bakeJS(inputJS, outputJS);
     if (!success) {
         qCDebug(js_baking) << "Bake Failed";
         handleError("Unterminated multi-line comment");
@@ -69,9 +69,9 @@ void JSBaker::bake() {
     emit finished();
 }
 
-bool JSBaker::bakeJS(const QByteArray* inputFile, QByteArray* outputFile) {
+bool JSBaker::bakeJS(const QByteArray& inputFile, QByteArray& outputFile) {
     // Read from inputFile and write to outputFile per character 
-    QTextStream in(*inputFile, QIODevice::ReadOnly);
+    QTextStream in(inputFile, QIODevice::ReadOnly);
     QTextStream out(outputFile, QIODevice::WriteOnly);
 
     // Algorithm requires the knowledge of previous and next character for each character read
@@ -90,7 +90,7 @@ bool JSBaker::bakeJS(const QByteArray* inputFile, QByteArray* outputFile) {
         } else if (currentCharacter == '/') {
             // Check if single line comment i.e. //
             if (nextCharacter == '/') {
-                handleSingleLineComments(&in);
+                handleSingleLineComments(in);
 
                 //Start fresh after handling comments
                 previousCharacter = '\n';
@@ -98,7 +98,7 @@ bool JSBaker::bakeJS(const QByteArray* inputFile, QByteArray* outputFile) {
                 continue;
             } else if (nextCharacter == '*') {
                 // Check if multi line comment i.e. /*
-                bool success = handleMultiLineComments(&in);
+                bool success = handleMultiLineComments(in);
                 if (!success) {
                     // Errors present return false
                     return false;
@@ -175,22 +175,22 @@ bool JSBaker::bakeJS(const QByteArray* inputFile, QByteArray* outputFile) {
     return true;
 }
 
-void JSBaker::handleSingleLineComments(QTextStream* in) {
+void JSBaker::handleSingleLineComments(QTextStream& in) {
     QChar character;
-    while (!in->atEnd()) {
-        *in >> character;
+    while (!in.atEnd()) {
+        in >> character;
         if (character == '\n') {
             break;
         }
     }
 }
 
-bool JSBaker::handleMultiLineComments(QTextStream* in) {
+bool JSBaker::handleMultiLineComments(QTextStream& in) {
     QChar character;
-    while (!in->atEnd()) {
-        *in >> character;
+    while (!in.atEnd()) {
+        in >> character;
         if (character == '*') {
-            if (in->read(1) == '/') {
+            if (in.read(1) == '/') {
                 return true;
             }
         }
