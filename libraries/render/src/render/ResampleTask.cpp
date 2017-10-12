@@ -61,7 +61,6 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
-    const auto sourceSize = sourceFramebuffer->getSize();
     const auto bufferSize = resampledFrameBuffer->getSize();
     glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 

@@ -82,7 +82,7 @@ void BlurParams::setFilterGaussianTaps(int numHalfTaps, float sigma) {
     const int numTaps = 2 * numHalfTaps + 1;
     assert(numTaps <= BLUR_MAX_NUM_TAPS);
     assert(sigma > 0.0f);
-    const float inverseTwoSigmaSquared = float(0.5 / (sigma*sigma));
+    const float inverseTwoSigmaSquared = float(0.5 / double(sigma*sigma));
     float totalWeight = 1.0f;
     float weight;
     float offset;

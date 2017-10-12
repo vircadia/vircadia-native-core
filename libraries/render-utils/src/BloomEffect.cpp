@@ -41,7 +41,6 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
     assert(inputFrameBuffer->hasColor());
 
     auto inputBuffer = inputFrameBuffer->getRenderBuffer(0);
-    auto sourceViewport = args->_viewport;
     auto bufferSize = glm::ivec2(inputBuffer->getDimensions());
 
     if (!_outputBuffer || _outputBuffer->getSize() != inputFrameBuffer->getSize()) {
