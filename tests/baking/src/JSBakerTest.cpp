@@ -84,7 +84,7 @@ void JSBakerTest::testJSBaking() {
     for (int i = 0;i < _testCases.size();i++) {
         QByteArray output;
         auto input = _testCases.at(i).first;
-        JSBaker::bakeJS(&input, &output);
+        JSBaker::bakeJS(input, output);
 
         auto desiredOutput = _testCases.at(i).second;
         QCOMPARE(output, desiredOutput);
