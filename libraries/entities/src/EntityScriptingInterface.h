@@ -345,17 +345,17 @@ public slots:
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
     Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
 
-    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMousePressOnEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendMouseMoveOnEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendMouseReleaseOnEntity(EntityItemID id, PointerEvent event);
 
-    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendClickDownOnEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendHoldingClickOnEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendClickReleaseOnEntity(EntityItemID id, PointerEvent event);
 
-    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverEnterEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendHoverOverEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendHoverLeaveEntity(EntityItemID id, PointerEvent event);
 
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
@@ -402,6 +402,7 @@ signals:
     void canWriteAssetsChanged(bool canWriteAssets);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 

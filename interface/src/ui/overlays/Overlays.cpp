@@ -37,6 +37,8 @@
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
+#include "ui/overlays/ContextOverlayInterface.h"
+
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
@@ -717,27 +719,27 @@ bool Overlays::isAddedOverlay(OverlayID id) {
 }
 
 void Overlays::sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    QMetaObject::invokeMethod(this, "mousePressOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
+    mousePressEvent(overlayID, event);
 }
 
 void Overlays::sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    QMetaObject::invokeMethod(this, "mouseReleaseOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
+    emit mouseReleaseOnOverlay(overlayID, event);
 }
 
 void Overlays::sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    QMetaObject::invokeMethod(this, "mouseMoveOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
+    emit mouseMoveOnOverlay(overlayID, event);
 }
 
-void Overlays::sendHoverEnterOverlay(const OverlayID& id, const PointerEvent& event) {
-    QMetaObject::invokeMethod(this, "hoverEnterOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
+void Overlays::sendHoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    hoverEnterEvent(overlayID, event);
 }
 
-void Overlays::sendHoverOverOverlay(const OverlayID& id, const PointerEvent& event) {
-    QMetaObject::invokeMethod(this, "hoverOverOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
+void Overlays::sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    emit hoverOverOverlay(overlayID, event);
 }
 
-void Overlays::sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& event) {
-    QMetaObject::invokeMethod(this, "hoverLeaveOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
+void Overlays::sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    hoverLeaveEvent(overlayID, event);
 }
 
 OverlayID Overlays::getKeyboardFocusOverlay() {
@@ -891,27 +893,40 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
         PointerEvent pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
-        emit mousePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+        mousePressEvent(_currentClickingOnOverlayID, pointerEvent);
         return true;
     }
-    emit mousePressOffOverlay();
+    qApp->setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
     return false;
 }
 
-bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
+void Overlays::mousePressEvent(const OverlayID& overlayID, const PointerEvent& event) {
+    // Send press to context overlay
+    // contextOverlays_mousePressOnOverlay is not threadsafe and mousePressEvent can be called from scripts, so use an auto connection
+    QMetaObject::invokeMethod(DependencyManager::get<ContextOverlayInterface>().data(), "contextOverlays_mousePressOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
-    if (rayPickResult.intersects) {
-        _currentClickingOnOverlayID = rayPickResult.overlayID;
-
-        auto pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
-        emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
-        return true;
+    // Focus keyboard on web overlays
+    // TODO: generalize this to allow any entity to recieve keyboard focus
+    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    if (thisOverlay) {
+        qApp->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+        qApp->setKeyboardFocusOverlay(overlayID);
     }
-    emit mouseDoublePressOffOverlay();
-    return false;
+
+    // Send press to web overlays
+    emit mousePressOnOverlay(overlayID, event);
+}
+
+void Overlays::hoverEnterEvent(const OverlayID& overlayID, const PointerEvent& event) {
+    // Send hoverEnter to context overlay
+    // contextOverlays_hoverEnterOverlay is not threadsafe and hoverEnterEvent can be called from scripts, so use an auto connection
+    QMetaObject::invokeMethod(DependencyManager::get<ContextOverlayInterface>().data(), "contextOverlays_hoverEnterOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
+}
+
+void Overlays::hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event) {
+    // Send hoverLeave to context overlay
+    // contextOverlays_hoverLeaveOverlay is not threadsafe and hoverLeaveEvent can be called from scripts, so use an auto connection
+    QMetaObject::invokeMethod(DependencyManager::get<ContextOverlayInterface>().data(), "contextOverlays_hoverLeaveOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 }
 
 bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
@@ -940,12 +955,12 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
         // If previously hovering over a different overlay then leave hover on that overlay.
         if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
             auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
-            emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
+            hoverLeaveEvent(_currentHoverOverOverlayID, pointerEvent);
         }
 
         // If hovering over a new overlay then enter hover on that overlay.
         if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
-            emit hoverEnterOverlay(rayPickResult.overlayID, pointerEvent);
+            hoverEnterEvent(rayPickResult.overlayID, pointerEvent);
         }
 
         // Hover over current overlay.
@@ -956,7 +971,7 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
         // If previously hovering an overlay then leave hover.
         if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID) {
             auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
-            emit hoverLeaveOverlay(_currentHoverOverOverlayID, pointerEvent);
+            hoverLeaveEvent(_currentHoverOverOverlayID, pointerEvent);
 
             _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
         }

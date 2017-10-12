@@ -24,7 +24,6 @@
 #include <ui/TabletScriptingInterface.h>
 #include <EntityScriptingInterface.h>
 
-#include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 
 
@@ -240,11 +239,11 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
         }
     };
 
-    auto renderer = DependencyManager::get<EntityTreeRenderer>();
-    QObject::connect(renderer.data(), &EntityTreeRenderer::mousePressOnEntity, this, forwardPointerEvent);
-    QObject::connect(renderer.data(), &EntityTreeRenderer::mouseReleaseOnEntity, this, forwardPointerEvent);
-    QObject::connect(renderer.data(), &EntityTreeRenderer::mouseMoveOnEntity, this, forwardPointerEvent);
-    QObject::connect(renderer.data(), &EntityTreeRenderer::hoverLeaveEntity, this,
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    QObject::connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, this, forwardPointerEvent);
+    QObject::connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, forwardPointerEvent);
+    QObject::connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, forwardPointerEvent);
+    QObject::connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, this,
         [=](const EntityItemID& entityItemID, const PointerEvent& event) {
         if (this->_pressed && entity->getID() == entityItemID) {
             // If the user mouses off the entity while the button is down, simulate a touch end.
@@ -295,12 +294,12 @@ void WebEntityRenderer::destroyWebSurface() {
         }
 
         webSurface->pause();
-        auto renderer = DependencyManager::get<EntityTreeRenderer>();
-        if (renderer) {
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::mousePressOnEntity, this, nullptr);
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::mouseReleaseOnEntity, this, nullptr);
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::mouseMoveOnEntity, this, nullptr);
-            QObject::disconnect(renderer.data(), &EntityTreeRenderer::hoverLeaveEntity, this, nullptr);
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        if (entityScriptingInterface) {
+            QObject::disconnect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, this, nullptr);
+            QObject::disconnect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, nullptr);
+            QObject::disconnect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, nullptr);
+            QObject::disconnect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, this, nullptr);
         }
         webSurface.reset();
     }

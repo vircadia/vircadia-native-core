@@ -277,18 +277,6 @@ public:
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
 
-    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
-
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
@@ -388,7 +376,6 @@ public slots:
     void setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions);
 
     QUuid getKeyboardFocusEntity() const;  // thread-safe
-    void setKeyboardFocusEntity(QUuid id);
     void setKeyboardFocusEntity(EntityItemID entityItemID);
 
     OverlayID getKeyboardFocusOverlay();
