@@ -146,6 +146,22 @@ function createEmitTextPropertyUpdateFunction(propertyName) {
     };
 }
 
+function createHazeModeChangedFunction(zoneHazeModeInherit, zoneHazeModeDisabled, zoneHazeModeEnabled) {
+    return function() {
+        var hazeMode;
+
+        if (zoneHazeModeInherit.checked) {
+            hazeMode = 'inherit';
+        } else if (zoneHazeModeDisabled.checked) {
+            hazeMode = 'disabled';
+        } else if (zoneHazeModeEnabled.checked) {
+            hazeMode = 'enabled';
+        }
+
+        updateProperty('hazeMode', hazeMode);
+    }
+}
+
 function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
     return function() {
         var properties = {};
@@ -657,7 +673,9 @@ function loaded() {
         var elZoneKeyLightDirectionZ = document.getElementById("property-zone-key-light-direction-z");
         var elZoneKeyLightAmbientURL = document.getElementById("property-zone-key-ambient-url");
 
-        var elZoneHazeMode = document.getElementById("property-zone-haze-mode");
+        var elZoneHazeModeInherit = document.getElementById("property-zone-haze-mode-inherit");
+        var elZoneHazeModeDisabled = document.getElementById("property-zone-haze-mode-disabled");
+        var elZoneHazeModeEnabled = document.getElementById("property-zone-haze-mode-enabled");
         
         var elZoneHazeRange = document.getElementById("property-zone-haze-range");
         var elZoneHazeBlendInColor = document.getElementById("property-zone-haze-blend-in-color");
@@ -1018,8 +1036,9 @@ function loaded() {
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
                             elZoneKeyLightAmbientURL.value = properties.keyLight.ambientURL;
 
-                            elZoneHazeMode.value = properties.hazeMode;
-                            setDropdownText(elZoneHazeMode);
+                            elZoneHazeModeInherit.checked = (properties.hazeMode == 'inherit');
+                            elZoneHazeModeDisabled.checked = (properties.hazeMode == 'disabled');
+                            elZoneHazeModeEnabled.checked = (properties.hazeMode == 'enabled');
 
                             elZoneHazeRange.value = properties.haze.hazeRange.toFixed(0);
                             elZoneHazeBlendInColor.style.backgroundColor = "rgb(" + 
@@ -1448,7 +1467,10 @@ function loaded() {
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-        elZoneHazeMode.addEventListener('change', createEmitTextPropertyUpdateFunction('hazeMode'));
+        var hazeModeChanged = createHazeModeChangedFunction(elZoneHazeModeInherit, elZoneHazeModeDisabled, elZoneHazeModeEnabled)
+        elZoneHazeModeInherit.addEventListener('change', hazeModeChanged);
+        elZoneHazeModeDisabled.addEventListener('change', hazeModeChanged);
+        elZoneHazeModeEnabled.addEventListener('change', hazeModeChanged);
 
         elZoneHazeRange.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeRange'));
 

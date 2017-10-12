@@ -547,14 +547,11 @@
                 <legend class="sub-section-header zone-group zone-section haze-section">
                     Haze
                 </legend>
-                <div class="zone-group zone-section haze-section property dropdown">
-                    <label>Haze Mode</label>
-                    <select name="SelectHazeMode" id="property-zone-haze-mode">
-                        <option value="inherit">Inherit</option>
-                        <option value="disabled">Disabled</option>
-                        <option value="range only">Enabled</option>
-                    </select>
-                </div>
+                <form>
+                  <input type="radio" name="hazeMode" value="inherit" id="property-zone-haze-mode-inherit" checked> Inherit
+                  <input type="radio" name="hazeMode" value="disabled" id="property-zone-haze-mode-disabled"> Off
+                  <input type="radio" name="hazeMode" value="enabled" id="property-zone-haze-mode-enabled"> On
+                </form>
                 <fieldset class="zone-group zone-section haze-section property gen fstuple">
                     <div class="tuple">
                         <div><label>Range<span class="unit">m</span></label><input type="number" id="property-zone-haze-range" min="5" max="10000" step="5"></div>
@@ -573,10 +570,6 @@
                     </fieldset>
                 </fieldset>
                 <fieldset class="zone-group zone-section haze-section property rgb fstuple">
-                    <div class="zone-group zone-section haze-section property checkbox">
-                        <input type="checkbox" id="property-zone-haze-enable-light-blend">
-                        <label for="property-zone-haze-enable-light-blend">Enable Glare</label>
-                    </div>
                     <div class="color-picker" id="property-zone-haze-blend-in-color"></div>
                     <legend>Haze Color</legend>
                     <div class="tuple">
@@ -588,6 +581,10 @@
                           <label for="property-zone-haze-blend-in-color-blue">Blue:</label></div>
                     </div>
                 </fieldset>
+                <div class="zone-group zone-section haze-section property checkbox">
+                    <input type="checkbox" id="property-zone-haze-enable-light-blend">
+                    <label for="property-zone-haze-enable-light-blend">Enable Glare</label>
+                </div>
                 <fieldset class="zone-group zone-section haze-section property rgb fstuple">
                     <div class="color-picker" id="property-zone-haze-blend-out-color"></div>
                     <legend>Glare Color</legend>
@@ -602,7 +599,7 @@
                 </fieldset>
                 <fieldset class="zone-group zone-section haze-section property gen fstuple">
                     <div class="tuple">
-                        <div><label>Blend Angle<span class="unit">deg</span></label><input type="number" id="property-zone-haze-blend-angle" min="0" max="180" step="1"></div>
+                        <div><label>Glare Angle<span class="unit">deg</span></label><input type="number" id="property-zone-haze-blend-angle" min="0" max="180" step="1"></div>
                     </div>
                  </fieldset>
                 <fieldset class="zone-group zone-section haze-section property gen fstuple">
