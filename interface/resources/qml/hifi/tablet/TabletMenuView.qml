@@ -73,6 +73,7 @@ FocusScope {
             onImplicitWidthChanged: listView !== null ? listView.recalcSize() : 0
 
             MouseArea {
+                enabled: name !== "" && item.enabled
                 anchors.fill: parent
                 hoverEnabled: true
                 onEntered: {
