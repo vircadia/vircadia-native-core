@@ -152,12 +152,12 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
         name: "homeButtonHighlight",
-        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.019 },
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
         localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
         solid: true,
         outerRadius: 25 * tabletScaleFactor,
-        innerRadius: 17 * tabletScaleFactor,
+        innerRadius: 20 * tabletScaleFactor,
         ignoreIntersection: true,
         alpha: 1.0,
         color: { red: 255, green: 255, blue: 255 },
