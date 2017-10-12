@@ -302,11 +302,12 @@ FocusScope {
         for (var i = 0; i < desktop.visibleChildren.length; i++) {
             var child = desktop.visibleChildren[i];
             if (child.hasOwnProperty("modality")) {
-                var mappedPoint = child.mapFromGlobal(point.x, point.y);
+                var mappedPoint = mapToItem(child, point.x, point.y);
                 if (child.hasOwnProperty("frame")) {
                     var outLine = child.frame.children[2];
                     var framePoint = outLine.mapFromGlobal(point.x, point.y);
                     if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
+                        console.log("it should not be here");
                         return true;
                     }
                 }
