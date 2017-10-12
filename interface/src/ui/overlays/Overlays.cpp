@@ -884,7 +884,10 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
         mousePressEvent(_currentClickingOnOverlayID, pointerEvent);
         return true;
     }
+    // if we didn't press on an overlay, disable overlay keyboard focus
     qApp->setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    // emit to scripts
+    emit mousePressOffOverlay();
     return false;
 }
 
@@ -903,12 +906,36 @@ void Overlays::mousePressEvent(const OverlayID& overlayID, const PointerEvent& e
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
+
+    // emit to scripts
+    emit mousePressOnOverlay(overlayID, event);
+}
+
+bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
+    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
+
+    PickRay ray = qApp->computePickRay(event->x(), event->y());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionForMouseEvent(ray);
+    if (rayPickResult.intersects) {
+        _currentClickingOnOverlayID = rayPickResult.overlayID;
+
+        auto pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
+        // emit to scripts
+        emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
+        return true;
+    }
+    // emit to scripts
+    emit mouseDoublePressOffOverlay();
+    return false;
 }
 
 void Overlays::hoverEnterEvent(const OverlayID& overlayID, const PointerEvent& event) {
     // Send hoverEnter to context overlay
     // contextOverlays_hoverEnterOverlay is not threadsafe and hoverEnterEvent can be called from scripts, so use an auto connection
     QMetaObject::invokeMethod(DependencyManager::get<ContextOverlayInterface>().data(), "contextOverlays_hoverEnterOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
+
+    // emit to scripts
+    emit hoverEnterOverlay(overlayID, event);
 }
 
 void Overlays::hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event) {
@@ -922,6 +949,9 @@ void Overlays::hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& e
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "hoverLeaveOverlay", Q_ARG(PointerEvent, event));
     }
+
+    // emit to scripts
+    emit hoverLeaveOverlay(overlayID, event);
 }
 
 bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
@@ -945,6 +975,9 @@ void Overlays::mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent&
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
+
+    // emit to scripts
+    emit mouseReleaseOnOverlay(overlayID, event);
 }
 
 bool Overlays::mouseMoveEvent(QMouseEvent* event) {
@@ -990,6 +1023,9 @@ void Overlays::mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& ev
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
+
+    // emit to scripts
+    emit mouseMoveOnOverlay(overlayID, event);
 }
 
 QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {

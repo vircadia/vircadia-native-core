@@ -103,6 +103,7 @@ public:
     OverlayID addOverlay(const Overlay::Pointer& overlay);
 
     bool mousePressEvent(QMouseEvent* event);
+    bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);
     bool mouseMoveEvent(QMouseEvent* event);
 
@@ -320,8 +321,18 @@ signals:
     void overlayDeleted(OverlayID id);
     void panelDeleted(OverlayID id);
 
-    // FIXME: nothing connects to this signal anymore
+    // Nothing should need to connect to these signals in C++
+    // They are only for scripts to connect to
+    void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
+    void mouseDoublePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
+    void mouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event);
+    void mouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event);
+    void mousePressOffOverlay();
+    void mouseDoublePressOffOverlay();
+
+    void hoverEnterOverlay(OverlayID overlayID, const PointerEvent& event);
     void hoverOverOverlay(OverlayID overlayID, const PointerEvent& event);
+    void hoverLeaveOverlay(OverlayID overlayID, const PointerEvent& event);
 
 private:
     void cleanupOverlaysToDelete();

@@ -3302,6 +3302,7 @@ void Application::mouseDoublePressEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
+        getOverlays().mouseDoublePressEvent(&mappedEvent);
         if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
             getEntities()->mouseDoublePressEvent(&mappedEvent);
         }
