@@ -348,7 +348,8 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeEnableLightBlend(_hazeProperties.getHazeEnableLightBlend());
     haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(_hazeProperties.getHazeLightBlendAngle()));
 
-    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeAltitude()));
+    float hazeAltitude = _hazeProperties.getHazeCeiling() - _hazeProperties.getHazeBaseRef();
+    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
     haze->setHazeBaseReference(_hazeProperties.getHazeBaseRef());
 
     haze->setHazeBackgroundBlendValue(_hazeProperties.getHazeBackgroundBlend());

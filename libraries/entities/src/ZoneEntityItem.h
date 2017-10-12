@@ -84,8 +84,8 @@ public:
     void setHazeLightBlendAngle(const float hazeLightBlendAngle);
     float getHazeLightBlendAngle() const;
 
-    void setHazeAltitude(const float hazeAltitude);
-    float getHazeAltitude() const;
+    void setHazeCeiling(const float hazeCeiling);
+    float getHazeCeiling() const;
     void setHazeBaseRef(const float hazeBaseRef);
     float getHazeBaseRef() const;
 
@@ -154,7 +154,7 @@ protected:
     bool _hazeEnableLightBlend{ false };
     float _hazeLightBlendAngle{ HazePropertyGroup::DEFAULT_HAZE_LIGHT_BLEND_ANGLE };
 
-    float _hazeAltitude{ HazePropertyGroup::DEFAULT_HAZE_ALTITUDE };
+    float _hazeCeiling{ HazePropertyGroup::DEFAULT_HAZE_CEILING };
     float _hazeBaseRef{ HazePropertyGroup::DEFAULT_HAZE_BASE_REF };
 
     float _hazeBackgroundBlend{ HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND };

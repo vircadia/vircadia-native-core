@@ -79,7 +79,7 @@ public:
     static const xColor DEFAULT_HAZE_BLEND_OUT_COLOR;
     static const float DEFAULT_HAZE_LIGHT_BLEND_ANGLE;
 
-    static const float DEFAULT_HAZE_ALTITUDE;
+    static const float DEFAULT_HAZE_CEILING;
     static const float DEFAULT_HAZE_BASE_REF;
 
     static const float DEFAULT_HAZE_BACKGROUND_BLEND;
@@ -95,7 +95,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float, DEFAULT_HAZE_LIGHT_BLEND_ANGLE);
 
     // Range & Altitude parameters
-    DEFINE_PROPERTY_REF(PROP_HAZE_ALTITUDE, HazeAltitude, hazeAltitude, float, DEFAULT_HAZE_ALTITUDE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_ALTITUDE, HazeCeiling, hazeCeiling, float, DEFAULT_HAZE_CEILING);
     DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, DEFAULT_HAZE_BASE_REF);
 
     // Background (skybox) blend value

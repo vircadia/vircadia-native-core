@@ -374,13 +374,13 @@ float ZoneEntityItem::getHazeLightBlendAngle() const {
     return _hazeLightBlendAngle;
 }
 
-void ZoneEntityItem::setHazeAltitude(const float hazeAltitude) {
-    _hazeAltitude = hazeAltitude;
+void ZoneEntityItem::setHazeCeiling(const float hazeCeiling) {
+    _hazeCeiling = hazeCeiling;
     _hazePropertiesChanged = true;
 }
 
-float ZoneEntityItem::getHazeAltitude() const {
-    return _hazeAltitude;
+float ZoneEntityItem::getHazeCeiling() const {
+    return _hazeCeiling;
 }
 
 void ZoneEntityItem::setHazeBaseRef(const float hazeBaseRef) {

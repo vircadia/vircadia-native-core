@@ -145,9 +145,9 @@ namespace SceneScripting {
         void setHazeLightBlendAngle(float value);
         float getHazeLightBlendAngle() const;
 
-        Q_PROPERTY(float hazeAltitude READ getHazeAltitude WRITE setHazeAltitude)
-        void setHazeAltitude(float value);
-        float getHazeAltitude() const;
+        Q_PROPERTY(float hazeCeiling READ getHazeCeiling WRITE setHazeCeiling)
+        void setHazeCeiling(float value);
+        float getHazeCeiling() const;
 
         Q_PROPERTY(float hazeBaseRef READ getHazeBaseRef WRITE setHazeBaseRef)
         void setHazeBaseRef(float value);

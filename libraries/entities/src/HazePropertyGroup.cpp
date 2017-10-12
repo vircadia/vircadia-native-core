@@ -20,7 +20,7 @@ const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR{ 128, 154, 179 };   
 const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_OUT_COLOR{ 255, 229, 179 };   // Yellowish
 const float HazePropertyGroup::DEFAULT_HAZE_LIGHT_BLEND_ANGLE{ 20.0 };
 
-const float HazePropertyGroup::DEFAULT_HAZE_ALTITUDE{ 200.0f };
+const float HazePropertyGroup::DEFAULT_HAZE_CEILING{ 200.0f };
 const float HazePropertyGroup::DEFAULT_HAZE_BASE_REF{ 0.0f };
 
 const float HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND{ 0.0f };
@@ -35,7 +35,7 @@ void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_ENABLE_LIGHT_BLEND, Haze, haze, HazeEnableLightBlend, hazeEnableLightBlend);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_LIGHT_BLEND_ANGLE, Haze, haze, HazeLightBlendAngle, hazeLightBlendAngle);
 
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_ALTITUDE, Haze, haze, HazeAltitude, hazeAltitude);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_ALTITUDE, Haze, haze, HazeCeiling, hazeCeiling);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
 
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
@@ -52,7 +52,7 @@ void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _d
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeEnableLightBlend, bool, setHazeEnableLightBlend);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeLightBlendAngle, float, setHazeLightBlendAngle);
 
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeAltitude, float, setHazeAltitude);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeCeiling, float, setHazeCeiling);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBaseRef, float, setHazeBaseRef);
 
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBackgroundBlend, float, setHazeBackgroundBlend);
@@ -69,7 +69,7 @@ void HazePropertyGroup::merge(const HazePropertyGroup& other) {
     COPY_PROPERTY_IF_CHANGED(hazeEnableLightBlend);
     COPY_PROPERTY_IF_CHANGED(hazeLightBlendAngle);
 
-    COPY_PROPERTY_IF_CHANGED(hazeAltitude);
+    COPY_PROPERTY_IF_CHANGED(hazeCeiling);
     COPY_PROPERTY_IF_CHANGED(hazeBaseRef);
 
     COPY_PROPERTY_IF_CHANGED(hazeBackgroundBlend);
@@ -88,7 +88,7 @@ void HazePropertyGroup::debugDump() const {
     qCDebug(entities) << "            _hazeEnableLightBlend:" << _hazeEnableLightBlend;
     qCDebug(entities) << "            _hazeLightBlendAngle:" << _hazeLightBlendAngle;
 
-    qCDebug(entities) << "            _hazeAltitude:" << _hazeAltitude;
+    qCDebug(entities) << "            _hazeCeiling:" << _hazeCeiling;
     qCDebug(entities) << "            _hazeBaseRef:" << _hazeBaseRef;
 
     qCDebug(entities) << "            _hazeBackgroundBlend:" << _hazeBackgroundBlend;
@@ -115,8 +115,8 @@ void HazePropertyGroup::listChangedProperties(QList<QString>& out) {
         out << "haze-hazeLightBlendAngle";
     }
 
-    if (hazeAltitudeChanged()) {
-        out << "haze-hazeAltitude";
+    if (hazeCeilingChanged()) {
+        out << "haze-hazeCeiling";
     }
     if (hazeBaseRefChanged()) {
         out << "haze-hazeBaseRef";
@@ -152,7 +152,7 @@ bool HazePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     APPEND_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, getHazeEnableLightBlend());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, getHazeLightBlendAngle());
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, getHazeAltitude());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, getHazeCeiling());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BASE_REF, getHazeBaseRef());
 
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, getHazeBackgroundBlend());
@@ -176,7 +176,7 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     READ_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, bool, setHazeEnableLightBlend);
     READ_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, float, setHazeLightBlendAngle);
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, float, setHazeAltitude);
+    READ_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, float, setHazeCeiling);
     READ_ENTITY_PROPERTY(PROP_HAZE_BASE_REF, float, setHazeBaseRef);
 
     READ_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, float, setHazeBackgroundBlend);
@@ -191,7 +191,7 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_ENABLE_LIGHT_BLEND, HazeEnableLightBlend);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle);
 
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_ALTITUDE, HazeAltitude);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_ALTITUDE, HazeCeiling);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_BASE_REF, HazeBaseRef);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend);
@@ -214,7 +214,7 @@ void HazePropertyGroup::markAllChanged() {
     _hazeEnableLightBlendChanged = true;
     _hazeLightBlendAngleChanged = true;
 
-    _hazeAltitudeChanged = true;
+    _hazeCeilingChanged = true;
     _hazeBaseRefChanged = true;
 
     _hazeBackgroundBlendChanged = true;
@@ -233,7 +233,7 @@ EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_HAZE_ENABLE_LIGHT_BLEND, hazeEnableLightBlend);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_LIGHT_BLEND_ANGLE, hazeLightBlendAngle);
 
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_ALTITUDE, hazeAltitude);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_ALTITUDE, hazeCeiling);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_BASE_REF, hazeBaseRef);
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_BACKGROUND_BLEND, hazeBackgroundBlend);
@@ -252,7 +252,7 @@ void HazePropertyGroup::getProperties(EntityItemProperties& properties) const {
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeEnableLightBlend, getHazeEnableLightBlend);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeLightBlendAngle, getHazeLightBlendAngle);
 
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeAltitude, getHazeAltitude);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeCeiling, getHazeCeiling);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeBaseRef, getHazeBaseRef);
 
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeBackgroundBlend, getHazeBackgroundBlend);
@@ -271,7 +271,7 @@ bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeEnableLightBlend, hazeEnableLightBlend, setHazeEnableLightBlend);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeLightBlendAngle, hazeLightBlendAngle, setHazeLightBlendAngle);
 
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeAltitude, hazeAltitude, setHazeAltitude);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeCeiling, hazeCeiling, setHazeCeiling);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeBaseRef, hazeBaseRef, setHazeBaseRef);
 
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeBackgroundBlend, hazeBackgroundBlend, setHazeBackgroundBlend);
@@ -320,7 +320,7 @@ void HazePropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeB
     APPEND_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, getHazeEnableLightBlend());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, getHazeLightBlendAngle());
 
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, getHazeAltitude());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, getHazeCeiling());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BASE_REF, getHazeBaseRef());
 
     APPEND_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, getHazeBackgroundBlend());
@@ -344,7 +344,7 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
     READ_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, bool, setHazeEnableLightBlend);
     READ_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, float, setHazeLightBlendAngle);
 
-    READ_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, float, setHazeAltitude);
+    READ_ENTITY_PROPERTY(PROP_HAZE_ALTITUDE, float, setHazeCeiling);
     READ_ENTITY_PROPERTY(PROP_HAZE_BASE_REF, float, setHazeBaseRef);
 
     READ_ENTITY_PROPERTY(PROP_HAZE_BACKGROUND_BLEND, float, setHazeBackgroundBlend);

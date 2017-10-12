@@ -180,11 +180,11 @@ float SceneScripting::Stage::getHazeLightBlendAngle() const {
     return _skyStage->getHazeLightBlendAngle();
 }
 
-void SceneScripting::Stage::setHazeAltitude(const float hazeAltitude) {
-    _skyStage->setHazeAltitude(hazeAltitude);
+void SceneScripting::Stage::setHazeCeiling(const float hazeCeiling) {
+    _skyStage->setHazeCeiling(hazeCeiling);
 }
-float SceneScripting::Stage::getHazeAltitude() const {
-    return _skyStage->getHazeAltitude();
+float SceneScripting::Stage::getHazeCeiling() const {
+    return _skyStage->getHazeCeiling();
 }
 void SceneScripting::Stage::setHazeBaseRef(const float hazeBaseRef) {
     _skyStage->setHazeBaseRef(hazeBaseRef);

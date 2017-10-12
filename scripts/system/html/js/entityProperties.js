@@ -671,8 +671,8 @@ function loaded() {
         var elZoneHazeEnableLightBlend = document.getElementById("property-zone-haze-enable-light-blend");
         var elZoneHazeLightBlendAngle = document.getElementById("property-zone-haze-blend-angle");
         
-        var elZoneHazeAltitude = document.getElementById("property-zone-haze-altitude");
-        var elZoneHazeBaseRef = document.getElementById("property-zone-haze-altitude-base");
+        var elZoneHazeBaseRef = document.getElementById("property-zone-haze-base");
+        var elZoneHazeCeiling = document.getElementById("property-zone-haze-ceiling");
 
         var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
         
@@ -1043,8 +1043,8 @@ function loaded() {
                             elZoneHazeEnableLightBlend.checked = properties.haze.hazeEnableLightBlend;
                             elZoneHazeLightBlendAngle.value = properties.haze.hazeLightBlendAngle.toFixed(0);
 
-                            elZoneHazeAltitude.value = properties.haze.hazeAltitude.toFixed(0);
                             elZoneHazeBaseRef.value = properties.haze.hazeBaseRef.toFixed(0);
+                            elZoneHazeCeiling.value = properties.haze.hazeCeiling.toFixed(0);
 
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
 
@@ -1503,7 +1503,7 @@ function loaded() {
         elZoneHazeEnableLightBlend.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableLightBlend'));
         elZoneHazeLightBlendAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeLightBlendAngle'));
 
-        elZoneHazeAltitude.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeAltitude'));
+        elZoneHazeCeiling.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeCeiling'));
         elZoneHazeBaseRef.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBaseRef'));
 
         elZoneHazeBackgroundBlend.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
