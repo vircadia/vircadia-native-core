@@ -247,6 +247,9 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
 
+        // Tablet inteference with Tablet.qml. Need to avoid this in QML space
+        _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
+
         tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
         // mark the TabletProxy object as cpp ownership.
         QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
