@@ -2383,8 +2383,8 @@ void Application::initializeUi() {
 }
 
 void Application::updateCamera(RenderArgs& renderArgs) {
-    PROFILE_RANGE(render, "/updateCamera");
-    PerformanceTimer perfTimer("CameraUpdates");
+    PROFILE_RANGE(render, __FUNCTION__);
+    PerformanceTimer perfTimer("updateCamera");
 
     glm::vec3 boomOffset;
     auto myAvatar = getMyAvatar();
@@ -2600,7 +2600,7 @@ void Application::resizeGL() {
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
-    PROFILE_RANGE(render, "HandleSandboxStatus");
+    PROFILE_RANGE(render, __FUNCTION__);
 
     bool sandboxIsRunning = SandboxUtils::readStatus(reply->readAll());
     qDebug() << "HandleSandboxStatus" << sandboxIsRunning;
@@ -4595,7 +4595,6 @@ void Application::updateDialogs(float deltaTime) const {
 static bool domainLoadingInProgress = false;
 
 void Application::update(float deltaTime) {
-
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
 
     if (!_physicsEnabled) {
@@ -4790,11 +4789,11 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     {
-        PROFILE_RANGE_EX(simulation_physics, "Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PROFILE_RANGE(simulation_physics, "Physics");
         PerformanceTimer perfTimer("physics");
         if (_physicsEnabled) {
             {
-                PROFILE_RANGE_EX(simulation_physics, "UpdateStates", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PROFILE_RANGE(simulation_physics, "PreStep");
 
                 PerformanceTimer perfTimer("updateStates)");
                 static VectorOfMotionStates motionStates;
@@ -4828,14 +4827,14 @@ void Application::update(float deltaTime) {
                 });
             }
             {
-                PROFILE_RANGE_EX(simulation_physics, "StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PROFILE_RANGE(simulation_physics, "Step");
                 PerformanceTimer perfTimer("stepSimulation");
                 getEntities()->getTree()->withWriteLock([&] {
                     _physicsEngine->stepSimulation();
                 });
             }
             {
-                PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PROFILE_RANGE(simulation_physics, "PostStep");
                 PerformanceTimer perfTimer("harvestChanges");
                 if (_physicsEngine->hasOutgoingChanges()) {
                     // grab the collision events BEFORE handleOutgoingChanges() because at this point
@@ -4843,6 +4842,7 @@ void Application::update(float deltaTime) {
                     auto& collisionEvents = _physicsEngine->getCollisionEvents();
 
                     getEntities()->getTree()->withWriteLock([&] {
+                        PROFILE_RANGE(simulation_physics, "Harvest");
                         PerformanceTimer perfTimer("handleOutgoingChanges");
 
                         const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
@@ -4855,18 +4855,25 @@ void Application::update(float deltaTime) {
 
                     if (!_aboutToQuit) {
                         // handleCollisionEvents() AFTER handleOutgoinChanges()
-                        PerformanceTimer perfTimer("entities");
-                        avatarManager->handleCollisionEvents(collisionEvents);
-                        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                        // deadlock.)
-                        _entitySimulation->handleCollisionEvents(collisionEvents);
+                        {
+                            PROFILE_RANGE(simulation_physics, "CollisionEvents");
+                            PerformanceTimer perfTimer("entities");
+                            avatarManager->handleCollisionEvents(collisionEvents);
+                            // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                            // deadlock.)
+                            _entitySimulation->handleCollisionEvents(collisionEvents);
+                        }
 
+                        PROFILE_RANGE(simulation_physics, "UpdateEntities");
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                         getEntities()->update(true); // update the models...
                     }
 
-                    myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+                    {
+                        PROFILE_RANGE(simulation_physics, "MyAvatar");
+                        myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+                    }
 
                     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
                             Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
@@ -4885,13 +4892,13 @@ void Application::update(float deltaTime) {
     // AvatarManager update
     {
         {
+            PROFILE_RANGE(simulation, "OtherAvatars");
             PerformanceTimer perfTimer("otherAvatars");
-            PROFILE_RANGE_EX(simulation, "OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
 
         {
-            PROFILE_RANGE_EX(simulation, "MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE(simulation, "MyAvatar");
             PerformanceTimer perfTimer("MyAvatar");
             qApp->updateMyAvatarLookAtPosition();
             avatarManager->updateMyAvatar(deltaTime);

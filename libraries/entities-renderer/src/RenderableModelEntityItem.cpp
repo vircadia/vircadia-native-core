@@ -107,6 +107,7 @@ QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextu
 }
 
 void RenderableModelEntityItem::doInitialModelSimulation() {
+    PROFILE_RANGE(simulation_physics, __FUNCTION__);
     ModelPointer model = getModel();
     if (!model) {
         return;
@@ -124,7 +125,6 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     model->setRotation(getRotation());
     model->setTranslation(getPosition());
     {
-        PerformanceTimer perfTimer("model->simulate");
         model->simulate(0.0f);
     }
     _needsInitialSimulation = false;
@@ -138,6 +138,7 @@ void RenderableModelEntityItem::autoResizeJointArrays() {
 }
 
 bool RenderableModelEntityItem::needsUpdateModelBounds() const {
+    PROFILE_RANGE(simulation_physics, __FUNCTION__);
     ModelPointer model = getModel();
     if (!hasModel() || !model) {
         return false;
@@ -182,6 +183,7 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
 }
 
 void RenderableModelEntityItem::updateModelBounds() {
+    PROFILE_RANGE(simulation_physics, "updateModelBounds");
     if (needsUpdateModelBounds()) {
         doInitialModelSimulation();
         _needsJointSimulation = false;
@@ -1124,6 +1126,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
 }
 
 void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1213,12 +1216,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->setVisibleInScene(_visible, scene);
     }
 
-    //entity->doInitialModelSimulation();
-    if (model->needsFixupInScene()) {
-        model->removeFromScene(scene, transaction);
-        render::Item::Status::Getters statusGetters;
-        makeStatusGetters(entity, statusGetters);
-        model->addToScene(scene, transaction, statusGetters);
+    {
+        PROFILE_RANGE(simulation_physics, "Fixup");
+        if (model->needsFixupInScene()) {
+            model->removeFromScene(scene, transaction);
+            render::Item::Status::Getters statusGetters;
+            makeStatusGetters(entity, statusGetters);
+            model->addToScene(scene, transaction, statusGetters);
+        }
     }
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
@@ -1227,16 +1232,20 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->updateRenderItems();
     }
 
-    // make a copy of the animation properites
-    auto newAnimationProperties = entity->getAnimationProperties();
-    if (newAnimationProperties != _renderAnimationProperties) {
-        withWriteLock([&] {
-            _renderAnimationProperties = newAnimationProperties;
-            _currentFrame = _renderAnimationProperties.getCurrentFrame();
-        });
+    {
+        PROFILE_RANGE(simulation_physics, "CheckAnimation");
+        // make a copy of the animation properites
+        auto newAnimationProperties = entity->getAnimationProperties();
+        if (newAnimationProperties != _renderAnimationProperties) {
+            withWriteLock([&] {
+                _renderAnimationProperties = newAnimationProperties;
+                _currentFrame = _renderAnimationProperties.getCurrentFrame();
+            });
+        }
     }
 
     if (_animating) {
+        PROFILE_RANGE(simulation_physics, "Animate");
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }

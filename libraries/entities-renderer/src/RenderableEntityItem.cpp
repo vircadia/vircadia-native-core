@@ -271,6 +271,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
+    PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (!isValidRenderItem()) {
         return;
     }
@@ -330,6 +331,7 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
 }
 
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
+    PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
         auto transparent = isTransparent();
         if (_prevIsTransparent && !transparent) {
