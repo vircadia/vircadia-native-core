@@ -1018,17 +1018,8 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
     }
 }
 
-static void forEachKeyboard(QQuickItem* item, std::function<void(QQuickItem*)> function) {
-    QObject* itemObject = item;
-    while (itemObject) {
-        if (itemObject->parent()) {
-            itemObject = itemObject->parent();
-        } else {
-            break;
-        }
-    }
-
-    auto keyboards = itemObject->findChildren<QObject*>("keyboard");
+static void forEachKeyboard(QQuickItem* parent, std::function<void(QQuickItem*)> function) {
+    auto keyboards = parent->findChildren<QObject*>("keyboard");
 
     for (auto keyboardObject : keyboards) {
         auto keyboard = qobject_cast<QQuickItem*>(keyboardObject);
@@ -1043,6 +1034,19 @@ static void forEachKeyboard(QQuickItem* item, std::function<void(QQuickItem*)> f
 }
 
 static const int TEXTINPUT_PASSWORD = 2;
+
+static QQuickItem* getTopmostParent(QQuickItem* item) {
+    QObject* itemObject = item;
+    while (itemObject) {
+        if (itemObject->parent()) {
+            itemObject = itemObject->parent();
+        } else {
+            break;
+        }
+    }
+
+    return qobject_cast<QQuickItem*> (itemObject);
+}
 
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
 #if Q_OS_ANDROID
@@ -1066,10 +1070,14 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         // we need to somehow pass 'isPasswordField' to visible keyboard so it will change its 'mirror text' to asterixes
         // the issue in some cases there might be more than one keyboard in object tree and it is hard to understand which one is being used at the moment
         // unfortunately attempts to check for visibility failed becuase visibility is not updated yet. So... I don't see other way than just update properties for all the keyboards
-        forEachKeyboard(item, [&](QQuickItem* keyboard) {
-            keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
-            keyboard->setProperty("password", isPasswordField);
-        });
+
+        auto topmostParent = getTopmostParent(item);
+        if (topmostParent) {
+            forEachKeyboard(topmostParent, [&](QQuickItem* keyboard) {
+                keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
+                keyboard->setProperty("password", isPasswordField);
+            });
+        }
 
         // for future probably makes sense to consider one of the following:
         // 1. make keyboard a singleton, which will be dynamically re-parented before showing
@@ -1081,6 +1089,11 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
             numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
 
             if (item->property("keyboardRaised").isValid()) {
+                forEachKeyboard(item, [&](QQuickItem* keyboard) {
+                    keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
+                    keyboard->setProperty("password", isPasswordField);
+                });
+
                 // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
                 if (item->property("punctuationMode").isValid()) {
                     item->setProperty("punctuationMode", QVariant(numeric));
