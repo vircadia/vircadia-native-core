@@ -1767,9 +1767,6 @@ void EntityItem::updateParentID(const QUuid& value) {
 }
 
 void EntityItem::updatePositionFromNetwork(const glm::vec3& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     updatePosition(value);
 }
 
@@ -1796,9 +1793,6 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
 }
 
 void EntityItem::updateRotationFromNetwork(const glm::quat& rotation) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     updateRotation(rotation);
 }
 
@@ -1853,16 +1847,10 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::updateVelocityFromNetwork(const glm::vec3& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     updateVelocity(value);
 }
 
 void EntityItem::updateQueryAACubeFromNetwork(const AACube& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     setQueryAACube(value);
 }
 
@@ -1918,9 +1906,6 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAngularVelocityFromNetwork(const glm::vec3& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     updateAngularVelocity(value);
 }
 
