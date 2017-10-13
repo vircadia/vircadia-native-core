@@ -377,7 +377,8 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     bool hasColors { mesh.colors.size() > 0 };
                     bool hasTexCoords { mesh.texCoords.size() > 0 };
                     bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
-                    bool hasPerFaceMaterials { mesh.parts.size() > 1 };
+                    bool hasPerFaceMaterials { mesh.parts.size() > 1
+                        || extractedMesh.partMaterialTextures[0].first != 0 };
                     bool needsOriginalIndices { hasDeformers };
 
                     int normalsAttributeID { -1 };
