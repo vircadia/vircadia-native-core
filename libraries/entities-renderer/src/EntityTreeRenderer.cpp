@@ -72,7 +72,11 @@ EntityRendererPointer EntityTreeRenderer::renderableForEntityId(const EntityItem
 
 render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& id) const {
     auto renderable = renderableForEntityId(id);
-    return renderable ? renderable->getRenderItemID() : render::Item::INVALID_ITEM_ID;
+    if (renderable) {
+        return renderable->getRenderItemID();
+    } else {
+        return render::Item::INVALID_ITEM_ID;
+    }
 }
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
