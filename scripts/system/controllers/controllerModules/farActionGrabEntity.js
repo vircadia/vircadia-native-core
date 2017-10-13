@@ -8,7 +8,7 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
+   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
@@ -238,7 +238,7 @@ Script.include("/~/system/libraries/controllers.js");
                 tag: "far-grab-" + MyAvatar.sessionUUID,
                 ttl: ACTION_TTL
             });
-            if (this.actionID === NULL_UUID) {
+            if (this.actionID === Uuid.NULL) {
                 this.actionID = null;
             }
 

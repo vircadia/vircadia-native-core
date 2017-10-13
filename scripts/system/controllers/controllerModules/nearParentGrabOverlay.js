@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
    NEAR_GRAB_RADIUS
@@ -130,9 +130,9 @@ Script.include("/~/system/libraries/utils.js");
 
         this.endNearParentingGrabOverlay = function () {
             var previousParentID = this.previousParentID[this.grabbedThingID];
-            if ((previousParentID === NULL_UUID || previousParentID === null) && !this.robbed) {
+            if ((previousParentID === Uuid.NULL || previousParentID === null) && !this.robbed) {
                 Overlays.editOverlay(this.grabbedThingID, {
-                    parentID: NULL_UUID,
+                    parentID: Uuid.NULL,
                     parentJointIndex: -1
                 });
             } else if (!this.robbed){

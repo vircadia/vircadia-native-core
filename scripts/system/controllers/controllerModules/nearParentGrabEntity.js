@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
@@ -120,7 +120,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             this.hapticTargetID = null;
             var props = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
             if (this.thisHandIsParent(props)) {
-                if (this.previousParentID[this.targetEntityID] === NULL_UUID || this.previousParentID === undefined) {
+                if (this.previousParentID[this.targetEntityID] === Uuid.NULL || this.previousParentID === undefined) {
                     Entities.editEntity(this.targetEntityID, {
                         parentID: this.previousParentID[this.targetEntityID],
                         parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
@@ -193,7 +193,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                         var UNHOOK_LOOP_DETECT_MS = 200;
                         if (_this.previouslyUnhooked[childID]) {
                             if (now - _this.previouslyUnhooked[childID] < UNHOOK_LOOP_DETECT_MS) {
-                                previousParentID = NULL_UUID;
+                                previousParentID = Uuid.NULL;
                                 previousParentJointIndex = -1;
                             }
                         }
@@ -204,7 +204,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                             parentJointIndex: previousParentJointIndex
                         });
                     } else {
-                        Entities.editEntity(childID, { parentID: NULL_UUID });
+                        Entities.editEntity(childID, { parentID: Uuid.NULL });
                     }
                 });
             }
@@ -253,7 +253,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             if (targetProps) {
                 if ((propsArePhysical(targetProps) || propsAreCloneDynamic(targetProps)) &&
-                    targetProps.parentID == NULL_UUID) {
+                    targetProps.parentID === Uuid.NULL) {
                     return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
@@ -268,7 +268,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.run = function (controllerData, deltaTime) {
             if (this.grabbing) {
                 if (controllerData.triggerClicks[this.hand] < TRIGGER_OFF_VALUE &&
-                    controllerData.secondaryValues[this.hand] <  TRIGGER_OFF_VALUE) {
+                    controllerData.secondaryValues[this.hand] < TRIGGER_OFF_VALUE) {
                     this.endNearParentingGrabEntity(controllerData);
                     return makeRunningValues(false, [], []);
                 }

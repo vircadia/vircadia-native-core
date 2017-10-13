@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
+   enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
    AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
    getEnabledModuleByName
@@ -286,7 +286,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // add the tabletScreen, if it is valid
-            if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID &&
+            if (HMD.tabletScreenID && HMD.tabletScreenID !== Uuid.NULL &&
                 Overlays.getProperty(HMD.tabletScreenID, "visible")) {
                 stylusTarget = TouchEventUtils.calculateTouchTargetFromOverlay(this.stylusTip, HMD.tabletScreenID);
                 if (stylusTarget) {
@@ -295,7 +295,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // add the tablet home button.
-            if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID &&
+            if (HMD.homeButtonID && HMD.homeButtonID !== Uuid.NULL &&
                 Overlays.getProperty(HMD.homeButtonID, "visible")) {
                 stylusTarget = TouchEventUtils.calculateTouchTargetFromOverlay(this.stylusTip, HMD.homeButtonID);
                 if (stylusTarget) {

@@ -7,7 +7,7 @@
 
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
    cloneEntity, DISPATCHER_PROPERTIES
@@ -333,7 +333,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var props = controllerData.nearbyEntityPropertiesByID[hotspot.entityID];
 
             var hasParent = true;
-            if (props.parentID === NULL_UUID) {
+            if (props.parentID === Uuid.NULL) {
                 hasParent = false;
             }
 
@@ -539,7 +539,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         this.endEquipEntity = function () {
             Entities.editEntity(this.targetEntityID, {
-                parentID: NULL_UUID,
+                parentID: Uuid.NULL,
                 parentJointIndex: -1
             });
 

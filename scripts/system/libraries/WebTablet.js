@@ -25,7 +25,6 @@ var ROT_LANDSCAPE = {x: 1.0, y: 1.0, z: 0, w: 0};
 var ROT_LANDSCAPE_WINDOW = {x: 0.0, y: 0.0, z: 0.0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
-var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
 var NO_HANDS = -1;
 var DELAY_FOR_30HZ = 33; // milliseconds
@@ -100,7 +99,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
-        parentID: AVATAR_SELF_ID,
+        parentID: Uuid.SELF,
         visible: visible
     };
 
@@ -414,7 +413,7 @@ WebTablet.prototype.register = function() {
 
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
-    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(Uuid.SELF, jointIndex));
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
         if (props.name === "WebTablet Tablet") {
