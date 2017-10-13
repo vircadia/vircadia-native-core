@@ -161,12 +161,18 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                     auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
                     parseAudioData(message.getType(), afterProperties);
                 } else {
-                    qDebug(audio) << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket << "writing silence";
+                    qDebug(audio) << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket;
 
-                    // Since the data in the stream is using a codec that we aren't prepared for,
-                    // we need to let the codec know that we don't have data for it, this will
-                    // allow the codec to interpolate missing data and produce a fade to silence.
-                    lostAudioData(1);
+                    if (packetPCM) {
+                        // If there are PCM packets in-flight while the codec is changed, use them.
+                        auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
+                        _ringBuffer.writeData(afterProperties.data(), afterProperties.size());
+                    } else {
+                        // Since the data in the stream is using a codec that we aren't prepared for,
+                        // we need to let the codec know that we don't have data for it, this will
+                        // allow the codec to interpolate missing data and produce a fade to silence.
+                        lostAudioData(1);
+                    }
 
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
