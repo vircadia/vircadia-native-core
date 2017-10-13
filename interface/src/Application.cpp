@@ -79,8 +79,6 @@
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
 #include <gpu/gl/GLBackend.h>
-#include <HFActionEvent.h>
-#include <HFBackEvent.h>
 #include <InfoView.h>
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
@@ -2858,10 +2856,6 @@ bool Application::event(QEvent* event) {
             break;
     }
 
-    if (HFActionEvent::types().contains(event->type())) {
-        _controllerScriptingInterface->handleMetaEvent(static_cast<HFMetaEvent*>(event));
-    }
-
     return QApplication::event(event);
 }
 
@@ -3166,25 +3160,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 getMyAvatar()->resetSize();
                 break;
-            case Qt::Key_Space: {
-                if (!event->isAutoRepeat()) {
-                    // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                    // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   computePickRay(getMouse().x, getMouse().y));
-                    sendEvent(this, &startActionEvent);
-                }
-
-                break;
-            }
             case Qt::Key_Escape: {
                 getActiveDisplayPlugin()->abandonCalibration();
-                if (!event->isAutoRepeat()) {
-                    // this starts the HFCancelEvent
-                    HFBackEvent startBackEvent(HFBackEvent::startType());
-                    sendEvent(this, &startBackEvent);
-                }
-
                 break;
             }
 
@@ -3209,30 +3186,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
-    }
-
-    switch (event->key()) {
-        case Qt::Key_Space: {
-            if (!event->isAutoRepeat()) {
-                // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
-                // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             computePickRay(getMouse().x, getMouse().y));
-                sendEvent(this, &endActionEvent);
-            }
-            break;
-        }
-        case Qt::Key_Escape: {
-            if (!event->isAutoRepeat()) {
-                // this ends the HFCancelEvent
-                HFBackEvent endBackEvent(HFBackEvent::endType());
-                sendEvent(this, &endBackEvent);
-            }
-            break;
-        }
-        default:
-            event->ignore();
-            break;
     }
 }
 
@@ -3370,13 +3323,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
-
-        if (event->button() == Qt::LeftButton) {
-            // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
-        }
     }
 }
 
@@ -3430,13 +3376,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
     if (hasFocus()) {
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mouseReleaseEvent(event);
-        }
-
-        if (event->button() == Qt::LeftButton) {
-            // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(),
-                computePickRay(mappedEvent.x(), mappedEvent.y()));
-            sendEvent(this, &actionEvent);
         }
     }
 }
@@ -4024,8 +3963,13 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
-bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset) {
+bool Application::exportEntities(const QString& filename,
+                                 const QVector<EntityItemID>& entityIDs,
+                                 const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myAvatarID = nodeList->getSessionUUID();
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
@@ -4042,8 +3986,12 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
             if (!givenOffset) {
                 EntityItemID parentID = entityItem->getParentID();
-                if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
-                    auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+                bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == myAvatarID);
+                if (!parentIsAvatar && (parentID.isInvalidID() ||
+                                        !entityIDs.contains(parentID) ||
+                                        !entityTree->findEntityByEntityItemID(parentID))) {
+                    // If parent wasn't selected, we want absolute position, which isn't in properties.
+                    auto position = entityItem->getPosition();
                     root.x = glm::min(root.x, position.x);
                     root.y = glm::min(root.y, position.y);
                     root.z = glm::min(root.z, position.z);
@@ -4063,12 +4011,16 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         for (EntityItemPointer& entityDatum : entities) {
             auto properties = entityDatum->getProperties();
             EntityItemID parentID = properties.getParentID();
-            if (parentID.isInvalidID()) {
-                properties.setPosition(properties.getPosition() - root);
+            bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == myAvatarID);
+            if (parentIsAvatar) {
+                properties.setParentID(AVATAR_SELF_ID);
+            } else {
+                if (parentID.isInvalidID()) {
+                    properties.setPosition(properties.getPosition() - root);
+                } else if (!entities.contains(parentID)) {
+                    entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
+                } // else valid parent -- don't offset
             }
-            else if (!entities.contains(parentID)) {
-                entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
-            } // else valid parent -- don't offset
             exportTree->addEntity(entityDatum->getEntityItemID(), properties);
         }
     });
