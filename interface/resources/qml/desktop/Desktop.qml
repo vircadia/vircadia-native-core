@@ -306,8 +306,7 @@ FocusScope {
                 if (child.hasOwnProperty("frame")) {
                     var outLine = child.frame.children[2];
                     var framePoint = outLine.mapFromGlobal(point.x, point.y);
-                    if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
-                        console.log("it should not be here");
+                    if (outLine.contains(framePoint)) {
                         return true;
                     }
                 }
