@@ -16,11 +16,12 @@
 #include "DeferredFramebuffer.h"
 #include "DeferredFrameTransform.h"
 
-class OutlineFramebuffer {
+class OutlineRessources {
 public:
-    OutlineFramebuffer();
+    OutlineRessources();
 
-    gpu::FramebufferPointer getDepthFramebuffer();
+    gpu::FramebufferPointer getFramebuffer();
+    gpu::TexturePointer getIDTexture();
     gpu::TexturePointer getDepthTexture();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
@@ -32,30 +33,31 @@ protected:
     void clear();
     void allocate();
 
-    gpu::FramebufferPointer _depthFramebuffer;
+    gpu::FramebufferPointer _frameBuffer;
     gpu::TexturePointer _depthTexture;
+    gpu::TexturePointer _idTexture;
 
     glm::ivec2 _frameSize;
 };
 
-using OutlineFramebufferPointer = std::shared_ptr<OutlineFramebuffer>;
+using OutlineRessourcesPointer = std::shared_ptr<OutlineRessources>;
 
-class DrawOutlineDepth {
+class DrawOutlineMask {
 public:
 
     using Inputs = render::VaryingSet2<render::ShapeBounds, DeferredFramebufferPointer>;
     // Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
-    using Outputs = OutlineFramebufferPointer;
-    using JobModel = render::Job::ModelIO<DrawOutlineDepth, Inputs, Outputs>;
+    using Outputs = OutlineRessourcesPointer;
+    using JobModel = render::Job::ModelIO<DrawOutlineMask, Inputs, Outputs>;
 
-    DrawOutlineDepth(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    DrawOutlineMask(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
 
 protected:
 
     render::ShapePlumberPointer _shapePlumber;
-    OutlineFramebufferPointer _outlineFramebuffer;
+    OutlineRessourcesPointer _outlineRessources;
 };
 
 class DrawOutlineConfig : public render::Job::Config {
@@ -93,7 +95,7 @@ signals:
 
 class DrawOutline {
 public:
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineFramebufferPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
     using Config = DrawOutlineConfig;
     using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
 
@@ -146,7 +148,7 @@ signals:
 
 class DebugOutline {
 public:
-    using Inputs = OutlineFramebufferPointer;
+    using Inputs = OutlineRessourcesPointer;
     using Config = DebugOutlineConfig;
     using JobModel = render::Job::ModelI<DebugOutline, Inputs, Config>;
 
@@ -176,6 +178,9 @@ public:
     void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
+private:
+
+    static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
 };
 
 #endif // hifi_render_utils_OutlineEffect_h
