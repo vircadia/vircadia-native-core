@@ -37,8 +37,6 @@
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
-#include "ui/overlays/ContextOverlayInterface.h"
-
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
@@ -731,7 +729,7 @@ void Overlays::sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerE
 }
 
 void Overlays::sendHoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    hoverEnterEvent(overlayID, event);
+    emit hoverEnterOverlay(overlayID, event);
 }
 
 void Overlays::sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event) {
@@ -892,10 +890,6 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
 }
 
 void Overlays::mousePressEvent(const OverlayID& overlayID, const PointerEvent& event) {
-    // Send press to context overlay
-    // contextOverlays_mousePressOnOverlay is not threadsafe and mousePressEvent can be called from scripts, so use an auto connection
-    QMetaObject::invokeMethod(DependencyManager::get<ContextOverlayInterface>().data(), "contextOverlays_mousePressOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
-
     // TODO: generalize this to allow any overlay to recieve events
     auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
     if (thisOverlay) {
@@ -929,20 +923,7 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
     return false;
 }
 
-void Overlays::hoverEnterEvent(const OverlayID& overlayID, const PointerEvent& event) {
-    // Send hoverEnter to context overlay
-    // contextOverlays_hoverEnterOverlay is not threadsafe and hoverEnterEvent can be called from scripts, so use an auto connection
-    QMetaObject::invokeMethod(DependencyManager::get<ContextOverlayInterface>().data(), "contextOverlays_hoverEnterOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
-
-    // emit to scripts
-    emit hoverEnterOverlay(overlayID, event);
-}
-
 void Overlays::hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event) {
-    // Send hoverLeave to context overlay
-    // contextOverlays_hoverLeaveOverlay is not threadsafe and hoverLeaveEvent can be called from scripts, so use an auto connection
-    QMetaObject::invokeMethod(DependencyManager::get<ContextOverlayInterface>().data(), "contextOverlays_hoverLeaveOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
-
     // TODO: generalize this to allow any overlay to recieve events
     auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
     if (thisOverlay) {
@@ -997,7 +978,7 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
 
         // If hovering over a new overlay then enter hover on that overlay.
         if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
-            hoverEnterEvent(rayPickResult.overlayID, pointerEvent);
+            emit hoverEnterOverlay(rayPickResult.overlayID, pointerEvent);
         }
 
         // Hover over current overlay.

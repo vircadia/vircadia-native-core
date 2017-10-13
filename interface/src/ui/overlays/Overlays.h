@@ -110,7 +110,6 @@ public:
     void mousePressEvent(const OverlayID& overlayID, const PointerEvent& event);
     void mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& event);
     void mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent& event);
-    void hoverEnterEvent(const OverlayID& overlayID, const PointerEvent& event);
     void hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event);
 
     void cleanupAllOverlays();
@@ -321,8 +320,6 @@ signals:
     void overlayDeleted(OverlayID id);
     void panelDeleted(OverlayID id);
 
-    // Nothing should need to connect to these signals in C++
-    // They are only for scripts to connect to
     void mousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void mouseDoublePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void mouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event);
