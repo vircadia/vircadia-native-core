@@ -457,7 +457,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             // if they've changed.
             entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
                 if (descendant->getNestableType() == NestableType::Entity) {
-                    if (descendant->checkAndMaybeUpdateQueryAACube()) {
+                    if (descendant->updateQueryAACube()) {
                         EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
                         EntityItemProperties newQueryCubeProperties;
                         newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());

@@ -1804,7 +1804,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
                 addToNeedsParentFixupList(entity);
             }
             entity->forceQueryAACubeUpdate();
-            entity->checkAndMaybeUpdateQueryAACube();
+            entity->updateQueryAACube();
             moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
             i++;
         } else {

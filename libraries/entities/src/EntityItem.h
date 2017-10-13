@@ -240,6 +240,7 @@ public:
 
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
+    virtual bool shouldPuffQueryAACube() const override;
 
     QString getScript() const;
     void setScript(const QString& value);

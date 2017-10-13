@@ -1392,8 +1392,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
 
-    AACube saveQueryAACube = _queryAACube;
-    if (checkAndMaybeUpdateQueryAACube() && saveQueryAACube != _queryAACube) {
+    if (updateQueryAACube()) {
         somethingChanged = true;
     }
 
@@ -1557,6 +1556,9 @@ AACube EntityItem::getQueryAACube(bool& success) const {
     return result;
 }
 
+bool EntityItem::shouldPuffQueryAACube() const {
+    return hasActions() || isChildOfMyAvatar();
+}
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension
