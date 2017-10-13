@@ -222,7 +222,7 @@ Item {
                 Rectangle {
                     anchors.centerIn: parent
                     opacity: index === pageIndicator.currentIndex ? 0.95 : pressed ? 0.7 : 0.45
-                    implicitWidth: index == pageIndicator.currentIndex ? 15 : 10
+                    implicitWidth: index === pageIndicator.currentIndex ? 15 : 10
                     implicitHeight: implicitWidth
                     radius: width/2
                     color: "white"
@@ -232,9 +232,17 @@ Item {
                         }
                     }
                 }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        if (index !== swipeView.currentIndex) {
+                            swipeView.currentIndex = index
+                        }
+                    }
+                }
             }
 
-            interactive: true
+            interactive: false
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
             count: swipeView.count
