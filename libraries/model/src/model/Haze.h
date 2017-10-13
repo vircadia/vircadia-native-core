@@ -82,7 +82,7 @@ namespace model {
         void setAltitudeBased(const bool isAltitudeBased);
         void setHazeAttenuateKeyLight(const bool isHazeAttenuateKeyLight);
         void setModulateColorActive(const bool isModulateColorActive);
-        void setHazeEnableLightBlend(const bool isHazeEnableLightBlend);
+        void setHazeEnableGlare(const bool isHazeEnableGlare);
 
         void setHazeRangeFactor(const float hazeRange);
         void setHazeAltitudeFactor(const float hazeAltitude);

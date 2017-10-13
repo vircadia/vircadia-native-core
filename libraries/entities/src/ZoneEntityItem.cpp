@@ -356,13 +356,13 @@ xColor ZoneEntityItem::getHazeGlareColor()const {
     return _hazeGlareColor;
 }
 
-void ZoneEntityItem::setHazeEnableLightBlend(const bool hazeEnableLightBlend) {
-    _hazeEnableLightBlend = hazeEnableLightBlend;
+void ZoneEntityItem::setHazeEnableGlare(const bool hazeEnableGlare) {
+    _hazeEnableGlare = hazeEnableGlare;
     _hazePropertiesChanged = true;
 }
 
-bool ZoneEntityItem::getHazeEnableLightBlend()const {
-    return _hazeEnableLightBlend;
+bool ZoneEntityItem::getHazeEnableGlare()const {
+    return _hazeEnableGlare;
 }
 
 void ZoneEntityItem::setHazeLightBlendAngle(const float hazeLightBlendAngle) {

@@ -192,8 +192,8 @@ public:
     xColor getHazeColor() { return _hazeColor; }
     void setHazeGlareColor(const xColor hazeGlareColor) { _hazeGlareColor = hazeGlareColor; }
     xColor getHazeGlareColor() const { return _hazeGlareColor; }
-    void setHazeEnableLightBlend(bool hazeEnableLightBlend) { _hazeEnableLightBlend = hazeEnableLightBlend; }
-    bool getHazeEnableLightBlend() const { return _hazeEnableLightBlend; }
+    void setHazeEnableGlare(bool hazeEnableGlare) { _hazeEnableGlare = hazeEnableGlare; }
+    bool getHazeEnableGlare() const { return _hazeEnableGlare; }
     void setHazeLightBlendAngle(float hazeLightBlendAngle) { _hazeLightBlendAngle = hazeLightBlendAngle; }
     float getHazeLightBlendAngle() const { return _hazeLightBlendAngle; }
 
@@ -222,7 +222,7 @@ protected:
     float _hazeRange;
     xColor _hazeColor;
     xColor _hazeGlareColor;
-    bool _hazeEnableLightBlend;
+    bool _hazeEnableGlare;
     float _hazeLightBlendAngle;
 
     bool _hazeAltitudeEffect;

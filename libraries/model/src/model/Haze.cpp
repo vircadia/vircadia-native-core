@@ -45,13 +45,13 @@ void Haze::setHazeColor(const glm::vec3 hazeColor) {
     }
  }
 
-void Haze::setHazeEnableLightBlend(const bool isHazeEnableLightBlend) {
+void Haze::setHazeEnableGlare(const bool isHazeEnableGlare) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && !isHazeEnableLightBlend) {
+    if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && !isHazeEnableGlare) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_ENABLE_LIGHT_BLEND;
     }
-    else if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) != HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && isHazeEnableLightBlend) {
+    else if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) != HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && isHazeEnableGlare) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_ENABLE_LIGHT_BLEND;
     }
 }
