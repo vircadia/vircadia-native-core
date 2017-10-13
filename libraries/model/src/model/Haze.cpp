@@ -31,32 +31,19 @@ enum HazeModes {
 // For color modulated mode, the colour values are used as range values, which are then converted to range factors
 // This is separate for each colour.
 // The colour value is converted from [0.0 .. 1.0] to [5.0 .. 3000.0]
+const float OFFSET = 5.0f;
+const float BIAS = (3000.0f - 5.0f) / (1.0f - 0.0f);
 void Haze::setHazeColor(const glm::vec3 hazeColor) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (params.hazeColor.r != hazeColor.r) {
-        _hazeParametersBuffer.edit<Parameters>().hazeColor.r = hazeColor.r;
+    if (params.hazeColor != hazeColor) {
+        _hazeParametersBuffer.edit<Parameters>().hazeColor = hazeColor;
 
-        float range = hazeColor.r * 2995.0f + 5.0f;
-        float factor = convertHazeRangeToHazeRangeFactor(range);
-        _hazeParametersBuffer.edit<Parameters>().colorModulationFactor.r = factor;
+        glm::vec3 range = hazeColor * BIAS + OFFSET;
+        glm::vec3 factor = convertHazeRangeToHazeRangeFactor(range);
+        _hazeParametersBuffer.edit<Parameters>().colorModulationFactor = factor;
     }
-    if (params.hazeColor.g != hazeColor.g) {
-        _hazeParametersBuffer.edit<Parameters>().hazeColor.g = hazeColor.g;
-
-        float range = hazeColor.g * 2995.0f + 5.0f;
-        float factor = convertHazeRangeToHazeRangeFactor(range);
-        _hazeParametersBuffer.edit<Parameters>().colorModulationFactor.g = factor;
-    }
-
-    if (params.hazeColor.b != hazeColor.b) {
-        _hazeParametersBuffer.edit<Parameters>().hazeColor.b = hazeColor.b;
-
-        float range = hazeColor.b * 2995.0f + 5.0f;
-        float factor = convertHazeRangeToHazeRangeFactor(range);
-        _hazeParametersBuffer.edit<Parameters>().colorModulationFactor.b = factor;
-    }
-}
+ }
 
 void Haze::setHazeEnableLightBlend(const bool isHazeEnableLightBlend) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
