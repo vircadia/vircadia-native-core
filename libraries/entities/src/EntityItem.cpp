@@ -1557,7 +1557,7 @@ AACube EntityItem::getQueryAACube(bool& success) const {
 }
 
 bool EntityItem::shouldPuffQueryAACube() const {
-    return hasActions() || isChildOfMyAvatar();
+    return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent();
 }
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
