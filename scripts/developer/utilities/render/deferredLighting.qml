@@ -16,19 +16,43 @@ import "../lib/hifi-qml/controls-uit" as HifiControls
 import "../lib/configprop"
 
 Rectangle {
-    id: render;
     HifiConstants { id: hifi;}
+    id: render;   
+    anchors.margins: hifi.dimensions.contentMargin.x
+    
     color: hifi.colors.baseGray;
        property var mainViewTask: Render.getConfig("RenderMainView")
-
+   
+    Row {
+        anchors.left: parent.left
+        anchors.right: parent.right 
+        anchors.margins: 10      
     Column {
-        spacing: 10
-         
+        padding: 10
+        spacing: 5
+
+       // width: parent.width
+        anchors.left: parent.left
+        anchors.right: parent.right       
+       // padding: hifi.dimensions.contentMargin.x
+
+         ConfigSlider {                    
+            label: qsTr("ToneMapping")
+            integral: false
+            config: render.mainViewTask.getConfig("ToneMapping")
+            property: "exposure"
+            max: 2
+            min: 0
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+        }
+      
         Row {
             
             spacing: 20
             padding: 10
-            Column {
+            Column { 
                 spacing: 10
                 Repeater {
                     model: [
@@ -248,5 +272,6 @@ Rectangle {
                 }
             }
         }
+    }
     }
 }
