@@ -969,7 +969,7 @@ bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube(bool forcePuffed) {
     AACube maxAACube = getMaximumAACube(success);
     if (success) {
         // maybe update _queryAACube
-        if (!_queryAACubeSet || (_parentID.isNull() && _children.size() == 0) || !_queryAACube.contains(maxAACube)) {
+        if (!_queryAACubeSet || !_queryAACube.contains(maxAACube)) {
             if (forcePuffed || _parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
                 // make an expanded AACube centered on the object
                 float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
