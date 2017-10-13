@@ -15,6 +15,7 @@
 
 #include <FBXBaker.h>
 #include <PathUtils.h>
+#include <JSBaker.h>
 
 BakeAssetTask::BakeAssetTask(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) :
     _assetHash(assetHash),
@@ -51,6 +52,10 @@ void BakeAssetTask::run() {
         tempOutputDir = PathUtils::generateTemporaryDir();
         _baker = std::unique_ptr<FBXBaker> {
             new FBXBaker(QUrl("file:///" + _filePath), fn, tempOutputDir)
+        };
+    } else if (_assetPath.endsWith(".js", Qt::CaseInsensitive)) {
+        _baker = std::unique_ptr<JSBaker>{
+            new JSBaker(QUrl("file:///" + _filePath), PathUtils::generateTemporaryDir())
         };
     } else {
         tempOutputDir = PathUtils::generateTemporaryDir();
