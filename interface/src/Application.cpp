@@ -275,7 +275,7 @@ private:
         switch ((int)event->type()) {
             case ApplicationEvent::Render:
                 render();
-                qApp->_pendingRenderEventCount--;
+                qApp->_pendingRenderEvent.store(false);
                 return true;
 
             default:
@@ -2723,13 +2723,12 @@ bool Application::importFromZIP(const QString& filePath) {
 
 // thread-safe
 void Application::onPresent(quint32 frameCount) {
-    if (_pendingIdleEventCount.load() == 0) {
-        _pendingIdleEventCount++;
+    bool expected = false;
+    if (_pendingIdleEvent.compare_exchange_strong(expected, true)) {
         postEvent(this, new QEvent((QEvent::Type)ApplicationEvent::Idle), Qt::HighEventPriority);
     }
-
-    if (_renderEventHandler && !isAboutToQuit() && _pendingRenderEventCount.load() == 0) {
-        _pendingRenderEventCount++;
+    expected = false;
+    if (_renderEventHandler && !isAboutToQuit() && _pendingRenderEvent.compare_exchange_strong(expected, true)) {
         postEvent(_renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
     }
 }
@@ -2845,7 +2844,7 @@ bool Application::event(QEvent* event) {
             }
 #endif // DEBUG_EVENT_QUEUE
 
-            _pendingIdleEventCount--;
+            _pendingIdleEvent.store(false);
 
             return true;
 
