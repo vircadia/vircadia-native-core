@@ -1018,6 +1018,32 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
     }
 }
 
+static void forEachKeyboard(QQuickItem* item, std::function<void(QQuickItem*)> function) {
+    QObject* itemObject = item;
+    while (itemObject) {
+        if (itemObject->parent()) {
+            itemObject = itemObject->parent();
+        } else {
+            break;
+        }
+    }
+
+    auto keyboards = itemObject->findChildren<QObject*>("keyboard");
+
+    for (auto keyboardObject : keyboards) {
+        auto keyboard = qobject_cast<QQuickItem*>(keyboardObject);
+        if (keyboard == nullptr) {
+            continue;
+        }
+
+        if (function) {
+            function(keyboard);
+        }
+    }
+}
+
+static const int TEXTINPUT_PASSWORD = 2;
+
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
 #if Q_OS_ANDROID
     return;
@@ -1030,43 +1056,17 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
     // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
     if (!raised || qApp->property(hifi::properties::HMD).toBool()) {
         QQuickItem* item = dynamic_cast<QQuickItem*>(object);
-        if (!item)
+        if (!item) {
             return;
+        }
 
         auto echoMode = item->property("echoMode");
-        bool isPasswordField = echoMode.isValid() && echoMode.toInt() == 2 /* TextInput.Password */;
+        bool isPasswordField = echoMode.isValid() && echoMode.toInt() == TEXTINPUT_PASSWORD;
 
         // we need to somehow pass 'isPasswordField' to visible keyboard so it will change its 'mirror text' to asterixes
         // the issue in some cases there might be more than one keyboard in object tree and it is hard to understand which one is being used at the moment
         // unfortunately attempts to check for visibility failed becuase visibility is not updated yet. So... I don't see other way than just update properties for all the keyboards
-        struct Local {
-            static void forEachKeyboard(QQuickItem* item, std::function<void(QQuickItem*)> function) {
-                QObject* itemObject = item;
-                while (itemObject) {
-                    if (itemObject->parent()) {
-                        itemObject = itemObject->parent();
-                    }
-                    else {
-                        break;
-                    }
-                }
-
-                auto keyboards = itemObject->findChildren<QObject*>("keyboard");
-
-                for (auto keyboardObject : keyboards) {
-                    auto keyboard = qobject_cast<QQuickItem*>(keyboardObject);
-                    if (keyboard == nullptr) {
-                        continue;
-                    }
-
-                    if (function) {
-                        function(keyboard);
-                    }
-                }
-            }
-        };
-
-        Local::forEachKeyboard(item, [&](QQuickItem* keyboard) {
+        forEachKeyboard(item, [&](QQuickItem* keyboard) {
             keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
             keyboard->setProperty("password", isPasswordField);
         });
