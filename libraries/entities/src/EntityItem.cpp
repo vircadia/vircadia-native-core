@@ -739,7 +739,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // reasons and the contract is that the client handles them in an idempotent manner.
         auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
             if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
-                updatePositionFromNetwork(value);
+                updatePosition(value);
                 _lastUpdatedPositionTimestamp = lastEdited;
                 _lastUpdatedPositionValue = value;
             }
@@ -747,7 +747,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         auto customUpdateRotationFromNetwork = [this, shouldUpdate, lastEdited](glm::quat value){
             if (shouldUpdate(_lastUpdatedRotationTimestamp, value != _lastUpdatedRotationValue)) {
-                updateRotationFromNetwork(value);
+                updateRotation(value);
                 _lastUpdatedRotationTimestamp = lastEdited;
                 _lastUpdatedRotationValue = value;
             }
@@ -755,7 +755,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
              if (shouldUpdate(_lastUpdatedVelocityTimestamp, value != _lastUpdatedVelocityValue)) {
-                updateVelocityFromNetwork(value);
+                updateVelocity(value);
                 _lastUpdatedVelocityTimestamp = lastEdited;
                 _lastUpdatedVelocityValue = value;
             }
@@ -763,7 +763,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
             if (shouldUpdate(_lastUpdatedAngularVelocityTimestamp, value != _lastUpdatedAngularVelocityValue)) {
-                updateAngularVelocityFromNetwork(value);
+                updateAngularVelocity(value);
                 _lastUpdatedAngularVelocityTimestamp = lastEdited;
                 _lastUpdatedAngularVelocityValue = value;
             }
@@ -850,7 +850,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     {
         auto customUpdateQueryAACubeFromNetwork = [this, shouldUpdate, lastEdited](AACube value){
             if (shouldUpdate(_lastUpdatedQueryAACubeTimestamp, value != _lastUpdatedQueryAACubeValue)) {
-                updateQueryAACubeFromNetwork(value);
+                setQueryAACube(value);
                 _lastUpdatedQueryAACubeTimestamp = lastEdited;
                 _lastUpdatedQueryAACubeValue = value;
             }
@@ -1763,11 +1763,8 @@ void EntityItem::updateParentID(const QUuid& value) {
         if (tree) {
             tree->addToNeedsParentFixupList(getThisPointer());
         }
+        updateQueryAACube();
     }
-}
-
-void EntityItem::updatePositionFromNetwork(const glm::vec3& value) {
-    updatePosition(value);
 }
 
 void EntityItem::updateDimensions(const glm::vec3& value) {
@@ -1790,10 +1787,6 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
             }
         });
     }
-}
-
-void EntityItem::updateRotationFromNetwork(const glm::quat& rotation) {
-    updateRotation(rotation);
 }
 
 void EntityItem::updateMass(float mass) {
@@ -1846,14 +1839,6 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
     }
 }
 
-void EntityItem::updateVelocityFromNetwork(const glm::vec3& value) {
-    updateVelocity(value);
-}
-
-void EntityItem::updateQueryAACubeFromNetwork(const AACube& value) {
-    setQueryAACube(value);
-}
-
 void EntityItem::updateDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
     if (_damping != clampedDamping) {
@@ -1903,10 +1888,6 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
             }
         }
     }
-}
-
-void EntityItem::updateAngularVelocityFromNetwork(const glm::vec3& value) {
-    updateAngularVelocity(value);
 }
 
 void EntityItem::updateAngularDamping(float value) {
@@ -2213,6 +2194,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         setDynamicDataNeedsTransmit(true);
+        updateQueryAACube();
         return success;
     }
     return false;
