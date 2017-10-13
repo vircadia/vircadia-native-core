@@ -58,7 +58,6 @@ void ShapeInfo::clear() {
 }
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
-    //TODO WL21389: Does this need additional cases and handling added?
     _url = "";
     _type = type;
     setHalfExtents(halfExtents);
@@ -67,6 +66,8 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             _halfExtents = glm::vec3(0.0f);
             break;
         case SHAPE_TYPE_BOX:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_SIMPLE_HULL:
             break;
         case SHAPE_TYPE_SPHERE: {
                 float radius = glm::length(halfExtents) / SQUARE_ROOT_OF_3;
@@ -89,9 +90,6 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
-    //TODO WL21389:  Should this pointlist clearance added in case
-    //              this is a re-purposed instance?
-    // See https://github.com/highfidelity/hifi/pull/11024#discussion_r128885491
     _url = "";
     _type = SHAPE_TYPE_BOX;
     setHalfExtents(halfExtents);
@@ -99,7 +97,6 @@ void ShapeInfo::setBox(const glm::vec3& halfExtents) {
 }
 
 void ShapeInfo::setSphere(float radius) {
-    //TODO WL21389: See comment in setBox regarding clearance
     _url = "";
     _type = SHAPE_TYPE_SPHERE;
     radius = glm::max(radius, MIN_HALF_EXTENT);
@@ -113,7 +110,6 @@ void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollec
 }
 
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
-    //TODO WL21389: See comment in setBox regarding clearance
     _url = "";
     _type = SHAPE_TYPE_CAPSULE_Y;
     radius = glm::max(radius, MIN_HALF_EXTENT);
@@ -154,8 +150,15 @@ int ShapeInfo::getLargestSubshapePointCount() const {
     return numPoints;
 }
 
+float computeCylinderVolume(const float radius, const float height) {
+    return PI * radius * radius * 2.0f * height;
+}
+
+float computeCapsuleVolume(const float radius, const float cylinderHeight) {
+    return PI * radius * radius * (cylinderHeight + 4.0f * radius / 3.0f);
+}
+
 float ShapeInfo::computeVolume() const {
-    //TODO WL21389: Add support for other ShapeTypes( CYLINDER_X, CYLINDER_Z, etc).
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;
     switch(_type) {
@@ -168,17 +171,37 @@ float ShapeInfo::computeVolume() const {
             volume = 4.0f * PI * _halfExtents.x * _halfExtents.y * _halfExtents.z / 3.0f;
             break;
         }
+        case SHAPE_TYPE_CYLINDER_X: {
+            volume = computeCylinderVolume(_halfExtents.y, _halfExtents.x);
+            break;
+        }
         case SHAPE_TYPE_CYLINDER_Y: {
-            float radius = _halfExtents.x;
-            volume = PI * radius * radius * 2.0f * _halfExtents.y;
+            volume = computeCylinderVolume(_halfExtents.x, _halfExtents.y);
+            break;
+        }
+        case SHAPE_TYPE_CYLINDER_Z: {
+            volume = computeCylinderVolume(_halfExtents.x, _halfExtents.z);
+            break;
+        }
+        case SHAPE_TYPE_CAPSULE_X: {
+            // Need to offset halfExtents.x by y to account for the system treating
+            // the x extent of the capsule as the cylindrical height + spherical radius.
+            const float cylinderHeight = 2.0f * (_halfExtents.x - _halfExtents.y);
+            volume = computeCapsuleVolume(_halfExtents.y, cylinderHeight);
             break;
         }
         case SHAPE_TYPE_CAPSULE_Y: {
-            float radius = _halfExtents.x;
             // Need to offset halfExtents.y by x to account for the system treating
             // the y extent of the capsule as the cylindrical height + spherical radius.
-            float cylinderHeight = 2.0f * (_halfExtents.y - _halfExtents.x);
-            volume = PI * radius * radius * (cylinderHeight + 4.0f * radius / 3.0f);
+            const float cylinderHeight = 2.0f * (_halfExtents.y - _halfExtents.x);
+            volume = computeCapsuleVolume(_halfExtents.x, cylinderHeight);
+            break;
+        }
+        case SHAPE_TYPE_CAPSULE_Z: {
+            // Need to offset halfExtents.z by x to account for the system treating
+            // the z extent of the capsule as the cylindrical height + spherical radius.
+            const float cylinderHeight = 2.0f * (_halfExtents.z - _halfExtents.x);
+            volume = computeCapsuleVolume(_halfExtents.x, cylinderHeight);
             break;
         }
         default:
@@ -189,7 +212,6 @@ float ShapeInfo::computeVolume() const {
 }
 
 bool ShapeInfo::contains(const glm::vec3& point) const {
-    //TODO WL21389:  Add support for other ShapeTypes like Ellipsoid/Compound.
     switch(_type) {
         case SHAPE_TYPE_SPHERE:
             return glm::length(point) <= _halfExtents.x;
@@ -296,7 +318,7 @@ const DoubleHashKey& ShapeInfo::getHash() const {
                     // NOTE: 0.49f is used to bump the float up almost half a millimeter
                     // so the cast to int produces a round() effect rather than a floor()
                     uint32_t valueToHash = (uint32_t)(curPoint[vecCompIndex] * MILLIMETERS_PER_METER + copysignf(1.0f, curPoint[vecCompIndex]) * 0.49f);
-                    
+
                     hash ^= DoubleHashKey::hashFunction(valueToHash, primeIndex++);
                     uint32_t floatHash = DoubleHashKey::hashFunction2(valueToHash);
 
@@ -307,7 +329,7 @@ const DoubleHashKey& ShapeInfo::getHash() const {
                         hash ^= DoubleHashKey::hashFunction(offsetValToHash, primeIndex++);
                         floatHash ^= DoubleHashKey::hashFunction2(offsetValToHash);
                     }
-                    
+
                     hash2 += ~(floatHash << 17);
                     hash2 ^= (floatHash >> 11);
                     hash2 += (floatHash << 4);
