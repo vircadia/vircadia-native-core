@@ -341,10 +341,10 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
     haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
-    xColor hazeBlendInColor = _hazeProperties.getHazeBlendInColor();
-    haze->setHazeColor(glm::vec3(hazeBlendInColor.red / 255.0, hazeBlendInColor.green / 255.0, hazeBlendInColor.blue / 255.0));
-    xColor hazeBlendOutColor = _hazeProperties.getHazeBlendOutColor();
-    haze->setDirectionalLightColor(glm::vec3(hazeBlendOutColor.red / 255.0, hazeBlendOutColor.green / 255.0, hazeBlendOutColor.blue / 255.0));
+    xColor hazeColor = _hazeProperties.getHazeColor();
+    haze->setHazeColor(glm::vec3(hazeColor.red / 255.0, hazeColor.green / 255.0, hazeColor.blue / 255.0));
+    xColor hazeGlareColor = _hazeProperties.getHazeGlareColor();
+    haze->setDirectionalLightColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
     haze->setHazeEnableLightBlend(_hazeProperties.getHazeEnableLightBlend());
     haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(_hazeProperties.getHazeLightBlendAngle()));
 

@@ -129,13 +129,13 @@ namespace SceneScripting {
         void setHazeRange(float value);
         float getHazeRange() const;
 
-        Q_PROPERTY(xColor hazeBlendInColor READ getHazeBlendInColor WRITE setHazeBlendInColor)
-        void setHazeBlendInColor(xColor value);
-        xColor getHazeBlendInColor() const;
+        Q_PROPERTY(xColor hazeColor READ getHazeColor WRITE setHazeColor)
+        void setHazeColor(xColor value);
+        xColor getHazeColor() const;
 
-        Q_PROPERTY(xColor hazeBlendOutColor READ getHazeBlendOutColor WRITE setHazeBlendOutColor)
-        void setHazeBlendOutColor(xColor value);
-        xColor getHazeBlendOutColor() const;
+        Q_PROPERTY(xColor hazeGlareColor READ getHazeGlareColor WRITE setHazeGlareColor)
+        void setHazeGlareColor(xColor value);
+        xColor getHazeGlareColor() const;
 
         Q_PROPERTY(bool hazeEnableLightBlend READ getHazeEnableLightBlend WRITE setHazeEnableLightBlend)
         void setHazeEnableLightBlend(bool value);

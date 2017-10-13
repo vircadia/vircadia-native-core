@@ -155,17 +155,17 @@ void SceneScripting::Stage::setHazeRange(const float hazeRange) {
 float SceneScripting::Stage::getHazeRange() const {
     return _skyStage->getHazeRange();
 }
-void SceneScripting::Stage::setHazeBlendInColor(const xColor hazeBlendInColor) {
-    _skyStage->setHazeBlendInColor(hazeBlendInColor);
+void SceneScripting::Stage::setHazeColor(const xColor hazeColor) {
+    _skyStage->setHazeColor(hazeColor);
 }
-xColor SceneScripting::Stage::getHazeBlendInColor() const {
-    return _skyStage->getHazeBlendInColor();
+xColor SceneScripting::Stage::getHazeColor() const {
+    return _skyStage->getHazeColor();
 }
-void SceneScripting::Stage::setHazeBlendOutColor(const xColor hazeBlendOutColor) {
-    _skyStage->setHazeBlendOutColor(hazeBlendOutColor);
+void SceneScripting::Stage::setHazeGlareColor(const xColor hazeGlareColor) {
+    _skyStage->setHazeGlareColor(hazeGlareColor);
 }
-xColor SceneScripting::Stage::getHazeBlendOutColor() const {
-    return _skyStage->getHazeBlendOutColor();
+xColor SceneScripting::Stage::getHazeGlareColor() const {
+    return _skyStage->getHazeGlareColor();
 }
 void SceneScripting::Stage::setHazeEnableLightBlend(const bool hazeEnableLightBlend) {
     _skyStage->setHazeEnableLightBlend(hazeEnableLightBlend);

@@ -338,22 +338,22 @@ float ZoneEntityItem::getHazeRange() const {
     return _hazeRange;
 }
 
-void ZoneEntityItem::setHazeBlendInColor(const xColor hazeBlendInColor) {
-    _hazeBlendInColor = hazeBlendInColor;
+void ZoneEntityItem::setHazeColor(const xColor hazeColor) {
+    _hazeColor = hazeColor;
     _hazePropertiesChanged = true;
 }
 
-xColor ZoneEntityItem::getHazeBlendInColor() const {
-    return _hazeBlendInColor;
+xColor ZoneEntityItem::getHazeColor() const {
+    return _hazeColor;
 }
 
-void ZoneEntityItem::setHazeBlendOutColor(const xColor hazeBlendOutColor) {
-    _hazeBlendOutColor = hazeBlendOutColor;
+void ZoneEntityItem::setHazeGlareColor(const xColor hazeGlareColor) {
+    _hazeGlareColor = hazeGlareColor;
     _hazePropertiesChanged = true;
 }
 
-xColor ZoneEntityItem::getHazeBlendOutColor()const {
-    return _hazeBlendOutColor;
+xColor ZoneEntityItem::getHazeGlareColor()const {
+    return _hazeGlareColor;
 }
 
 void ZoneEntityItem::setHazeEnableLightBlend(const bool hazeEnableLightBlend) {

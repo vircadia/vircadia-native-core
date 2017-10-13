@@ -16,8 +16,8 @@
 #include "EntityItemPropertiesMacros.h"
 
 const float HazePropertyGroup::DEFAULT_HAZE_RANGE{ 1000.0f };
-const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR{ 128, 154, 179 };    // Bluish
-const xColor HazePropertyGroup::DEFAULT_HAZE_BLEND_OUT_COLOR{ 255, 229, 179 };   // Yellowish
+const xColor HazePropertyGroup::DEFAULT_HAZE_COLOR{ 128, 154, 179 };    // Bluish
+const xColor HazePropertyGroup::DEFAULT_HAZE_GLARE_COLOR{ 255, 229, 179 };   // Yellowish
 const float HazePropertyGroup::DEFAULT_HAZE_LIGHT_BLEND_ANGLE{ 20.0 };
 
 const float HazePropertyGroup::DEFAULT_HAZE_CEILING{ 200.0f };
@@ -30,8 +30,8 @@ const float HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE{ 200.0f };
 
 void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BLEND_IN_COLOR, Haze, haze, HazeBlendInColor, hazeBlendInColor);
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_BLEND_OUT_COLOR, Haze, haze, HazeBlendOutColor, hazeBlendOutColor);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_GLARE_COLOR, Haze, haze, HazeGlareColor, hazeGlareColor);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_ENABLE_LIGHT_BLEND, Haze, haze, HazeEnableLightBlend, hazeEnableLightBlend);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_LIGHT_BLEND_ANGLE, Haze, haze, HazeLightBlendAngle, hazeLightBlendAngle);
 
@@ -48,8 +48,8 @@ void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
 
 void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeRange, float, setHazeRange);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBlendInColor, xColor, setHazeBlendInColor);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeBlendOutColor, xColor, setHazeBlendOutColor);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeColor, xColor, setHazeColor);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeGlareColor, xColor, setHazeGlareColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeEnableLightBlend, bool, setHazeEnableLightBlend);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(haze, hazeLightBlendAngle, float, setHazeLightBlendAngle);
 
@@ -66,8 +66,8 @@ void HazePropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _d
 
 void HazePropertyGroup::merge(const HazePropertyGroup& other) {
     COPY_PROPERTY_IF_CHANGED(hazeRange);
-    COPY_PROPERTY_IF_CHANGED(hazeBlendInColor);
-    COPY_PROPERTY_IF_CHANGED(hazeBlendOutColor);
+    COPY_PROPERTY_IF_CHANGED(hazeColor);
+    COPY_PROPERTY_IF_CHANGED(hazeGlareColor);
     COPY_PROPERTY_IF_CHANGED(hazeEnableLightBlend);
     COPY_PROPERTY_IF_CHANGED(hazeLightBlendAngle);
 
@@ -86,8 +86,8 @@ void HazePropertyGroup::debugDump() const {
     qCDebug(entities) << "   HazePropertyGroup: ---------------------------------------------";
 
     qCDebug(entities) << "            _hazeRange:" << _hazeRange;
-    qCDebug(entities) << "            _hazeBlendInColor:" << _hazeBlendInColor;
-    qCDebug(entities) << "            _hazeBlendOutColor:" << _hazeBlendOutColor;
+    qCDebug(entities) << "            _hazeColor:" << _hazeColor;
+    qCDebug(entities) << "            _hazeGlareColor:" << _hazeGlareColor;
     qCDebug(entities) << "            _hazeEnableLightBlend:" << _hazeEnableLightBlend;
     qCDebug(entities) << "            _hazeLightBlendAngle:" << _hazeLightBlendAngle;
 
@@ -106,11 +106,11 @@ void HazePropertyGroup::listChangedProperties(QList<QString>& out) {
     if (hazeRangeChanged()) {
         out << "haze-hazeRange";
     }
-    if (hazeBlendInColorChanged()) {
-        out << "haze-hazeBlendInColor";
+    if (hazeColorChanged()) {
+        out << "haze-hazeColor";
     }
-    if (hazeBlendOutColorChanged()) {
-        out << "haze-hazeBlendOutColor";
+    if (hazeGlareColorChanged()) {
+        out << "haze-hazeGlareColor";
     }
     if (hazeEnableLightBlendChanged()) {
         out << "haze-hazeEnableLightBlend";
@@ -154,8 +154,8 @@ bool HazePropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_HAZE_RANGE, getHazeRange());
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, getHazeBlendInColor());
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, getHazeBlendOutColor());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_COLOR, getHazeColor());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, getHazeGlareColor());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, getHazeEnableLightBlend());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, getHazeLightBlendAngle());
 
@@ -179,8 +179,8 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     bool somethingChanged = false;
 
     READ_ENTITY_PROPERTY(PROP_HAZE_RANGE, float, setHazeRange);
-    READ_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, xColor, setHazeBlendInColor);
-    READ_ENTITY_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, xColor, setHazeBlendOutColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, xColor, setHazeColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, xColor, setHazeGlareColor);
     READ_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, bool, setHazeEnableLightBlend);
     READ_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, float, setHazeLightBlendAngle);
 
@@ -195,8 +195,8 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     READ_ENTITY_PROPERTY(PROP_HAZE_KEYLIGHT_ALTITUDE, float, setHazeKeyLightAltitude);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_RANGE, HazeRange);
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_BLEND_IN_COLOR, HazeBlendInColor);
-    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_BLEND_OUT_COLOR, HazeBlendOutColor);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_COLOR, HazeColor);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_GLARE_COLOR, HazeGlareColor);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_ENABLE_LIGHT_BLEND, HazeEnableLightBlend);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle);
 
@@ -219,8 +219,8 @@ bool HazePropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
 
 void HazePropertyGroup::markAllChanged() {
     _hazeRangeChanged = true;
-    _hazeBlendInColorChanged = true;
-    _hazeBlendOutColorChanged = true;
+    _hazeColorChanged = true;
+    _hazeGlareColorChanged = true;
     _hazeEnableLightBlendChanged = true;
     _hazeLightBlendAngleChanged = true;
 
@@ -239,8 +239,8 @@ EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
     CHECK_PROPERTY_CHANGE(PROP_HAZE_RANGE, hazeRange);
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_BLEND_IN_COLOR, hazeBlendInColor);
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_BLEND_OUT_COLOR, hazeBlendOutColor);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_COLOR, hazeColor);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_GLARE_COLOR, hazeGlareColor);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_ENABLE_LIGHT_BLEND, hazeEnableLightBlend);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_LIGHT_BLEND_ANGLE, hazeLightBlendAngle);
 
@@ -259,8 +259,8 @@ EntityPropertyFlags HazePropertyGroup::getChangedProperties() const {
 
 void HazePropertyGroup::getProperties(EntityItemProperties& properties) const {
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeRange, getHazeRange);
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeBlendInColor, getHazeBlendInColor);
-    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeBlendOutColor, getHazeBlendOutColor);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeColor, getHazeColor);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeGlareColor, getHazeGlareColor);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeEnableLightBlend, getHazeEnableLightBlend);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Haze, HazeLightBlendAngle, getHazeLightBlendAngle);
 
@@ -279,8 +279,8 @@ bool HazePropertyGroup::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeRange, hazeRange, setHazeRange);
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeBlendInColor, hazeBlendInColor, setHazeBlendInColor);
-    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeBlendOutColor, hazeBlendOutColor, setHazeBlendOutColor);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeColor, hazeColor, setHazeColor);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeGlareColor, hazeGlareColor, setHazeGlareColor);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeEnableLightBlend, hazeEnableLightBlend, setHazeEnableLightBlend);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Haze, HazeLightBlendAngle, hazeLightBlendAngle, setHazeLightBlendAngle);
 
@@ -301,8 +301,8 @@ EntityPropertyFlags HazePropertyGroup::getEntityProperties(EncodeBitstreamParams
     EntityPropertyFlags requestedProperties;
 
     requestedProperties += PROP_HAZE_RANGE;
-    requestedProperties += PROP_HAZE_BLEND_IN_COLOR;
-    requestedProperties += PROP_HAZE_BLEND_OUT_COLOR;
+    requestedProperties += PROP_HAZE_COLOR;
+    requestedProperties += PROP_HAZE_GLARE_COLOR;
     requestedProperties += PROP_HAZE_ENABLE_LIGHT_BLEND;
     requestedProperties += PROP_HAZE_LIGHT_BLEND_ANGLE;
 
@@ -329,8 +329,8 @@ void HazePropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeB
     bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_HAZE_RANGE, getHazeRange());
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, getHazeBlendInColor());
-    APPEND_ENTITY_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, getHazeBlendOutColor());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_COLOR, getHazeColor());
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, getHazeGlareColor());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, getHazeEnableLightBlend());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, getHazeLightBlendAngle());
 
@@ -354,8 +354,8 @@ int HazePropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_HAZE_RANGE, float, setHazeRange);
-    READ_ENTITY_PROPERTY(PROP_HAZE_BLEND_IN_COLOR, xColor, setHazeBlendInColor);
-    READ_ENTITY_PROPERTY(PROP_HAZE_BLEND_OUT_COLOR, xColor, setHazeBlendOutColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_COLOR, xColor, setHazeColor);
+    READ_ENTITY_PROPERTY(PROP_HAZE_GLARE_COLOR, xColor, setHazeGlareColor);
     READ_ENTITY_PROPERTY(PROP_HAZE_ENABLE_LIGHT_BLEND, bool, setHazeEnableLightBlend);
     READ_ENTITY_PROPERTY(PROP_HAZE_LIGHT_BLEND_ANGLE, float, setHazeLightBlendAngle);
 

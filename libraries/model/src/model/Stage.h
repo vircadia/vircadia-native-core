@@ -188,10 +188,10 @@ public:
 
     void setHazeRange(float hazeRange) { _hazeRange = hazeRange; }
     float getHazeRange() const { return _hazeRange; }
-    void setHazeBlendInColor(const xColor hazeBlendInColor) { _hazeBlendInColor = hazeBlendInColor; }
-    xColor getHazeBlendInColor() { return _hazeBlendInColor; }
-    void setHazeBlendOutColor(const xColor hazeBlendOutColor) { _hazeBlendOutColor = hazeBlendOutColor; }
-    xColor getHazeBlendOutColor() const { return _hazeBlendOutColor; }
+    void setHazeColor(const xColor hazeColor) { _hazeColor = hazeColor; }
+    xColor getHazeColor() { return _hazeColor; }
+    void setHazeGlareColor(const xColor hazeGlareColor) { _hazeGlareColor = hazeGlareColor; }
+    xColor getHazeGlareColor() const { return _hazeGlareColor; }
     void setHazeEnableLightBlend(bool hazeEnableLightBlend) { _hazeEnableLightBlend = hazeEnableLightBlend; }
     bool getHazeEnableLightBlend() const { return _hazeEnableLightBlend; }
     void setHazeLightBlendAngle(float hazeLightBlendAngle) { _hazeLightBlendAngle = hazeLightBlendAngle; }
@@ -220,8 +220,8 @@ protected:
     uint8_t _hazeMode = (uint8_t)HAZE_OFF;
     
     float _hazeRange;
-    xColor _hazeBlendInColor;
-    xColor _hazeBlendOutColor;
+    xColor _hazeColor;
+    xColor _hazeGlareColor;
     bool _hazeEnableLightBlend;
     float _hazeLightBlendAngle;
 
