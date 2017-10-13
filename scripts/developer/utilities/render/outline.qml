@@ -21,10 +21,10 @@ Item {
         spacing: 8
 
         CheckBox {
-            text: "View Outlined Depth"
-            checked: root.debugConfig["viewOutlinedDepth"]
+            text: "View Mask"
+            checked: root.debugConfig["viewMask"]
             onCheckedChanged: {
-                root.debugConfig["viewOutlinedDepth"] = checked;
+                root.debugConfig["viewMask"] = checked;
             }
         }
         CheckBox {

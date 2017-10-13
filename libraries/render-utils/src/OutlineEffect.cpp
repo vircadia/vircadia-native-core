@@ -76,7 +76,7 @@ gpu::TexturePointer OutlineRessources::getDepthTexture() {
     return _depthTexture;
 }
 
-gpu::TexturePointer OutlineRessources::getIDTexture() {
+gpu::TexturePointer OutlineRessources::getIdTexture() {
     if (!_idTexture) {
         allocate();
     }
@@ -123,10 +123,13 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
             auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
 
             std::vector<ShapeKey> skinnedShapeKeys{};
+            auto colorLoc = maskPipeline.get()->pipeline->getProgram()->getUniforms().findLocation("color");
+            glm::vec4 idColor{ 1.0f, 0.0f, 0.0f, 0.0f };
 
             // Iterate through all inShapes and render the unskinned
             args->_shapePipeline = maskPipeline;
             batch.setPipeline(maskPipeline->pipeline);
+            batch._glUniform4f(colorLoc, idColor.r, idColor.g, idColor.b, idColor.a);
             for (auto items : inShapes) {
                 if (items.first.isSkinned()) {
                     skinnedShapeKeys.push_back(items.first);
@@ -136,9 +139,11 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
                 }
             }
 
+            colorLoc = maskSkinnedPipeline.get()->pipeline->getProgram()->getUniforms().findLocation("color");
             // Reiterate to render the skinned
             args->_shapePipeline = maskSkinnedPipeline;
             batch.setPipeline(maskSkinnedPipeline->pipeline);
+            batch._glUniform4f(colorLoc, idColor.r, idColor.g, idColor.b, idColor.a);
             for (const auto& key : skinnedShapeKeys) {
                 renderItems(renderContext, inShapes.at(key));
             }
@@ -250,24 +255,26 @@ const gpu::PipelinePointer& DrawOutline::getPipeline(bool isFilled) {
 }
 
 DebugOutline::DebugOutline() {
-    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
+    _geometryDepthId = DependencyManager::get<GeometryCache>()->allocateID();
+    _geometryColorId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 DebugOutline::~DebugOutline() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
-        geometryCache->releaseID(_geometryId);
+        geometryCache->releaseID(_geometryDepthId);
+        geometryCache->releaseID(_geometryColorId);
     }
 }
 
 void DebugOutline::configure(const Config& config) {
-    _isDisplayDepthEnabled = config.viewOutlinedDepth;
+    _isDisplayEnabled = config.viewMask;
 }
 
 void DebugOutline::run(const render::RenderContextPointer& renderContext, const Inputs& input) {
     const auto outlineFramebuffer = input;
 
-    if (_isDisplayDepthEnabled && outlineFramebuffer) {
+    if (_isDisplayEnabled && outlineFramebuffer) {
         assert(renderContext->args);
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
@@ -286,52 +293,101 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
             batch.setViewTransform(viewMat, true);
             batch.setModelTransform(Transform());
 
-            batch.setPipeline(getDebugPipeline());
-            batch.setResourceTexture(0, outlineFramebuffer->getDepthTexture());
+            const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
 
-            const glm::vec4 color(1.0f, 0.5f, 0.2f, 1.0f);
-            const glm::vec2 bottomLeft(-1.0f, -1.0f);
-            const glm::vec2 topRight(1.0f, 1.0f);
-            geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryId);
+            batch.setPipeline(getDepthPipeline());
+            batch.setResourceTexture(0, outlineFramebuffer->getDepthTexture());
+            {
+                const glm::vec2 bottomLeft(-1.0f, -1.0f);
+                const glm::vec2 topRight(0.0f, 1.0f);
+                geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryDepthId);
+            }
+
+            batch.setPipeline(getIdPipeline());
+            batch.setResourceTexture(0, outlineFramebuffer->getIdTexture());
+            {
+                const glm::vec2 bottomLeft(0.0f, -1.0f);
+                const glm::vec2 topRight(1.0f, 1.0f);
+                geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryColorId);
+            }
 
             batch.setResourceTexture(0, nullptr);
         });
     }
 }
 
-const gpu::PipelinePointer& DebugOutline::getDebugPipeline() {
-    if (!_debugPipeline) {
-        static const std::string VERTEX_SHADER{ debug_deferred_buffer_vert };
-        static const std::string FRAGMENT_SHADER{ debug_deferred_buffer_frag };
-        static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
-        static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
-        Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
-            "Could not find source placeholder");
-        static const std::string DEFAULT_DEPTH_SHADER{
+void DebugOutline::initializePipelines() {
+    static const std::string VERTEX_SHADER{ debug_deferred_buffer_vert };
+    static const std::string FRAGMENT_SHADER{ debug_deferred_buffer_frag };
+    static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
+    static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
+    Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
+               "Could not find source placeholder");
+
+    auto state = std::make_shared<gpu::State>();
+    state->setDepthTest(gpu::State::DepthTest(false));
+
+    const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
+
+    // Depth shader
+    {
+        static const std::string DEPTH_SHADER{
             "vec4 getFragmentColor() {"
             "   float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;"
             "   Zdb = 1.0-(1.0-Zdb)*100;"
-            "   return vec4(Zdb, Zdb, Zdb, 1.0);"
-            " }"
+            "   return vec4(Zdb, Zdb, Zdb, 1.0); "
+            "}"
         };
 
-        auto bakedFragmentShader = FRAGMENT_SHADER;
-        bakedFragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), DEFAULT_DEPTH_SHADER);
+        auto fragmentShader = FRAGMENT_SHADER;
+        fragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), DEPTH_SHADER);
 
-        static const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
-        const auto ps = gpu::Shader::createPixel(bakedFragmentShader);
+        const auto ps = gpu::Shader::createPixel(fragmentShader);
         const auto program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("depthMap", 0));
         gpu::Shader::makeProgram(*program, slotBindings);
 
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(gpu::State::DepthTest(false));
-        _debugPipeline = gpu::Pipeline::create(program, state);
+        _depthPipeline = gpu::Pipeline::create(program, state);
     }
 
-    return _debugPipeline;
+    // ID shader
+    {
+        static const std::string ID_SHADER{
+            "vec4 getFragmentColor() {"
+            "   return texelFetch(albedoMap, ivec2(gl_FragCoord.xy), 0); "
+            "}"
+        };
+
+        auto fragmentShader = FRAGMENT_SHADER;
+        fragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), ID_SHADER);
+
+        const auto ps = gpu::Shader::createPixel(fragmentShader);
+        const auto program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding("albedoMap", 0));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        _idPipeline = gpu::Pipeline::create(program, state);
+    }
+}
+
+const gpu::PipelinePointer& DebugOutline::getDepthPipeline() {
+    if (!_depthPipeline) {
+        initializePipelines();
+    }
+
+    return _depthPipeline;
+}
+
+const gpu::PipelinePointer& DebugOutline::getIdPipeline() {
+    if (!_idPipeline) {
+        initializePipelines();
+    }
+
+    return _idPipeline;
 }
 
 DrawOutlineTask::DrawOutlineTask() {
@@ -345,19 +401,18 @@ void DrawOutlineTask::configure(const Config& config) {
 void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
     const auto input = inputs.get<Inputs>();
     const auto selectedMetas = inputs.getN<Inputs>(0);
-    const auto shapePlumber = input.get1();
-    const auto sceneFrameBuffer = inputs.getN<Inputs>(2);
-    const auto primaryFramebuffer = inputs.getN<Inputs>(3);
-    const auto deferredFrameTransform = inputs.getN<Inputs>(4);
+    const auto sceneFrameBuffer = inputs.getN<Inputs>(1);
+    const auto primaryFramebuffer = inputs.getN<Inputs>(2);
+    const auto deferredFrameTransform = inputs.getN<Inputs>(3);
 
     // Prepare the ShapePipeline
-    ShapePlumberPointer shapePlumberZPass = std::make_shared<ShapePlumber>();
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     {
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setColorWriteMask(false, false, false, false);
 
-        initMaskPipelines(*shapePlumberZPass, state);
+        initMaskPipelines(*shapePlumber, state);
     }
 
     const auto outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", selectedMetas);
@@ -369,7 +424,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
 
     // Draw depth of outlined objects in separate buffer
     const auto drawMaskInputs = DrawOutlineMask::Inputs(sortedShapes, sceneFrameBuffer).asVarying();
-    const auto outlinedFrameBuffer = task.addJob<DrawOutlineMask>("OutlineMask", drawMaskInputs, shapePlumberZPass);
+    const auto outlinedFrameBuffer = task.addJob<DrawOutlineMask>("OutlineMask", drawMaskInputs, shapePlumber);
 
     // Draw outline
     const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlinedFrameBuffer, sceneFrameBuffer, primaryFramebuffer).asVarying();
@@ -384,36 +439,32 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
 #include "skin_model_shadow_vert.h"
 #include "skin_model_shadow_fade_vert.h"
 
-#include "model_shadow_frag.h"
-#include "model_shadow_fade_frag.h"
-#include "skin_model_shadow_frag.h"
-#include "skin_model_shadow_fade_frag.h"
+#include "model_outline_frag.h"
+#include "model_outline_fade_frag.h"
 
 void DrawOutlineTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gpu::StatePointer state) {
     auto modelVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
-    auto modelPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
+    auto modelPixel = gpu::Shader::createPixel(std::string(model_outline_frag));
     gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(modelVertex, modelPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutSkinned().withoutFade(),
         modelProgram, state);
 
     auto skinVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
-    auto skinPixel = gpu::Shader::createPixel(std::string(skin_model_shadow_frag));
-    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, skinPixel);
+    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(skinVertex, modelPixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned().withoutFade(),
         skinProgram, state);
 
     auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_shadow_fade_vert));
-    auto modelFadePixel = gpu::Shader::createPixel(std::string(model_shadow_fade_frag));
+    auto modelFadePixel = gpu::Shader::createPixel(std::string(model_outline_fade_frag));
     gpu::ShaderPointer modelFadeProgram = gpu::Shader::createProgram(modelFadeVertex, modelFadePixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withoutSkinned().withFade(),
         modelFadeProgram, state);
 
     auto skinFadeVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_fade_vert));
-    auto skinFadePixel = gpu::Shader::createPixel(std::string(skin_model_shadow_fade_frag));
-    gpu::ShaderPointer skinFadeProgram = gpu::Shader::createProgram(skinFadeVertex, skinFadePixel);
+    gpu::ShaderPointer skinFadeProgram = gpu::Shader::createProgram(skinFadeVertex, modelFadePixel);
     shapePlumber.addPipeline(
         ShapeKey::Filter::Builder().withSkinned().withFade(),
         skinFadeProgram, state);

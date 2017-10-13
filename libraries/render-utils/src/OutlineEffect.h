@@ -21,7 +21,7 @@ public:
     OutlineRessources();
 
     gpu::FramebufferPointer getFramebuffer();
-    gpu::TexturePointer getIDTexture();
+    gpu::TexturePointer getIdTexture();
     gpu::TexturePointer getDepthTexture();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
@@ -136,11 +136,11 @@ private:
 
 class DebugOutlineConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(bool viewOutlinedDepth MEMBER viewOutlinedDepth NOTIFY dirty)
+        Q_PROPERTY(bool viewMask MEMBER viewMask NOTIFY dirty)
 
 public:
 
-    bool viewOutlinedDepth{ false };
+    bool viewMask{ false };
 
 signals:
     void dirty();
@@ -160,16 +160,20 @@ public:
 
 private:
 
-    const gpu::PipelinePointer& getDebugPipeline();
+    gpu::PipelinePointer _depthPipeline;
+    gpu::PipelinePointer _idPipeline;
+    int _geometryDepthId{ 0 };
+    int _geometryColorId{ 0 };
+    bool _isDisplayEnabled{ false };
 
-    gpu::PipelinePointer _debugPipeline;
-    int _geometryId{ 0 };
-    bool _isDisplayDepthEnabled{ false };
+    const gpu::PipelinePointer& getDepthPipeline();
+    const gpu::PipelinePointer& getIdPipeline();
+    void initializePipelines();
 };
 
 class DrawOutlineTask {
 public:
-    using Inputs = render::VaryingSet5<render::ItemBounds, render::ShapePlumberPointer, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+    using Inputs = render::VaryingSet4<render::ItemBounds, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
     using Config = render::Task::Config;
     using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
 
