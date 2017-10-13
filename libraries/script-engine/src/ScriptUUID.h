@@ -20,6 +20,8 @@
 /// Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API
 class ScriptUUID : public QObject, protected QScriptable {
     Q_OBJECT
+    Q_PROPERTY(QString NULL READ NULL_UUID CONSTANT) // String for use in scripts.
+    Q_PROPERTY(QString SELF READ SELF_UUID CONSTANT)
 
 public slots:
     QUuid fromString(const QString& string);
@@ -28,6 +30,13 @@ public slots:
     bool isEqual(const QUuid& idA, const QUuid& idB);
     bool isNull(const QUuid& id);
     void print(const QString& label, const QUuid& id);
+
+private:
+    const QString NULL_UUID() { return NULL_ID; }
+    const QString SELF_UUID() { return SELF_ID; }
+
+    const QString NULL_ID{ "{00000000-0000-0000-0000-000000000000}" };
+    const QString SELF_ID{ AVATAR_SELF_ID.toString() };
 };
 
 #endif // hifi_ScriptUUID_h
