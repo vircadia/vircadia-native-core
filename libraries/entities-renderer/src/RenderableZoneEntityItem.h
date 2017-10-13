@@ -21,7 +21,7 @@
 #include <HazeStage.h>
 #include <TextureCache.h>
 #include "RenderableEntityItem.h"
-#include <HazeMode.h>
+#include <ComponentMode.h>
 
 #if 0
 #include <Model.h>
@@ -55,7 +55,7 @@ private:
     void setAmbientURL(const QString& ambientUrl);
     void setSkyboxURL(const QString& skyboxUrl);
     void setBackgroundMode(BackgroundMode mode);
-    void setHazeMode(HazeMode mode);
+    void setHazeMode(ComponentMode mode);
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);
 
@@ -85,7 +85,7 @@ private:
     const model::HazePointer _haze{ std::make_shared<model::Haze>() };
 
     BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
-    HazeMode _hazeMode{ HAZE_MODE_INHERIT };
+    ComponentMode _hazeMode{ COMPONENT_MODE_INHERIT };
 
     indexed_container::Index _sunIndex{ LightStage::INVALID_INDEX };
     indexed_container::Index _ambientIndex{ LightStage::INVALID_INDEX };

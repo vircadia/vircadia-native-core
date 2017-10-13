@@ -1,5 +1,5 @@
 //
-//  HazeMode.h
+//  ComponentMode.h
 //  libraries/entities/src
 //
 //  Created by Nissim Hadar on 9/21/17.
@@ -9,16 +9,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_HazeMode_h
-#define hifi_HazeMode_h
+#ifndef hifi_ComponentMode_h
+#define hifi_ComponentMode_h
 
-enum HazeMode {
-    HAZE_MODE_INHERIT,
-    HAZE_MODE_DISABLED,
-    HAZE_MODE_ENABLED,
+enum ComponentMode {
+    COMPONENT_MODE_INHERIT,
+    COMPONENT_MODE_DISABLED,
+    COMPONENT_MODE_ENABLED,
 
-    HAZE_MODE_ITEM_COUNT
+    COMPONENT_MODE_ITEM_COUNT
 };
 
-#endif // hifi_HazeMode_h
+#endif // hifi_ComponentMode_h
 

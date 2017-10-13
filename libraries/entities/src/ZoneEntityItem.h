@@ -18,7 +18,7 @@
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
-#include <HazeMode.h>
+#include <ComponentMode.h>
 
 class ZoneEntityItem : public EntityItem {
 public:
@@ -146,7 +146,7 @@ protected:
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
-    uint8_t _hazeMode{ (uint8_t)HAZE_MODE_INHERIT };
+    uint8_t _hazeMode{ (uint8_t)COMPONENT_MODE_INHERIT };
 
     float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
     xColor _hazeBlendInColor{ HazePropertyGroup::DEFAULT_HAZE_BLEND_IN_COLOR };

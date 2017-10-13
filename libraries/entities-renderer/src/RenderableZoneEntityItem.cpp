@@ -172,7 +172,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         }
 
         // Haze only if the mode is not inherit
-        if (_hazeMode != HAZE_MODE_INHERIT) {
+        if (_hazeMode != COMPONENT_MODE_INHERIT) {
             _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
     }
@@ -332,12 +332,12 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
 }
 
 void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) {
-    setHazeMode((HazeMode)entity->getHazeMode());
+    setHazeMode((ComponentMode)entity->getHazeMode());
 
     const auto& haze = editHaze();
 
     const uint32_t hazeMode = entity->getHazeMode();
-    haze->setHazeActive(hazeMode == HAZE_MODE_ENABLED);
+    haze->setHazeActive(hazeMode == COMPONENT_MODE_ENABLED);
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
     haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
@@ -471,7 +471,7 @@ void ZoneEntityRenderer::setBackgroundMode(BackgroundMode mode) {
     _backgroundMode = mode;
 }
 
-void ZoneEntityRenderer::setHazeMode(HazeMode mode) {
+void ZoneEntityRenderer::setHazeMode(ComponentMode mode) {
     _hazeMode = mode;
 }
 

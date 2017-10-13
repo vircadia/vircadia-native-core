@@ -220,27 +220,27 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
     }
 }
 
-using HazePair = std::pair<const HazeMode, const QString>;
-const std::array<HazePair, HAZE_MODE_ITEM_COUNT> HAZE_MODES = { {
-        HazePair{ HAZE_MODE_INHERIT,{ "inherit" } },
-        HazePair{ HAZE_MODE_DISABLED,{ "disabled" } },
-        HazePair{ HAZE_MODE_ENABLED,{ "enabled" } }
+using ComponentPair = std::pair<const ComponentMode, const QString>;
+const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
+        ComponentPair{ COMPONENT_MODE_INHERIT,{ "inherit" } },
+        ComponentPair{ COMPONENT_MODE_DISABLED,{ "disabled" } },
+        ComponentPair{ COMPONENT_MODE_ENABLED,{ "enabled" } }
 } };
 
 QString EntityItemProperties::getHazeModeAsString() const {
-    return HAZE_MODES[_hazeMode].second;
+    return COMPONENT_MODES[_hazeMode].second;
 }
 
 QString EntityItemProperties::getHazeModeString(uint32_t mode) {
-    return HAZE_MODES[mode].second;
+    return COMPONENT_MODES[mode].second;
 }
 
 void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
-    auto result = std::find_if(HAZE_MODES.begin(), HAZE_MODES.end(), [&](const HazePair& pair) {
+    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
         return (pair.second == hazeMode);
     });
 
-    if (result != HAZE_MODES.end()) {
+    if (result != COMPONENT_MODES.end()) {
         _hazeMode = result->first;
         _hazeModeChanged = true;
     }
