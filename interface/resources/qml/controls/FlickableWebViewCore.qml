@@ -108,10 +108,7 @@ Item {
         Component.onCompleted: {
             webChannel.registerObject("eventBridge", eventBridge);
             webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-//            // Ensure the JS from the web-engine makes it to our logging
-//            webViewCore.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-//                console.log("Web Entity JS message: " + sourceID + " at line: " + lineNumber + " " +  message);
-//            });
+
             if (webViewCoreUserAgent !== undefined) {
                 webViewCore.profile.httpUserAgent = webViewCoreUserAgent
             } else {
