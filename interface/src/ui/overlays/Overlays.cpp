@@ -746,7 +746,7 @@ OverlayID Overlays::getKeyboardFocusOverlay() {
     return qApp->getKeyboardFocusOverlay();
 }
 
-void Overlays::setKeyboardFocusOverlay(OverlayID id) {
+void Overlays::setKeyboardFocusOverlay(const OverlayID& id) {
     qApp->setKeyboardFocusOverlay(id);
 }
 
@@ -885,7 +885,7 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
         return true;
     }
     // if we didn't press on an overlay, disable overlay keyboard focus
-    qApp->setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
     // emit to scripts
     emit mousePressOffOverlay();
     return false;
@@ -901,7 +901,7 @@ void Overlays::mousePressEvent(const OverlayID& overlayID, const PointerEvent& e
     if (thisOverlay) {
         // Focus keyboard on web overlays
         qApp->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-        qApp->setKeyboardFocusOverlay(overlayID);
+        setKeyboardFocusOverlay(overlayID);
 
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));

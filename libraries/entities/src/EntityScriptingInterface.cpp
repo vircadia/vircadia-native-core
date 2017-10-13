@@ -1623,43 +1623,43 @@ QUuid EntityScriptingInterface::getKeyboardFocusEntity() const {
     return result;
 }
 
-void EntityScriptingInterface::setKeyboardFocusEntity(QUuid id) {
+void EntityScriptingInterface::setKeyboardFocusEntity(const EntityItemID& id) {
     QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::DirectConnection, Q_ARG(EntityItemID, id));
 }
 
-void EntityScriptingInterface::sendMousePressOnEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendMousePressOnEntity(const EntityItemID& id, const PointerEvent& event) {
     emit mousePressOnEntity(id, event);
 }
 
-void EntityScriptingInterface::sendMouseMoveOnEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendMouseMoveOnEntity(const EntityItemID& id, const PointerEvent& event) {
     emit mouseMoveOnEntity(id, event);
 }
 
-void EntityScriptingInterface::sendMouseReleaseOnEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendMouseReleaseOnEntity(const EntityItemID& id, const PointerEvent& event) {
     emit mouseReleaseOnEntity(id, event);
 }
 
-void EntityScriptingInterface::sendClickDownOnEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendClickDownOnEntity(const EntityItemID& id, const PointerEvent& event) {
     emit clickDownOnEntity(id, event);
 }
 
-void EntityScriptingInterface::sendHoldingClickOnEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendHoldingClickOnEntity(const EntityItemID& id, const PointerEvent& event) {
     emit holdingClickOnEntity(id, event);
 }
 
-void EntityScriptingInterface::sendClickReleaseOnEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendClickReleaseOnEntity(const EntityItemID& id, const PointerEvent& event) {
     emit clickReleaseOnEntity(id, event);
 }
 
-void EntityScriptingInterface::sendHoverEnterEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendHoverEnterEntity(const EntityItemID& id, const PointerEvent& event) {
     emit hoverEnterEntity(id, event);
 }
 
-void EntityScriptingInterface::sendHoverOverEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendHoverOverEntity(const EntityItemID& id, const PointerEvent& event) {
     emit hoverOverEntity(id, event);
 }
 
-void EntityScriptingInterface::sendHoverLeaveEntity(EntityItemID id, PointerEvent event) {
+void EntityScriptingInterface::sendHoverLeaveEntity(const EntityItemID& id, const PointerEvent& event) {
     emit hoverLeaveEntity(id, event);
 }
 

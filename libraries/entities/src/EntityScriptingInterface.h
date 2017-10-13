@@ -343,19 +343,19 @@ public slots:
     Q_INVOKABLE QString getNestableType(QUuid id);
 
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
-    Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
+    Q_INVOKABLE void setKeyboardFocusEntity(const EntityItemID& id);
 
-    Q_INVOKABLE void sendMousePressOnEntity(EntityItemID id, PointerEvent event);
-    Q_INVOKABLE void sendMouseMoveOnEntity(EntityItemID id, PointerEvent event);
-    Q_INVOKABLE void sendMouseReleaseOnEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendMousePressOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendMouseMoveOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendMouseReleaseOnEntity(const EntityItemID& id, const PointerEvent& event);
 
-    Q_INVOKABLE void sendClickDownOnEntity(EntityItemID id, PointerEvent event);
-    Q_INVOKABLE void sendHoldingClickOnEntity(EntityItemID id, PointerEvent event);
-    Q_INVOKABLE void sendClickReleaseOnEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendClickDownOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendHoldingClickOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendClickReleaseOnEntity(const EntityItemID& id, const PointerEvent& event);
 
-    Q_INVOKABLE void sendHoverEnterEntity(EntityItemID id, PointerEvent event);
-    Q_INVOKABLE void sendHoverOverEntity(EntityItemID id, PointerEvent event);
-    Q_INVOKABLE void sendHoverLeaveEntity(EntityItemID id, PointerEvent event);
+    Q_INVOKABLE void sendHoverEnterEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendHoverOverEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendHoverLeaveEntity(const EntityItemID& id, const PointerEvent& event);
 
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
