@@ -970,31 +970,33 @@ bool SpatiallyNestable::updateQueryAACube() {
 
     bool success;
     AACube maxAACube = getMaximumAACube(success);
-    if (success) {
-        if (shouldPuffQueryAACube()) {
-            // make an expanded AACube centered on the object
-            float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
-            _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
-            _queryAACubeIsPuffed = true;
-        } else {
-            _queryAACube = maxAACube;
-            _queryAACubeIsPuffed = false;
-        }
-
-        forEachDescendant([&](const SpatiallyNestablePointer& descendant) {
-            bool childSuccess;
-            AACube descendantAACube = descendant->getQueryAACube(childSuccess);
-            if (childSuccess) {
-                if (_queryAACube.contains(descendantAACube)) {
-                    return; // from lambda
-                }
-                _queryAACube += descendantAACube.getMinimumPoint();
-                _queryAACube += descendantAACube.getMaximumPoint();
-            }
-        });
-
-        _queryAACubeSet = true;
+    if (!success) {
+        return false;
     }
+
+    if (shouldPuffQueryAACube()) {
+        // make an expanded AACube centered on the object
+        float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
+        _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
+        _queryAACubeIsPuffed = true;
+    } else {
+        _queryAACube = maxAACube;
+        _queryAACubeIsPuffed = false;
+    }
+
+    forEachDescendant([&](const SpatiallyNestablePointer& descendant) {
+        bool childSuccess;
+        AACube descendantAACube = descendant->getQueryAACube(childSuccess);
+        if (childSuccess) {
+            if (_queryAACube.contains(descendantAACube)) {
+                return; // from lambda
+            }
+            _queryAACube += descendantAACube.getMinimumPoint();
+            _queryAACube += descendantAACube.getMaximumPoint();
+        }
+    });
+
+    _queryAACubeSet = true;
     return true;
 }
 
