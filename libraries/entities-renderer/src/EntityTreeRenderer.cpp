@@ -96,6 +96,8 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     });
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
         _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveOnEntity", event);
+        // FIXME: this is a duplicate of mouseMoveOnEntity, but it seems like some scripts might use this naming
+        _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseMoveEvent", event);
     });
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, _entitiesScriptEngine.data(), [&](const EntityItemID& entityID, const PointerEvent& event) {
         _entitiesScriptEngine->callEntityScriptMethod(entityID, "mouseReleaseOnEntity", event);
@@ -536,6 +538,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     }
 
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects) {
@@ -553,7 +556,6 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
                                   toPointerButton(*event), toPointerButtons(*event),
                                   Qt::NoModifier); // TODO -- check for modifier keys?
 
-        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         emit entityScriptingInterface->mousePressOnEntity(rayPickResult.entityID, pointerEvent);
 
         _currentClickingOnEntityID = rayPickResult.entityID;
@@ -565,6 +567,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     } else {
         // If the user clicks somewhere where there is NO entity at all, we will release focus
         QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::DirectConnection, Q_ARG(EntityItemID, UNKNOWN_ENTITY_ID));
+        emit entityScriptingInterface->mousePressOffEntity();
     }
 }
 
@@ -576,6 +579,7 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
     }
 
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseDoublePressEvent");
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects) {
@@ -585,7 +589,6 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
             rayPickResult.surfaceNormal, ray.direction,
             toPointerButton(*event), toPointerButtons(*event), Qt::NoModifier);
 
-        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         emit entityScriptingInterface->mouseDoublePressOnEntity(rayPickResult.entityID, pointerEvent);
 
         _currentClickingOnEntityID = rayPickResult.entityID;
@@ -593,7 +596,8 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
 
         _lastPointerEvent = pointerEvent;
         _lastPointerEventValid = true;
-
+    } else {
+        emit entityScriptingInterface->mouseDoublePressOffEntity();
     }
 }
 
@@ -661,11 +665,6 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
                                   Qt::NoModifier); // TODO -- check for modifier keys?
 
         emit entityScriptingInterface->mouseMoveOnEntity(rayPickResult.entityID, pointerEvent);
-
-        // FIXME: this is a duplicate of mouseMoveOnEntity, but it seems like some scripts might use this naming
-        if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", pointerEvent);
-        }
 
         // handle the hover logic...
 

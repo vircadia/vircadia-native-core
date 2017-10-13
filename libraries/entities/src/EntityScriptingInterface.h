@@ -405,6 +405,8 @@ signals:
     void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mousePressOffEntity();
+    void mouseDoublePressOffEntity();
 
     void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
