@@ -227,7 +227,7 @@ void Ledger::updateLocation(const QString& asset_id, const QString location, con
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
     uint walletStatus = walletScriptingInterface->getWalletStatus();
 
-    if (walletStatus != wallet->WALLET_STATUS_READY) {
+    if (walletStatus != (uint)wallet->WALLET_STATUS_READY) {
         emit walletScriptingInterface->walletNotSetup();
         qDebug(commerce) << "User attempted to update the location of a certificate, but their wallet wasn't ready. Status:" << walletStatus;
     } else {
