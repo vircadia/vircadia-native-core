@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global ToolsMenu: true, App, Feedback, UIT */
+/* global ToolsMenu:true, App, Feedback, Preload, UIT */
 
 ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
@@ -2042,6 +2042,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return new ToolsMenu();
     }
 
+    function getAssetURLs() {
+        return Preload.findURLs([MENU_HEADER_HEADING_PROPERTIES, MENU_HEADER_BAR_PROPERTIES, MENU_HEADER_BACK_PROPERTIES,
+            MENU_HEADER_TITLE_PROPERTIES, MENU_HEADER_TITLE_BACK_URL, MENU_HEADER_ICON_PROPERTIES, UI_ELEMENTS,
+            PICKLIST_UP_ARROW, PICKLIST_DOWN_ARROW, OPTONS_PANELS, MENU_ITEMS, FOOTER_ITEMS]);
+    }
+
     controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
 
     function setHand(hand) {
@@ -3672,6 +3678,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     return {
+        assetURLs: getAssetURLs,
         COLOR_TOOL: COLOR_TOOL,
         SCALE_TOOL: SCALE_TOOL,
         CLONE_TOOL: CLONE_TOOL,
