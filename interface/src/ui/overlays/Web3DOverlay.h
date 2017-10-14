@@ -103,7 +103,6 @@ private:
     uint8_t _currentMaxFPS { 0 };
 
     bool _mayNeedResize { false };
-    QTouchEvent::TouchPoint oldTouchPoint;
 };
 
 #endif // hifi_Web3DOverlay_h

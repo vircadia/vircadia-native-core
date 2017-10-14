@@ -397,7 +397,8 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     if (_activeTouchPoints.empty()) {
         // If the first active touch point is being created, send a begin
         touchType = QEvent::TouchBegin;
-    } if (state == Qt::TouchPointReleased && _activeTouchPoints.size() == 1 && _activeTouchPoints.count(event.getID())) {
+    }
+    if (state == Qt::TouchPointReleased && _activeTouchPoints.size() == 1 && _activeTouchPoints.count(event.getID())) {
         // If the last active touch point is being released, send an end
         touchType = QEvent::TouchEnd;
     } 
@@ -420,9 +421,8 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
 
         if (point.state() == Qt::TouchPointPressed) {
             point.setStartScenePos(windowPoint);
-            oldTouchPoint = point;
         } else {
-            //const QTouchEvent::TouchPoint& oldTouchPoint = _activeTouchPoints[event.getID()];
+            const QTouchEvent::TouchPoint& oldTouchPoint = _activeTouchPoints[event.getID()];
             if (oldTouchPoint.id() != -1) {
                 point.setStartScenePos(oldTouchPoint.startScenePos());
                 point.setLastPos(oldTouchPoint.pos());
