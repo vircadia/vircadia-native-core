@@ -9,6 +9,10 @@
 #   define VEC4 vec4
 #endif
 
+#define GROUP_COUNT 7
+#define GROUP_ID_COLOR_COMPONENT_BITS   2
+#define GROUP_ID_COLOR_COMPONENT_MAX    3
+
 struct OutlineParameters
 {
 	VEC3 _color;
@@ -17,8 +21,6 @@ struct OutlineParameters
     VEC2 _size;
     float _fillOpacityUnoccluded;
     float _fillOpacityOccluded;
-
-    VEC4 _idColor;
 
     float _threshold;
     int _blurKernelSize;

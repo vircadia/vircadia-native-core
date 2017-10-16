@@ -16,22 +16,84 @@
 <@include Outline_shared.slh@>
 
 uniform outlineParamsBuffer {
-	OutlineParameters params;
+	OutlineParameters groups[GROUP_COUNT];
 };
 
 uniform sampler2D sceneDepthMap;
 uniform sampler2D outlinedDepthMap;
 uniform sampler2D outlinedIdMap;
+uniform int enabledGroupsMask;
 
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 const float FAR_Z = 1.0;
-const float ID_THRESHOLD = 1.f/64.f;
 const float LINEAR_DEPTH_BIAS = 5e-3;
 const float OPACITY_EPSILON = 5e-3;
 
 <@func main(IS_FILLED)@>
+
+int getGroupIndexFromColor(vec4 color) {
+    ivec4 id = ivec4(color * GROUP_ID_COLOR_COMPONENT_MAX) << ivec4(0, GROUP_ID_COLOR_COMPONENT_BITS, GROUP_ID_COLOR_COMPONENT_BITS*2, GROUP_ID_COLOR_COMPONENT_BITS*3);
+    return (id.r | id.g | id.b | id.a) - 1;
+}
+
+vec4 computeGroupOutline(int centerGroupId, float centerDepth, int groupId, vec2 texCoord) {
+    float intensity = 0.0;
+
+    if (centerGroupId==groupId && centerDepth < FAR_Z) {
+        // We're on the outlined object, thus no outline to do!
+<@if IS_FILLED@>
+        OutlineParameters groupParams = groups[groupId];
+
+        // But we need to fill the interior
+        float sceneDepth = texture(sceneDepthMap, texCoord).x;
+        // Transform to linear depth for better precision
+        centerDepth = -evalZeyeFromZdb(centerDepth);
+        sceneDepth = -evalZeyeFromZdb(sceneDepth);
+
+        // Are we occluded?
+        intensity = (sceneDepth < (centerDepth-LINEAR_DEPTH_BIAS)) ? groupParams._fillOpacityOccluded : groupParams._fillOpacityUnoccluded;
+       	return vec4(groupParams._color.rgb, intensity);
+<@else@>
+		return vec4(0,0,0,0);
+<@endif@>
+    } else {
+        OutlineParameters groupParams = groups[groupId];
+        float weight = 0.0;
+        vec2 deltaUv = groupParams._size / groupParams._blurKernelSize;
+        vec2 lineStartUv = texCoord - groupParams._size / 2.0; 
+        vec2 uv;
+        int x;
+        int y;
+
+        for (y=0 ; y<groupParams._blurKernelSize ; y++) {
+            uv = lineStartUv;
+            lineStartUv.y += deltaUv.y;
+
+            if (uv.y>=0.0 && uv.y<=1.0) {
+                for (x=0 ; x<groupParams._blurKernelSize ; x++) {
+                    if (uv.x>=0.0 && uv.x<=1.0)
+                    {
+                        vec4 outlinedIdColor = texture(outlinedIdMap, uv);
+                        float outlinedDepth = texture(outlinedDepthMap, uv).x;
+                        int outlinedId = getGroupIndexFromColor(outlinedIdColor);
+                        intensity += (outlinedDepth<FAR_Z /*&& outlinedId!=groupId*/) ? 1.0 : 0.0;
+                        weight += 1.f;
+                    }
+                    uv.x += deltaUv.x;
+                }
+            }
+        }
+
+        intensity /= weight;
+        if (intensity < OPACITY_EPSILON) {
+            return vec4(0,0,0,0);
+        }
+        intensity = min(1.0, intensity / groupParams._threshold) * groupParams._intensity;
+	    return vec4(groupParams._color.rgb, intensity);
+    }
+}
 
 void main(void) {
     // We offset by half a texel to be centered on the depth sample. If we don't do this
@@ -42,60 +104,25 @@ void main(void) {
     vec4 outlinedIdColor = texture(outlinedIdMap, texCoord0);
 	float outlinedDepth = texture(outlinedDepthMap, texCoord0).x;
     float intensity = 0.0;
+    int groupId = getGroupIndexFromColor(outlinedIdColor);
 
-    if (outlinedDepth < FAR_Z && distance(outlinedIdColor, params._idColor) < ID_THRESHOLD) {
-        // We're not on the far plane so we are on the outlined object, thus no outline to do!
-<@if IS_FILLED@>
-        // But we need to fill the interior
-        float sceneDepth = texture(sceneDepthMap, texCoord0).x;
-        // Transform to linear depth for better precision
-        outlinedDepth = -evalZeyeFromZdb(outlinedDepth);
-        sceneDepth = -evalZeyeFromZdb(sceneDepth);
-
-        // Are we occluded?
-        if (sceneDepth < (outlinedDepth-LINEAR_DEPTH_BIAS)) {
-            intensity = params._fillOpacityOccluded;
-        } else {
-            intensity = params._fillOpacityUnoccluded;
+    vec4 finalColor = vec4(0,0,0,0);
+    int groupMask = 1;
+    for (int i=0 ; i<GROUP_COUNT ; i++) {
+        if ((enabledGroupsMask & groupMask)!=0) {
+	        vec4 groupColor = computeGroupOutline(groupId, outlinedDepth, i, texCoord0);
+            finalColor.rgb = mix(finalColor.rgb, groupColor.rgb, groupColor.a);
+            // If first group we encounter then don't mix the color
+            finalColor.rgb = finalColor.a==0 ? groupColor.rgb : finalColor.rgb;
+            finalColor.a = min(1, finalColor.a+groupColor.a*(1-finalColor.a));
         }
-<@else@>
-		discard;
-<@endif@>
-    } else {
-        float weight = 0.0;
-        vec2 deltaUv = params._size / params._blurKernelSize;
-        vec2 lineStartUv = texCoord0 - params._size / 2.0; 
-        vec2 uv;
-        int x;
-        int y;
-
-        for (y=0 ; y<params._blurKernelSize ; y++) {
-            uv = lineStartUv;
-            lineStartUv.y += deltaUv.y;
-
-            if (uv.y>=0.0 && uv.y<=1.0) {
-                for (x=0 ; x<params._blurKernelSize ; x++) {
-                    if (uv.x>=0.0 && uv.x<=1.0)
-                    {
-                        outlinedDepth = texture(outlinedDepthMap, uv).x;
-                        outlinedIdColor = texture(outlinedIdMap, uv);
-                        intensity += (outlinedDepth < FAR_Z && distance(outlinedIdColor, params._idColor) < ID_THRESHOLD) ? 1.0 : 0.0;
-                        weight += 1.f;
-                    }
-                    uv.x += deltaUv.x;
-                }
-            }
-        }
-
-        intensity /= weight;
-        if (intensity < OPACITY_EPSILON) {
-            discard;
-        }
-
-        intensity = min(1.0, intensity / params._threshold) * params._intensity;
+        groupMask <<= 1;
     }
 
-	outFragColor = vec4(params._color.rgb, intensity);
+    if (finalColor.a < OPACITY_EPSILON) {
+        discard;
+    }
+    outFragColor = finalColor;
 }
 
 <@endfunc@>

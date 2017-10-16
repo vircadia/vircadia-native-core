@@ -94,9 +94,13 @@ signals:
 };
 
 class DrawOutline {
+private:
+
+#include "Outline_shared.slh"
+
 public:
     enum {
-        MAX_GROUP_COUNT = 7
+        MAX_GROUP_COUNT = GROUP_COUNT
     };
 
     using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
@@ -116,12 +120,14 @@ private:
         OUTLINED_ID_SLOT,
 
         OUTLINE_PARAMS_SLOT = 0,
-        FRAME_TRANSFORM_SLOT
+        FRAME_TRANSFORM_SLOT,
     };
 
-#include "Outline_shared.slh"
+    struct OutlineConfiguration {
+        OutlineParameters _groups[MAX_GROUP_COUNT];
+    };
 
-    using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineParameters>;
+    using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineConfiguration>;
 
     static const gpu::PipelinePointer& getPipeline(bool isFilled);
 

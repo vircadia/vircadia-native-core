@@ -94,6 +94,8 @@ glm::vec4 encodeIdToColor(unsigned int id) {
         unsigned char id;
     } groupId;
 
+    static_assert(GROUP_ID_COLOR_COMPONENT_BITS == 2, "Assuming two bits per component contrary to GLSL shader code. See Outline_shared.slh");
+
     assert(id < 254);
     groupId.id = id+1;
 
@@ -101,7 +103,7 @@ glm::vec4 encodeIdToColor(unsigned int id) {
 
     // Normalize. Since we put 2 bits into each color component, each component has a maximum
     // value of 3.
-    idColor /= 3.f;
+    idColor /= GROUP_ID_COLOR_COMPONENT_MAX;
     return idColor;
 }
 
@@ -250,15 +252,19 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             if (_hasConfigurationChanged)
             {
                 auto& configuration = _configuration.edit();
-                configuration._color = _color;
-                configuration._intensity = _intensity;
-                configuration._fillOpacityUnoccluded = _fillOpacityUnoccluded;
-                configuration._fillOpacityOccluded = _fillOpacityOccluded;
-                configuration._threshold = _threshold;
-                configuration._blurKernelSize = _blurKernelSize;
-                configuration._size.x = (_size * framebufferSize.y) / framebufferSize.x;
-                configuration._size.y = _size;
-                configuration._idColor = encodeIdToColor(0);
+
+                for (auto groupId = 0; groupId < MAX_GROUP_COUNT; groupId++) {
+                    auto& groupConfig = configuration._groups[groupId];
+
+                    groupConfig._color = _color;
+                    groupConfig._intensity = _intensity;
+                    groupConfig._fillOpacityUnoccluded = _fillOpacityUnoccluded;
+                    groupConfig._fillOpacityOccluded = _fillOpacityOccluded;
+                    groupConfig._threshold = _threshold;
+                    groupConfig._blurKernelSize = _blurKernelSize;
+                    groupConfig._size.x = (_size * framebufferSize.y) / framebufferSize.x;
+                    groupConfig._size.y = _size;
+                }
                 _hasConfigurationChanged = false;
             }
 
@@ -272,15 +278,15 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
                 batch.setPipeline(pipeline);
 
+                auto enabledGroupsLoc = pipeline->getProgram()->getUniforms().findLocation("enabledGroupsMask");
+
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
                 batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
                 batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer->getPrimaryDepthTexture());
                 batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthTexture);
                 batch.setResourceTexture(OUTLINED_ID_SLOT, outlinedIdTexture);
+                batch._glUniform1i(enabledGroupsLoc, 1);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
-
-                // Restore previous frame buffer
-                batch.setFramebuffer(destinationFrameBuffer);
             });
         }
     }
