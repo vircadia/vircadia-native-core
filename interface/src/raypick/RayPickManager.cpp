@@ -10,6 +10,8 @@
 //
 #include "RayPickManager.h"
 
+#include <pointers/rays/StaticRayPick.h>
+
 #include "Application.h"
 #include "EntityScriptingInterface.h"
 #include "ui/overlays/Overlays.h"
@@ -18,7 +20,6 @@
 #include "DependencyManager.h"
 
 #include "JointRayPick.h"
-#include "StaticRayPick.h"
 #include "MouseRayPick.h"
 
 bool RayPickManager::checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, const RayPickFilter::Flags& mask) {
@@ -43,20 +44,26 @@ void RayPickManager::cacheResult(const bool intersects, const RayPickResult& res
 }
 
 void RayPickManager::update() {
-    QReadLocker lock(&_containsLock);
     RayPickCache results;
-    for (auto& uid : _rayPicks.keys()) {
-        std::shared_ptr<RayPick> rayPick = _rayPicks[uid];
-        QWriteLocker lock(rayPick->getLock());
+    QHash<QUuid, RayPick::Pointer> cachedRayPicks;
+    withReadLock([&] {
+        cachedRayPicks = _rayPicks;
+    });
+
+    for (const auto& uid : cachedRayPicks.keys()) {
+        std::shared_ptr<RayPick> rayPick = cachedRayPicks[uid];
         if (!rayPick->isEnabled() || rayPick->getFilter().doesPickNothing() || rayPick->getMaxDistance() < 0.0f) {
             continue;
         }
 
-        bool valid;
-        PickRay ray = rayPick->getPickRay(valid);
+        PickRay ray;
 
-        if (!valid) {
-            continue;
+        {
+            bool valid;
+            ray = rayPick->getPickRay(valid);
+            if (!valid) {
+                continue;
+            }
         }
 
         QPair<glm::vec3, glm::vec3> rayKey = QPair<glm::vec3, glm::vec3>(ray.origin, ray.direction);
@@ -69,8 +76,8 @@ void RayPickManager::update() {
             bool nonCollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags entityMask = rayPick->getFilter().getEntityFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, entityMask)) {
-                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCourse(),
-                    rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !nonCollidable);
+                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCoarse(),
+                    rayPick->getIncludeItemsAs<EntityItemID>(), rayPick->getIgnoreItemsAs<EntityItemID>(), !invisible, !nonCollidable);
                 fromCache = false;
             }
 
@@ -87,8 +94,8 @@ void RayPickManager::update() {
             bool nonCollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags overlayMask = rayPick->getFilter().getOverlayFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, overlayMask)) {
-                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCourse(),
-                    rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !nonCollidable);
+                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCoarse(),
+                    rayPick->getIncludeItemsAs<OverlayID>(), rayPick->getIgnoreItemsAs<OverlayID>(), !invisible, !nonCollidable);
                 fromCache = false;
             }
 
@@ -101,7 +108,8 @@ void RayPickManager::update() {
         if (rayPick->getFilter().doesPickAvatars()) {
             RayPickFilter::Flags avatarMask = rayPick->getFilter().getAvatarFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, avatarMask)) {
-                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(ray, rayPick->getIncludeAvatars(), rayPick->getIgnoreAvatars());
+                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(ray, 
+                    rayPick->getIncludeItemsAs<EntityItemID>(), rayPick->getIgnoreItemsAs<EntityItemID>());
                 cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, ray), avatarMask, res, rayKey, results);
             }
         }
@@ -123,109 +131,87 @@ void RayPickManager::update() {
     }
 }
 
-QUuid RayPickManager::createRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const RayPickFilter& filter, const float maxDistance, const bool enabled) {
-    QWriteLocker lock(&_containsLock);
+QUuid RayPickManager::createRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const RayPickFilter& filter, float maxDistance, bool enabled) {
+    auto newRayPick = std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
     QUuid id = QUuid::createUuid();
-    _rayPicks[id] = std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
+    withWriteLock([&] {
+        _rayPicks[id] = newRayPick;
+    });
     return id;
 }
 
-QUuid RayPickManager::createRayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled) {
-    QWriteLocker lock(&_containsLock);
+QUuid RayPickManager::createRayPick(const RayPickFilter& filter, float maxDistance, bool enabled) {
     QUuid id = QUuid::createUuid();
-    _rayPicks[id] = std::make_shared<MouseRayPick>(filter, maxDistance, enabled);
+    auto newRayPick = std::make_shared<MouseRayPick>(filter, maxDistance, enabled);
+    withWriteLock([&] {
+        _rayPicks[id] = newRayPick;
+    });
     return id;
 }
 
-QUuid RayPickManager::createRayPick(const glm::vec3& position, const glm::vec3& direction, const RayPickFilter& filter, const float maxDistance, const bool enabled) {
-    QWriteLocker lock(&_containsLock);
+QUuid RayPickManager::createRayPick(const glm::vec3& position, const glm::vec3& direction, const RayPickFilter& filter, float maxDistance, bool enabled) {
     QUuid id = QUuid::createUuid();
-    _rayPicks[id] = std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled);
+    auto newRayPick = std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled);
+    withWriteLock([&] {
+        _rayPicks[id] = newRayPick;
+    });
     return id;
 }
 
-void RayPickManager::removeRayPick(const QUuid uid) {
-    QWriteLocker lock(&_containsLock);
-    _rayPicks.remove(uid);
+void RayPickManager::removeRayPick(const QUuid& uid) {
+    withWriteLock([&] {
+        _rayPicks.remove(uid);
+    });
 }
 
-void RayPickManager::enableRayPick(const QUuid uid) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->enable();
+RayPick::Pointer RayPickManager::findRayPick(const QUuid& uid) const {
+    return resultWithReadLock<RayPick::Pointer>([&] {
+        if (_rayPicks.contains(uid)) {
+            return _rayPicks[uid];
+        }
+        return RayPick::Pointer();
+    });
+}
+
+void RayPickManager::enableRayPick(const QUuid& uid) const {
+    auto rayPick = findRayPick(uid);
+    if (rayPick) {
+        rayPick->enable();
     }
 }
 
-void RayPickManager::disableRayPick(const QUuid uid) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->disable();
+void RayPickManager::disableRayPick(const QUuid& uid) const {
+    auto rayPick = findRayPick(uid);
+    if (rayPick) {
+        rayPick->disable();
     }
 }
 
-const RayPickResult RayPickManager::getPrevRayPickResult(const QUuid uid) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        return rayPick.value()->getPrevRayPickResult();
+RayPickResult RayPickManager::getPrevRayPickResult(const QUuid& uid) const {
+    auto rayPick = findRayPick(uid);
+    if (rayPick) {
+        return rayPick->getPrevRayPickResult();
     }
     return RayPickResult();
 }
 
-void RayPickManager::setPrecisionPicking(QUuid uid, const bool precisionPicking) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->setPrecisionPicking(precisionPicking);
+void RayPickManager::setPrecisionPicking(const QUuid& uid, bool precisionPicking) const {
+    auto rayPick = findRayPick(uid);
+    if (rayPick) {
+        rayPick->setPrecisionPicking(precisionPicking);
     }
 }
 
-void RayPickManager::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->setIgnoreEntities(ignoreEntities);
+void RayPickManager::setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignore) const {
+    auto rayPick = findRayPick(uid);
+    if (rayPick) {
+        rayPick->setIgnoreItems(ignore);
     }
 }
 
-void RayPickManager::setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->setIncludeEntities(includeEntities);
-    }
-}
-
-void RayPickManager::setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->setIgnoreOverlays(ignoreOverlays);
-    }
-}
-
-void RayPickManager::setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->setIncludeOverlays(includeOverlays);
-    }
-}
-
-void RayPickManager::setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->setIgnoreAvatars(ignoreAvatars);
-    }
-}
-
-void RayPickManager::setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) {
-    QReadLocker containsLock(&_containsLock);
-    auto rayPick = _rayPicks.find(uid);
-    if (rayPick != _rayPicks.end()) {
-        rayPick.value()->setIncludeAvatars(includeAvatars);
+void RayPickManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& include) const {
+    auto rayPick = findRayPick(uid);
+    if (rayPick) {
+        rayPick->setIncludeItems(include);
     }
 }

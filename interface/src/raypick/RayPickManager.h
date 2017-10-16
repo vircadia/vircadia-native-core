@@ -11,19 +11,20 @@
 #ifndef hifi_RayPickManager_h
 #define hifi_RayPickManager_h
 
-#include "RayPick.h"
 
 #include <memory>
-#include <QtCore/QObject>
-
-#include "RegisteredMetaTypes.h"
-
 #include <unordered_map>
 #include <queue>
 
+#include <QtCore/QObject>
+
+#include <RegisteredMetaTypes.h>
+#include <pointers/rays/RayPick.h>
+
+
 class RayPickResult;
 
-class RayPickManager {
+class RayPickManager : protected ReadWriteLockable {
 
 public:
     void update();
@@ -31,22 +32,18 @@ public:
     QUuid createRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const RayPickFilter& filter, const float maxDistance, const bool enabled);
     QUuid createRayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled);
     QUuid createRayPick(const glm::vec3& position, const glm::vec3& direction, const RayPickFilter& filter, const float maxDistance, const bool enabled);
-    void removeRayPick(const QUuid uid);
-    void enableRayPick(const QUuid uid);
-    void disableRayPick(const QUuid uid);
-    const RayPickResult getPrevRayPickResult(const QUuid uid);
+    void removeRayPick(const QUuid& uid);
+    void enableRayPick(const QUuid& uid) const;
+    void disableRayPick(const QUuid& uid) const;
+    RayPickResult getPrevRayPickResult(const QUuid& uid) const;
 
-    void setPrecisionPicking(QUuid uid, const bool precisionPicking);
-    void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
-    void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
-    void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);
-    void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays);
-    void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars);
-    void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars);
+    void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const;
+    void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignore) const;
+    void setIncludeItems(const QUuid& uid, const QVector<QUuid>& include) const;
 
 private:
-    QHash<QUuid, std::shared_ptr<RayPick>> _rayPicks;
-    QReadWriteLock _containsLock;
+    RayPick::Pointer findRayPick(const QUuid& uid) const;
+    QHash<QUuid, RayPick::Pointer> _rayPicks;
 
     typedef QHash<QPair<glm::vec3, glm::vec3>, std::unordered_map<RayPickFilter::Flags, RayPickResult>> RayPickCache;
 
