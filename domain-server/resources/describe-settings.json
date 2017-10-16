@@ -1266,8 +1266,8 @@
           "name": "dynamicDomainVerificationTimeMax",
           "label": "Dynamic Domain Verification Time (seconds) - Maximum",
           "help": "The upper limit on the amount of time that passes before Dynamic Domain Verification on entities occurs. Units are seconds.",
-          "placeholder": "4500",
-          "default": "4500",
+          "placeholder": "3600",
+          "default": "3600",
           "advanced": true
         },
         {

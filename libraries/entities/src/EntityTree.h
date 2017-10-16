@@ -19,7 +19,6 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
-#include <NetworkingConstants.h>
 
 #include <Octree.h>
 #include <SpatialParentFinder.h>

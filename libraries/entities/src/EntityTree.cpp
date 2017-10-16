@@ -17,6 +17,7 @@
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <NetworkingConstants.h>
 
 #include <QtScript/QScriptEngine>
 
@@ -1159,18 +1160,23 @@ void EntityTree::startPendingTransferStatusTimer(const QString& certID, const En
 }
 
 QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QString ownerKey) {
-    QUuid nonce = QUuid::createUuid();
-    const auto text = reinterpret_cast<const unsigned char*>(qPrintable(nonce.toString()));
-    const unsigned int textLength = nonce.toString().length();
-
     QString ownerKeyWithHeaders = ("-----BEGIN RSA PUBLIC KEY-----\n" + ownerKey + "\n-----END RSA PUBLIC KEY-----");
     BIO* bio = BIO_new_mem_buf((void*)ownerKeyWithHeaders.toUtf8().constData(), -1);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NEWLINE
     RSA* rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
 
     if (rsa) {
+        QUuid nonce = QUuid::createUuid();
+        const unsigned int textLength = nonce.toString().length();
         QByteArray encryptedText(RSA_size(rsa), 0);
-        const int encryptStatus = RSA_public_encrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
+        const int encryptStatus = RSA_public_encrypt(textLength,
+            reinterpret_cast<const unsigned char*>(qPrintable(nonce.toString())),
+            reinterpret_cast<unsigned char*>(encryptedText.data()),
+            rsa,
+            RSA_PKCS1_OAEP_PADDING);
+        if (bio) {
+            BIO_free(bio);
+        }
         RSA_free(rsa);
         if (encryptStatus == -1) {
             long error = ERR_get_error();
@@ -1181,10 +1187,13 @@ QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QStrin
 
         QWriteLocker locker(&_certNonceMapLock);
         _certNonceMap.insert(certID, nonce);
-
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID << "by encrypting and sending nonce" << nonce << "to owner.";
+
         return encryptedText;
     } else {
+        if (bio) {
+            BIO_free(bio);
+        }
         return "";
     }
 }

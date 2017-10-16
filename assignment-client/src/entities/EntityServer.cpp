@@ -16,6 +16,7 @@
 #include <ResourceCache.h>
 #include <ScriptCache.h>
 #include <EntityEditFilters.h>
+#include <NetworkingConstants.h>
 
 #include "AssignmentParentFinder.h"
 #include "EntityNodeData.h"
