@@ -22,7 +22,7 @@ class LaserPointerManager {
 
 public:
     QUuid createLaserPointer(const QVariant& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
     void removeLaserPointer(const QUuid uid);
     void enableLaserPointer(const QUuid uid);
     void disableLaserPointer(const QUuid uid);

@@ -18,6 +18,8 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/utils.js");
 
 (function () {
+    var END_RADIUS = 0.005;
+    var dim = { x: END_RADIUS, y: END_RADIUS, z: END_RADIUS };
     var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
@@ -32,6 +34,7 @@ Script.include("/~/system/libraries/utils.js");
     };
     var halfEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
@@ -53,6 +56,7 @@ Script.include("/~/system/libraries/utils.js");
     };
     var fullEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
@@ -121,17 +125,6 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.updateLaserPointer = function(controllerData) {
-            var RADIUS = 0.005;
-            var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
-
-            if (this.mode === "full") {
-                this.fullEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: fullPath, end: this.fullEnd});
-            } else if (this.mode === "half") {
-                this.halfEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: halfPath, end: this.halfEnd});
-            }
-
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
         };
@@ -229,10 +222,6 @@ Script.include("/~/system/libraries/utils.js");
             LaserPointers.disableLaserPointer(this.laserPointer);
             LaserPointers.removeLaserPointer(this.laserPointer);
         };
-
-
-        this.halfEnd = halfEnd;
-        this.fullEnd = fullEnd;
 
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
