@@ -894,7 +894,7 @@ void Overlays::mousePressEvent(const OverlayID& overlayID, const PointerEvent& e
     auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
     if (thisOverlay) {
         // Focus keyboard on web overlays
-        qApp->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+        DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         setKeyboardFocusOverlay(overlayID);
 
         // Send to web overlay

@@ -50,6 +50,11 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canRezCertifiedChanged, this, &EntityScriptingInterface::canRezCertifiedChanged);
     connect(nodeList.data(), &NodeList::canRezTmpCertifiedChanged, this, &EntityScriptingInterface::canRezTmpCertifiedChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
+
+    // If the user clicks somewhere where there is no entity at all, we will release focus
+    connect(this, &EntityScriptingInterface::mousePressOffEntity, [=]() {
+        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+    });
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
