@@ -24,6 +24,25 @@
 
 class RayPickResult;
 
+typedef struct RayCacheKey {
+    RayPickFilter::Flags mask;
+    QVector<QUuid> include;
+    QVector<QUuid> ignore;
+
+    bool operator==(const RayCacheKey& other) const {
+        return (mask == other.mask && include == other.include && ignore == other.ignore);
+    }
+} RayCacheKey;
+
+namespace std {
+    template <>
+    struct hash<RayCacheKey> {
+        size_t operator()(const RayCacheKey& k) const {
+            return ((hash<RayPickFilter::Flags>()(k.mask) ^ (qHash(k.include) << 1)) >> 1) ^ (qHash(k.ignore) << 1);
+        }
+    };
+}
+
 class RayPickManager : protected ReadWriteLockable {
 
 public:
@@ -45,11 +64,11 @@ private:
     RayPick::Pointer findRayPick(const QUuid& uid) const;
     QHash<QUuid, RayPick::Pointer> _rayPicks;
 
-    typedef QHash<QPair<glm::vec3, glm::vec3>, std::unordered_map<RayPickFilter::Flags, RayPickResult>> RayPickCache;
+    typedef QHash<QPair<glm::vec3, glm::vec3>, std::unordered_map<RayCacheKey, RayPickResult>> RayPickCache;
 
     // Returns true if this ray exists in the cache, and if it does, update res if the cached result is closer
-    bool checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, const RayPickFilter::Flags& mask);
-    void cacheResult(const bool intersects, const RayPickResult& resTemp, const RayPickFilter::Flags& mask, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache);
+    bool checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, const RayCacheKey& key);
+    void cacheResult(const bool intersects, const RayPickResult& resTemp, const RayCacheKey& key, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache);
 };
 
 #endif // hifi_RayPickManager_h

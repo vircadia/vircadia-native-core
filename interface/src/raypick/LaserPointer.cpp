@@ -58,8 +58,8 @@ void LaserPointer::enable() {
 
 void LaserPointer::disable() {
     qApp->getRayPickManager().disableRayPick(_rayPickUID);
-    _renderingEnabled = false;
     withWriteLock([&] {
+        _renderingEnabled = false;
         if (!_currentRenderState.empty()) {
             if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
                 disableRenderState(_renderStates[_currentRenderState]);
@@ -219,11 +219,15 @@ void LaserPointer::setPrecisionPicking(const bool precisionPicking) {
 }
 
 void LaserPointer::setLaserLength(const float laserLength) {
-    _laserLength = laserLength;
+    withWriteLock([&] {
+        _laserLength = laserLength;
+    });
 }
 
 void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay) {
-    _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay);
+    withWriteLock([&] {
+        _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay);
+    });
 }
 
 void LaserPointer::setIgnoreItems(const QVector<QUuid>& ignoreItems) const {

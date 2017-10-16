@@ -26,4 +26,4 @@ signals:
     void hoverLeave(const QUuid& id, const PointerEvent& pointerEvent);
 };
 
-#endif // hifi_RayPick_h
+#endif // hifi_pointers_PointerManager_h
