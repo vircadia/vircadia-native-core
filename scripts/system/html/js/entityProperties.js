@@ -146,6 +146,22 @@ function createEmitTextPropertyUpdateFunction(propertyName) {
     };
 }
 
+function createZoneComponentModeChangedFunction(zoneComponent, zoneComponentModeInherit, zoneComponentModeDisabled, zoneComponentModeEnabled) {
+    return function() {
+        var zoneComponentMode;
+
+        if (zoneComponentModeInherit.checked) {
+            zoneComponentMode = 'inherit';
+        } else if (zoneComponentModeDisabled.checked) {
+            zoneComponentMode = 'disabled';
+        } else if (zoneComponentModeEnabled.checked) {
+            zoneComponentMode = 'enabled';
+        }
+
+        updateProperty(zoneComponent, zoneComponentMode);
+    }
+}
+
 function createEmitGroupTextPropertyUpdateFunction(group, propertyName) {
     return function() {
         var properties = {};
@@ -644,6 +660,11 @@ function loaded() {
 
         var elZoneSections = document.querySelectorAll(".zone-section");
         allSections.push(elZoneSections);
+
+        var elZoneKeyLightModeInherit = document.getElementById("property-zone-component-mode-inherit");
+        var elZoneKeyLightModeDisabled = document.getElementById("property-zone-component-mode-disabled");
+        var elZoneKeyLightModeEnabled = document.getElementById("property-zone-component-mode-enabled");
+
         var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
 
         var elZoneKeyLightColor = document.getElementById("property-zone-key-light-color");
@@ -983,6 +1004,11 @@ function loaded() {
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
                         } else if (properties.type == "Zone") {
+
+                            elZoneKeyLightModeInherit.checked = (properties.keyLightMode == 'inherit');
+                            elZoneKeyLightModeDisabled.checked = (properties.keyLightMode == 'disabled');
+                            elZoneKeyLightModeEnabled.checked = (properties.keyLightMode == 'enabled');
+                            
                             elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
                             elZoneKeyLightColorRed.value = properties.keyLight.color.red;
@@ -1360,6 +1386,11 @@ function loaded() {
                 emitColorPropertyUpdate('backgroundColor', rgb.r, rgb.g, rgb.b);
             }
         }));
+
+        var keyLightModeChanged = createZoneComponentModeChangedFunction('keyLightMode', elZoneKeyLightModeInherit, elZoneKeyLightModeDisabled, elZoneKeyLightModeEnabled)
+        elZoneKeyLightModeInherit.addEventListener('change', keyLightModeChanged);
+        elZoneKeyLightModeDisabled.addEventListener('change', keyLightModeChanged);
+        elZoneKeyLightModeEnabled.addEventListener('change', keyLightModeChanged);
 
         elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage', 'sunModelEnabled'));
         colorPickers.push($('#property-zone-key-light-color').colpick({
