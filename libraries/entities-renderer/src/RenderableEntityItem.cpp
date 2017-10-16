@@ -26,6 +26,9 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 
+// uncomment WANT_DETAILED_PROFILING to see some of the interesting profiling contexts
+//#define WANT_DETAILED_PROFILING
+
 using namespace render;
 using namespace render::entities;
 
@@ -271,7 +274,9 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_physics, __FUNCTION__);
+#endif
     if (!isValidRenderItem()) {
         return;
     }
@@ -331,7 +336,9 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
 }
 
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_physics, __FUNCTION__);
+#endif
     withWriteLock([&] {
         auto transparent = isTransparent();
         if (_prevIsTransparent && !transparent) {
