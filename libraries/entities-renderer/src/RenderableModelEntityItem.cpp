@@ -34,6 +34,9 @@
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 
+// uncomment WANT_DETAILED_PROFILING to profile the interesting contexts
+//#define WANT_DETAILED_PROFILING
+
 static CollisionRenderMeshCache collisionMeshCache;
 
 void ModelEntityWrapper::setModel(const ModelPointer& model) {
@@ -107,7 +110,9 @@ QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextu
 }
 
 void RenderableModelEntityItem::doInitialModelSimulation() {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_physics, __FUNCTION__);
+#endif
     ModelPointer model = getModel();
     if (!model) {
         return;
@@ -139,7 +144,9 @@ void RenderableModelEntityItem::autoResizeJointArrays() {
 }
 
 bool RenderableModelEntityItem::needsUpdateModelBounds() const {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_physics, __FUNCTION__);
+#endif
     ModelPointer model = getModel();
     if (!hasModel() || !model) {
         return false;
@@ -184,7 +191,9 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
 }
 
 void RenderableModelEntityItem::updateModelBounds() {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_physics, "updateModelBounds");
+#endif
 
     if (!_dimensionsInitialized || !hasModel()) {
         return;
@@ -1169,7 +1178,9 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
 }
 
 void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_physics, __FUNCTION__);
+#endif
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1259,7 +1270,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // TODO? early exit here when not visible?
 
     {
+#ifdef WANT_DETAILED_PROFILING
         PROFILE_RANGE(simulation_physics, "Fixup");
+#endif
         if (model->needsFixupInScene()) {
             model->removeFromScene(scene, transaction);
             render::Item::Status::Getters statusGetters;
@@ -1275,7 +1288,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     {
+#ifdef WANT_DETAILED_PROFILING
         PROFILE_RANGE(simulation_physics, "CheckAnimation");
+#endif
         // make a copy of the animation properites
         auto newAnimationProperties = entity->getAnimationProperties();
         if (newAnimationProperties != _renderAnimationProperties) {
@@ -1287,7 +1302,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     if (_animating) {
+#ifdef WANT_DETAILED_PROFILING
         PROFILE_RANGE(simulation_physics, "Animate");
+#endif
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }
@@ -1298,7 +1315,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items
 void ModelEntityRenderer::doRender(RenderArgs* args) {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(render_detail, "MetaModelRender");
+#endif
     PerformanceTimer perfTimer("RMEIrender");
 
     ModelPointer model;
