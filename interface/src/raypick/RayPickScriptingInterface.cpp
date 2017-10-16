@@ -66,46 +66,30 @@ QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
     return QUuid();
 }
 
-void RayPickScriptingInterface::enableRayPick(QUuid uid) {
+void RayPickScriptingInterface::enableRayPick(const QUuid& uid) {
     qApp->getRayPickManager().enableRayPick(uid);
 }
 
-void RayPickScriptingInterface::disableRayPick(QUuid uid) {
+void RayPickScriptingInterface::disableRayPick(const QUuid& uid) {
     qApp->getRayPickManager().disableRayPick(uid);
 }
 
-void RayPickScriptingInterface::removeRayPick(QUuid uid) {
+void RayPickScriptingInterface::removeRayPick(const QUuid& uid) {
     qApp->getRayPickManager().removeRayPick(uid);
 }
 
-RayPickResult RayPickScriptingInterface::getPrevRayPickResult(QUuid uid) {
+RayPickResult RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
     return qApp->getRayPickManager().getPrevRayPickResult(uid);
 }
 
-void RayPickScriptingInterface::setPrecisionPicking(QUuid uid, const bool precisionPicking) {
+void RayPickScriptingInterface::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) {
     qApp->getRayPickManager().setPrecisionPicking(uid, precisionPicking);
 }
 
-void RayPickScriptingInterface::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) {
-    qApp->getRayPickManager().setIgnoreEntities(uid, ignoreEntities);
+void RayPickScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) {
+    qApp->getRayPickManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
-void RayPickScriptingInterface::setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) {
-    qApp->getRayPickManager().setIncludeEntities(uid, includeEntities);
-}
-
-void RayPickScriptingInterface::setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) {
-    qApp->getRayPickManager().setIgnoreOverlays(uid, ignoreOverlays);
-}
-
-void RayPickScriptingInterface::setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) {
-    qApp->getRayPickManager().setIncludeOverlays(uid, includeOverlays);
-}
-
-void RayPickScriptingInterface::setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) {
-    qApp->getRayPickManager().setIgnoreAvatars(uid, ignoreAvatars);
-}
-
-void RayPickScriptingInterface::setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) {
-    qApp->getRayPickManager().setIncludeAvatars(uid, includeAvatars);
+void RayPickScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) {
+    qApp->getRayPickManager().setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }

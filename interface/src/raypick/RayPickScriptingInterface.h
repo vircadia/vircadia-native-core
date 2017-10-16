@@ -13,10 +13,9 @@
 
 #include <QtCore/QObject>
 
-#include "RegisteredMetaTypes.h"
-#include "DependencyManager.h"
-
-#include "RayPick.h"
+#include <RegisteredMetaTypes.h>
+#include <DependencyManager.h>
+#include <pointers/rays/RayPick.h>
 
 class RayPickScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -38,25 +37,21 @@ class RayPickScriptingInterface : public QObject, public Dependency {
 
 public slots:
     Q_INVOKABLE QUuid createRayPick(const QVariant& properties);
-    Q_INVOKABLE void enableRayPick(QUuid uid);
-    Q_INVOKABLE void disableRayPick(QUuid uid);
-    Q_INVOKABLE void removeRayPick(QUuid uid);
-    Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid);
+    Q_INVOKABLE void enableRayPick(const QUuid& uid);
+    Q_INVOKABLE void disableRayPick(const QUuid& uid);
+    Q_INVOKABLE void removeRayPick(const QUuid& uid);
+    Q_INVOKABLE RayPickResult getPrevRayPickResult(const QUuid& uid);
 
-    Q_INVOKABLE void setPrecisionPicking(QUuid uid, const bool precisionPicking);
-    Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
-    Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
-    Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);
-    Q_INVOKABLE void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays);
-    Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars);
-    Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars);
+    Q_INVOKABLE void setPrecisionPicking(const QUuid& uid, const bool precisionPicking);
+    Q_INVOKABLE void setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreEntities);
+    Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities);
 
-    unsigned int PICK_NOTHING() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_NOTHING); }
+    unsigned int PICK_NOTHING() { return 0; }
     unsigned int PICK_ENTITIES() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_ENTITIES); }
     unsigned int PICK_OVERLAYS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_OVERLAYS); }
     unsigned int PICK_AVATARS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_AVATARS); }
     unsigned int PICK_HUD() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_HUD); }
-    unsigned int PICK_COURSE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_COURSE); }
+    unsigned int PICK_COARSE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_COARSE); }
     unsigned int PICK_INCLUDE_INVISIBLE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_INCLUDE_INVISIBLE); }
     unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_INCLUDE_NONCOLLIDABLE); }
     unsigned int PICK_ALL_INTERSECTIONS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
