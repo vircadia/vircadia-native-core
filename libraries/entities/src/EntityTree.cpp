@@ -1191,11 +1191,17 @@ QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QStrin
 
 bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce) {
 
-    QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
-    EntityItemID id = _entityCertificateIDMap.value(certID);
+    EntityItemID id;
+    {
+        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
+        id = _entityCertificateIDMap.value(certID);
+    }
 
-    QWriteLocker locker(&_certNonceMapLock);
-    QString actualNonce = _certNonceMap.take(certID).toString();
+    QString actualNonce;
+    {
+        QWriteLocker locker(&_certNonceMapLock);
+        actualNonce = _certNonceMap.take(certID).toString();
+    }
 
     bool verificationSuccess = (actualNonce == decryptedNonce);
     if (!verificationSuccess) {
