@@ -138,7 +138,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Unreasonable: {
             lostAudioData(1);
-            qDebug(audio) << "Sequence Unreasonable (LOST)";
             break;
         }
         case SequenceNumberStats::Early: {
@@ -148,7 +147,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // fall through to the "on time" logic to actually handle this packet
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
             lostAudioData(packetsDropped);
-            qDebug(audio) << "Sequence Early (LOST)";
 
             // fall through to OnTime case
         }
@@ -159,7 +157,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                 // If we recieved a SilentAudioFrame from our sender, we might want to drop
                 // some of the samples in order to catch up to our desired jitter buffer size.
                 writeDroppableSilentFrames(networkFrames);
-                qDebug(audio) << "OnTime (SILENT)";
 
             } else {
                 // note: PCM and no codec are identical
@@ -168,7 +165,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                 if (codecInPacket == _selectedCodecName || (packetPCM && selectedPCM)) {
                     auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
                     parseAudioData(message.getType(), afterProperties);
-                    qDebug(audio) << "OnTime (DECODE:" << codecInPacket << afterProperties.size() << ")";
                     _mismatchedAudioCodecCount = 0;
 
                 } else {
