@@ -34,7 +34,12 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
 
-    _selectionToSceneHandler.initialize("contextOverlayHighlightList");
+    _selectionToSceneHandlers[0].initialize("contextOverlayHighlightList");
+    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[0], &SelectionToSceneHandler::selectedItemsListChanged);
+    for (auto i = 1; i < MAX_HIGHLIGHT_COUNT; i++) {
+        _selectionToSceneHandlers[i].initialize(QString("contextOverlayHighlightList")+QString::number(i));
+        connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[i], &SelectionToSceneHandler::selectedItemsListChanged);
+    }
 
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
@@ -61,8 +66,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
     });
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
-
-    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
 }
 
 static const uint32_t MOUSE_HW_ID = 0;

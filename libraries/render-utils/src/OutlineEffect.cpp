@@ -399,8 +399,8 @@ void DrawOutlineTask::configure(const Config& config) {
 }
 
 void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
-    const auto input = inputs.get<Inputs>();
-    const auto selectedMetas = inputs.getN<Inputs>(0);
+    const auto groups = inputs.getN<Inputs>(0).get<Groups>();
+    const auto selectedMetas = groups[0];
     const auto sceneFrameBuffer = inputs.getN<Inputs>(1);
     const auto primaryFramebuffer = inputs.getN<Inputs>(2);
     const auto deferredFrameTransform = inputs.getN<Inputs>(3);

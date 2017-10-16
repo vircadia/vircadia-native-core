@@ -173,7 +173,13 @@ private:
 
 class DrawOutlineTask {
 public:
-    using Inputs = render::VaryingSet4<render::ItemBounds, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+
+    enum {
+        MAX_GROUP_COUNT = 7
+    };
+
+    using Groups = render::VaryingArray<render::ItemBounds, MAX_GROUP_COUNT>;
+    using Inputs = render::VaryingSet4<Groups, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
     using Config = render::Task::Config;
     using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
 

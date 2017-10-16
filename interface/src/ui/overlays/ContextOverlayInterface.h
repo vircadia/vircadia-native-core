@@ -47,6 +47,11 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
     std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
 public:
+
+    enum {
+        MAX_HIGHLIGHT_COUNT = 4
+    };
+
     ContextOverlayInterface();
 
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
@@ -86,7 +91,7 @@ private:
 
     void deletingEntity(const EntityItemID& entityItemID);
 
-    SelectionToSceneHandler _selectionToSceneHandler;
+    SelectionToSceneHandler _selectionToSceneHandlers[MAX_HIGHLIGHT_COUNT];
 };
 
 #endif // hifi_ContextOverlayInterface_h
