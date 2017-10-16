@@ -124,10 +124,11 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
     model->setRotation(getRotation());
     model->setTranslation(getPosition());
-    {
+
+    if (_needsInitialSimulation) {
         model->simulate(0.0f);
+        _needsInitialSimulation = false;
     }
-    _needsInitialSimulation = false;
 }
 
 void RenderableModelEntityItem::autoResizeJointArrays() {
@@ -179,13 +180,59 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         }
     }
 
-    return false;
+    return model->needsReload();
 }
 
 void RenderableModelEntityItem::updateModelBounds() {
     PROFILE_RANGE(simulation_physics, "updateModelBounds");
-    if (needsUpdateModelBounds()) {
-        doInitialModelSimulation();
+
+    if (!_dimensionsInitialized || !hasModel()) {
+        return;
+    }
+
+    ModelPointer model = getModel();
+    if (!model || !model->isLoaded()) {
+        return;
+    }
+
+    /* adebug TODO: figure out if we need to DO anything when isAnimatingSomething()
+    if (isAnimatingSomething()) {
+        return true;
+    }
+    */
+
+    if (model->needsReload()) {
+        model->updateGeometry();
+    }
+
+    if (model->getScaleToFitDimensions() != getDimensions() ||
+            model->getRegistrationPoint() != getRegistrationPoint()) {
+        // The machinery for updateModelBounds will give existing models the opportunity to fix their
+        // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
+        // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
+        // This doesn't cause the entity values to change -- it just allows the model to match once it comes in.
+        model->setScaleToFit(false, getDimensions());
+        model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
+
+        // now recalculate the bounds and registration
+        model->setScaleToFit(true, getDimensions());
+        model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+    }
+
+    bool success;
+    auto transform = getTransform(success);
+    if (success) {
+        if (model->getTranslation() != transform.getTranslation()) {
+            model->setTranslation(transform.getTranslation());
+        }
+        if (model->getRotation() != transform.getRotation()) {
+            model->setRotation(transform.getRotation());
+        }
+    }
+
+    if (_needsInitialSimulation || _needsJointSimulation) {
+        model->simulate(0.0f);
+        _needsInitialSimulation = false;
         _needsJointSimulation = false;
     }
 }
@@ -899,10 +946,6 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     });
 }
 
-bool RenderableModelEntityItem::isAnimatingSomething() const {
-    return !getAnimationURL().isEmpty() && getAnimationIsPlaying() && getAnimationFPS() != 0.0f;
-}
-
 using namespace render;
 using namespace render::entities;
 
@@ -1205,9 +1248,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
-    if (entity->needsUpdateModelBounds()) {
-        entity->updateModelBounds();
-    }
+    entity->updateModelBounds();
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
@@ -1215,6 +1256,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         //        so most of the time we don't do anything in this function.
         model->setVisibleInScene(_visible, scene);
     }
+    // TODO? early exit here when not visible?
 
     {
         PROFILE_RANGE(simulation_physics, "Fixup");

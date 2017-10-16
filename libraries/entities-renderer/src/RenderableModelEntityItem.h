@@ -108,7 +108,6 @@ public:
 
 private:
     bool needsUpdateModelBounds() const;
-    bool isAnimatingSomething() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
 
