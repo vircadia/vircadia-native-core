@@ -24,9 +24,9 @@ namespace model {
     //  b = -ln(f)/d
     inline glm::vec3 convertHazeRangeToHazeRangeFactor(const glm::vec3 hazeRange_m) { 
         return glm::vec3(
-            (float)(-log(p_005) / hazeRange_m.x),
-            (float)(-log(p_005) / hazeRange_m.y),
-            (float)(-log(p_005) / hazeRange_m.z));
+            -(float)log(p_005) / hazeRange_m.x,
+            -(float)log(p_005) / hazeRange_m.y,
+            -(float)log(p_005) / hazeRange_m.z);
     }
 
     inline float convertHazeRangeToHazeRangeFactor(const float hazeRange_m) { return (float)(-log(p_005) / hazeRange_m); }
