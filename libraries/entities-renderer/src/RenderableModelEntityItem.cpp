@@ -153,7 +153,7 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         return true;
     }
 
-    if (isMovingRelativeToParent() || isAnimatingSomething()) {
+    if (isAnimatingSomething()) {
         return true;
     }
 
@@ -195,14 +195,10 @@ void RenderableModelEntityItem::updateModelBounds() {
         return;
     }
 
-    /* adebug TODO: figure out if we need to DO anything when isAnimatingSomething()
-    if (isAnimatingSomething()) {
-        return true;
-    }
-    */
-
+    bool updateRenderItems = false;
     if (model->needsReload()) {
         model->updateGeometry();
+        updateRenderItems = true;
     }
 
     if (model->getScaleToFitDimensions() != getDimensions() ||
@@ -217,23 +213,28 @@ void RenderableModelEntityItem::updateModelBounds() {
         // now recalculate the bounds and registration
         model->setScaleToFit(true, getDimensions());
         model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        updateRenderItems = true;
     }
 
     bool success;
     auto transform = getTransform(success);
-    if (success) {
-        if (model->getTranslation() != transform.getTranslation()) {
-            model->setTranslation(transform.getTranslation());
-        }
-        if (model->getRotation() != transform.getRotation()) {
-            model->setRotation(transform.getRotation());
-        }
+    if (success && (model->getTranslation() != transform.getTranslation() ||
+            model->getRotation() != transform.getRotation())) {
+        model->setTransformNoUpdateRenderItems(transform);
+        updateRenderItems = true;
     }
 
-    if (_needsInitialSimulation || _needsJointSimulation) {
+    if (_needsInitialSimulation || _needsJointSimulation || isAnimatingSomething()) {
+        // NOTE: on isAnimatingSomething() we need to call Model::simulate() which calls Rig::updateRig()
+        // TODO: there is opportunity to further optimize the isAnimatingSomething() case.
         model->simulate(0.0f);
         _needsInitialSimulation = false;
         _needsJointSimulation = false;
+        updateRenderItems = true;
+    }
+
+    if (updateRenderItems) {
+        model->updateRenderItems();
     }
 }
 
@@ -928,7 +929,6 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     if (!model || !model->isLoaded()) {
         return;
     }
-
 
     // relay any inbound joint changes from scripts/animation/network to the model/rig
     _jointDataLock.withWriteLock([&] {

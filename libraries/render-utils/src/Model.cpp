@@ -121,8 +121,6 @@ bool Model::needsFixupInScene() const {
     return (_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded();
 }
 
-// TODO?: should we combine translation and rotation into single method to avoid double-work?
-// (figure out where we call these)
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
     updateRenderItems();
@@ -131,6 +129,14 @@ void Model::setTranslation(const glm::vec3& translation) {
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
     updateRenderItems();
+}
+
+// temporary HACK: set transform while avoiding implicit calls to updateRenderItems()
+// TODO: make setRotation() and friends set flag to be used later to decide to updateRenderItems()
+void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
+    _translation = transform.getTranslation();
+    _rotation = transform.getRotation();
+    // DO NOT call updateRenderItems() here!
 }
 
 Transform Model::getTransform() const {
