@@ -56,6 +56,11 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     assert(backgroundStage);
     backgroundStage->_currentFrame.clear();
 
+    // Haze
+    auto hazeStage = context->_scene->getStage<HazeStage>();
+    assert(hazeStage);
+    hazeStage->_currentFrame.clear();
+
     // call render in the correct order first...
     render::renderItems(context, inputs);
 
