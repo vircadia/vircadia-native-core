@@ -22,24 +22,24 @@
 #include "JointRayPick.h"
 #include "MouseRayPick.h"
 
-bool RayPickManager::checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, const RayPickFilter::Flags& mask) {
-    if (cache.contains(ray) && cache[ray].find(mask) != cache[ray].end()) {
-        if (cache[ray][mask].distance < res.distance) {
-            res = cache[ray][mask];
+bool RayPickManager::checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, const RayCacheKey& key) {
+    if (cache.contains(ray) && cache[ray].find(key) != cache[ray].end()) {
+        if (cache[ray][key].distance < res.distance) {
+            res = cache[ray][key];
         }
         return true;
     }
     return false;
 }
 
-void RayPickManager::cacheResult(const bool intersects, const RayPickResult& resTemp, const RayPickFilter::Flags& mask, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache) {
+void RayPickManager::cacheResult(const bool intersects, const RayPickResult& resTemp, const RayCacheKey& key, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache) {
     if (intersects) {
-        cache[ray][mask] = resTemp;
+        cache[ray][key] = resTemp;
         if (resTemp.distance < res.distance) {
             res = resTemp;
         }
     } else {
-        cache[ray][mask] = RayPickResult(res.searchRay);
+        cache[ray][key] = RayPickResult(res.searchRay);
     }
 }
 
@@ -74,8 +74,8 @@ void RayPickManager::update() {
             bool fromCache = true;
             bool invisible = rayPick->getFilter().doesPickInvisible();
             bool nonCollidable = rayPick->getFilter().doesPickNonCollidable();
-            RayPickFilter::Flags entityMask = rayPick->getFilter().getEntityFlags();
-            if (!checkAndCompareCachedResults(rayKey, results, res, entityMask)) {
+            RayCacheKey entityKey = { rayPick->getFilter().getEntityFlags(), rayPick->getIncludeItems(), rayPick->getIgnoreItems() };
+            if (!checkAndCompareCachedResults(rayKey, results, res, entityKey)) {
                 entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCoarse(),
                     rayPick->getIncludeItemsAs<EntityItemID>(), rayPick->getIgnoreItemsAs<EntityItemID>(), !invisible, !nonCollidable);
                 fromCache = false;
@@ -83,7 +83,7 @@ void RayPickManager::update() {
 
             if (!fromCache) {
                 cacheResult(entityRes.intersects, RayPickResult(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, ray, entityRes.surfaceNormal),
-                    entityMask, res, rayKey, results);
+                    entityKey, res, rayKey, results);
             }
         }
 
@@ -92,8 +92,8 @@ void RayPickManager::update() {
             bool fromCache = true;
             bool invisible = rayPick->getFilter().doesPickInvisible();
             bool nonCollidable = rayPick->getFilter().doesPickNonCollidable();
-            RayPickFilter::Flags overlayMask = rayPick->getFilter().getOverlayFlags();
-            if (!checkAndCompareCachedResults(rayKey, results, res, overlayMask)) {
+            RayCacheKey overlayKey = { rayPick->getFilter().getOverlayFlags(), rayPick->getIncludeItems(), rayPick->getIgnoreItems() };
+            if (!checkAndCompareCachedResults(rayKey, results, res, overlayKey)) {
                 overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCoarse(),
                     rayPick->getIncludeItemsAs<OverlayID>(), rayPick->getIgnoreItemsAs<OverlayID>(), !invisible, !nonCollidable);
                 fromCache = false;
@@ -101,25 +101,26 @@ void RayPickManager::update() {
 
             if (!fromCache) {
                 cacheResult(overlayRes.intersects, RayPickResult(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, ray, overlayRes.surfaceNormal),
-                    overlayMask, res, rayKey, results);
+                    overlayKey, res, rayKey, results);
             }
         }
 
         if (rayPick->getFilter().doesPickAvatars()) {
-            RayPickFilter::Flags avatarMask = rayPick->getFilter().getAvatarFlags();
-            if (!checkAndCompareCachedResults(rayKey, results, res, avatarMask)) {
+            RayCacheKey avatarKey = { rayPick->getFilter().getAvatarFlags(), rayPick->getIncludeItems(), rayPick->getIgnoreItems() };
+            if (!checkAndCompareCachedResults(rayKey, results, res, avatarKey)) {
                 RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(ray, 
                     rayPick->getIncludeItemsAs<EntityItemID>(), rayPick->getIgnoreItemsAs<EntityItemID>());
-                cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, ray), avatarMask, res, rayKey, results);
+                cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, ray), avatarKey, res, rayKey, results);
             }
         }
 
         // Can't intersect with HUD in desktop mode
         if (rayPick->getFilter().doesPickHUD() && DependencyManager::get<HMDScriptingInterface>()->isHMDMode()) {
             RayPickFilter::Flags hudMask = rayPick->getFilter().getHUDFlags();
-            if (!checkAndCompareCachedResults(rayKey, results, res, hudMask)) {
+            RayCacheKey hudKey = { rayPick->getFilter().getHUDFlags() };
+            if (!checkAndCompareCachedResults(rayKey, results, res, hudKey)) {
                 glm::vec3 hudRes = DependencyManager::get<HMDScriptingInterface>()->calculateRayUICollisionPoint(ray.origin, ray.direction);
-                cacheResult(true, RayPickResult(IntersectionType::HUD, 0, glm::distance(ray.origin, hudRes), hudRes, ray), hudMask, res, rayKey, results);
+                cacheResult(true, RayPickResult(IntersectionType::HUD, 0, glm::distance(ray.origin, hudRes), hudRes, ray), hudKey, res, rayKey, results);
             }
         }
 

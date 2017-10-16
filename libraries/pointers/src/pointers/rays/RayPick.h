@@ -142,14 +142,6 @@ public:
 
     void setIgnoreItems(const QVector<QUuid>& items);
     void setIncludeItems(const QVector<QUuid>& items);
-#if 0
-    void setIgnoreEntities(const QScriptValue& ignoreEntities);
-    void setIncludeEntities(const QScriptValue& includeEntities);
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays);
-    void setIncludeOverlays(const QScriptValue& includeOverlays);
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars);
-    void setIncludeAvatars(const QScriptValue& includeAvatars);
-#endif
 
 private:
     RayPickFilter _filter;
