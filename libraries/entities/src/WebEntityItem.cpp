@@ -24,7 +24,7 @@
 const QString WebEntityItem::DEFAULT_SOURCE_URL("http://www.google.com");
 
 EntityItemPointer WebEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new WebEntityItem(entityID) };
+    EntityItemPointer entity(new WebEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

@@ -2092,7 +2092,13 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
 
         QHash<EntityItemID, EntityItemID>::iterator iter = args->map->find(oldID);
         if (iter == args->map->end()) {
-            EntityItemID newID = QUuid::createUuid();
+            EntityItemID newID;
+            if (oldID == AVATAR_SELF_ID) {
+                auto nodeList = DependencyManager::get<NodeList>();
+                newID = EntityItemID(nodeList->getSessionUUID());
+            } else {
+                newID = QUuid::createUuid();
+            }
             args->map->insert(oldID, newID);
             return newID;
         }
@@ -2109,8 +2115,8 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
             properties.setPosition(properties.getPosition() + args->root);
         } else {
             EntityItemPointer parentEntity = args->ourTree->findEntityByEntityItemID(oldParentID);
-            if (parentEntity) { // map the parent
-                properties.setParentID(getMapped(parentEntity->getID()));
+            if (parentEntity || oldParentID == AVATAR_SELF_ID) { // map the parent
+                properties.setParentID(getMapped(oldParentID));
                 // But do not add root offset in this case.
             } else { // Should not happen, but let's try to be helpful...
                 item->globalizeProperties(properties, "Cannot find %3 parent of %2 %1", args->root);
@@ -2183,6 +2189,12 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             entityItemID = EntityItemID(QUuid(entityMap["id"].toString()));
         } else {
             entityItemID = EntityItemID(QUuid::createUuid());
+        }
+
+        if (properties.getClientOnly()) {
+            auto nodeList = DependencyManager::get<NodeList>();
+            const QUuid myNodeID = nodeList->getSessionUUID();
+            properties.setOwningAvatarID(myNodeID);
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);

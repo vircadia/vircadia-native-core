@@ -161,33 +161,33 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
     Overlay::Pointer thisOverlay = nullptr;
 
     if (type == ImageOverlay::TYPE) {
-        thisOverlay = std::make_shared<ImageOverlay>();
+        thisOverlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility
-        thisOverlay = std::make_shared<Image3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Image3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == TextOverlay::TYPE) {
-        thisOverlay = std::make_shared<TextOverlay>();
+        thisOverlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Text3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Text3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Text3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Shape3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Shape3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Shape3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Cube3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Cube3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Cube3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Sphere3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Sphere3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Sphere3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Circle3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Circle3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Circle3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Rectangle3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Rectangle3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Rectangle3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Line3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Line3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Line3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Grid3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Grid3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Grid3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == ModelOverlay::TYPE) {
-        thisOverlay = std::make_shared<ModelOverlay>();
+        thisOverlay = Overlay::Pointer(new ModelOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == Web3DOverlay::TYPE) {
-        thisOverlay = std::make_shared<Web3DOverlay>();
+        thisOverlay = Overlay::Pointer(new Web3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == RectangleOverlay::TYPE) {
-        thisOverlay = std::make_shared<RectangleOverlay>();
+        thisOverlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     }
 
     if (thisOverlay) {
@@ -230,7 +230,7 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
     Overlay::Pointer thisOverlay = getOverlay(id);
 
     if (thisOverlay) {
-        OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone()));
+        OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
 #if OVERLAY_PANELS
         auto attachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
         if (attachable && attachable->getParentPanel()) {
@@ -741,13 +741,6 @@ void Overlays::sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& ev
 }
 
 OverlayID Overlays::getKeyboardFocusOverlay() {
-    if (QThread::currentThread() != thread()) {
-        OverlayID result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getKeyboardFocusOverlay", Q_RETURN_ARG(OverlayID, result));
-        return result;
-    }
-
     return qApp->getKeyboardFocusOverlay();
 }
 

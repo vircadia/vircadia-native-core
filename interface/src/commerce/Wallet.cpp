@@ -105,19 +105,19 @@ RSA* readKeys(const char* filename) {
     return key;
 }
 
-bool writeBackupInstructions() {
+bool Wallet::writeBackupInstructions() {
     QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
-    QString filename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
-    QFile outputFile(filename);
+    QString outputFilename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
+    QFile outputFile(outputFilename);
     bool retval = false;
 
-    if (QFile::exists(filename))
+    if (QFile::exists(outputFilename) || getKeyFilePath() == "")
     {
-        QFile::remove(filename);
+        return false;
     }
-    QFile::copy(inputFilename, filename);
+    QFile::copy(inputFilename, outputFilename);
 
-    if (QFile::exists(filename) && outputFile.open(QIODevice::ReadWrite)) {
+    if (QFile::exists(outputFilename) && outputFile.open(QIODevice::ReadWrite)) {
 
         QByteArray fileData = outputFile.readAll();
         QString text(fileData);
@@ -132,7 +132,7 @@ bool writeBackupInstructions() {
         retval = true;
         qCDebug(commerce) << "wrote html file successfully";
     } else {
-        qCDebug(commerce) << "failed to open output html file" << filename;
+        qCDebug(commerce) << "failed to open output html file" << outputFilename;
     }
     return retval;
 }
@@ -154,8 +154,6 @@ bool writeKeys(const char* filename, RSA* keys) {
             QFile(QString(filename)).remove();
             return retval;
         }
-        
-        writeBackupInstructions();
 
         retval = true;
         qCDebug(commerce) << "wrote keys successfully";
@@ -359,6 +357,8 @@ bool Wallet::setPassphrase(const QString& passphrase) {
 
     _publicKeys.clear();
 
+    writeBackupInstructions();
+
     return true;
 }
 
@@ -525,6 +525,8 @@ bool Wallet::generateKeyPair() {
 
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateRSAKeypair();
+
+    writeBackupInstructions();
 
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
