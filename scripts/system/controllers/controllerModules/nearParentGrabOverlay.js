@@ -148,6 +148,12 @@ Script.include("/~/system/libraries/utils.js");
                 }
             }
 
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.grabbedThingID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
+
             this.grabbedThingID = null;
         };
 

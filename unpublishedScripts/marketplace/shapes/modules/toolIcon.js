@@ -72,6 +72,10 @@ ToolIcon = function (side) {
         return new ToolIcon();
     }
 
+    function getAssetURLs() {
+        return [MODEL_PROPERTIES.url];
+    }
+
     function setHand(side) {
         // Assumes UI is not displaying.
         if (side === LEFT_HAND) {
@@ -154,6 +158,7 @@ ToolIcon = function (side) {
     }
 
     return {
+        assetURLs: getAssetURLs,
         setHand: setHand,
         display: display,
         clear: clear,
