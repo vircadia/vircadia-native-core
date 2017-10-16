@@ -19,8 +19,6 @@
 #include "EntityItem.h"
 #include "AvatarData.h"
 
-#include <AddressManager.h>
-
 /// Utility for processing, packing, queueing and sending of outbound edit voxel messages.
 class EntityEditPacketSender :  public OctreeEditPacketSender {
     Q_OBJECT

@@ -15,11 +15,6 @@
 #include <QSet>
 #include <QVector>
 
-#include "AccountManager.h"
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QJsonArray>
-
 #include <Octree.h>
 #include <SpatialParentFinder.h>
 

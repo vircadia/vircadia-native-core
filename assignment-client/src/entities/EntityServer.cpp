@@ -17,6 +17,9 @@
 #include <ScriptCache.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <AddressManager.h>
 
 #include "AssignmentParentFinder.h"
 #include "EntityNodeData.h"

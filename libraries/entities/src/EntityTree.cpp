@@ -18,6 +18,10 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <NetworkingConstants.h>
+#include "AccountManager.h"
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
 
 #include <QtScript/QScriptEngine>
 
