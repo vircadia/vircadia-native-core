@@ -264,6 +264,8 @@ Script.include("/~/system/libraries/controllers.js");
             if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.otherModuleNeedsToRun(controllerData)) {
                 this.pointFinger(false);
                 this.hideStylus();
+                this.stylusTouchingTarget = false;
+                this.relinquishTouchFocus();
                 return false;
             }
 

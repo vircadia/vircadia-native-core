@@ -274,18 +274,7 @@ void EntityTreeRenderer::update(bool simulate) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->update(simulate);
 
-        if (simulate) {
-            // Handle enter/leave entity logic
-            checkEnterLeaveEntities();
-
-            // Even if we're not moving the mouse, if we started clicking on an entity and we have
-            // not yet released the hold then this is still considered a holdingClickOnEntity event
-            // and we want to simulate this message here as well as in mouse move
-            if (_lastPointerEventValid && !_currentClickingOnEntityID.isInvalidID()) {
-                emit DependencyManager::get<EntityScriptingInterface>()->holdingClickOnEntity(_currentClickingOnEntityID, _lastPointerEvent);
-            }
-        }
-
+        // Update the rendereable entities as needed
         {
             PerformanceTimer sceneTimer("scene");
             auto scene = _viewState->getMain3DScene();
@@ -305,6 +294,19 @@ void EntityTreeRenderer::update(bool simulate) {
                 }
             }
         }
+
+        if (simulate) {
+            // Handle enter/leave entity logic
+            checkEnterLeaveEntities();
+
+            // Even if we're not moving the mouse, if we started clicking on an entity and we have
+            // not yet released the hold then this is still considered a holdingClickOnEntity event
+            // and we want to simulate this message here as well as in mouse move
+            if (_lastPointerEventValid && !_currentClickingOnEntityID.isInvalidID()) {
+                emit DependencyManager::get<EntityScriptingInterface>()->holdingClickOnEntity(_currentClickingOnEntityID, _lastPointerEvent);
+            }
+        }
+
     }
 }
 

@@ -55,7 +55,7 @@ public:
     virtual AABox getBounds() const override = 0;
 
     void update(float deltatime) override;
-    
+
     void notifyRenderTransformChange() const;
 
     void setProperties(const QVariantMap& properties) override;
@@ -68,6 +68,8 @@ public:
                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) {
         return findRayIntersection(origin, direction, distance, face, surfaceNormal);
     }
+
+    virtual SpatialParentTree* getParentTree() const override;
 
 protected:
     virtual void locationChanged(bool tellPhysics = true) override;

@@ -300,6 +300,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentitySequenceFront,
     IsReplicatedInAvatarIdentity,
     AvatarIdentityLookAtSnapping,
+    UpdatedMannequinDefaultAvatar
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

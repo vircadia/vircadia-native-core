@@ -102,8 +102,11 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
     if (parent && parent->getID() == parentID) {
         // parent pointer is up-to-date
         if (!_parentKnowsMe) {
-            parent->beParentOfChild(getThisPointer());
-            _parentKnowsMe = true;
+            SpatialParentTree* parentTree = parent->getParentTree();
+            if (!parentTree || parentTree == getParentTree()) {
+                parent->beParentOfChild(getThisPointer());
+                _parentKnowsMe = true;
+            }
         }
         success = true;
         return parent;
@@ -129,8 +132,15 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
 
     parent = _parent.lock();
     if (parent) {
-        parent->beParentOfChild(getThisPointer());
-        _parentKnowsMe = true;
+
+        // it's possible for an entity with a parent of AVATAR_SELF_ID can be imported into a side-tree
+        // such as the clipboard's.  if this is the case, we don't want the parent to consider this a
+        // child.
+        SpatialParentTree* parentTree = parent->getParentTree();
+        if (!parentTree || parentTree == getParentTree()) {
+            parent->beParentOfChild(getThisPointer());
+            _parentKnowsMe = true;
+        }
     }
 
     success = (parent || parentID.isNull());

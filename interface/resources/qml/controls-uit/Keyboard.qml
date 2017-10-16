@@ -124,7 +124,7 @@ Rectangle {
             selectByMouse: false
 
             Keys.onPressed: {
-                if (event.key == Qt.Key_Return) {
+                if (event.key == Qt.Key_Return || event.key == Qt.Key_Space) {
                     mirrorText.text = "";
                     event.accepted = true;
                 }
