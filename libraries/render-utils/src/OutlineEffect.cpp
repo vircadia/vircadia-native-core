@@ -410,7 +410,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     {
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        state->setColorWriteMask(false, false, false, false);
+        state->setColorWriteMask(true, true, true, true);
 
         initMaskPipelines(*shapePlumber, state);
     }
