@@ -46,6 +46,10 @@ static const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
 // _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
 static const quint64 FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
 
+// When the audio codec is switched, temporary codec mismatch is expected due to packets in-flight.
+// A SelectedAudioFormat packet is not sent until this threshold is exceeded.
+static const int MAX_MISMATCHED_AUDIO_CODEC_COUNT = 10;
+
 InboundAudioStream::InboundAudioStream(int numChannels, int numFrames, int numBlocks, int numStaticJitterBlocks) :
     _ringBuffer(numChannels * numFrames, numBlocks),
     _numChannels(numChannels),
@@ -134,6 +138,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Unreasonable: {
             lostAudioData(1);
+            qDebug(audio) << "Sequence Unreasonable (LOST)";
             break;
         }
         case SequenceNumberStats::Early: {
@@ -143,6 +148,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // fall through to the "on time" logic to actually handle this packet
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
             lostAudioData(packetsDropped);
+            qDebug(audio) << "Sequence Early (LOST)";
 
             // fall through to OnTime case
         }
@@ -153,6 +159,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                 // If we recieved a SilentAudioFrame from our sender, we might want to drop
                 // some of the samples in order to catch up to our desired jitter buffer size.
                 writeDroppableSilentFrames(networkFrames);
+                qDebug(audio) << "OnTime (SILENT)";
+
             } else {
                 // note: PCM and no codec are identical
                 bool selectedPCM = _selectedCodecName == "pcm" || _selectedCodecName == "";
@@ -160,11 +168,15 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                 if (codecInPacket == _selectedCodecName || (packetPCM && selectedPCM)) {
                     auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
                     parseAudioData(message.getType(), afterProperties);
+                    qDebug(audio) << "OnTime (DECODE:" << codecInPacket << afterProperties.size() << ")";
+                    _mismatchedAudioCodecCount = 0;
+
                 } else {
+                    _mismatchedAudioCodecCount++;
                     qDebug(audio) << "Codec mismatch: expected" << _selectedCodecName << "got" << codecInPacket;
 
                     if (packetPCM) {
-                        // If there are PCM packets in-flight while the codec is changed, use them.
+                        // If there are PCM packets in-flight after the codec is changed, use them.
                         auto afterProperties = message.readWithoutCopy(message.getBytesLeftToRead());
                         _ringBuffer.writeData(afterProperties.data(), afterProperties.size());
                     } else {
@@ -174,12 +186,16 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                         lostAudioData(1);
                     }
 
-                    // inform others of the mismatch
-                    auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
-                    if (sendingNode) {
-                        emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
-                    }
+                    if (_mismatchedAudioCodecCount > MAX_MISMATCHED_AUDIO_CODEC_COUNT) {
+                        _mismatchedAudioCodecCount = 0;
 
+                        // inform others of the mismatch
+                        auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
+                        if (sendingNode) {
+                            emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
+                            qDebug(audio) << "Codec mismatch threshold exceeded, SelectedAudioFormat(" << _selectedCodecName << " ) sent";
+                        }
+                    }
                 }
             }
             break;
@@ -515,6 +531,7 @@ float calculateRepeatedFrameFadeFactor(int indexOfRepeat) {
 }
 
 void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& codecName, int numChannels) {
+    qDebug(audio) << "Setup Codec:" << codecName;
     cleanupCodec(); // cleanup any previously allocated coders first
     _codec = codec;
     _selectedCodecName = codecName;
@@ -525,6 +542,8 @@ void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& cod
 
 void InboundAudioStream::cleanupCodec() {
     // release any old codec encoder/decoder first...
+    qDebug(audio) << "Cleanup Codec:" << _selectedCodecName;
+
     if (_codec) {
         if (_decoder) {
             _codec->releaseDecoder(_decoder);
