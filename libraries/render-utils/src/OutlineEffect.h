@@ -42,22 +42,22 @@ protected:
 
 using OutlineRessourcesPointer = std::shared_ptr<OutlineRessources>;
 
-class DrawOutlineMask {
+class PrepareDrawOutline {
 public:
+    using Inputs = gpu::FramebufferPointer;
+    using Outputs = gpu::FramebufferPointer;
+    using Config = render::Job::Config;
+    using JobModel = render::Job::ModelIO<PrepareDrawOutline, Inputs, Outputs, Config>;
 
-    using Inputs = render::VaryingSet2<render::ShapeBounds, DeferredFramebufferPointer>;
-    // Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
-    using Outputs = OutlineRessourcesPointer;
-    using JobModel = render::Job::ModelIO<DrawOutlineMask, Inputs, Outputs>;
+    PrepareDrawOutline();
 
-    DrawOutlineMask(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+private:
 
-protected:
+    gpu::FramebufferPointer _primaryWithoutDepthBuffer;
+    gpu::Vec2u _frameBufferSize{ 0, 0 };
 
-    render::ShapePlumberPointer _shapePlumber;
-    OutlineRessourcesPointer _outlineRessources;
 };
 
 class DrawOutlineConfig : public render::Job::Config {
@@ -95,6 +95,10 @@ signals:
 
 class DrawOutline {
 public:
+    enum {
+        MAX_GROUP_COUNT = 7
+    };
+
     using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
     using Config = DrawOutlineConfig;
     using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
@@ -109,6 +113,7 @@ private:
     enum {
         SCENE_DEPTH_SLOT = 0,
         OUTLINED_DEPTH_SLOT,
+        OUTLINED_ID_SLOT,
 
         OUTLINE_PARAMS_SLOT = 0,
         FRAME_TRANSFORM_SLOT
@@ -118,12 +123,10 @@ private:
 
     using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineParameters>;
 
-    const gpu::PipelinePointer& getPipeline(bool isFilled);
+    static const gpu::PipelinePointer& getPipeline(bool isFilled);
 
-    gpu::FramebufferPointer _primaryWithoutDepthBuffer;
-    glm::ivec2 _frameBufferSize {0, 0};
-    gpu::PipelinePointer _pipeline;
-    gpu::PipelinePointer _pipelineFilled;
+    static gpu::PipelinePointer _pipeline;
+    static gpu::PipelinePointer _pipelineFilled;
     OutlineConfigurationBuffer _configuration;
     glm::vec3 _color;
     float _size;
@@ -132,6 +135,44 @@ private:
     float _fillOpacityUnoccluded;
     float _fillOpacityOccluded;
     float _threshold;
+    bool _hasConfigurationChanged{ true };
+};
+
+class DrawOutlineTask {
+public:
+
+    using Groups = render::VaryingArray<render::ItemBounds, DrawOutline::MAX_GROUP_COUNT>;
+    using Inputs = render::VaryingSet4<Groups, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+    using Config = render::Task::Config;
+    using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
+
+    DrawOutlineTask();
+
+    void configure(const Config& config);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+
+private:
+
+    static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
+};
+
+class DrawOutlineMask {
+public:
+
+    using Groups = render::VaryingArray<render::ShapeBounds, DrawOutline::MAX_GROUP_COUNT>;
+    using Inputs = render::VaryingSet2<Groups, DeferredFramebufferPointer>;
+    // Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
+    using Outputs = OutlineRessourcesPointer;
+    using JobModel = render::Job::ModelIO<DrawOutlineMask, Inputs, Outputs>;
+
+    DrawOutlineMask(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+
+protected:
+
+    render::ShapePlumberPointer _shapePlumber;
+    OutlineRessourcesPointer _outlineRessources;
 };
 
 class DebugOutlineConfig : public render::Job::Config {
@@ -171,27 +212,6 @@ private:
     void initializePipelines();
 };
 
-class DrawOutlineTask {
-public:
-
-    enum {
-        MAX_GROUP_COUNT = 7
-    };
-
-    using Groups = render::VaryingArray<render::ItemBounds, MAX_GROUP_COUNT>;
-    using Inputs = render::VaryingSet4<Groups, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
-    using Config = render::Task::Config;
-    using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
-
-    DrawOutlineTask();
-
-    void configure(const Config& config);
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
-
-private:
-
-    static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
-};
 
 #endif // hifi_render_utils_OutlineEffect_h
 

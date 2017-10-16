@@ -83,80 +83,138 @@ gpu::TexturePointer OutlineRessources::getIdTexture() {
     return _idTexture;
 }
 
+glm::vec4 encodeIdToColor(unsigned int id) {
+    union {
+        struct {
+            unsigned int r : 2;
+            unsigned int g : 2;
+            unsigned int b : 2;
+            unsigned int a : 2;
+        };
+        unsigned char id;
+    } groupId;
+
+    assert(id < 254);
+    groupId.id = id+1;
+
+    glm::vec4 idColor{ groupId.r, groupId.g, groupId.b, groupId.a };
+
+    // Normalize. Since we put 2 bits into each color component, each component has a maximum
+    // value of 3.
+    idColor /= 3.f;
+    return idColor;
+}
+
 void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
-    auto& inShapes = inputs.get0();
+    auto& groups = inputs.get0();
     auto& deferredFrameBuffer = inputs.get1();
 
-    if (!inShapes.empty()) {
-        RenderArgs* args = renderContext->args;
-        ShapeKey::Builder defaultKeyBuilder;
+    RenderArgs* args = renderContext->args;
+    ShapeKey::Builder defaultKeyBuilder;
+    auto hasOutline = false;
 
-        if (!_outlineRessources) {
-            _outlineRessources = std::make_shared<OutlineRessources>();
+    if (!_outlineRessources) {
+        _outlineRessources = std::make_shared<OutlineRessources>();
+    }
+    _outlineRessources->update(deferredFrameBuffer->getDeferredColorTexture());
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+
+        auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
+        auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+        auto colorLoc = maskPipeline.get()->pipeline->getProgram()->getUniforms().findLocation("color");
+        auto skinnedColorLoc = maskSkinnedPipeline.get()->pipeline->getProgram()->getUniforms().findLocation("color");
+        unsigned int groupId = 0;
+
+        for (auto& inShapeBounds : groups) {
+            if (!inShapeBounds.isNull()) {
+                auto& inShapes = inShapeBounds.get<render::ShapeBounds>();
+
+                if (!inShapes.empty()) {
+                    if (!hasOutline) {
+                        batch.setFramebuffer(_outlineRessources->getFramebuffer());
+                        // Clear it only if it hasn't been done before
+                        batch.clearFramebuffer(
+                            gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH,
+                            vec4(0.0f, 0.0f, 0.0f, 0.0f), 1.0f, 0, false);
+
+                        // Setup camera, projection and viewport for all items
+                        batch.setViewportTransform(args->_viewport);
+                        batch.setStateScissorRect(args->_viewport);
+
+                        glm::mat4 projMat;
+                        Transform viewMat;
+                        args->getViewFrustum().evalProjectionMatrix(projMat);
+                        args->getViewFrustum().evalViewTransform(viewMat);
+
+                        batch.setProjectionTransform(projMat);
+                        batch.setViewTransform(viewMat);
+                        hasOutline = true;
+                    }
+
+                    std::vector<ShapeKey> skinnedShapeKeys{};
+                    // Encode group id in quantized color
+                    glm::vec4 idColor = encodeIdToColor(groupId);
+
+                    // Iterate through all inShapes and render the unskinned
+                    args->_shapePipeline = maskPipeline;
+                    batch.setPipeline(maskPipeline->pipeline);
+                    batch._glUniform4f(colorLoc, idColor.r, idColor.g, idColor.b, idColor.a);
+                    for (auto items : inShapes) {
+                        if (items.first.isSkinned()) {
+                            skinnedShapeKeys.push_back(items.first);
+                        } else {
+                            renderItems(renderContext, items.second);
+                        }
+                    }
+
+                    // Reiterate to render the skinned
+                    args->_shapePipeline = maskSkinnedPipeline;
+                    batch.setPipeline(maskSkinnedPipeline->pipeline);
+                    batch._glUniform4f(skinnedColorLoc, idColor.r, idColor.g, idColor.b, idColor.a);
+                    for (const auto& key : skinnedShapeKeys) {
+                        renderItems(renderContext, inShapes.at(key));
+                    }
+                }
+            }
+
+            ++groupId;
         }
-        _outlineRessources->update(deferredFrameBuffer->getDeferredColorTexture());
 
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            args->_batch = &batch;
+        args->_shapePipeline = nullptr;
+        args->_batch = nullptr;
+    });
 
-            batch.setFramebuffer(_outlineRessources->getFramebuffer());
-            // Clear it
-            batch.clearFramebuffer(
-                gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH,
-                vec4(0.0f, 0.0f, 0.0f, 0.0f), 1.0f, 0, false);
-
-            // Setup camera, projection and viewport for all items
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
-
-            glm::mat4 projMat;
-            Transform viewMat;
-            args->getViewFrustum().evalProjectionMatrix(projMat);
-            args->getViewFrustum().evalViewTransform(viewMat);
-
-            batch.setProjectionTransform(projMat);
-            batch.setViewTransform(viewMat);
-
-            auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-            auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-
-            std::vector<ShapeKey> skinnedShapeKeys{};
-            auto colorLoc = maskPipeline.get()->pipeline->getProgram()->getUniforms().findLocation("color");
-            glm::vec4 idColor{ 1.0f, 0.0f, 0.0f, 0.0f };
-
-            // Iterate through all inShapes and render the unskinned
-            args->_shapePipeline = maskPipeline;
-            batch.setPipeline(maskPipeline->pipeline);
-            batch._glUniform4f(colorLoc, idColor.r, idColor.g, idColor.b, idColor.a);
-            for (auto items : inShapes) {
-                if (items.first.isSkinned()) {
-                    skinnedShapeKeys.push_back(items.first);
-                }
-                else {
-                    renderItems(renderContext, items.second);
-                }
-            }
-
-            colorLoc = maskSkinnedPipeline.get()->pipeline->getProgram()->getUniforms().findLocation("color");
-            // Reiterate to render the skinned
-            args->_shapePipeline = maskSkinnedPipeline;
-            batch.setPipeline(maskSkinnedPipeline->pipeline);
-            batch._glUniform4f(colorLoc, idColor.r, idColor.g, idColor.b, idColor.a);
-            for (const auto& key : skinnedShapeKeys) {
-                renderItems(renderContext, inShapes.at(key));
-            }
-
-            args->_shapePipeline = nullptr;
-            args->_batch = nullptr;
-        });
-
+    if (hasOutline) {
         output = _outlineRessources;
     } else {
         output = nullptr;
     }
 }
+
+PrepareDrawOutline::PrepareDrawOutline() {
+
+}
+
+void PrepareDrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+    auto destinationFrameBuffer = inputs;
+    auto framebufferSize = destinationFrameBuffer->getSize();
+
+    if (!_primaryWithoutDepthBuffer || framebufferSize != _frameBufferSize) {
+        // Failing to recreate this frame buffer when the screen has been resized creates a bug on Mac
+        _primaryWithoutDepthBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithoutDepth"));
+        _primaryWithoutDepthBuffer->setRenderBuffer(0, destinationFrameBuffer->getRenderBuffer(0));
+        _frameBufferSize = framebufferSize;
+    }
+
+    outputs = _primaryWithoutDepthBuffer;
+}
+
+gpu::PipelinePointer DrawOutline::_pipeline;
+gpu::PipelinePointer DrawOutline::_pipelineFilled;
 
 DrawOutline::DrawOutline() {
 }
@@ -170,6 +228,7 @@ void DrawOutline::configure(const Config& config) {
     _fillOpacityOccluded = config.fillOpacityOccluded;
     _threshold = config.glow ? 1.f : 1e-3f;
     _intensity = config.intensity * (config.glow ? 2.f : 1.f);
+    _hasConfigurationChanged = true;
 }
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -179,20 +238,16 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
         auto sceneDepthBuffer = inputs.get2();
         const auto frameTransform = inputs.get0();
         auto outlinedDepthTexture = outlineFrameBuffer->getDepthTexture();
+        auto outlinedIdTexture = outlineFrameBuffer->getIdTexture();
         auto destinationFrameBuffer = inputs.get3();
         auto framebufferSize = glm::ivec2(outlinedDepthTexture->getDimensions());
-
-        if (!_primaryWithoutDepthBuffer || framebufferSize!=_frameBufferSize) {
-            // Failing to recreate this frame buffer when the screen has been resized creates a bug on Mac
-            _primaryWithoutDepthBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithoutDepth"));
-            _primaryWithoutDepthBuffer->setRenderBuffer(0, destinationFrameBuffer->getRenderBuffer(0));
-            _frameBufferSize = framebufferSize;
-        }
 
         if (sceneDepthBuffer) {
             const auto OPACITY_EPSILON = 5e-3f;
             auto pipeline = getPipeline(_fillOpacityUnoccluded>OPACITY_EPSILON || _fillOpacityOccluded>OPACITY_EPSILON);
             auto args = renderContext->args;
+
+            if (_hasConfigurationChanged)
             {
                 auto& configuration = _configuration.edit();
                 configuration._color = _color;
@@ -201,24 +256,27 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 configuration._fillOpacityOccluded = _fillOpacityOccluded;
                 configuration._threshold = _threshold;
                 configuration._blurKernelSize = _blurKernelSize;
-                configuration._size.x = _size * _frameBufferSize.y / _frameBufferSize.x;
+                configuration._size.x = (_size * framebufferSize.y) / framebufferSize.x;
                 configuration._size.y = _size;
+                configuration._idColor = encodeIdToColor(0);
+                _hasConfigurationChanged = false;
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.enableStereo(false);
-                batch.setFramebuffer(_primaryWithoutDepthBuffer);
+                batch.setFramebuffer(destinationFrameBuffer);
 
                 batch.setViewportTransform(args->_viewport);
                 batch.setProjectionTransform(glm::mat4());
                 batch.resetViewTransform();
-                batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_frameBufferSize, args->_viewport));
+                batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
                 batch.setPipeline(pipeline);
 
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
                 batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
                 batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer->getPrimaryDepthTexture());
                 batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthTexture);
+                batch.setResourceTexture(OUTLINED_ID_SLOT, outlinedIdTexture);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
 
                 // Restore previous frame buffer
@@ -239,6 +297,7 @@ const gpu::PipelinePointer& DrawOutline::getPipeline(bool isFilled) {
         slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", FRAME_TRANSFORM_SLOT));
         slotBindings.insert(gpu::Shader::Binding("sceneDepthMap", SCENE_DEPTH_SLOT));
         slotBindings.insert(gpu::Shader::Binding("outlinedDepthMap", OUTLINED_DEPTH_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("outlinedIdMap", OUTLINED_ID_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -400,7 +459,6 @@ void DrawOutlineTask::configure(const Config& config) {
 
 void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
     const auto groups = inputs.getN<Inputs>(0).get<Groups>();
-    const auto selectedMetas = groups[0];
     const auto sceneFrameBuffer = inputs.getN<Inputs>(1);
     const auto primaryFramebuffer = inputs.getN<Inputs>(2);
     const auto deferredFrameTransform = inputs.getN<Inputs>(3);
@@ -415,19 +473,26 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
         initMaskPipelines(*shapePlumber, state);
     }
 
-    const auto outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", selectedMetas);
-    const auto outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs, true);
+    DrawOutlineMask::Groups sortedBounds;
+    for (auto i = 0; i < DrawOutline::MAX_GROUP_COUNT; i++) {
+        const auto groupItems = groups[i];
+        const auto outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", groupItems);
+        const auto outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs, true);
 
-    // Sort
-    const auto sortedPipelines = task.addJob<render::PipelineSortShapes>("OutlinePipelineSort", outlinedItems);
-    const auto sortedShapes = task.addJob<render::DepthSortShapes>("OutlineDepthSort", sortedPipelines);
+        // Sort
+        const auto sortedPipelines = task.addJob<render::PipelineSortShapes>("OutlinePipelineSort", outlinedItems);
+        sortedBounds[i] = task.addJob<render::DepthSortShapes>("OutlineDepthSort", sortedPipelines);
+    }
 
     // Draw depth of outlined objects in separate buffer
-    const auto drawMaskInputs = DrawOutlineMask::Inputs(sortedShapes, sceneFrameBuffer).asVarying();
+    const auto drawMaskInputs = DrawOutlineMask::Inputs(sortedBounds, sceneFrameBuffer).asVarying();
     const auto outlinedFrameBuffer = task.addJob<DrawOutlineMask>("OutlineMask", drawMaskInputs, shapePlumber);
 
+    // Prepare for outline group rendering.
+    const auto destFrameBuffer = task.addJob<PrepareDrawOutline>("PrepareOutline", primaryFramebuffer);
+
     // Draw outline
-    const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlinedFrameBuffer, sceneFrameBuffer, primaryFramebuffer).asVarying();
+    const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlinedFrameBuffer, sceneFrameBuffer, destFrameBuffer).asVarying();
     task.addJob<DrawOutline>("OutlineEffect", drawOutlineInputs);
 
     // Debug outline

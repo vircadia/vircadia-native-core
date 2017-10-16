@@ -2,9 +2,11 @@
 #ifdef __cplusplus
 #   define VEC2 glm::vec2
 #   define VEC3 glm::vec3
+#   define VEC4 glm::vec4
 #else
 #   define VEC2 vec2
 #   define VEC3 vec3
+#   define VEC4 vec4
 #endif
 
 struct OutlineParameters
@@ -15,6 +17,8 @@ struct OutlineParameters
     VEC2 _size;
     float _fillOpacityUnoccluded;
     float _fillOpacityOccluded;
+
+    VEC4 _idColor;
 
     float _threshold;
     int _blurKernelSize;

@@ -21,11 +21,13 @@ uniform outlineParamsBuffer {
 
 uniform sampler2D sceneDepthMap;
 uniform sampler2D outlinedDepthMap;
+uniform sampler2D outlinedIdMap;
 
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 const float FAR_Z = 1.0;
+const float ID_THRESHOLD = 1.f/64.f;
 const float LINEAR_DEPTH_BIAS = 5e-3;
 const float OPACITY_EPSILON = 5e-3;
 
@@ -37,10 +39,11 @@ void main(void) {
     // sides of the silhouette
     vec2 halfTexel = getInvWidthHeight() / 2;
     vec2 texCoord0 = varTexCoord0+halfTexel;
+    vec4 outlinedIdColor = texture(outlinedIdMap, texCoord0);
 	float outlinedDepth = texture(outlinedDepthMap, texCoord0).x;
     float intensity = 0.0;
 
-    if (outlinedDepth < FAR_Z) {
+    if (outlinedDepth < FAR_Z && distance(outlinedIdColor, params._idColor) < ID_THRESHOLD) {
         // We're not on the far plane so we are on the outlined object, thus no outline to do!
 <@if IS_FILLED@>
         // But we need to fill the interior
@@ -75,7 +78,8 @@ void main(void) {
                     if (uv.x>=0.0 && uv.x<=1.0)
                     {
                         outlinedDepth = texture(outlinedDepthMap, uv).x;
-                        intensity += (outlinedDepth < FAR_Z) ? 1.0 : 0.0;
+                        outlinedIdColor = texture(outlinedIdMap, uv);
+                        intensity += (outlinedDepth < FAR_Z && distance(outlinedIdColor, params._idColor) < ID_THRESHOLD) ? 1.0 : 0.0;
                         weight += 1.f;
                     }
                     uv.x += deltaUv.x;
