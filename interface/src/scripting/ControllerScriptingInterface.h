@@ -66,7 +66,7 @@ public slots:
     virtual void releaseEntityClickEvents();
 
     virtual glm::vec2 getViewportDimensions() const;
-    virtual QVariant getRecommendedOverlayRect() const;
+    virtual QVariant getRecommendedHUDRect() const;
 
 signals:
     void keyPressEvent(const KeyEvent& event);

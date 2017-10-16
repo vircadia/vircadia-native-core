@@ -19,6 +19,7 @@ import "../lib/controls-uit" as HifiControls
 import "configSlider"
 import "../lib/plotperf"
 
+Item {
 Rectangle {
     id: root;
 
@@ -203,4 +204,5 @@ Rectangle {
             }    
         }
     }
+}
 }

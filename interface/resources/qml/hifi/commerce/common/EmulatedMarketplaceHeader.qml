@@ -39,7 +39,7 @@ Item {
                 sendToParent({method: "needsLogIn"});
             } else if (walletStatus === 3) {
                 commerce.getSecurityImage();
-            } else {
+            } else if (walletStatus > 3) {
                 console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
             }
         }

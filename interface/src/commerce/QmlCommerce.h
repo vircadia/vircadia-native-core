@@ -27,13 +27,6 @@ class QmlCommerce : public OffscreenQmlDialog {
 public:
     QmlCommerce(QQuickItem* parent = nullptr);
 
-    enum WalletStatus {
-        WALLET_STATUS_NOT_LOGGED_IN = 0,
-        WALLET_STATUS_NOT_SET_UP,
-        WALLET_STATUS_NOT_AUTHENTICATED,
-        WALLET_STATUS_READY
-    };
-
 signals:
     void walletStatusResult(uint walletStatus);
 
@@ -50,6 +43,7 @@ signals:
     void inventoryResult(QJsonObject result);
     void historyResult(QJsonObject result);
     void accountResult(QJsonObject result);
+    void certificateInfoResult(QJsonObject result);
 
 protected:
     Q_INVOKABLE void getWalletStatus();
@@ -70,6 +64,8 @@ protected:
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void reset();
     Q_INVOKABLE void account();
+
+    Q_INVOKABLE void certificateInfo(const QString& certificateId);
 };
 
 #endif // hifi_QmlCommerce_h

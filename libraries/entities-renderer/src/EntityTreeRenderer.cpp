@@ -72,7 +72,11 @@ EntityRendererPointer EntityTreeRenderer::renderableForEntityId(const EntityItem
 
 render::ItemID EntityTreeRenderer::renderableIdForEntityId(const EntityItemID& id) const {
     auto renderable = renderableForEntityId(id);
-    return renderable ? renderable->getRenderItemID() : render::Item::INVALID_ITEM_ID;
+    if (renderable) {
+        return renderable->getRenderItemID();
+    } else {
+        return render::Item::INVALID_ITEM_ID;
+    }
 }
 
 int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
@@ -222,16 +226,6 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         _renderablesToUpdate.insert({ entityId, renderable });
     }
 
-    // NOTE: Looping over all the entity renderers is likely to be a bottleneck in the future
-    // Currently, this is necessary because the model entity loading logic requires constant polling
-    // This was working fine because the entity server used to send repeated updates as your view changed,
-    // but with the improved entity server logic (PR 11141), updateInScene (below) would not be triggered enough
-    for (const auto& entry : _entitiesInScene) {
-        const auto& renderable = entry.second;
-        if (renderable) {
-            renderable->update(scene, transaction);
-        }
-    }
     if (!_renderablesToUpdate.empty()) {
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;

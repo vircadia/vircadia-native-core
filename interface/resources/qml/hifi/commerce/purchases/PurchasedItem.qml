@@ -34,8 +34,11 @@ Item {
     property string itemId;
     property string itemPreviewImageUrl;
     property string itemHref;
+    property string certificateId;
     property int displayedItemCount;
     property int itemEdition;
+    property int numberSold;
+    property int limitedRun;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -50,7 +53,6 @@ Item {
             statusText.text = "CONFIRMED!";
             statusText.color = hifi.colors.blueAccent;
             confirmedTimer.start();
-            root.purchaseStatusChanged = false;
         }
     }
 
@@ -60,6 +62,7 @@ Item {
         onTriggered: {
             statusText.text = root.originalStatusText;
             statusText.color = root.originalStatusColor;
+            root.purchaseStatusChanged = false;
         }
     }
 
@@ -166,7 +169,7 @@ Item {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    sendToPurchases({method: 'purchases_itemCertificateClicked', itemMarketplaceId: root.itemId});
+                    sendToPurchases({method: 'purchases_itemCertificateClicked', itemCertificateId: root.certificateId});
                 }
                 onEntered: {
                     certificateIcon.color = hifi.colors.black;
@@ -203,7 +206,7 @@ Item {
 
         Item {
             id: statusContainer;
-            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated";
+            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.purchaseStatusChanged;
             anchors.left: itemName.left;
             anchors.top: certificateContainer.bottom;
             anchors.topMargin: 8;
@@ -222,6 +225,8 @@ Item {
                             "PENDING..."
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
+                        } else if (root.numberSold !== -1) {
+                            ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "\u221e" : root.limitedRun))
                         } else {
                             ""
                         }

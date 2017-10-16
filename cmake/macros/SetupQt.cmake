@@ -44,7 +44,11 @@ endfunction()
 # Sets the QT_CMAKE_PREFIX_PATH and QT_DIR variables
 # Also enables CMAKE_AUTOMOC and CMAKE_AUTORCC
 macro(setup_qt)
-    set(QT_CMAKE_PREFIX_PATH "$ENV{QT_CMAKE_PREFIX_PATH}")
+    # if QT_CMAKE_PREFIX_PATH was not specified before hand,
+    # try to use the environment variable
+    if (NOT QT_CMAKE_PREFIX_PATH)
+        set(QT_CMAKE_PREFIX_PATH "$ENV{QT_CMAKE_PREFIX_PATH}")
+    endif()
     if (("QT_CMAKE_PREFIX_PATH" STREQUAL "") OR (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}"))
         calculate_default_qt_dir(QT_DIR)
         set(QT_CMAKE_PREFIX_PATH "${QT_DIR}/lib/cmake")
