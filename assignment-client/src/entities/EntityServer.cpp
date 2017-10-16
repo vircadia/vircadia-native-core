@@ -452,50 +452,53 @@ void EntityServer::startDynamicDomainVerification() {
     while (i.hasNext()) {
         i.next();
 
-        // ZRF FIXME!!!
-        //if (!tree->findEntityByEntityItemID(i.value())->verifyStaticCertificateProperties()) {
-        if (false) {
-            qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
-                << "static certificate verification.";
-            // Delete the entity if it doesn't pass static certificate verification
-            tree->deleteEntity(i.value(), true);
-            tree->insertRecentlyDeletedEntityIDs(i.value());
-        } else {
+        EntityItemPointer entity = tree->findEntityByEntityItemID(i.value());
 
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkRequest networkRequest;
-            networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-            networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-            QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
-            requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
-            QJsonObject request;
-            request["certificate_id"] = i.key();
-            networkRequest.setUrl(requestURL);
+        if (entity) {
+            // ZRF FIXME!!!
+            //if (!entity->verifyStaticCertificateProperties()) {
+            if (false) {
+                qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
+                    << "static certificate verification.";
+                // Delete the entity if it doesn't pass static certificate verification
+                tree->deleteEntity(i.value(), true);
+            } else {
 
-            QNetworkReply* networkReply = NULL;
-            networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+                QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+                QNetworkRequest networkRequest;
+                networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+                networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
+                QJsonObject request;
+                request["certificate_id"] = i.key();
+                networkRequest.setUrl(requestURL);
 
-            connect(networkReply, &QNetworkReply::finished, [=]() {
-                QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
-                jsonObject = jsonObject["data"].toObject();
+                QNetworkReply* networkReply = NULL;
+                networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
-                if (networkReply->error() == QNetworkReply::NoError) {
-                    if (jsonObject["location"].toArray().first().toString() != thisPlaceName) {
-                        qCDebug(entities) << "Entity's cert's place name" << jsonObject["place_name"].toString()
-                            << "isn't the current place name" << thisPlaceName << "; deleting entity" << i.value();
-                        tree->deleteEntity(i.value(), true);
-                        tree->insertRecentlyDeletedEntityIDs(i.value());
+                connect(networkReply, &QNetworkReply::finished, [=]() {
+                    QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+                    jsonObject = jsonObject["data"].toObject();
+
+                    if (networkReply->error() == QNetworkReply::NoError) {
+                        if (jsonObject["location"].toArray().first().toString() != thisPlaceName) {
+                            qCDebug(entities) << "Entity's cert's place name" << jsonObject["place_name"].toString()
+                                << "isn't the current place name" << thisPlaceName << "; deleting entity" << i.value();
+                            tree->deleteEntity(i.value(), true);
+                        } else {
+                            qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
+                        }
                     } else {
-                        qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
+                        qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << i.value();
+                        tree->deleteEntity(i.value(), true);
                     }
-                } else {
-                    qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << i.value();
-                    tree->deleteEntity(i.value(), true);
-                    tree->insertRecentlyDeletedEntityIDs(i.value());
-                }
 
-                networkReply->deleteLater();
-            });
+                    networkReply->deleteLater();
+                });
+            }
+        } else {
+            qCWarning(entities) << "During DDV, an entity with ID" << i.value() << "was NOT found in the Entity Tree!";
         }
     }
 

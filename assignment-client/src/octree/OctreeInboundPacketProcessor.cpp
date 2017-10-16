@@ -93,7 +93,9 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<ReceivedMessage>
     PacketType packetType = message->getType();
     
     if (packetType == PacketType::ChallengeOwnership) {
-        _myServer->getOctree()->processChallengeOwnershipPacket(*message, sendingNode);
+        _myServer->getOctree()->withWriteLock([&] {
+            _myServer->getOctree()->processChallengeOwnershipPacket(*message, sendingNode);
+        });
     } else if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE", debugProcessPacket);
         _receivedPacketCount++;

@@ -193,11 +193,6 @@ public:
         return _recentlyDeletedEntityItemIDs;
     }
 
-    void insertRecentlyDeletedEntityIDs(const EntityItemID& id) {
-        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), id);
-    }
-
     QHash<QString, EntityItemID> getEntityCertificateIDMap() const {
         QReadLocker locker(&_entityCertificateIDMapLock);
         return _entityCertificateIDMap;

@@ -1139,7 +1139,6 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     connect(_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
         qCDebug(entities) << "Ownership challenge timed out, deleting entity" << entityItemID;
         deleteEntity(entityItemID, true);
-        insertRecentlyDeletedEntityIDs(entityItemID);
         if (_challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1174,13 +1173,16 @@ QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QStrin
         const int encryptStatus = RSA_public_encrypt(textLength, text, reinterpret_cast<unsigned char*>(encryptedText.data()), rsa, RSA_PKCS1_OAEP_PADDING);
         RSA_free(rsa);
         if (encryptStatus == -1) {
-            qCWarning(entities) << "Unable to compute encrypted nonce for" << certID;
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Unable to compute encrypted nonce for" << certID << "\nRSA error:" << error_str;
             return "";
         }
 
         QWriteLocker locker(&_certNonceMapLock);
         _certNonceMap.insert(certID, nonce);
 
+        qCDebug(entities) << "Challenging ownership of Cert ID" << certID << "by encrypting and sending nonce" << nonce << "to owner.";
         return encryptedText;
     } else {
         return "";
@@ -1201,7 +1203,6 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
             qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed; deleting entity" << id
                 << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
                 deleteEntity(id, true);
-                insertRecentlyDeletedEntityIDs(id);
         }
     } else {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded; keeping entity" << id;
@@ -1235,16 +1236,13 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                 qCDebug(entities) << "invalid_reason not empty, deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
-                insertRecentlyDeletedEntityIDs(entityItemID);
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
                 qCDebug(entities) << "'transfer_status' is 'failed', deleting entity" << entityItemID;
                 deleteEntity(entityItemID, true);
-                insertRecentlyDeletedEntityIDs(entityItemID);
             } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
                 if (isRetryingValidation) {
                     qCDebug(entities) << "'transfer_status' is 'pending' after retry, deleting entity" << entityItemID;
                     deleteEntity(entityItemID, true);
-                    insertRecentlyDeletedEntityIDs(entityItemID);
                 } else {
                     if (thread() != QThread::currentThread()) {
                         QMetaObject::invokeMethod(this, "startPendingTransferStatusTimer",
@@ -1264,7 +1262,6 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                 if (encryptedText == "") {
                     qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce. Deleting entity...";
                     deleteEntity(entityItemID, true);
-                    insertRecentlyDeletedEntityIDs(entityItemID);
                 } else {
                     // 2. Send the encrypted text to the rezzing avatar's node
                     QByteArray certIDByteArray = certID.toUtf8();
@@ -1290,7 +1287,6 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
         } else {
             qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
             deleteEntity(entityItemID, true);
-            insertRecentlyDeletedEntityIDs(entityItemID);
         }
 
         networkReply->deleteLater();
@@ -1516,7 +1512,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                     << "static certificate verification.";
                                 // Delete the entity we just added if it doesn't pass static certificate verification
                                 deleteEntity(entityItemID, true);
-                                insertRecentlyDeletedEntityIDs(entityItemID);
                             } else {
                                 validatePop(properties.getCertificateID(), entityItemID, senderNode, false);
                             }
