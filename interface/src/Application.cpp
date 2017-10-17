@@ -1819,11 +1819,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Setup the mouse ray pick and related operators
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(_rayPickManager.createRayPick(
-        RayPickFilter(DependencyManager::get<RayPickScriptingInterface>()->PICK_ENTITIES() | DependencyManager::get<RayPickScriptingInterface>()->PICK_INCLUDE_NONCOLLIDABLE()),
+        PickFilter(DependencyManager::get<RayPickScriptingInterface>()->PICK_ENTITIES() | DependencyManager::get<RayPickScriptingInterface>()->PICK_INCLUDE_NONCOLLIDABLE()),
         0.0f, true));
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](QUuid rayPickID) {
         RayToEntityIntersectionResult entityResult;
-        RayPickResult result = _rayPickManager.getPrevRayPickResult(rayPickID);
+        RayPickResult result = _rayPickManager.getPrevPickResult(rayPickID);
         entityResult.intersects = result.type != DependencyManager::get<RayPickScriptingInterface>()->INTERSECTED_NONE();
         if (entityResult.intersects) {
             entityResult.intersection = result.intersection;

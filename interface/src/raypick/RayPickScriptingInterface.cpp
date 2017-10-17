@@ -23,9 +23,9 @@ QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
         enabled = propMap["enabled"].toBool();
     }
 
-    RayPickFilter filter = RayPickFilter();
+    PickFilter filter = PickFilter();
     if (propMap["filter"].isValid()) {
-        filter = RayPickFilter(propMap["filter"].toUInt());
+        filter = PickFilter(propMap["filter"].toUInt());
     }
 
     float maxDistance = 0.0f;
@@ -67,19 +67,19 @@ QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
 }
 
 void RayPickScriptingInterface::enableRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().enableRayPick(uid);
+    qApp->getRayPickManager().enablePick(uid);
 }
 
 void RayPickScriptingInterface::disableRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().disableRayPick(uid);
+    qApp->getRayPickManager().disablePick(uid);
 }
 
 void RayPickScriptingInterface::removeRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().removeRayPick(uid);
+    qApp->getRayPickManager().removePick(uid);
 }
 
 RayPickResult RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
-    return qApp->getRayPickManager().getPrevRayPickResult(uid);
+    return qApp->getRayPickManager().getPrevPickResult(uid);
 }
 
 void RayPickScriptingInterface::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) {

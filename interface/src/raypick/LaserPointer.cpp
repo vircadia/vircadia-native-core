@@ -39,7 +39,7 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
 }
 
 LaserPointer::~LaserPointer() {
-    qApp->getRayPickManager().removeRayPick(_rayPickUID);
+    qApp->getRayPickManager().removePick(_rayPickUID);
 
     for (auto& renderState : _renderStates) {
         renderState.second.deleteOverlays();
@@ -50,14 +50,14 @@ LaserPointer::~LaserPointer() {
 }
 
 void LaserPointer::enable() {
-    qApp->getRayPickManager().enableRayPick(_rayPickUID);
+    qApp->getRayPickManager().enablePick(_rayPickUID);
     withWriteLock([&] {
         _renderingEnabled = true;
     });
 }
 
 void LaserPointer::disable() {
-    qApp->getRayPickManager().disableRayPick(_rayPickUID);
+    qApp->getRayPickManager().disablePick(_rayPickUID);
     withWriteLock([&] {
         _renderingEnabled = false;
         if (!_currentRenderState.empty()) {
@@ -198,7 +198,7 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 void LaserPointer::update() {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
-        RayPickResult prevRayPickResult = qApp->getRayPickManager().getPrevRayPickResult(_rayPickUID);
+        RayPickResult prevRayPickResult = qApp->getRayPickManager().getPrevPickResult(_rayPickUID);
         if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
             (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
             float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;

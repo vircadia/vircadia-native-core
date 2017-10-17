@@ -15,7 +15,7 @@
 
 #include <RegisteredMetaTypes.h>
 #include <DependencyManager.h>
-#include <pointers/rays/RayPick.h>
+#include "RayPick.h"
 
 class RayPickScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -47,14 +47,14 @@ public slots:
     Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities);
 
     unsigned int PICK_NOTHING() { return 0; }
-    unsigned int PICK_ENTITIES() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_ENTITIES); }
-    unsigned int PICK_OVERLAYS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_OVERLAYS); }
-    unsigned int PICK_AVATARS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_AVATARS); }
-    unsigned int PICK_HUD() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_HUD); }
-    unsigned int PICK_COARSE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_COARSE); }
-    unsigned int PICK_INCLUDE_INVISIBLE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_INCLUDE_INVISIBLE); }
-    unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_INCLUDE_NONCOLLIDABLE); }
-    unsigned int PICK_ALL_INTERSECTIONS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
+    unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ENTITIES); }
+    unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_OVERLAYS); }
+    unsigned int PICK_AVATARS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_AVATARS); }
+    unsigned int PICK_HUD() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_HUD); }
+    unsigned int PICK_COARSE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_COARSE); }
+    unsigned int PICK_INCLUDE_INVISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_INVISIBLE); }
+    unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_NONCOLLIDABLE); }
+    unsigned int PICK_ALL_INTERSECTIONS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
     unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
     unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
     unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }

@@ -8,6 +8,7 @@
 #ifndef hifi_Pick_h
 #define hifi_Pick_h
 
+#include <memory>
 #include <stdint.h>
 #include <bitset>
 
@@ -101,8 +102,6 @@ template<typename T>
 class Pick : protected ReadWriteLockable {
 
 public:
-    using Pointer = std::shared_ptr<Pick<T>>;
-
     Pick(const PickFilter& filter, const float maxDistance, const bool enabled);
 
     virtual const T getMathematicalPick(bool& valid) const = 0;
@@ -169,7 +168,6 @@ private:
     QVector<QUuid> _includeItems;
 };
 
-
 template<typename T>
 Pick<T>::Pick(const PickFilter& filter, const float maxDistance, const bool enabled) :
     _filter(filter),
@@ -198,9 +196,9 @@ float Pick<T>::getMaxDistance() const {
 
 template<typename T>
 bool Pick<T>::isEnabled() const {
-    withReadLock([&]) {
+    return resultWithReadLock<bool>([&] {
         return _enabled;
-    }
+    });
 }
 
 template<typename T>
@@ -219,16 +217,16 @@ void Pick<T>::setPickResult(const RayPickResult& PickResult) {
 
 template<typename T>
 QVector<QUuid> Pick<T>::getIgnoreItems() const {
-    withReadLock([&]) {
+    return resultWithReadLock<QVector<QUuid>>([&] {
         return _ignoreItems;
-    }
+    });
 }
 
 template<typename T>
 QVector<QUuid> Pick<T>::getIncludeItems() const {
-    withReadLock([&]) {
+    return resultWithReadLock<QVector<QUuid>>([&] {
         return _includeItems;
-    }
+    });
 }
 
 template<typename T>

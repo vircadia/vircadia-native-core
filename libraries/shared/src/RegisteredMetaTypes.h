@@ -144,7 +144,7 @@ namespace std {
         }
     };
 }
-uint qHash(const PickRay& a) {
+inline uint qHash(const PickRay& a) {
     return (uint)(std::hash<glm::vec3>()(a.origin) ^ (std::hash<glm::vec3>()(a.direction) << 1));
 }
 Q_DECLARE_METATYPE(PickRay)
