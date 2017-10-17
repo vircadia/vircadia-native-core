@@ -1018,6 +1018,32 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
     }
 }
 
+static void forEachKeyboard(QQuickItem* item, std::function<void(QQuickItem*)> function) {
+    QObject* itemObject = item;
+    while (itemObject) {
+        if (itemObject->parent()) {
+            itemObject = itemObject->parent();
+        } else {
+            break;
+        }
+    }
+
+    auto keyboards = itemObject->findChildren<QObject*>("keyboard");
+
+    for (auto keyboardObject : keyboards) {
+        auto keyboard = qobject_cast<QQuickItem*>(keyboardObject);
+        if (keyboard == nullptr) {
+            continue;
+        }
+
+        if (function) {
+            function(keyboard);
+        }
+    }
+}
+
+static const int TEXTINPUT_PASSWORD = 2;
+
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
 #if Q_OS_ANDROID
     return;
@@ -1030,6 +1056,26 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
     // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
     if (!raised || qApp->property(hifi::properties::HMD).toBool()) {
         QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+        if (!item) {
+            return;
+        }
+
+        auto echoMode = item->property("echoMode");
+        bool isPasswordField = echoMode.isValid() && echoMode.toInt() == TEXTINPUT_PASSWORD;
+
+        // we need to somehow pass 'isPasswordField' to visible keyboard so it will change its 'mirror text' to asterixes
+        // the issue in some cases there might be more than one keyboard in object tree and it is hard to understand which one is being used at the moment
+        // unfortunately attempts to check for visibility failed becuase visibility is not updated yet. So... I don't see other way than just update properties for all the keyboards
+        forEachKeyboard(item, [&](QQuickItem* keyboard) {
+            keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
+            keyboard->setProperty("password", isPasswordField);
+        });
+
+        // for future probably makes sense to consider one of the following:
+        // 1. make keyboard a singleton, which will be dynamically re-parented before showing
+        // 2. track currently visible keyboard somewhere, allow to subscribe for this signal
+        // any of above should also eliminate need in duplicated properties and code below
+
         while (item) {
             // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
             numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
