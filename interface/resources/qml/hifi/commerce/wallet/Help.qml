@@ -25,6 +25,7 @@ Item {
 
     id: root;
     property string keyFilePath;
+    property bool showDebugButtons: true;
 
     Hifi.QmlCommerce {
         id: commerce;
@@ -56,6 +57,7 @@ Item {
     }
     HifiControlsUit.Button {
         id: clearCachedPassphraseButton;
+        visible: root.showDebugButtons;
         color: hifi.buttons.black;
         colorScheme: hifi.colorSchemes.dark;
         anchors.top: parent.top;
@@ -71,6 +73,7 @@ Item {
     }
     HifiControlsUit.Button {
         id: resetButton;
+        visible: root.showDebugButtons;
         color: hifi.buttons.red;
         colorScheme: hifi.colorSchemes.dark;
         anchors.top: clearCachedPassphraseButton.top;
