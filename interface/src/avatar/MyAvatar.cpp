@@ -3238,3 +3238,9 @@ void MyAvatar::setModelScale(float scale) {
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
 }
+
+SpatialParentTree* MyAvatar::getParentTree() const {
+    auto entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    return entityTree.get();
+}
