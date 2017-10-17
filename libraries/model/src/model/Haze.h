@@ -42,7 +42,7 @@ namespace model {
     //  log(m) = p * log(s)
     //  p = log(m) / log(s)
     inline float convertDirectionalLightAngleToPower(const float directionalLightAngle) {
-        return (float)((LOG_P_05 / log(cos(RADIANS_PER_DEGREE * directionalLightAngle))));
+        return LOG_P_05 / (float)log(cos(RADIANS_PER_DEGREE * directionalLightAngle));
     }
 
     const glm::vec3 initialHazeColor{ 0.5f, 0.6f, 0.7f };
