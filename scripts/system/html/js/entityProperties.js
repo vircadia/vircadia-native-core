@@ -660,11 +660,6 @@ function loaded() {
 
         var elZoneSections = document.querySelectorAll(".zone-section");
         allSections.push(elZoneSections);
-
-        var elZoneKeyLightModeInherit = document.getElementById("property-zone-component-mode-inherit");
-        var elZoneKeyLightModeDisabled = document.getElementById("property-zone-component-mode-disabled");
-        var elZoneKeyLightModeEnabled = document.getElementById("property-zone-component-mode-enabled");
-
         var elZoneStageSunModelEnabled = document.getElementById("property-zone-stage-sun-model-enabled");
 
         var elZoneKeyLightColor = document.getElementById("property-zone-key-light-color");
@@ -1030,11 +1025,6 @@ function loaded() {
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
                         } else if (properties.type == "Zone") {
-
-                            elZoneKeyLightModeInherit.checked = (properties.keyLightMode == 'inherit');
-                            elZoneKeyLightModeDisabled.checked = (properties.keyLightMode == 'disabled');
-                            elZoneKeyLightModeEnabled.checked = (properties.keyLightMode == 'enabled');
-                            
                             elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
                             elZoneKeyLightColorRed.value = properties.keyLight.color.red;
@@ -1449,11 +1439,6 @@ function loaded() {
             }
         }));
 
-        var keyLightModeChanged = createZoneComponentModeChangedFunction('keyLightMode', elZoneKeyLightModeInherit, elZoneKeyLightModeDisabled, elZoneKeyLightModeEnabled)
-        elZoneKeyLightModeInherit.addEventListener('change', keyLightModeChanged);
-        elZoneKeyLightModeDisabled.addEventListener('change', keyLightModeChanged);
-        elZoneKeyLightModeEnabled.addEventListener('change', keyLightModeChanged);
-
         elZoneStageSunModelEnabled.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('stage', 'sunModelEnabled'));
         colorPickers.push($('#property-zone-key-light-color').colpick({
             colorScheme: 'dark',
@@ -1482,7 +1467,7 @@ function loaded() {
         elZoneKeyLightDirectionX.addEventListener('change', zoneKeyLightDirectionChangeFunction);
         elZoneKeyLightDirectionY.addEventListener('change', zoneKeyLightDirectionChangeFunction);
 
-        var hazeModeChanged = createHazeModeChangedFunction(elZoneHazeModeInherit, elZoneHazeModeDisabled, elZoneHazeModeEnabled)
+        var hazeModeChanged = createZoneComponentModeChangedFunction('hazeMode', elZoneHazeModeInherit, elZoneHazeModeDisabled, elZoneHazeModeEnabled)
         elZoneHazeModeInherit.addEventListener('change', hazeModeChanged);
         elZoneHazeModeDisabled.addEventListener('change', hazeModeChanged);
         elZoneHazeModeEnabled.addEventListener('change', hazeModeChanged);
