@@ -717,5 +717,8 @@ private:
     LaserPointerManager _laserPointerManager;
 
     friend class RenderEventHandler;
+
+    std::atomic<bool> _pendingIdleEvent { false };
+    std::atomic<bool> _pendingRenderEvent { false };
 };
 #endif // hifi_Application_h
