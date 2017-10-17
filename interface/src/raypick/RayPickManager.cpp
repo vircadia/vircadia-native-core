@@ -15,28 +15,13 @@
 #include "MouseRayPick.h"
 
 QUuid RayPickManager::createRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const PickFilter& filter, float maxDistance, bool enabled) {
-    auto newRayPick = std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
-    QUuid id = QUuid::createUuid();
-    withWriteLock([&] {
-        _picks[id] = newRayPick;
-    });
-    return id;
+    return addPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
 }
 
 QUuid RayPickManager::createRayPick(const PickFilter& filter, float maxDistance, bool enabled) {
-    QUuid id = QUuid::createUuid();
-    auto newRayPick = std::make_shared<MouseRayPick>(filter, maxDistance, enabled);
-    withWriteLock([&] {
-        _picks[id] = newRayPick;
-    });
-    return id;
+    return addPick(std::make_shared<MouseRayPick>(filter, maxDistance, enabled));
 }
 
 QUuid RayPickManager::createRayPick(const glm::vec3& position, const glm::vec3& direction, const PickFilter& filter, float maxDistance, bool enabled) {
-    QUuid id = QUuid::createUuid();
-    auto newRayPick = std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled);
-    withWriteLock([&] {
-        _picks[id] = newRayPick;
-    });
-    return id;
+    return addPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
 }

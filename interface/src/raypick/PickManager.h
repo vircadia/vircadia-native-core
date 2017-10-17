@@ -38,6 +38,7 @@ namespace std {
 
 // T is a mathematical representation of a Pick.
 // For example: PickRay for RayPick
+// TODO: add another template type to replace RayPickResult with a generalized PickResult
 template<typename T>
 class PickManager : protected ReadWriteLockable {
 
@@ -46,6 +47,7 @@ public:
 
     RayPickResult getPrevPickResult(const QUuid& uid) const;
 
+    QUuid addPick(const std::shared_ptr<Pick<T>> pick);
     void removePick(const QUuid& uid);
     void enablePick(const QUuid& uid) const;
     void disablePick(const QUuid& uid) const;
@@ -193,6 +195,15 @@ RayPickResult PickManager<T>::getPrevPickResult(const QUuid& uid) const {
         return pick->getPrevPickResult();
     }
     return RayPickResult();
+}
+
+template<typename T>
+QUuid PickManager<T>::addPick(const std::shared_ptr<Pick<T>> pick) {
+    QUuid id = QUuid::createUuid();
+    withWriteLock([&] {
+        _picks[id] = pick;
+    });
+    return id;
 }
 
 template<typename T>
