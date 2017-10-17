@@ -15,6 +15,7 @@ class PointerManager : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:
+    PointerManager();
 
 signals:
     void triggerBegin(const QUuid& id, const PointerEvent& pointerEvent);
