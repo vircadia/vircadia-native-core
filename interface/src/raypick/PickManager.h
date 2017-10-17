@@ -130,7 +130,7 @@ void PickManager<T>::update() {
             PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
                 entityRes = pick->getEntityIntersection(mathematicalPick, !pick->getFilter().doesPickCoarse(),
-                    pick->getIncludeItemsAs<EntityItemID>(), pick->getIgnoreItemsAs<EntityItemID>(), !invisible, !nonCollidable);
+                    pick->(template getIncludeItemsAs<EntityItemID>()), (template pick->getIgnoreItemsAs<EntityItemID>()), !invisible, !nonCollidable);
                 fromCache = false;
             }
 
@@ -148,7 +148,7 @@ void PickManager<T>::update() {
             PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
                 overlayRes = pick->getOverlayIntersection(mathematicalPick, !pick->getFilter().doesPickCoarse(),
-                    pick->getIncludeItemsAs<OverlayID>(), pick->getIgnoreItemsAs<OverlayID>(), !invisible, !nonCollidable);
+                    pick->(template getIncludeItemsAs<OverlayID>()), pick->(template getIgnoreItemsAs<OverlayID>()), !invisible, !nonCollidable);
                 fromCache = false;
             }
 
@@ -162,7 +162,7 @@ void PickManager<T>::update() {
             PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
                 RayToAvatarIntersectionResult avatarRes = pick->getAvatarIntersection(mathematicalPick,
-                    pick->getIncludeItemsAs<EntityItemID>(), pick->getIgnoreItemsAs<EntityItemID>());
+                    pick->(template getIncludeItemsAs<EntityItemID>()), pick->(template getIgnoreItemsAs<EntityItemID>()));
                 cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, mathematicalPick), avatarKey, res, mathematicalPick, results);
             }
         }

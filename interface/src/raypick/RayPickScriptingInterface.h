@@ -46,20 +46,20 @@ public slots:
     Q_INVOKABLE void setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreEntities);
     Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities);
 
-    unsigned int PICK_NOTHING() { return 0; }
-    unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ENTITIES); }
-    unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_OVERLAYS); }
-    unsigned int PICK_AVATARS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_AVATARS); }
-    unsigned int PICK_HUD() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_HUD); }
-    unsigned int PICK_COARSE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_COARSE); }
-    unsigned int PICK_INCLUDE_INVISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_INVISIBLE); }
-    unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_NONCOLLIDABLE); }
-    unsigned int PICK_ALL_INTERSECTIONS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
-    unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
-    unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
-    unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
-    unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
-    unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
+    static unsigned int PICK_NOTHING() { return 0; }
+    static unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ENTITIES); }
+    static unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_OVERLAYS); }
+    static unsigned int PICK_AVATARS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_AVATARS); }
+    static unsigned int PICK_HUD() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_HUD); }
+    static unsigned int PICK_COARSE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_COARSE); }
+    static unsigned int PICK_INCLUDE_INVISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_INVISIBLE); }
+    static unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_NONCOLLIDABLE); }
+    static unsigned int PICK_ALL_INTERSECTIONS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
+    static unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
+    static unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
+    static unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
+    static unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
+    static unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 };
 
 #endif // hifi_RayPickScriptingInterface_h

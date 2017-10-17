@@ -133,8 +133,7 @@ public:
     glm::vec3 direction;
 
     operator bool() const {
-        auto isNan = glm::isnan(origin) || glm::isnan(direction);
-        return !isNan.x && !isNan.y && !isNan.z;
+        return !(glm::any(glm::isnan(origin)) || glm::any(glm::isnan(direction)));
     }
     bool operator==(const PickRay& other) const {
         return (origin == other.origin && direction == other.direction);

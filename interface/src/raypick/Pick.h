@@ -133,9 +133,9 @@ public:
     QVector<QUuid> getIgnoreItems() const;
     QVector<QUuid> getIncludeItems() const;
 
-    template <typename T> 
-    QVector<T> getIgnoreItemsAs() const {
-        QVector<T> result;
+    template <typename S>
+    QVector<S> getIgnoreItemsAs() const {
+        QVector<S> result;
         withReadLock([&] {
             for (const auto& uid : _ignoreItems) {
                 result.push_back(uid);
@@ -144,9 +144,9 @@ public:
         return result;
     }
 
-    template <typename T>
-    QVector<T> getIncludeItemsAs() const {
-        QVector<T> result;
+    template <typename S>
+    QVector<S> getIncludeItemsAs() const {
+        QVector<S> result;
         withReadLock([&] {
             for (const auto& uid : _includeItems) {
                 result.push_back(uid);
