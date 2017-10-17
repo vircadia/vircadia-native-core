@@ -106,6 +106,8 @@ class MyAvatar : public Avatar {
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
      * @property userHeight {number} The height of the user in sensor space. (meters).
      * @property userEyeHeight {number} Estimated height of the users eyes in sensor space. (meters)
+     * @property SELF_ID {string} READ-ONLY. UUID representing "my avatar". Only use for local-only entities and overlays in situations where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain).
+     *   Note: Likely to be deprecated.
      */
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
@@ -152,6 +154,8 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
+
+    Q_PROPERTY(QString SELF_ID READ SELF_UUID CONSTANT)
  
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -648,8 +652,6 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
 
-private:
-
     virtual void updatePalms() override {}
     void lateUpdatePalms();
 
@@ -826,6 +828,9 @@ private:
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
+
+    const QString SELF_UUID() { return SELF_ID; }
+    const QString SELF_ID { AVATAR_SELF_ID.toString() };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

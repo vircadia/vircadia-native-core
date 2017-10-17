@@ -311,19 +311,19 @@ findHandChildEntities = function(hand) {
     // find children of avatar's hand joint
     var handJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ? "RightHand" : "LeftHand");
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
-    children = children.concat(Entities.getChildrenIDsOfJoint(Uuid.SELF, handJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, handJointIndex));
 
     // find children of faux controller joint
     var controllerJointIndex = getControllerJointIndex(hand);
     children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
-    children = children.concat(Entities.getChildrenIDsOfJoint(Uuid.SELF, controllerJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, controllerJointIndex));
 
     // find children of faux camera-relative controller joint
     var controllerCRJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
                                                         "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                                                         "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
     children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerCRJointIndex));
-    children = children.concat(Entities.getChildrenIDsOfJoint(Uuid.SELF, controllerCRJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, controllerCRJointIndex));
 
     return children.filter(function (childID) {
         var childType = Entities.getNestableType(childID);

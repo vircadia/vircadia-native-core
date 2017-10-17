@@ -176,7 +176,7 @@ createControllerDisplay = function(config) {
             dimensions: Vec3.multiply(sensorScaleFactor, controller.dimensions),
             localRotation: controller.rotation,
             localPosition: Vec3.multiply(sensorScaleFactor, position),
-            parentID: Uuid.SELF,
+            parentID: MyAvatar.SELF_ID,
             parentJointIndex: controller.jointIndex,
             ignoreRayIntersection: true
         });
@@ -196,7 +196,7 @@ createControllerDisplay = function(config) {
                     url: part.modelURL,
                     localPosition: partPosition,
                     localRotation: innerRotation,
-                    parentID: Uuid.SELF,
+                    parentID: MyAvatar.SELF_ID,
                     parentJointIndex: controller.jointIndex,
                     ignoreRayIntersection: true
                 };

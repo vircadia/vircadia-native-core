@@ -43,7 +43,7 @@ var OVERLAY_DATA_HMD = {
     scale: 2 * MyAvatar.sensorToWorldScale,
     emissive: true,
     drawInFront: true,
-    parentID: Uuid.SELF,
+    parentID: MyAvatar.SELF_ID,
     parentJointIndex: CAMERA_MATRIX
 };
 

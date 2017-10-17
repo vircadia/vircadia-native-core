@@ -99,7 +99,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
-        parentID: Uuid.SELF,
+        parentID: MyAvatar.SELF_ID,
         visible: visible
     };
 
@@ -470,7 +470,7 @@ WebTablet.prototype.register = function() {
 
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
-    children = children.concat(Entities.getChildrenIDsOfJoint(Uuid.SELF, jointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, jointIndex));
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
         if (props.name === "WebTablet Tablet") {
