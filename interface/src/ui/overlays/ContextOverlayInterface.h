@@ -49,7 +49,7 @@ class ContextOverlayInterface : public QObject, public Dependency  {
 public:
 
     enum {
-        MAX_HIGHLIGHT_COUNT = 4
+        MAX_HIGHLIGHT_COUNT = 5
     };
 
     ContextOverlayInterface();

@@ -122,7 +122,7 @@ Item {
                             label: "Unoccluded"
                             integral: false
                             config: root.drawConfig
-                            property: "fillOpacityUnoccluded"
+                            property: "unoccludedFillOpacity"
                             max: 1.0
                             min: 0.0
                             width: 270
@@ -131,7 +131,7 @@ Item {
                             label: "Occluded"
                             integral: false
                             config: root.drawConfig
-                            property: "fillOpacityOccluded"
+                            property: "occludedFillOpacity"
                             max: 1.0
                             min: 0.0
                             width: 270
