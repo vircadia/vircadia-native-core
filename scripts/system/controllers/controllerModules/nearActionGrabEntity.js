@@ -144,6 +144,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             Entities.deleteAction(this.targetEntityID, this.actionID);
             this.actionID = null;
 
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
+
             this.targetEntityID = null;
         };
 

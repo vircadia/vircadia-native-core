@@ -370,7 +370,7 @@ getTabletWidthFromSettings = function () {
 
 resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride) {
 
-    if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID) {
+    if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID || !HMD.homeButtonHighlightID) {
         return;
     }
 
@@ -412,5 +412,12 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     Overlays.editOverlay(HMD.homeButtonID, {
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
+    });
+
+    Overlays.editOverlay(HMD.homeButtonHighlightID, {
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
+        outerRadius: 25 * tabletScaleFactor,
+        innerRadius: 20 * tabletScaleFactor
     });
 };

@@ -546,6 +546,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseEquip", args);
 
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
+
             ensureDynamic(this.targetEntityID);
             this.targetEntityID = null;
             this.messageGrabEntity = false;

@@ -22,10 +22,11 @@
 
 
 UploadAssetTask::UploadAssetTask(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode,
-                                 const QDir& resourcesDir) :
+                                 const QDir& resourcesDir, uint64_t filesizeLimit) :
     _receivedMessage(receivedMessage),
     _senderNode(senderNode),
-    _resourcesDir(resourcesDir)
+    _resourcesDir(resourcesDir),
+    _filesizeLimit(filesizeLimit)
 {
     
 }
@@ -48,7 +49,7 @@ void UploadAssetTask::run() {
     auto replyPacket = NLPacket::create(PacketType::AssetUploadReply, -1, true);
     replyPacket->writePrimitive(messageID);
     
-    if (fileSize > MAX_UPLOAD_SIZE) {
+    if (fileSize > _filesizeLimit) {
         replyPacket->writePrimitive(AssetServerError::AssetTooLarge);
     } else {
         QByteArray fileData = buffer.read(fileSize);

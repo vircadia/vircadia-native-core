@@ -138,6 +138,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
             this.grabbing = false;
             this.targetEntityID = null;
         };
