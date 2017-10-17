@@ -74,6 +74,23 @@ static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING
         GeometryCache::Cylinder,
 } };
 
+static const std::array<const char * const, GeometryCache::NUM_SHAPES> GEOCACHE_SHAPE_STRINGS{ {
+        "Line",
+        "Triangle",
+        "Quad",
+        "Hexagon",
+        "Octagon",
+        "Circle",
+        "Cube",
+        "Sphere",
+        "Tetrahedron",
+        "Octahedron",
+        "Dodecahedron",
+        "Icosahedron",
+        "Torus",
+        "Cone",
+        "Cylinder"
+    } };
 
 const int GeometryCache::UNKNOWN_ID = -1;
 
@@ -102,16 +119,38 @@ void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, co
         return;
     }
 
-    const gpu::BufferView & shapeNorms = shapeData->_normalView;
-    assert(shapeData->_positionView._size == shapeNorms._size);
-
-    const gpu::BufferView::Size numItems = shapeNorms.getNumElements();
+    const gpu::BufferView & shapeVerts = shapeData->_positionView;
+    const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
 
     outPointList.reserve((int)numItems);
+    QVector<glm::vec3> uniqueVerts;
+    uniqueVerts.reserve((int)numItems);
 
+    const float SQUARED_MAX_INCLUSIVE_FILTER_DISTANCE = 0.0025f;
     for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
-        const geometry::Vec &curNorm = shapeNorms.get<geometry::Vec>(i);
-        outPointList.push_back(curNorm * entityHalfExtents);
+        const int numUniquePoints = (int)uniqueVerts.size();
+        const geometry::Vec &curVert = shapeVerts.get<geometry::Vec>(i);
+        bool isUniquePoint = true;
+
+        for (int uniqueIndex = 0; uniqueIndex < numUniquePoints; ++uniqueIndex) {
+            const geometry::Vec knownVert = uniqueVerts[uniqueIndex];
+            const float distToKnownPoint = glm::length2(knownVert - curVert);
+
+            if (fabsf(distToKnownPoint) <= SQUARED_MAX_INCLUSIVE_FILTER_DISTANCE) {
+                isUniquePoint = false;
+                break;
+            }
+        }
+
+        if (!isUniquePoint) {
+
+            //--EARLY ITERATION EXIT--
+            continue;
+        }
+
+
+        uniqueVerts.push_back(curVert);
+        outPointList.push_back(curVert * entityHalfExtents);
     }
 }
 
@@ -513,6 +552,18 @@ GeometryCache::Shape GeometryCache::getShapeForEntityShape(int entityShape) {
     }
 
     return MAPPING[entityShape];
+}
+
+QString GeometryCache::stringFromShape(GeometryCache::Shape geoShape)
+{
+    if (((int)geoShape < 0) || ((int)geoShape >= (int)GeometryCache::NUM_SHAPES)) {
+        qCWarning(renderutils) << "GeometryCache::stringFromShape - Invalid shape " << geoShape << " specified.";
+
+        //--EARLY EXIT--
+        return "INVALID_GEOCACHE_SHAPE";
+    }
+
+    return GEOCACHE_SHAPE_STRINGS[geoShape];
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {

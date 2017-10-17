@@ -153,6 +153,7 @@ public:
     ///         the GeometryCache::Shape enum which aligns with the 
     ///         specified entityShapeEnum
     static GeometryCache::Shape getShapeForEntityShape(int entityShapeEnum);
+    static QString stringFromShape(GeometryCache::Shape geoShape);
 
     static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityHalfExtents, QVector<glm::vec3> &outPointList);
 
