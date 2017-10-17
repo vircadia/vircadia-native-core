@@ -72,6 +72,12 @@ void Application::paintGL() {
     {
         QMutexLocker viewLocker(&_renderArgsMutex);
         renderArgs = _appRenderArgs._renderArgs;
+
+        // don't render if there is no context.
+        if (!_appRenderArgs._renderArgs._context) {
+            return;
+        }
+
         HMDSensorPose = _appRenderArgs._headPose;
         eyeToWorld = _appRenderArgs._eyeToWorld;
         sensorToWorld = _appRenderArgs._sensorToWorld;
