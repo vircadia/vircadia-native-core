@@ -18,7 +18,7 @@ class JointRayPick : public RayPick {
 public:
     JointRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const PickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
 
-    const PickRay getMathematicalPick(bool& valid) const override;
+    const PickRay getMathematicalPick() const override;
 
 private:
     std::string _jointName;

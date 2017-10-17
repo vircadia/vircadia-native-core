@@ -18,14 +18,12 @@ MouseRayPick::MouseRayPick(const PickFilter& filter, const float maxDistance, co
 {
 }
 
-const PickRay MouseRayPick::getMathematicalPick(bool& valid) const {
+const PickRay MouseRayPick::getMathematicalPick() const {
     QVariant position = qApp->getApplicationCompositor().getReticleInterface()->getPosition();
     if (position.isValid()) {
         QVariantMap posMap = position.toMap();
-        valid = true;
         return qApp->getCamera().computePickRay(posMap["x"].toFloat(), posMap["y"].toFloat());
     }
 
-    valid = false;
     return PickRay();
 }

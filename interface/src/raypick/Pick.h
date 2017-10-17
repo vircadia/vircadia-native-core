@@ -104,7 +104,7 @@ class Pick : protected ReadWriteLockable {
 public:
     Pick(const PickFilter& filter, const float maxDistance, const bool enabled);
 
-    virtual const T getMathematicalPick(bool& valid) const = 0;
+    virtual const T getMathematicalPick() const = 0;
     virtual RayToEntityIntersectionResult getEntityIntersection(const T& pick, bool precisionPicking,
                                                                 const QVector<EntityItemID>& entitiesToInclude,
                                                                 const QVector<EntityItemID>& entitiesToIgnore,

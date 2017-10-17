@@ -127,11 +127,15 @@ void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
 class PickRay {
 public:
-    PickRay() : origin(0.0f), direction(0.0f)  { }
+    PickRay() : origin(NAN), direction(NAN)  { }
     PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
     glm::vec3 origin;
     glm::vec3 direction;
 
+    operator bool() const {
+        auto isNan = glm::isnan(origin) || glm::isnan(direction);
+        return !isNan.x && !isNan.y && !isNan.z;
+    }
     bool operator==(const PickRay& other) const {
         return (origin == other.origin && direction == other.direction);
     }
@@ -143,9 +147,12 @@ namespace std {
             return ((hash<float>()(a.x) ^ (hash<float>()(a.y) << 1)) >> 1) ^ (hash<float>()(a.z) << 1);
         }
     };
-}
-inline uint qHash(const PickRay& a) {
-    return (uint)(std::hash<glm::vec3>()(a.origin) ^ (std::hash<glm::vec3>()(a.direction) << 1));
+    template <>
+    struct hash<PickRay> {
+        size_t operator()(const PickRay& a) const {
+            return (hash<glm::vec3>()(a.origin) ^ (hash<glm::vec3>()(a.direction) << 1));
+        }
+    };
 }
 Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);

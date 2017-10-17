@@ -60,7 +60,7 @@ protected:
     std::shared_ptr<Pick<T>> findPick(const QUuid& uid) const;
     QHash<QUuid, std::shared_ptr<Pick<T>>> _picks;
 
-    typedef QHash<T, std::unordered_map<PickCacheKey, RayPickResult>> PickCache;
+    typedef std::unordered_map<T, std::unordered_map<PickCacheKey, RayPickResult>> PickCache;
 
     // Returns true if this ray exists in the cache, and if it does, update res if the cached result is closer
     bool checkAndCompareCachedResults(T& pick, PickCache& cache, RayPickResult& res, const PickCacheKey& key);
@@ -79,7 +79,7 @@ std::shared_ptr<Pick<T>> PickManager<T>::findPick(const QUuid& uid) const {
 
 template<typename T>
 bool PickManager<T>::checkAndCompareCachedResults(T& pick, PickCache& cache, RayPickResult& res, const PickCacheKey& key) {
-    if (cache.contains(pick) && cache[pick].find(key) != cache[pick].end()) {
+    if (cache.find(pick) != cache.end() && cache[pick].find(key) != cache[pick].end()) {
         if (cache[pick][key].distance < res.distance) {
             res = cache[pick][key];
         }
@@ -114,14 +114,10 @@ void PickManager<T>::update() {
             continue;
         }
 
-        T mathematicalPick;
+        T mathematicalPick = pick->getMathematicalPick();
 
-        {
-            bool valid;
-            mathematicalPick = pick->getMathematicalPick(valid);
-            if (!valid) {
-                continue;
-            }
+        if (!mathematicalPick) {
+            continue;
         }
 
         RayPickResult res = RayPickResult(mathematicalPick);
