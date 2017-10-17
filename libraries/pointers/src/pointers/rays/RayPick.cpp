@@ -32,8 +32,10 @@ float RayPick::getMaxDistance() const {
     return _maxDistance; 
 }
 
-bool RayPick::isEnabled() const { 
-    return _enabled; 
+bool RayPick::isEnabled() const {
+    return resultWithReadLock<bool>([&] {
+        return _enabled;
+    });
 }
 
 void RayPick::setPrecisionPicking(bool precisionPicking) { 
@@ -49,11 +51,15 @@ void RayPick::setRayPickResult(const RayPickResult& rayPickResult) {
 }
 
 QVector<QUuid> RayPick::getIgnoreItems() const {
-    return _ignoreItems; 
+    return resultWithReadLock<QVector<QUuid>>([&] {
+        return _ignoreItems;
+    });
 }
 
 QVector<QUuid> RayPick::getIncludeItems() const {
-    return _includeItems; 
+    return resultWithReadLock<QVector<QUuid>>([&] {
+        return _includeItems;
+    });
 }
 
 RayPickResult RayPick::getPrevRayPickResult() const {
