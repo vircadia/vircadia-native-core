@@ -81,8 +81,8 @@ public:
     xColor getHazeGlareColor() const;
     void setHazeEnableGlare(const bool hazeEnableGlare);
     bool getHazeEnableGlare() const;
-    void setHazeLightBlendAngle(const float hazeLightBlendAngle);
-    float getHazeLightBlendAngle() const;
+    void setHazeGlareAngle(const float hazeGlareAngle);
+    float getHazeGlareAngle() const;
 
     void setHazeCeiling(const float hazeCeiling);
     float getHazeCeiling() const;
@@ -152,7 +152,7 @@ protected:
     xColor _hazeColor{ HazePropertyGroup::DEFAULT_HAZE_COLOR };
     xColor _hazeGlareColor{ HazePropertyGroup::DEFAULT_HAZE_GLARE_COLOR };
     bool _hazeEnableGlare{ false };
-    float _hazeLightBlendAngle{ HazePropertyGroup::DEFAULT_HAZE_LIGHT_BLEND_ANGLE };
+    float _hazeGlareAngle{ HazePropertyGroup::DEFAULT_HAZE_GLARE_ANGLE };
 
     float _hazeCeiling{ HazePropertyGroup::DEFAULT_HAZE_CEILING };
     float _hazeBaseRef{ HazePropertyGroup::DEFAULT_HAZE_BASE_REF };

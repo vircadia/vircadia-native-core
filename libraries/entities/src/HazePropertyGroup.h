@@ -77,7 +77,7 @@ public:
     static const float DEFAULT_HAZE_RANGE;
     static const xColor DEFAULT_HAZE_COLOR;
     static const xColor DEFAULT_HAZE_GLARE_COLOR;
-    static const float DEFAULT_HAZE_LIGHT_BLEND_ANGLE;
+    static const float DEFAULT_HAZE_GLARE_ANGLE;
 
     static const float DEFAULT_HAZE_CEILING;
     static const float DEFAULT_HAZE_BASE_REF;
@@ -92,7 +92,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, xColor, DEFAULT_HAZE_COLOR);
     DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, xColor, DEFAULT_HAZE_GLARE_COLOR);
     DEFINE_PROPERTY(PROP_HAZE_ENABLE_GLARE, HazeEnableGlare, hazeEnableGlare, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_LIGHT_BLEND_ANGLE, HazeLightBlendAngle, hazeLightBlendAngle, float, DEFAULT_HAZE_LIGHT_BLEND_ANGLE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, DEFAULT_HAZE_GLARE_ANGLE);
 
     // Altitude parameters
     DEFINE_PROPERTY(PROP_HAZE_ALTITUDE_EFFECT, HazeAltitudeEffect, hazeAltitudeEffect, bool, false);

@@ -173,11 +173,11 @@ void SceneScripting::Stage::setHazeEnableGlare(const bool hazeEnableGlare) {
 bool SceneScripting::Stage::getHazeEnableGlare() const {
     return _skyStage->getHazeEnableGlare();
 }
-void SceneScripting::Stage::setHazeLightBlendAngle(const float hazeLightBlendAngle) {
-    _skyStage->setHazeLightBlendAngle(hazeLightBlendAngle);
+void SceneScripting::Stage::setHazeGlareAngle(const float hazeGlareAngle) {
+    _skyStage->setHazeGlareAngle(hazeGlareAngle);
 }
-float SceneScripting::Stage::getHazeLightBlendAngle() const {
-    return _skyStage->getHazeLightBlendAngle();
+float SceneScripting::Stage::getHazeGlareAngle() const {
+    return _skyStage->getHazeGlareAngle();
 }
 
 void SceneScripting::Stage::setHazeAltitudeEffect(const bool hazeAltitudeEffect) {

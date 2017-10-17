@@ -365,13 +365,13 @@ bool ZoneEntityItem::getHazeEnableGlare()const {
     return _hazeEnableGlare;
 }
 
-void ZoneEntityItem::setHazeLightBlendAngle(const float hazeLightBlendAngle) {
-    _hazeLightBlendAngle = hazeLightBlendAngle;
+void ZoneEntityItem::setHazeGlareAngle(const float hazeGlareAngle) {
+    _hazeGlareAngle = hazeGlareAngle;
     _hazePropertiesChanged = true;
 }
 
-float ZoneEntityItem::getHazeLightBlendAngle() const {
-    return _hazeLightBlendAngle;
+float ZoneEntityItem::getHazeGlareAngle() const {
+    return _hazeGlareAngle;
 }
 
 void ZoneEntityItem::setHazeCeiling(const float hazeCeiling) {

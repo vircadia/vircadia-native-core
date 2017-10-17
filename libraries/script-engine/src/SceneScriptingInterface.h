@@ -141,9 +141,9 @@ namespace SceneScripting {
         void setHazeEnableGlare(bool value);
         bool getHazeEnableGlare() const;
 
-        Q_PROPERTY(float hazeLightBlendAngle READ getHazeLightBlendAngle WRITE setHazeLightBlendAngle)
-        void setHazeLightBlendAngle(float value);
-        float getHazeLightBlendAngle() const;
+        Q_PROPERTY(float hazeGlareAngle READ getHazeGlareAngle WRITE setHazeGlareAngle)
+        void setHazeGlareAngle(float value);
+        float getHazeGlareAngle() const;
 
         Q_PROPERTY(bool hazeAltitudeEffect READ getHazeAltitudeEffect WRITE setHazeAltitudeEffect)
         void setHazeAltitudeEffect(bool value);

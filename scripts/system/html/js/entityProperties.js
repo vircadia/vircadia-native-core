@@ -692,7 +692,7 @@ function loaded() {
         var elZoneHazeGlareColorGreen = document.getElementById("property-zone-haze-blend-out-color-green");
         var elZoneHazeGlareColorBlue = document.getElementById("property-zone-haze-blend-out-color-blue");
         var elZoneHazeEnableGlare = document.getElementById("property-zone-haze-enable-light-blend");
-        var elZoneHazeLightBlendAngle = document.getElementById("property-zone-haze-blend-angle");
+        var elZonehazeGlareAngle = document.getElementById("property-zone-haze-blend-angle");
         
         var elZoneHazeAltitudeEffect = document.getElementById("property-zone-haze-altitude-effect");
         var elZoneHazeBaseRef = document.getElementById("property-zone-haze-base");
@@ -1071,7 +1071,7 @@ function loaded() {
                             elZoneHazeGlareColorBlue.value = properties.haze.hazeGlareColor.blue;
 
                             elZoneHazeEnableGlare.checked = properties.haze.hazeEnableGlare;
-                            elZoneHazeLightBlendAngle.value = properties.haze.hazeLightBlendAngle.toFixed(0);
+                            elZonehazeGlareAngle.value = properties.haze.hazeGlareAngle.toFixed(0);
 
                             elZoneHazeAltitudeEffect.checked = properties.haze.hazeAltitudeEffect;
                             elZoneHazeBaseRef.value = properties.haze.hazeBaseRef.toFixed(0);
@@ -1540,7 +1540,7 @@ function loaded() {
         elZoneHazeGlareColorBlue.addEventListener('change', zoneHazeGlareColorChangeFunction);
 
         elZoneHazeEnableGlare.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableGlare'));
-        elZoneHazeLightBlendAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeLightBlendAngle'));
+        elZonehazeGlareAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeGlareAngle'));
 
         elZoneHazeAltitudeEffect.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAltitudeEffect'));
         elZoneHazeCeiling.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeCeiling'));
