@@ -10,16 +10,15 @@
 //
 #include "MouseRayPick.h"
 
-#include "DependencyManager.h"
 #include "Application.h"
 #include "display-plugins/CompositorHelper.h"
 
-MouseRayPick::MouseRayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled) :
+MouseRayPick::MouseRayPick(const PickFilter& filter, const float maxDistance, const bool enabled) :
     RayPick(filter, maxDistance, enabled)
 {
 }
 
-const PickRay MouseRayPick::getPickRay(bool& valid) const {
+const PickRay MouseRayPick::getMathematicalPick(bool& valid) const {
     QVariant position = qApp->getApplicationCompositor().getReticleInterface()->getPosition();
     if (position.isValid()) {
         QVariantMap posMap = position.toMap();

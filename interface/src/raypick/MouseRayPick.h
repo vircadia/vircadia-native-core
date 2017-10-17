@@ -11,14 +11,14 @@
 #ifndef hifi_MouseRayPick_h
 #define hifi_MouseRayPick_h
 
-#include <pointers/rays/RayPick.h>
+#include "RayPick.h"
 
 class MouseRayPick : public RayPick {
 
 public:
-    MouseRayPick(const RayPickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
+    MouseRayPick(const PickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
 
-    const PickRay getPickRay(bool& valid) const override;
+    const PickRay getMathematicalPick(bool& valid) const override;
 };
 
 #endif // hifi_MouseRayPick_h

@@ -1,12 +1,12 @@
 //
-//  Created by Sam Gondelman 7/11/2017
+//  Created by Sam Gondelman 10/17/2017
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_RayPick_h
-#define hifi_RayPick_h
+#ifndef hifi_Pick_h
+#define hifi_Pick_h
 
 #include <stdint.h>
 #include <bitset>
@@ -16,7 +16,10 @@
 #include <RegisteredMetaTypes.h>
 #include <shared/ReadWriteLockable.h>
 
-class RayPickFilter {
+#include "EntityScriptingInterface.h"
+#include "ui/overlays/Overlays.h"
+
+class PickFilter {
 public:
     enum FlagBit {
         PICK_ENTITIES = 0,
@@ -39,11 +42,11 @@ public:
     // The key is the Flags
     Flags _flags;
 
-    RayPickFilter() {}
-    RayPickFilter(const Flags& flags) : _flags(flags) {}
+    PickFilter() {}
+    PickFilter(const Flags& flags) : _flags(flags) {}
 
-    bool operator== (const RayPickFilter& rhs) const { return _flags == rhs._flags; }
-    bool operator!= (const RayPickFilter& rhs) const { return _flags != rhs._flags; }
+    bool operator== (const PickFilter& rhs) const { return _flags == rhs._flags; }
+    bool operator!= (const PickFilter& rhs) const { return _flags != rhs._flags; }
 
     void setFlag(FlagBit flag, bool value) { _flags[flag] = value; }
 
@@ -91,29 +94,42 @@ public:
 
     static constexpr unsigned int getBitMask(FlagBit bit) { return 1 << bit; }
 
-    static const RayPickFilter NOTHING;
+    static const PickFilter NOTHING;
 };
 
-class RayPick : protected ReadWriteLockable {
+template<typename T>
+class Pick : protected ReadWriteLockable {
 
 public:
-    using Pointer = std::shared_ptr<RayPick>;
+    using Pointer = std::shared_ptr<Pick<T>>;
 
-    RayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled);
+    Pick(const PickFilter& filter, const float maxDistance, const bool enabled);
 
-    virtual const PickRay getPickRay(bool& valid) const = 0;
+    virtual const T getMathematicalPick(bool& valid) const = 0;
+    virtual RayToEntityIntersectionResult getEntityIntersection(const T& pick, bool precisionPicking,
+                                                                const QVector<EntityItemID>& entitiesToInclude,
+                                                                const QVector<EntityItemID>& entitiesToIgnore,
+                                                                bool visibleOnly, bool collidableOnly) = 0;
+    virtual RayToOverlayIntersectionResult getOverlayIntersection(const T& pick, bool precisionPicking,
+                                                                  const QVector<OverlayID>& overlaysToInclude,
+                                                                  const QVector<OverlayID>& overlaysToIgnore,
+                                                                  bool visibleOnly, bool collidableOnly) = 0;
+    virtual RayToAvatarIntersectionResult getAvatarIntersection(const T& pick,
+                                                                const QVector<EntityItemID>& avatarsToInclude,
+                                                                const QVector<EntityItemID>& avatarsToIgnore) = 0;
+    virtual glm::vec3 getHUDIntersection(const T& pick) = 0;
 
     void enable(bool enabled = true);
     void disable() { enable(false); }
 
-    RayPickFilter getFilter() const;
+    PickFilter getFilter() const;
     float getMaxDistance() const;
     bool isEnabled() const;
-    RayPickResult getPrevRayPickResult() const;
+    RayPickResult getPrevPickResult() const;
 
     void setPrecisionPicking(bool precisionPicking);
 
-    void setRayPickResult(const RayPickResult& rayPickResult);
+    void setPickResult(const RayPickResult& rayPickResult);
 
     QVector<QUuid> getIgnoreItems() const;
     QVector<QUuid> getIncludeItems() const;
@@ -144,7 +160,7 @@ public:
     void setIncludeItems(const QVector<QUuid>& items);
 
 private:
-    RayPickFilter _filter;
+    PickFilter _filter;
     const float _maxDistance;
     bool _enabled;
     RayPickResult _prevResult;
@@ -153,4 +169,87 @@ private:
     QVector<QUuid> _includeItems;
 };
 
-#endif // hifi_RayPick_h
+
+template<typename T>
+Pick<T>::Pick(const PickFilter& filter, const float maxDistance, const bool enabled) :
+    _filter(filter),
+    _maxDistance(maxDistance),
+    _enabled(enabled) {
+}
+
+template<typename T>
+void Pick<T>::enable(bool enabled) {
+    withWriteLock([&] {
+        _enabled = enabled;
+    });
+}
+
+template<typename T>
+PickFilter Pick<T>::getFilter() const {
+    return resultWithReadLock<PickFilter>([&] {
+        return _filter;
+    });
+}
+
+template<typename T>
+float Pick<T>::getMaxDistance() const {
+    return _maxDistance;
+}
+
+template<typename T>
+bool Pick<T>::isEnabled() const {
+    withReadLock([&]) {
+        return _enabled;
+    }
+}
+
+template<typename T>
+void Pick<T>::setPrecisionPicking(bool precisionPicking) {
+    withWriteLock([&] {
+        _filter.setFlag(PickFilter::PICK_COARSE, !precisionPicking);
+    });
+}
+
+template<typename T>
+void Pick<T>::setPickResult(const RayPickResult& PickResult) {
+    withWriteLock([&] {
+        _prevResult = PickResult;
+    });
+}
+
+template<typename T>
+QVector<QUuid> Pick<T>::getIgnoreItems() const {
+    withReadLock([&]) {
+        return _ignoreItems;
+    }
+}
+
+template<typename T>
+QVector<QUuid> Pick<T>::getIncludeItems() const {
+    withReadLock([&]) {
+        return _includeItems;
+    }
+}
+
+template<typename T>
+RayPickResult Pick<T>::getPrevPickResult() const {
+    return resultWithReadLock<RayPickResult>([&] {
+        return _prevResult;
+    });
+}
+
+template<typename T>
+void Pick<T>::setIgnoreItems(const QVector<QUuid>& ignoreItems) {
+    withWriteLock([&] {
+        _ignoreItems = ignoreItems;
+    });
+}
+
+template<typename T>
+void Pick<T>::setIncludeItems(const QVector<QUuid>& includeItems) {
+    withWriteLock([&] {
+        _includeItems = includeItems;
+    });
+}
+
+#endif // hifi_Pick_h

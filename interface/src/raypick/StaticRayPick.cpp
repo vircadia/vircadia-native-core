@@ -7,13 +7,13 @@
 //
 #include "StaticRayPick.h"
 
-StaticRayPick::StaticRayPick(const glm::vec3& position, const glm::vec3& direction, const RayPickFilter& filter, const float maxDistance, const bool enabled) :
+StaticRayPick::StaticRayPick(const glm::vec3& position, const glm::vec3& direction, const PickFilter& filter, const float maxDistance, const bool enabled) :
     RayPick(filter, maxDistance, enabled),
     _pickRay(position, direction)
 {
 }
 
-const PickRay StaticRayPick::getPickRay(bool& valid) const {
+const PickRay StaticRayPick::getMathematicalPick(bool& valid) const {
     valid = true;
     return _pickRay;
 }

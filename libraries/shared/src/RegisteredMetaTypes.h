@@ -131,7 +131,22 @@ public:
     PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
     glm::vec3 origin;
     glm::vec3 direction;
+
+    bool operator==(const PickRay& other) const {
+        return (origin == other.origin && direction == other.direction);
+    }
 };
+namespace std {
+    template <>
+    struct hash<glm::vec3> {
+        size_t operator()(const glm::vec3& a) const {
+            return ((hash<float>()(a.x) ^ (hash<float>()(a.y) << 1)) >> 1) ^ (hash<float>()(a.z) << 1);
+        }
+    };
+}
+uint qHash(const PickRay& a) {
+    return (uint)(std::hash<glm::vec3>()(a.origin) ^ (std::hash<glm::vec3>()(a.direction) << 1));
+}
 Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
