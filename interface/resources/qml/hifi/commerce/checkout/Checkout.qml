@@ -39,7 +39,7 @@ Rectangle {
     property bool itemIsJson: true;
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property bool isWearable;
     // Style
     color: hifi.colors.white;
