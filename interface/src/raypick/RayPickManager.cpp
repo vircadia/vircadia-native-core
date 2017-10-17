@@ -116,8 +116,7 @@ void RayPickManager::update() {
 
         // Can't intersect with HUD in desktop mode
         if (rayPick->getFilter().doesPickHUD() && DependencyManager::get<HMDScriptingInterface>()->isHMDMode()) {
-            RayPickFilter::Flags hudMask = rayPick->getFilter().getHUDFlags();
-            RayCacheKey hudKey = { rayPick->getFilter().getHUDFlags() };
+            RayCacheKey hudKey = { rayPick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
             if (!checkAndCompareCachedResults(rayKey, results, res, hudKey)) {
                 glm::vec3 hudRes = DependencyManager::get<HMDScriptingInterface>()->calculateRayUICollisionPoint(ray.origin, ray.direction);
                 cacheResult(true, RayPickResult(IntersectionType::HUD, 0, glm::distance(ray.origin, hudRes), hudRes, ray), hudKey, res, rayKey, results);
