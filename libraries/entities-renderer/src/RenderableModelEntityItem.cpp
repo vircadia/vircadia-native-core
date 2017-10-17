@@ -352,7 +352,9 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
                 // we have both URLs AND both geometries AND they are both fully loaded.
                 if (_needsInitialSimulation) {
                     // the _model's offset will be wrong until _needsInitialSimulation is false
+#ifdef WANT_DETAILED_PROFILING
                     PerformanceTimer perfTimer("_model->simulate");
+#endif
                     const_cast<RenderableModelEntityItem*>(this)->doInitialModelSimulation();
                 }
                 return true;
@@ -898,7 +900,9 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
 }
 
 void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
+#ifdef WANT_DETAILED_PROFILING
     PerformanceTimer pertTimer("locationChanged");
+#endif
     EntityItem::locationChanged(tellPhysics);
     auto model = getModel();
     if (model && model->isLoaded()) {
@@ -1317,8 +1321,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void ModelEntityRenderer::doRender(RenderArgs* args) {
 #ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(render_detail, "MetaModelRender");
-#endif
     PerformanceTimer perfTimer("RMEIrender");
+#endif
 
     ModelPointer model;
     withReadLock([&]{

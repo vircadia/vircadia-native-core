@@ -32,6 +32,9 @@
 #include "RenderUtilsLogging.h"
 #include <Trace.h>
 
+// uncomment WANT_DETAILED_PROFILING to enable profiling that causes measureable performance impact
+//#define WANT_DETAILED_PROFILING
+
 using namespace std;
 
 int nakedModelPointerTypeId = qRegisterMetaType<ModelPointer>();
@@ -963,7 +966,9 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
+#endif
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1084,8 +1089,10 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_detail, __FUNCTION__);
     PerformanceTimer perfTimer("Model::simulate");
+#endif
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
@@ -1123,7 +1130,9 @@ void Model::computeMeshPartLocalBounds() {
 
 // virtual
 void Model::updateClusterMatrices() {
+#ifdef WANT_DETAILED_PROFILING
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
+#endif
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;

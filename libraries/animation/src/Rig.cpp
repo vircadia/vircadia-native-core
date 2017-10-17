@@ -32,6 +32,9 @@
 #include "AnimUtil.h"
 #include "IKTarget.h"
 
+// uncomment WANT_DETAILED_PROFILING for profiling that would otherwise impact performance
+//#define WANT_DETAILED_PROFILING
+
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
@@ -999,14 +1002,17 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 }
 
 void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform) {
-
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
     PerformanceTimer perfTimer("updateAnimations");
+#endif
 
     setModelOffset(rootTransform);
 
     if (_animNode && _enabledAnimations) {
+#ifdef WANT_DETAILED_PROFILING
         PerformanceTimer perfTimer("handleTriggers");
+#endif
 
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
@@ -1658,7 +1664,9 @@ bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const 
 }
 
 void Rig::applyOverridePoses() {
+#ifdef WANT_DETAILED_PROFILING
     PerformanceTimer perfTimer("override");
+#endif
     if (_numOverrides == 0 || !_animSkeleton) {
         return;
     }
@@ -1675,7 +1683,9 @@ void Rig::applyOverridePoses() {
 }
 
 void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) {
+#ifdef WANT_DETAILED_PROFILING
     PerformanceTimer perfTimer("buildAbsolute");
+#endif
     if (!_animSkeleton) {
         return;
     }
@@ -1730,8 +1740,10 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
-    PerformanceTimer perfTimer("copyJoints");
+#ifdef WANT_DETAILED_PROFILING
     PROFILE_RANGE(simulation_animation_detail, "copyJoints");
+    PerformanceTimer perfTimer("copyJoints");
+#endif
     if (!_animSkeleton) {
         return;
     }
