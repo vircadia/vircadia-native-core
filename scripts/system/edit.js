@@ -1561,7 +1561,8 @@ function getPositionToCreateEntity(extra) {
 }
 
 function importSVO(importURL) {
-    if (!Entities.canRez() && !Entities.canRezTmp()) {
+    if (!Entities.canRez() && !Entities.canRezTmp() &&
+        !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
     }
