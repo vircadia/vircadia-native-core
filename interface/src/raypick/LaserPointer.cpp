@@ -102,7 +102,7 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
 }
 
 const RayPickResult LaserPointer::getPrevRayPickResult() {
-    return DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID);
+    return qApp->getRayPickManager().getPrevRayPickResult(_rayPickUID);
 }
 
 void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState) {
