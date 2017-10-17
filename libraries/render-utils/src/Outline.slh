@@ -53,7 +53,7 @@ vec4 computeGroupOutline(int centerGroupId, float centerDepth, int groupId, vec2
         sceneDepth = -evalZeyeFromZdb(sceneDepth);
 
         // Are we occluded?
-        intensity = (sceneDepth < (centerDepth-LINEAR_DEPTH_BIAS)) ? groupParams._fillOpacityOccluded : groupParams._fillOpacityUnoccluded;
+        intensity = (sceneDepth < (centerDepth-LINEAR_DEPTH_BIAS)) ? groupParams._occludedFillOpacity : groupParams._unoccludedFillOpacity;
        	return vec4(groupParams._color.rgb, intensity);
 <@else@>
 		return vec4(0,0,0,0);

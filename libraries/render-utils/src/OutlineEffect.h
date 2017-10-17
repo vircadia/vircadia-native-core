@@ -60,41 +60,8 @@ private:
 
 };
 
-class DrawOutlineConfig : public render::Job::Config {
-    Q_OBJECT
-        Q_PROPERTY(bool glow MEMBER glow NOTIFY dirty)
-        Q_PROPERTY(float width MEMBER width NOTIFY dirty)
-        Q_PROPERTY(float intensity MEMBER intensity NOTIFY dirty)
-        Q_PROPERTY(float colorR READ getColorR WRITE setColorR NOTIFY dirty)
-        Q_PROPERTY(float colorG READ getColorG WRITE setColorG NOTIFY dirty)
-        Q_PROPERTY(float colorB READ getColorB WRITE setColorB NOTIFY dirty)
-        Q_PROPERTY(float fillOpacityUnoccluded MEMBER fillOpacityUnoccluded NOTIFY dirty)
-        Q_PROPERTY(float fillOpacityOccluded MEMBER fillOpacityOccluded NOTIFY dirty)
-
-public:
-
-    void setColorR(float value) { color.r = value; emit dirty(); }
-    float getColorR() const { return color.r; }
-
-    void setColorG(float value) { color.g = value; emit dirty(); }
-    float getColorG() const { return color.g; }
-
-    void setColorB(float value) { color.b = value; emit dirty(); }
-    float getColorB() const { return color.b; }
-
-    glm::vec3 color{ 1.f, 0.7f, 0.2f };
-    float width{ 2.0f };
-    float intensity{ 0.9f };
-    float fillOpacityUnoccluded{ 0.0f };
-    float fillOpacityOccluded{ 0.0f };
-    bool glow{ false };
-
-signals:
-    void dirty();
-};
-
-class DrawOutline {
-private:
+class Outline {
+protected:
 
 #include "Outline_shared.slh"
 
@@ -102,6 +69,68 @@ public:
     enum {
         MAX_GROUP_COUNT = GROUP_COUNT
     };
+};
+
+class DrawOutlineConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(int group MEMBER group WRITE setGroup NOTIFY dirty);
+        Q_PROPERTY(bool glow READ isGlow WRITE setGlow NOTIFY dirty)
+        Q_PROPERTY(float width READ getWidth WRITE setWidth NOTIFY dirty)
+        Q_PROPERTY(float intensity READ getIntensity WRITE setIntensity NOTIFY dirty)
+        Q_PROPERTY(float colorR READ getColorR WRITE setColorR NOTIFY dirty)
+        Q_PROPERTY(float colorG READ getColorG WRITE setColorG NOTIFY dirty)
+        Q_PROPERTY(float colorB READ getColorB WRITE setColorB NOTIFY dirty)
+        Q_PROPERTY(float unoccludedFillOpacity READ getUnoccludedFillOpacity WRITE setUnoccludedFillOpacity NOTIFY dirty)
+        Q_PROPERTY(float occludedFillOpacity READ getOccludedFillOpacity WRITE setOccludedFillOpacity NOTIFY dirty)
+
+public:
+
+    struct GroupParameters {
+        glm::vec3 color{ 1.f, 0.7f, 0.2f };
+        float width{ 2.0f };
+        float intensity{ 0.9f };
+        float unoccludedFillOpacity{ 0.0f };
+        float occludedFillOpacity{ 0.0f };
+        bool glow{ false };
+    };
+
+    int getGroupCount() const;
+
+    void setColorR(float value) { groupParameters[group].color.r = value; emit dirty(); }
+    float getColorR() const { return groupParameters[group].color.r; }
+
+    void setColorG(float value) { groupParameters[group].color.g = value; emit dirty(); }
+    float getColorG() const { return groupParameters[group].color.g; }
+
+    void setColorB(float value) { groupParameters[group].color.b = value; emit dirty(); }
+    float getColorB() const { return groupParameters[group].color.b; }
+
+    void setGlow(bool value) { groupParameters[group].glow = value; emit dirty(); }
+    bool isGlow() const { return groupParameters[group].glow; }
+
+    void setWidth(float value) { groupParameters[group].width = value; emit dirty(); }
+    float getWidth() const { return groupParameters[group].width; }
+
+    void setIntensity(float value) { groupParameters[group].intensity = value; emit dirty(); }
+    float getIntensity() const { return groupParameters[group].intensity; }
+
+    void setUnoccludedFillOpacity(float value) { groupParameters[group].unoccludedFillOpacity = value; emit dirty(); }
+    float getUnoccludedFillOpacity() const { return groupParameters[group].unoccludedFillOpacity; }
+
+    void setOccludedFillOpacity(float value) { groupParameters[group].occludedFillOpacity = value; emit dirty(); }
+    float getOccludedFillOpacity() const { return groupParameters[group].occludedFillOpacity; }
+
+    void setGroup(int value);
+
+    int group{ 0 };
+    GroupParameters groupParameters[Outline::MAX_GROUP_COUNT];
+
+signals:
+    void dirty();
+};
+
+class DrawOutline : public Outline {
+public:
 
     using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
     using Config = DrawOutlineConfig;
@@ -127,27 +156,27 @@ private:
         OutlineParameters _groups[MAX_GROUP_COUNT];
     };
 
+    enum Mode {
+        M_ALL_UNFILLED,
+        M_SOME_FILLED,
+    };
+
     using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineConfiguration>;
 
-    static const gpu::PipelinePointer& getPipeline(bool isFilled);
+    const gpu::PipelinePointer& getPipeline();
 
     static gpu::PipelinePointer _pipeline;
     static gpu::PipelinePointer _pipelineFilled;
     OutlineConfigurationBuffer _configuration;
-    glm::vec3 _color;
-    float _size;
-    int _blurKernelSize;
-    float _intensity;
-    float _fillOpacityUnoccluded;
-    float _fillOpacityOccluded;
-    float _threshold;
-    bool _hasConfigurationChanged{ true };
+    glm::ivec2 _framebufferSize{ 0,0 };
+    Mode _mode{ M_ALL_UNFILLED };
+    float _sizes[MAX_GROUP_COUNT];
 };
 
 class DrawOutlineTask {
 public:
 
-    using Groups = render::VaryingArray<render::ItemBounds, DrawOutline::MAX_GROUP_COUNT>;
+    using Groups = render::VaryingArray<render::ItemBounds, Outline::MAX_GROUP_COUNT>;
     using Inputs = render::VaryingSet4<Groups, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
     using Config = render::Task::Config;
     using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
@@ -165,7 +194,7 @@ private:
 class DrawOutlineMask {
 public:
 
-    using Groups = render::VaryingArray<render::ShapeBounds, DrawOutline::MAX_GROUP_COUNT>;
+    using Groups = render::VaryingArray<render::ShapeBounds, Outline::MAX_GROUP_COUNT>;
     using Inputs = render::VaryingSet2<Groups, DeferredFramebufferPointer>;
     // Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
     using Outputs = OutlineRessourcesPointer;

@@ -20,6 +20,24 @@ Item {
     Column {
         spacing: 8
 
+        ComboBox {
+            id: groupBox
+            model: ["Group 0", "Group 1", "Group 2", "Group 3", "Group 4"]
+            Timer {
+                id: postpone
+                interval: 100; running: false; repeat: false
+                onTriggered: { paramWidgetLoader.sourceComponent = paramWidgets }
+            }
+            onCurrentIndexChanged: {
+                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+                // by setting the loader source to Null and then recreate it 100ms later
+                root.drawConfig["group"] = currentIndex
+                paramWidgetLoader.sourceComponent = undefined;
+                postpone.interval = 100
+                postpone.start()
+            }
+        }
+
         CheckBox {
             text: "View Mask"
             checked: root.debugConfig["viewMask"]
@@ -27,93 +45,105 @@ Item {
                 root.debugConfig["viewMask"] = checked;
             }
         }
-        CheckBox {
-            text: "Glow"
-            checked: root.drawConfig["glow"]
-            onCheckedChanged: {
-                root.drawConfig["glow"] = checked;
-            }
-        }
-        ConfigSlider {
-            label: "Width"
-            integral: false
-            config: root.drawConfig
-            property: "width"
-            max: 15.0
-            min: 0.0
-            width: 280
-        }  
-        ConfigSlider {
-            label: "Intensity"
-            integral: false
-            config: root.drawConfig
-            property: "intensity"
-            max: 1.0
-            min: 0.0
-            width: 280
-        }  
 
-        GroupBox {
-            title: "Color"
-            width: 280
+        Component {
+            id: paramWidgets
             Column {
                 spacing: 8
+                CheckBox {
+                    text: "Glow"
+                    checked: root.drawConfig["glow"]
+                    onCheckedChanged: {
+                        drawConfig["glow"] = checked;
+                    }
+                }
+                ConfigSlider {
+                    label: "Width"
+                    integral: false
+                    config: root.drawConfig
+                    property: "width"
+                    max: 15.0
+                    min: 0.0
+                    width: 280
+                }  
+                ConfigSlider {
+                    label: "Intensity"
+                    integral: false
+                    config: root.drawConfig
+                    property: "intensity"
+                    max: 1.0
+                    min: 0.0
+                    width: 280
+                }  
 
-                ConfigSlider {
-                    label: "Red"
-                    integral: false
-                    config: root.drawConfig
-                    property: "colorR"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
-                }  
-                ConfigSlider {
-                    label: "Green"
-                    integral: false
-                    config: root.drawConfig
-                    property: "colorG"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
-                }  
-                ConfigSlider {
-                    label: "Blue"
-                    integral: false
-                    config: root.drawConfig
-                    property: "colorB"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
+                GroupBox {
+                    title: "Color"
+                    width: 280
+                    Column {
+                        spacing: 8
+
+                        ConfigSlider {
+                            label: "Red"
+                            integral: false
+                            config: root.drawConfig
+                            property: "colorR"
+                            max: 1.0
+                            min: 0.0
+                            width: 270
+                        }  
+                        ConfigSlider {
+                            label: "Green"
+                            integral: false
+                            config: root.drawConfig
+                            property: "colorG"
+                            max: 1.0
+                            min: 0.0
+                            width: 270
+                        }  
+                        ConfigSlider {
+                            label: "Blue"
+                            integral: false
+                            config: root.drawConfig
+                            property: "colorB"
+                            max: 1.0
+                            min: 0.0
+                            width: 270
+                        }
+                    }
+                }
+
+                GroupBox {
+                    title: "Fill Opacity"
+                    width: 280
+                    Column {
+                        spacing: 8
+
+                        ConfigSlider {
+                            label: "Unoccluded"
+                            integral: false
+                            config: root.drawConfig
+                            property: "fillOpacityUnoccluded"
+                            max: 1.0
+                            min: 0.0
+                            width: 270
+                        }  
+                        ConfigSlider {
+                            label: "Occluded"
+                            integral: false
+                            config: root.drawConfig
+                            property: "fillOpacityOccluded"
+                            max: 1.0
+                            min: 0.0
+                            width: 270
+                        }
+                    }
                 }
             }
         }
 
-        GroupBox {
-            title: "Fill Opacity"
-            width: 280
-            Column {
-                spacing: 8
-
-                ConfigSlider {
-                    label: "Unoccluded"
-                    integral: false
-                    config: root.drawConfig
-                    property: "fillOpacityUnoccluded"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
-                }  
-                ConfigSlider {
-                    label: "Occluded"
-                    integral: false
-                    config: root.drawConfig
-                    property: "fillOpacityOccluded"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
-                }  
-            }
+        Loader {
+            id: paramWidgetLoader
+            sourceComponent: paramWidgets
         }
     }
 }

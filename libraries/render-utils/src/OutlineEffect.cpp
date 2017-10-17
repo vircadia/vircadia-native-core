@@ -215,6 +215,17 @@ void PrepareDrawOutline::run(const render::RenderContextPointer& renderContext, 
     outputs = _primaryWithoutDepthBuffer;
 }
 
+int DrawOutlineConfig::getGroupCount() const {
+    return Outline::MAX_GROUP_COUNT;
+}
+
+void DrawOutlineConfig::setGroup(int value) {
+    assert(value >= 0 && value < Outline::MAX_GROUP_COUNT);
+    group = std::min<int>(value, Outline::MAX_GROUP_COUNT);
+    group = std::max<int>(group, 0);
+    emit dirty();
+}
+
 gpu::PipelinePointer DrawOutline::_pipeline;
 gpu::PipelinePointer DrawOutline::_pipelineFilled;
 
@@ -222,15 +233,34 @@ DrawOutline::DrawOutline() {
 }
 
 void DrawOutline::configure(const Config& config) {
-    _color = config.color;
-    _blurKernelSize = std::min(10, std::max(2, (int)floorf(config.width*2 + 0.5f)));
-    // Size is in normalized screen height. We decide that for outline width = 1, this is equal to 1/400.
-    _size = config.width / 400.f;
-    _fillOpacityUnoccluded = config.fillOpacityUnoccluded;
-    _fillOpacityOccluded = config.fillOpacityOccluded;
-    _threshold = config.glow ? 1.f : 1e-3f;
-    _intensity = config.intensity * (config.glow ? 2.f : 1.f);
-    _hasConfigurationChanged = true;
+    auto& configuration = _configuration.edit();
+    const auto OPACITY_EPSILON = 5e-3f;
+
+    bool someFilled = false;
+    bool isFilled;
+
+    for (auto groupId = 0; groupId < MAX_GROUP_COUNT; groupId++) {
+        auto& dstGroupConfig = configuration._groups[groupId];
+        auto& srcGroupConfig = config.groupParameters[groupId];
+
+        dstGroupConfig._color = srcGroupConfig.color;
+        dstGroupConfig._intensity = srcGroupConfig.intensity * (srcGroupConfig.glow ? 2.f : 1.f);
+        dstGroupConfig._unoccludedFillOpacity = srcGroupConfig.unoccludedFillOpacity;
+        dstGroupConfig._occludedFillOpacity = srcGroupConfig.occludedFillOpacity;
+        dstGroupConfig._threshold = srcGroupConfig.glow ? 1.f : 1e-3f;
+        dstGroupConfig._blurKernelSize = std::min(10, std::max(2, (int)floorf(srcGroupConfig.width * 2 + 0.5f)));
+        // Size is in normalized screen height. We decide that for outline width = 1, this is equal to 1/400.
+        _sizes[groupId] = srcGroupConfig.width / 400.0f;
+
+        isFilled = (srcGroupConfig.unoccludedFillOpacity > OPACITY_EPSILON || srcGroupConfig.occludedFillOpacity > OPACITY_EPSILON);
+        someFilled = someFilled || isFilled;
+    }
+
+    if (someFilled) {
+        _mode = M_SOME_FILLED;
+    } else {
+        _mode = M_ALL_UNFILLED;
+    }
 }
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -245,27 +275,20 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
         auto framebufferSize = glm::ivec2(outlinedDepthTexture->getDimensions());
 
         if (sceneDepthBuffer) {
-            const auto OPACITY_EPSILON = 5e-3f;
-            auto pipeline = getPipeline(_fillOpacityUnoccluded>OPACITY_EPSILON || _fillOpacityOccluded>OPACITY_EPSILON);
+            auto pipeline = getPipeline();
             auto args = renderContext->args;
 
-            if (_hasConfigurationChanged)
+            if (_framebufferSize != framebufferSize)
             {
                 auto& configuration = _configuration.edit();
 
                 for (auto groupId = 0; groupId < MAX_GROUP_COUNT; groupId++) {
                     auto& groupConfig = configuration._groups[groupId];
 
-                    groupConfig._color = _color;
-                    groupConfig._intensity = _intensity;
-                    groupConfig._fillOpacityUnoccluded = _fillOpacityUnoccluded;
-                    groupConfig._fillOpacityOccluded = _fillOpacityOccluded;
-                    groupConfig._threshold = _threshold;
-                    groupConfig._blurKernelSize = _blurKernelSize;
-                    groupConfig._size.x = (_size * framebufferSize.y) / framebufferSize.x;
-                    groupConfig._size.y = _size;
+                    groupConfig._size.x = (_sizes[groupId] * framebufferSize.y) / framebufferSize.x;
+                    groupConfig._size.y = _sizes[groupId];
                 }
-                _hasConfigurationChanged = false;
+                _framebufferSize = framebufferSize;
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -292,7 +315,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
     }
 }
 
-const gpu::PipelinePointer& DrawOutline::getPipeline(bool isFilled) {
+const gpu::PipelinePointer& DrawOutline::getPipeline() {
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::Shader::createPixel(std::string(Outline_frag));
@@ -316,7 +339,7 @@ const gpu::PipelinePointer& DrawOutline::getPipeline(bool isFilled) {
         gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
     }
-    return isFilled ? _pipelineFilled : _pipeline;
+    return _mode == M_SOME_FILLED ? _pipelineFilled : _pipeline;
 }
 
 DebugOutline::DebugOutline() {
@@ -480,7 +503,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     }
 
     DrawOutlineMask::Groups sortedBounds;
-    for (auto i = 0; i < DrawOutline::MAX_GROUP_COUNT; i++) {
+    for (auto i = 0; i < Outline::MAX_GROUP_COUNT; i++) {
         const auto groupItems = groups[i];
         const auto outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", groupItems);
         const auto outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs, true);

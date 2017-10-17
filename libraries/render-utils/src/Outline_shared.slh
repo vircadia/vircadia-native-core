@@ -19,8 +19,8 @@ struct OutlineParameters
     float _intensity;
 
     VEC2 _size;
-    float _fillOpacityUnoccluded;
-    float _fillOpacityOccluded;
+    float _unoccludedFillOpacity;
+    float _occludedFillOpacity;
 
     float _threshold;
     int _blurKernelSize;
