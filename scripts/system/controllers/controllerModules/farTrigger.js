@@ -16,6 +16,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
+    var SEARCH_SPHERE_SIZE = 0.0132;
+    var dim = {x: SEARCH_SPHERE_SIZE, y: SEARCH_SPHERE_SIZE, z: SEARCH_SPHERE_SIZE};
     var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
@@ -30,6 +32,7 @@ Script.include("/~/system/libraries/controllers.js");
     };
     var halfEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
@@ -51,6 +54,7 @@ Script.include("/~/system/libraries/controllers.js");
     };
     var fullEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
@@ -107,10 +111,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.updateLaserPointer = function(controllerData) {
-            var SEARCH_SPHERE_SIZE = 0.011;
-            var MIN_SPHERE_SIZE = 0.0005;
-            var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE);
-            var dim = {x: radius, y: radius, z: radius};
             var mode = "none";
             if (controllerData.triggerClicks[this.hand]) {
                 mode = "full";
@@ -118,18 +118,8 @@ Script.include("/~/system/libraries/controllers.js");
                 mode = "half";
             }
 
-            var laserPointerID = this.laserPointer;
-            if (mode === "full") {
-                var fullEndToEdit = this.fullEnd;
-                fullEndToEdit.dimensions = dim;
-                LaserPointers.editRenderState(laserPointerID, mode, {path: fullPath, end: fullEndToEdit});
-            } else if (mode === "half") {
-                var halfEndToEdit = this.halfEnd;
-                halfEndToEdit.dimensions = dim;
-                LaserPointers.editRenderState(laserPointerID, mode, {path: halfPath, end: halfEndToEdit});
-            }
-            LaserPointers.enableLaserPointer(laserPointerID);
-            LaserPointers.setRenderState(laserPointerID, mode);
+            LaserPointers.enableLaserPointer(this.laserPointer);
+            LaserPointers.setRenderState(this.laserPointer, mode);
         };
 
         this.laserPointerOff = function() {
@@ -192,8 +182,6 @@ Script.include("/~/system/libraries/controllers.js");
             return makeRunningValues(true, [this.targetEntityID], []);
         };
 
-        this.halfEnd = halfEnd;
-        this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
@@ -201,6 +189,7 @@ Script.include("/~/system/libraries/controllers.js");
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
+            distanceScaleEnd: true,
             defaultRenderStates: defaultRenderStates
         });
 
