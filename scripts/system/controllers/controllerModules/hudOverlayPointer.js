@@ -15,7 +15,7 @@
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
 
 */
@@ -32,7 +32,7 @@
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawHUDLayer: true,
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
@@ -53,7 +53,7 @@
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawHUDLayer: true,
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
@@ -74,7 +74,7 @@
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawHUDLayer: true,
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [

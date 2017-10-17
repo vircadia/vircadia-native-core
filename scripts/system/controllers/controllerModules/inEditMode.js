@@ -8,7 +8,7 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
-   Messages, makeDispatcherModuleParameters, AVATAR_SELF_ID, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
+   Messages, makeDispatcherModuleParameters, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
    getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, LaserPointers, RayPick
 */
@@ -28,7 +28,7 @@ Script.include("/~/system/libraries/utils.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
@@ -49,7 +49,7 @@ Script.include("/~/system/libraries/utils.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
@@ -70,7 +70,7 @@ Script.include("/~/system/libraries/utils.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [

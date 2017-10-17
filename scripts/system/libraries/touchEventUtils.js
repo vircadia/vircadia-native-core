@@ -8,7 +8,7 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, controllerDispatcher.ZERO_VEC,
-   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
+   HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
 */
 
 var controllerDispatcher = Script.require("/~/system/libraries/controllerDispatcherUtils.js");

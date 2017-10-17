@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
@@ -491,7 +491,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             var reparentProps = {
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex,
                 localVelocity: {x: 0, y: 0, z: 0},
                 localAngularVelocity: {x: 0, y: 0, z: 0},

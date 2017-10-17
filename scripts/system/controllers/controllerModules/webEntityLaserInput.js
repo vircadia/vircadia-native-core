@@ -10,7 +10,7 @@
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Vec3, Quat, getGrabPointSphereOffset,
    makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, ZERO_VEC, Overlays
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, ZERO_VEC, Overlays
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -27,7 +27,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
@@ -48,7 +48,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
@@ -69,7 +69,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [

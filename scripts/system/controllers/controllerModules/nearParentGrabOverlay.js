@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex,
+/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
    NEAR_GRAB_RADIUS
@@ -48,7 +48,7 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.thisHandIsParent = function(props) {
-            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
+            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== MyAvatar.SELF_ID) {
                 return false;
             }
 
@@ -94,7 +94,7 @@ Script.include("/~/system/libraries/utils.js");
             var grabbedProperties = this.getGrabbedProperties();
 
             var reparentProps = {
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex,
                 velocity: {x: 0, y: 0, z: 0},
                 angularVelocity: {x: 0, y: 0, z: 0}

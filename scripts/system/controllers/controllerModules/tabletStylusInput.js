@@ -8,7 +8,7 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
-   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
+   HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
    getEnabledModuleByName
 */
 
@@ -172,7 +172,7 @@ Script.include("/~/system/libraries/controllers.js");
                 visible: true,
                 ignoreRayIntersection: true,
                 drawInFront: false,
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                     "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                     "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
