@@ -40,6 +40,7 @@
 #include "PolyVoxEntityItem.h"
 #include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
+#include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
@@ -177,7 +178,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
+
+    DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
+
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
+    DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
@@ -239,6 +244,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
     static QString getBackgroundModeString(BackgroundMode mode);
+    static QString getHazeModeString(uint32_t mode);
 
 
 public:
@@ -451,6 +457,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CertificateID, certificateID, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, HazeMode, hazeMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");
