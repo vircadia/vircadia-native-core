@@ -178,13 +178,13 @@ void DrawOutline::configure(const Config& config) {
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     auto outlineFrameBuffer = inputs.get1();
-    auto outlineRect = inputs.get4();
+    auto outlineRect = inputs.get3();
 
     if (outlineFrameBuffer && outlineRect.z>0 && outlineRect.w>0) {
         auto sceneDepthBuffer = inputs.get2();
         const auto frameTransform = inputs.get0();
         auto outlinedDepthTexture = outlineFrameBuffer->getDepthTexture();
-        auto destinationFrameBuffer = inputs.get3();
+        auto destinationFrameBuffer = outlineFrameBuffer->getColorFramebuffer();
         auto framebufferSize = glm::ivec2(outlinedDepthTexture->getDimensions());
 
         if (sceneDepthBuffer) {
@@ -391,7 +391,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
             stream << "OutlineEffect" << i;
             name = stream.str();
         }
-        const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlineRessources, sceneFrameBuffer, primaryFramebuffer, outlinedRect).asVarying();
+        const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlineRessources, sceneFrameBuffer, outlinedRect).asVarying();
         task.addJob<DrawOutline>(name, drawOutlineInputs);
     }
 

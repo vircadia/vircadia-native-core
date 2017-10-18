@@ -110,7 +110,7 @@ signals:
 class DrawOutline {
 public:
 
-    using Inputs = render::VaryingSet5<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, gpu::FramebufferPointer, glm::ivec4>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, glm::ivec4>;
     using Config = DrawOutlineConfig;
     using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
 
