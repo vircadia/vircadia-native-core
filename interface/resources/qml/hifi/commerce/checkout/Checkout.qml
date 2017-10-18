@@ -239,6 +239,24 @@ Rectangle {
                 }
             }
         }
+    }    
+
+    HifiCommerceCommon.FirstUseTutorial {
+        id: firstUseTutorial;
+        z: 999;
+        visible: root.activeView === "firstUseTutorial";
+        anchors.fill: parent;
+
+        Connections {
+            onSendSignalToParent: {
+                switch (message.method) {
+                    case 'tutorial_skipClicked':
+                    case 'tutorial_finished':
+                        root.activeView = "checkoutSuccess";
+                    break;
+                }
+            }
+        }
     }
 
     //
@@ -611,6 +629,28 @@ Rectangle {
                 lightboxPopup.visible = true;
             }
         }
+        RalewaySemiBold {
+            id: explainRezText;
+            //visible: !root.isWearable;
+            text: '<font color="' + hifi.colors.redAccent + '"><a href="#">What does "Rez" mean?</a></font>'
+            // Text size
+            size: 16;
+            // Anchors
+            anchors.top: noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom;
+            anchors.topMargin: 6;
+            height: paintedHeight;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            // Style
+            color: hifi.colors.redAccent;
+            wrapMode: Text.WordWrap;
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;
+            onLinkActivated: {
+                root.activeView = "firstUseTutorial";
+            }
+        }
 
         RalewaySemiBold {
             id: myPurchasesLink;
@@ -618,7 +658,7 @@ Rectangle {
             // Text size
             size: 20;
             // Anchors
-            anchors.top: noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom;
+            anchors.top: explainRezText.visible ? explainRezText.bottom : (noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom);
             anchors.topMargin: 40;
             height: paintedHeight;
             anchors.left: parent.left;
