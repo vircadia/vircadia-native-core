@@ -26,6 +26,7 @@ FocusScope {
     property var completionCallback;
     // The target property to animate, usually scale or opacity
     property alias fadeTargetProperty: root.opacity
+    property bool disableFade: false
     // always start the property at 0 to enable fade in on creation
     fadeTargetProperty: 0
     // DO NOT set visible to false or when derived types override it it
@@ -35,6 +36,9 @@ FocusScope {
     // Some dialogs should be destroyed when they become
     // invisible, so handle that
     onVisibleChanged: {
+        if (disableFade) {
+            return;
+        }
         // If someone directly set the visibility to false
         // toggle it back on and use the targetVisible flag to transition
         // via fading.
@@ -62,7 +66,9 @@ FocusScope {
     }
 
     onFadeTargetPropertyChanged: {
-        visible = (fadeTargetProperty != 0.0);
+        if (!disableFade) {
+            visible = (fadeTargetProperty != 0.0);
+        }
     }
 
     function fadeIn(callback) {
