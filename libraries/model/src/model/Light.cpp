@@ -58,7 +58,7 @@ void Light::setOrientation(const glm::quat& orientation) {
 }
 
 void Light::setDirection(const Vec3& direction) {
-    _lightSchemaBuffer.edit().volume.direction = (direction);
+    _lightSchemaBuffer.edit().volume.direction = (_transform.getRotation() * direction);
 }
 
 const Vec3& Light::getDirection() const {

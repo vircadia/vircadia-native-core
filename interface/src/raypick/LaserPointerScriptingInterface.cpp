@@ -32,6 +32,11 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         lockEnd = propertyMap["lockEnd"].toBool();
     }
 
+    bool distanceScaleEnd = false;
+    if (propertyMap["distanceScaleEnd"].isValid()) {
+        distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
+    }
+
     bool enabled = false;
     if (propertyMap["enabled"].isValid()) {
         enabled = propertyMap["enabled"].toBool();
@@ -66,7 +71,7 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         }
     }
 
-    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
+    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled);
 }
 
 void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& renderState, const QVariant& properties) {

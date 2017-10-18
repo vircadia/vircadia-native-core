@@ -544,6 +544,84 @@
                 </div>
             </fieldset>
             <fieldset class="minor">
+                <legend class="sub-section-header zone-group zone-section haze-section">
+                    Haze
+                </legend>
+                <form>
+                  <input type="radio" name="hazeMode" value="inherit" id="property-zone-haze-mode-inherit" checked> Inherit
+                  <input type="radio" name="hazeMode" value="disabled" id="property-zone-haze-mode-disabled"> Off
+                  <input type="radio" name="hazeMode" value="enabled" id="property-zone-haze-mode-enabled"> On
+                </form>
+                <fieldset class="zone-group zone-section haze-section property gen fstuple">
+                    <div class="tuple">
+                        <div><label>Range<span class="unit">m</span></label><input type="number" id="property-zone-haze-range" min="5" max="10000" step="5"></div>
+                    </div>
+                </fieldset>
+                <fieldset class="zone-group zone-section haze-section property rgb fstuple">
+                    <div class="zone-group zone-section haze-section property checkbox">
+                        <input type="checkbox" id="property-zone-haze-altitude-effect">
+                        <label for="property-zone-haze-altitude-effect">Use Altitude</label>
+                    </div>
+                    <fieldset class="zone-group zone-section haze-section property gen fstuple">
+                      <div class="tuple">
+                          <div><label>Base<span class="unit">m</span></label><input type="number" id="property-zone-haze-base" min="-1000" max="1000" step="10"></div>
+                          <div><label>Ceiling<span class="unit">m</span></label><input type="number" id="property-zone-haze-ceiling" min="-1000" max="5000" step="10"></div>
+                      </div>
+                    </fieldset>
+                </fieldset>
+                <fieldset class="zone-group zone-section haze-section property rgb fstuple">
+                    <div class="color-picker" id="property-zone-haze-blend-in-color"></div>
+                    <legend>Haze Color</legend>
+                    <div class="tuple">
+                        <div><input type="number" class="red" id="property-zone-haze-blend-in-color-red" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-in-color-red">Red:</label></div>
+                        <div><input type="number" class="green" id="property-zone-haze-blend-in-color-green" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-in-color-green">Green:</label></div>
+                        <div><input type="number" class="blue" id="property-zone-haze-blend-in-color-blue" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-in-color-blue">Blue:</label></div>
+                    </div>
+                </fieldset>
+                <div class="zone-group zone-section haze-section property checkbox">
+                    <input type="checkbox" id="property-zone-haze-enable-light-blend">
+                    <label for="property-zone-haze-enable-light-blend">Enable Glare</label>
+                </div>
+                <fieldset class="zone-group zone-section haze-section property rgb fstuple">
+                    <div class="color-picker" id="property-zone-haze-blend-out-color"></div>
+                    <legend>Glare Color</legend>
+                    <div class="tuple">
+                        <div><input type="number" class="red" id="property-zone-haze-blend-out-color-red" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-out-color-red">Red:</label></div>
+                        <div><input type="number" class="green" id="property-zone-haze-blend-out-color-green" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-out-color-green">Green:</label></div>
+                        <div><input type="number" class="blue" id="property-zone-haze-blend-out-color-blue" min="0" max="255" step="1">
+                          <label for="property-zone-haze-blend-out-color-blue">Blue:</label></div>
+                    </div>
+                </fieldset>
+                <fieldset class="zone-group zone-section haze-section property gen fstuple">
+                    <div class="tuple">
+                        <div><label>Glare Angle<span class="unit">deg</span></label><input type="number" id="property-zone-haze-blend-angle" min="0" max="180" step="1"></div>
+                    </div>
+                 </fieldset>
+                <fieldset class="zone-group zone-section haze-section property gen fstuple">
+                    <div class="zone-group zone-section haze-section property checkbox">
+                        <input type="checkbox" id="property-zone-haze-attenuate-keylight">
+                        <label for="property-zone-haze-attenuate-keylight">Attenuate Keylight</label>
+                    </div>
+                    <div class="tuple">
+                        <div><label>Range<span class="unit">m</span></label><input type="number" id="property-zone-haze-keylight-range" 
+                        min="5" max="1000000" step="5"></div>
+                        <div><label>Altitude<span class="unit">m</span></label><input type="number" id="property-zone-haze-keylight-altitude" 
+                        min="-1000" max="50000" step="10"></div>
+                    </div>
+                </fieldset>
+                <fieldset class="zone-group zone-section haze-section property gen fstuple">
+                    <div>
+                        <label>Background Blend</label>
+                        <input type="number" id="property-zone-haze-background-blend" min="0.0" max="1.0" step="0.01">
+                    </div>
+                </fieldset>
+           </fieldset>
+            <fieldset class="minor">
                 <legend class="sub-section-header zone-group zone-section stage-section">
                     Stage
                 </legend>

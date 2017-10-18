@@ -1476,10 +1476,19 @@ function onFileSaveChanged(filename) {
 
 function onFileOpenChanged(filename) {
     // disconnect the event, otherwise the requests will stack up
-    Window.openFileChanged.disconnect(onFileOpenChanged);
+    try {
+        // Not all calls to onFileOpenChanged() connect an event.
+        Window.openFileChanged.disconnect(onFileOpenChanged);
+    } catch (e) {
+        // Ignore.
+    }
+
     var importURL = null;
     if (filename !== "") {
-        importURL = "file:///" + filename;
+        importURL = filename;
+        if (!/^(http|https):\/\//.test(filename)) {
+            importURL = "file:///" + importURL;
+        }
     }
     if (importURL) {
         if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {

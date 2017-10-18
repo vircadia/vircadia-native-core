@@ -16,7 +16,9 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "SkyboxPropertyGroup.h"
+#include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
+#include <ComponentMode.h>
 
 class ZoneEntityItem : public EntityItem {
 public:
@@ -68,7 +70,39 @@ public:
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
+    void setHazeMode(const uint32_t value);
+    uint32_t getHazeMode() const;
+
+    void setHazeRange(const float hazeRange);
+    float getHazeRange() const;
+    void setHazeColor(const xColor hazeColor);
+    xColor getHazeColor() const;
+    void setHazeGlareColor(const xColor hazeGlareColor);
+    xColor getHazeGlareColor() const;
+    void setHazeEnableGlare(const bool hazeEnableGlare);
+    bool getHazeEnableGlare() const;
+    void setHazeGlareAngle(const float hazeGlareAngle);
+    float getHazeGlareAngle() const;
+
+    void setHazeCeiling(const float hazeCeiling);
+    float getHazeCeiling() const;
+    void setHazeBaseRef(const float hazeBaseRef);
+    float getHazeBaseRef() const;
+
+    void setHazeBackgroundBlend(const float hazeBackgroundBlend);
+    float getHazeBackgroundBlend() const;
+
+    void setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight);
+    bool getHazeAttenuateKeyLight() const;
+    void setHazeKeyLightRange(const float hazeKeyLightRange);
+    float getHazeKeyLightRange() const;
+    void setHazeKeyLightAltitude(const float hazeKeyLightAltitude);
+    float getHazeKeyLightAltitude() const;
+
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
+    
+    const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
+
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
     bool getFlyingAllowed() const { return _flyingAllowed; }
@@ -80,8 +114,13 @@ public:
 
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
-    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
+
+    bool hazePropertiesChanged() const { 
+        return _hazePropertiesChanged; 
+    }
+
+    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
 
     void resetRenderingPropertiesChanged();
 
@@ -107,8 +146,26 @@ protected:
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
-    StagePropertyGroup _stageProperties;
+    uint8_t _hazeMode{ (uint8_t)COMPONENT_MODE_INHERIT };
+
+    float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
+    xColor _hazeColor{ HazePropertyGroup::DEFAULT_HAZE_COLOR };
+    xColor _hazeGlareColor{ HazePropertyGroup::DEFAULT_HAZE_GLARE_COLOR };
+    bool _hazeEnableGlare{ false };
+    float _hazeGlareAngle{ HazePropertyGroup::DEFAULT_HAZE_GLARE_ANGLE };
+
+    float _hazeCeiling{ HazePropertyGroup::DEFAULT_HAZE_CEILING };
+    float _hazeBaseRef{ HazePropertyGroup::DEFAULT_HAZE_BASE_REF };
+
+    float _hazeBackgroundBlend{ HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND };
+
+    bool _hazeAttenuateKeyLight{ false };
+    float _hazeKeyLightRange{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_RANGE };
+    float _hazeKeyLightAltitude{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE };
+
     SkyboxPropertyGroup _skyboxProperties;
+    HazePropertyGroup _hazeProperties;
+    StagePropertyGroup _stageProperties;
 
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
@@ -116,8 +173,9 @@ protected:
 
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };
-    bool _backgroundPropertiesChanged { false };
+    bool _backgroundPropertiesChanged{ false };
     bool _skyboxPropertiesChanged { false };
+    bool _hazePropertiesChanged{ false };
     bool _stagePropertiesChanged { false };
 
     static bool _drawZoneBoundaries;
