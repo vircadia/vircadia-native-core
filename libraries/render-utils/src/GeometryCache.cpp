@@ -126,7 +126,7 @@ void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, co
     QVector<glm::vec3> uniqueVerts;
     uniqueVerts.reserve((int)numItems);
 
-    const float SQUARED_MAX_INCLUSIVE_FILTER_DISTANCE = 0.0025f;
+    const float MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED = 1.0e-6f; //< 1mm^2
     for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
         const int numUniquePoints = (int)uniqueVerts.size();
         const geometry::Vec &curVert = shapeVerts.get<geometry::Vec>(i);
@@ -136,7 +136,7 @@ void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, co
             const geometry::Vec knownVert = uniqueVerts[uniqueIndex];
             const float distToKnownPoint = glm::length2(knownVert - curVert);
 
-            if (fabsf(distToKnownPoint) <= SQUARED_MAX_INCLUSIVE_FILTER_DISTANCE) {
+            if (distToKnownPoint <= MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED) {
                 isUniquePoint = false;
                 break;
             }
