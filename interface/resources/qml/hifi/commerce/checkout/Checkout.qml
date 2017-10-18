@@ -81,6 +81,7 @@ Rectangle {
                 root.activeView = "checkoutFailure";
             } else {
                 root.itemHref = result.data.download_url;
+                root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
             }
         }
@@ -833,7 +834,6 @@ Rectangle {
                 itemName = message.params.itemName;
                 root.itemPrice = message.params.itemPrice;
                 itemHref = message.params.itemHref;
-                root.isWearable = message.params.categories.indexOf("Wearables") > -1;
                 setBuyText();
             break;
             default:
