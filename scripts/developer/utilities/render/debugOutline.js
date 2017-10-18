@@ -14,8 +14,8 @@ var qml = Script.resolvePath('outline.qml');
 var window = new OverlayWindow({
     title: 'Outline',
     source: qml,
-    width: 285, 
-    height: 370,
+    width: 400, 
+    height: 400,
 });
 window.closed.connect(function() { Script.stop(); });
 
@@ -108,7 +108,7 @@ function update() {
             }
             
             Selection.addToSelectedItemsList(selectionName, typeName, result.objectID)
-            print("OUTLINE " + outlineGroupIndex + " picked type: " + result.type + ", id: " + result.objectID);
+            //print("OUTLINE " + outlineGroupIndex + " picked type: " + result.type + ", id: " + result.objectID);
 
             prevID = result.objectID;
             prevType = typeName;

@@ -15,34 +15,14 @@ import "configSlider"
 Item {
     id: root
     property var debugConfig: Render.getConfig("RenderMainView.OutlineDebug")
-    property var drawConfig: Render.getConfig("RenderMainView.OutlineEffect0")
     signal sendToScript(var message);
 
     Column {
         spacing: 8
-
-        ComboBox {
-            id: groupBox
-            model: ["Group 0", "Group 1", "Group 2", "Group 3", "Group 4"]
-            Timer {
-                id: postpone
-                interval: 100; running: false; repeat: false
-                onTriggered: { 
-                    paramWidgetLoader.sourceComponent = paramWidgets;
-                    sendToScript(currentIndex)
-                }
-            }
-            onCurrentIndexChanged: {
-                // This is a hack to be sure the widgets below properly reflect the change of index: delete the Component
-                // by setting the loader source to Null and then recreate it 100ms later
-                root.drawConfig = Render.getConfig("RenderMainView.OutlineEffect"+currentIndex)
-                paramWidgetLoader.sourceComponent = undefined;
-                postpone.interval = 100
-                postpone.start()
-            }
-        }
+        anchors.fill: parent
 
         CheckBox {
+            id: debug
             text: "View Mask"
             checked: root.debugConfig["viewMask"]
             onCheckedChanged: {
@@ -50,104 +30,119 @@ Item {
             }
         }
 
-        Component {
-            id: paramWidgets
-            Column {
-                spacing: 8
-                CheckBox {
-                    text: "Glow"
-                    checked: root.drawConfig["glow"]
-                    onCheckedChanged: {
-                        drawConfig["glow"] = checked;
-                    }
-                }
-                ConfigSlider {
-                    label: "Width"
-                    integral: false
-                    config: root.drawConfig
-                    property: "width"
-                    max: 15.0
-                    min: 0.0
-                    width: 280
-                }  
-                ConfigSlider {
-                    label: "Intensity"
-                    integral: false
-                    config: root.drawConfig
-                    property: "intensity"
-                    max: 1.0
-                    min: 0.0
-                    width: 280
-                }  
+        TabView {
+            id: tabs
+            width: 384
+            height: 400
 
-                GroupBox {
-                    title: "Color"
-                    width: 280
-                    Column {
-                        spacing: 8
+            onCurrentIndexChanged: {
+                sendToScript(currentIndex)
+            }
 
-                        ConfigSlider {
-                            label: "Red"
-                            integral: false
-                            config: root.drawConfig
-                            property: "colorR"
-                            max: 1.0
-                            min: 0.0
-                            width: 270
-                        }  
-                        ConfigSlider {
-                            label: "Green"
-                            integral: false
-                            config: root.drawConfig
-                            property: "colorG"
-                            max: 1.0
-                            min: 0.0
-                            width: 270
-                        }  
-                        ConfigSlider {
-                            label: "Blue"
-                            integral: false
-                            config: root.drawConfig
-                            property: "colorB"
-                            max: 1.0
-                            min: 0.0
-                            width: 270
+            Component {
+                id: paramWidgets
+
+                Column {
+                    spacing: 8
+
+                    CheckBox {
+                        id: glow
+                        text: "Glow"
+                        checked: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)["glow"]
+                        onCheckedChanged: {
+                            Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)["glow"] = checked;
                         }
                     }
-                }
+                    ConfigSlider {
+                        label: "Width"
+                        integral: false
+                        config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
+                        property: "width"
+                        max: 15.0
+                        min: 0.0
+                        width: 280
+                    }  
+                    ConfigSlider {
+                        label: "Intensity"
+                        integral: false
+                        config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
+                        property: "intensity"
+                        max: 1.0
+                        min: 0.0
+                        width: 280
+                    }  
 
-                GroupBox {
-                    title: "Fill Opacity"
-                    width: 280
-                    Column {
-                        spacing: 8
+                    GroupBox {
+                        title: "Color"
+                        width: 280
+                        Column {
+                            spacing: 8
 
-                        ConfigSlider {
-                            label: "Unoccluded"
-                            integral: false
-                            config: root.drawConfig
-                            property: "unoccludedFillOpacity"
-                            max: 1.0
-                            min: 0.0
-                            width: 270
-                        }  
-                        ConfigSlider {
-                            label: "Occluded"
-                            integral: false
-                            config: root.drawConfig
-                            property: "occludedFillOpacity"
-                            max: 1.0
-                            min: 0.0
-                            width: 270
+                            ConfigSlider {
+                                label: "Red"
+                                integral: false
+                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
+                                property: "colorR"
+                                max: 1.0
+                                min: 0.0
+                                width: 270
+                            }  
+                            ConfigSlider {
+                                label: "Green"
+                                integral: false
+                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
+                                property: "colorG"
+                                max: 1.0
+                                min: 0.0
+                                width: 270
+                            }  
+                            ConfigSlider {
+                                label: "Blue"
+                                integral: false
+                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
+                                property: "colorB"
+                                max: 1.0
+                                min: 0.0
+                                width: 270
+                            }
+                        }
+                    }
+
+                    GroupBox {
+                        title: "Fill Opacity"
+                        width: 280
+                        Column {
+                            spacing: 8
+
+                            ConfigSlider {
+                                label: "Unoccluded"
+                                integral: false
+                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
+                                property: "unoccludedFillOpacity"
+                                max: 1.0
+                                min: 0.0
+                                width: 270
+                            }  
+                            ConfigSlider {
+                                label: "Occluded"
+                                integral: false
+                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
+                                property: "occludedFillOpacity"
+                                max: 1.0
+                                min: 0.0
+                                width: 270
+                            }
                         }
                     }
                 }
             }
         }
+    }
 
-        Loader {
-            id: paramWidgetLoader
-            sourceComponent: paramWidgets
+    Component.onCompleted: {
+        for (var i=0 ; i<4 ; i++) {
+            var outlinePage = tabs.addTab("Outl. "+i, paramWidgets)
+            outlinePage.active = true
         }
     }
 }
