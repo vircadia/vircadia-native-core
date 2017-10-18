@@ -252,6 +252,7 @@ Rectangle {
                 switch (message.method) {
                     case 'tutorial_skipClicked':
                     case 'tutorial_finished':
+                        Settings.setValue("isFirstUseOfPurchases", false);
                         root.activeView = "checkoutSuccess";
                     break;
                 }
