@@ -235,7 +235,8 @@ void updateConsumedCores() {
 AssetServer::AssetServer(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _transferTaskPool(this),
-    _bakingTaskPool(this)
+    _bakingTaskPool(this),
+    _filesizeLimit(MAX_UPLOAD_SIZE)
 {
     // store the current state of image compression so we can reset it when this assignment is complete
     _wasColorTextureCompressionEnabled = image::isColorTexturesCompressionEnabled();
@@ -343,8 +344,8 @@ void AssetServer::completeSetup() {
     auto maxBandwidthValue = assetServerObject[MAX_BANDWIDTH_OPTION];
     auto maxBandwidthFloat = maxBandwidthValue.toDouble(-1);
 
+    const int BITS_PER_MEGABITS = 1000 * 1000;
     if (maxBandwidthFloat > 0.0) {
-        const int BITS_PER_MEGABITS = 1000 * 1000;
         int maxBandwidth = maxBandwidthFloat * BITS_PER_MEGABITS;
         nodeList->setConnectionMaxBandwidth(maxBandwidth);
         qCInfo(asset_server) << "Set maximum bandwith per connection to" << maxBandwidthFloat << "Mb/s."
@@ -405,6 +406,15 @@ void AssetServer::completeSetup() {
     } else {
         qCCritical(asset_server) << "Asset Server assignment will not continue because mapping file could not be loaded.";
         setFinished(true);
+    }
+
+    // get file size limit for an asset
+    static const QString ASSETS_FILESIZE_LIMIT_OPTION = "assets_filesize_limit";
+    auto assetsFilesizeLimitJSONValue = assetServerObject[ASSETS_FILESIZE_LIMIT_OPTION];
+    auto assetsFilesizeLimit = (uint64_t)assetsFilesizeLimitJSONValue.toInt(MAX_UPLOAD_SIZE);
+
+    if (assetsFilesizeLimit != 0 && assetsFilesizeLimit < MAX_UPLOAD_SIZE) {
+        _filesizeLimit = assetsFilesizeLimit * BITS_PER_MEGABITS;
     }
 }
 
@@ -730,7 +740,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
     if (senderNode->getCanWriteToAssetServer()) {
         qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
 
-        auto task = new UploadAssetTask(message, senderNode, _filesDirectory);
+        auto task = new UploadAssetTask(message, senderNode, _filesDirectory, _filesizeLimit);
         _transferTaskPool.start(task);
     } else {
         // this is a node the domain told us is not allowed to rez entities

@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global CreatePalette: true, App, Feedback, History, UIT */
+/* global CreatePalette:true, App, Feedback, History, Preload, UIT */
 
 CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
@@ -332,6 +332,11 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
 
+    function getAssetURLs() {
+        return Preload.findURLs([PALETTE_HEADER_HEADING_PROPERTIES, PALETTE_HEADER_BAR_PROPERTIES, PALETTE_TITLE_PROPERTIES,
+            PALETTE_ITEMS]);
+    }
+
     function setHand(hand) {
         // Assumes UI is not displaying.
         var NUMBER_OF_HANDS = 2;
@@ -533,6 +538,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     return {
+        assetURLs: getAssetURLs,
         setHand: setHand,
         overlayIDs: getOverlayIDs,
         setVisible: setVisible,
