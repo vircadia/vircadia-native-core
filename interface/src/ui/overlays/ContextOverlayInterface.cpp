@@ -36,7 +36,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
     _selectionToSceneHandlers[0].initialize("contextOverlayHighlightList");
     connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[0], &SelectionToSceneHandler::selectedItemsListChanged);
-    for (auto i = 1; i < MAX_HIGHLIGHT_COUNT; i++) {
+    for (auto i = 1; i < render::Scene::MAX_OUTLINE_COUNT ; i++) {
         _selectionToSceneHandlers[i].initialize(QString("contextOverlayHighlightList")+QString::number(i));
         connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[i], &SelectionToSceneHandler::selectedItemsListChanged);
     }

@@ -102,6 +102,11 @@ typedef std::queue<Transaction> TransactionQueue;
 // Items are notified accordingly on any update message happening
 class Scene {
 public:
+
+    enum {
+        MAX_OUTLINE_COUNT = 16
+    };
+
     Scene(glm::vec3 origin, float size);
     ~Scene();
 

@@ -54,6 +54,15 @@ var end2 = {
     visible: true
 }
 
+var outlineGroupIndex = 0
+
+function setOutlineGroupIndex(index) {
+    print("Switching to outline group "+index)
+    outlineGroupIndex = index
+}
+
+window.fromQml.connect(setOutlineGroupIndex);
+
 var renderStates = [{name: "test", end: end}];
 var defaultRenderStates = [{name: "test", distance: 20.0, end: end2}];
 
@@ -78,7 +87,6 @@ function update() {
 
     var result = LaserPointers.getPrevRayPickResult(ray);
     var selectionName = "contextOverlayHighlightList"
-    var outlineGroupIndex = Render.getConfig("RenderMainView.OutlineEffect").group
 
     if (outlineGroupIndex>0) {
         selectionName += outlineGroupIndex
@@ -100,7 +108,7 @@ function update() {
             }
             
             Selection.addToSelectedItemsList(selectionName, typeName, result.objectID)
-            //print("type: " + result.type + ", id: " + result.objectID);
+            print("OUTLINE " + outlineGroupIndex + " picked type: " + result.type + ", id: " + result.objectID);
 
             prevID = result.objectID;
             prevType = typeName;

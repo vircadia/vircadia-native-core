@@ -20,12 +20,13 @@ class OutlineRessources {
 public:
     OutlineRessources();
 
-    gpu::FramebufferPointer getFramebuffer();
-    gpu::TexturePointer getIdTexture();
+    gpu::FramebufferPointer getDepthFramebuffer();
     gpu::TexturePointer getDepthTexture();
 
+    gpu::FramebufferPointer getColorFramebuffer() { return _colorFrameBuffer; }
+
     // Update the source framebuffer size which will drive the allocation of all the other resources.
-    void update(const gpu::TexturePointer& colorBuffer);
+    void update(const gpu::FramebufferPointer& primaryFrameBuffer);
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
 
 protected:
@@ -33,9 +34,8 @@ protected:
     void clear();
     void allocate();
 
-    gpu::FramebufferPointer _frameBuffer;
-    gpu::TexturePointer _depthTexture;
-    gpu::TexturePointer _idTexture;
+    gpu::FramebufferPointer _depthFrameBuffer;
+    gpu::FramebufferPointer _colorFrameBuffer;
 
     glm::ivec2 _frameSize;
 };
@@ -45,9 +45,8 @@ using OutlineRessourcesPointer = std::shared_ptr<OutlineRessources>;
 class PrepareDrawOutline {
 public:
     using Inputs = gpu::FramebufferPointer;
-    using Outputs = gpu::FramebufferPointer;
-    using Config = render::Job::Config;
-    using JobModel = render::Job::ModelIO<PrepareDrawOutline, Inputs, Outputs, Config>;
+    using Outputs = OutlineRessourcesPointer;
+    using JobModel = render::Job::ModelIO<PrepareDrawOutline, Inputs, Outputs>;
 
     PrepareDrawOutline();
 
@@ -55,84 +54,63 @@ public:
 
 private:
 
-    gpu::FramebufferPointer _primaryWithoutDepthBuffer;
-    gpu::Vec2u _frameBufferSize{ 0, 0 };
+    OutlineRessourcesPointer _ressources;
 
 };
 
-class Outline {
+class DrawOutlineMask {
+public:
+
+    using Inputs = render::VaryingSet2<render::ShapeBounds, OutlineRessourcesPointer>;
+    using Outputs = glm::ivec4;
+    using JobModel = render::Job::ModelIO<DrawOutlineMask, Inputs, Outputs>;
+
+    DrawOutlineMask(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
+
 protected:
 
-#include "Outline_shared.slh"
-
-public:
-    enum {
-        MAX_GROUP_COUNT = GROUP_COUNT
-    };
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class DrawOutlineConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(int group MEMBER group WRITE setGroup NOTIFY dirty);
-        Q_PROPERTY(bool glow READ isGlow WRITE setGlow NOTIFY dirty)
-        Q_PROPERTY(float width READ getWidth WRITE setWidth NOTIFY dirty)
-        Q_PROPERTY(float intensity READ getIntensity WRITE setIntensity NOTIFY dirty)
+        Q_PROPERTY(bool glow MEMBER glow NOTIFY dirty)
+        Q_PROPERTY(float width MEMBER width NOTIFY dirty)
+        Q_PROPERTY(float intensity MEMBER intensity NOTIFY dirty)
         Q_PROPERTY(float colorR READ getColorR WRITE setColorR NOTIFY dirty)
         Q_PROPERTY(float colorG READ getColorG WRITE setColorG NOTIFY dirty)
         Q_PROPERTY(float colorB READ getColorB WRITE setColorB NOTIFY dirty)
-        Q_PROPERTY(float unoccludedFillOpacity READ getUnoccludedFillOpacity WRITE setUnoccludedFillOpacity NOTIFY dirty)
-        Q_PROPERTY(float occludedFillOpacity READ getOccludedFillOpacity WRITE setOccludedFillOpacity NOTIFY dirty)
+        Q_PROPERTY(float unoccludedFillOpacity MEMBER unoccludedFillOpacity NOTIFY dirty)
+        Q_PROPERTY(float occludedFillOpacity MEMBER occludedFillOpacity NOTIFY dirty)
 
 public:
 
-    struct GroupParameters {
-        glm::vec3 color{ 1.f, 0.7f, 0.2f };
-        float width{ 2.0f };
-        float intensity{ 0.9f };
-        float unoccludedFillOpacity{ 0.0f };
-        float occludedFillOpacity{ 0.0f };
-        bool glow{ false };
-    };
+    void setColorR(float value) { color.r = value; emit dirty(); }
+    float getColorR() const { return color.r; }
 
-    int getGroupCount() const;
+    void setColorG(float value) { color.g = value; emit dirty(); }
+    float getColorG() const { return color.g; }
 
-    void setColorR(float value) { groupParameters[group].color.r = value; emit dirty(); }
-    float getColorR() const { return groupParameters[group].color.r; }
+    void setColorB(float value) { color.b = value; emit dirty(); }
+    float getColorB() const { return color.b; }
 
-    void setColorG(float value) { groupParameters[group].color.g = value; emit dirty(); }
-    float getColorG() const { return groupParameters[group].color.g; }
-
-    void setColorB(float value) { groupParameters[group].color.b = value; emit dirty(); }
-    float getColorB() const { return groupParameters[group].color.b; }
-
-    void setGlow(bool value) { groupParameters[group].glow = value; emit dirty(); }
-    bool isGlow() const { return groupParameters[group].glow; }
-
-    void setWidth(float value) { groupParameters[group].width = value; emit dirty(); }
-    float getWidth() const { return groupParameters[group].width; }
-
-    void setIntensity(float value) { groupParameters[group].intensity = value; emit dirty(); }
-    float getIntensity() const { return groupParameters[group].intensity; }
-
-    void setUnoccludedFillOpacity(float value) { groupParameters[group].unoccludedFillOpacity = value; emit dirty(); }
-    float getUnoccludedFillOpacity() const { return groupParameters[group].unoccludedFillOpacity; }
-
-    void setOccludedFillOpacity(float value) { groupParameters[group].occludedFillOpacity = value; emit dirty(); }
-    float getOccludedFillOpacity() const { return groupParameters[group].occludedFillOpacity; }
-
-    void setGroup(int value);
-
-    int group{ 0 };
-    GroupParameters groupParameters[Outline::MAX_GROUP_COUNT];
+    glm::vec3 color{ 1.f, 0.7f, 0.2f };
+    float width{ 2.0f };
+    float intensity{ 0.9f };
+    float unoccludedFillOpacity{ 0.0f };
+    float occludedFillOpacity{ 0.0f };
+    bool glow{ false };
 
 signals:
     void dirty();
 };
 
-class DrawOutline : public Outline {
+class DrawOutline {
 public:
 
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet5<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, gpu::FramebufferPointer, glm::ivec4>;
     using Config = DrawOutlineConfig;
     using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
 
@@ -143,71 +121,27 @@ public:
 
 private:
 
+#include "Outline_shared.slh"
+
     enum {
         SCENE_DEPTH_SLOT = 0,
         OUTLINED_DEPTH_SLOT,
-        OUTLINED_ID_SLOT,
 
         OUTLINE_PARAMS_SLOT = 0,
         FRAME_TRANSFORM_SLOT,
     };
 
-    struct OutlineConfiguration {
-        OutlineParameters _groups[MAX_GROUP_COUNT];
-    };
-
-    enum Mode {
-        M_ALL_UNFILLED,
-        M_SOME_FILLED,
-    };
-
-    using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineConfiguration>;
+    using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineParameters>;
 
     const gpu::PipelinePointer& getPipeline();
 
     static gpu::PipelinePointer _pipeline;
     static gpu::PipelinePointer _pipelineFilled;
+
     OutlineConfigurationBuffer _configuration;
     glm::ivec2 _framebufferSize{ 0,0 };
-    Mode _mode{ M_ALL_UNFILLED };
-    float _sizes[MAX_GROUP_COUNT];
-};
-
-class DrawOutlineTask {
-public:
-
-    using Groups = render::VaryingArray<render::ItemBounds, Outline::MAX_GROUP_COUNT>;
-    using Inputs = render::VaryingSet4<Groups, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
-    using Config = render::Task::Config;
-    using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
-
-    DrawOutlineTask();
-
-    void configure(const Config& config);
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
-
-private:
-
-    static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
-};
-
-class DrawOutlineMask {
-public:
-
-    using Groups = render::VaryingArray<render::ShapeBounds, Outline::MAX_GROUP_COUNT>;
-    using Inputs = render::VaryingSet2<Groups, DeferredFramebufferPointer>;
-    // Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
-    using Outputs = OutlineRessourcesPointer;
-    using JobModel = render::Job::ModelIO<DrawOutlineMask, Inputs, Outputs>;
-
-    DrawOutlineMask(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
-
-protected:
-
-    render::ShapePlumberPointer _shapePlumber;
-    OutlineRessourcesPointer _outlineRessources;
+    bool _isFilled{ false };
+    float _size;
 };
 
 class DebugOutlineConfig : public render::Job::Config {
@@ -237,16 +171,30 @@ public:
 private:
 
     gpu::PipelinePointer _depthPipeline;
-    gpu::PipelinePointer _idPipeline;
     int _geometryDepthId{ 0 };
-    int _geometryColorId{ 0 };
     bool _isDisplayEnabled{ false };
 
     const gpu::PipelinePointer& getDepthPipeline();
-    const gpu::PipelinePointer& getIdPipeline();
     void initializePipelines();
 };
 
+class DrawOutlineTask {
+public:
+
+    using Groups = render::VaryingArray<render::ItemBounds, render::Scene::MAX_OUTLINE_COUNT>;
+    using Inputs = render::VaryingSet4<Groups, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+    using Config = render::Task::Config;
+    using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
+
+    DrawOutlineTask();
+
+    void configure(const Config& config);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+
+private:
+
+    static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
+};
 
 #endif // hifi_render_utils_OutlineEffect_h
 

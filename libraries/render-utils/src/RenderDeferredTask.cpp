@@ -181,7 +181,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
     DrawOutlineTask::Groups outlineGroups;
     outlineGroups[0] = selectedItems;
-    for (auto i = 1; i < DrawOutline::MAX_GROUP_COUNT; i++) {
+    for (auto i = 1; i < render::Scene::MAX_OUTLINE_COUNT; i++) {
         std::ostringstream selectionName;
         selectionName << selectionBaseName;
         selectionName << i;

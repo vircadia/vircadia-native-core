@@ -15,7 +15,8 @@ import "configSlider"
 Item {
     id: root
     property var debugConfig: Render.getConfig("RenderMainView.OutlineDebug")
-    property var drawConfig: Render.getConfig("RenderMainView.OutlineEffect")
+    property var drawConfig: Render.getConfig("RenderMainView.OutlineEffect0")
+    signal sendToScript(var message);
 
     Column {
         spacing: 8
@@ -26,12 +27,15 @@ Item {
             Timer {
                 id: postpone
                 interval: 100; running: false; repeat: false
-                onTriggered: { paramWidgetLoader.sourceComponent = paramWidgets }
+                onTriggered: { 
+                    paramWidgetLoader.sourceComponent = paramWidgets;
+                    sendToScript(currentIndex)
+                }
             }
             onCurrentIndexChanged: {
-                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+                // This is a hack to be sure the widgets below properly reflect the change of index: delete the Component
                 // by setting the loader source to Null and then recreate it 100ms later
-                root.drawConfig["group"] = currentIndex
+                root.drawConfig = Render.getConfig("RenderMainView.OutlineEffect"+currentIndex)
                 paramWidgetLoader.sourceComponent = undefined;
                 postpone.interval = 100
                 postpone.start()
