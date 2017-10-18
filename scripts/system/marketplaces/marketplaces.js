@@ -74,6 +74,7 @@
                     itemName: 'Test Flaregun',
                     itemPrice: (debugError ? 10 : 17),
                     itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
+                    categories: ["Wearables", "Miscellaneous"]
                 },
                 canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
             });

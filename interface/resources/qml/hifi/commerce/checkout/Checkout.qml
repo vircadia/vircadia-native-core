@@ -40,6 +40,7 @@ Rectangle {
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
     property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool isWearable;
     // Style
     color: hifi.colors.white;
     Hifi.QmlCommerce {
@@ -573,7 +574,7 @@ Rectangle {
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            text: "Rez It"
+            text: root.isWearable ? "Wear It" : "Rez It"
             onClicked: {
                 if (urlHandler.canHandleUrl(root.itemHref)) {
                     urlHandler.handleUrl(root.itemHref);
@@ -832,6 +833,7 @@ Rectangle {
                 itemName = message.params.itemName;
                 root.itemPrice = message.params.itemPrice;
                 itemHref = message.params.itemHref;
+                root.isWearable = message.params.categories.indexOf("Wearables") > -1;
                 setBuyText();
             break;
             default:

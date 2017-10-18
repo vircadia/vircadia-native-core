@@ -434,6 +434,7 @@ Rectangle {
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
+                isWearable: model.categories.indexOf("Wearables") > -1;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
