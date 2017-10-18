@@ -1478,7 +1478,7 @@ function onFileOpenChanged(filename) {
     // disconnect the event, otherwise the requests will stack up
     try {
         // Not all calls to onFileOpenChanged() connect an event.
-        Window.openFileChanged.disconnect(onFileOpenChanged)
+        Window.openFileChanged.disconnect(onFileOpenChanged);
     } catch (e) {
         // Ignore.
     }
