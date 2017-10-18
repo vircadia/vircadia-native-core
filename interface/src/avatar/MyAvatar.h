@@ -16,6 +16,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QUuid>
+
 #include <SettingHandle.h>
 #include <Rig.h>
 #include <Sound.h>
@@ -155,7 +157,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
 
-    Q_PROPERTY(QString SELF_ID READ SELF_UUID CONSTANT)
+    Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
  
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -550,6 +552,8 @@ public:
 
     virtual SpatialParentTree* getParentTree() const override;
 
+    const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -828,9 +832,6 @@ private:
 
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
-
-    const QString SELF_UUID() { return SELF_ID; }
-    const QString SELF_ID { AVATAR_SELF_ID.toString() };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
