@@ -14,7 +14,6 @@
 #include <PerfStat.h>
 
 #include "DeferredLightingEffect.h"
-#include "EntityItem.h"
 
 using namespace render;
 
@@ -321,17 +320,25 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
-    _meshIndex(_meshIndex),
+ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
+    _meshIndex(meshIndex),
     _shapeID(shapeIndex) {
 
     assert(model && model->isLoaded());
     _model = model;
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
+    computeAdjustedLocalBound(state.clusterMatrices);
 
     updateTransform(transform, offsetTransform);
+    Transform renderTransform = transform;
+    if (state.clusterMatrices.size() == 1) {
+        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    }
+    updateTransformForSkinnedMesh(renderTransform, transform, state.clusterBuffer);
+
     initCache();
 }
 
@@ -378,7 +385,7 @@ ItemKey ModelMeshPartPayload::getKey() const {
             builder.withInvisible();
         }
 
-        if (model->isLayeredInFront()) {
+        if (model->isLayeredInFront() || model->isLayeredInHUD()) {
             builder.withLayered();
         }
 
@@ -397,15 +404,15 @@ ItemKey ModelMeshPartPayload::getKey() const {
 }
 
 int ModelMeshPartPayload::getLayer() const {
-    // MAgic number while we are defining the layering mechanism:
-    const int LAYER_3D_FRONT = 1;
-    const int LAYER_3D = 0;
     ModelPointer model = _model.lock();
-    if (model && model->isLayeredInFront()) {
-        return LAYER_3D_FRONT;
-    } else {
-        return LAYER_3D;
+    if (model) {
+        if (model->isLayeredInFront()) {
+            return Item::LAYER_3D_FRONT;
+        } else if (model->isLayeredInHUD()) {
+            return Item::LAYER_3D_HUD;
+        }
     }
+    return Item::LAYER_3D;
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {

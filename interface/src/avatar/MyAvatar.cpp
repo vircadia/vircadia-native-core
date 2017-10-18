@@ -584,7 +584,7 @@ void MyAvatar::simulate(float deltaTime) {
             }
             auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            MovingEntitiesOperator moveOperator(entityTree);
+            MovingEntitiesOperator moveOperator;
             forEachDescendant([&](SpatiallyNestablePointer object) {
                 // if the queryBox has changed, tell the entity-server
                 if (object->getNestableType() == NestableType::Entity && object->checkAndMaybeUpdateQueryAACube()) {
@@ -2196,6 +2196,14 @@ float MyAvatar::getDomainMaxScale() {
     return _domainMaximumScale;
 }
 
+void MyAvatar::setGravity(float gravity) {
+    _characterController.setGravity(gravity);
+}
+
+float MyAvatar::getGravity() {
+    return _characterController.getGravity();
+}
+
 void MyAvatar::increaseSize() {
     // make sure we're starting from an allowable scale
     clampTargetScaleToDomainLimits();
@@ -3229,4 +3237,10 @@ void MyAvatar::setModelScale(float scale) {
         float sensorToWorldScale = getEyeHeight() / getUserEyeHeight();
         emit sensorToWorldScaleChanged(sensorToWorldScale);
     }
+}
+
+SpatialParentTree* MyAvatar::getParentTree() const {
+    auto entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    return entityTree.get();
 }

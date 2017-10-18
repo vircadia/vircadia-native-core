@@ -30,14 +30,14 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES;
+            return VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES;
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarIdentityLookAtSnapping);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::UpdatedMannequinDefaultAvatar);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:

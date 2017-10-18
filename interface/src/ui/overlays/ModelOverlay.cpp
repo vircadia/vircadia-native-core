@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "ModelOverlay.h"
 #include <Rig.h>
 
@@ -46,8 +49,7 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
-        Transform transform = getTransform();
-        transform.setScale(1.0f); // disable inherited scale
+        Transform transform = evalRenderTransform();
         if (_scaleToFit) {
             _model->setScaleToFit(true, transform.getScale() * getDimensions());
         } else {
@@ -61,6 +63,35 @@ void ModelOverlay::update(float deltatime) {
         _model->simulate(deltatime);
     }
     _isLoaded = _model->isActive();
+
+    if (isAnimatingSomething()) {
+        if (!jointsMapped()) {
+            mapAnimationJoints(_model->getJointNames());
+        }
+        animate();
+    }
+
+    // check to see if when we added our model to the scene they were ready, if they were not ready, then
+    // fix them up in the scene
+    render::ScenePointer scene = qApp->getMain3DScene();
+    render::Transaction transaction;
+    if (_model->needsFixupInScene()) {
+        _model->removeFromScene(scene, transaction);
+        _model->addToScene(scene, transaction);
+    }
+    if (_visibleDirty) {
+        _visibleDirty = false;
+        _model->setVisibleInScene(getVisible(), scene);
+    }
+    if (_drawInFrontDirty) {
+        _drawInFrontDirty = false;
+        _model->setLayeredInFront(getDrawInFront(), scene);
+    }
+    if (_drawInHUDDirty) {
+        _drawInHUDDirty = false;
+        _model->setLayeredInHUD(getDrawHUDLayer(), scene);
+    }
+    scene->enqueueTransaction(transaction);
 }
 
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -74,21 +105,19 @@ void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::Scene
     _model->removeFromScene(scene, transaction);
 }
 
-void ModelOverlay::render(RenderArgs* args) {
+void ModelOverlay::setVisible(bool visible) {
+    Overlay::setVisible(visible);
+    _visibleDirty = true;
+}
 
-    // check to see if when we added our model to the scene they were ready, if they were not ready, then
-    // fix them up in the scene
-    render::ScenePointer scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    if (_model->needsFixupInScene()) {
-        _model->removeFromScene(scene, transaction);
-        _model->addToScene(scene, transaction);
-    }
+void ModelOverlay::setDrawInFront(bool drawInFront) {
+    Base3DOverlay::setDrawInFront(drawInFront);
+    _drawInFrontDirty = true;
+}
 
-    _model->setVisibleInScene(_visible, scene);
-    _model->setLayeredInFront(getDrawInFront(), scene);
-
-    scene->enqueueTransaction(transaction);
+void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
+    Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
+    _drawInHUDDirty = true;
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
@@ -172,6 +201,51 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
             }
         }
         _updateModel = true;
+    }
+
+    auto animationSettings = properties["animationSettings"];
+    if (animationSettings.canConvert(QVariant::Map)) {
+        QVariantMap animationSettingsMap = animationSettings.toMap();
+
+        auto animationURL = animationSettingsMap["url"];
+        auto animationFPS = animationSettingsMap["fps"];
+        auto animationCurrentFrame = animationSettingsMap["currentFrame"];
+        auto animationFirstFrame = animationSettingsMap["firstFrame"];
+        auto animationLastFrame = animationSettingsMap["lastFrame"];
+        auto animationRunning = animationSettingsMap["running"];
+        auto animationLoop = animationSettingsMap["loop"];
+        auto animationHold = animationSettingsMap["hold"];
+        auto animationAllowTranslation = animationSettingsMap["allowTranslation"];
+
+        if (animationURL.canConvert(QVariant::Url)) {
+            _animationURL = animationURL.toUrl();
+        }
+        if (animationFPS.isValid()) {
+            _animationFPS = animationFPS.toFloat();
+        }
+        if (animationCurrentFrame.isValid()) {
+            _animationCurrentFrame = animationCurrentFrame.toFloat();
+        }
+        if (animationFirstFrame.isValid()) {
+            _animationFirstFrame = animationFirstFrame.toFloat();
+        }
+        if (animationLastFrame.isValid()) {
+            _animationLastFrame = animationLastFrame.toFloat();
+        }
+
+        if (animationRunning.canConvert(QVariant::Bool)) {
+            _animationRunning = animationRunning.toBool();
+        }
+        if (animationLoop.canConvert(QVariant::Bool)) {
+            _animationLoop = animationLoop.toBool();
+        }
+        if (animationHold.canConvert(QVariant::Bool)) {
+            _animationHold = animationHold.toBool();
+        }
+        if (animationAllowTranslation.canConvert(QVariant::Bool)) {
+            _animationAllowTranslation = animationAllowTranslation.toBool();
+        }
+
     }
 }
 
@@ -260,6 +334,24 @@ QVariant ModelOverlay::getProperty(const QString& property) {
             });
     }
 
+    // animation properties
+    if (property == "animationSettings") {
+        QVariantMap animationSettingsMap;
+
+        animationSettingsMap["url"] = _animationURL;
+        animationSettingsMap["fps"] = _animationFPS;
+        animationSettingsMap["currentFrame"] = _animationCurrentFrame;
+        animationSettingsMap["firstFrame"] = _animationFirstFrame;
+        animationSettingsMap["lastFrame"] = _animationLastFrame;
+        animationSettingsMap["running"] = _animationRunning;
+        animationSettingsMap["loop"] = _animationLoop;
+        animationSettingsMap["hold"]= _animationHold;
+        animationSettingsMap["allowTranslation"] = _animationAllowTranslation;
+
+        return animationSettingsMap;
+    }
+
+
     return Volume3DOverlay::getProperty(property);
 }
 
@@ -280,6 +372,12 @@ ModelOverlay* ModelOverlay::createClone() const {
     return new ModelOverlay(this);
 }
 
+Transform ModelOverlay::evalRenderTransform() {
+    Transform transform = getTransform();
+    transform.setScale(1.0f); // disable inherited scale
+    return transform;
+}
+
 void ModelOverlay::locationChanged(bool tellPhysics) {
     Base3DOverlay::locationChanged(tellPhysics);
 
@@ -296,3 +394,134 @@ QString ModelOverlay::getName() const {
     }
     return QString("Overlay:") + getType() + ":" + _url.toString();
 }
+
+
+void ModelOverlay::animate() {
+
+    if (!_animation || !_animation->isLoaded() || !_model || !_model->isLoaded()) {
+        return;
+    }
+
+
+    QVector<JointData> jointsData;
+
+    const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
+    int frameCount = frames.size();
+    if (frameCount <= 0) {
+        return;
+    }
+
+    if (!_lastAnimated) {
+        _lastAnimated = usecTimestampNow();
+        return;
+    }
+
+    auto now = usecTimestampNow();
+    auto interval = now - _lastAnimated;
+    _lastAnimated = now;
+    float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+    _animationCurrentFrame += (deltaTime * _animationFPS);
+
+    int animationCurrentFrame = (int)(glm::floor(_animationCurrentFrame)) % frameCount;
+    if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
+        animationCurrentFrame = 0;
+    }
+
+    if (animationCurrentFrame == _lastKnownCurrentFrame) {
+        return;
+    }
+    _lastKnownCurrentFrame = animationCurrentFrame;
+
+    if (_jointMapping.size() != _model->getJointStateCount()) {
+        return;
+    }
+
+    QStringList animationJointNames = _animation->getGeometry().getJointNames();
+    auto& fbxJoints = _animation->getGeometry().joints;
+
+    auto& originalFbxJoints = _model->getFBXGeometry().joints;
+    auto& originalFbxIndices = _model->getFBXGeometry().jointIndices;
+
+    const QVector<glm::quat>& rotations = frames[_lastKnownCurrentFrame].rotations;
+    const QVector<glm::vec3>& translations = frames[_lastKnownCurrentFrame].translations;
+
+    jointsData.resize(_jointMapping.size());
+    for (int j = 0; j < _jointMapping.size(); j++) {
+        int index = _jointMapping[j];
+
+        if (index >= 0) {
+            glm::mat4 translationMat;
+
+            if (_animationAllowTranslation) {
+                if (index < translations.size()) {
+                    translationMat = glm::translate(translations[index]);
+                }
+            } else if (index < animationJointNames.size()) {
+                QString jointName = fbxJoints[index].name;
+
+                if (originalFbxIndices.contains(jointName)) {
+                    // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get its translation.
+                    int remappedIndex = originalFbxIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
+                    translationMat = glm::translate(originalFbxJoints[remappedIndex].translation);
+                }
+            }
+            glm::mat4 rotationMat;
+            if (index < rotations.size()) {
+                rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
+            } else {
+                rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * fbxJoints[index].postRotation);
+            }
+
+            glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
+                rotationMat * fbxJoints[index].postTransform);
+            auto& jointData = jointsData[j];
+            jointData.translation = extractTranslation(finalMat);
+            jointData.translationSet = true;
+            jointData.rotation = glmExtractRotation(finalMat);
+            jointData.rotationSet = true;
+        }
+    }
+    // Set the data in the model
+    copyAnimationJointDataToModel(jointsData);
+}
+
+
+void ModelOverlay::mapAnimationJoints(const QStringList& modelJointNames) {
+
+    // if we don't have animation, or we're already joint mapped then bail early
+    if (!hasAnimation() || jointsMapped()) {
+        return;
+    }
+
+    if (!_animation || _animation->getURL() != _animationURL) {
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(_animationURL);
+    }
+
+    if (_animation && _animation->isLoaded()) {
+        QStringList animationJointNames = _animation->getJointNames();
+
+        if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
+            _jointMapping.resize(modelJointNames.size());
+            for (int i = 0; i < modelJointNames.size(); i++) {
+                _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
+            }
+            _jointMappingCompleted = true;
+            _jointMappingURL = _animationURL;
+        }
+    }
+}
+
+void ModelOverlay::copyAnimationJointDataToModel(QVector<JointData> jointsData) {
+    if (!_model || !_model->isLoaded()) {
+        return;
+    }
+
+    // relay any inbound joint changes from scripts/animation/network to the model/rig
+    for (int index = 0; index < jointsData.size(); ++index) {
+        auto& jointData = jointsData[index];
+        _model->setJointRotation(index, true, jointData.rotation, 1.0f);
+        _model->setJointTranslation(index, true, jointData.translation, 1.0f);
+    }
+    _updateModel = true;
+}
+

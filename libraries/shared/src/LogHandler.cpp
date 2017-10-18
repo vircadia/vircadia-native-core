@@ -177,6 +177,13 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
         prefixString.append(QString(" [%1]").arg(_targetName));
     }
 
+    // for [qml] console.* messages include an abbreviated source filename
+    if (context.category && context.file && !strcmp("qml", context.category)) {
+        if (const char* basename = strrchr(context.file, '/')) {
+            prefixString.append(QString(" [%1]").arg(basename+1));
+        }
+    }
+
     QString logMessage = QString("%1 %2").arg(prefixString, message.split('\n').join('\n' + prefixString + " "));
     fprintf(stdout, "%s\n", qPrintable(logMessage));
     return logMessage;

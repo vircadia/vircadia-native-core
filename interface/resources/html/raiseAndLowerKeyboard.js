@@ -14,12 +14,11 @@
     var isWindowFocused = true;
     var isKeyboardRaised = false;
     var isNumericKeyboard = false;
-    var KEYBOARD_HEIGHT = 200;
 
     function shouldRaiseKeyboard() {
         var nodeName = document.activeElement.nodeName;
         var nodeType = document.activeElement.type;
-        if (nodeName === "INPUT" && ["email", "number", "password", "tel", "text", "url"].indexOf(nodeType) !== -1
+        if (nodeName === "INPUT" && ["email", "number", "password", "tel", "text", "url", "search"].indexOf(nodeType) !== -1
             || document.activeElement.nodeName === "TEXTAREA") {
             return true;
         } else {
@@ -37,6 +36,19 @@
     function shouldSetNumeric() {
         return document.activeElement.type === "number";
     };
+
+    function scheduleBringToView(timeout) {
+
+        var timer = setTimeout(function () {
+            clearTimeout(timer);
+
+            var elementRect = document.activeElement.getBoundingClientRect();
+            var absoluteElementTop = elementRect.top + window.scrollY;
+            var middle = absoluteElementTop - (window.innerHeight / 2);
+
+            window.scrollTo(0, middle);
+        }, timeout);
+    }
 
     setInterval(function () {
         var keyboardRaised = shouldRaiseKeyboard();
@@ -56,19 +68,21 @@
             }
 
             if (!isKeyboardRaised) {
-                var delta = document.activeElement.getBoundingClientRect().bottom + 10
-                    - (document.body.clientHeight - KEYBOARD_HEIGHT);
-                if (delta > 0) {
-                    setTimeout(function () {
-                        document.body.scrollTop += delta;
-                    }, 500);  // Allow time for keyboard to be raised in QML.
-                }
+                scheduleBringToView(250); // Allow time for keyboard to be raised in QML.
+                                          // 2DO: should it be rather done from 'client area height changed' event?
             }
 
             isKeyboardRaised = keyboardRaised;
             isNumericKeyboard = numericKeyboard;
         }
     }, POLL_FREQUENCY);
+
+    window.addEventListener("click", function () {
+        var keyboardRaised = shouldRaiseKeyboard();
+        if(keyboardRaised && isKeyboardRaised) {
+            scheduleBringToView(150);
+        }
+    });
 
     window.addEventListener("focus", function () {
         isWindowFocused = true;

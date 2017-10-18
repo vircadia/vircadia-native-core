@@ -15,6 +15,7 @@
 
 class Volume3DOverlay : public Base3DOverlay {
     Q_OBJECT
+    using Parent = Base3DOverlay;
 
 public:
     Volume3DOverlay() {}
@@ -23,8 +24,8 @@ public:
     virtual AABox getBounds() const override;
 
     const glm::vec3& getDimensions() const { return _localBoundingBox.getDimensions(); }
-    void setDimensions(float value) { _localBoundingBox.setBox(glm::vec3(-value / 2.0f), value); }
-    void setDimensions(const glm::vec3& value) { _localBoundingBox.setBox(-value / 2.0f, value); }
+    void setDimensions(float value) { setDimensions(glm::vec3(value)); }
+    void setDimensions(const glm::vec3& value);
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -35,6 +36,8 @@ public:
 protected:
     // Centered local bounding box
     AABox _localBoundingBox{ vec3(0.0f), 1.0f };
+
+    Transform evalRenderTransform() override;
 };
 
 

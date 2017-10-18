@@ -19,7 +19,13 @@
 #include <AssetUpload.h>
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
+#include <NodeList.h>
 #include <OffscreenUi.h>
+#include <UserActivityLogger.h>
+
+static const int AUTO_REFRESH_INTERVAL = 1000;
+
+int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
 
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
@@ -98,6 +104,21 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
     }
 
     startedCallback.call();
+
+    QFileInfo fileInfo { path };
+    int64_t size { fileInfo.size() };
+
+    QString extension = "";
+    auto idx = path.lastIndexOf(".");
+    if (idx >= 0) {
+        extension = path.mid(idx + 1);
+    }
+
+    UserActivityLogger::getInstance().logAction("uploading_asset", {
+        { "size", (qint64)size },
+        { "mapping", mapping },
+        { "extension", extension}
+    });
 
     auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
@@ -189,6 +210,29 @@ void AssetMappingsScriptingInterface::setBakingEnabled(QStringList paths, bool e
 
 AssetMappingModel::AssetMappingModel() {
     setupRoles();
+
+    connect(&_autoRefreshTimer, &QTimer::timeout, this, [this] {
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+        if (assetServer) {
+            refresh();
+        }
+    });
+    _autoRefreshTimer.setInterval(AUTO_REFRESH_INTERVAL);
+}
+
+bool AssetMappingModel::isAutoRefreshEnabled() {
+    return _autoRefreshTimer.isActive();
+}
+
+void AssetMappingModel::setAutoRefreshEnabled(bool enabled) {
+    if (enabled != _autoRefreshTimer.isActive()) {
+        if (enabled) {
+            _autoRefreshTimer.start();
+        } else {
+            _autoRefreshTimer.stop();
+        }
+    }
 }
 
 bool AssetMappingModel::isKnownFolder(QString path) const {
@@ -205,15 +249,13 @@ bool AssetMappingModel::isKnownFolder(QString path) const {
     return false;
 }
 
-int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
-
 void AssetMappingModel::refresh() {
-    qDebug() << "Refreshing asset mapping model";
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
     connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
         if (request->getError() == MappingRequest::NoError) {
+            int numPendingBakes = 0;
             auto mappings = request->getMappings();
             auto existingPaths = _pathToItemMap.keys();
             for (auto& mapping : mappings) {
@@ -262,6 +304,9 @@ void AssetMappingModel::refresh() {
                     auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                     lastItem->setData(statusString, Qt::UserRole + 5);
                     lastItem->setData(mapping.second.bakingErrors, Qt::UserRole + 6);
+                    if (mapping.second.status == Pending) {
+                        ++numPendingBakes;
+                    }
                 }
 
                 Q_ASSERT(fullPath == path);
@@ -308,6 +353,11 @@ void AssetMappingModel::refresh() {
 
                     item = nextItem;
                 }
+            }
+
+            if (numPendingBakes != _numPendingBakes) {
+                _numPendingBakes = numPendingBakes;
+                emit numPendingBakesChanged(_numPendingBakes);
             }
         } else {
             emit errorGettingMappings(request->getErrorString());

@@ -858,6 +858,14 @@
           "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
           "default": "",
           "advanced": true
+        },
+        {
+          "name": "assets_filesize_limit",
+          "type": "int",
+          "label": "File Size Limit",
+          "help": "The file size limit of an asset that can be imported into the asset server in MBytes. 0 (default) means no limit on file size.",
+          "default": 0,
+          "advanced": true
         }
       ]
     },

@@ -122,6 +122,7 @@ public:
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
         OctreeFileReplacementFromUrl,
+        ChallengeOwnership,
         NUM_PACKET_TYPE
     };
 
@@ -266,6 +267,7 @@ const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
 const PacketVersion VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT = 71;
 const PacketVersion VERSION_ENTITIES_HAS_HIGHLIGHT_SCRIPTING_INTERFACE = 72;
 const PacketVersion VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES = 73;
+const PacketVersion VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES = 74;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
@@ -298,6 +300,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarIdentitySequenceFront,
     IsReplicatedInAvatarIdentity,
     AvatarIdentityLookAtSnapping,
+    UpdatedMannequinDefaultAvatar
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

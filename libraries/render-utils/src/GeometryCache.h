@@ -161,10 +161,10 @@ public:
 
     // Bind the pipeline and get the state to render static geometry
     void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false);
+                                          bool unlit = false, bool depthBias = false, bool isAntiAliased = true);
     // Get the pipeline to render static geometry
     static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool fading = false);
+                                          bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true);
 
     void bindWebBrowserProgram(gpu::Batch& batch, bool transparent = false);
     gpu::PipelinePointer getWebBrowserProgram(bool transparent);
@@ -339,14 +339,10 @@ public:
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
     struct ShapeData {
-        size_t _indexOffset{ 0 };
-        size_t _indexCount{ 0 };
-        size_t _wireIndexOffset{ 0 };
-        size_t _wireIndexCount{ 0 };
-
         gpu::BufferView _positionView;
         gpu::BufferView _normalView;
-        gpu::BufferPointer _indices;
+        gpu::BufferView _indicesView;
+        gpu::BufferView _wireIndicesView;
 
         void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
         void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);

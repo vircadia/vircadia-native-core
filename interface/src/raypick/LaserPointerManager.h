@@ -13,7 +13,6 @@
 
 #include <memory>
 #include <glm/glm.hpp>
-#include <QReadWriteLock>
 
 #include "LaserPointer.h"
 
@@ -23,7 +22,7 @@ class LaserPointerManager {
 
 public:
     QUuid createLaserPointer(const QVariant& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
     void removeLaserPointer(const QUuid uid);
     void enableLaserPointer(const QUuid uid);
     void disableLaserPointer(const QUuid uid);
@@ -32,6 +31,7 @@ public:
     const RayPickResult getPrevRayPickResult(const QUuid uid);
 
     void setPrecisionPicking(QUuid uid, const bool precisionPicking);
+    void setLaserLength(QUuid uid, const float laserLength);
     void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
     void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
     void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);
@@ -45,11 +45,6 @@ public:
 
 private:
     QHash<QUuid, std::shared_ptr<LaserPointer>> _laserPointers;
-    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _laserPointerLocks;
-    QReadWriteLock _addLock;
-    std::queue<std::pair<QUuid, std::shared_ptr<LaserPointer>>> _laserPointersToAdd;
-    QReadWriteLock _removeLock;
-    std::queue<QUuid> _laserPointersToRemove;
     QReadWriteLock _containsLock;
 
 };

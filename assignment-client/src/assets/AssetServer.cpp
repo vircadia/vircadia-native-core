@@ -30,6 +30,7 @@
 
 #include <ClientServerUtils.h>
 #include <FBXBaker.h>
+#include <JSBaker.h>
 #include <NodeType.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
@@ -49,10 +50,12 @@ static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx" };
+static const QStringList BAKEABLE_MODEL_EXTENSIONS = {"fbx"};
 static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
+static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = {"js"};
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
+static const QString BAKED_SCRIPT_SIMPLE_NAME = "asset.js";
 
 void AssetServer::bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) {
     qDebug() << "Starting bake for: " << assetPath << assetHash;
@@ -99,6 +102,8 @@ std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& pa
         bakedFilename = BAKED_MODEL_SIMPLE_NAME;
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
     } else {
         return { Irrelevant, "" };
     }
@@ -186,6 +191,8 @@ bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHa
         bakedFilename = BAKED_MODEL_SIMPLE_NAME;
     } else if (loaded && BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit())) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
     } else {
         return false;
     }
@@ -228,7 +235,8 @@ void updateConsumedCores() {
 AssetServer::AssetServer(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _transferTaskPool(this),
-    _bakingTaskPool(this)
+    _bakingTaskPool(this),
+    _filesizeLimit(MAX_UPLOAD_SIZE)
 {
     // store the current state of image compression so we can reset it when this assignment is complete
     _wasColorTextureCompressionEnabled = image::isColorTexturesCompressionEnabled();
@@ -336,8 +344,8 @@ void AssetServer::completeSetup() {
     auto maxBandwidthValue = assetServerObject[MAX_BANDWIDTH_OPTION];
     auto maxBandwidthFloat = maxBandwidthValue.toDouble(-1);
 
+    const int BITS_PER_MEGABITS = 1000 * 1000;
     if (maxBandwidthFloat > 0.0) {
-        const int BITS_PER_MEGABITS = 1000 * 1000;
         int maxBandwidth = maxBandwidthFloat * BITS_PER_MEGABITS;
         nodeList->setConnectionMaxBandwidth(maxBandwidth);
         qCInfo(asset_server) << "Set maximum bandwith per connection to" << maxBandwidthFloat << "Mb/s."
@@ -398,6 +406,15 @@ void AssetServer::completeSetup() {
     } else {
         qCCritical(asset_server) << "Asset Server assignment will not continue because mapping file could not be loaded.";
         setFinished(true);
+    }
+
+    // get file size limit for an asset
+    static const QString ASSETS_FILESIZE_LIMIT_OPTION = "assets_filesize_limit";
+    auto assetsFilesizeLimitJSONValue = assetServerObject[ASSETS_FILESIZE_LIMIT_OPTION];
+    auto assetsFilesizeLimit = (uint64_t)assetsFilesizeLimitJSONValue.toInt(MAX_UPLOAD_SIZE);
+
+    if (assetsFilesizeLimit != 0 && assetsFilesizeLimit < MAX_UPLOAD_SIZE) {
+        _filesizeLimit = assetsFilesizeLimit * BITS_PER_MEGABITS;
     }
 }
 
@@ -488,6 +505,8 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
             bakedRootFile = BAKED_MODEL_SIMPLE_NAME;
         } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(assetPathExtension.toLocal8Bit())) {
             bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
+        } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(assetPathExtension)) {
+            bakedRootFile = BAKED_SCRIPT_SIMPLE_NAME;
         }
         
         auto originalAssetHash = it->second;
@@ -721,7 +740,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
     if (senderNode->getCanWriteToAssetServer()) {
         qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
 
-        auto task = new UploadAssetTask(message, senderNode, _filesDirectory);
+        auto task = new UploadAssetTask(message, senderNode, _filesDirectory, _filesizeLimit);
         _transferTaskPool.start(task);
     } else {
         // this is a node the domain told us is not allowed to rez entities
@@ -953,16 +972,15 @@ void AssetServer::removeBakedPathsForDeletedAsset(AssetHash hash) {
     deleteMappings(hiddenBakedFolder);
 }
 
-bool AssetServer::deleteMappings(AssetPathList& paths) {
+bool AssetServer::deleteMappings(const AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
 
     QSet<QString> hashesToCheckForDeletion;
 
     // enumerate the paths to delete and remove them all
-    for (auto& path : paths) {
-
-        path = path.trimmed();
+    for (const auto& rawPath : paths) {
+        auto path = rawPath.trimmed();
 
         // figure out if this path will delete a file or folder
         if (pathIsFolder(path)) {
@@ -991,12 +1009,12 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
         } else {
             auto it = _fileMappings.find(path);
             if (it != _fileMappings.end()) {
-                _fileMappings.erase(it);
-
                 // add this hash to the list we need to check for asset removal from server
                 hashesToCheckForDeletion << it->second;
 
                 qCDebug(asset_server) << "Deleted a mapping:" << path << "=>" << it->second;
+                
+                _fileMappings.erase(it);
             } else {
                 qCDebug(asset_server) << "Unable to delete a mapping that was not found:" << path;
             }
@@ -1142,6 +1160,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
 
 static const QString BAKED_ASSET_SIMPLE_FBX_NAME = "asset.fbx";
 static const QString BAKED_ASSET_SIMPLE_TEXTURE_NAME = "texture.ktx";
+static const QString BAKED_ASSET_SIMPLE_JS_NAME = "asset.js";
 
 QString getBakeMapping(const AssetHash& hash, const QString& relativeFilePath) {
     return HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
@@ -1163,7 +1182,8 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
     _pendingBakes.remove(originalAssetHash);
 }
 
-void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath, QVector<QString> bakedFilePaths) {
+void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath,
+                                      QString bakedTempOutputDir, QVector<QString> bakedFilePaths) {
     bool errorCompletingBake { false };
     QString errorReason;
 
@@ -1204,14 +1224,14 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             // setup the mapping for this bake file
             auto relativeFilePath = QUrl(filePath).fileName();
             qDebug() << "Relative file path is: " << relativeFilePath;
-
             if (relativeFilePath.endsWith(".fbx", Qt::CaseInsensitive)) {
                 // for an FBX file, we replace the filename with the simple name
                 // (to handle the case where two mapped assets have the same hash but different names)
                 relativeFilePath = BAKED_ASSET_SIMPLE_FBX_NAME;
+            } else if (relativeFilePath.endsWith(".js", Qt::CaseInsensitive)) {
+                relativeFilePath = BAKED_ASSET_SIMPLE_JS_NAME;
             } else if (!originalAssetPath.endsWith(".fbx", Qt::CaseInsensitive)) {
                 relativeFilePath = BAKED_ASSET_SIMPLE_TEXTURE_NAME;
-
             }
 
             QString bakeMapping = getBakeMapping(originalAssetHash, relativeFilePath);
@@ -1233,6 +1253,16 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             errorReason = "Failed to finalize bake";
             break;
         }
+    }
+
+    for (auto& filePath : bakedFilePaths) {
+        QFile file(filePath);
+        if (!file.remove()) {
+            qWarning() << "Failed to remove temporary file:" << filePath;
+        }
+    }
+    if (!QDir(bakedTempOutputDir).rmdir(".")) {
+        qWarning() << "Failed to remove temporary directory:" << bakedTempOutputDir;
     }
 
     if (!errorCompletingBake) {
@@ -1354,6 +1384,8 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
                 bakedFilename = BAKED_MODEL_SIMPLE_NAME;
             } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
                 bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+            } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+                bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
             } else {
                 continue;
             }

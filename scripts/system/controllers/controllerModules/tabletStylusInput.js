@@ -248,12 +248,24 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.otherModuleNeedsToRun = function(controllerData) {
+            var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+            var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
+            var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
+            var farGrabModule = getEnabledModuleByName(farGrabModuleName);
+            var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            return grabOverlayModuleReady.active || farGrabModuleReady.active;
+        };
+
         this.processStylus = function(controllerData) {
             this.updateStylusTip();
 
-            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData)) {
+            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.otherModuleNeedsToRun(controllerData)) {
                 this.pointFinger(false);
                 this.hideStylus();
+                this.stylusTouchingTarget = false;
+                this.relinquishTouchFocus();
                 return false;
             }
 
@@ -328,7 +340,7 @@ Script.include("/~/system/libraries/controllers.js");
             var SCALED_TABLET_MAX_HOVER_DISTANCE = TABLET_MAX_HOVER_DISTANCE * sensorScaleFactor;
 
             if (nearestStylusTarget && nearestStylusTarget.distance > SCALED_TABLET_MIN_TOUCH_DISTANCE &&
-                nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE) {
+                nearestStylusTarget.distance < SCALED_TABLET_MAX_HOVER_DISTANCE && !this.getOtherHandController().stylusTouchingTarget) {
 
                 this.requestTouchFocus(nearestStylusTarget);
 

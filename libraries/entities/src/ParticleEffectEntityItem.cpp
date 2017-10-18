@@ -147,7 +147,7 @@ uint64_t Properties::emitIntervalUsecs() const {
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new ParticleEffectEntityItem(entityID) };
+    EntityItemPointer entity(new ParticleEffectEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -633,10 +633,12 @@ void ParticleEffectEntityItem::debugDump() const {
 }
 
 void ParticleEffectEntityItem::setShapeType(ShapeType type) {
-    if (type != _shapeType) {
-        _shapeType = type;
-        _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-    }
+    withWriteLock([&] {
+        if (type != _shapeType) {
+            _shapeType = type;
+            _dirtyFlags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+        }
+    });
 }
 
 void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {

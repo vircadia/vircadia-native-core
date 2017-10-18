@@ -228,7 +228,7 @@ var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
 
 var toolBar = (function () {
-    var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
+    var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
     var that = {},
         toolBar,
         activeButton = null,
@@ -443,17 +443,8 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
-            var importURL = null;
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
-            if (importURL) {
-                if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                    toolBar.toggle();
-                }
-                importSVO(importURL);
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
         addButton("openAssetBrowserButton", "assets-01.svg", function() {
@@ -1243,7 +1234,8 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
-    Messages.unsubscribe("Toolbar-DomainChanged");
+    // Messages.unsubscribe("Toolbar-DomainChanged"); // Do not unsubscribe because the shapes.js app also subscribes and 
+    // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
     createButton = null;
 });
 
@@ -1254,6 +1246,7 @@ var lastPosition = null;
 Script.update.connect(function (deltaTime) {
     progressDialog.move();
     selectionDisplay.checkMove();
+    selectionDisplay.checkControllerMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
     var dPosition = Vec3.distance(Camera.position, lastPosition);
     if (dOrientation > 0.001 || dPosition > 0.001) {
@@ -1471,6 +1464,50 @@ function toggleSelectedEntitiesVisible() {
     }
 }
 
+function onFileSaveChanged(filename) {
+    Window.saveFileChanged.disconnect(onFileSaveChanged);
+    if (filename !== "") {
+        var success = Clipboard.exportEntities(filename, selectionManager.selections);
+        if (!success) {
+            Window.notifyEditError("Export failed.");
+        }
+    }
+}
+
+function onFileOpenChanged(filename) {
+    // disconnect the event, otherwise the requests will stack up
+    try {
+        // Not all calls to onFileOpenChanged() connect an event.
+        Window.openFileChanged.disconnect(onFileOpenChanged);
+    } catch (e) {
+        // Ignore.
+    }
+
+    var importURL = null;
+    if (filename !== "") {
+        importURL = filename;
+        if (!/^(http|https):\/\//.test(filename)) {
+            importURL = "file:///" + importURL;
+        }
+    }
+    if (importURL) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+            toolBar.toggle();
+        }
+        importSVO(importURL);
+    }
+}
+
+function onPromptTextChanged(prompt) {
+    Window.promptTextChanged.disconnect(onPromptTextChanged);
+    if (prompt !== "") {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+            toolBar.toggle();
+        }
+        importSVO(prompt);
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1488,30 +1525,16 @@ function handeMenuEvent(menuItem) {
         if (!selectionManager.hasSelection()) {
             Window.notifyEditError("No entities have been selected.");
         } else {
-            var filename = Window.save("Select Where to Save", "", "*.json");
-            if (filename) {
-                var success = Clipboard.exportEntities(filename, selectionManager.selections);
-                if (!success) {
-                    Window.notifyEditError("Export failed.");
-                }
-            }
+            Window.saveFileChanged.connect(onFileSaveChanged);
+            Window.saveAsync("Select Where to Save", "", "*.json");
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
-        var importURL = null;
         if (menuItem === "Import Entities") {
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            importURL = Window.prompt("URL of SVO to import", "");
-        }
-
-        if (importURL) {
-            if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                toolBar.toggle();
-            }
-            importSVO(importURL);
+            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
         entityListTool.toggleVisible();

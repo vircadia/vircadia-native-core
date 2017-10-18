@@ -71,14 +71,14 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     } else {
         QUrl url = _url.resolved(filename);
 
-        QString texdir = mapping.value("texdir").toString();
+        QString texdir = mapping.value(TEXDIR_FIELD).toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
             }
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
         } else {
-            _textureBaseUrl = _effectiveBaseURL;
+            _textureBaseUrl = url.resolved(QUrl("."));
         }
 
         auto animGraphVariant = mapping.value("animGraphUrl");
@@ -175,9 +175,9 @@ void GeometryReader::run() {
 
         QString urlname = _url.path().toLower();
         if (!urlname.isEmpty() && !_url.path().isEmpty() &&
-			(_url.path().toLower().endsWith(".fbx") || 
-			_url.path().toLower().endsWith(".obj") || 
-			_url.path().toLower().endsWith(".obj.gz"))) {
+            (_url.path().toLower().endsWith(".fbx") || 
+            _url.path().toLower().endsWith(".obj") || 
+            _url.path().toLower().endsWith(".obj.gz"))) {
             FBXGeometry::Pointer fbxGeometry;
 
             if (_url.path().toLower().endsWith(".fbx")) {
@@ -187,15 +187,15 @@ void GeometryReader::run() {
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, _combineParts, _url));
-			} else if (_url.path().toLower().endsWith(".obj.gz")) {
-				QByteArray uncompressedData;
-				if (gunzip(_data, uncompressedData)){
-					fbxGeometry.reset(OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url));
-				} else {
-					throw QString("failed to decompress .obj.gz" );
-				}
+            } else if (_url.path().toLower().endsWith(".obj.gz")) {
+                QByteArray uncompressedData;
+                if (gunzip(_data, uncompressedData)){
+                    fbxGeometry.reset(OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url));
+                } else {
+                    throw QString("failed to decompress .obj.gz" );
+                }
 
-			} else {
+            } else {
                 throw QString("unsupported format");
             }
 
@@ -241,9 +241,10 @@ private:
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    qDebug() << "Processing geometry: " << _effectiveBaseURL;
-    _url = _effectiveBaseURL;
-    _textureBaseUrl = _effectiveBaseURL;
+    if (_url != _effectiveBaseURL) {
+        _url = _effectiveBaseURL;
+        _textureBaseUrl = _effectiveBaseURL;
+    }
     QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
 }
 
@@ -255,7 +256,6 @@ void GeometryDefinitionResource::setGeometryDefinition(FBXGeometry::Pointer fbxG
     QHash<QString, size_t> materialIDAtlas;
     for (const FBXMaterial& material : _fbxGeometry->materials) {
         materialIDAtlas[material.materialID] = _materials.size();
-            qDebug() << "setGeometryDefinition() " << _textureBaseUrl;
         _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
     }
 
@@ -348,7 +348,6 @@ Geometry::Geometry(const Geometry& geometry) {
 
     _materials.reserve(geometry._materials.size());
     for (const auto& material : geometry._materials) {
-        qDebug() << "Geometry() no base url...";
         _materials.push_back(std::make_shared<NetworkMaterial>(*material));
     }
 
@@ -434,7 +433,6 @@ void GeometryResource::deleter() {
 void GeometryResource::setTextures() {
     if (_fbxGeometry) {
         for (const FBXMaterial& material : _fbxGeometry->materials) {
-            qDebug() << "setTextures() " << _textureBaseUrl;
             _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
         }
     }
@@ -464,7 +462,7 @@ void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
     _resource = resource;
     if (_resource) {
         if (_resource->isLoaded()) {
-            _geometryRef = std::make_shared<Geometry>(*_resource);
+            resourceFinished(true);
         } else {
             startWatching();
         }
@@ -536,7 +534,6 @@ model::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image
 NetworkMaterial::NetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) :
     model::Material(*material._material)
 {
-    qDebug() << "Created network material with base url: " << textureBaseUrl;
     _textures = Textures(MapChannel::NUM_MAP_CHANNELS);
     if (!material.albedoTexture.filename.isEmpty()) {
         auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);

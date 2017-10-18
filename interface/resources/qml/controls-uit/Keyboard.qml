@@ -11,8 +11,14 @@
 import QtQuick 2.0
 import "."
 
-Item {
+Rectangle {
     id: keyboardBase
+    objectName: "keyboard"
+
+    anchors.left: parent.left
+    anchors.right: parent.right
+
+    color: "#252525"
 
     property bool raised: false
     property bool numeric: false
@@ -22,6 +28,8 @@ Item {
 
     readonly property int mirrorTextHeight: keyboardRowHeight
 
+    property bool password: false
+    property alias mirroredText: mirrorText.text
     property bool showMirrorText: true
     readonly property int raisedHeight: 200
 
@@ -105,17 +113,29 @@ Item {
         height: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
         color: "#252525"
+        anchors.horizontalCenter: parent.horizontalCenter
 
-        TextEdit {
+        TextInput {
             id: mirrorText
             visible: showMirrorText
-            size: 13.5
+            FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
+            font.family: ralewaySemiBold.name
+            font.pointSize: 13.5
+            verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             color: "#FFFFFF";
             anchors.fill: parent
             wrapMode: Text.WordWrap
-            readOnly: false // we need to leave this property read-only to allow control to accept QKeyEvent
+            readOnly: false // we need this to allow control to accept QKeyEvent
             selectByMouse: false
+            echoMode: password ? TextInput.Password : TextInput.Normal
+
+            Keys.onPressed: {
+                if (event.key == Qt.Key_Return || event.key == Qt.Key_Space) {
+                    mirrorText.text = "";
+                    event.accepted = true;
+                }
+            }
         }
 
         MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus

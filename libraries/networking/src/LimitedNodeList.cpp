@@ -159,6 +159,14 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
         newPermissions.can(NodePermissions::Permission::canRezTemporaryEntities)) {
         emit canRezTmpChanged(_permissions.can(NodePermissions::Permission::canRezTemporaryEntities));
     }
+    if (originalPermissions.can(NodePermissions::Permission::canRezPermanentCertifiedEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezPermanentCertifiedEntities)) {
+        emit canRezCertifiedChanged(_permissions.can(NodePermissions::Permission::canRezPermanentCertifiedEntities));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canRezTemporaryCertifiedEntities) !=
+        newPermissions.can(NodePermissions::Permission::canRezTemporaryCertifiedEntities)) {
+        emit canRezTmpCertifiedChanged(_permissions.can(NodePermissions::Permission::canRezTemporaryCertifiedEntities));
+    }
     if (originalPermissions.can(NodePermissions::Permission::canWriteToAssetServer) !=
         newPermissions.can(NodePermissions::Permission::canWriteToAssetServer)) {
         emit canWriteAssetsChanged(_permissions.can(NodePermissions::Permission::canWriteToAssetServer));
@@ -668,7 +676,11 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         }
 
         // insert the new node and release our read lock
+#if defined(Q_OS_ANDROID) || (defined(__clang__) && defined(Q_OS_LINUX))
+        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
+#else
         _nodeHash.emplace(newNode->getUUID(), newNodePointer);
+#endif
         readLocker.unlock();
 
         qCDebug(networking) << "Added" << *newNode;

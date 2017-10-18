@@ -52,7 +52,7 @@ namespace entity {
 }
 
 ShapeEntityItem::Pointer ShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    Pointer entity { new ShapeEntityItem(entityID) };
+    Pointer entity(new ShapeEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -223,7 +223,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << "           position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
-	qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
+    qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
 }
 
 void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {

@@ -152,7 +152,7 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
-
+ 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
@@ -544,12 +544,17 @@ public:
     float getUserHeight() const;
     float getUserEyeHeight() const;
 
+    virtual SpatialParentTree* getParentTree() const override;
+
 public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
     float getDomainMinScale();
     float getDomainMaxScale();
+
+    void setGravity(float gravity);
+    float getGravity();
 
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),

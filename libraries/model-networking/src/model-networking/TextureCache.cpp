@@ -620,6 +620,12 @@ void NetworkTexture::ktxMipRequestFinished() {
 
                 texture->assignStoredMip(mipLevel, data.size(), reinterpret_cast<const uint8_t*>(data.data()));
 
+                // If mip level assigned above is still unavailable, then we assume future requests will also fail.
+                auto minMipLevel = texture->minAvailableMipLevel();
+                if (minMipLevel > mipLevel) {
+                    return;
+                }
+
                 QMetaObject::invokeMethod(resource.data(), "setImage",
                     Q_ARG(gpu::TexturePointer, texture),
                     Q_ARG(int, texture->getWidth()),
@@ -1003,6 +1009,7 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
         if (_spectatorCameraFramebuffer) {
             texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
             if (texture) {
+                texture->setSource(SPECTATOR_CAMERA_FRAME_URL.toString().toStdString());
                 _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
                 return _spectatorCameraNetworkTexture;
             }
@@ -1016,6 +1023,7 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
         if (_hmdPreviewFramebuffer) {
             texture = _hmdPreviewFramebuffer->getRenderBuffer(0);
             if (texture) {
+                texture->setSource(HMD_PREVIEW_FRAME_URL.toString().toStdString());
                 _hmdPreviewNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
                 return _hmdPreviewNetworkTexture;
             }
@@ -1033,14 +1041,18 @@ const gpu::FramebufferPointer& TextureCache::getHmdPreviewFramebuffer(int width,
 }
 
 const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer() {
+    // If we're taking a screenshot and the spectator cam buffer hasn't been created yet, reset to the default size
     if (!_spectatorCameraFramebuffer) {
-        resetSpectatorCameraFramebuffer(2048, 1024);
+        return getSpectatorCameraFramebuffer(DEFAULT_SPECTATOR_CAM_WIDTH, DEFAULT_SPECTATOR_CAM_HEIGHT);
     }
     return _spectatorCameraFramebuffer;
 }
 
-void TextureCache::resetSpectatorCameraFramebuffer(int width, int height) {
-    _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, width, height));
-    _spectatorCameraNetworkTexture.reset();
-    emit spectatorCameraFramebufferReset();
+const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer(int width, int height) {
+    // If we aren't taking a screenshot, we might need to resize or create the camera buffer
+    if (!_spectatorCameraFramebuffer || _spectatorCameraFramebuffer->getWidth() != width || _spectatorCameraFramebuffer->getHeight() != height) {
+        _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, width, height));
+        emit spectatorCameraFramebufferReset();
+    }
+    return _spectatorCameraFramebuffer;
 }

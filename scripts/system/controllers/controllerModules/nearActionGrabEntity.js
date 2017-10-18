@@ -144,6 +144,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             Entities.deleteAction(this.targetEntityID, this.actionID);
             this.actionID = null;
 
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
+
             this.targetEntityID = null;
         };
 
@@ -182,7 +188,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             }
 
             if (targetProps) {
-                if (!propsArePhysical(targetProps) && !propsAreCloneDynamic(targetProps)) {
+                if ((!propsArePhysical(targetProps) && !propsAreCloneDynamic(targetProps)) ||
+                    targetProps.parentID != NULL_UUID) {
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
@@ -216,7 +223,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
                 var targetProps = this.getTargetProps(controllerData);
                 if (targetProps) {
-                    if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
+                    if (controllerData.triggerClicks[this.hand] ||
+                        controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
                         // switch to grabbing
                         var targetCloneable = entityIsCloneable(targetProps);
                         if (targetCloneable) {
