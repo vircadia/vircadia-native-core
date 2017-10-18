@@ -140,6 +140,10 @@
         if (!$('body').hasClass("login-injected") && !userIsLoggedIn) {
             $('body').addClass("login-injected");
             var resultsElement = document.getElementById('results');
+            if (!resultsElement) { // If we're on the main page, this will evaluate to `true`
+                resultsElement = document.getElementById('item-show');
+                resultsElement.style = 'margin-top:0;';
+            }
             var logInElement = document.createElement('div');
             logInElement.classList.add("row");
             logInElement.id = "logInDiv";
