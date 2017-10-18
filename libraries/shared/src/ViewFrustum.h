@@ -119,6 +119,7 @@ public:
 
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     CubeProjectedPolygon getProjectedPolygon(const AACube& box) const;
+    CubeProjectedPolygon getProjectedPolygon(const AABox& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;
@@ -169,6 +170,10 @@ private:
 
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
+    
+    template <typename TBOX>
+    CubeProjectedPolygon computeProjectedPolygon(const TBOX& box) const;
+
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 

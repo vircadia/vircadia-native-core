@@ -11,6 +11,9 @@
 #include "OutlineEffect.h"
 
 #include "GeometryCache.h"
+#include "RenderUtilsLogging.h"
+
+#include "CubeProjectedPolygon.h"
 
 #include <render/FilterTask.h>
 #include <render/SortTask.h>
@@ -99,8 +102,13 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
 
         RenderArgs* args = renderContext->args;
         ShapeKey::Builder defaultKeyBuilder;
+        auto framebufferSize = ressources->getSourceFrameSize();
 
-        outputs = args->_viewport;
+        // First thing we do is determine the projected bounding rect of all the outlined items
+        auto outlinedRect = computeOutlineRect(inShapes, args->getViewFrustum(), framebufferSize);
+        qCDebug(renderutils) << "Outline rect is " << outlinedRect.x << ' ' << outlinedRect.y << ' ' << outlinedRect.z << ' ' << outlinedRect.w;
+
+        outputs = outlinedRect;
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
@@ -108,18 +116,17 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
             auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
             auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
 
-            batch.setFramebuffer(ressources->getDepthFramebuffer());
-            batch.clearDepthFramebuffer(1.0f);
-
-            // Setup camera, projection and viewport for all items
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
-
             glm::mat4 projMat;
             Transform viewMat;
             args->getViewFrustum().evalProjectionMatrix(projMat);
             args->getViewFrustum().evalViewTransform(viewMat);
 
+            batch.setStateScissorRect(outlinedRect);
+            batch.setFramebuffer(ressources->getDepthFramebuffer());
+            batch.clearDepthFramebuffer(1.0f, true);
+
+            // Setup camera, projection and viewport for all items
+            batch.setViewportTransform(args->_viewport);
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
 
@@ -149,6 +156,49 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
     } else {
         // Outline rect should be null as there are no outlined shapes
         outputs = glm::ivec4(0, 0, 0, 0);
+    }
+}
+
+glm::ivec4 DrawOutlineMask::computeOutlineRect(const render::ShapeBounds& shapes, 
+                                               const ViewFrustum& viewFrustum, glm::ivec2 frameSize) {
+    glm::vec4 minMaxBounds{
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        -std::numeric_limits<float>::max(),
+        -std::numeric_limits<float>::max(),
+    };
+
+    for (const auto& keyShapes : shapes) {
+        const auto& items = keyShapes.second;
+
+        for (const auto& item : items) {
+            const auto& aabb = item.bound;
+            const auto projectedCube = viewFrustum.getProjectedPolygon(aabb);
+
+            if (projectedCube.getAnyInView()) {
+                minMaxBounds.x = std::min(minMaxBounds.x, projectedCube.getMinX());
+                minMaxBounds.y = std::min(minMaxBounds.y, projectedCube.getMinY());
+                minMaxBounds.z = std::max(minMaxBounds.z, projectedCube.getMaxX());
+                minMaxBounds.w = std::max(minMaxBounds.w, projectedCube.getMaxY());
+            }
+        }
+    }
+
+    if (minMaxBounds.x != std::numeric_limits<float>::max()) {
+        const glm::vec2 halfFrameSize{ frameSize.x*0.5f, frameSize.y*0.5f };
+        glm::ivec4  rect;
+
+        minMaxBounds += 1.0f;
+        rect.x = glm::clamp((int)floorf(minMaxBounds.x * halfFrameSize.x), 0, frameSize.x);
+        rect.y = glm::clamp((int)floorf(minMaxBounds.y * halfFrameSize.y), 0, frameSize.y);
+        rect.z = glm::clamp((int)ceilf(minMaxBounds.z * halfFrameSize.x), 0, frameSize.x);
+        rect.w = glm::clamp((int)ceilf(minMaxBounds.w * halfFrameSize.y), 0, frameSize.y);
+
+        rect.z -= rect.x;
+        rect.w -= rect.y;
+        return rect;
+    } else {
+        return glm::ivec4(0, 0, 0, 0);
     }
 }
 
@@ -203,6 +253,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 batch.enableStereo(false);
                 batch.setFramebuffer(destinationFrameBuffer);
 
+                batch.setStateScissorRect(outlineRect);
                 batch.setViewportTransform(args->_viewport);
                 batch.setProjectionTransform(glm::mat4());
                 batch.resetViewTransform();
@@ -235,6 +286,7 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false, false));
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        state->setScissorEnable(true);
         _pipeline = gpu::Pipeline::create(program, state);
 
         ps = gpu::Shader::createPixel(std::string(Outline_filled_frag));
@@ -261,7 +313,8 @@ void DebugOutline::configure(const Config& config) {
 }
 
 void DebugOutline::run(const render::RenderContextPointer& renderContext, const Inputs& input) {
-    const auto outlineRessources = input;
+    const auto outlineRessources = input.get0();
+    const auto outlineRect = input.get1();
 
     if (_isDisplayEnabled && outlineRessources) {
         assert(renderContext->args);
@@ -271,6 +324,7 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(outlineRect);
 
             const auto geometryBuffer = DependencyManager::get<GeometryCache>();
 
@@ -305,6 +359,7 @@ void DebugOutline::initializePipelines() {
 
     auto state = std::make_shared<gpu::State>();
     state->setDepthTest(gpu::State::DepthTest(false));
+    state->setScissorEnable(true);
 
     const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
 
@@ -360,16 +415,18 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS);
         state->setColorWriteMask(false, false, false, false);
+        state->setScissorEnable(true);
         initMaskPipelines(*shapePlumber, state);
     }
 
     // Prepare for outline group rendering.
     const auto outlineRessources = task.addJob<PrepareDrawOutline>("PrepareOutline", primaryFramebuffer);
+    render::Varying outline0Rect;
 
     for (auto i = 0; i < render::Scene::MAX_OUTLINE_COUNT; i++) {
         const auto groupItems = groups[i];
         const auto outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", groupItems);
-        const auto outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs, true);
+        const auto outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs);
 
         // Sort
         const auto sortedPipelines = task.addJob<render::PipelineSortShapes>("OutlinePipelineSort", outlinedItems);
@@ -384,6 +441,9 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
         }
         const auto drawMaskInputs = DrawOutlineMask::Inputs(sortedBounds, outlineRessources).asVarying();
         const auto outlinedRect = task.addJob<DrawOutlineMask>(name, drawMaskInputs, shapePlumber);
+        if (i == 0) {
+            outline0Rect = outlinedRect;
+        }
 
         // Draw outline
         {
@@ -396,7 +456,8 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     }
 
     // Debug outline
-    task.addJob<DebugOutline>("OutlineDebug", outlineRessources);
+    const auto debugInputs = DebugOutline::Inputs(outlineRessources, const_cast<const render::Varying&>(outline0Rect)).asVarying();
+    task.addJob<DebugOutline>("OutlineDebug", debugInputs);
 }
 
 #include "model_shadow_vert.h"

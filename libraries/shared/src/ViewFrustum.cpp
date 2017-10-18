@@ -504,16 +504,17 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
-CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
+template <typename TBOX>
+CubeProjectedPolygon ViewFrustum::computeProjectedPolygon(const TBOX& box) const {
     const glm::vec3& bottomNearRight = box.getCorner();
     glm::vec3 topFarLeft = box.calcTopFarLeft();
 
-    int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
-               + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
-               + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
-               + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
-               + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
-               + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
+    int lookUp = ((_position.x < bottomNearRight.x))   //  1 = right      |   compute 6-bit
+        + ((_position.x > topFarLeft.x) << 1)   //  2 = left       |         code to
+        + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
+        + ((_position.y > topFarLeft.y) << 3)   //  8 = top        | with respect to
+        + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
+        + ((_position.z > topFarLeft.z) << 5);  // 32 = back/far   |          planes
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
 
@@ -524,8 +525,8 @@ CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
     bool anyPointsInView = false; // assume the worst!
     if (vertexCount) {
         allPointsInView = true; // assume the best!
-        for(int i = 0; i < vertexCount; i++) {
-            int vertexNum = hullVertexLookup[lookUp][i+1];
+        for (int i = 0; i < vertexCount; i++) {
+            int vertexNum = hullVertexLookup[lookUp][i + 1];
             glm::vec3 point = box.getVertex((BoxVertex)vertexNum);
             glm::vec2 projectedPoint = projectPoint(point, pointInView);
             allPointsInView = allPointsInView && pointInView;
@@ -538,24 +539,24 @@ CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
         // NOTE: This clipping does not improve our overall performance. It basically causes more polygons to
         // end up in the same quad/half and so the polygon lists get longer, and that's more calls to polygon.occludes()
         if ( (projectedPolygon.getMaxX() > PolygonClip::RIGHT_OF_CLIPPING_WINDOW ) ||
-             (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
-             (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
-             (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
+        (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
+        (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
+        (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
 
-            CoverageRegion::_clippedPolygons++;
+        CoverageRegion::_clippedPolygons++;
 
-            glm::vec2* clippedVertices;
-            int        clippedVertexCount;
-            PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
+        glm::vec2* clippedVertices;
+        int        clippedVertexCount;
+        PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
 
-            // Now reset the vertices of our projectedPolygon object
-            projectedPolygon.setVertexCount(clippedVertexCount);
-            for(int i = 0; i < clippedVertexCount; i++) {
-                projectedPolygon.setVertex(i, clippedVertices[i]);
-            }
-            delete[] clippedVertices;
+        // Now reset the vertices of our projectedPolygon object
+        projectedPolygon.setVertexCount(clippedVertexCount);
+        for(int i = 0; i < clippedVertexCount; i++) {
+        projectedPolygon.setVertex(i, clippedVertices[i]);
+        }
+        delete[] clippedVertices;
 
-            lookUp += PROJECTION_CLIPPED;
+        lookUp += PROJECTION_CLIPPED;
         }
         ***/
     }
@@ -566,6 +567,14 @@ CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
     projectedPolygon.setAllInView(allPointsInView);
     projectedPolygon.setProjectionType(lookUp); // remember the projection type
     return projectedPolygon;
+}
+
+CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
+    return computeProjectedPolygon(box);
+}
+
+CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
+    return computeProjectedPolygon(box);
 }
 
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the

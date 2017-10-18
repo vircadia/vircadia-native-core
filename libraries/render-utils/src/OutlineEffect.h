@@ -72,6 +72,8 @@ public:
 protected:
 
     render::ShapePlumberPointer _shapePlumber;
+
+    static glm::ivec4 computeOutlineRect(const render::ShapeBounds& shapes, const ViewFrustum& viewFrustum, glm::ivec2 frameSize);
 };
 
 class DrawOutlineConfig : public render::Job::Config {
@@ -158,7 +160,7 @@ signals:
 
 class DebugOutline {
 public:
-    using Inputs = OutlineRessourcesPointer;
+    using Inputs = render::VaryingSet2<OutlineRessourcesPointer, glm::ivec4>;
     using Config = DebugOutlineConfig;
     using JobModel = render::Job::ModelI<DebugOutline, Inputs, Config>;
 
