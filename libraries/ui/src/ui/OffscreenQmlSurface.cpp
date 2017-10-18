@@ -1019,15 +1019,15 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
 }
 
 static void forEachKeyboard(QQuickItem* parent, std::function<void(QQuickItem*)> function) {
+    if (!function) {
+        return;
+    }
+
     auto keyboards = parent->findChildren<QObject*>("keyboard");
 
     for (auto keyboardObject : keyboards) {
         auto keyboard = qobject_cast<QQuickItem*>(keyboardObject);
-        if (keyboard == nullptr) {
-            continue;
-        }
-
-        if (function) {
+        if (keyboard) {
             function(keyboard);
         }
     }
