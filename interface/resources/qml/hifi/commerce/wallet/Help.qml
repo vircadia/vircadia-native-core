@@ -98,7 +98,7 @@ Item {
         ListElement {
             isExpanded: false;
             question: "Where are my private keys stored?"
-            answer: qsTr('Your private keys are <b>only stored on your hard drive</b> in High Fidelity Interface\'s AppData directory.<br><br><b><font color="#0093C5"><a href="#privateKeyPath">Tap here to open the file path of your hifikey in your file explorer.</a></font></b><br><br> You may backup this file by copying it to a USB flash drive, or to a service like Dropbox or Google Drive. Restore your backup by replacing the file in Interface\'s AppData directory with your backed-up copy.');
+            answer: qsTr('Your private keys are <b>only stored on your hard drive</b> in High Fidelity Interface\'s AppData directory.<br><br><b><font color="#0093C5"><a href="#privateKeyPath">Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b><br><br> You may backup this file by copying it to a USB flash drive, or to a service like Dropbox or Google Drive. Restore your backup by replacing the file in Interface\'s AppData directory with your backed-up copy.');
         }
         ListElement {
             isExpanded: false;
