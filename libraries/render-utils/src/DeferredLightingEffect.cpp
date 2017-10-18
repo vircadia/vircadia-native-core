@@ -552,7 +552,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         deferredLightingEffect->setupKeyLightBatch(args, batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
 
         // Haze
-        if (haze != nullptr) {
+        if (haze) {
 	        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
         }
 		
@@ -771,7 +771,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         }
     }
 
-    if (_defaultHaze == nullptr) {
+    if (!_defaultHaze) {
         auto hazeStage = renderContext->_scene->getStage<HazeStage>();
         if (hazeStage) {
 

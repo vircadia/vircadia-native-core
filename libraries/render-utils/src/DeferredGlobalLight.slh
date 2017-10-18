@@ -145,8 +145,11 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
         Light light = getLight();
         vec3 lightDirection = getLightDirection(light);
 
-        // Height at which haze density is reduced by 95%
-        float height_95p = -log(0.05) / hazeParams.hazeAltitudeFactorKeyLight;
+        // Height at which haze density is reduced by 95% (default set to 2000.0 for safety ,this should never happen)
+        float height_95p = 2000.0;
+        if (hazeParams.hazeAltitudeFactorKeyLight > 0.0f) {
+            height_95p = -log(0.05) / hazeParams.hazeAltitudeFactorKeyLight;
+        }
 
         // Note that the sine will always be positive
         float sin_pitch = sqrt(1.0 - lightDirection.y * lightDirection.y);
@@ -155,8 +158,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
         const float minimumSinPitch = 0.001;
         if (sin_pitch < minimumSinPitch) {
             distance = height_95p / minimumSinPitch;
-        }
-        else {
+        } else {
             distance = height_95p / sin_pitch;
         }
 

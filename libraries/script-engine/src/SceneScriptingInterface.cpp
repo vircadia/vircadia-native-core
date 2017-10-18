@@ -132,8 +132,7 @@ QString SceneScripting::Stage::getBackgroundMode() const {
 void SceneScripting::Stage::setHazeMode(const QString& mode) {
     if (mode == QString("haze off")) {
         _skyStage->setHazeMode(model::SunSkyStage::HAZE_OFF);
-    }
-    else if (mode == QString("haze on")) {
+    } else if (mode == QString("haze on")) {
         _skyStage->setHazeMode(model::SunSkyStage::HAZE_ON);
     }
 }

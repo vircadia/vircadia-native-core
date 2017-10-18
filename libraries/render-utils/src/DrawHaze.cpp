@@ -148,7 +148,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
     RenderArgs* args = renderContext->args;
 
-    if (_hazePipeline == nullptr) {
+    if (!_hazePipeline) {
         gpu::ShaderPointer ps = gpu::Shader::createPixel(std::string(Haze_frag));
         gpu::ShaderPointer vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
 

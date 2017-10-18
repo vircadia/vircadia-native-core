@@ -50,8 +50,7 @@ void Haze::setHazeEnableGlare(const bool isHazeEnableGlare) {
 
     if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && !isHazeEnableGlare) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_ENABLE_LIGHT_BLEND;
-    }
-    else if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) != HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && isHazeEnableGlare) {
+    } else if (((params.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) != HAZE_MODE_IS_ENABLE_LIGHT_BLEND) && isHazeEnableGlare) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_ENABLE_LIGHT_BLEND;
     }
 }
@@ -82,8 +81,7 @@ void Haze::setHazeActive(const bool isHazeActive) {
 
     if (((params.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE )&& !isHazeActive) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_ACTIVE;
-    }
-    else if (((params.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) && isHazeActive) {
+    } else if (((params.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) && isHazeActive) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_ACTIVE;
     }
 }
@@ -93,8 +91,7 @@ void Haze::setAltitudeBased(const bool isAltitudeBased) {
 
     if (((params.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) == HAZE_MODE_IS_ALTITUDE_BASED )&& !isAltitudeBased) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_ALTITUDE_BASED;
-    }
-    else if (((params.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) != HAZE_MODE_IS_ALTITUDE_BASED) && isAltitudeBased) {
+    } else if (((params.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) != HAZE_MODE_IS_ALTITUDE_BASED) && isAltitudeBased) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_ALTITUDE_BASED;
     }
 }
@@ -104,8 +101,7 @@ void Haze::setHazeAttenuateKeyLight(const bool isHazeAttenuateKeyLight) {
 
     if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) == HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED ) && !isHazeAttenuateKeyLight) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED;
-    }
-    else if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) != HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) && isHazeAttenuateKeyLight) {
+    } else if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) != HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) && isHazeAttenuateKeyLight) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED;
     }
 }
@@ -115,8 +111,7 @@ void Haze::setModulateColorActive(const bool isModulateColorActive) {
 
     if (((params.hazeMode & HAZE_MODE_IS_MODULATE_COLOR) == HAZE_MODE_IS_MODULATE_COLOR ) && !isModulateColorActive) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_MODULATE_COLOR;
-    }
-    else if (((params.hazeMode & HAZE_MODE_IS_MODULATE_COLOR) != HAZE_MODE_IS_MODULATE_COLOR) && isModulateColorActive) {
+    } else if (((params.hazeMode & HAZE_MODE_IS_MODULATE_COLOR) != HAZE_MODE_IS_MODULATE_COLOR) && isModulateColorActive) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_MODULATE_COLOR;
     }
 }

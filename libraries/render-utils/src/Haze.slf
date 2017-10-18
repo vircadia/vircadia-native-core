@@ -69,8 +69,7 @@ void main(void) {
     vec4 blendedHazeColor;
     if ((hazeParams.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) {
         blendedHazeColor = mix(hazeColor, directionalLightColor, power);
-    }
-    else {
+    } else {
         blendedHazeColor = hazeColor;
     }
 
@@ -102,15 +101,13 @@ void main(void) {
 
         // Compute color after haze effect
         potentialFragColor = mix(fragColor, vec4(1.0, 1.0, 1.0, 1.0), vec4(hazeAmount, 1.0));
-    }
-    else if ((hazeParams.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) != HAZE_MODE_IS_ALTITUDE_BASED) {
+    } else if ((hazeParams.hazeMode & HAZE_MODE_IS_ALTITUDE_BASED) != HAZE_MODE_IS_ALTITUDE_BASED) {
         // Haze is based only on range
         float hazeAmount = 1.0 - exp(-distance * hazeParams.hazeRangeFactor);
 
         // Compute color after haze effect
         potentialFragColor = mix(fragColor, blendedHazeColor, hazeAmount);
-    }
-    else {
+    } else {
         // Haze is based on both range and altitude
         // Taken from www.crytek.com/download/GDC2007_RealtimeAtmoFxInGamesRev.ppt
 
@@ -128,7 +125,10 @@ void main(void) {
         float deltaHeight = worldFragPos.y - worldEyePos.y;
         if (abs(deltaHeight) > slopeThreshold) {
             float t = hazeParams.hazeAltitudeFactor * deltaHeight;
-            hazeIntegral *= (1.0 - exp (-t)) / t;
+            // Protect from wild values
+            if (abs(t) > 0.0000001) {
+                hazeIntegral *= (1.0 - exp (-t)) / t;
+            }
         }
 
         float hazeAmount = 1.0 - exp(-hazeIntegral);
@@ -140,8 +140,7 @@ void main(void) {
     // Mix with background at far range
     if (distance > 32000.0) {
         outFragColor = mix(potentialFragColor, fragColor, hazeParams.backgroundBlendValue);
-    }
-    else {
+    } else {
         outFragColor = potentialFragColor;
     }
 }
