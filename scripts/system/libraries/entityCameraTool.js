@@ -123,7 +123,7 @@ CameraManager = function() {
 
     easing = false;
     easingTime = 0;
-    startOrientation = Quat.ZERO;
+    startOrientation = Quat.IDENTITY;
 
     that.previousCameraMode = null;
 

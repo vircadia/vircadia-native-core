@@ -71,12 +71,12 @@ SelectionManager = (function() {
     that.selections = [];
     var listeners = [];
 
-    that.localRotation = Quat.ZERO;
+    that.localRotation = Quat.IDENTITY;
     that.localPosition = Vec3.ZERO;
     that.localDimensions = Vec3.ZERO;
     that.localRegistrationPoint = Vec3.HALF;
 
-    that.worldRotation = Quat.ZERO;
+    that.worldRotation = Quat.IDENTITY;
     that.worldPosition = Vec3.ZERO;
     that.worldDimensions = Vec3.ZERO;
     that.worldRegistrationPoint = Vec3.HALF;
@@ -1508,7 +1508,7 @@ SelectionDisplay = (function() {
             position = SelectionManager.localPosition;
             registrationPoint = SelectionManager.localRegistrationPoint;
         } else {
-            rotation = Quat.ZERO;
+            rotation = Quat.IDENTITY;
             dimensions = SelectionManager.worldDimensions;
             position = SelectionManager.worldPosition;
             registrationPoint = SelectionManager.worldRegistrationPoint;
@@ -2564,7 +2564,7 @@ SelectionDisplay = (function() {
         var onBegin = function(event, pickRay, pickResult) {
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
-            rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.ZERO;
+            rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.IDENTITY;
 
             if (spaceMode === SPACE_LOCAL) {
                 rotation = SelectionManager.localRotation;
