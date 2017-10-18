@@ -446,7 +446,7 @@ void EntityServer::domainSettingsRequestFailed() {
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
-    QString thisPlaceName = DependencyManager::get<AddressManager>()->getPlaceName();
+    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainId();
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
@@ -486,9 +486,9 @@ void EntityServer::startDynamicDomainVerification() {
                     jsonObject = jsonObject["data"].toObject();
 
                     if (networkReply->error() == QNetworkReply::NoError) {
-                        if (jsonObject["location"].toArray().first().toString() != thisPlaceName) {
-                            qCDebug(entities) << "Entity's cert's place name" << jsonObject["place_name"].toString()
-                                << "isn't the current place name" << thisPlaceName << "; deleting entity" << i.value();
+                        if (jsonObject["domain_id"].toString() != thisDomainID) {
+                            qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
+                                << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << i.value();
                             tree->deleteEntity(i.value(), true);
                         } else {
                             qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
