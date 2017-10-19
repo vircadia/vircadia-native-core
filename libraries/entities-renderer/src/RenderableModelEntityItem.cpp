@@ -34,8 +34,6 @@
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 
-// uncomment WANT_DETAILED_PROFILING to profile the interesting contexts
-//#define WANT_DETAILED_PROFILING
 
 static CollisionRenderMeshCache collisionMeshCache;
 
@@ -110,9 +108,7 @@ QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextu
 }
 
 void RenderableModelEntityItem::doInitialModelSimulation() {
-#ifdef WANT_DETAILED_PROFILING
-    PROFILE_RANGE(simulation_physics, __FUNCTION__);
-#endif
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     ModelPointer model = getModel();
     if (!model) {
         return;
@@ -144,9 +140,7 @@ void RenderableModelEntityItem::autoResizeJointArrays() {
 }
 
 bool RenderableModelEntityItem::needsUpdateModelBounds() const {
-#ifdef WANT_DETAILED_PROFILING
-    PROFILE_RANGE(simulation_physics, __FUNCTION__);
-#endif
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     ModelPointer model = getModel();
     if (!hasModel() || !model) {
         return false;
@@ -191,9 +185,7 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
 }
 
 void RenderableModelEntityItem::updateModelBounds() {
-#ifdef WANT_DETAILED_PROFILING
-    PROFILE_RANGE(simulation_physics, "updateModelBounds");
-#endif
+    DETAILED_PROFILE_RANGE(simulation_physics, "updateModelBounds");
 
     if (!_dimensionsInitialized || !hasModel()) {
         return;
@@ -352,9 +344,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
                 // we have both URLs AND both geometries AND they are both fully loaded.
                 if (_needsInitialSimulation) {
                     // the _model's offset will be wrong until _needsInitialSimulation is false
-#ifdef WANT_DETAILED_PROFILING
-                    PerformanceTimer perfTimer("_model->simulate");
-#endif
+                    DETAILED_PERFORMANCE_TIMER("_model->simulate");
                     const_cast<RenderableModelEntityItem*>(this)->doInitialModelSimulation();
                 }
                 return true;
@@ -900,9 +890,7 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
 }
 
 void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
-#ifdef WANT_DETAILED_PROFILING
-    PerformanceTimer pertTimer("locationChanged");
-#endif
+    DETAILED_PERFORMANCE_TIMER("locationChanged");
     EntityItem::locationChanged(tellPhysics);
     auto model = getModel();
     if (model && model->isLoaded()) {
@@ -1182,9 +1170,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
 }
 
 void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-#ifdef WANT_DETAILED_PROFILING
-    PROFILE_RANGE(simulation_physics, __FUNCTION__);
-#endif
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1274,9 +1260,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // TODO? early exit here when not visible?
 
     {
-#ifdef WANT_DETAILED_PROFILING
-        PROFILE_RANGE(simulation_physics, "Fixup");
-#endif
+        DETAILED_PROFILE_RANGE(simulation_physics, "Fixup");
         if (model->needsFixupInScene()) {
             model->removeFromScene(scene, transaction);
             render::Item::Status::Getters statusGetters;
@@ -1292,9 +1276,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     {
-#ifdef WANT_DETAILED_PROFILING
-        PROFILE_RANGE(simulation_physics, "CheckAnimation");
-#endif
+        DETAILED_PROFILE_RANGE(simulation_physics, "CheckAnimation");
         // make a copy of the animation properites
         auto newAnimationProperties = entity->getAnimationProperties();
         if (newAnimationProperties != _renderAnimationProperties) {
@@ -1306,9 +1288,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     if (_animating) {
-#ifdef WANT_DETAILED_PROFILING
-        PROFILE_RANGE(simulation_physics, "Animate");
-#endif
+        DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }
@@ -1319,10 +1299,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items
 void ModelEntityRenderer::doRender(RenderArgs* args) {
-#ifdef WANT_DETAILED_PROFILING
-    PROFILE_RANGE(render_detail, "MetaModelRender");
-    PerformanceTimer perfTimer("RMEIrender");
-#endif
+    DETAILED_PROFILE_RANGE(render_detail, "MetaModelRender");
+    DETAILED_PERFORMANCE_TIMER("RMEIrender");
 
     ModelPointer model;
     withReadLock([&]{
