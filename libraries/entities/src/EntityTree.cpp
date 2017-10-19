@@ -71,6 +71,8 @@ EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage)
 {
     resetClientEditStats();
+
+    EntityItem::retrieveMarketplacePublicKey();
 }
 
 EntityTree::~EntityTree() {
@@ -1523,9 +1525,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         _totalCreates++;
 
                         if (newEntity && isCertified && getIsServer()) {
-                            // ZRF FIXME!!!
-                            //if (!newEntity->verifyStaticCertificateProperties()) {
-                            if (false) {
+                            if (!newEntity->verifyStaticCertificateProperties()) {
                                 qCDebug(entities) << "User" << senderNode->getUUID()
                                     << "attempted to add a certified entity with ID" << entityItemID << "which failed"
                                     << "static certificate verification.";
