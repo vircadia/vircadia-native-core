@@ -46,9 +46,11 @@ class PolyLineEntityItem : public EntityItem {
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
 
     void setColor(const rgbColor& value) {
+        _strokeColorsChanged = true;
         memcpy(_color, value, sizeof(_color));
     }
     void setColor(const xColor& value) {
+        _strokeColorsChanged = true;
         _color[RED_INDEX] = value.red;
         _color[GREEN_INDEX] = value.green;
         _color[BLUE_INDEX] = value.blue;
@@ -64,8 +66,14 @@ class PolyLineEntityItem : public EntityItem {
     bool setNormals(const QVector<glm::vec3>& normals);
     QVector<glm::vec3> getNormals() const;
 
+    bool setStrokeColors(const QVector<glm::vec3>& strokeColors);
+    QVector<glm::vec3> getStrokeColors() const;
+
     bool setStrokeWidths(const QVector<float>& strokeWidths);
     QVector<float> getStrokeWidths() const;
+
+    void setIsUVModeStretch(bool isUVModeStretch){ _isUVModeStretch = isUVModeStretch; }
+    bool getIsUVModeStretch() const{ return _isUVModeStretch; }
 
     QString getTextures() const;
     void setTextures(const QString& textures);
@@ -76,10 +84,11 @@ class PolyLineEntityItem : public EntityItem {
 
     bool pointsChanged() const { return _pointsChanged; } 
     bool normalsChanged() const { return _normalsChanged; }
+    bool strokeColorsChanged() const { return _strokeColorsChanged; }
     bool strokeWidthsChanged() const { return _strokeWidthsChanged; }
     bool texturesChanged() const { return _texturesChangedFlag; }
     void resetTexturesChanged() { _texturesChangedFlag = false; }
-    void resetPolyLineChanged() { _strokeWidthsChanged = _normalsChanged = _pointsChanged = false; }
+    void resetPolyLineChanged() { _strokeColorsChanged = _strokeWidthsChanged = _normalsChanged = _pointsChanged = false; }
 
 
     // never have a ray intersection pick a PolyLineEntityItem.
@@ -103,11 +112,14 @@ private:
     float _lineWidth { DEFAULT_LINE_WIDTH };
     bool _pointsChanged { true };
     bool _normalsChanged { true };
+    bool _strokeColorsChanged { true };
     bool _strokeWidthsChanged { true };
     QVector<glm::vec3> _points;
     QVector<glm::vec3> _normals;
+    QVector<glm::vec3> _strokeColors;
     QVector<float> _strokeWidths;
     QString _textures;
+    bool _isUVModeStretch;
     bool _texturesChangedFlag { false };
     mutable QReadWriteLock _quadReadWriteLock;
 };
