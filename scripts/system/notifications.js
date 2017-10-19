@@ -95,13 +95,15 @@
         EDIT_ERROR: 4,
         TABLET: 5,
         CONNECTION: 6,
+        WALLET: 7,
         properties: [
             { text: "Snapshot" },
             { text: "Level of Detail" },
             { text: "Connection Refused" },
             { text: "Edit error" },
             { text: "Tablet" },
-            { text: "Connection" }
+            { text: "Connection" },
+            { text: "Wallet" }
         ],
         getTypeFromMenuItem: function (menuItemName) {
             var type;
@@ -574,6 +576,10 @@
         createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
     }
 
+    function walletNotSetup() {
+        createNotification("Your wallet isn't set up. Open the WALLET app.", NotificationType.WALLET);
+    }
+
     function connectionAdded(connectionName) {
         createNotification(connectionName, NotificationType.CONNECTION);
     }
@@ -691,6 +697,7 @@
     Window.notifyEditError = onEditError;
     Window.notify = onNotify;
     Tablet.tabletNotification.connect(tabletNotification);
+    Wallet.walletNotSetup.connect(walletNotSetup);
 
     Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     Messages.messageReceived.connect(onMessageReceived);

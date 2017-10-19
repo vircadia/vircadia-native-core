@@ -20,6 +20,7 @@
 #include <ui/QmlWrapper.h>
 #include <OffscreenUi.h>
 #include "Application.h"
+#include "commerce/Wallet.h"
 
 class CheckoutProxy : public QmlWrapper {
     Q_OBJECT
@@ -36,6 +37,7 @@ class WalletScriptingInterface : public QObject, public Dependency {
 public:
     WalletScriptingInterface();
 
+    Q_INVOKABLE void refreshWalletStatus();
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
     void setWalletStatus(const uint& status) { _walletStatus = status; }
 
@@ -43,6 +45,7 @@ public:
 
 signals:
     void walletStatusChanged();
+    void walletNotSetup();
 
 private:
     uint _walletStatus;

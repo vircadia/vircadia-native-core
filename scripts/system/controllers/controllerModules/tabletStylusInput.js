@@ -6,9 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
+   enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
-   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
+   HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset,
    getEnabledModuleByName
 */
 
@@ -172,7 +172,7 @@ Script.include("/~/system/libraries/controllers.js");
                 visible: true,
                 ignoreRayIntersection: true,
                 drawInFront: false,
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex(this.hand === RIGHT_HAND ?
                     "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                     "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND")
@@ -248,19 +248,24 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.nearGrabWantsToRun = function(controllerData) {
-            var moduleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
-            var module = getEnabledModuleByName(moduleName);
-            var ready = module ? module.isReady(controllerData) : makeRunningValues(false, [], []);
-            return ready.active;
+        this.otherModuleNeedsToRun = function(controllerData) {
+            var grabOverlayModuleName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
+            var grabOverlayModule = getEnabledModuleByName(grabOverlayModuleName);
+            var grabOverlayModuleReady = grabOverlayModule ? grabOverlayModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            var farGrabModuleName = this.hand === RIGHT_HAND ? "RightFarActionGrabEntity" : "LeftFarActionGrabEntity";
+            var farGrabModule = getEnabledModuleByName(farGrabModuleName);
+            var farGrabModuleReady = farGrabModule ? farGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
+            return grabOverlayModuleReady.active || farGrabModuleReady.active;
         };
 
         this.processStylus = function(controllerData) {
             this.updateStylusTip();
 
-            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.nearGrabWantsToRun(controllerData)) {
+            if (!this.stylusTip.valid || this.overlayLaserActive(controllerData) || this.otherModuleNeedsToRun(controllerData)) {
                 this.pointFinger(false);
                 this.hideStylus();
+                this.stylusTouchingTarget = false;
+                this.relinquishTouchFocus();
                 return false;
             }
 
@@ -283,7 +288,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // add the tabletScreen, if it is valid
-            if (HMD.tabletScreenID && HMD.tabletScreenID !== NULL_UUID &&
+            if (HMD.tabletScreenID && HMD.tabletScreenID !== Uuid.NULL &&
                 Overlays.getProperty(HMD.tabletScreenID, "visible")) {
                 stylusTarget = TouchEventUtils.calculateTouchTargetFromOverlay(this.stylusTip, HMD.tabletScreenID);
                 if (stylusTarget) {
@@ -292,7 +297,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             // add the tablet home button.
-            if (HMD.homeButtonID && HMD.homeButtonID !== NULL_UUID &&
+            if (HMD.homeButtonID && HMD.homeButtonID !== Uuid.NULL &&
                 Overlays.getProperty(HMD.homeButtonID, "visible")) {
                 stylusTarget = TouchEventUtils.calculateTouchTargetFromOverlay(this.stylusTip, HMD.homeButtonID);
                 if (stylusTarget) {

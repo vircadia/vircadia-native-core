@@ -78,6 +78,10 @@ Rectangle {
         onInventoryResult: {
             purchasesReceived = true;
 
+            if (root.pendingInventoryReply) {
+                inventoryTimer.start();
+            }
+
             if (result.status !== 'success') {
                 console.log("Failed to get purchases", result.message);
             } else {
@@ -98,10 +102,6 @@ Rectangle {
                 previousPurchasesModel.append(inventoryResult);
 
                 buildFilteredPurchasesModel();
-
-                if (root.pendingInventoryReply) {
-                    inventoryTimer.start();
-                }
             }
 
             root.pendingInventoryReply = false;
@@ -112,7 +112,7 @@ Rectangle {
         id: notSetUpTimer;
         interval: 200;
         onTriggered: {
-            sendToScript({method: 'checkout_walletNotSetUp'});
+            sendToScript({method: 'purchases_walletNotSetUp'});
         }
     }
 
@@ -426,7 +426,8 @@ Rectangle {
                 itemName: title;
                 itemId: id;
                 itemPreviewImageUrl: preview;
-                itemHref: root_file_url;
+                itemHref: download_url;
+                certificateId: certificate_id;
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;
@@ -684,8 +685,7 @@ Rectangle {
                 titleBarContainer.referrerURL = message.referrerURL;
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
-            case 'inspectionCertificate_setMarketplaceId':
-            case 'inspectionCertificate_setItemInfo':
+            case 'inspectionCertificate_setCertificateId':
                 inspectionCertificate.fromScript(message);
             break;
             case 'purchases_showMyItems':

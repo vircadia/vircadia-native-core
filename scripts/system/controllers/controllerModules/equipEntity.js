@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
+   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
    cloneEntity, DISPATCHER_PROPERTIES
@@ -333,7 +333,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var props = controllerData.nearbyEntityPropertiesByID[hotspot.entityID];
 
             var hasParent = true;
-            if (props.parentID === NULL_UUID) {
+            if (props.parentID === Uuid.NULL) {
                 hasParent = false;
             }
 
@@ -491,7 +491,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             var reparentProps = {
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex,
                 localVelocity: {x: 0, y: 0, z: 0},
                 localAngularVelocity: {x: 0, y: 0, z: 0},
@@ -539,12 +539,18 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         this.endEquipEntity = function () {
             Entities.editEntity(this.targetEntityID, {
-                parentID: NULL_UUID,
+                parentID: Uuid.NULL,
                 parentJointIndex: -1
             });
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseEquip", args);
+
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
 
             ensureDynamic(this.targetEntityID);
             this.targetEntityID = null;

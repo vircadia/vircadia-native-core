@@ -11,17 +11,19 @@
 //
 
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
+   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
    enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
 
 */
 (function() {
     Script.include("/~/system/libraries/controllers.js");
     var ControllerDispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
+    var END_RADIUS = 0.005;
+    var dim = { x: END_RADIUS, y: END_RADIUS, z: END_RADIUS };
     var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
@@ -31,16 +33,17 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        drawHUDLayer: true,
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         visible: true
     };
     var fullPath = {
@@ -52,16 +55,17 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        drawHUDLayer: true,
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         visible: true
     };
     var holdPath = {
@@ -73,8 +77,8 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        drawHUDLayer: true,
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [
@@ -126,17 +130,6 @@
         };
 
         this.updateLaserPointer = function(controllerData) {
-            var RADIUS = 0.005;
-            var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
-
-            if (this.mode === "full") {
-                this.fullEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: fullPath, end: this.fullEnd});
-            } else if (this.mode === "half") {
-                this.halfEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: halfPath, end: this.halfEnd});
-            }
-
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
         };
@@ -212,8 +205,6 @@
             LaserPointers.removeLaserPointer(this.laserPointer);
         };
 
-        this.halfEnd = halfEnd;
-        this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_HUD,

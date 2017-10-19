@@ -160,7 +160,7 @@ public:
     QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
-    QRect getRecommendedOverlayRect() const;
+    QRect getRecommendedHUDRect() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
@@ -717,5 +717,8 @@ private:
     LaserPointerManager _laserPointerManager;
 
     friend class RenderEventHandler;
+
+    std::atomic<bool> _pendingIdleEvent { false };
+    std::atomic<bool> _pendingRenderEvent { false };
 };
 #endif // hifi_Application_h

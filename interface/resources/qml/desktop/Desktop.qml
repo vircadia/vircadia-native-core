@@ -88,7 +88,7 @@ FocusScope {
                 return;
             }
             var oldRecommendedRect = recommendedRect;
-            var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedOverlayRect();
+            var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedHUDRect();
             var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y,
                                     newRecommendedRectJS.width,
                                     newRecommendedRectJS.height);
@@ -271,7 +271,7 @@ FocusScope {
 
             var oldRecommendedRect = recommendedRect;
             var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
-            var newRecommendedRect = Controller.getRecommendedOverlayRect();
+            var newRecommendedRect = Controller.getRecommendedHUDRect();
             var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
             var windows = d.getTopLevelWindows();
             for (var i = 0; i < windows.length; ++i) {
@@ -301,14 +301,18 @@ FocusScope {
     function isPointOnWindow(point) {
         for (var i = 0; i < desktop.visibleChildren.length; i++) {
             var child = desktop.visibleChildren[i];
-            if (child.visible) {
-                if (child.hasOwnProperty("modality")) {
-                    var mappedPoint = child.mapFromGlobal(point.x, point.y);
+            if (child.hasOwnProperty("modality")) {
+                var mappedPoint = mapToItem(child, point.x, point.y);
+                if (child.hasOwnProperty("frame")) {
                     var outLine = child.frame.children[2];
                     var framePoint = outLine.mapFromGlobal(point.x, point.y);
-                    if (child.contains(mappedPoint) || outLine.contains(framePoint)) {
+                    if (outLine.contains(framePoint)) {
                         return true;
                     }
+                }
+
+                if (child.contains(mappedPoint)) {
+                    return true;
                 }
             }
         }
@@ -410,7 +414,7 @@ FocusScope {
             return;
         }
 
-        var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedOverlayRect();
+        var newRecommendedRectJS = (typeof Controller === "undefined") ? Qt.rect(0,0,0,0) : Controller.getRecommendedHUDRect();
         var newRecommendedRect = Qt.rect(newRecommendedRectJS.x, newRecommendedRectJS.y,
                                 newRecommendedRectJS.width,
                                 newRecommendedRectJS.height);
@@ -442,7 +446,7 @@ FocusScope {
 
         var oldRecommendedRect = recommendedRect;
         var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
-        var newRecommendedRect = Controller.getRecommendedOverlayRect();
+        var newRecommendedRect = Controller.getRecommendedHUDRect();
         var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
         repositionWindow(targetWindow, false, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
     }
@@ -459,7 +463,7 @@ FocusScope {
             return;
         }
 
-        var recommended = Controller.getRecommendedOverlayRect();
+        var recommended = Controller.getRecommendedHUDRect();
         var maxX = recommended.x + recommended.width;
         var maxY = recommended.y + recommended.height;
         var newPosition = Qt.vector2d(targetWindow.x, targetWindow.y);
