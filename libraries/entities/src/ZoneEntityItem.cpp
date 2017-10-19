@@ -44,6 +44,7 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
 
     _backgroundMode = BACKGROUND_MODE_INHERIT;
+    _hazeMode = (uint32_t)COMPONENT_MODE_INHERIT;
 }
 
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -320,8 +321,15 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
     });
 }
 
+#pragma optimize("", off)
 void ZoneEntityItem::setHazeMode(const uint32_t value) {
-    _hazeMode = value;
+    if (_hazeMode >= 0 && _hazeMode < COMPONENT_MODE_ITEM_COUNT) {
+        _hazeMode = value;
+    }
+    else {
+        _hazeMode = 0;
+    }
+
     _hazePropertiesChanged = true;
 }
 

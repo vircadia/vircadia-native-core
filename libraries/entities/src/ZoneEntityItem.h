@@ -146,7 +146,7 @@ protected:
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
-    uint8_t _hazeMode{ (uint8_t)COMPONENT_MODE_INHERIT };
+    uint32_t _hazeMode{ (uint32_t)COMPONENT_MODE_INHERIT };
 
     float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
     xColor _hazeColor{ HazePropertyGroup::DEFAULT_HAZE_COLOR };
