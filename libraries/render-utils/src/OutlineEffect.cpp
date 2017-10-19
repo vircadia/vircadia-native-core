@@ -247,7 +247,7 @@ void DrawOutline::configure(const Config& config) {
     _parameters._unoccludedFillOpacity = config.unoccludedFillOpacity;
     _parameters._occludedFillOpacity = config.occludedFillOpacity;
     _parameters._threshold = config.glow ? 1.0f : 1e-3f;
-    _parameters._blurKernelSize = std::min(10, std::max(2, (int)floorf(config.width * 3 + 0.5f)));
+    _parameters._blurKernelSize = std::min(7, std::max(2, (int)floorf(config.width * 3 + 0.5f)));
     // Size is in normalized screen height. We decide that for outline width = 1, this is equal to 1/400.
     _size = config.width / 400.0f;
     _parameters._size.x = (_size * _framebufferSize.y) / _framebufferSize.x;
