@@ -1,7 +1,4 @@
 //
-//  PickManager.h
-//  interface/src/raypick
-//
 //  Created by Sam Gondelman 10/16/2017
 //  Copyright 2017 High Fidelity, Inc.
 //
@@ -36,16 +33,20 @@ namespace std {
     };
 }
 
-// T is a mathematical representation of a Pick.
-// For example: PickRay for RayPick
-// TODO: add another template type to replace RayPickResult with a generalized PickResult
+// T is a mathematical representation of a Pick
+// For example: RayPicks use T = PickRay
+// T needs have the following functions defined:
+// - operator bool() const
+// - bool operator==(const T& other) const
+// - QVariantMap toVariantMap() const
+// - an std::hash size_t operator()(const T& a) const
 template<typename T>
 class PickManager : protected ReadWriteLockable {
 
 public:
     virtual void update();
 
-    RayPickResult getPrevPickResult(const QUuid& uid) const;
+    QVariantMap getPrevPickResult(const QUuid& uid) const;
 
     QUuid addPick(const std::shared_ptr<Pick<T>> pick);
     void removePick(const QUuid& uid);
@@ -60,11 +61,11 @@ protected:
     std::shared_ptr<Pick<T>> findPick(const QUuid& uid) const;
     QHash<QUuid, std::shared_ptr<Pick<T>>> _picks;
 
-    typedef std::unordered_map<T, std::unordered_map<PickCacheKey, RayPickResult>> PickCache;
+    typedef std::unordered_map<T, std::unordered_map<PickCacheKey, PickResultPointer>> PickCache;
 
-    // Returns true if this ray exists in the cache, and if it does, update res if the cached result is closer
-    bool checkAndCompareCachedResults(T& pick, PickCache& cache, RayPickResult& res, const PickCacheKey& key);
-    void cacheResult(const bool intersects, const RayPickResult& resTemp, const PickCacheKey& key, RayPickResult& res, T& pick, PickCache& cache);
+    // Returns true if this pick exists in the cache, and if it does, update res if the cached result is closer
+    bool checkAndCompareCachedResults(T& pick, PickCache& cache, PickResultPointer& res, const PickCacheKey& key);
+    void cacheResult(const bool intersects, const PickResultPointer& resTemp, const PickCacheKey& key, PickResultPointer& res, T& mathPick, PickCache& cache, const std::shared_ptr<Pick<T>> pick);
 };
 
 template<typename T>
@@ -78,25 +79,21 @@ std::shared_ptr<Pick<T>> PickManager<T>::findPick(const QUuid& uid) const {
 }
 
 template<typename T>
-bool PickManager<T>::checkAndCompareCachedResults(T& pick, PickCache& cache, RayPickResult& res, const PickCacheKey& key) {
+bool PickManager<T>::checkAndCompareCachedResults(T& pick, PickCache& cache, PickResultPointer& res, const PickCacheKey& key) {
     if (cache.find(pick) != cache.end() && cache[pick].find(key) != cache[pick].end()) {
-        if (cache[pick][key].distance < res.distance) {
-            res = cache[pick][key];
-        }
+        res = res->compareAndProcessNewResult(cache[pick][key]);
         return true;
     }
     return false;
 }
 
 template<typename T>
-void PickManager<T>::cacheResult(const bool intersects, const RayPickResult& resTemp, const PickCacheKey& key, RayPickResult& res, T& pick, PickCache& cache) {
+void PickManager<T>::cacheResult(const bool intersects, const PickResultPointer& resTemp, const PickCacheKey& key, PickResultPointer& res, T& mathPick, PickCache& cache, const std::shared_ptr<Pick<T>> pick) {
     if (intersects) {
-        cache[pick][key] = resTemp;
-        if (resTemp.distance < res.distance) {
-            res = resTemp;
-        }
+        cache[mathPick][key] = resTemp;
+        res = res->compareAndProcessNewResult(resTemp);
     } else {
-        cache[pick][key] = RayPickResult(res.searchRay);
+        cache[mathPick][key] = pick->getDefaultResult(mathPick.toVariantMap());
     }
 }
 
@@ -120,50 +117,29 @@ void PickManager<T>::update() {
             continue;
         }
 
-        RayPickResult res = RayPickResult(mathematicalPick);
+        PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
         if (pick->getFilter().doesPickEntities()) {
-            RayToEntityIntersectionResult entityRes;
-            bool fromCache = true;
-            bool invisible = pick->getFilter().doesPickInvisible();
-            bool nonCollidable = pick->getFilter().doesPickNonCollidable();
             PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
-                entityRes = pick->getEntityIntersection(mathematicalPick, !pick->getFilter().doesPickCoarse(),
-                    pick->(template getIncludeItemsAs<EntityItemID>()), (template pick->getIgnoreItemsAs<EntityItemID>()), !invisible, !nonCollidable);
-                fromCache = false;
-            }
-
-            if (!fromCache) {
-                cacheResult(entityRes.intersects, RayPickResult(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, mathematicalPick, entityRes.surfaceNormal),
-                    entityKey, res, mathematicalPick, results);
+                PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
+                cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
             }
         }
 
         if (pick->getFilter().doesPickOverlays()) {
-            RayToOverlayIntersectionResult overlayRes;
-            bool fromCache = true;
-            bool invisible = pick->getFilter().doesPickInvisible();
-            bool nonCollidable = pick->getFilter().doesPickNonCollidable();
             PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
-                overlayRes = pick->getOverlayIntersection(mathematicalPick, !pick->getFilter().doesPickCoarse(),
-                    pick->(template getIncludeItemsAs<OverlayID>()), pick->(template getIgnoreItemsAs<OverlayID>()), !invisible, !nonCollidable);
-                fromCache = false;
-            }
-
-            if (!fromCache) {
-                cacheResult(overlayRes.intersects, RayPickResult(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, mathematicalPick, overlayRes.surfaceNormal),
-                    overlayKey, res, mathematicalPick, results);
+                PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
+                cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
             }
         }
 
         if (pick->getFilter().doesPickAvatars()) {
             PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
-                RayToAvatarIntersectionResult avatarRes = pick->getAvatarIntersection(mathematicalPick,
-                    pick->(template getIncludeItemsAs<EntityItemID>()), pick->(template getIgnoreItemsAs<EntityItemID>()));
-                cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, mathematicalPick), avatarKey, res, mathematicalPick, results);
+                PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
+                cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
             }
         }
 
@@ -171,26 +147,26 @@ void PickManager<T>::update() {
         if (pick->getFilter().doesPickHUD() && DependencyManager::get<HMDScriptingInterface>()->isHMDMode()) {
             PickCacheKey hudKey = { pick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, hudKey)) {
-                glm::vec3 hudRes = pick->getHUDIntersection(mathematicalPick);
-                cacheResult(true, RayPickResult(IntersectionType::HUD, 0, glm::distance(mathematicalPick.origin, hudRes), hudRes, mathematicalPick), hudKey, res, mathematicalPick, results);
+                PickResultPointer hudRes = pick->getHUDIntersection(mathematicalPick);
+                cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
             }
         }
 
-        if (pick->getMaxDistance() == 0.0f || (pick->getMaxDistance() > 0.0f && res.distance < pick->getMaxDistance())) {
+        if (pick->getMaxDistance() == 0.0f || (pick->getMaxDistance() > 0.0f && res->checkOrFilterAgainstMaxDistance(pick->getMaxDistance()))) {
             pick->setPickResult(res);
         } else {
-            pick->setPickResult(RayPickResult(mathematicalPick));
+            pick->setPickResult(pick->getDefaultResult(mathematicalPick.toVariantMap()));
         }
     }
 }
 
 template<typename T>
-RayPickResult PickManager<T>::getPrevPickResult(const QUuid& uid) const {
+QVariantMap PickManager<T>::getPrevPickResult(const QUuid& uid) const {
     auto pick = findPick(uid);
-    if (pick) {
-        return pick->getPrevPickResult();
+    if (pick && pick->getPrevPickResult()) {
+        return pick->getPrevPickResult()->toVariantMap();
     }
-    return RayPickResult();
+    return QVariantMap();
 }
 
 template<typename T>

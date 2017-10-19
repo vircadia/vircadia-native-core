@@ -1,7 +1,4 @@
 //
-//  RayPickManager.h
-//  interface/src/raypick
-//
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
 //
@@ -11,9 +8,8 @@
 #ifndef hifi_RayPickManager_h
 #define hifi_RayPickManager_h
 
-#include "PickManager.h"
-
-class RayPickResult;
+#include <pointers/PickManager.h>
+#include "RegisteredMetaTypes.h"
 
 class RayPickManager : public PickManager<PickRay> {
 

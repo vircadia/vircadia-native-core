@@ -12,7 +12,6 @@
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"
-#include "RayPickScriptingInterface.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
@@ -101,7 +100,7 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
     }
 }
 
-const RayPickResult LaserPointer::getPrevRayPickResult() {
+const QVariantMap LaserPointer::getPrevRayPickResult() {
     return qApp->getRayPickManager().getPrevPickResult(_rayPickUID);
 }
 
@@ -198,15 +197,18 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 void LaserPointer::update() {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
-        RayPickResult prevRayPickResult = qApp->getRayPickManager().getPrevPickResult(_rayPickUID);
+        QVariantMap prevRayPickResult = qApp->getRayPickManager().getPrevPickResult(_rayPickUID);
+        IntersectionType type = IntersectionType(prevRayPickResult["type"].toInt());
+        PickRay pickRay = PickRay(prevRayPickResult["searchRay"].toMap());
+        QUuid uid = prevRayPickResult["objectID"].toUuid();
         if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
-            (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
-            float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;
-            updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
+            (type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
+            float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult["distance"].toFloat();
+            updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay, false);
             disableRenderState(_defaultRenderStates[_currentRenderState].second);
         } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
             disableRenderState(_renderStates[_currentRenderState]);
-            updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), prevRayPickResult.searchRay, true);
+            updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), pickRay, true);
         } else if (!_currentRenderState.empty()) {
             disableRenderState(_renderStates[_currentRenderState]);
             disableRenderState(_defaultRenderStates[_currentRenderState].second);

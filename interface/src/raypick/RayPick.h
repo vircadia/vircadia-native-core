@@ -8,28 +8,72 @@
 #ifndef hifi_RayPick_h
 #define hifi_RayPick_h
 
-#include "Pick.h"
+#include <RegisteredMetaTypes.h>
+#include <pointers/Pick.h>
 
 class EntityItemID;
 class OverlayID;
+
+class RayPickResult : public PickResult {
+public:
+    RayPickResult() {}
+    RayPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
+    RayPickResult(const IntersectionType type, const QUuid& objectID, const float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
+        PickResult(searchRay.toVariantMap()), type(type), intersects(type != NONE), objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal) {
+    }
+
+    RayPickResult(const RayPickResult& rayPickResult) : PickResult(rayPickResult.pickVariant) {
+        type = rayPickResult.type;
+        intersects = rayPickResult.intersects;
+        objectID = rayPickResult.objectID;
+        distance = rayPickResult.distance;
+        intersection = rayPickResult.intersection;
+        surfaceNormal = rayPickResult.surfaceNormal;
+    }
+
+    IntersectionType type { NONE };
+    bool intersects { false };
+    QUuid objectID;
+    float distance { FLT_MAX };
+    glm::vec3 intersection { NAN };
+    glm::vec3 surfaceNormal { NAN };
+
+    virtual QVariantMap toVariantMap() const override {
+        QVariantMap toReturn;
+        toReturn["type"] = type;
+        toReturn["intersects"] = intersects;
+        toReturn["objectID"] = objectID;
+        toReturn["distance"] = distance;
+        toReturn["intersection"] = vec3toVariant(intersection);
+        toReturn["surfaceNormal"] = vec3toVariant(surfaceNormal);
+        toReturn["searchRay"] = PickResult::toVariantMap();
+        return toReturn;
+    }
+
+    bool doesIntersect() const override { return intersects; }
+    bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return distance < maxDistance; }
+
+    PickResultPointer compareAndProcessNewResult(const PickResultPointer newRes) override {
+        auto newRayRes = std::static_pointer_cast<RayPickResult>(newRes);
+        if (newRayRes->distance < distance) {
+            return std::make_shared<RayPickResult>(*newRayRes);
+        } else {
+            return std::make_shared<RayPickResult>(*this);
+        }
+    }
+
+};
 
 class RayPick : public Pick<PickRay> {
 
 public:
     RayPick(const PickFilter& filter, const float maxDistance, const bool enabled) : Pick(filter, maxDistance, enabled) {}
 
-    RayToEntityIntersectionResult getEntityIntersection(const PickRay& pick, bool precisionPicking,
-                                                        const QVector<EntityItemID>& entitiesToInclude,
-                                                        const QVector<EntityItemID>& entitiesToIgnore,
-                                                        bool visibleOnly, bool collidableOnly) override;
-    RayToOverlayIntersectionResult getOverlayIntersection(const PickRay& pick, bool precisionPicking,
-                                                          const QVector<OverlayID>& overlaysToInclude,
-                                                          const QVector<OverlayID>& overlaysToIgnore,
-                                                          bool visibleOnly, bool collidableOnly) override;
-    RayToAvatarIntersectionResult getAvatarIntersection(const PickRay& pick,
-                                                        const QVector<EntityItemID>& avatarsToInclude,
-                                                        const QVector<EntityItemID>& avatarsToIgnore) override;
-    glm::vec3 getHUDIntersection(const PickRay& pick) override;
+    PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<RayPickResult>(pickVariant); }
+    PickResultPointer getEntityIntersection(const PickRay& pick) override;
+    PickResultPointer getOverlayIntersection(const PickRay& pick) override;
+    PickResultPointer getAvatarIntersection(const PickRay& pick) override;
+    PickResultPointer getHUDIntersection(const PickRay& pick) override;
 };
 
 #endif // hifi_RayPick_h

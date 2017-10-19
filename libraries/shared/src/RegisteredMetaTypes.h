@@ -128,6 +128,7 @@ void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 class PickRay {
 public:
     PickRay() : origin(NAN), direction(NAN)  { }
+    PickRay(const QVariantMap& pickVariant) : origin(vec3FromVariant(pickVariant["origin"])), direction(vec3FromVariant(pickVariant["direction"])) {}
     PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
     glm::vec3 origin;
     glm::vec3 direction;
@@ -137,6 +138,12 @@ public:
     }
     bool operator==(const PickRay& other) const {
         return (origin == other.origin && direction == other.direction);
+    }
+    QVariantMap toVariantMap() const {
+        QVariantMap pickRay;
+        pickRay["origin"] = vec3toVariant(origin);
+        pickRay["direction"] = vec3toVariant(direction);
+        return pickRay;
     }
 };
 namespace std {
@@ -156,31 +163,6 @@ namespace std {
 Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
-
-enum IntersectionType {
-    NONE = 0,
-    ENTITY,
-    OVERLAY,
-    AVATAR,
-    HUD
-};
-
-class RayPickResult {
-public:
-    RayPickResult() {}
-    RayPickResult(const PickRay& searchRay) : searchRay(searchRay) {}
-    RayPickResult(const IntersectionType type, const QUuid& objectID, const float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
-        type(type), objectID(objectID), distance(distance), intersection(intersection), searchRay(searchRay), surfaceNormal(surfaceNormal) {}
-    IntersectionType type { NONE };
-    QUuid objectID;
-    float distance { FLT_MAX };
-    glm::vec3 intersection { NAN };
-    PickRay searchRay;
-    glm::vec3 surfaceNormal { NAN };
-};
-Q_DECLARE_METATYPE(RayPickResult)
-QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResult& rayPickResult);
-void rayPickResultFromScriptValue(const QScriptValue& object, RayPickResult& rayPickResult);
 
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,

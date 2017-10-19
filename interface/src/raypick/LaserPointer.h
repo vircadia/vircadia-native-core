@@ -19,7 +19,7 @@
 
 #include "ui/overlays/Overlay.h"
 
-class RayPickResult;
+#include "RayPickScriptingInterface.h"
 
 class RenderState {
 
@@ -61,7 +61,7 @@ public:
     QUuid getRayUID() { return _rayPickUID; }
     void enable();
     void disable();
-    const RayPickResult getPrevRayPickResult();
+    const QVariantMap getPrevRayPickResult();
 
     void setRenderState(const std::string& state);
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.

@@ -1823,14 +1823,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         0.0f, true));
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](QUuid rayPickID) {
         RayToEntityIntersectionResult entityResult;
-        RayPickResult result = _rayPickManager.getPrevPickResult(rayPickID);
-        entityResult.intersects = result.type != RayPickScriptingInterface::INTERSECTED_NONE();
-        if (entityResult.intersects) {
-            entityResult.intersection = result.intersection;
-            entityResult.distance = result.distance;
-            entityResult.surfaceNormal = result.surfaceNormal;
-            entityResult.entityID = result.objectID;
-            entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
+        entityResult.intersects = false;
+        QVariantMap result = _rayPickManager.getPrevPickResult(rayPickID);
+        if (result["type"].isValid()) {
+            entityResult.intersects = result["type"] != RayPickScriptingInterface::INTERSECTED_NONE();
+            if (entityResult.intersects) {
+                entityResult.intersection = vec3FromVariant(result["intersection"]);
+                entityResult.distance = result["distance"].toFloat();
+                entityResult.surfaceNormal = vec3FromVariant(result["surfaceNormal"]);
+                entityResult.entityID = result["objectID"].toUuid();
+                entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
+            }
         }
         return entityResult;
     });

@@ -28,7 +28,7 @@ public slots:
     Q_INVOKABLE void removeLaserPointer(const QUuid& uid) const { qApp->getLaserPointerManager().removeLaserPointer(uid); }
     Q_INVOKABLE void editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const;
     Q_INVOKABLE void setRenderState(const QUuid& uid, const QString& renderState) const { qApp->getLaserPointerManager().setRenderState(uid, renderState.toStdString()); }
-    Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid) const { return qApp->getLaserPointerManager().getPrevRayPickResult(uid); }
+    Q_INVOKABLE QVariantMap getPrevRayPickResult(QUuid uid) const { return qApp->getLaserPointerManager().getPrevRayPickResult(uid); }
 
     Q_INVOKABLE void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const { qApp->getLaserPointerManager().setPrecisionPicking(uid, precisionPicking); }
     Q_INVOKABLE void setLaserLength(const QUuid& uid, float laserLength) const { qApp->getLaserPointerManager().setLaserLength(uid, laserLength); }

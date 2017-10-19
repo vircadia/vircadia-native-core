@@ -18,9 +18,6 @@
 
 #include "LaserPointer.h"
 
-class RayPickResult;
-
-
 class LaserPointerManager : protected ReadWriteLockable {
 
 public:
@@ -31,7 +28,7 @@ public:
     void disableLaserPointer(const QUuid& uid) const;
     void setRenderState(const QUuid& uid, const std::string& renderState) const;
     void editRenderState(const QUuid& uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
-    const RayPickResult getPrevRayPickResult(const QUuid& uid) const;
+    const QVariantMap getPrevRayPickResult(const QUuid& uid) const;
 
     void setPrecisionPicking(const QUuid& uid, const bool precisionPicking) const;
     void setLaserLength(const QUuid& uid, const float laserLength) const;

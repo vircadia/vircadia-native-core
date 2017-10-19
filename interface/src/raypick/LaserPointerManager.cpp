@@ -67,12 +67,12 @@ void LaserPointerManager::editRenderState(const QUuid& uid, const std::string& s
     }
 }
 
-const RayPickResult LaserPointerManager::getPrevRayPickResult(const QUuid& uid) const {
+const QVariantMap LaserPointerManager::getPrevRayPickResult(const QUuid& uid) const {
     auto laserPointer = find(uid);
     if (laserPointer) {
         return laserPointer->getPrevRayPickResult();
     }
-    return RayPickResult();
+    return QVariantMap();
 }
 
 void LaserPointerManager::update() {

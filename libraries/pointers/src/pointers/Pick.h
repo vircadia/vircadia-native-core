@@ -13,12 +13,18 @@
 #include <bitset>
 
 #include <QtCore/QUuid>
+#include <QVector>
+#include <QVariant>
 
-#include <RegisteredMetaTypes.h>
 #include <shared/ReadWriteLockable.h>
 
-#include "EntityScriptingInterface.h"
-#include "ui/overlays/Overlays.h"
+enum IntersectionType {
+    NONE = 0,
+    ENTITY,
+    OVERLAY,
+    AVATAR,
+    HUD
+};
 
 class PickFilter {
 public:
@@ -98,6 +104,31 @@ public:
     static const PickFilter NOTHING;
 };
 
+class PickResult {
+public:
+    PickResult() {}
+    PickResult(const QVariantMap& pickVariant) : pickVariant(pickVariant) {}
+
+    virtual QVariantMap toVariantMap() const {
+        return pickVariant;
+    }
+
+    virtual bool doesIntersect() const = 0;
+
+    // for example: if we want the closest result, compare based on distance
+    // if we want all results, combine them
+    // must return a new pointer
+    virtual std::shared_ptr<PickResult> compareAndProcessNewResult(const std::shared_ptr<PickResult> newRes) = 0;
+
+    // returns true if this result contains any valid results with distance < maxDistance
+    // can also filter out results with distance >= maxDistance
+    virtual bool checkOrFilterAgainstMaxDistance(float maxDistance) = 0;
+
+    QVariantMap pickVariant;
+};
+
+using PickResultPointer = std::shared_ptr<PickResult>;
+
 template<typename T>
 class Pick : protected ReadWriteLockable {
 
@@ -105,18 +136,11 @@ public:
     Pick(const PickFilter& filter, const float maxDistance, const bool enabled);
 
     virtual const T getMathematicalPick() const = 0;
-    virtual RayToEntityIntersectionResult getEntityIntersection(const T& pick, bool precisionPicking,
-                                                                const QVector<EntityItemID>& entitiesToInclude,
-                                                                const QVector<EntityItemID>& entitiesToIgnore,
-                                                                bool visibleOnly, bool collidableOnly) = 0;
-    virtual RayToOverlayIntersectionResult getOverlayIntersection(const T& pick, bool precisionPicking,
-                                                                  const QVector<OverlayID>& overlaysToInclude,
-                                                                  const QVector<OverlayID>& overlaysToIgnore,
-                                                                  bool visibleOnly, bool collidableOnly) = 0;
-    virtual RayToAvatarIntersectionResult getAvatarIntersection(const T& pick,
-                                                                const QVector<EntityItemID>& avatarsToInclude,
-                                                                const QVector<EntityItemID>& avatarsToIgnore) = 0;
-    virtual glm::vec3 getHUDIntersection(const T& pick) = 0;
+    virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
+    virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
+    virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
+    virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
+    virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 
     void enable(bool enabled = true);
     void disable() { enable(false); }
@@ -124,11 +148,11 @@ public:
     PickFilter getFilter() const;
     float getMaxDistance() const;
     bool isEnabled() const;
-    RayPickResult getPrevPickResult() const;
 
     void setPrecisionPicking(bool precisionPicking);
 
-    void setPickResult(const RayPickResult& rayPickResult);
+    PickResultPointer getPrevPickResult() const;
+    void setPickResult(const PickResultPointer& pickResult);
 
     QVector<QUuid> getIgnoreItems() const;
     QVector<QUuid> getIncludeItems() const;
@@ -162,7 +186,7 @@ private:
     PickFilter _filter;
     const float _maxDistance;
     bool _enabled;
-    RayPickResult _prevResult;
+    PickResultPointer _prevResult;
 
     QVector<QUuid> _ignoreItems;
     QVector<QUuid> _includeItems;
@@ -209,9 +233,9 @@ void Pick<T>::setPrecisionPicking(bool precisionPicking) {
 }
 
 template<typename T>
-void Pick<T>::setPickResult(const RayPickResult& PickResult) {
+void Pick<T>::setPickResult(const PickResultPointer& pickResult) {
     withWriteLock([&] {
-        _prevResult = PickResult;
+        _prevResult = pickResult;
     });
 }
 
@@ -230,8 +254,8 @@ QVector<QUuid> Pick<T>::getIncludeItems() const {
 }
 
 template<typename T>
-RayPickResult Pick<T>::getPrevPickResult() const {
-    return resultWithReadLock<RayPickResult>([&] {
+PickResultPointer Pick<T>::getPrevPickResult() const {
+    return resultWithReadLock<PickResultPointer>([&] {
         return _prevResult;
     });
 }

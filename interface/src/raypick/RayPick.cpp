@@ -8,32 +8,44 @@
 #include "RayPick.h"
 
 #include "Application.h"
+#include "EntityScriptingInterface.h"
+#include "ui/overlays/Overlays.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
 
-RayToEntityIntersectionResult RayPick::getEntityIntersection(const PickRay& pick, bool precisionPicking,
-                                                             const QVector<EntityItemID>& entitiesToInclude,
-                                                             const QVector<EntityItemID>& entitiesToIgnore,
-                                                             bool visibleOnly, bool collidableOnly) {
-    return DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, precisionPicking,
-        entitiesToInclude, entitiesToIgnore, visibleOnly, collidableOnly);
+PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
+    RayToEntityIntersectionResult entityRes =
+        DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
+            getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+    if (entityRes.intersects) {
+        return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal);
+    } else {
+        return std::make_shared<RayPickResult>(pick.toVariantMap());
+    }
 }
 
-RayToOverlayIntersectionResult RayPick::getOverlayIntersection(const PickRay& pick, bool precisionPicking,
-                                                               const QVector<OverlayID>& overlaysToInclude,
-                                                               const QVector<OverlayID>& overlaysToIgnore,
-                                                               bool visibleOnly, bool collidableOnly) {
-    return  qApp->getOverlays().findRayIntersectionVector(pick, precisionPicking,
-        overlaysToInclude, overlaysToIgnore, visibleOnly, collidableOnly);
+PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
+    RayToOverlayIntersectionResult overlayRes =
+        qApp->getOverlays().findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
+            getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+    if (overlayRes.intersects) {
+        return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal);
+    } else {
+        return std::make_shared<RayPickResult>(pick.toVariantMap());
+    }
 }
 
-RayToAvatarIntersectionResult RayPick::getAvatarIntersection(const PickRay& pick,
-                                                             const QVector<EntityItemID>& avatarsToInclude,
-                                                             const QVector<EntityItemID>& avatarsToIgnore) {
-    return DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, avatarsToInclude, avatarsToIgnore);
+PickResultPointer RayPick::getAvatarIntersection(const PickRay& pick) {
+    RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
+    if (avatarRes.intersects) {
+        return std::make_shared<RayPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, pick);
+    } else {
+        return std::make_shared<RayPickResult>(pick.toVariantMap());
+    }
 }
 
-glm::vec3 RayPick::getHUDIntersection(const PickRay& pick) {
-    return DependencyManager::get<HMDScriptingInterface>()->calculateRayUICollisionPoint(pick.origin, pick.direction);
+PickResultPointer RayPick::getHUDIntersection(const PickRay& pick) {
+    glm::vec3 hudRes = DependencyManager::get<HMDScriptingInterface>()->calculateRayUICollisionPoint(pick.origin, pick.direction);
+    return std::make_shared<RayPickResult>(IntersectionType::HUD, QUuid(), glm::distance(pick.origin, hudRes), hudRes, pick);
 }

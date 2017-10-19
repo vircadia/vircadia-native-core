@@ -78,7 +78,7 @@ void RayPickScriptingInterface::removeRayPick(const QUuid& uid) {
     qApp->getRayPickManager().removePick(uid);
 }
 
-RayPickResult RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
+QVariantMap RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
     return qApp->getRayPickManager().getPrevPickResult(uid);
 }
 
