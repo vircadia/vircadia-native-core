@@ -594,7 +594,9 @@ void MyAvatar::simulate(float deltaTime) {
                     if (success) {
                         moveOperator.addEntityToMoveList(entity, newCube);
                     }
-                    if (packetSender) {
+                    // send an edit packet to update the entity-server about the queryAABox.  If it's an
+                    // avatar-entity, don't.
+                    if (packetSender && !entity->getClientOnly()) {
                         EntityItemProperties properties = entity->getProperties();
                         properties.setQueryAACubeDirty();
                         properties.setLastEdited(now);
