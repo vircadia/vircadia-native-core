@@ -10,7 +10,7 @@
 //
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import "configSlider"
+import "outlinePage"
 
 Item {
     id: root
@@ -39,110 +39,30 @@ Item {
                 sendToScript(currentIndex)
             }
 
-            Component {
-                id: paramWidgets
-
-                Column {
-                    spacing: 8
-
-                    CheckBox {
-                        id: glow
-                        text: "Glow"
-                        checked: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)["glow"]
-                        onCheckedChanged: {
-                            Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)["glow"] = checked;
-                        }
-                    }
-                    ConfigSlider {
-                        label: "Width"
-                        integral: false
-                        config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
-                        property: "width"
-                        max: 15.0
-                        min: 0.0
-                        width: 280
-                    }  
-                    ConfigSlider {
-                        label: "Intensity"
-                        integral: false
-                        config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
-                        property: "intensity"
-                        max: 1.0
-                        min: 0.0
-                        width: 280
-                    }  
-
-                    GroupBox {
-                        title: "Color"
-                        width: 280
-                        Column {
-                            spacing: 8
-
-                            ConfigSlider {
-                                label: "Red"
-                                integral: false
-                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
-                                property: "colorR"
-                                max: 1.0
-                                min: 0.0
-                                width: 270
-                            }  
-                            ConfigSlider {
-                                label: "Green"
-                                integral: false
-                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
-                                property: "colorG"
-                                max: 1.0
-                                min: 0.0
-                                width: 270
-                            }  
-                            ConfigSlider {
-                                label: "Blue"
-                                integral: false
-                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
-                                property: "colorB"
-                                max: 1.0
-                                min: 0.0
-                                width: 270
-                            }
-                        }
-                    }
-
-                    GroupBox {
-                        title: "Fill Opacity"
-                        width: 280
-                        Column {
-                            spacing: 8
-
-                            ConfigSlider {
-                                label: "Unoccluded"
-                                integral: false
-                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
-                                property: "unoccludedFillOpacity"
-                                max: 1.0
-                                min: 0.0
-                                width: 270
-                            }  
-                            ConfigSlider {
-                                label: "Occluded"
-                                integral: false
-                                config: Render.getConfig("RenderMainView.OutlineEffect"+tabs.currentIndex)
-                                property: "occludedFillOpacity"
-                                max: 1.0
-                                min: 0.0
-                                width: 270
-                            }
-                        }
-                    }
+            Tab {
+                title: "Outl.0"
+                OutlinePage {
+                    outlineIndex: 0
                 }
             }
-        }
-    }
-
-    Component.onCompleted: {
-        for (var i=0 ; i<4 ; i++) {
-            var outlinePage = tabs.addTab("Outl. "+i, paramWidgets)
-            outlinePage.active = true
+            Tab {
+                title: "Outl.1"
+                OutlinePage {
+                    outlineIndex: 1
+                }
+            }
+            Tab {
+                title: "Outl.2"
+                OutlinePage {
+                    outlineIndex: 2
+                }
+            }
+            Tab {
+                title: "Outl.3"
+                OutlinePage {
+                    outlineIndex: 3
+                }
+            }
         }
     }
 }

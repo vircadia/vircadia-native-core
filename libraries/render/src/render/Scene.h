@@ -104,7 +104,7 @@ class Scene {
 public:
 
     enum {
-        MAX_OUTLINE_COUNT = 16
+        MAX_OUTLINE_COUNT = 8
     };
 
     Scene(glm::vec3 origin, float size);

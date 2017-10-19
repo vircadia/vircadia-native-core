@@ -83,7 +83,7 @@ protected:
 
     unsigned int _outlineIndex;
     render::ShapePlumberPointer _shapePlumber;
-    OutlineSharedParametersPointer _parameters;
+    OutlineSharedParametersPointer _sharedParameters;
 
     static glm::ivec4 computeOutlineRect(const render::ShapeBounds& shapes, const ViewFrustum& viewFrustum, glm::ivec2 frameSize);
     static glm::ivec4 expandRect(glm::ivec4 rect, int amount, glm::ivec2 frameSize);
@@ -154,7 +154,8 @@ private:
     static gpu::PipelinePointer _pipelineFilled;
 
     unsigned int _outlineIndex;
-    OutlineSharedParametersPointer _parameters;
+    OutlineParameters _parameters;
+    OutlineSharedParametersPointer _sharedParameters;
     OutlineConfigurationBuffer _configuration;
     glm::ivec2 _framebufferSize{ 0,0 };
     bool _isFilled{ false };

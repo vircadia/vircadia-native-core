@@ -98,7 +98,7 @@ DrawOutlineMask::DrawOutlineMask(unsigned int outlineIndex,
                                  render::ShapePlumberPointer shapePlumber, OutlineSharedParametersPointer parameters) :
     _outlineIndex{ outlineIndex },
     _shapePlumber { shapePlumber },
-    _parameters{ parameters } {
+    _sharedParameters{ parameters } {
 }
 
 void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
@@ -115,8 +115,8 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
 
         // First thing we do is determine the projected bounding rect of all the outlined items
         auto outlinedRect = computeOutlineRect(inShapes, args->getViewFrustum(), framebufferSize);
-        auto blurPixelWidth = _parameters->_blurPixelWidths[_outlineIndex];
-        qCDebug(renderutils) << "Outline rect is " << outlinedRect.x << ' ' << outlinedRect.y << ' ' << outlinedRect.z << ' ' << outlinedRect.w;
+        auto blurPixelWidth = _sharedParameters->_blurPixelWidths[_outlineIndex];
+        //qCDebug(renderutils) << "Outline rect is " << outlinedRect.x << ' ' << outlinedRect.y << ' ' << outlinedRect.z << ' ' << outlinedRect.w;
 
         // Add 1 pixel of extra margin to be on the safe side
         outputs = expandRect(outlinedRect, blurPixelWidth+1, framebufferSize);
@@ -236,25 +236,25 @@ gpu::PipelinePointer DrawOutline::_pipelineFilled;
 
 DrawOutline::DrawOutline(unsigned int outlineIndex, OutlineSharedParametersPointer parameters) :
     _outlineIndex{ outlineIndex },
-    _parameters{ parameters } {
+    _sharedParameters{ parameters } {
 }
 
 void DrawOutline::configure(const Config& config) {
-    auto& configuration = _configuration.edit();
     const auto OPACITY_EPSILON = 5e-3f;
 
-    configuration._color = config.color;
-    configuration._intensity = config.intensity * (config.glow ? 2.f : 1.f);
-    configuration._unoccludedFillOpacity = config.unoccludedFillOpacity;
-    configuration._occludedFillOpacity = config.occludedFillOpacity;
-    configuration._threshold = config.glow ? 1.f : 1e-3f;
-    configuration._blurKernelSize = std::min(10, std::max(2, (int)floorf(config.width * 3 + 0.5f)));
+    _parameters._color = config.color;
+    _parameters._intensity = config.intensity * (config.glow ? 2.0f : 1.0f);
+    _parameters._unoccludedFillOpacity = config.unoccludedFillOpacity;
+    _parameters._occludedFillOpacity = config.occludedFillOpacity;
+    _parameters._threshold = config.glow ? 1.0f : 1e-3f;
+    _parameters._blurKernelSize = std::min(10, std::max(2, (int)floorf(config.width * 3 + 0.5f)));
     // Size is in normalized screen height. We decide that for outline width = 1, this is equal to 1/400.
     _size = config.width / 400.0f;
-    configuration._size.x = (_size * _framebufferSize.y) / _framebufferSize.x;
-    configuration._size.y = _size;
-    _parameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
+    _parameters._size.x = (_size * _framebufferSize.y) / _framebufferSize.x;
+    _parameters._size.y = _size;
+    _sharedParameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
     _isFilled = (config.unoccludedFillOpacity > OPACITY_EPSILON || config.occludedFillOpacity > OPACITY_EPSILON);
+    _configuration.edit() = _parameters;
 }
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -274,11 +274,11 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
 
             if (_framebufferSize != framebufferSize)
             {
-                auto& configuration = _configuration.edit();
-                configuration._size.x = (_size * framebufferSize.y) / framebufferSize.x;
-                configuration._size.y = _size;
+                _parameters._size.x = (_size * framebufferSize.y) / framebufferSize.x;
+                _parameters._size.y = _size;
                 _framebufferSize = framebufferSize;
-                _parameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
+                _sharedParameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
+                _configuration.edit() = _parameters;
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
