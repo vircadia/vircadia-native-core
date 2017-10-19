@@ -14,7 +14,6 @@
 #include <QtCore/QVariant>
 
 #include <GLMHelpers.h>
-#include <RegisteredMetaTypes.h>
 
 void LaserPointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const { 
     qApp->getLaserPointerManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));

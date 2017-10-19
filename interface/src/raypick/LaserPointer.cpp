@@ -38,7 +38,7 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
 }
 
 LaserPointer::~LaserPointer() {
-    qApp->getRayPickManager().removePick(_rayPickUID);
+    qApp->getPickManager().removePick(_rayPickUID);
 
     for (auto& renderState : _renderStates) {
         renderState.second.deleteOverlays();
@@ -49,14 +49,14 @@ LaserPointer::~LaserPointer() {
 }
 
 void LaserPointer::enable() {
-    qApp->getRayPickManager().enablePick(_rayPickUID);
+    qApp->getPickManager().enablePick(_rayPickUID);
     withWriteLock([&] {
         _renderingEnabled = true;
     });
 }
 
 void LaserPointer::disable() {
-    qApp->getRayPickManager().disablePick(_rayPickUID);
+    qApp->getPickManager().disablePick(_rayPickUID);
     withWriteLock([&] {
         _renderingEnabled = false;
         if (!_currentRenderState.empty()) {
@@ -101,7 +101,7 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
 }
 
 const QVariantMap LaserPointer::getPrevRayPickResult() {
-    return qApp->getRayPickManager().getPrevPickResult(_rayPickUID);
+    return qApp->getPickManager().getPrevPickResult(_rayPickUID);
 }
 
 void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState) {
@@ -197,7 +197,7 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 void LaserPointer::update() {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
-        QVariantMap prevRayPickResult = qApp->getRayPickManager().getPrevPickResult(_rayPickUID);
+        QVariantMap prevRayPickResult = qApp->getPickManager().getPrevPickResult(_rayPickUID);
         IntersectionType type = IntersectionType(prevRayPickResult["type"].toInt());
         PickRay pickRay = PickRay(prevRayPickResult["searchRay"].toMap());
         QUuid uid = prevRayPickResult["objectID"].toUuid();
@@ -217,7 +217,7 @@ void LaserPointer::update() {
 }
 
 void LaserPointer::setPrecisionPicking(const bool precisionPicking) {
-    qApp->getRayPickManager().setPrecisionPicking(_rayPickUID, precisionPicking);
+    qApp->getPickManager().setPrecisionPicking(_rayPickUID, precisionPicking);
 }
 
 void LaserPointer::setLaserLength(const float laserLength) {
@@ -233,11 +233,11 @@ void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay) {
 }
 
 void LaserPointer::setIgnoreItems(const QVector<QUuid>& ignoreItems) const {
-    qApp->getRayPickManager().setIgnoreItems(_rayPickUID, ignoreItems);
+    qApp->getPickManager().setIgnoreItems(_rayPickUID, ignoreItems);
 }
 
 void LaserPointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
-    qApp->getRayPickManager().setIncludeItems(_rayPickUID, includeItems);
+    qApp->getPickManager().setIncludeItems(_rayPickUID, includeItems);
 }
 
 RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID) :

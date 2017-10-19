@@ -195,6 +195,7 @@
 
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
+#include <raypick/MouseRayPick.h>
 
 #include <FadeEffect.h>
 
@@ -750,8 +751,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0),
-    _snapshotSound(nullptr)
-{
+    _snapshotSound(nullptr) {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
@@ -795,7 +795,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    
+
     _logger = new FileLogger(this);
     qInstallMessageHandler(messageHandler);
 
@@ -850,13 +850,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 
     auto audioIO = DependencyManager::get<AudioClient>();
-    audioIO->setPositionGetter([]{
+    audioIO->setPositionGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
 
         return myAvatar ? myAvatar->getPositionForAudio() : Vectors::ZERO;
     });
-    audioIO->setOrientationGetter([]{
+    audioIO->setOrientationGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
 
@@ -867,7 +867,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         audioIO->handleRecordedAudioInput(frame->data);
     });
 
-    connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
+    connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio) {
         static auto recorder = DependencyManager::get<recording::Recorder>();
         if (recorder->isRecording()) {
             static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::getAudioFrameName());
@@ -956,14 +956,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this]{ return getMyAvatar()->getPosition(); });
-    addressManager->setOrientationGetter([this]{ return getMyAvatar()->getOrientation(); });
+    addressManager->setPositionGetter([this] { return getMyAvatar()->getPosition(); });
+    addressManager->setOrientationGetter([this] { return getMyAvatar()->getOrientation(); });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
-    connect(this, &Application::activeDisplayPluginChanged, this, [](){
+    connect(this, &Application::activeDisplayPluginChanged, this, []() {
         qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
@@ -973,7 +973,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
+    scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine) {
         registerScriptEngineWithApplicationServices(engine);
     });
 
@@ -989,7 +989,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }, Qt::QueuedConnection);
 
     connect(scriptEngines, &ScriptEngines::scriptLoadError,
-        scriptEngines, [](const QString& filename, const QString& error){
+        scriptEngines, [](const QString& filename, const QString& error) {
         OffscreenUi::asyncWarning(nullptr, "Error Loading Script", filename + " failed to load.");
     }, Qt::QueuedConnection);
 
@@ -1101,7 +1101,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     // add firstRun flag from settings to launch event
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
     // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
     auto& userActivityLogger = UserActivityLogger::getInstance();
@@ -1202,42 +1202,42 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             static int lastKey = Qt::Key_unknown;
             bool navAxis = false;
             switch (actionEnum) {
-                case Action::UI_NAV_VERTICAL:
-                    navAxis = true;
-                    if (state > 0.0f) {
-                        key = Qt::Key_Up;
-                    } else if (state < 0.0f) {
-                        key = Qt::Key_Down;
-                    }
-                    break;
+            case Action::UI_NAV_VERTICAL:
+                navAxis = true;
+                if (state > 0.0f) {
+                    key = Qt::Key_Up;
+                } else if (state < 0.0f) {
+                    key = Qt::Key_Down;
+                }
+                break;
 
-                case Action::UI_NAV_LATERAL:
-                    navAxis = true;
-                    if (state > 0.0f) {
-                        key = Qt::Key_Right;
-                    } else if (state < 0.0f) {
-                        key = Qt::Key_Left;
-                    }
-                    break;
+            case Action::UI_NAV_LATERAL:
+                navAxis = true;
+                if (state > 0.0f) {
+                    key = Qt::Key_Right;
+                } else if (state < 0.0f) {
+                    key = Qt::Key_Left;
+                }
+                break;
 
-                case Action::UI_NAV_GROUP:
-                    navAxis = true;
-                    if (state > 0.0f) {
-                        key = Qt::Key_Tab;
-                    } else if (state < 0.0f) {
-                        key = Qt::Key_Backtab;
-                    }
-                    break;
+            case Action::UI_NAV_GROUP:
+                navAxis = true;
+                if (state > 0.0f) {
+                    key = Qt::Key_Tab;
+                } else if (state < 0.0f) {
+                    key = Qt::Key_Backtab;
+                }
+                break;
 
-                case Action::UI_NAV_BACK:
-                    key = Qt::Key_Escape;
-                    break;
+            case Action::UI_NAV_BACK:
+                key = Qt::Key_Escape;
+                break;
 
-                case Action::UI_NAV_SELECT:
-                    key = Qt::Key_Return;
-                    break;
-                default:
-                    break;
+            case Action::UI_NAV_SELECT:
+                key = Qt::Key_Return;
+                break;
+            default:
+                break;
             }
 
             auto window = tabletScriptingInterface->getTabletWindow();
@@ -1376,8 +1376,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 
     QTimer* settingsTimer = new QTimer();
-    moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
-        connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
+    moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer] {
+        connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer] {
             // Disconnect the signal from the save settings
             QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
             // Stop the settings timer
@@ -1439,7 +1439,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Now that menu is initialized we can sync myAvatar with it's state.
     myAvatar->updateMotionBehaviorFromMenu();
 
-// FIXME spacemouse code still needs cleanup
+    // FIXME spacemouse code still needs cleanup
 #if 0
     // the 3Dconnexion device wants to be initialized after a window is displayed.
     SpacemouseManager::getInstance().init();
@@ -1448,7 +1448,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
-            [this](const EntityItemID& entityItemID, const PointerEvent& event) {
+        [this](const EntityItemID& entityItemID, const PointerEvent& event) {
         if (getEntities()->wantsKeyboardFocus(entityItemID)) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             setKeyboardFocusEntity(entityItemID);
@@ -1663,8 +1663,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             totalServerOctreeElements += i->second.getTotalElements();
         }
 
-        properties["local_octree_elements"] = (qint64) OctreeElement::getInternalNodeCount();
-        properties["server_octree_elements"] = (qint64) totalServerOctreeElements;
+        properties["local_octree_elements"] = (qint64)OctreeElement::getInternalNodeCount();
+        properties["server_octree_elements"] = (qint64)totalServerOctreeElements;
 
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
@@ -1685,7 +1685,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         if (_autoSwitchDisplayModeSupportedHMDPlugin) {
             if (getActiveDisplayPlugin() != _autoSwitchDisplayModeSupportedHMDPlugin &&
                 !_autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
-                    startHMDStandBySession();
+                startHMDStandBySession();
             }
             // Poll periodically to check whether the user has worn HMD or not. Switch Display mode accordingly.
             // If the user wears HMD then switch to VR mode. If the user removes HMD then switch to Desktop mode.
@@ -1729,7 +1729,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(checkNearbyAvatarsTimer, &QTimer::timeout, this, [this]() {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getPosition(),
-                                                                  NEARBY_AVATAR_RADIUS_METERS) - 1;
+            NEARBY_AVATAR_RADIUS_METERS) - 1;
         if (nearbyAvatars != lastCountOfNearbyAvatars) {
             lastCountOfNearbyAvatars = nearbyAvatars;
             UserActivityLogger::getInstance().logAction("nearby_avatars", { { "count", nearbyAvatars } });
@@ -1817,14 +1817,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
+    _pickManager.setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
+
     // Setup the mouse ray pick and related operators
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(_rayPickManager.createRayPick(
-        PickFilter(RayPickScriptingInterface::PICK_ENTITIES() | RayPickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()),
-        0.0f, true));
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(_pickManager.addPick(RAY, std::make_shared<MouseRayPick>(
+        PickFilter(RayPickScriptingInterface::PICK_ENTITIES() | RayPickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](QUuid rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
-        QVariantMap result = _rayPickManager.getPrevPickResult(rayPickID);
+        QVariantMap result = _pickManager.getPrevPickResult(rayPickID);
         if (result["type"].isValid()) {
             entityResult.intersects = result["type"] != RayPickScriptingInterface::INTERSECTED_NONE();
             if (entityResult.intersects) {
@@ -1838,7 +1839,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityResult;
     });
     DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](QUuid rayPickID, bool value) {
-        _rayPickManager.setPrecisionPicking(rayPickID, value);
+        _pickManager.setPrecisionPicking(rayPickID, value);
     });
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
@@ -4910,8 +4911,8 @@ void Application::update(float deltaTime) {
 
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
-        PROFILE_RANGE(app, "RayPickManager");
-        _rayPickManager.update();
+        PROFILE_RANGE(app, "PickManager");
+        _pickManager.update();
     }
 
     {

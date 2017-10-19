@@ -13,7 +13,6 @@
 
 #include <QtCore/QObject>
 
-#include "RegisteredMetaTypes.h"
 #include "DependencyManager.h"
 #include "Application.h"
 

@@ -125,7 +125,13 @@ QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);
 void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
-class PickRay {
+// MathPicks also have to overide operator== for their type
+class MathPick {
+    virtual operator bool() const = 0;
+    virtual QVariantMap toVariantMap() const = 0;
+};
+
+class PickRay : public MathPick {
 public:
     PickRay() : origin(NAN), direction(NAN)  { }
     PickRay(const QVariantMap& pickVariant) : origin(vec3FromVariant(pickVariant["origin"])), direction(vec3FromVariant(pickVariant["direction"])) {}
@@ -133,13 +139,13 @@ public:
     glm::vec3 origin;
     glm::vec3 direction;
 
-    operator bool() const {
+    operator bool() const override {
         return !(glm::any(glm::isnan(origin)) || glm::any(glm::isnan(direction)));
     }
     bool operator==(const PickRay& other) const {
         return (origin == other.origin && direction == other.direction);
     }
-    QVariantMap toVariantMap() const {
+    QVariantMap toVariantMap() const override {
         QVariantMap pickRay;
         pickRay["origin"] = vec3toVariant(origin);
         pickRay["direction"] = vec3toVariant(direction);

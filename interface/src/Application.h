@@ -70,7 +70,7 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
-#include "raypick/RayPickManager.h"
+#include <pointers/PickManager.h>
 #include "raypick/LaserPointerManager.h"
 
 #include <procedural/ProceduralSkybox.h>
@@ -299,7 +299,7 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
 
     LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
-    RayPickManager& getRayPickManager() { return _rayPickManager; }
+    PickManager& getPickManager() { return _pickManager; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -713,7 +713,7 @@ private:
     bool _saveAvatarOverrideUrl { false };
     QObject* _renderEventHandler{ nullptr };
 
-    RayPickManager _rayPickManager;
+    PickManager _pickManager;
     LaserPointerManager _laserPointerManager;
 
     friend class RenderEventHandler;

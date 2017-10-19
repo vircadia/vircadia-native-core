@@ -129,18 +129,9 @@ public:
 
 using PickResultPointer = std::shared_ptr<PickResult>;
 
-template<typename T>
-class Pick : protected ReadWriteLockable {
-
+class PickQuery : protected ReadWriteLockable {
 public:
-    Pick(const PickFilter& filter, const float maxDistance, const bool enabled);
-
-    virtual const T getMathematicalPick() const = 0;
-    virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
-    virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
-    virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
-    virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
-    virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
+    PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled);
 
     void enable(bool enabled = true);
     void disable() { enable(false); }
@@ -193,85 +184,16 @@ private:
 };
 
 template<typename T>
-Pick<T>::Pick(const PickFilter& filter, const float maxDistance, const bool enabled) :
-    _filter(filter),
-    _maxDistance(maxDistance),
-    _enabled(enabled) {
-}
+class Pick : public PickQuery {
+public:
+    Pick(const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled) {}
 
-template<typename T>
-void Pick<T>::enable(bool enabled) {
-    withWriteLock([&] {
-        _enabled = enabled;
-    });
-}
-
-template<typename T>
-PickFilter Pick<T>::getFilter() const {
-    return resultWithReadLock<PickFilter>([&] {
-        return _filter;
-    });
-}
-
-template<typename T>
-float Pick<T>::getMaxDistance() const {
-    return _maxDistance;
-}
-
-template<typename T>
-bool Pick<T>::isEnabled() const {
-    return resultWithReadLock<bool>([&] {
-        return _enabled;
-    });
-}
-
-template<typename T>
-void Pick<T>::setPrecisionPicking(bool precisionPicking) {
-    withWriteLock([&] {
-        _filter.setFlag(PickFilter::PICK_COARSE, !precisionPicking);
-    });
-}
-
-template<typename T>
-void Pick<T>::setPickResult(const PickResultPointer& pickResult) {
-    withWriteLock([&] {
-        _prevResult = pickResult;
-    });
-}
-
-template<typename T>
-QVector<QUuid> Pick<T>::getIgnoreItems() const {
-    return resultWithReadLock<QVector<QUuid>>([&] {
-        return _ignoreItems;
-    });
-}
-
-template<typename T>
-QVector<QUuid> Pick<T>::getIncludeItems() const {
-    return resultWithReadLock<QVector<QUuid>>([&] {
-        return _includeItems;
-    });
-}
-
-template<typename T>
-PickResultPointer Pick<T>::getPrevPickResult() const {
-    return resultWithReadLock<PickResultPointer>([&] {
-        return _prevResult;
-    });
-}
-
-template<typename T>
-void Pick<T>::setIgnoreItems(const QVector<QUuid>& ignoreItems) {
-    withWriteLock([&] {
-        _ignoreItems = ignoreItems;
-    });
-}
-
-template<typename T>
-void Pick<T>::setIncludeItems(const QVector<QUuid>& includeItems) {
-    withWriteLock([&] {
-        _includeItems = includeItems;
-    });
-}
+    virtual const T getMathematicalPick() const = 0;
+    virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
+    virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
+    virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
+    virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
+    virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
+};
 
 #endif // hifi_Pick_h

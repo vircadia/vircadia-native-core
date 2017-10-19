@@ -15,6 +15,10 @@
 #include "GLMHelpers.h"
 #include "Application.h"
 
+#include "StaticRayPick.h"
+#include "JointRayPick.h"
+#include "MouseRayPick.h"
+
 QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
 
@@ -48,9 +52,10 @@ QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
                 dirOffset = vec3FromVariant(propMap["dirOffset"]);
             }
 
-            return qApp->getRayPickManager().createRayPick(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
+            return qApp->getPickManager().addPick(RAY, std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
+           
         } else {
-            return qApp->getRayPickManager().createRayPick(filter, maxDistance, enabled);
+            return qApp->getPickManager().addPick(RAY, std::make_shared<MouseRayPick>(filter, maxDistance, enabled));
         }
     } else if (propMap["position"].isValid()) {
         glm::vec3 position = vec3FromVariant(propMap["position"]);
@@ -60,36 +65,36 @@ QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
             direction = vec3FromVariant(propMap["direction"]);
         }
 
-        return qApp->getRayPickManager().createRayPick(position, direction, filter, maxDistance, enabled);
+        return qApp->getPickManager().addPick(RAY, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
     }
 
     return QUuid();
 }
 
 void RayPickScriptingInterface::enableRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().enablePick(uid);
+    qApp->getPickManager().enablePick(uid);
 }
 
 void RayPickScriptingInterface::disableRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().disablePick(uid);
+    qApp->getPickManager().disablePick(uid);
 }
 
 void RayPickScriptingInterface::removeRayPick(const QUuid& uid) {
-    qApp->getRayPickManager().removePick(uid);
+    qApp->getPickManager().removePick(uid);
 }
 
 QVariantMap RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
-    return qApp->getRayPickManager().getPrevPickResult(uid);
+    return qApp->getPickManager().getPrevPickResult(uid);
 }
 
 void RayPickScriptingInterface::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) {
-    qApp->getRayPickManager().setPrecisionPicking(uid, precisionPicking);
+    qApp->getPickManager().setPrecisionPicking(uid, precisionPicking);
 }
 
 void RayPickScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) {
-    qApp->getRayPickManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
+    qApp->getPickManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
 void RayPickScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) {
-    qApp->getRayPickManager().setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
+    qApp->getPickManager().setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
