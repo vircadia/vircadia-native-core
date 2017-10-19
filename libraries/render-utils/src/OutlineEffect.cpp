@@ -81,6 +81,10 @@ gpu::TexturePointer OutlineRessources::getDepthTexture() {
     return getDepthFramebuffer()->getDepthStencilBuffer();
 }
 
+OutlineSharedParameters::OutlineSharedParameters() {
+    std::fill(_blurPixelWidths.begin(), _blurPixelWidths.end(), 0);
+}
+
 PrepareDrawOutline::PrepareDrawOutline() {
     _ressources = std::make_shared<OutlineRessources>();
 }
@@ -90,6 +94,13 @@ void PrepareDrawOutline::run(const render::RenderContextPointer& renderContext, 
 
     _ressources->update(destinationFrameBuffer);
     outputs = _ressources;
+}
+
+DrawOutlineMask::DrawOutlineMask(unsigned int outlineIndex, 
+                                 render::ShapePlumberPointer shapePlumber, OutlineSharedParametersPointer parameters) :
+    _outlineIndex{ outlineIndex },
+    _shapePlumber { shapePlumber },
+    _parameters{ parameters } {
 }
 
 void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
@@ -106,9 +117,12 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
 
         // First thing we do is determine the projected bounding rect of all the outlined items
         auto outlinedRect = computeOutlineRect(inShapes, args->getViewFrustum(), framebufferSize);
+        auto blurPixelWidth = _parameters->_blurPixelWidths[_outlineIndex];
         qCDebug(renderutils) << "Outline rect is " << outlinedRect.x << ' ' << outlinedRect.y << ' ' << outlinedRect.z << ' ' << outlinedRect.w;
 
-        outputs = outlinedRect;
+        // Add 1 pixel of extra margin to be on the safe side
+        outputs = expandRect(outlinedRect, blurPixelWidth+1, framebufferSize);
+        outlinedRect = expandRect(outputs, blurPixelWidth+1, framebufferSize);
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
@@ -202,10 +216,28 @@ glm::ivec4 DrawOutlineMask::computeOutlineRect(const render::ShapeBounds& shapes
     }
 }
 
+glm::ivec4 DrawOutlineMask::expandRect(glm::ivec4 rect, int amount, glm::ivec2 frameSize) {
+    // Go bo back to min max values
+    rect.z += rect.x;
+    rect.w += rect.y;
+
+    rect.x = std::max(0, rect.x - amount);
+    rect.y = std::max(0, rect.y - amount);
+    rect.z = std::min(frameSize.x, rect.z + amount);
+    rect.w = std::min(frameSize.y, rect.w + amount);
+
+    // Back to width height
+    rect.z -= rect.x;
+    rect.w -= rect.y;
+    return rect;
+}
+
 gpu::PipelinePointer DrawOutline::_pipeline;
 gpu::PipelinePointer DrawOutline::_pipelineFilled;
 
-DrawOutline::DrawOutline() {
+DrawOutline::DrawOutline(unsigned int outlineIndex, OutlineSharedParametersPointer parameters) :
+    _outlineIndex{ outlineIndex },
+    _parameters{ parameters } {
 }
 
 void DrawOutline::configure(const Config& config) {
@@ -222,7 +254,7 @@ void DrawOutline::configure(const Config& config) {
     _size = config.width / 400.0f;
     configuration._size.x = (_size * _framebufferSize.y) / _framebufferSize.x;
     configuration._size.y = _size;
-
+    _parameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
     _isFilled = (config.unoccludedFillOpacity > OPACITY_EPSILON || config.occludedFillOpacity > OPACITY_EPSILON);
 }
 
@@ -247,18 +279,19 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 configuration._size.x = (_size * framebufferSize.y) / framebufferSize.x;
                 configuration._size.y = _size;
                 _framebufferSize = framebufferSize;
+                _parameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.enableStereo(false);
                 batch.setFramebuffer(destinationFrameBuffer);
 
-                batch.setStateScissorRect(outlineRect);
                 batch.setViewportTransform(args->_viewport);
                 batch.setProjectionTransform(glm::mat4());
                 batch.resetViewTransform();
                 batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
                 batch.setPipeline(pipeline);
+                batch.setStateScissorRect(outlineRect);
 
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
                 batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
@@ -410,7 +443,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     const auto deferredFrameTransform = inputs.getN<Inputs>(3);
 
     // Prepare the ShapePipeline
-    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    auto shapePlumber = std::make_shared<ShapePlumber>();
     {
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS);
@@ -418,6 +451,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
         state->setScissorEnable(true);
         initMaskPipelines(*shapePlumber, state);
     }
+    auto sharedParameters = std::make_shared<OutlineSharedParameters>();
 
     // Prepare for outline group rendering.
     const auto outlineRessources = task.addJob<PrepareDrawOutline>("PrepareOutline", primaryFramebuffer);
@@ -440,7 +474,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
             name = stream.str();
         }
         const auto drawMaskInputs = DrawOutlineMask::Inputs(sortedBounds, outlineRessources).asVarying();
-        const auto outlinedRect = task.addJob<DrawOutlineMask>(name, drawMaskInputs, shapePlumber);
+        const auto outlinedRect = task.addJob<DrawOutlineMask>(name, drawMaskInputs, i, shapePlumber, sharedParameters);
         if (i == 0) {
             outline0Rect = outlinedRect;
         }
@@ -452,7 +486,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
             name = stream.str();
         }
         const auto drawOutlineInputs = DrawOutline::Inputs(deferredFrameTransform, outlineRessources, sceneFrameBuffer, outlinedRect).asVarying();
-        task.addJob<DrawOutline>(name, drawOutlineInputs);
+        task.addJob<DrawOutline>(name, drawOutlineInputs, i, sharedParameters);
     }
 
     // Debug outline
