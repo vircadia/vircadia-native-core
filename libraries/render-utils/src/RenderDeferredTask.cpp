@@ -176,6 +176,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
+    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOutlineRangeTimer", "Outline");
     // Select items that need to be outlined
     const auto selectionBaseName = "contextOverlayHighlightList";
     const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
@@ -187,12 +188,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         selectionName << i;
         outlineGroups[i] = addSelectItemJobs(task, selectionName.str().c_str(), metas, opaques, transparents);
     }
-    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOutlineRangeTimer", "Outline");
 
     const auto outlineInputs = DrawOutlineTask::Inputs(outlineGroups, deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
     task.addJob<DrawOutlineTask>("DrawOutline", outlineInputs);
 
-    task.addJob<EndGPURangeTimer>("EndOutlineRangeTimer", outlineRangeTimer);
+    task.addJob<EndGPURangeTimer>("OutlineRangeTimer", outlineRangeTimer);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
