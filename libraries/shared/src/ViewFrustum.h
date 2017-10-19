@@ -120,6 +120,7 @@ public:
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     CubeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     CubeProjectedPolygon getProjectedPolygon(const AABox& box) const;
+    bool getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm::vec2& topRight) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;

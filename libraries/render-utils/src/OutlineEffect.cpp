@@ -185,13 +185,14 @@ glm::ivec4 DrawOutlineMask::computeOutlineRect(const render::ShapeBounds& shapes
 
         for (const auto& item : items) {
             const auto& aabb = item.bound;
-            const auto projectedCube = viewFrustum.getProjectedPolygon(aabb);
+            glm::vec2 bottomLeft;
+            glm::vec2 topRight;
 
-            if (projectedCube.getAnyInView()) {
-                minMaxBounds.x = std::min(minMaxBounds.x, projectedCube.getMinX());
-                minMaxBounds.y = std::min(minMaxBounds.y, projectedCube.getMinY());
-                minMaxBounds.z = std::max(minMaxBounds.z, projectedCube.getMaxX());
-                minMaxBounds.w = std::max(minMaxBounds.w, projectedCube.getMaxY());
+            if (viewFrustum.getProjectedRect(aabb, bottomLeft, topRight)) {
+                minMaxBounds.x = std::min(minMaxBounds.x, bottomLeft.x);
+                minMaxBounds.y = std::min(minMaxBounds.y, bottomLeft.y);
+                minMaxBounds.z = std::max(minMaxBounds.z, topRight.x);
+                minMaxBounds.w = std::max(minMaxBounds.w, topRight.y);
             }
         }
     }

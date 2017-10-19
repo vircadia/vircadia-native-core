@@ -10,6 +10,7 @@
 //
 
 #include <algorithm>
+#include <array>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -509,12 +510,12 @@ CubeProjectedPolygon ViewFrustum::computeProjectedPolygon(const TBOX& box) const
     const glm::vec3& bottomNearRight = box.getCorner();
     glm::vec3 topFarLeft = box.calcTopFarLeft();
 
-    int lookUp = ((_position.x < bottomNearRight.x))   //  1 = right      |   compute 6-bit
-        + ((_position.x > topFarLeft.x) << 1)   //  2 = left       |         code to
-        + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
-        + ((_position.y > topFarLeft.y) << 3)   //  8 = top        | with respect to
-        + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
-        + ((_position.z > topFarLeft.z) << 5);  // 32 = back/far   |          planes
+    int lookUp = ((_position.x < bottomNearRight.x))    //  1 = right      |   compute 6-bit
+        + ((_position.x > topFarLeft.x) << 1)           //  2 = left       |         code to
+        + ((_position.y < bottomNearRight.y) << 2)      //  4 = bottom     | classify camera
+        + ((_position.y > topFarLeft.y) << 3)           //  8 = top        | with respect to
+        + ((_position.z < bottomNearRight.z) << 4)      // 16 = front/near |  the 6 defining
+        + ((_position.z > topFarLeft.z) << 5);          // 32 = back/far   |          planes
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
 
@@ -575,6 +576,89 @@ CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
 
 CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
     return computeProjectedPolygon(box);
+}
+
+bool ViewFrustum::getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm::vec2& topRight) const {
+    using Edge = std::pair<int, int>;
+
+    const int VERTEX_COUNT = 8;
+    const int EDGE_COUNT = 12;
+    // In theory, after clipping a box with a plane, only 4 new vertices at max
+    // should be created but due to potential imprecisions (edge almost parallel to 
+    // near plane for instance) there might be more
+    const int MAX_VERTEX_COUNT = VERTEX_COUNT + 4 + 2; 
+
+    std::array<glm::vec3, MAX_VERTEX_COUNT> vertices;
+    std::array<Edge, EDGE_COUNT> boxEdges{
+        Edge(BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR),
+        Edge(TOP_LEFT_NEAR, TOP_RIGHT_NEAR),
+        Edge(BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR),
+        Edge(TOP_LEFT_FAR, TOP_RIGHT_FAR),
+        Edge(BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR),
+        Edge(BOTTOM_LEFT_FAR, TOP_LEFT_FAR),
+        Edge(BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR),
+        Edge(BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR),
+        Edge(BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR),
+        Edge(TOP_LEFT_NEAR, TOP_LEFT_FAR),
+        Edge(BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR),
+        Edge(TOP_RIGHT_NEAR, TOP_RIGHT_FAR)
+    };
+    std::array<float, VERTEX_COUNT> distancesToNearPlane;
+    std::bitset<MAX_VERTEX_COUNT> areVerticesInside;
+    int vertexCount = VERTEX_COUNT;
+    int i;
+
+    // Clip the hull with the near plane.
+    const auto& nearPlane = _planes[NEAR_PLANE];
+
+    for (i = 0; i < VERTEX_COUNT; i++) {
+        vertices[i] = box.getVertex(static_cast<BoxVertex>(i));
+        distancesToNearPlane[i] = nearPlane.distance(vertices[i]);
+    }
+
+    for (i = 0; i < EDGE_COUNT; i++) {
+        const auto& edgeVertexIndices = boxEdges[i];
+        const auto& startVertex = vertices[edgeVertexIndices.first];
+        const auto& endVertex = vertices[edgeVertexIndices.second];
+        float startVertexDistance = distancesToNearPlane[edgeVertexIndices.first];
+        float endVertexDistance = distancesToNearPlane[edgeVertexIndices.second];
+        bool isStartPointInside = startVertexDistance >= 0.0f;
+        bool isEndPointInside = endVertexDistance >= 0.0f;
+
+        areVerticesInside.set(edgeVertexIndices.first, isStartPointInside);
+        areVerticesInside.set(edgeVertexIndices.second, isEndPointInside);
+
+        if (isStartPointInside != isEndPointInside) {
+            // One of the two vertices is behind the near plane so add a new clipped vertex
+            // add tag it as projectable.
+            vertices[vertexCount] = startVertex + (endVertex - startVertex) * (startVertexDistance / (startVertexDistance - endVertexDistance));
+            areVerticesInside.set(vertexCount);
+            vertexCount++;
+        }
+    }
+
+    // Project points that are inside
+    bottomLeft.x = std::numeric_limits<float>::max();
+    bottomLeft.y = std::numeric_limits<float>::max();
+    topRight.x = -std::numeric_limits<float>::max();
+    topRight.y = -std::numeric_limits<float>::max();
+    for (i = 0; i < vertexCount; i++) {
+        if (areVerticesInside[i]) {
+            bool isPointInside;
+            auto projectedPoint = projectPoint(vertices[i], isPointInside);
+            bottomLeft.x = std::min(bottomLeft.x, projectedPoint.x);
+            bottomLeft.y = std::min(bottomLeft.y, projectedPoint.y);
+            topRight.x = std::max(topRight.x, projectedPoint.x);
+            topRight.y = std::max(topRight.y, projectedPoint.y);
+        }
+    }
+
+    bottomLeft.x = glm::clamp(bottomLeft.x, -1.0f, 1.0f);
+    bottomLeft.y = glm::clamp(bottomLeft.y, -1.0f, 1.0f);
+    topRight.x = glm::clamp(topRight.x, -1.0f, 1.0f);
+    topRight.y = glm::clamp(topRight.y, -1.0f, 1.0f);
+
+    return areVerticesInside.any();
 }
 
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
