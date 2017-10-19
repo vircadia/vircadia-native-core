@@ -25,10 +25,10 @@
     // The bubble model itself
     var bubbleOverlay = Overlays.addOverlay("model", {
         url: Script.resolvePath("assets/models/Bubble-v14.fbx"), // If you'd like to change the model, modify this line (and the dimensions below)
-        dimensions: { x: 1.0, y: 0.75, z: 1.0 },
+        dimensions: { x: MyAvatar.sensorToWorldScale, y: 0.75 * MyAvatar.sensorToWorldScale, z: MyAvatar.sensorToWorldScale },
         position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, z: MyAvatar.position.z },
         rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
-        scale: { x: 2 * MyAvatar.sensorToWorldScale, y: MyAvatar.scale * 0.5 + 0.2 * MyAvatar.sensorToWorldScale, z: 2 * MyAvatar.sensorToWorldScale },
+        scale: { x: 2 , y: MyAvatar.scale * 0.5 + 0.5, z: 2  },
         visible: false,
         ignoreRayIntersection: true
     });
@@ -62,6 +62,11 @@
         }
 
         Overlays.editOverlay(bubbleOverlay, {
+            dimensions: { 
+                x: MyAvatar.sensorToWorldScale, 
+                y: 0.75 * MyAvatar.sensorToWorldScale, 
+                z: MyAvatar.sensorToWorldScale 
+            },
             position: { 
                 x: MyAvatar.position.x, 
                 y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, 
@@ -69,9 +74,9 @@
             },
             rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
             scale: { 
-                x: 2 * MyAvatar.sensorToWorldScale, 
-                y: MyAvatar.scale * 0.5 + 0.2 * MyAvatar.sensorToWorldScale, 
-                z: 2 * MyAvatar.sensorToWorldScale 
+                x: 2 , 
+                y: MyAvatar.scale * 0.5  + 0.5 , 
+                z: 2  
             },
             visible: true
         });
@@ -107,6 +112,11 @@
 
             if (delay < BUBBLE_RAISE_ANIMATION_DURATION_MS) {
                 Overlays.editOverlay(bubbleOverlay, {
+                    dimensions: { 
+                        x: MyAvatar.sensorToWorldScale, 
+                        y: 0.75 * MyAvatar.sensorToWorldScale, 
+                        z: MyAvatar.sensorToWorldScale 
+                    },
                     // Quickly raise the bubble from the ground up
                     position: {
                         x: MyAvatar.position.x,
@@ -115,14 +125,19 @@
                     },
                     rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
                     scale: {
-                        x: 2 * MyAvatar.sensorToWorldScale,
-                        y: ((1 - ((BUBBLE_RAISE_ANIMATION_DURATION_MS - delay) / BUBBLE_RAISE_ANIMATION_DURATION_MS)) * MyAvatar.scale * 0.5 + 0.2 * MyAvatar.sensorToWorldScale),
-                        z: 2 * MyAvatar.sensorToWorldScale
+                        x: 2 ,
+                        y: ((1 - ((BUBBLE_RAISE_ANIMATION_DURATION_MS - delay) / BUBBLE_RAISE_ANIMATION_DURATION_MS)) * MyAvatar.scale * 0.5 + 0.5),
+                        z: 2 
                     }
                 });
             } else {
                 // Keep the bubble in place for a couple seconds
                 Overlays.editOverlay(bubbleOverlay, {
+                    dimensions: { 
+                        x: MyAvatar.sensorToWorldScale, 
+                        y: 0.75 * MyAvatar.sensorToWorldScale, 
+                        z: MyAvatar.sensorToWorldScale 
+                    },            
                     position: {
                         x: MyAvatar.position.x,
                         y: MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE,
@@ -130,9 +145,9 @@
                     },
                     rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
                     scale: {
-                        x: 2 * MyAvatar.sensorToWorldScale,
-                        y: MyAvatar.scale * 0.5 + 0.2 * MyAvatar.sensorToWorldScale,
-                        z: 2 * MyAvatar.sensorToWorldScale
+                        x: 2,
+                        y: MyAvatar.scale * 0.5  + 0.5 ,
+                        z: 2 
                     }
                 });
             }
