@@ -19,6 +19,7 @@ Window {
     shown: true
     width: content.width
     height: content.height
+    disableFade: true
     // Disable this window from being able to call 'desktop.raise() and desktop.showDesktop'
     activator: Item {}
     property bool horizontal: true

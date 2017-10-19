@@ -129,6 +129,101 @@ QString SceneScripting::Stage::getBackgroundMode() const {
     };
 }
 
+void SceneScripting::Stage::setHazeMode(const QString& mode) {
+    if (mode == QString("haze off")) {
+        _skyStage->setHazeMode(model::SunSkyStage::HAZE_OFF);
+    } else if (mode == QString("haze on")) {
+        _skyStage->setHazeMode(model::SunSkyStage::HAZE_ON);
+    }
+}
+
+QString SceneScripting::Stage::getHazeMode() const {
+    switch (_skyStage->getHazeMode()) {
+    case model::SunSkyStage::HAZE_OFF:
+        return QString("haze off");
+    case model::SunSkyStage::HAZE_ON:
+        return QString("haze on");
+    default:
+        return QString("inherit");
+    };
+}
+
+void SceneScripting::Stage::setHazeRange(const float hazeRange) {
+     _skyStage->setHazeRange(hazeRange);
+}
+float SceneScripting::Stage::getHazeRange() const {
+    return _skyStage->getHazeRange();
+}
+void SceneScripting::Stage::setHazeColor(const xColor hazeColor) {
+    _skyStage->setHazeColor(hazeColor);
+}
+xColor SceneScripting::Stage::getHazeColor() const {
+    return _skyStage->getHazeColor();
+}
+void SceneScripting::Stage::setHazeGlareColor(const xColor hazeGlareColor) {
+    _skyStage->setHazeGlareColor(hazeGlareColor);
+}
+xColor SceneScripting::Stage::getHazeGlareColor() const {
+    return _skyStage->getHazeGlareColor();
+}
+void SceneScripting::Stage::setHazeEnableGlare(const bool hazeEnableGlare) {
+    _skyStage->setHazeEnableGlare(hazeEnableGlare);
+}
+bool SceneScripting::Stage::getHazeEnableGlare() const {
+    return _skyStage->getHazeEnableGlare();
+}
+void SceneScripting::Stage::setHazeGlareAngle(const float hazeGlareAngle) {
+    _skyStage->setHazeGlareAngle(hazeGlareAngle);
+}
+float SceneScripting::Stage::getHazeGlareAngle() const {
+    return _skyStage->getHazeGlareAngle();
+}
+
+void SceneScripting::Stage::setHazeAltitudeEffect(const bool hazeAltitudeEffect) {
+    _skyStage->setHazeAltitudeEffect(hazeAltitudeEffect);
+}
+bool SceneScripting::Stage::getHazeAltitudeEffect() const {
+    return _skyStage->getHazeAltitudeEffect();
+}
+void SceneScripting::Stage::setHazeCeiling(const float hazeCeiling) {
+    _skyStage->setHazeCeiling(hazeCeiling);
+}
+float SceneScripting::Stage::getHazeCeiling() const {
+    return _skyStage->getHazeCeiling();
+}
+void SceneScripting::Stage::setHazeBaseRef(const float hazeBaseRef) {
+    _skyStage->setHazeBaseRef(hazeBaseRef);
+}
+float SceneScripting::Stage::getHazeBaseRef() const {
+    return _skyStage->getHazeBaseRef();
+}
+
+void SceneScripting::Stage::setHazeBackgroundBlend(const float hazeBackgroundBlend) {
+    _skyStage->setHazeBackgroundBlend(hazeBackgroundBlend);
+}
+float SceneScripting::Stage::getHazeBackgroundBlend() const {
+    return _skyStage->getHazeBackgroundBlend();
+}
+
+void SceneScripting::Stage::setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight) {
+    _skyStage->setHazeAttenuateKeyLight(hazeAttenuateKeyLight);
+}
+bool SceneScripting::Stage::getHazeAttenuateKeyLight() const {
+    return _skyStage->getHazeAttenuateKeyLight();
+}
+void SceneScripting::Stage::setHazeKeyLightRange(const float hazeKeyLightRange) {
+    _skyStage->setHazeKeyLightRange(hazeKeyLightRange);
+}
+float SceneScripting::Stage::getHazeKeyLightRange() const {
+    return _skyStage->getHazeKeyLightRange();
+}
+void SceneScripting::Stage::setHazeKeyLightAltitude(const float hazeKeyLightAltitude) {
+    _skyStage->setHazeKeyLightAltitude(hazeKeyLightAltitude);
+}
+float SceneScripting::Stage::getHazeKeyLightAltitude() const {
+    return _skyStage->getHazeKeyLightAltitude();
+}
+
 SceneScriptingInterface::SceneScriptingInterface() : _stage{ new SceneScripting::Stage{ _skyStage } } {
     // Let's make sure the sunSkyStage is using a proceduralSkybox
     _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));

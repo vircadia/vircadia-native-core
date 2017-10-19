@@ -121,6 +121,58 @@ namespace SceneScripting {
         void setBackgroundMode(const QString& mode);
         QString getBackgroundMode() const;
 
+        Q_PROPERTY(QString hazeMode READ getHazeMode WRITE setHazeMode)
+        void setHazeMode(const QString& mode);
+        QString getHazeMode() const;
+
+        Q_PROPERTY(float hazeRange READ getHazeRange WRITE setHazeRange)
+        void setHazeRange(float value);
+        float getHazeRange() const;
+
+        Q_PROPERTY(xColor hazeColor READ getHazeColor WRITE setHazeColor)
+        void setHazeColor(xColor value);
+        xColor getHazeColor() const;
+
+        Q_PROPERTY(xColor hazeGlareColor READ getHazeGlareColor WRITE setHazeGlareColor)
+        void setHazeGlareColor(xColor value);
+        xColor getHazeGlareColor() const;
+
+        Q_PROPERTY(bool hazeEnableGlare READ getHazeEnableGlare WRITE setHazeEnableGlare)
+        void setHazeEnableGlare(bool value);
+        bool getHazeEnableGlare() const;
+
+        Q_PROPERTY(float hazeGlareAngle READ getHazeGlareAngle WRITE setHazeGlareAngle)
+        void setHazeGlareAngle(float value);
+        float getHazeGlareAngle() const;
+
+        Q_PROPERTY(bool hazeAltitudeEffect READ getHazeAltitudeEffect WRITE setHazeAltitudeEffect)
+        void setHazeAltitudeEffect(bool value);
+        bool getHazeAltitudeEffect() const;
+
+        Q_PROPERTY(float hazeCeiling READ getHazeCeiling WRITE setHazeCeiling)
+        void setHazeCeiling(float value);
+        float getHazeCeiling() const;
+
+        Q_PROPERTY(float hazeBaseRef READ getHazeBaseRef WRITE setHazeBaseRef)
+        void setHazeBaseRef(float value);
+        float getHazeBaseRef() const;
+
+        Q_PROPERTY(float hazeBackgroundBlend READ getHazeBackgroundBlend WRITE setHazeBackgroundBlend)
+        void setHazeBackgroundBlend(float value);
+        float getHazeBackgroundBlend() const;
+
+        Q_PROPERTY(bool hazeAttenuateKeyLight READ getHazeAttenuateKeyLight WRITE setHazeAttenuateKeyLight)
+        void setHazeAttenuateKeyLight(bool value);
+        bool getHazeAttenuateKeyLight() const;
+
+        Q_PROPERTY(float hazeKeyLightRange READ getHazeKeyLightRange WRITE setHazeKeyLightRange)
+        void setHazeKeyLightRange(float value);
+        float getHazeKeyLightRange() const;
+
+        Q_PROPERTY(float hazeKeyLightAltitude READ getHazeKeyLightAltitude WRITE setHazeKeyLightAltitude)
+        void setHazeKeyLightAltitude(float value);
+        float getHazeKeyLightAltitude() const;
+
     protected:
         model::SunSkyStagePointer _skyStage;
         LocationPointer _location;
