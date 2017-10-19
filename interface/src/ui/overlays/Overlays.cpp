@@ -891,7 +891,10 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
 
 void Overlays::mousePressEvent(const OverlayID& overlayID, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
     if (thisOverlay) {
         // Focus keyboard on web overlays
         DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
@@ -925,7 +928,10 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
 
 void Overlays::hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
     if (thisOverlay) {
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "hoverLeaveOverlay", Q_ARG(PointerEvent, event));
@@ -951,7 +957,10 @@ bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
 
 void Overlays::mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
     if (thisOverlay) {
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
@@ -999,7 +1008,10 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
 
 void Overlays::mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    std::shared_ptr<Web3DOverlay> thisOverlay;
+    if (getOverlayType(overlayID) == "web3d") {
+        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
     if (thisOverlay) {
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
