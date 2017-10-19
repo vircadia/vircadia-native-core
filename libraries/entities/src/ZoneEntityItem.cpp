@@ -321,7 +321,6 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
     });
 }
 
-#pragma optimize("", off)
 void ZoneEntityItem::setHazeMode(const uint32_t value) {
     if (_hazeMode >= 0 && _hazeMode < COMPONENT_MODE_ITEM_COUNT) {
         _hazeMode = value;
