@@ -40,6 +40,7 @@
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
+#include "DrawHaze.h"
 #include "OutlineEffect.h"
 
 #include <gpu/StandardShaderLib.h>
@@ -149,11 +150,13 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Create the cluster grid of lights, cpu job for now
     const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).asVarying();
     const auto lightClusters = task.addJob<LightClusteringPass>("LightClustering", lightClusteringPassInputs);
-    
-    
+ 
+    // Add haze model
+    const auto hazeModel = task.addJob<FetchHazeStage>("HazeModel");
+
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
-        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters).asVarying();
+        surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, hazeModel).asVarying();
     
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
@@ -169,7 +172,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).asVarying();
         task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
     }
-    
+
+    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
+    task.addJob<DrawHaze>("DrawHaze", drawHazeInputs);
+
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
     // Lighting Buffer ready for tone mapping

@@ -15,13 +15,14 @@
 #include "avatar/AvatarManager.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY),
-    _lockEnd(lockEnd)
+    _lockEnd(lockEnd),
+    _distanceScaleEnd(distanceScaleEnd)
 {
     _rayPickUID = DependencyManager::get<RayPickScriptingInterface>()->createRayPick(rayProps);
 
@@ -86,6 +87,10 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
     updateRenderStateOverlay(_renderStates[state].getStartID(), startProps);
     updateRenderStateOverlay(_renderStates[state].getPathID(), pathProps);
     updateRenderStateOverlay(_renderStates[state].getEndID(), endProps);
+    QVariant endDim = endProps.toMap()["dimensions"];
+    if (endDim.isValid()) {
+        _renderStates[state].setEndDim(vec3FromVariant(endDim));
+    }
 }
 
 void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
@@ -154,10 +159,14 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
     if (!renderState.getEndID().isNull()) {
         QVariantMap endProps;
         glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+        glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
+        if (_distanceScaleEnd) {
+            dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec) * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
+            endProps.insert("dimensions", vec3toVariant(dim));
+        }
         if (_centerEndY) {
             endProps.insert("position", end);
         } else {
-            glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
             glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
             endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
         }
@@ -264,6 +273,7 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
         _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
     }
     if (!_endID.isNull()) {
+        _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);
         _endIgnoreRays = qApp->getOverlays().getProperty(_endID, "ignoreRayIntersection").value.toBool();
     }
 }
