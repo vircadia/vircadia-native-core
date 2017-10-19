@@ -32,6 +32,9 @@ public:
     const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
     const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
 
+    void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
+    const glm::vec3& getEndDim() const { return _endDim; }
+
     void deleteOverlays();
 
 private:
@@ -41,6 +44,8 @@ private:
     bool _startIgnoreRays;
     bool _pathIgnoreRays;
     bool _endIgnoreRays;
+
+    glm::vec3 _endDim;
 };
 
 
@@ -52,7 +57,7 @@ public:
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
     ~LaserPointer();
 
     QUuid getRayUID() { return _rayPickUID; }
@@ -88,6 +93,7 @@ private:
     bool _faceAvatar;
     bool _centerEndY;
     bool _lockEnd;
+    bool _distanceScaleEnd;
     std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
 
     QUuid _rayPickUID;

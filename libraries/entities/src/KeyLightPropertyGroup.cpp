@@ -1,5 +1,5 @@
 //
-//  KeyLightPropertyGroup.h
+//  KeyLightPropertyGroup.cpp
 //  libraries/entities/src
 //
 //  Created by Sam Gateau on 2015/10/23.

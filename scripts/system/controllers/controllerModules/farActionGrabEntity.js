@@ -8,11 +8,11 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
-   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
+   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
+   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable, entityIsGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
 
 */
@@ -23,6 +23,8 @@ Script.include("/~/system/libraries/controllers.js");
 (function() {
     var PICK_WITH_HAND_RAY = true;
 
+    var SEARCH_SPHERE_SIZE = 0.0132;
+    var dim = {x: SEARCH_SPHERE_SIZE, y: SEARCH_SPHERE_SIZE, z: SEARCH_SPHERE_SIZE};
     var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
@@ -33,10 +35,11 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
@@ -54,10 +57,11 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
@@ -75,7 +79,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [
@@ -135,10 +139,6 @@ Script.include("/~/system/libraries/controllers.js");
             100);
 
         this.updateLaserPointer = function(controllerData) {
-            var SEARCH_SPHERE_SIZE = 0.011;
-            var MIN_SPHERE_SIZE = 0.0005;
-            var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE) * MyAvatar.sensorToWorldScale;
-            var dim = {x: radius, y: radius, z: radius};
             var mode = "hold";
             if (!this.distanceHolding && !this.distanceRotating) {
                 if (controllerData.triggerClicks[this.hand]) {
@@ -150,16 +150,10 @@ Script.include("/~/system/libraries/controllers.js");
 
             var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
             if (mode === "full") {
-                var fullEndToEdit = PICK_WITH_HAND_RAY ? this.fullEnd : fullEnd;
-                fullEndToEdit.dimensions = dim;
-                LaserPointers.editRenderState(laserPointerID, mode, { path: fullPath, end: fullEndToEdit });
                 this.contextOverlayTimer = false;
                 this.destroyContextOverlay();
-            } else if (mode === "half") {
-                var halfEndToEdit = PICK_WITH_HAND_RAY ? this.halfEnd : halfEnd;
-                halfEndToEdit.dimensions = dim;
-                LaserPointers.editRenderState(laserPointerID, mode, {path: halfPath, end: halfEndToEdit});
             }
+
             LaserPointers.enableLaserPointer(laserPointerID);
             LaserPointers.setRenderState(laserPointerID, mode);
             if (this.distanceHolding || this.distanceRotating) {
@@ -238,7 +232,7 @@ Script.include("/~/system/libraries/controllers.js");
                 tag: "far-grab-" + MyAvatar.sessionUUID,
                 ttl: ACTION_TTL
             });
-            if (this.actionID === NULL_UUID) {
+            if (this.actionID === Uuid.NULL) {
                 this.actionID = null;
             }
 
@@ -577,8 +571,6 @@ Script.include("/~/system/libraries/controllers.js");
             LaserPointers.removeLaserPointer(this.laserPointer);
         };
 
-        this.halfEnd = halfEnd;
-        this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
@@ -586,6 +578,7 @@ Script.include("/~/system/libraries/controllers.js");
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
+            distanceScaleEnd: true,
             defaultRenderStates: defaultRenderStates
         });
     }

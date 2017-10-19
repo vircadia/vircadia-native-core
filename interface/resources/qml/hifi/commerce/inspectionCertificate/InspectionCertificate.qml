@@ -200,12 +200,6 @@ Rectangle {
             // Style
             color: hifi.colors.lightGray;
         }
-        FontLoader { id: ralewayRegular; source: "../../../../fonts/Raleway-Regular.ttf"; }
-        TextMetrics {
-            id: textMetrics;
-            font.family: ralewayRegular.name
-            text: root.itemOwner;
-        }
         RalewayRegular {
             id: ownedBy;
             text: root.itemOwner;
@@ -215,8 +209,7 @@ Rectangle {
             anchors.top: ownedByHeader.bottom;
             anchors.topMargin: 8;
             anchors.left: ownedByHeader.left;
-            height: textMetrics.height;
-            width: root.isMyCert ? textMetrics.width + 25 : ownedByHeader.width;
+            height: paintedHeight;
             // Style
             color: hifi.colors.darkGray;
             elide: Text.ElideRight;
@@ -231,7 +224,7 @@ Rectangle {
             anchors.topMargin: 4;
             anchors.bottom: ownedBy.bottom;
             anchors.left: ownedBy.right;
-            anchors.leftMargin: 4;
+            anchors.leftMargin: 6;
             anchors.right: ownedByHeader.right;
             // Style
             color: hifi.colors.lightGray;

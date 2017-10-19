@@ -1360,7 +1360,7 @@ function unparentSelectedEntities() {
         }
         selectedEntities.forEach(function (id, index) {
             var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
-            if (parentId !== null && parentId.length > 0 && parentId !== "{00000000-0000-0000-0000-000000000000}") {
+            if (parentId !== null && parentId.length > 0 && parentId !== Uuid.NULL) {
                 parentCheck = true;
             }
             Entities.editEntity(id, {parentID: null});
@@ -1476,10 +1476,19 @@ function onFileSaveChanged(filename) {
 
 function onFileOpenChanged(filename) {
     // disconnect the event, otherwise the requests will stack up
-    Window.openFileChanged.disconnect(onFileOpenChanged);
+    try {
+        // Not all calls to onFileOpenChanged() connect an event.
+        Window.openFileChanged.disconnect(onFileOpenChanged);
+    } catch (e) {
+        // Ignore.
+    }
+
     var importURL = null;
     if (filename !== "") {
-        importURL = "file:///" + filename;
+        importURL = filename;
+        if (!/^(http|https):\/\//.test(filename)) {
+            importURL = "file:///" + importURL;
+        }
     }
     if (importURL) {
         if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {

@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Feedback, History */
+/* global Feedback, History, Preload */
 
 (function () {
 
@@ -87,6 +87,7 @@
     Script.include("./modules/highlights.js");
     Script.include("./modules/history.js");
     Script.include("./modules/laser.js");
+    Script.include("./modules/preload.js");
     Script.include("./modules/selection.js");
     Script.include("./modules/toolIcon.js");
     Script.include("./modules/toolsMenu.js");
@@ -235,8 +236,12 @@
         }
 
         toolIcon = new ToolIcon(otherHand(side));
-        toolsMenu = new ToolsMenu(side, leftInputs, rightInputs, uiCommandCallback);
         createPalette = new CreatePalette(side, leftInputs, rightInputs, uiCommandCallback);
+        toolsMenu = new ToolsMenu(side, leftInputs, rightInputs, uiCommandCallback);
+
+        Preload.load(toolIcon.assetURLs());
+        Preload.load(createPalette.assetURLs());
+        Preload.load(toolsMenu.assetURLs());
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
 

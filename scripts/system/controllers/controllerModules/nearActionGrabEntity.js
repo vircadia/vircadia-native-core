@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+   getControllerJointIndex, getGrabbableData, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
    TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
@@ -101,7 +101,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
-            if (this.actionID === NULL_UUID) {
+            if (this.actionID === Uuid.NULL) {
                 this.actionID = null;
                 return;
             }
@@ -144,6 +144,12 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             Entities.deleteAction(this.targetEntityID, this.actionID);
             this.actionID = null;
 
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
+
             this.targetEntityID = null;
         };
 
@@ -183,7 +189,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             if (targetProps) {
                 if ((!propsArePhysical(targetProps) && !propsAreCloneDynamic(targetProps)) ||
-                    targetProps.parentID != NULL_UUID) {
+                    targetProps.parentID !== Uuid.NULL) {
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
