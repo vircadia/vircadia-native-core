@@ -37,48 +37,46 @@ OutlineRessources::OutlineRessources() {
 void OutlineRessources::update(const gpu::FramebufferPointer& primaryFrameBuffer) {
     auto newFrameSize = glm::ivec2(primaryFrameBuffer->getSize());
 
-    // If the depth buffer or size changed, we need to delete our FBOs and recreate them at the
+    // If the buffer size changed, we need to delete our FBOs and recreate them at the
     // new correct dimensions.
-    if (_depthFrameBuffer) {
-        if (_frameSize != newFrameSize) {
-            _frameSize = newFrameSize;
-            clear();
+    if (_frameSize != newFrameSize) {
+        _frameSize = newFrameSize;
+        allocateDepthBuffer(primaryFrameBuffer);
+        allocateColorBuffer(primaryFrameBuffer);
+    } else {
+        if (!_depthFrameBuffer) {
+            allocateDepthBuffer(primaryFrameBuffer);
         }
-    }
-    if (!_colorFrameBuffer) {
-        if (_frameSize != newFrameSize) {
-            _frameSize = newFrameSize;
-            // Failing to recreate this frame buffer when the screen has been resized creates a bug on Mac
-            _colorFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithoutDepth"));
-            _colorFrameBuffer->setRenderBuffer(0, primaryFrameBuffer->getRenderBuffer(0));
+        if (!_colorFrameBuffer) {
+            allocateColorBuffer(primaryFrameBuffer);
         }
     }
 }
 
-void OutlineRessources::clear() {
-    _depthFrameBuffer.reset();
+void OutlineRessources::allocateColorBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
+    _colorFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithoutDepth"));
+    _colorFrameBuffer->setRenderBuffer(0, primaryFrameBuffer->getRenderBuffer(0));
 }
 
-void OutlineRessources::allocate() {
-    
-    auto width = _frameSize.x;
-    auto height = _frameSize.y;
+void OutlineRessources::allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
-    auto depthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, width, height));
-    
+    auto depthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, _frameSize.x, _frameSize.y));
     _depthFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("outlineDepth"));
     _depthFrameBuffer->setDepthStencilBuffer(depthTexture, depthFormat);
 }
 
 gpu::FramebufferPointer OutlineRessources::getDepthFramebuffer() {
-    if (!_depthFrameBuffer) {
-        allocate();
-    }
+    assert(_depthFrameBuffer);
     return _depthFrameBuffer;
 }
 
 gpu::TexturePointer OutlineRessources::getDepthTexture() {
     return getDepthFramebuffer()->getDepthStencilBuffer();
+}
+
+gpu::FramebufferPointer OutlineRessources::getColorFramebuffer() { 
+    assert(_colorFrameBuffer);
+    return _colorFrameBuffer;
 }
 
 OutlineSharedParameters::OutlineSharedParameters() {
@@ -305,6 +303,11 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
 
 const gpu::PipelinePointer& DrawOutline::getPipeline() {
     if (!_pipeline) {
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(gpu::State::DepthTest(false, false));
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        state->setScissorEnable(true);
+
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::Shader::createPixel(std::string(Outline_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
@@ -316,10 +319,6 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         slotBindings.insert(gpu::Shader::Binding("outlinedDepthMap", OUTLINED_DEPTH_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(gpu::State::DepthTest(false, false));
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        state->setScissorEnable(true);
         _pipeline = gpu::Pipeline::create(program, state);
 
         ps = gpu::Shader::createPixel(std::string(Outline_filled_frag));

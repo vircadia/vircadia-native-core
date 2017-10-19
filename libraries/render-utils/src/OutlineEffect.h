@@ -23,7 +23,7 @@ public:
     gpu::FramebufferPointer getDepthFramebuffer();
     gpu::TexturePointer getDepthTexture();
 
-    gpu::FramebufferPointer getColorFramebuffer() { return _colorFrameBuffer; }
+    gpu::FramebufferPointer getColorFramebuffer();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
     void update(const gpu::FramebufferPointer& primaryFrameBuffer);
@@ -31,13 +31,13 @@ public:
 
 protected:
 
-    void clear();
-    void allocate();
-
     gpu::FramebufferPointer _depthFrameBuffer;
     gpu::FramebufferPointer _colorFrameBuffer;
 
     glm::ivec2 _frameSize;
+
+    void allocateColorBuffer(const gpu::FramebufferPointer& primaryFrameBuffer);
+    void allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer);
 };
 
 using OutlineRessourcesPointer = std::shared_ptr<OutlineRessources>;
