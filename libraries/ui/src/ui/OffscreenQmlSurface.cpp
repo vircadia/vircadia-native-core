@@ -41,6 +41,7 @@
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
 #include <gl/Context.h>
+#include <shared/ReadWriteLockable.h>
 
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
@@ -51,6 +52,53 @@
 Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
 Q_LOGGING_CATEGORY(trace_render_qml_gl, "trace.render.qml.gl")
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
+
+
+class OffscreenQmlWhitelist : public Dependency, private ReadWriteLockable {
+    SINGLETON_DEPENDENCY
+
+public:
+
+    void addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback) {
+        withWriteLock([&] {
+            for (const auto& url : urls) {
+                _callbacks[url].push_back(callback);
+            }
+        });
+    }
+
+    QList<QmlContextCallback> getCallbacksForUrl(const QUrl& url) const {
+        return resultWithReadLock<QList<QmlContextCallback>>([&] {
+            QList<QmlContextCallback> result;
+            auto itr = _callbacks.find(url);
+            if (_callbacks.end() != itr) {
+                result = *itr;
+            }
+            return result;
+        });
+    }
+
+private:
+    
+    QHash<QUrl, QList<QmlContextCallback>> _callbacks;
+};
+
+QSharedPointer<OffscreenQmlWhitelist> getQmlWhitelist() {
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        DependencyManager::set<OffscreenQmlWhitelist>();
+    });
+
+    return DependencyManager::get<OffscreenQmlWhitelist>();
+}
+
+
+void OffscreenQmlSurface::addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback) {
+    getQmlWhitelist()->addWhitelistContextHandler(urls, callback);
+}
+
+
+QmlContextCallback OffscreenQmlSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*, QObject*) {};
 
 struct TextureSet {
     // The number of surfaces with this size
@@ -640,18 +688,26 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlContext->setBaseUrl(baseUrl);
 }
 
-void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, const QmlContextCallback& onQmlLoadedCallback) {
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
+    // Get any whitelist functionality
+    QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(qmlSource);
+    // If we have whitelisted content, we must load a new context
+    createNewContext |= !callbacks.empty();
+    callbacks.push_back(onQmlLoadedCallback);
+
     QQmlContext* targetContext = _qmlContext;
     if (_rootItem && createNewContext) {
         targetContext = new QQmlContext(targetContext);
     }
 
+
+    // FIXME eliminate loading of relative file paths for QML
     QUrl finalQmlSource = qmlSource;
     if ((qmlSource.isRelative() && !qmlSource.isEmpty()) || qmlSource.scheme() == QLatin1String("file")) {
         finalQmlSource = _qmlContext->resolvedUrl(qmlSource);
@@ -659,29 +715,32 @@ void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std
 
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
-        connect(qmlComponent, &QQmlComponent::statusChanged, this,
-            [this, qmlComponent, targetContext, onQmlLoadedCallback](QQmlComponent::Status) {
-            finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
+        connect(qmlComponent, &QQmlComponent::statusChanged, this, [=](QQmlComponent::Status) { 
+            finishQmlLoad(qmlComponent, targetContext, callbacks);
         });
         return;
     }
 
-    finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
+    finishQmlLoad(qmlComponent, targetContext, callbacks);
 }
 
-void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback) {
     load(qmlSource, true, onQmlLoadedCallback);
 }
 
-void OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback) {
     load(qmlSource, false, onQmlLoadedCallback);
+}
+
+void OffscreenQmlSurface::load(const QString& qmlSourceFile, const QmlContextCallback& onQmlLoadedCallback)  {
+    return load(QUrl(qmlSourceFile), onQmlLoadedCallback);
 }
 
 void OffscreenQmlSurface::clearCache() {
     _qmlContext->engine()->clearComponentCache();
 }
 
-void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> onQmlLoadedCallback) {
+void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QList<QmlContextCallback>& callbacks) {
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
@@ -716,7 +775,9 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     // Make sure we will call callback for this codepath
     // Call this before qmlComponent->completeCreate() otherwise ghost window appears
     if (newItem && _rootItem) {
-        onQmlLoadedCallback(qmlContext, newObject);
+        for (const auto& callback : callbacks) {
+            callback(qmlContext, newObject);
+        }
     }
 
     QObject* eventBridge = qmlContext->contextProperty("eventBridge").value<QObject*>();
@@ -751,8 +812,11 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
+
     // Call this callback after rootitem is set, otherwise VrMenu wont work
-    onQmlLoadedCallback(qmlContext, newObject);
+    for (const auto& callback : callbacks) {
+        callback(qmlContext, newObject);
+    }
 }
 
 void OffscreenQmlSurface::updateQuick() {
@@ -1018,7 +1082,24 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
     }
 }
 
-static void forEachKeyboard(QQuickItem* item, std::function<void(QQuickItem*)> function) {
+static void forEachKeyboard(QQuickItem* parent, std::function<void(QQuickItem*)> function) {
+    if (!function) {
+        return;
+    }
+
+    auto keyboards = parent->findChildren<QObject*>("keyboard");
+
+    for (auto keyboardObject : keyboards) {
+        auto keyboard = qobject_cast<QQuickItem*>(keyboardObject);
+        if (keyboard) {
+            function(keyboard);
+        }
+    }
+}
+
+static const int TEXTINPUT_PASSWORD = 2;
+
+static QQuickItem* getTopmostParent(QQuickItem* item) {
     QObject* itemObject = item;
     while (itemObject) {
         if (itemObject->parent()) {
@@ -1028,21 +1109,8 @@ static void forEachKeyboard(QQuickItem* item, std::function<void(QQuickItem*)> f
         }
     }
 
-    auto keyboards = itemObject->findChildren<QObject*>("keyboard");
-
-    for (auto keyboardObject : keyboards) {
-        auto keyboard = qobject_cast<QQuickItem*>(keyboardObject);
-        if (keyboard == nullptr) {
-            continue;
-        }
-
-        if (function) {
-            function(keyboard);
-        }
-    }
+    return qobject_cast<QQuickItem*> (itemObject);
 }
-
-static const int TEXTINPUT_PASSWORD = 2;
 
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
 #if Q_OS_ANDROID
@@ -1066,10 +1134,14 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         // we need to somehow pass 'isPasswordField' to visible keyboard so it will change its 'mirror text' to asterixes
         // the issue in some cases there might be more than one keyboard in object tree and it is hard to understand which one is being used at the moment
         // unfortunately attempts to check for visibility failed becuase visibility is not updated yet. So... I don't see other way than just update properties for all the keyboards
-        forEachKeyboard(item, [&](QQuickItem* keyboard) {
-            keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
-            keyboard->setProperty("password", isPasswordField);
-        });
+
+        auto topmostParent = getTopmostParent(item);
+        if (topmostParent) {
+            forEachKeyboard(topmostParent, [&](QQuickItem* keyboard) {
+                keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
+                keyboard->setProperty("password", isPasswordField);
+            });
+        }
 
         // for future probably makes sense to consider one of the following:
         // 1. make keyboard a singleton, which will be dynamically re-parented before showing
@@ -1081,6 +1153,11 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
             numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
 
             if (item->property("keyboardRaised").isValid()) {
+                forEachKeyboard(item, [&](QQuickItem* keyboard) {
+                    keyboard->setProperty("mirroredText", QVariant::fromValue(QString("")));
+                    keyboard->setProperty("password", isPasswordField);
+                });
+
                 // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
                 if (item->property("punctuationMode").isValid()) {
                     item->setProperty("punctuationMode", QVariant(numeric));

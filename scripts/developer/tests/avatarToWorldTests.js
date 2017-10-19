@@ -1,5 +1,3 @@
-var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
-
 var debugSphereBaseProperties = {
                type: "Sphere",
                dimensions: { x: 0.2, y: 0.2, z: 0.2 },

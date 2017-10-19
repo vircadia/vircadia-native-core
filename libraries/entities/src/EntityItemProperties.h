@@ -191,8 +191,10 @@ public:
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool, TextEntityItem::DEFAULT_FACE_CAMERA);
     DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
-    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, QVector<glm::vec3>());
+    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
+	DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString, "");
@@ -322,6 +324,17 @@ public:
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
     void setRenderInfoHasTransparent(bool value) { _renderInfoHasTransparent = value; }
 
+    void setPackedNormals(const QByteArray& value);
+    QVector<glm::vec3> unpackNormals(const QByteArray& normals);
+
+    void setPackedStrokeColors(const QByteArray& value);
+    QVector<glm::vec3> unpackStrokeColors(const QByteArray& strokeColors);
+
+    QByteArray getPackedNormals() const;
+    QByteArray packNormals(const QVector<glm::vec3>& normals) const;
+
+    QByteArray getPackedStrokeColors() const;
+    QByteArray packStrokeColors(const QVector<glm::vec3>& strokeColors) const;
 
 protected:
     QString getCollisionMaskAsString() const;

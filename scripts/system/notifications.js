@@ -576,7 +576,7 @@
         createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
     }
 
-    function processingGif() {
+    function walletNotSetup() {
         createNotification("Your wallet isn't set up. Open the WALLET app.", NotificationType.WALLET);
     }
 

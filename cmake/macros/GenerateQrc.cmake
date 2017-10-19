@@ -1,0 +1,20 @@
+
+function(GENERATE_QRC)
+  set(oneValueArgs OUTPUT PREFIX PATH)
+  set(multiValueArgs GLOBS)
+  cmake_parse_arguments(GENERATE_QRC "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+  if ("${GENERATE_QRC_PREFIX}" STREQUAL "")
+    set(QRC_PREFIX_PATH /)
+  else()
+    set(QRC_PREFIX_PATH ${GENERATE_QRC_PREFIX})
+  endif()
+  
+  foreach(GLOB ${GENERATE_QRC_GLOBS})
+    file(GLOB_RECURSE FOUND_FILES RELATIVE ${GENERATE_QRC_PATH} ${GLOB})
+    foreach(FILENAME ${FOUND_FILES})
+      set(QRC_CONTENTS "${QRC_CONTENTS}<file alias=\"${FILENAME}\">${GENERATE_QRC_PATH}/${FILENAME}</file>\n")
+    endforeach() 
+  endforeach()
+  
+  configure_file("${HF_CMAKE_DIR}/templates/resources.qrc.in" ${GENERATE_QRC_OUTPUT})
+endfunction()
