@@ -197,6 +197,11 @@
             var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
             var purchasesElement = document.createElement('a');
             var dropDownElement = document.getElementById('user-dropdown');
+
+            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" + 
+                "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
+            $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
+
             purchasesElement.id = "purchasesButton";
             purchasesElement.setAttribute('href', "#");
             purchasesElement.innerHTML = "My Purchases";

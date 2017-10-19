@@ -1,6 +1,20 @@
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
+file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
+add_custom_target(qml SOURCES ${QML_SRC})
+GroupSources("resources/qml")
+
+function(JOIN VALUES GLUE OUTPUT)
+  string (REGEX REPLACE "([^\\]|^);" "\\1${GLUE}" _TMP_STR "${VALUES}")
+  string (REGEX REPLACE "[\\](.)" "\\1" _TMP_STR "${_TMP_STR}") #fixes escaping
+  set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
+endfunction()
+
+
+set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
+generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)      
+
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
@@ -66,9 +80,7 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
-file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
-add_custom_target(qml SOURCES ${QML_SRC})
-GroupSources("resources/qml")
+list(APPEND INTERFACE_SRCS ${INTERFACE_QML_QRC})
 
 if (UNIX)
   install(
@@ -131,9 +143,9 @@ if (APPLE)
 
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
-
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
+  list(APPEND INTERFACE_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME})
 endif()
+
 
 # create the executable, make it a bundle on OS X
 if (APPLE)

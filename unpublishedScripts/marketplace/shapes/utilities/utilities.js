@@ -27,6 +27,7 @@ if (typeof Vec3.abs !== "function") {
 }
 
 if (typeof Quat.ZERO !== "object") {
+    // TODO: Change to Quat.IDENTITY.
     Quat.ZERO = Quat.fromVec3Radians(Vec3.ZERO);
 }
 
