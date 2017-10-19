@@ -229,7 +229,7 @@ const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
 
 QString EntityItemProperties::getHazeModeAsString() const {
     // return "inherit" if _hazeMode is not valid
-    if (_hazeMode >= 0 && _hazeMode < COMPONENT_MODE_ITEM_COUNT) {
+    if (_hazeMode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[_hazeMode].second;
     } else {
         return COMPONENT_MODES[0].second;
@@ -238,7 +238,7 @@ QString EntityItemProperties::getHazeModeAsString() const {
 
 QString EntityItemProperties::getHazeModeString(uint32_t mode) {
     // return "inherit" if mode is not valid
-    if (mode >= 0 && mode < COMPONENT_MODE_ITEM_COUNT) {
+    if (mode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[mode].second;
     } else {
         return COMPONENT_MODES[0].second;
