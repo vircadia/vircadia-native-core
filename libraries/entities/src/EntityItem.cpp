@@ -3004,41 +3004,32 @@ void EntityItem::somethingChangedNotification() {
 }
 
 void EntityItem::retrieveMarketplacePublicKey() {
-    EntityItem::_marketplacePublicKey = "-----BEGIN PUBLIC KEY-----\n"
-        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyNNpKuspPe9D8jbzrX5k\n"
-        "dyl7HvEGHzbXS2ydi0qUApyVZoPsmdx4vtpx6XgwxY8+9X/CDBIIWT2DnfOSzeOQ\n"
-        "D3zdcK2ro0HRiWuCzGKp9BM2GppkoiCZaJjpCiM7XOrBuI5OHp+5csb21nJs/Djo\n"
-        "a6eCj3NlkJEjR2SQepPU89dKbS13g6B5uxH7IgerPmJmsCTEmst87AMGJU0SWyiA\n"
-        "0DSzom/QDODGYAwmC9+++l+xD7pm/zT2NHRom0tbr6Il51PSAcnmxHOcdxuJeRN7\n"
-        "9ep9dg0aTpKBvVbef9WGWj2QgdQ8qR+b9zoiWDq5vlgeLH2WH/AcDAIyyTr/ydeo\n"
-        "CQIDAQAB\n"
-        "-----END PUBLIC KEY-----\n";
-    //QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    //QNetworkRequest networkRequest;
-    //networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    //QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
-    //requestURL.setPath("/api/v1/commerce/marketplace_key");
-    //QJsonObject request;
-    //networkRequest.setUrl(requestURL);
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    requestURL.setPath("/api/v1/commerce/marketplace_key");
+    QJsonObject request;
+    networkRequest.setUrl(requestURL);
 
-    //QNetworkReply* networkReply = NULL;
-    //networkReply = networkAccessManager.get(networkRequest);
+    QNetworkReply* networkReply = NULL;
+    networkReply = networkAccessManager.get(networkRequest);
 
-    //connect(networkReply, &QNetworkReply::finished, [=]() {
-    //    QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
-    //    jsonObject = jsonObject["data"].toObject();
+    connect(networkReply, &QNetworkReply::finished, [=]() {
+        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+        jsonObject = jsonObject["data"].toObject();
 
-    //    if (networkReply->error() == QNetworkReply::NoError) {
-    //        if (!jsonObject["public_key"].toString().isEmpty()) {
-    //            EntityItem::_marketplacePublicKey = jsonObject["public_key"].toString();
-    //            qCWarning(entities) << "Marketplace public key has been set to" << _marketplacePublicKey;
-    //        } else {
-    //            qCWarning(entities) << "Marketplace public key is empty!";
-    //        }
-    //    } else {
-    //        qCWarning(entities) << "Call to" << networkRequest.url() << "failed! Error:" << networkReply->error();
-    //    }
+        if (networkReply->error() == QNetworkReply::NoError) {
+            if (!jsonObject["public_key"].toString().isEmpty()) {
+                EntityItem::_marketplacePublicKey = jsonObject["public_key"].toString();
+                qCWarning(entities) << "Marketplace public key has been set to" << _marketplacePublicKey;
+            } else {
+                qCWarning(entities) << "Marketplace public key is empty!";
+            }
+        } else {
+            qCWarning(entities) << "Call to" << networkRequest.url() << "failed! Error:" << networkReply->error();
+        }
 
-    //    networkReply->deleteLater();
-    //});
+        networkReply->deleteLater();
+    });
 }
