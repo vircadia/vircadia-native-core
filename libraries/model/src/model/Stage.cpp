@@ -260,9 +260,6 @@ void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {
 void SunSkyStage::setHazeMode(uint32_t hazeMode) {
     if (hazeMode < COMPONENT_MODE_ITEM_COUNT) {
         _hazeMode = hazeMode;
-    } else {
-        _hazeMode = 0;
+        invalidate();
     }
-
-    invalidate();
 }

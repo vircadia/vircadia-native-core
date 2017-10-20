@@ -232,7 +232,7 @@ QString EntityItemProperties::getHazeModeAsString() const {
     if (_hazeMode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[_hazeMode].second;
     } else {
-        return COMPONENT_MODES[0].second;
+        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
     }
 }
 
@@ -241,7 +241,7 @@ QString EntityItemProperties::getHazeModeString(uint32_t mode) {
     if (mode < COMPONENT_MODE_ITEM_COUNT) {
         return COMPONENT_MODES[mode].second;
     } else {
-        return COMPONENT_MODES[0].second;
+        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
     }
 }
 
