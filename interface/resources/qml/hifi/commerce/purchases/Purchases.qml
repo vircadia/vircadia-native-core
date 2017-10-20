@@ -32,7 +32,7 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
@@ -434,6 +434,7 @@ Rectangle {
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
+                isWearable: model.categories.indexOf("Wearables") > -1;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
