@@ -25,7 +25,7 @@ Item {
             text: "Glow"
             checked: root.drawConfig["glow"]
             onCheckedChanged: {
-                paramWidgets.drawConfig["glow"] = checked;
+                root.drawConfig["glow"] = checked;
             }
         }
         ConfigSlider {

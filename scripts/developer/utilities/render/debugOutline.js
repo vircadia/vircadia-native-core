@@ -56,8 +56,10 @@ var end2 = {
 
 var outlineGroupIndex = 0
 var isSelectionAddEnabled = false
+var isSelectionEnabled = false
 var renderStates = [{name: "test", end: end}];
 var defaultRenderStates = [{name: "test", distance: 20.0, end: end2}];
+var time = 0
 
 var ray = LaserPointers.createLaserPointer({
     joint: "Mouse",
@@ -83,13 +85,14 @@ function fromQml(message) {
         outlineGroupIndex = parseInt(tokens[1])
         print("Switching to outline group "+outlineGroupIndex)
     } else if (tokens[0]=="pick") {
-        var isPickingEnabled = tokens[1]=='true'
-        print("Ray picking set to "+isPickingEnabled.toString())
-        if (isPickingEnabled) {
+        isSelectionEnabled = tokens[1]=='true'
+        print("Ray picking set to "+isSelectionEnabled.toString())
+        if (isSelectionEnabled) {
             LaserPointers.enableLaserPointer(ray)
         } else {
             LaserPointers.disableLaserPointer(ray)
         }
+        time = 0
     } else if (tokens[0]=="add") {
         isSelectionAddEnabled = tokens[1]=='true'
         print("Add to selection set to "+isSelectionAddEnabled.toString())
@@ -110,7 +113,6 @@ var prevID = 0
 var prevType = ""
 var selectedID = 0
 var selectedType = ""
-var time = 0
 function update(deltaTime) {
 
     // you have to do this repeatedly because there's a bug but I'll fix it
@@ -119,7 +121,7 @@ function update(deltaTime) {
     var result = LaserPointers.getPrevRayPickResult(ray);
     var selectionName = getSelectionName()
 
-    if (result.type != RayPick.INTERSECTED_NONE) {
+    if (isSelectionEnabled && result.type != RayPick.INTERSECTED_NONE) {
         time += deltaTime
         if (result.objectID != prevID) { 
             var typeName = ""
