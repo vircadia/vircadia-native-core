@@ -127,6 +127,13 @@ Script.include("/~/system/libraries/utils.js");
         this.updateLaserPointer = function(controllerData) {
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
+
+            if (HMD.tabletID !== this.tabletID || HMD.tabletButtonID !== this.tabletButtonID || HMD.tabletScreenID !== this.tabletScreenID) {
+                this.tabletID = HMD.tabletID;
+                this.tabletButtonID = HMD.tabletButtonID;
+                this.tabletScreenID = HMD.tabletScreenID;
+                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
+            }
         };
 
         this.pointingAtTablet = function(objectID) {
@@ -233,7 +240,7 @@ Script.include("/~/system/libraries/utils.js");
             defaultRenderStates: defaultRenderStates
         });
 
-        LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
+        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
     }
 
     var leftHandInEditMode = new InEditMode(LEFT_HAND);
