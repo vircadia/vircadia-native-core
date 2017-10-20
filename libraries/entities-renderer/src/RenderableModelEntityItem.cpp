@@ -905,7 +905,7 @@ using namespace render;
 using namespace render::entities;
 
 ItemKey ModelEntityRenderer::getKey() {
-    return ItemKey::Builder().withTypeMeta();
+    return ItemKey::Builder().withTypeMeta().withTypeShape();
 }
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
@@ -1255,7 +1255,8 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
         model = _model;
     });
 
-    if (_model && _model->didVisualGeometryRequestFail()) {
+    // If we don't have a model, or the model doesn't have visual geometry, render our bounding box as green wireframe
+    if (!model || (model && model->didVisualGeometryRequestFail())) {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;
         batch.setModelTransform(_modelTransform); // we want to include the scale as well
