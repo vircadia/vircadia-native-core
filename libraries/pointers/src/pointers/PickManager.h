@@ -8,8 +8,6 @@
 #ifndef hifi_PickManager_h
 #define hifi_PickManager_h
 
-#include <unordered_map>
-
 #include <DependencyManager.h>
 #include "RegisteredMetaTypes.h"
 

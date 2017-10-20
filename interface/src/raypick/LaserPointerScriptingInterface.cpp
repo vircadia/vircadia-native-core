@@ -11,12 +11,8 @@
 
 #include "LaserPointerScriptingInterface.h"
 
-#include <QtCore/QVariant>
-
-#include <GLMHelpers.h>
-
+#include "RegisteredMetaTypes.h"
 #include "PointerScriptingInterface.h"
-#include "Application.h"
 
 void LaserPointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const { 
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));

@@ -12,13 +12,12 @@
 #include <PointerEvent.h>
 
 #include <memory>
-#include <glm/glm.hpp>
 
 #include <shared/ReadWriteLockable.h>
 
 #include "Pointer.h"
 
-class PointerManager : public QObject, public Dependency, protected ReadWriteLockable{
+class PointerManager : public QObject, public Dependency, protected ReadWriteLockable {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 public:

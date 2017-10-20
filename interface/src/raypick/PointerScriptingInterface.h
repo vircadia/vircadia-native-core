@@ -12,8 +12,7 @@
 
 #include "DependencyManager.h"
 #include <pointers/PointerManager.h>
-
-#include "LaserPointer.h"
+#include <pointers/Pick.h>
 
 class PointerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -37,9 +36,6 @@ public slots:
     Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities) const;
 
     Q_INVOKABLE void setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay); }
-
-private:
-    static RenderState buildRenderState(const QVariantMap& propMap);
 
 };
 

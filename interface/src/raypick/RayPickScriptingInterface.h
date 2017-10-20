@@ -13,11 +13,8 @@
 
 #include <QtCore/QObject>
 
-#include <RegisteredMetaTypes.h>
+#include "RegisteredMetaTypes.h"
 #include <DependencyManager.h>
-#include "RayPick.h"
-
-#include "PickScriptingInterface.h"
 
 class RayPickScriptingInterface : public QObject, public Dependency {
     Q_OBJECT

@@ -15,17 +15,18 @@
 
 #include <DependencyManager.h>
 #include <pointers/PickManager.h>
-#include "RayPickScriptingInterface.h"
+#include "PickScriptingInterface.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
-    Pointer(DependencyManager::get<RayPickScriptingInterface>()->createRayPick(rayProps)),
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled) :
+    Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps)),
     _renderingEnabled(enabled),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY),
-    _lockEnd(lockEnd)
+    _lockEnd(lockEnd),
+    _distanceScaleEnd(distanceScaleEnd)
 {
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
@@ -89,6 +90,10 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
         updateRenderStateOverlay(_renderStates[state].getStartID(), startProps);
         updateRenderStateOverlay(_renderStates[state].getPathID(), pathProps);
         updateRenderStateOverlay(_renderStates[state].getEndID(), endProps);
+        QVariant endDim = endProps.toMap()["dimensions"];
+        if (endDim.isValid()) {
+            _renderStates[state].setEndDim(vec3FromVariant(endDim));
+        }
     });
 }
 
@@ -153,10 +158,14 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
     if (!renderState.getEndID().isNull()) {
         QVariantMap endProps;
         glm::quat faceAvatarRotation = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+        glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
+        if (_distanceScaleEnd) {
+            dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec) * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
+            endProps.insert("dimensions", vec3toVariant(dim));
+        }
         if (_centerEndY) {
             endProps.insert("position", end);
         } else {
-            glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
             glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
             endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
         }
@@ -234,6 +243,7 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
         _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
     }
     if (!_endID.isNull()) {
+        _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);
         _endIgnoreRays = qApp->getOverlays().getProperty(_endID, "ignoreRayIntersection").value.toBool();
     }
 }
@@ -248,4 +258,36 @@ void RenderState::deleteOverlays() {
     if (!_endID.isNull()) {
         qApp->getOverlays().deleteOverlay(_endID);
     }
+}
+
+RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
+    QUuid startID;
+    if (propMap["start"].isValid()) {
+        QVariantMap startMap = propMap["start"].toMap();
+        if (startMap["type"].isValid()) {
+            startMap.remove("visible");
+            startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
+        }
+    }
+
+    QUuid pathID;
+    if (propMap["path"].isValid()) {
+        QVariantMap pathMap = propMap["path"].toMap();
+        // right now paths must be line3ds
+        if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
+            pathMap.remove("visible");
+            pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
+        }
+    }
+
+    QUuid endID;
+    if (propMap["end"].isValid()) {
+        QVariantMap endMap = propMap["end"].toMap();
+        if (endMap["type"].isValid()) {
+            endMap.remove("visible");
+            endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
+        }
+    }
+
+    return RenderState(startID, pathID, endID);
 }

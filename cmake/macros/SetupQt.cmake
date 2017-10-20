@@ -7,10 +7,12 @@
 # 
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-    if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
-        set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
-    else()
-        set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
+    if (NOT DEFINED ${_RESULT_NAME}) 
+        if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
+            set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
+        else()
+            set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
+        endif()
     endif()
 endfunction()
 

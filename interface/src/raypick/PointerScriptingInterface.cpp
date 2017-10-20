@@ -9,10 +9,10 @@
 #include "PointerScriptingInterface.h"
 
 #include <QtCore/QVariant>
-
 #include <GLMHelpers.h>
 
 #include "Application.h"
+#include "LaserPointer.h"
 
 void PointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
@@ -48,6 +48,11 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
         lockEnd = propertyMap["lockEnd"].toBool();
     }
 
+    bool distanceScaleEnd = false;
+    if (propertyMap["distanceScaleEnd"].isValid()) {
+        distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
+    }
+
     bool enabled = false;
     if (propertyMap["enabled"].isValid()) {
         enabled = propertyMap["enabled"].toBool();
@@ -61,7 +66,7 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
                 QVariantMap renderStateMap = renderStateVariant.toMap();
                 if (renderStateMap["name"].isValid()) {
                     std::string name = renderStateMap["name"].toString().toStdString();
-                    renderStates[name] = buildRenderState(renderStateMap);
+                    renderStates[name] = LaserPointer::buildRenderState(renderStateMap);
                 }
             }
         }
@@ -76,13 +81,13 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
                 if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
                     std::string name = renderStateMap["name"].toString().toStdString();
                     float distance = renderStateMap["distance"].toFloat();
-                    defaultRenderStates[name] = std::pair<float, RenderState>(distance, buildRenderState(renderStateMap));
+                    defaultRenderStates[name] = std::pair<float, RenderState>(distance, LaserPointer::buildRenderState(renderStateMap));
                 }
             }
         }
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled));
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled));
 }
 
 void PointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
@@ -104,36 +109,4 @@ void PointerScriptingInterface::editRenderState(const QUuid& uid, const QString&
     }
 
     DependencyManager::get<PointerManager>()->editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
-}
-
-RenderState PointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {
-    QUuid startID;
-    if (propMap["start"].isValid()) {
-        QVariantMap startMap = propMap["start"].toMap();
-        if (startMap["type"].isValid()) {
-            startMap.remove("visible");
-            startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
-        }
-    }
-
-    QUuid pathID;
-    if (propMap["path"].isValid()) {
-        QVariantMap pathMap = propMap["path"].toMap();
-        // right now paths must be line3ds
-        if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
-            pathMap.remove("visible");
-            pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
-        }
-    }
-
-    QUuid endID;
-    if (propMap["end"].isValid()) {
-        QVariantMap endMap = propMap["end"].toMap();
-        if (endMap["type"].isValid()) {
-            endMap.remove("visible");
-            endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
-        }
-    }
-
-    return RenderState(startID, pathID, endID);
 }

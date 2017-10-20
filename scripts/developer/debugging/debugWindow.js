@@ -53,4 +53,8 @@ ScriptDiscoveryService.clearDebugWindow.connect(function() {
     window.clearDebugWindow();
 });
 
+Script.scriptEnding.connect(function () {
+    window.close();
+})
+
 }());
