@@ -9,6 +9,7 @@
 //
 
 import QtQuick 2.5
+import TabletScriptingInterface 1.0
 
 import "../../controls-uit"
 
@@ -22,7 +23,16 @@ Preference {
 
     Button {
         id: button
-        onClicked: preference.trigger()
+        onHoveredChanged: {
+            if (hovered) {
+                tabletInterface.playSound(TabletEnums.ButtonHover);
+            }
+        }
+
+        onClicked: {
+            preference.trigger();
+            tabletInterface.playSound(TabletEnums.ButtonClick);
+        }
         width: 180
         anchors.bottom: parent.bottom
     }

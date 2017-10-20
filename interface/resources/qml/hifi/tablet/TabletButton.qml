@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
+import TabletScriptingInterface 1.0
 
 Item {
     id: tabletButton
@@ -130,11 +131,13 @@ Item {
             }
             tabletButton.clicked();
             if (tabletRoot) {
-                tabletRoot.playButtonClickSound();
+                tabletInterface.playSound(TabletEnums.ButtonClick);
             }
         }
         onEntered: {
             tabletButton.isEntered = true;
+            tabletInterface.playSound(TabletEnums.ButtonHover);
+
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
             } else {
