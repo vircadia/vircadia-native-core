@@ -679,7 +679,7 @@ Item {
                     anchors.right: parent.right;
                     anchors.rightMargin: 30;
                     height: 40;
-                    text: "Open Instructions for Later";
+                    text: "Open Backup Instructions for Later";
                     onClicked: {
                         instructions01Container.visible = false;
                         instructions02Container.visible = true;

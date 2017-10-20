@@ -207,6 +207,17 @@
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
+#ifdef DEBUG_EVENT_QUEUE
+// This is a HACK that uses private headers included with the qt source distrubution.
+// To use this feature you need to add these directores to your include path:
+// E:/Qt/5.9.1/Src/qtbase/include/QtCore/5.9.1/QtCore
+// E:/Qt/5.9.1/Src/qtbase/include/QtCore/5.9.1
+#define QT_BOOTSTRAPPED
+#include <private/qthread_p.h>
+#include <private/qobject_p.h>
+#undef QT_BOOTSTRAPPED
+#endif
+
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
@@ -264,9 +275,7 @@ private:
         switch ((int)event->type()) {
             case ApplicationEvent::Render:
                 render();
-                // Ensure we never back up the render events.  Each render should be triggered only in response
-                // to the NEXT render event after the last render occured
-                QCoreApplication::removePostedEvents(this, ApplicationEvent::Render);
+                qApp->_pendingRenderEvent.store(false);
                 return true;
 
             default:
@@ -2249,7 +2258,7 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
+    offscreenUi->createDesktop(QString("qrc:///qml/hifi/Desktop.qml"));
 
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -2717,9 +2726,14 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
+// thread-safe
 void Application::onPresent(quint32 frameCount) {
-    postEvent(this, new QEvent((QEvent::Type)ApplicationEvent::Idle), Qt::HighEventPriority);
-    if (_renderEventHandler && !isAboutToQuit()) {
+    bool expected = false;
+    if (_pendingIdleEvent.compare_exchange_strong(expected, true)) {
+        postEvent(this, new QEvent((QEvent::Type)ApplicationEvent::Idle), Qt::HighEventPriority);
+    }
+    expected = false;
+    if (_renderEventHandler && !isAboutToQuit() && _pendingRenderEvent.compare_exchange_strong(expected, true)) {
         postEvent(_renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
     }
 }
@@ -2786,7 +2800,26 @@ bool Application::handleFileOpenEvent(QFileOpenEvent* fileEvent) {
     return false;
 }
 
+#ifdef DEBUG_EVENT_QUEUE
+static int getEventQueueSize(QThread* thread) {
+    auto threadData = QThreadData::get2(thread);
+    QMutexLocker locker(&threadData->postEventList.mutex);
+    return threadData->postEventList.size();
+}
+
+static void dumpEventQueue(QThread* thread) {
+    auto threadData = QThreadData::get2(thread);
+    QMutexLocker locker(&threadData->postEventList.mutex);
+    qDebug() << "AJT: event list, size =" << threadData->postEventList.size();
+    for (auto& postEvent : threadData->postEventList) {
+        QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
+        qDebug() << "AJT:    " << type;
+    }
+}
+#endif // DEBUG_EVENT_QUEUE
+
 bool Application::event(QEvent* event) {
+
     if (!Menu::getInstance()) {
         return false;
     }
@@ -2806,8 +2839,18 @@ bool Application::event(QEvent* event) {
         // see (windowMinimizedChanged)
         case ApplicationEvent::Idle:
             idle();
-            // Don't process extra idle events that arrived in the event queue while we were doing this idle
-            QCoreApplication::removePostedEvents(this, ApplicationEvent::Idle);
+
+#ifdef DEBUG_EVENT_QUEUE
+            {
+                int count = getEventQueueSize(QThread::currentThread());
+                if (count > 400) {
+                    dumpEventQueue(QThread::currentThread());
+                }
+            }
+#endif // DEBUG_EVENT_QUEUE
+
+            _pendingIdleEvent.store(false);
+
             return true;
 
         case QEvent::MouseMove:
@@ -3968,8 +4011,13 @@ void Application::calibrateEyeTracker5Points() {
 }
 #endif
 
-bool Application::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset) {
+bool Application::exportEntities(const QString& filename,
+                                 const QVector<EntityItemID>& entityIDs,
+                                 const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const QUuid myAvatarID = nodeList->getSessionUUID();
 
     auto entityTree = getEntities()->getTree();
     auto exportTree = std::make_shared<EntityTree>();
@@ -3986,8 +4034,12 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
 
             if (!givenOffset) {
                 EntityItemID parentID = entityItem->getParentID();
-                if (parentID.isInvalidID() || !entityIDs.contains(parentID) || !entityTree->findEntityByEntityItemID(parentID)) {
-                    auto position = entityItem->getPosition(); // If parent wasn't selected, we want absolute position, which isn't in properties.
+                bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == myAvatarID);
+                if (!parentIsAvatar && (parentID.isInvalidID() ||
+                                        !entityIDs.contains(parentID) ||
+                                        !entityTree->findEntityByEntityItemID(parentID))) {
+                    // If parent wasn't selected, we want absolute position, which isn't in properties.
+                    auto position = entityItem->getPosition();
                     root.x = glm::min(root.x, position.x);
                     root.y = glm::min(root.y, position.y);
                     root.z = glm::min(root.z, position.z);
@@ -4007,12 +4059,16 @@ bool Application::exportEntities(const QString& filename, const QVector<EntityIt
         for (EntityItemPointer& entityDatum : entities) {
             auto properties = entityDatum->getProperties();
             EntityItemID parentID = properties.getParentID();
-            if (parentID.isInvalidID()) {
-                properties.setPosition(properties.getPosition() - root);
+            bool parentIsAvatar = (parentID == AVATAR_SELF_ID || parentID == myAvatarID);
+            if (parentIsAvatar) {
+                properties.setParentID(AVATAR_SELF_ID);
+            } else {
+                if (parentID.isInvalidID()) {
+                    properties.setPosition(properties.getPosition() - root);
+                } else if (!entities.contains(parentID)) {
+                    entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
+                } // else valid parent -- don't offset
             }
-            else if (!entities.contains(parentID)) {
-                entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
-            } // else valid parent -- don't offset
             exportTree->addEntity(entityDatum->getEntityItemID(), properties);
         }
     });
@@ -7197,7 +7253,7 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
-        connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
+        connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);
         auto desktop = offscreenUi->getDesktop();
         if (desktop) {
             desktop->setProperty("repositionLocked", wasRepositionLocked);

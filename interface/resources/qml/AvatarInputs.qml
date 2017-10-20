@@ -17,6 +17,7 @@ import "./hifi/audio" as HifiAudio
 Hifi.AvatarInputs {
     id: root;
     objectName: "AvatarInputs"
+    property int modality: Qt.NonModal
     width: audio.width;
     height: audio.height;
     x: 10; y: 5;

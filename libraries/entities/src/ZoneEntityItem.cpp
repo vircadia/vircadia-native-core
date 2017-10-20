@@ -32,7 +32,7 @@ const bool ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED = true;
 const QString ZoneEntityItem::DEFAULT_FILTER_URL = "";
 
 EntityItemPointer ZoneEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new ZoneEntityItem(entityID) };
+    EntityItemPointer entity(new ZoneEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -69,6 +69,9 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
+    _hazeProperties.getProperties(properties);
+
     return properties;
 }
 
@@ -104,16 +107,19 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
-
     // Contains a QString property, must be synchronized
     withWriteLock([&] {
         _skyboxPropertiesChanged = _skyboxProperties.setProperties(properties);
     });
 
-    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged;
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
+	
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
+    _hazePropertiesChanged = _hazeProperties.setProperties(properties);
+
+    somethingChanged = somethingChanged || _keyLightPropertiesChanged || _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged;
 
     return somethingChanged;
 }
@@ -158,6 +164,15 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
 
+    READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
+
+    int bytesFromHaze = _hazeProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+        propertyFlags, overwriteLocalData, _hazePropertiesChanged);
+
+    somethingChanged = somethingChanged || _hazePropertiesChanged;
+    bytesRead += bytesFromHaze;
+    dataAt += bytesFromHaze;
+
     return bytesRead;
 }
 
@@ -170,10 +185,11 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
         requestedProperties += _keyLightProperties.getEntityProperties(params);
     });
 
+    requestedProperties += _stageProperties.getEntityProperties(params);
+
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_BACKGROUND_MODE;
-    requestedProperties += _stageProperties.getEntityProperties(params);
 
     withReadLock([&] {
         requestedProperties += _skyboxProperties.getEntityProperties(params);
@@ -182,6 +198,9 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
+
+    requestedProperties += PROP_HAZE_MODE;
+    requestedProperties += _hazeProperties.getEntityProperties(params);
 
     return requestedProperties;
 }
@@ -208,11 +227,15 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
 
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, getFilterURL());
+
+    APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
+    _hazeProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
+        propertyFlags, propertiesDidntFit, propertyCount, appendState);
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -222,10 +245,12 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);
+    qCDebug(entities) << "               _hazeMode:" << EntityItemProperties::getHazeModeString(_hazeMode);
 
     _keyLightProperties.debugDump();
-    _stageProperties.debugDump();
     _skyboxProperties.debugDump();
+    _hazeProperties.debugDump();
+    _stageProperties.debugDump();
 }
 
 ShapeType ZoneEntityItem::getShapeType() const {
@@ -289,7 +314,117 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
     withWriteLock([&] {
         _keyLightPropertiesChanged = false;
         _backgroundPropertiesChanged = false;
-        _stagePropertiesChanged = false;
         _skyboxPropertiesChanged = false;
+        _hazePropertiesChanged = false;
+        _stagePropertiesChanged = false;
     });
 }
+
+void ZoneEntityItem::setHazeMode(const uint32_t value) {
+    _hazeMode = value;
+    _hazePropertiesChanged = true;
+}
+
+uint32_t ZoneEntityItem::getHazeMode() const {
+    return _hazeMode;
+}
+
+void ZoneEntityItem::setHazeRange(const float hazeRange) {
+    _hazeRange = hazeRange;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeRange() const {
+    return _hazeRange;
+}
+
+void ZoneEntityItem::setHazeColor(const xColor hazeColor) {
+    _hazeColor = hazeColor;
+    _hazePropertiesChanged = true;
+}
+
+xColor ZoneEntityItem::getHazeColor() const {
+    return _hazeColor;
+}
+
+void ZoneEntityItem::setHazeGlareColor(const xColor hazeGlareColor) {
+    _hazeGlareColor = hazeGlareColor;
+    _hazePropertiesChanged = true;
+}
+
+xColor ZoneEntityItem::getHazeGlareColor()const {
+    return _hazeGlareColor;
+}
+
+void ZoneEntityItem::setHazeEnableGlare(const bool hazeEnableGlare) {
+    _hazeEnableGlare = hazeEnableGlare;
+    _hazePropertiesChanged = true;
+}
+
+bool ZoneEntityItem::getHazeEnableGlare()const {
+    return _hazeEnableGlare;
+}
+
+void ZoneEntityItem::setHazeGlareAngle(const float hazeGlareAngle) {
+    _hazeGlareAngle = hazeGlareAngle;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeGlareAngle() const {
+    return _hazeGlareAngle;
+}
+
+void ZoneEntityItem::setHazeCeiling(const float hazeCeiling) {
+    _hazeCeiling = hazeCeiling;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeCeiling() const {
+    return _hazeCeiling;
+}
+
+void ZoneEntityItem::setHazeBaseRef(const float hazeBaseRef) {
+    _hazeBaseRef = hazeBaseRef;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeBaseRef() const {
+    return _hazeBaseRef;
+}
+
+void ZoneEntityItem::setHazeBackgroundBlend(const float hazeBackgroundBlend) {
+    _hazeBackgroundBlend = hazeBackgroundBlend;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeBackgroundBlend() const {
+    return _hazeBackgroundBlend;
+}
+
+void ZoneEntityItem::setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight) {
+    _hazeAttenuateKeyLight = hazeAttenuateKeyLight;
+    _hazePropertiesChanged = true;
+}
+
+bool ZoneEntityItem::getHazeAttenuateKeyLight() const {
+    return _hazeAttenuateKeyLight;
+}
+
+void ZoneEntityItem::setHazeKeyLightRange(const float hazeKeyLightRange) {
+    _hazeKeyLightRange = hazeKeyLightRange;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeKeyLightRange() const {
+    return _hazeKeyLightRange;
+}
+
+void ZoneEntityItem::setHazeKeyLightAltitude(const float hazeKeyLightAltitude) {
+    _hazeKeyLightAltitude = hazeKeyLightAltitude;
+    _hazePropertiesChanged = true;
+}
+
+float ZoneEntityItem::getHazeKeyLightAltitude() const {
+    return _hazeKeyLightAltitude;
+}
+

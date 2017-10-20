@@ -147,7 +147,7 @@ uint64_t Properties::emitIntervalUsecs() const {
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new ParticleEffectEntityItem(entityID) };
+    EntityItemPointer entity(new ParticleEffectEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }

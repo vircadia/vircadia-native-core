@@ -127,6 +127,8 @@ private:
     bool _wasGrayscaleTextureCompressionEnabled { false  };
     bool _wasNormalTextureCompressionEnabled { false };
     bool _wasCubeTextureCompressionEnabled { false };
+
+    uint64_t _filesizeLimit;
 };
 
 #endif

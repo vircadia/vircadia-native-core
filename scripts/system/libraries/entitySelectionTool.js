@@ -71,44 +71,16 @@ SelectionManager = (function() {
     that.selections = [];
     var listeners = [];
 
-    that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-    that.localPosition = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-    that.localDimensions = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-    that.localRegistrationPoint = {
-        x: 0.5,
-        y: 0.5,
-        z: 0.5
-    };
+    that.localRotation = Quat.IDENTITY;
+    that.localPosition = Vec3.ZERO;
+    that.localDimensions = Vec3.ZERO;
+    that.localRegistrationPoint = Vec3.HALF;
 
-    that.worldRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-    that.worldPosition = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-    that.worldDimensions = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-    that.worldRegistrationPoint = {
-        x: 0.5,
-        y: 0.5,
-        z: 0.5
-    };
-    that.centerPosition = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
+    that.worldRotation = Quat.IDENTITY;
+    that.worldPosition = Vec3.ZERO;
+    that.worldDimensions = Vec3.ZERO;
+    that.worldRegistrationPoint = Vec3.HALF;
+    that.centerPosition = Vec3.ZERO;
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -350,11 +322,7 @@ SelectionDisplay = (function() {
     };
     var grabberLineWidth = 0.5;
     var grabberSolid = true;
-    var grabberMoveUpPosition = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
+    var grabberMoveUpPosition = Vec3.ZERO;
 
     var lightOverlayColor = {
         red: 255,
@@ -363,11 +331,7 @@ SelectionDisplay = (function() {
     };
 
     var grabberPropertiesCorner = {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: grabberSizeCorner,
         color: grabberColorCorner,
         alpha: 1,
@@ -380,11 +344,7 @@ SelectionDisplay = (function() {
     };
 
     var grabberPropertiesEdge = {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: grabberSizeEdge,
         color: grabberColorEdge,
         alpha: 1,
@@ -397,11 +357,7 @@ SelectionDisplay = (function() {
     };
 
     var grabberPropertiesFace = {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: grabberSizeFace,
         color: grabberColorFace,
         alpha: 1,
@@ -414,11 +370,7 @@ SelectionDisplay = (function() {
     };
 
     var grabberPropertiesCloner = {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: grabberSizeCorner,
         color: grabberColorCloner,
         alpha: 1,
@@ -436,11 +388,7 @@ SelectionDisplay = (function() {
     };
 
     var highlightBox = Overlays.addOverlay("cube", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: 1,
         color: {
             red: 90,
@@ -457,11 +405,7 @@ SelectionDisplay = (function() {
     });
 
     var selectionBox = Overlays.addOverlay("cube", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: 1,
         color: {
             red: 255,
@@ -478,11 +422,7 @@ SelectionDisplay = (function() {
     var selectionBoxes = [];
 
     var rotationDegreesDisplay = Overlays.addOverlay("text3d", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         text: "",
         color: {
             red: 0,
@@ -513,11 +453,7 @@ SelectionDisplay = (function() {
 
     var grabberMoveUp = Overlays.addOverlay("image3d", {
         url: HIFI_PUBLIC_BUCKET + "images/up-arrow.svg",
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         color: handleColor,
         alpha: handleAlpha,
         visible: false,
@@ -720,16 +656,8 @@ SelectionDisplay = (function() {
     var xRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
         lineWidth: 1.0,
-        start: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        end: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
         color: {
             red: 255,
             green: 0,
@@ -740,16 +668,8 @@ SelectionDisplay = (function() {
     var yRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
         lineWidth: 1.0,
-        start: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        end: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
         color: {
             red: 0,
             green: 255,
@@ -760,16 +680,8 @@ SelectionDisplay = (function() {
     var zRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
         lineWidth: 1.0,
-        start: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        end: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
         color: {
             red: 0,
             green: 0,
@@ -781,16 +693,8 @@ SelectionDisplay = (function() {
     var rotateZeroOverlay = Overlays.addOverlay("line3d", {
         visible: false,
         lineWidth: 2.0,
-        start: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        end: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
         color: {
             red: 255,
             green: 0,
@@ -802,16 +706,8 @@ SelectionDisplay = (function() {
     var rotateCurrentOverlay = Overlays.addOverlay("line3d", {
         visible: false,
         lineWidth: 2.0,
-        start: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        end: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
         color: {
             red: 0,
             green: 0,
@@ -822,11 +718,7 @@ SelectionDisplay = (function() {
 
 
     var rotateOverlayInner = Overlays.addOverlay("circle3d", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: 1,
         color: {
             red: 51,
@@ -856,11 +748,7 @@ SelectionDisplay = (function() {
     });
 
     var rotateOverlayOuter = Overlays.addOverlay("circle3d", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: 1,
         color: {
             red: 51,
@@ -891,11 +779,7 @@ SelectionDisplay = (function() {
     });
 
     var rotateOverlayCurrent = Overlays.addOverlay("circle3d", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         size: 1,
         color: {
             red: 224,
@@ -922,11 +806,7 @@ SelectionDisplay = (function() {
 
     var yawHandle = Overlays.addOverlay("image3d", {
         url: ROTATE_ARROW_WEST_NORTH_URL,
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         color: handleColor,
         alpha: handleAlpha,
         visible: false,
@@ -939,11 +819,7 @@ SelectionDisplay = (function() {
 
     var pitchHandle = Overlays.addOverlay("image3d", {
         url: ROTATE_ARROW_WEST_NORTH_URL,
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         color: handleColor,
         alpha: handleAlpha,
         visible: false,
@@ -956,11 +832,7 @@ SelectionDisplay = (function() {
 
     var rollHandle = Overlays.addOverlay("image3d", {
         url: ROTATE_ARROW_WEST_NORTH_URL,
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
+        position: Vec3.ZERO,
         color: handleColor,
         alpha: handleAlpha,
         visible: false,
@@ -1636,7 +1508,7 @@ SelectionDisplay = (function() {
             position = SelectionManager.localPosition;
             registrationPoint = SelectionManager.localRegistrationPoint;
         } else {
-            rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
+            rotation = Quat.IDENTITY;
             dimensions = SelectionManager.worldDimensions;
             position = SelectionManager.worldPosition;
             registrationPoint = SelectionManager.worldRegistrationPoint;
@@ -2692,7 +2564,7 @@ SelectionDisplay = (function() {
         var onBegin = function(event, pickRay, pickResult) {
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
-            rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
+            rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.IDENTITY;
 
             if (spaceMode === SPACE_LOCAL) {
                 rotation = SelectionManager.localRotation;

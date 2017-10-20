@@ -26,7 +26,8 @@ class Node;
 
 class UploadAssetTask : public QRunnable {
 public:
-    UploadAssetTask(QSharedPointer<ReceivedMessage> message, QSharedPointer<Node> senderNode, const QDir& resourcesDir);
+    UploadAssetTask(QSharedPointer<ReceivedMessage> message, QSharedPointer<Node> senderNode, 
+                    const QDir& resourcesDir, uint64_t filesizeLimit);
 
     void run() override;
 
@@ -34,6 +35,7 @@ private:
     QSharedPointer<ReceivedMessage> _receivedMessage;
     QSharedPointer<Node> _senderNode;
     QDir _resourcesDir;
+    uint64_t _filesizeLimit;
 };
 
 #endif // hifi_UploadAssetTask_h
