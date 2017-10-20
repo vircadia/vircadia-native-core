@@ -14,12 +14,10 @@
 #include <QString>
 #include <glm/glm.hpp>
 
-#include <DependencyManager.h>
-#include <shared/ReadWriteLockable.h>
-
 #include "ui/overlays/Overlay.h"
 
-#include "RayPickScriptingInterface.h"
+#include <pointers/Pointer.h>
+#include <pointers/Pick.h>
 
 class RenderState {
 
@@ -45,12 +43,9 @@ private:
     bool _endIgnoreRays;
 };
 
-
-class LaserPointer : public ReadWriteLockable {
+class LaserPointer : public Pointer {
 
 public:
-    using Pointer = std::shared_ptr<LaserPointer>;
-
     typedef std::unordered_map<std::string, RenderState> RenderStateMap;
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
@@ -58,23 +53,17 @@ public:
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     ~LaserPointer();
 
-    QUuid getRayUID() { return _rayPickUID; }
-    void enable();
-    void disable();
-    const QVariantMap getPrevRayPickResult();
+    void enable() override;
+    void disable() override;
 
-    void setRenderState(const std::string& state);
+    void setRenderState(const std::string& state) override;
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
-    void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
+    void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
-    void setPrecisionPicking(const bool precisionPicking);
-    void setLaserLength(const float laserLength);
-    void setLockEndUUID(QUuid objectID, const bool isOverlay);
+    void setLength(const float length) override;
+    void setLockEndUUID(QUuid objectID, const bool isOverlay) override;
 
-    void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
-    void setIncludeItems(const QVector<QUuid>& includeItems) const;
-
-    void update();
+    void update() override;
 
 private:
     bool _renderingEnabled;
@@ -86,8 +75,6 @@ private:
     bool _centerEndY;
     bool _lockEnd;
     std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
-
-    const QUuid _rayPickUID;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);

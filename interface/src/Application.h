@@ -70,9 +70,6 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
-#include <pointers/PickManager.h>
-#include "raypick/LaserPointerManager.h"
-
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -297,9 +294,6 @@ public:
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
-
-    LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
-    PickManager& getPickManager() { return _pickManager; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -712,9 +706,6 @@ private:
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
     QObject* _renderEventHandler{ nullptr };
-
-    PickManager _pickManager;
-    LaserPointerManager _laserPointerManager;
 
     friend class RenderEventHandler;
 };

@@ -15,11 +15,13 @@
 
 #include <GLMHelpers.h>
 
+#include "Application.h"
+
 void LaserPointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const { 
-    qApp->getLaserPointerManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
+    DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 void LaserPointerScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) const {
-    qApp->getLaserPointerManager().setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems)); 
+    DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
 QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
@@ -74,7 +76,7 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         }
     }
 
-    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled));
 }
 
 void LaserPointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
@@ -95,7 +97,7 @@ void LaserPointerScriptingInterface::editRenderState(const QUuid& uid, const QSt
         endProps = propMap["end"];
     }
 
-    qApp->getLaserPointerManager().editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
+    DependencyManager::get<PointerManager>()->editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
 }
 
 RenderState LaserPointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {

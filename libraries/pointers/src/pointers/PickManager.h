@@ -10,6 +10,7 @@
 
 #include <unordered_map>
 
+#include <DependencyManager.h>
 #include "RegisteredMetaTypes.h"
 
 #include "Pick.h"
@@ -20,7 +21,8 @@ enum PickType {
     STYLUS
 };
 
-class PickManager : protected ReadWriteLockable {
+class PickManager : public Dependency, protected ReadWriteLockable {
+    SINGLETON_DEPENDENCY
 
 public:
     PickManager();
