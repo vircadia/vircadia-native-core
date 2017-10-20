@@ -14,6 +14,7 @@
 #include <QtCore/QObject>
 #include <QtEndian>
 #include <QJsonDocument>
+#include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
@@ -1624,6 +1625,7 @@ bool EntityItem::verifyStaticCertificateProperties() {
     if (getCertificateID().isEmpty()) {
         return false;
     }
+
     const auto signatureBytes = QByteArray::fromBase64(getCertificateID().toLatin1());
     const auto signature = reinterpret_cast<const unsigned char*>(signatureBytes.constData());
     const unsigned int signatureLength = signatureBytes.length();
@@ -1632,14 +1634,41 @@ bool EntityItem::verifyStaticCertificateProperties() {
     const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
     const unsigned int textLength = hash.length();
 
-    BIO *bio = BIO_new_mem_buf((void*)qPrintable(EntityItem::_marketplacePublicKey), -1);
+    BIO *bio = BIO_new_mem_buf((void*)EntityItem::_marketplacePublicKey.toUtf8().constData(), -1);
     EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
-    bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
-    BIO_free(bio);
-    RSA_free(rsa);
-    EVP_PKEY_free(evp_key);
-    return answer;
+    if (evp_key) {
+        RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
+        if (rsa) {
+            bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
+            RSA_free(rsa);
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            return answer;
+        } else {
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+            return false;
+        }
+    } else {
+        if (bio) {
+            BIO_free(bio);
+        }
+        long error = ERR_get_error();
+        const char* error_str = ERR_error_string(error, NULL);
+        qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+        return false;
+    }
 }
 
 void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
@@ -2975,32 +3004,41 @@ void EntityItem::somethingChangedNotification() {
 }
 
 void EntityItem::retrieveMarketplacePublicKey() {
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest networkRequest;
-    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
-    requestURL.setPath("/api/v1/commerce/marketplace_key");
-    QJsonObject request;
-    networkRequest.setUrl(requestURL);
+    EntityItem::_marketplacePublicKey = "-----BEGIN PUBLIC KEY-----\n"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyNNpKuspPe9D8jbzrX5k\n"
+        "dyl7HvEGHzbXS2ydi0qUApyVZoPsmdx4vtpx6XgwxY8+9X/CDBIIWT2DnfOSzeOQ\n"
+        "D3zdcK2ro0HRiWuCzGKp9BM2GppkoiCZaJjpCiM7XOrBuI5OHp+5csb21nJs/Djo\n"
+        "a6eCj3NlkJEjR2SQepPU89dKbS13g6B5uxH7IgerPmJmsCTEmst87AMGJU0SWyiA\n"
+        "0DSzom/QDODGYAwmC9+++l+xD7pm/zT2NHRom0tbr6Il51PSAcnmxHOcdxuJeRN7\n"
+        "9ep9dg0aTpKBvVbef9WGWj2QgdQ8qR+b9zoiWDq5vlgeLH2WH/AcDAIyyTr/ydeo\n"
+        "CQIDAQAB\n"
+        "-----END PUBLIC KEY-----\n";
+    //QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    //QNetworkRequest networkRequest;
+    //networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    //QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    //requestURL.setPath("/api/v1/commerce/marketplace_key");
+    //QJsonObject request;
+    //networkRequest.setUrl(requestURL);
 
-    QNetworkReply* networkReply = NULL;
-    networkReply = networkAccessManager.get(networkRequest);
+    //QNetworkReply* networkReply = NULL;
+    //networkReply = networkAccessManager.get(networkRequest);
 
-    connect(networkReply, &QNetworkReply::finished, [=]() {
-        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
-        jsonObject = jsonObject["data"].toObject();
+    //connect(networkReply, &QNetworkReply::finished, [=]() {
+    //    QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+    //    jsonObject = jsonObject["data"].toObject();
 
-        if (networkReply->error() == QNetworkReply::NoError) {
-            if (!jsonObject["public_key"].toString().isEmpty()) {
-                EntityItem::_marketplacePublicKey = jsonObject["public_key"].toString();
-                qCWarning(entities) << "Marketplace public key has been set to" << _marketplacePublicKey;
-            } else {
-                qCWarning(entities) << "Marketplace public key is empty!";
-            }
-        } else {
-            qCWarning(entities) << "Call to" << networkRequest.url() << "failed! Error:" << networkReply->error();
-        }
+    //    if (networkReply->error() == QNetworkReply::NoError) {
+    //        if (!jsonObject["public_key"].toString().isEmpty()) {
+    //            EntityItem::_marketplacePublicKey = jsonObject["public_key"].toString();
+    //            qCWarning(entities) << "Marketplace public key has been set to" << _marketplacePublicKey;
+    //        } else {
+    //            qCWarning(entities) << "Marketplace public key is empty!";
+    //        }
+    //    } else {
+    //        qCWarning(entities) << "Call to" << networkRequest.url() << "failed! Error:" << networkReply->error();
+    //    }
 
-        networkReply->deleteLater();
-    });
+    //    networkReply->deleteLater();
+    //});
 }
