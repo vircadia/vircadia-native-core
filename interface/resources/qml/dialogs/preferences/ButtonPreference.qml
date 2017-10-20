@@ -30,7 +30,7 @@ Preference {
         }
 
         onClicked: {
-            preference.trigger()
+            preference.trigger();
             tabletInterface.playSound(TabletEnums.ButtonClick);
         }
         width: 180
