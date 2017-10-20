@@ -76,6 +76,14 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
+    if (_shape != entity->getShape()) {
+        return true;
+    }
+
+    if (_dimensions != entity->getDimensions()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -93,12 +101,13 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         _position = entity->getPosition();
         _dimensions = entity->getDimensions();
         _orientation = entity->getOrientation();
+        _renderTransform = getModelTransform();
 
         if (_shape == entity::Sphere) {
-            _modelTransform.postScale(SPHERE_ENTITY_SCALE);
+            _renderTransform.postScale(SPHERE_ENTITY_SCALE);
         }
 
-        _modelTransform.postScale(_dimensions);
+        _renderTransform.postScale(_dimensions);
     });
 }
 
@@ -133,7 +142,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     glm::vec4 outColor;
     withReadLock([&] {
         geometryShape = MAPPING[_shape];
-        batch.setModelTransform(_modelTransform); // use a transform with scale, rotation, registration point and translation
+        batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
         outColor = _color;
         if (_procedural.isReady()) {
             _procedural.prepare(batch, _position, _dimensions, _orientation);

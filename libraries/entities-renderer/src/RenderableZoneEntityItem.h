@@ -119,6 +119,7 @@ private:
     bool _validSkyboxTexture{ false };
 
     QString _proceduralUserData;
+    Transform _renderTransform;
 };
 
 } } // namespace 
