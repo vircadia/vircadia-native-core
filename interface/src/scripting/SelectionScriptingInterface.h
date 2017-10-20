@@ -61,6 +61,7 @@ public:
 
     Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
     Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
 
 signals:
     void selectedItemsListChanged(const QString& listName);

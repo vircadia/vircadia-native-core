@@ -21,12 +21,29 @@ Item {
         spacing: 8
         anchors.fill: parent
 
-        CheckBox {
-            id: debug
-            text: "View Mask"
-            checked: root.debugConfig["viewMask"]
-            onCheckedChanged: {
-                root.debugConfig["viewMask"] = checked;
+        Row {
+            spacing: 8
+            CheckBox {
+                id: debug
+                text: "View Mask"
+                checked: root.debugConfig["viewMask"]
+                onCheckedChanged: {
+                    root.debugConfig["viewMask"] = checked;
+                }
+            }
+            CheckBox {
+                text: "Hover select"
+                checked: false
+                onCheckedChanged: {
+                    sendToScript("pick "+checked.toString())
+                }
+            }
+            CheckBox {
+                text: "Add to selection"
+                checked: false
+                onCheckedChanged: {
+                    sendToScript("add "+checked.toString())
+                }
             }
         }
 
@@ -36,7 +53,7 @@ Item {
             height: 400
 
             onCurrentIndexChanged: {
-                sendToScript(currentIndex)
+                sendToScript("outline "+currentIndex)
             }
 
             Tab {
