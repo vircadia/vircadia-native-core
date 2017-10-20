@@ -386,7 +386,7 @@ Script.include("/~/system/libraries/controllers.js");
             var entityProperty = Entities.getEntityProperties(intersection.objectID);
             var entityType = entityProperty.type;
 
-            if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web")) {
+            if ((intersection.type === Picks.INTERSECTED_ENTITY && entityType === "Web")) {
                 return true;
             }
             return false;
@@ -454,7 +454,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_ENTITIES,
+            filter: Picks.PICK_ENTITIES,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,

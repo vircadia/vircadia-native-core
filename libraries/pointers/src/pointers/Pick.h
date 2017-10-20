@@ -130,8 +130,15 @@ public:
 using PickResultPointer = std::shared_ptr<PickResult>;
 
 class PickQuery : protected ReadWriteLockable {
+    Q_GADGET
 public:
     PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled);
+
+    enum PickType {
+        Ray = 0,
+        Stylus
+    };
+    Q_ENUM(PickType)
 
     void enable(bool enabled = true);
     void disable() { enable(false); }

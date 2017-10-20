@@ -61,7 +61,7 @@ void PointerManager::editRenderState(const QUuid& uid, const std::string& state,
     }
 }
 
-const QVariantMap PointerManager::getPrevRayPickResult(const QUuid& uid) const {
+const QVariantMap PointerManager::getPrevPickResult(const QUuid& uid) const {
     auto pointer = find(uid);
     if (pointer) {
         return pointer->getPrevPickResult();

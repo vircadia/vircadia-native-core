@@ -11,7 +11,7 @@ PickManager::PickManager() {
     setShouldPickHUDOperator([]() { return false; });
 }
 
-QUuid PickManager::addPick(PickType type, const std::shared_ptr<PickQuery> pick) {
+QUuid PickManager::addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick) {
     QUuid id = QUuid::createUuid();
     withWriteLock([&] {
         _picks[type][id] = pick;
@@ -84,11 +84,11 @@ void PickManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& includ
 }
 
 void PickManager::update() {
-    QHash<PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> cachedPicks;
+    QHash<PickQuery::PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> cachedPicks;
     withReadLock([&] {
         cachedPicks = _picks;
     });
 
     bool shouldPickHUD = _shouldPickHUDOperator();
-    _rayPickCacheOptimizer.update(cachedPicks[RAY], shouldPickHUD);
+    _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], shouldPickHUD);
 }

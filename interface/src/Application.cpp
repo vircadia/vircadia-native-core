@@ -197,6 +197,8 @@
 #include <pointers/PointerManager.h>
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
+#include <raypick/PickScriptingInterface.h>
+#include <raypick/PointerScriptingInterface.h>
 #include <raypick/MouseRayPick.h>
 
 #include <FadeEffect.h>
@@ -696,6 +698,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<PointerManager>();
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();
+    DependencyManager::set<PointerScriptingInterface>();
+    DependencyManager::set<PickScriptingInterface>();
 
     return previousSessionCrashed;
 }
@@ -1825,14 +1829,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
 
     // Setup the mouse ray pick and related operators
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(RAY, std::make_shared<MouseRayPick>(
-        PickFilter(RayPickScriptingInterface::PICK_ENTITIES() | RayPickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
+        PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](QUuid rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
         QVariantMap result = DependencyManager::get<PickManager>()->getPrevPickResult(rayPickID);
         if (result["type"].isValid()) {
-            entityResult.intersects = result["type"] != RayPickScriptingInterface::INTERSECTED_NONE();
+            entityResult.intersects = result["type"] != PickScriptingInterface::INTERSECTED_NONE();
             if (entityResult.intersects) {
                 entityResult.intersection = vec3FromVariant(result["intersection"]);
                 entityResult.distance = result["distance"].toFloat();
@@ -5798,6 +5802,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickScriptingInterface>().data());
     scriptEngine->registerGlobalObject("LaserPointers", DependencyManager::get<LaserPointerScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Picks", DependencyManager::get<PickScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());

@@ -30,7 +30,7 @@ public:
     void disablePointer(const QUuid& uid) const;
     void setRenderState(const QUuid& uid, const std::string& renderState) const;
     void editRenderState(const QUuid& uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
-    const QVariantMap getPrevRayPickResult(const QUuid& uid) const;
+    const QVariantMap getPrevPickResult(const QUuid& uid) const;
 
     void setPrecisionPicking(const QUuid& uid, const bool precisionPicking) const;
     void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const;

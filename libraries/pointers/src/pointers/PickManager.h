@@ -16,11 +16,6 @@
 #include "Pick.h"
 #include "PickCacheOptimizer.h"
 
-enum PickType {
-    RAY = 0,
-    STYLUS
-};
-
 class PickManager : public Dependency, protected ReadWriteLockable {
     SINGLETON_DEPENDENCY
 
@@ -29,7 +24,7 @@ public:
 
     void update();
 
-    QUuid addPick(PickType type, const std::shared_ptr<PickQuery> pick);
+    QUuid addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick);
     void removePick(const QUuid& uid);
     void enablePick(const QUuid& uid) const;
     void disablePick(const QUuid& uid) const;
@@ -46,8 +41,8 @@ protected:
     std::function<bool()> _shouldPickHUDOperator;
 
     std::shared_ptr<PickQuery> findPick(const QUuid& uid) const;
-    QHash<PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> _picks;
-    QHash<QUuid, PickType> _typeMap;
+    QHash<PickQuery::PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> _picks;
+    QHash<QUuid, PickQuery::PickType> _typeMap;
 
     PickCacheOptimizer<PickRay> _rayPickCacheOptimizer;
 };

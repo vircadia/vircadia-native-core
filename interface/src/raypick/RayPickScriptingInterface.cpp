@@ -21,55 +21,7 @@
 #include "MouseRayPick.h"
 
 QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
-    QVariantMap propMap = properties.toMap();
-
-    bool enabled = false;
-    if (propMap["enabled"].isValid()) {
-        enabled = propMap["enabled"].toBool();
-    }
-
-    PickFilter filter = PickFilter();
-    if (propMap["filter"].isValid()) {
-        filter = PickFilter(propMap["filter"].toUInt());
-    }
-
-    float maxDistance = 0.0f;
-    if (propMap["maxDistance"].isValid()) {
-        maxDistance = propMap["maxDistance"].toFloat();
-    }
-
-    if (propMap["joint"].isValid()) {
-        std::string jointName = propMap["joint"].toString().toStdString();
-
-        if (jointName != "Mouse") {
-            // x = upward, y = forward, z = lateral
-            glm::vec3 posOffset = Vectors::ZERO;
-            if (propMap["posOffset"].isValid()) {
-                posOffset = vec3FromVariant(propMap["posOffset"]);
-            }
-
-            glm::vec3 dirOffset = Vectors::UP;
-            if (propMap["dirOffset"].isValid()) {
-                dirOffset = vec3FromVariant(propMap["dirOffset"]);
-            }
-
-            return DependencyManager::get<PickManager>()->addPick(RAY, std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
-           
-        } else {
-            return DependencyManager::get<PickManager>()->addPick(RAY, std::make_shared<MouseRayPick>(filter, maxDistance, enabled));
-        }
-    } else if (propMap["position"].isValid()) {
-        glm::vec3 position = vec3FromVariant(propMap["position"]);
-
-        glm::vec3 direction = -Vectors::UP;
-        if (propMap["direction"].isValid()) {
-            direction = vec3FromVariant(propMap["direction"]);
-        }
-
-        return DependencyManager::get<PickManager>()->addPick(RAY, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
-    }
-
-    return QUuid();
+    return DependencyManager::get<PickScriptingInterface>()->createRayPick(properties);
 }
 
 void RayPickScriptingInterface::enableRayPick(const QUuid& uid) {

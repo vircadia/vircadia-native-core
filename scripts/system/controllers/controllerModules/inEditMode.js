@@ -153,12 +153,12 @@ Script.include("/~/system/libraries/utils.js");
         this.sendPickData = function(controllerData) {
             if (controllerData.triggerClicks[this.hand] && !this.triggerClicked) {
                 var intersection = controllerData.rayPicks[this.hand];
-                if (intersection.type === RayPick.INTERSECTED_ENTITY) {
+                if (intersection.type === Picks.INTERSECTED_ENTITY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectEntity",
                         entityID: intersection.objectID
                     }));
-                } else if (intersection.type === RayPick.INTERSECTED_OVERLAY) {
+                } else if (intersection.type === Picks.INTERSECTED_OVERLAY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectOverlay",
                         overlayID: intersection.objectID
@@ -243,7 +243,7 @@ Script.include("/~/system/libraries/utils.js");
 
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,

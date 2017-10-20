@@ -376,8 +376,8 @@ Script.include("/~/system/libraries/controllers.js");
             var entityType = entityProperty.type;
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
-            if ((intersection.type === RayPick.INTERSECTED_ENTITY && entityType === "Web") ||
-                intersection.type === RayPick.INTERSECTED_OVERLAY || Window.isPointOnDesktopWindow(point2d)) {
+            if ((intersection.type === Picks.INTERSECTED_ENTITY && entityType === "Web") ||
+                intersection.type === Picks.INTERSECTED_OVERLAY || Window.isPointOnDesktopWindow(point2d)) {
                 return true;
             }
             return false;
@@ -497,7 +497,7 @@ Script.include("/~/system/libraries/controllers.js");
                 }
 
                 var rayPickInfo = controllerData.rayPicks[this.hand];
-                if (rayPickInfo.type === RayPick.INTERSECTED_ENTITY) {
+                if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
                     if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
                         var targetProps = Entities.getEntityProperties(entityID, [
@@ -581,7 +581,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,

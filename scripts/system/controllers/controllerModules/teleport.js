@@ -149,7 +149,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.teleportRayHandVisible = LaserPointers.createLaserPointer({
             joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
-            filter: RayPick.PICK_ENTITIES,
+            filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates,
@@ -157,14 +157,14 @@ Script.include("/~/system/libraries/controllers.js");
         });
         this.teleportRayHandInvisible = LaserPointers.createLaserPointer({
             joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_INCLUDE_INVISIBLE,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates
         });
         this.teleportRayHeadVisible = LaserPointers.createLaserPointer({
             joint: "Avatar",
-            filter: RayPick.PICK_ENTITIES,
+            filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates,
@@ -172,7 +172,7 @@ Script.include("/~/system/libraries/controllers.js");
         });
         this.teleportRayHeadInvisible = LaserPointers.createLaserPointer({
             joint: "Avatar",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_INCLUDE_INVISIBLE,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
             centerEndY: false,
             renderStates: teleportRenderStates
@@ -397,7 +397,7 @@ Script.include("/~/system/libraries/controllers.js");
     // you can't teleport there.
     var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
     function getTeleportTargetType(result) {
-        if (result.type === RayPick.INTERSECTED_NONE) {
+        if (result.type === Picks.INTERSECTED_NONE) {
             return TARGET.NONE;
         }
 
