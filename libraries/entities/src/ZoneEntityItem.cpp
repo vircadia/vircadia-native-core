@@ -323,8 +323,7 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
 void ZoneEntityItem::setHazeMode(const uint32_t value) {
     if (value < COMPONENT_MODE_ITEM_COUNT) {
         _hazeMode = value;
-    }
-    else {
+    } else {
         _hazeMode = 0;
     }
 
