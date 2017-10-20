@@ -1,3 +1,4 @@
+
 //
 //  WebBrowser.qml
 //
@@ -45,7 +46,7 @@ Rectangle {
         onSuggestions: {
             if (suggestions.length > 0) {
                 suggestionsList = []
-                suggestionsList.push(addressBar.editText) //do not overwrite edit text
+                suggestionsList.push(addressBarInput.text) //do not overwrite edit text
                 for(var i = 0; i < suggestions.length; i++) {
                     suggestionsList.push(suggestions[i])
                 }
@@ -63,7 +64,7 @@ Rectangle {
         repeat: false
         onTriggered: {
             if (addressBar.editText !== "") {
-                searchEngine.requestSuggestions(addressBar.editText)
+                searchEngine.requestSuggestions(addressBarInput.text)
             }
         }
     }
@@ -72,12 +73,16 @@ Rectangle {
 
     function goTo(url) {
         //must be valid attempt to open an site with dot
-        if (url.indexOf("http") <= 0 && url.indexOf(".") > 0) {
-            url = "http://" + url;
+
+        if (url.indexOf(".") > 0) {
+            if (url.indexOf("http") < 0) {
+                url = "http://" + url;
+            }
         } else {
             url = searchEngine.searchUrl(url)
         }
 
+        addressBar.model = []
         webEngineView.url = url
         suggestionRequestTimer.stop()
         addressBar.popup.close()
@@ -151,12 +156,12 @@ Rectangle {
                     }
 
                     Keys.onDeletePressed: {
-                        editText = ""
+                        addressBarInput.text = ""
                     }
 
                     Keys.onPressed: {
                         if (event.key === Qt.Key_Return) {
-                            goTo(editText)
+                            goTo(addressBarInput.text)
                             event.accepted = true;
                         }
                     }
@@ -192,19 +197,24 @@ Rectangle {
 
                 Keys.onPressed: {
                     if (event.key === Qt.Key_Return) {
-                        goTo(editText)
+                        goTo(addressBarInput.text)
                         event.accepted = true;
                     }
                 }
 
                 onEditTextChanged: {
-                    console.log("edit text", addressBar.editText)
-                    suggestionRequestTimer.restart()
+                    if (addressBar.editText !== "" && addressBar.editText !== webEngineView.url.toString()) {
+                        suggestionRequestTimer.restart();
+                    } else {
+                        addressBar.model = []
+                        addressBar.popup.close()
+                    }
+
                 }
 
                 Layout.fillWidth: true
                 editText: webEngineView.url
-                onAccepted: goTo(editText)
+                onAccepted: goTo(addressBarInput.text)
             }
 
             HifiControls.WebGlyphButton {
@@ -263,6 +273,11 @@ Rectangle {
                     suggestionRequestTimer.stop()
                     addressBar.popup.close()
                 }
+            }
+
+            onLinkHovered: {
+                //TODO: change cursor shape?
+                console.error("hoveredUrl:", hoveredUrl)
             }
 
             // creates a global EventBridge object.
