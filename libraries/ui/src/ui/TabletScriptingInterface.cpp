@@ -92,7 +92,7 @@ void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
         AudioInjectorOptions options;
         options.stereo = sound->isStereo();
         options.ambisonic = sound->isAmbisonic();
-        options.localOnly = options.localOnly || sound->isAmbisonic();  // force localOnly when Ambisonic
+        options.localOnly = true;
 
         AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
     }

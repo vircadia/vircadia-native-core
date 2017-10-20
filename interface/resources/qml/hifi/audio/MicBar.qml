@@ -61,12 +61,12 @@ Rectangle {
         scrollGestureEnabled: false;
         onClicked: {
             Audio.muted = !Audio.muted;
-            tabletInterface.playSound(TabletEnums.ButtonClick)
+            tabletInterface.playSound(TabletEnums.ButtonClick);
         }
         drag.target: dragTarget;
         onContainsMouseChanged: {
             if (containsMouse) {
-                tabletInterface.playSound(TabletEnums.ButtonHover)
+                tabletInterface.playSound(TabletEnums.ButtonHover);
             }
         }
     }

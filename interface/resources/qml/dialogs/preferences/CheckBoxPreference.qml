@@ -41,12 +41,12 @@ Preference {
         id: checkBox
         onHoveredChanged: {
             if (hovered) {
-                tabletInterface.playSound(TabletEnums.ButtonHover)
+                tabletInterface.playSound(TabletEnums.ButtonHover);
             }
         }
 
         onClicked: {
-            tabletInterface.playSound(TabletEnums.ButtonClick)
+            tabletInterface.playSound(TabletEnums.ButtonClick);
         }
 
         anchors {

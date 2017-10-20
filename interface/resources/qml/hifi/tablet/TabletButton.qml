@@ -131,12 +131,12 @@ Item {
             }
             tabletButton.clicked();
             if (tabletRoot) {
-                tabletInterface.playSound(TabletEnums.ButtonClick)
+                tabletInterface.playSound(TabletEnums.ButtonClick);
             }
         }
         onEntered: {
             tabletButton.isEntered = true;
-            tabletInterface.playSound(TabletEnums.ButtonHover)
+            tabletInterface.playSound(TabletEnums.ButtonHover);
 
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
