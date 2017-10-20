@@ -1028,7 +1028,8 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         changedProperties[index] = QString("queryAACube:") +
             QString::number((int)center.x) + "," +
             QString::number((int)center.y) + "," +
-            QString::number((int)center.z);
+            QString::number((int)center.z) + "/" +
+            QString::number(properties.getQueryAACube().getDimensions().x);
     }
     if (properties.positionChanged()) {
         int index = changedProperties.indexOf("position");
@@ -1804,7 +1805,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
                 addToNeedsParentFixupList(entity);
             }
             entity->forceQueryAACubeUpdate();
-            entity->checkAndMaybeUpdateQueryAACube();
+            entity->updateQueryAACube();
             moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
             i++;
         } else {
