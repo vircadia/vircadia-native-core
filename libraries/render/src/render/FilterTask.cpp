@@ -118,8 +118,9 @@ void MetaToSubItems::run(const RenderContextPointer& renderContext, const ItemBo
 
     for (auto idBound : inItems) {
         auto& item = scene->getItem(idBound.id);
-
-        item.fetchMetaSubItems(outItems);
+        if (item.exist()) {
+            item.fetchMetaSubItems(outItems);
+        }
     }
 }
 
@@ -132,8 +133,9 @@ void IDsToBounds::run(const RenderContextPointer& renderContext, const ItemIDs& 
     if (!_disableAABBs) {
         for (auto id : inItems) {
             auto& item = scene->getItem(id);
-
-            outItems.emplace_back(ItemBound{ id, item.getBound() });
+            if (item.exist()) {
+                outItems.emplace_back(ItemBound{ id, item.getBound() });
+            }
         }
     } else {
         for (auto id : inItems) {
