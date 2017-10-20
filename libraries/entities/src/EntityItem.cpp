@@ -2109,6 +2109,7 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
             removeActionInternal(action->getID());
         }
     });
+    updateQueryAACube();
 
     return result;
 }
@@ -2167,6 +2168,8 @@ bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& a
         checkWaitingToRemove(simulation);
         success = removeActionInternal(actionID);
     });
+    updateQueryAACube();
+
     return success;
 }
 
@@ -2194,7 +2197,6 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         _dirtyFlags |= Simulation::DIRTY_PHYSICS_ACTIVATION;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
         setDynamicDataNeedsTransmit(true);
-        updateQueryAACube();
         return success;
     }
     return false;
