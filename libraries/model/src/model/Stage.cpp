@@ -13,6 +13,7 @@
 #include <glm/gtx/transform.hpp> 
 #include <math.h>
 #include <qcompilerdetection.h>
+#include <ComponentMode.h>
 
 using namespace model;
 
@@ -256,8 +257,12 @@ void SunSkyStage::setSkybox(const SkyboxPointer& skybox) {
     invalidate();
 }
 
-// Haze
-void SunSkyStage::setHazeMode(uint32_t mode) {
-    _hazeMode = mode;
+void SunSkyStage::setHazeMode(uint32_t hazeMode) {
+    if (hazeMode < COMPONENT_MODE_ITEM_COUNT) {
+        _hazeMode = hazeMode;
+    } else {
+        _hazeMode = 0;
+    }
+
     invalidate();
 }
