@@ -138,6 +138,8 @@ public:
     static const bool DEFAULT_GHOSTING_ALLOWED;
     static const QString DEFAULT_FILTER_URL;
 
+    static const uint32_t DEFAULT_HAZE_MODE{ (uint32_t)COMPONENT_MODE_INHERIT };
+
 protected:
     KeyLightPropertyGroup _keyLightProperties;
 
@@ -146,7 +148,7 @@ protected:
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
-    uint32_t _hazeMode{ (uint32_t)COMPONENT_MODE_INHERIT };
+    uint32_t _hazeMode{ DEFAULT_HAZE_MODE };
 
     float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
     xColor _hazeColor{ HazePropertyGroup::DEFAULT_HAZE_COLOR };
