@@ -164,7 +164,7 @@ Item {
             anchors.top: parent.top;
             anchors.topMargin: 26;
             anchors.left: parent.left;
-            anchors.leftMargin: 30;
+            anchors.leftMargin: 20;
             anchors.right: parent.right;
             anchors.rightMargin: 30;
             height: 30;

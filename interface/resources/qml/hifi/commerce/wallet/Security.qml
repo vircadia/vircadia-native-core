@@ -290,7 +290,17 @@ Item {
                 id: removeHmdContainer;
                 z: 998;
                 visible: false;
-                color: hifi.colors.blueHighlight;
+
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0.2;
+                        color: hifi.colors.baseGrayHighlight;
+                    }
+                    GradientStop {
+                        position: 1.0;
+                        color: hifi.colors.baseGrayShadow;
+                    }
+                }
                 anchors.fill: backupInstructionsButton;
                 radius: 5;
                 MouseArea {

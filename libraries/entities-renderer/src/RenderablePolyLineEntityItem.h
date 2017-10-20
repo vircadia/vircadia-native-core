@@ -27,7 +27,9 @@ public:
 
 protected:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, 
+                                                Transaction& transaction, 
+                                                const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
     virtual ItemKey getKey() override;
@@ -38,24 +40,37 @@ protected:
 
     struct Vertex {
         Vertex() {}
-        Vertex(const vec3& position, const vec3& normal, const vec2& uv) : position(position), normal(normal), uv(uv) {}
+        Vertex(const vec3& position, const vec3& normal, const vec2& uv, const vec3& color) : position(position), 
+                                                                                              normal(normal), 
+                                                                                              uv(uv), 
+                                                                                              color(color) {}
         vec3 position;
         vec3 normal;
         vec2 uv;
+        vec3 color;
     };
 
     void updateGeometry(const std::vector<Vertex>& vertices);
-    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, const QVector<glm::vec3>& normals, const QVector<float>& strokeWidths);
+    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, 
+                                              const QVector<glm::vec3>& normals, 
+                                              const QVector<float>& strokeWidths, 
+                                              const QVector<glm::vec3>& strokeColors, 
+                                              const bool isUVModeStretch,
+                                              const float textureAspectRatio);
 
     Transform _polylineTransform;
     QVector<glm::vec3> _lastPoints;
     QVector<glm::vec3> _lastNormals;
+    QVector<glm::vec3> _lastStrokeColors;
     QVector<float> _lastStrokeWidths;
     gpu::BufferPointer _verticesBuffer;
     gpu::BufferView _uniformBuffer;
+    
     uint32_t _numVertices { 0 };
     bool _empty{ true };
     NetworkTexturePointer _texture;
+    float _textureAspectRatio { 1.0f };
+
 };
 
 } } // namespace 
