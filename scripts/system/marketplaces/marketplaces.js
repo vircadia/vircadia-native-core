@@ -135,9 +135,10 @@
 
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
+        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID + "\n");
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
-            certificateId: itemCertificateId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID
+            certificateId: certificateId
         });
     }
 
