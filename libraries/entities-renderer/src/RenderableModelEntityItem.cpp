@@ -34,6 +34,7 @@
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 
+
 static CollisionRenderMeshCache collisionMeshCache;
 
 void ModelEntityWrapper::setModel(const ModelPointer& model) {
@@ -107,6 +108,7 @@ QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextu
 }
 
 void RenderableModelEntityItem::doInitialModelSimulation() {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     ModelPointer model = getModel();
     if (!model) {
         return;
@@ -123,11 +125,11 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
     model->setRotation(getRotation());
     model->setTranslation(getPosition());
-    {
-        PerformanceTimer perfTimer("model->simulate");
+
+    if (_needsInitialSimulation) {
         model->simulate(0.0f);
+        _needsInitialSimulation = false;
     }
-    _needsInitialSimulation = false;
 }
 
 void RenderableModelEntityItem::autoResizeJointArrays() {
@@ -138,6 +140,7 @@ void RenderableModelEntityItem::autoResizeJointArrays() {
 }
 
 bool RenderableModelEntityItem::needsUpdateModelBounds() const {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     ModelPointer model = getModel();
     if (!hasModel() || !model) {
         return false;
@@ -151,7 +154,7 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         return true;
     }
 
-    if (isMovingRelativeToParent() || isAnimatingSomething()) {
+    if (isAnimatingSomething()) {
         return true;
     }
 
@@ -178,13 +181,61 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         }
     }
 
-    return false;
+    return model->needsReload();
 }
 
 void RenderableModelEntityItem::updateModelBounds() {
-    if (needsUpdateModelBounds()) {
-        doInitialModelSimulation();
+    DETAILED_PROFILE_RANGE(simulation_physics, "updateModelBounds");
+
+    if (!_dimensionsInitialized || !hasModel()) {
+        return;
+    }
+
+    ModelPointer model = getModel();
+    if (!model || !model->isLoaded()) {
+        return;
+    }
+
+    bool updateRenderItems = false;
+    if (model->needsReload()) {
+        model->updateGeometry();
+        updateRenderItems = true;
+    }
+
+    if (model->getScaleToFitDimensions() != getDimensions() ||
+            model->getRegistrationPoint() != getRegistrationPoint()) {
+        // The machinery for updateModelBounds will give existing models the opportunity to fix their
+        // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
+        // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
+        // This doesn't cause the entity values to change -- it just allows the model to match once it comes in.
+        model->setScaleToFit(false, getDimensions());
+        model->setSnapModelToRegistrationPoint(false, getRegistrationPoint());
+
+        // now recalculate the bounds and registration
+        model->setScaleToFit(true, getDimensions());
+        model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        updateRenderItems = true;
+    }
+
+    bool success;
+    auto transform = getTransform(success);
+    if (success && (model->getTranslation() != transform.getTranslation() ||
+            model->getRotation() != transform.getRotation())) {
+        model->setTransformNoUpdateRenderItems(transform);
+        updateRenderItems = true;
+    }
+
+    if (_needsInitialSimulation || _needsJointSimulation || isAnimatingSomething()) {
+        // NOTE: on isAnimatingSomething() we need to call Model::simulate() which calls Rig::updateRig()
+        // TODO: there is opportunity to further optimize the isAnimatingSomething() case.
+        model->simulate(0.0f);
+        _needsInitialSimulation = false;
         _needsJointSimulation = false;
+        updateRenderItems = true;
+    }
+
+    if (updateRenderItems) {
+        model->updateRenderItems();
     }
 }
 
@@ -293,7 +344,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
                 // we have both URLs AND both geometries AND they are both fully loaded.
                 if (_needsInitialSimulation) {
                     // the _model's offset will be wrong until _needsInitialSimulation is false
-                    PerformanceTimer perfTimer("_model->simulate");
+                    DETAILED_PERFORMANCE_TIMER("_model->simulate");
                     const_cast<RenderableModelEntityItem*>(this)->doInitialModelSimulation();
                 }
                 return true;
@@ -839,7 +890,7 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
 }
 
 void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
-    PerformanceTimer pertTimer("locationChanged");
+    DETAILED_PERFORMANCE_TIMER("locationChanged");
     EntityItem::locationChanged(tellPhysics);
     auto model = getModel();
     if (model && model->isLoaded()) {
@@ -880,7 +931,6 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
         return;
     }
 
-
     // relay any inbound joint changes from scripts/animation/network to the model/rig
     _jointDataLock.withWriteLock([&] {
         for (int index = 0; index < _localJointData.size(); ++index) {
@@ -895,10 +945,6 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
             }
         }
     });
-}
-
-bool RenderableModelEntityItem::isAnimatingSomething() const {
-    return !getAnimationURL().isEmpty() && getAnimationIsPlaying() && getAnimationFPS() != 0.0f;
 }
 
 using namespace render;
@@ -1124,6 +1170,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
 }
 
 void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (_hasModel != entity->hasModel()) {
         _hasModel = entity->hasModel();
     }
@@ -1202,9 +1249,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     }
 
-    if (entity->needsUpdateModelBounds()) {
-        entity->updateModelBounds();
-    }
+    entity->updateModelBounds();
 
     if (model->isVisible() != _visible) {
         // FIXME: this seems like it could be optimized if we tracked our last known visible state in
@@ -1212,13 +1257,16 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         //        so most of the time we don't do anything in this function.
         model->setVisibleInScene(_visible, scene);
     }
+    // TODO? early exit here when not visible?
 
-    //entity->doInitialModelSimulation();
-    if (model->needsFixupInScene()) {
-        model->removeFromScene(scene, transaction);
-        render::Item::Status::Getters statusGetters;
-        makeStatusGetters(entity, statusGetters);
-        model->addToScene(scene, transaction, statusGetters);
+    {
+        DETAILED_PROFILE_RANGE(simulation_physics, "Fixup");
+        if (model->needsFixupInScene()) {
+            model->removeFromScene(scene, transaction);
+            render::Item::Status::Getters statusGetters;
+            makeStatusGetters(entity, statusGetters);
+            model->addToScene(scene, transaction, statusGetters);
+        }
     }
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
@@ -1227,16 +1275,20 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->updateRenderItems();
     }
 
-    // make a copy of the animation properites
-    auto newAnimationProperties = entity->getAnimationProperties();
-    if (newAnimationProperties != _renderAnimationProperties) {
-        withWriteLock([&] {
-            _renderAnimationProperties = newAnimationProperties;
-            _currentFrame = _renderAnimationProperties.getCurrentFrame();
-        });
+    {
+        DETAILED_PROFILE_RANGE(simulation_physics, "CheckAnimation");
+        // make a copy of the animation properites
+        auto newAnimationProperties = entity->getAnimationProperties();
+        if (newAnimationProperties != _renderAnimationProperties) {
+            withWriteLock([&] {
+                _renderAnimationProperties = newAnimationProperties;
+                _currentFrame = _renderAnimationProperties.getCurrentFrame();
+            });
+        }
     }
 
     if (_animating) {
+        DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         }
@@ -1247,8 +1299,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items
 void ModelEntityRenderer::doRender(RenderArgs* args) {
-    PROFILE_RANGE(render_detail, "MetaModelRender");
-    PerformanceTimer perfTimer("RMEIrender");
+    DETAILED_PROFILE_RANGE(render_detail, "MetaModelRender");
+    DETAILED_PERFORMANCE_TIMER("RMEIrender");
 
     ModelPointer model;
     withReadLock([&]{

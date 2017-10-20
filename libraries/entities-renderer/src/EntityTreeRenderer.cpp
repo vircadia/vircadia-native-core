@@ -160,6 +160,8 @@ void EntityTreeRenderer::shutdown() {
 }
 
 void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
+    PROFILE_RANGE_EX(simulation_physics, "Add", 0xffff00ff, (uint64_t)_entitiesToAdd.size());
+    PerformanceTimer pt("add");
     // Clear any expired entities 
     // FIXME should be able to use std::remove_if, but it fails due to some 
     // weird compilation error related to EntityItemID assignment operators
@@ -203,6 +205,8 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
 }
 
 void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
+    PROFILE_RANGE_EX(simulation_physics, "Change", 0xffff00ff, (uint64_t)_changedEntities.size());
+    PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
     _changedEntitiesGuard.withWriteLock([&] {
 #if 0
@@ -223,6 +227,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
     }
 
     if (!_renderablesToUpdate.empty()) {
+        PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;
             renderable->updateInScene(scene, transaction);
@@ -232,6 +237,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 }
 
 void EntityTreeRenderer::update(bool simulate) {
+    PROFILE_RANGE(simulation_physics, "ETR::update");
     PerformanceTimer perfTimer("ETRupdate");
     if (_tree && !_shuttingDown) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
@@ -239,22 +245,14 @@ void EntityTreeRenderer::update(bool simulate) {
 
         // Update the rendereable entities as needed
         {
+            PROFILE_RANGE(simulation_physics, "Scene");
             PerformanceTimer sceneTimer("scene");
             auto scene = _viewState->getMain3DScene();
             if (scene) {
                 render::Transaction transaction;
-                {
-                    PerformanceTimer pt("add");
-                    addPendingEntities(scene, transaction);
-                }
-                {
-                    PerformanceTimer pt("change");
-                    updateChangedEntities(scene, transaction);
-                }
-                {
-                    PerformanceTimer pt("enqueue");
-                    scene->enqueueTransaction(transaction);
-                }
+                addPendingEntities(scene, transaction);
+                updateChangedEntities(scene, transaction);
+                scene->enqueueTransaction(transaction);
             }
         }
 
@@ -336,7 +334,8 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
 }
 
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
-    PerformanceTimer perfTimer("checkEnterLeaveEntities");
+    PROFILE_RANGE(simulation_physics, "EnterLeave");
+    PerformanceTimer perfTimer("enterLeave");
     auto now = usecTimestampNow();
     bool didUpdate = false;
 
