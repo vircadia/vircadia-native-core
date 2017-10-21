@@ -32,6 +32,7 @@
 #include "AnimUtil.h"
 #include "IKTarget.h"
 
+
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
@@ -999,14 +1000,13 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 }
 
 void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform) {
-
-    PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
-    PerformanceTimer perfTimer("updateAnimations");
+    DETAILED_PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
+    DETAILED_PERFORMANCE_TIMER("updateAnimations");
 
     setModelOffset(rootTransform);
 
     if (_animNode && _enabledAnimations) {
-        PerformanceTimer perfTimer("handleTriggers");
+        DETAILED_PERFORMANCE_TIMER("handleTriggers");
 
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
@@ -1658,7 +1658,7 @@ bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const 
 }
 
 void Rig::applyOverridePoses() {
-    PerformanceTimer perfTimer("override");
+    DETAILED_PERFORMANCE_TIMER("override");
     if (_numOverrides == 0 || !_animSkeleton) {
         return;
     }
@@ -1675,7 +1675,7 @@ void Rig::applyOverridePoses() {
 }
 
 void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) {
-    PerformanceTimer perfTimer("buildAbsolute");
+    DETAILED_PERFORMANCE_TIMER("buildAbsolute");
     if (!_animSkeleton) {
         return;
     }
@@ -1730,8 +1730,9 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
-    PerformanceTimer perfTimer("copyJoints");
-    PROFILE_RANGE(simulation_animation_detail, "copyJoints");
+    DETAILED_PROFILE_RANGE(simulation_animation_detail, "copyJoints");
+    DETAILED_PERFORMANCE_TIMER("copyJoints");
+
     if (!_animSkeleton) {
         return;
     }

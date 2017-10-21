@@ -121,8 +121,6 @@ bool Model::needsFixupInScene() const {
     return (_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded();
 }
 
-// TODO?: should we combine translation and rotation into single method to avoid double-work?
-// (figure out where we call these)
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
     updateRenderItems();
@@ -131,6 +129,14 @@ void Model::setTranslation(const glm::vec3& translation) {
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
     updateRenderItems();
+}
+
+// temporary HACK: set transform while avoiding implicit calls to updateRenderItems()
+// TODO: make setRotation() and friends set flag to be used later to decide to updateRenderItems()
+void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
+    _translation = transform.getTranslation();
+    _rotation = transform.getRotation();
+    // DO NOT call updateRenderItems() here!
 }
 
 Transform Model::getTransform() const {
@@ -957,7 +963,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
-    PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
+    DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1078,8 +1084,7 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(simulation_detail, __FUNCTION__);
-    PerformanceTimer perfTimer("Model::simulate");
+    DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
@@ -1117,7 +1122,7 @@ void Model::computeMeshPartLocalBounds() {
 
 // virtual
 void Model::updateClusterMatrices() {
-    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+    DETAILED_PERFORMANCE_TIMER("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;

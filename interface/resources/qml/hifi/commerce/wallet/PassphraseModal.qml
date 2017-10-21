@@ -25,7 +25,7 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    z: 998;
+    z: 997;
     property bool keyboardRaised: false;
     property string titleBarIcon: "";
     property string titleBarText: "";
@@ -350,7 +350,7 @@ Item {
 
     Item {
         id: keyboardContainer;
-        z: 999;
+        z: 998;
         visible: keyboard.raised;
         property bool punctuationMode: false;
         anchors {
@@ -361,11 +361,13 @@ Item {
 
         Image {
             id: lowerKeyboardButton;
+            z: 999;
             source: "images/lowerKeyboard.png";
-            anchors.horizontalCenter: parent.horizontalCenter;
-            anchors.bottom: keyboard.top;
-            height: 30;
-            width: 120;
+            anchors.right: keyboard.right;
+            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
+            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
+            height: 50;
+            width: 60;
 
             MouseArea {
                 anchors.fill: parent;

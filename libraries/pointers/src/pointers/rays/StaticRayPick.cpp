@@ -1,7 +1,4 @@
 //
-//  StaticRayPick.cpp
-//  interface/src/raypick
-//
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
 //

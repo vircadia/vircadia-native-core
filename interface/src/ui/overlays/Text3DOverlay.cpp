@@ -257,7 +257,3 @@ bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3
     return Billboard3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
 }
 
-Transform Text3DOverlay::evalRenderTransform() {
-    return Parent::evalRenderTransform();
-}
-

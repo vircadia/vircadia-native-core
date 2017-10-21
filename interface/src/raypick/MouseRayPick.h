@@ -11,7 +11,7 @@
 #ifndef hifi_MouseRayPick_h
 #define hifi_MouseRayPick_h
 
-#include "RayPick.h"
+#include <pointers/rays/RayPick.h>
 
 class MouseRayPick : public RayPick {
 

@@ -63,7 +63,6 @@ static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 const QString Web3DOverlay::TYPE = "web3d";
 const QString Web3DOverlay::QML = "Web3DOverlay.qml";
-
 Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
@@ -248,6 +247,9 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Render", AbstractViewStateInterface::instance()->getRenderEngine()->getConfiguration().get());
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
+
+        // Tablet inteference with Tablet.qml. Need to avoid this in QML space
+        _webSurface->getSurfaceContext()->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
 
         tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
         // mark the TabletProxy object as cpp ownership.
