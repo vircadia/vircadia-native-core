@@ -19,7 +19,7 @@
 
 #include "Baker.h"
 #include "TextureBaker.h"
-
+#include "ModelBaker.h"
 #include "ModelBakingLoggingCategory.h"
 
 #include <gpu/Texture.h> 
@@ -30,7 +30,7 @@ static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
 
-class FBXBaker : public Baker {
+class FBXBaker : public ModelBaker {
     Q_OBJECT
 public:
     FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
@@ -42,14 +42,14 @@ public:
 
     virtual void setWasAborted(bool wasAborted) override;
 
-public slots:
+    public slots:
     virtual void bake() override;
     virtual void abort() override;
 
 signals:
     void sourceCopyReadyToLoad();
 
-private slots:
+    private slots:
     void bakeSourceCopy();
     void handleFBXNetworkReply();
     void handleBakedTexture();
@@ -79,7 +79,7 @@ private:
     FBXNode _rootNode;
     FBXGeometry* _geometry;
     QHash<QByteArray, QByteArray> _textureContent;
-    
+
     QString _bakedFBXFilePath;
 
     QString _bakedOutputDir;
@@ -96,7 +96,7 @@ private:
 
     TextureBakerThreadGetter _textureThreadGetter;
 
-    bool _pendingErrorEmission { false };
+    bool _pendingErrorEmission{ false };
 };
 
 #endif // hifi_FBXBaker_h

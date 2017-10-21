@@ -17,6 +17,7 @@
 #include <SettingHandle.h>
 
 #include <FBXBaker.h>
+#include <OBJBaker.h>
 
 #include "BakeWidget.h"
 
@@ -46,6 +47,11 @@ private:
 
     Setting::Handle<QString> _exportDirectory;
     Setting::Handle<QString> _modelStartDirectory;
+
+    std::unique_ptr<Baker> _baker;
+
+    bool _isOBJ = false;
+    bool _isFBX = false;
 };
 
 #endif // hifi_ModelBakeWidget_h

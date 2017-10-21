@@ -51,8 +51,7 @@ FBXBaker::FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGet
     _fbxURL(fbxURL),
     _bakedOutputDir(bakedOutputDir),
     _originalOutputDir(originalOutputDir),
-    _textureThreadGetter(textureThreadGetter)
-{
+    _textureThreadGetter(textureThreadGetter) {
 
 }
 
@@ -79,7 +78,7 @@ void FBXBaker::abort() {
 
 void FBXBaker::bake() {
     qDebug() << "FBXBaker" << _fbxURL << "bake starting";
-    
+
     auto tempDir = PathUtils::generateTemporaryDir();
 
     if (tempDir.isEmpty()) {
@@ -162,7 +161,7 @@ void FBXBaker::loadSourceFBX() {
     // check if the FBX is local or first needs to be downloaded
     if (_fbxURL.isLocalFile()) {
         // load up the local file
-        QFile localFBX { _fbxURL.toLocalFile() };
+        QFile localFBX{ _fbxURL.toLocalFile() };
 
         qDebug() << "Local file url: " << _fbxURL << _fbxURL.toString() << _fbxURL.toLocalFile() << ", copying to: " << _originalFBXFilePath;
 
@@ -273,7 +272,7 @@ QString FBXBaker::createBakedTextureFileName(const QFileInfo& textureFileInfo) {
     // in case another texture referenced by this model has the same base name
     auto& nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
 
-    QString bakedTextureFileName { textureFileInfo.completeBaseName() };
+    QString bakedTextureFileName{ textureFileInfo.completeBaseName() };
 
     if (nameMatches > 0) {
         // there are already nameMatches texture with this name
@@ -297,7 +296,7 @@ QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeF
 
     if (isEmbedded) {
         urlToTexture = _fbxURL.toString() + "/" + apparentRelativePath.filePath();
-    } else  {
+    } else {
         if (textureFileInfo.exists() && textureFileInfo.isFile()) {
             // set the texture URL to the local texture that we have confirmed exists
             urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
@@ -323,7 +322,7 @@ QUrl FBXBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeF
 
 void FBXBaker::rewriteAndBakeSceneModels() {
     unsigned int meshIndex = 0;
-    bool hasDeformers { false };
+    bool hasDeformers{ false };
     for (FBXNode& rootChild : _rootNode.children) {
         if (rootChild.name == "Objects") {
             for (FBXNode& objectChild : rootChild.children) {
@@ -344,178 +343,19 @@ void FBXBaker::rewriteAndBakeSceneModels() {
 
                     // TODO Pull this out of _geometry instead so we don't have to reprocess it
                     auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex, false);
-                    auto& mesh = extractedMesh.mesh;
 
-                    if (mesh.wasCompressed) {
-                        handleError("Cannot re-bake a file that contains compressed mesh");
-                        return;
-                    }
-
-                    Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
-                    Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
-                    Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
-
-                    int64_t numTriangles { 0 };
-                    for (auto& part : mesh.parts) {
-                        if ((part.quadTrianglesIndices.size() % 3) != 0 || (part.triangleIndices.size() % 3) != 0) {
-                            handleWarning("Found a mesh part with invalid index data, skipping");
-                            continue;
-                        }
-                        numTriangles += part.quadTrianglesIndices.size() / 3;
-                        numTriangles += part.triangleIndices.size() / 3;
-                    }
-
-                    if (numTriangles == 0) {
+                    // Callback to get MaterialID from FBXBaker in ModelBaker
+                    getMaterialIDCallback materialIDcallback = [extractedMesh](int partIndex) {return extractedMesh.partMaterialTextures[partIndex].first;};
+                    // Compress mesh information and store in dracoMeshNode
+                    FBXNode* dracoMeshNode = this->compressMesh(extractedMesh.mesh, hasDeformers, materialIDcallback);
+                    // if dracoMeshNode is null (i.e error occurred while baking), continue iterating through Object node children
+                    if (!dracoMeshNode) {
                         continue;
                     }
 
-                    draco::TriangleSoupMeshBuilder meshBuilder;
+                    objectChild.children.push_back(*dracoMeshNode);
 
-                    meshBuilder.Start(numTriangles);
-
-                    bool hasNormals { mesh.normals.size() > 0 };
-                    bool hasColors { mesh.colors.size() > 0 };
-                    bool hasTexCoords { mesh.texCoords.size() > 0 };
-                    bool hasTexCoords1 { mesh.texCoords1.size() > 0 };
-                    bool hasPerFaceMaterials { mesh.parts.size() > 1 };
-                    bool needsOriginalIndices { hasDeformers };
-
-                    int normalsAttributeID { -1 };
-                    int colorsAttributeID { -1 };
-                    int texCoordsAttributeID { -1 };
-                    int texCoords1AttributeID { -1 };
-                    int faceMaterialAttributeID { -1 };
-                    int originalIndexAttributeID { -1 };
-
-                    const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
-                                                                             3, draco::DT_FLOAT32);
-                    if (needsOriginalIndices) {
-                        originalIndexAttributeID = meshBuilder.AddAttribute(
-                            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_ORIGINAL_INDEX,
-                            1, draco::DT_INT32);
-                    }
-
-                    if (hasNormals) {
-                        normalsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::NORMAL,
-                                                                     3, draco::DT_FLOAT32);
-                    }
-                    if (hasColors) {
-                        colorsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::COLOR,
-                                                                    3, draco::DT_FLOAT32);
-                    }
-                    if (hasTexCoords) {
-                        texCoordsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::TEX_COORD,
-                                                                        2, draco::DT_FLOAT32);
-                    }
-                    if (hasTexCoords1) {
-                        texCoords1AttributeID = meshBuilder.AddAttribute(
-                            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_TEX_COORD_1,
-                            2, draco::DT_FLOAT32);
-                    }
-                    if (hasPerFaceMaterials) {
-                        faceMaterialAttributeID = meshBuilder.AddAttribute(
-                            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_MATERIAL_ID,
-                            1, draco::DT_UINT16);
-                    }
-
-
-                    auto partIndex = 0;
-                    draco::FaceIndex face;
-                    for (auto& part : mesh.parts) {
-                        const auto& matTex = extractedMesh.partMaterialTextures[partIndex];
-                        uint16_t materialID = matTex.first;
-
-                        auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
-                            int32_t idx0 = indices[index];
-                            int32_t idx1 = indices[index + 1];
-                            int32_t idx2 = indices[index + 2];
-
-                            if (hasPerFaceMaterials) {
-                                meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &materialID);
-                            }
-
-                            meshBuilder.SetAttributeValuesForFace(positionAttributeID, face,
-                                                                  &mesh.vertices[idx0], &mesh.vertices[idx1],
-                                                                  &mesh.vertices[idx2]);
-
-                            if (needsOriginalIndices) {
-                                meshBuilder.SetAttributeValuesForFace(originalIndexAttributeID, face,
-                                                                      &mesh.originalIndices[idx0],
-                                                                      &mesh.originalIndices[idx1],
-                                                                      &mesh.originalIndices[idx2]);
-                            }
-                            if (hasNormals) {
-                                meshBuilder.SetAttributeValuesForFace(normalsAttributeID, face,
-                                                                      &mesh.normals[idx0], &mesh.normals[idx1],
-                                                                      &mesh.normals[idx2]);
-                            }
-                            if (hasColors) {
-                                meshBuilder.SetAttributeValuesForFace(colorsAttributeID, face,
-                                                                      &mesh.colors[idx0], &mesh.colors[idx1],
-                                                                      &mesh.colors[idx2]);
-                            }
-                            if (hasTexCoords) {
-                                meshBuilder.SetAttributeValuesForFace(texCoordsAttributeID, face,
-                                                                      &mesh.texCoords[idx0], &mesh.texCoords[idx1],
-                                                                      &mesh.texCoords[idx2]);
-                            }
-                            if (hasTexCoords1) {
-                                meshBuilder.SetAttributeValuesForFace(texCoords1AttributeID, face,
-                                                                      &mesh.texCoords1[idx0], &mesh.texCoords1[idx1],
-                                                                      &mesh.texCoords1[idx2]);
-                            }
-                        };
-
-                        for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
-                            addFace(part.quadTrianglesIndices, i, face++);
-                        }
-
-                        for (int i = 0; (i + 2) < part.triangleIndices.size(); i += 3) {
-                            addFace(part.triangleIndices, i, face++);
-                        }
-
-                        partIndex++;
-                    }
-
-                    auto dracoMesh = meshBuilder.Finalize();
-
-                    if (!dracoMesh) {
-                        handleWarning("Failed to finalize the baking of a draco Geometry node");
-                        continue;
-                    }
-
-                    // we need to modify unique attribute IDs for custom attributes
-                    // so the attributes are easily retrievable on the other side
-                    if (hasPerFaceMaterials) {
-                        dracoMesh->attribute(faceMaterialAttributeID)->set_unique_id(DRACO_ATTRIBUTE_MATERIAL_ID);
-                    }
-
-                    if (hasTexCoords1) {
-                        dracoMesh->attribute(texCoords1AttributeID)->set_unique_id(DRACO_ATTRIBUTE_TEX_COORD_1);
-                    }
-
-                    if (needsOriginalIndices) {
-                        dracoMesh->attribute(originalIndexAttributeID)->set_unique_id(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
-                    }
-
-                    draco::Encoder encoder;
-
-                    encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION, 14);
-                    encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD, 12);
-                    encoder.SetAttributeQuantization(draco::GeometryAttribute::NORMAL, 10);
-                    encoder.SetSpeedOptions(0, 5);
-
-                    draco::EncoderBuffer buffer;
-                    encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
-
-                    FBXNode dracoMeshNode;
-                    dracoMeshNode.name = "DracoMesh";
-                    auto value = QVariant::fromValue(QByteArray(buffer.data(), (int) buffer.size()));
-                    dracoMeshNode.properties.append(value);
-
-                    objectChild.children.push_back(dracoMeshNode);
-
-                    static const std::vector<QString> nodeNamesToDelete {
+                    static const std::vector<QString> nodeNamesToDelete{
                         // Node data that is packed into the draco mesh
                         "Vertices",
                         "PolygonVertexIndex",
@@ -547,6 +387,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
         }
     }
 }
+
 
 void FBXBaker::rewriteAndBakeSceneTextures() {
     using namespace image::TextureUsage;
@@ -591,69 +432,97 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                         if (textureChild.name == "RelativeFilename") {
 
                             // use QFileInfo to easily split up the existing texture filename into its components
-                            QString fbxTextureFileName { textureChild.properties.at(0).toByteArray() };
-                            QFileInfo textureFileInfo { fbxTextureFileName.replace("\\", "/") };
+                            QString fbxTextureFileName{ textureChild.properties.at(0).toByteArray() };
 
-                            if (hasErrors()) {
-                                return;
-                            }
+                        // Callback to get texture content and type from FBXBaker in ModelBaker
+                                                //auto textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
+                                                //qCDebug(model_baking) << "TextureContent" << textureContent.size();
+                                                        
+                                                getTextureContentTypeCallback textureContentTypeCallback = [=]() {
+                                                    QPair<QByteArray, image::TextureUsage::Type> result;
+                                                    result.first = _textureContent.value(fbxTextureFileName.toLocal8Bit());;
+                                                    result.second = textureTypes[object->properties[0].toByteArray()];
+                                                    return result;
+                                                };
+                            
+                                                // Compress the texture information and return the new filename to be added into the FBX scene
+                                                QByteArray* bakedTextureFile = this->compressTexture(fbxTextureFileName, _fbxURL, _bakedOutputDir, _textureThreadGetter, textureContentTypeCallback, _originalOutputDir);
+                            
+                                                // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
+                                                if (bakedTextureFile) {
+                                                    textureChild.properties[0] = *bakedTextureFile;
+                                                } else {
+                                                    if (hasErrors()) {
+                                                        return;
+                                                    } else if (hasWarnings()) {
+                                                        continue;
+                                                    }
+                                                }
 
-                            if (textureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
-                                // re-baking an FBX that already references baked textures is a fail
-                                // so we add an error and return from here
-                                handleError("Cannot re-bake a file that references compressed textures");
 
-                                return;
-                            }
+                            //QFileInfo textureFileInfo{ fbxTextureFileName.replace("\\", "/") };
 
-                            if (!TextureBaker::getSupportedFormats().contains(textureFileInfo.suffix())) {
-                                // this is a texture format we don't bake, skip it
-                                handleWarning(fbxTextureFileName + " is not a bakeable texture format");
-                                continue;
-                            }
+                            //if (hasErrors()) {
+                            //    return;
+                            //}
 
-                            // make sure this texture points to something and isn't one we've already re-mapped
-                            if (!textureFileInfo.filePath().isEmpty()) {
-                                // check if this was an embedded texture we have already have in-memory content for
-                                auto textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
+                            //if (textureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
+                            //    // re-baking an FBX that already references baked textures is a fail
+                            //    // so we add an error and return from here
+                            //    handleError("Cannot re-bake a file that references compressed textures");
 
-                                // figure out the URL to this texture, embedded or external
-                                auto urlToTexture = getTextureURL(textureFileInfo, fbxTextureFileName,
-                                                                  !textureContent.isNull());
+                            //    return;
+                            //}
 
-                                QString bakedTextureFileName;
-                                if (_remappedTexturePaths.contains(urlToTexture)) {
-                                    bakedTextureFileName = _remappedTexturePaths[urlToTexture];
-                                } else {
-                                    // construct the new baked texture file name and file path
-                                    // ensuring that the baked texture will have a unique name
-                                    // even if there was another texture with the same name at a different path
-                                    bakedTextureFileName = createBakedTextureFileName(textureFileInfo);
-                                    _remappedTexturePaths[urlToTexture] = bakedTextureFileName;
-                                }
+                            //if (!TextureBaker::getSupportedFormats().contains(textureFileInfo.suffix())) {
+                            //    // this is a texture format we don't bake, skip it
+                            //    handleWarning(fbxTextureFileName + " is not a bakeable texture format");
+                            //    continue;
+                            //}
 
-                                qCDebug(model_baking).noquote() << "Re-mapping" << fbxTextureFileName
-                                    << "to" << bakedTextureFileName;
+                            //// make sure this texture points to something and isn't one we've already re-mapped
+                            //if (!textureFileInfo.filePath().isEmpty()) {
+                            //    // check if this was an embedded texture we have already have in-memory content for
+                            //    auto textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
 
-                                QString bakedTextureFilePath {
-                                    _bakedOutputDir + "/" + bakedTextureFileName
-                                };
+                            //    // figure out the URL to this texture, embedded or external
+                            //    qCDebug(model_baking) << "TextureContent" << textureContent.size();
+                            //    auto urlToTexture = getTextureURL(textureFileInfo, fbxTextureFileName,
+                            //                                      !textureContent.isNull());
 
-                                // write the new filename into the FBX scene
-                                textureChild.properties[0] = bakedTextureFileName.toLocal8Bit();
+                            //    QString bakedTextureFileName;
+                            //    if (_remappedTexturePaths.contains(urlToTexture)) {
+                            //        bakedTextureFileName = _remappedTexturePaths[urlToTexture];
+                            //    } else {
+                            //        // construct the new baked texture file name and file path
+                            //        // ensuring that the baked texture will have a unique name
+                            //        // even if there was another texture with the same name at a different path
+                            //        bakedTextureFileName = createBakedTextureFileName(textureFileInfo);
+                            //        _remappedTexturePaths[urlToTexture] = bakedTextureFileName;
+                            //    }
 
-                                if (!_bakingTextures.contains(urlToTexture)) {
-                                    _outputFiles.push_back(bakedTextureFilePath);
+                            //    qCDebug(model_baking).noquote() << "Re-mapping" << fbxTextureFileName
+                            //        << "to" << bakedTextureFileName;
 
-                                    // grab the ID for this texture so we can figure out the
-                                    // texture type from the loaded materials
-                                    QString textureID { object->properties[0].toByteArray() };
-                                    auto textureType = textureTypes[textureID];
+                            //    QString bakedTextureFilePath{
+                            //        _bakedOutputDir + "/" + bakedTextureFileName
+                            //    };
 
-                                    // bake this texture asynchronously
-                                    bakeTexture(urlToTexture, textureType, _bakedOutputDir, bakedTextureFileName, textureContent);
-                                }
-                            }
+                            //    // write the new filename into the FBX scene
+                            //    textureChild.properties[0] = bakedTextureFileName.toLocal8Bit();
+
+                            //    if (!_bakingTextures.contains(urlToTexture)) {
+                            //        _outputFiles.push_back(bakedTextureFilePath);
+
+                            //        // grab the ID for this texture so we can figure out the
+                            //        // texture type from the loaded materials
+                            //        QString textureID{ object->properties[0].toByteArray() };
+                            //        auto textureType = textureTypes[textureID];
+
+                            //        // bake this texture asynchronously
+                            //        bakeTexture(urlToTexture, textureType, _bakedOutputDir, bakedTextureFileName, textureContent);
+                            //    }
+                            //}
                         }
                     }
 
@@ -670,10 +539,93 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
     }
 }
 
+//void FBXBaker::rewriteAndBakeSceneTextures() {
+//    using namespace image::TextureUsage;
+//    QHash<QString, image::TextureUsage::Type> textureTypes;
+//
+//    // enumerate the materials in the extracted geometry so we can determine the texture type for each texture ID
+//    for (const auto& material : _geometry->materials) {
+//        if (material.normalTexture.isBumpmap) {
+//            textureTypes[material.normalTexture.id] = BUMP_TEXTURE;
+//        } else {
+//            textureTypes[material.normalTexture.id] = NORMAL_TEXTURE;
+//        }
+//
+//        textureTypes[material.albedoTexture.id] = ALBEDO_TEXTURE;
+//        textureTypes[material.glossTexture.id] = GLOSS_TEXTURE;
+//        textureTypes[material.roughnessTexture.id] = ROUGHNESS_TEXTURE;
+//        textureTypes[material.specularTexture.id] = SPECULAR_TEXTURE;
+//        textureTypes[material.metallicTexture.id] = METALLIC_TEXTURE;
+//        textureTypes[material.emissiveTexture.id] = EMISSIVE_TEXTURE;
+//        textureTypes[material.occlusionTexture.id] = OCCLUSION_TEXTURE;
+//        textureTypes[material.lightmapTexture.id] = LIGHTMAP_TEXTURE;
+//    }
+//
+//    // enumerate the children of the root node
+//    for (FBXNode& rootChild : _rootNode.children) {
+//
+//        if (rootChild.name == "Objects") {
+//
+//            // enumerate the objects
+//            auto object = rootChild.children.begin();
+//            while (object != rootChild.children.end()) {
+//                if (object->name == "Texture") {
+//
+//                    // double check that we didn't get an abort while baking the last texture
+//                    if (shouldStop()) {
+//                        return;
+//                    }
+//
+//                    // enumerate the texture children
+//                    for (FBXNode& textureChild : object->children) {
+//
+//                        if (textureChild.name == "RelativeFilename") {
+//                            QString fbxTextureFileName{ textureChild.properties.at(0).toByteArray() };
+//
+//                            // Callback to get texture content and type from FBXBaker in ModelBaker
+//                            auto textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
+//                            qCDebug(model_baking) << "TextureContent" << textureContent;
+//                            
+//                            getTextureContentTypeCallback textureContentTypeCallback = [fbxTextureFileName, textureTypes, object, textureContent]() {
+//                                QPair<QByteArray, image::TextureUsage::Type> result;
+//                                result.first = textureContent;
+//                                result.second = textureTypes[object->properties[0].toByteArray()];
+//                                return result;
+//                            };
+//
+//                            // Compress the texture information and return the new filename to be added into the FBX scene
+//                            QByteArray* bakedTextureFile = this->compressTexture(fbxTextureFileName, _fbxURL, _bakedOutputDir, _textureThreadGetter, textureContentTypeCallback, _originalOutputDir);
+//
+//                            // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
+//                            if (bakedTextureFile) {
+//                                textureChild.properties[0] = *bakedTextureFile;
+//                            } else {
+//                                if (hasErrors()) {
+//                                    return;
+//                                } else if (hasWarnings()) {
+//                                    continue;
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    ++object;
+//
+//                } else if (object->name == "Video") {
+//                    // this is an embedded texture, we need to remove it from the FBX
+//                    object = rootChild.children.erase(object);
+//                } else {
+//                    ++object;
+//                }
+//            }
+//        }
+//    }
+//}
+
 void FBXBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType,
                            const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
     // start a bake for this texture and add it to our list to keep track of
-    QSharedPointer<TextureBaker> bakingTexture {
+    QSharedPointer<TextureBaker> bakingTexture{
         new TextureBaker(textureURL, textureType, outputDir, bakedFilename, textureContent),
         &TextureBaker::deleteLater
     };
@@ -713,7 +665,7 @@ void FBXBaker::handleBakedTexture() {
                         // check if we have a relative path to use for the texture
                         auto relativeTexturePath = texturePathRelativeToFBX(_fbxURL, bakedTexture->getTextureURL());
 
-                        QFile originalTextureFile {
+                        QFile originalTextureFile{
                             _originalOutputDir + "/" + relativeTexturePath + bakedTexture->getTextureURL().fileName()
                         };
 

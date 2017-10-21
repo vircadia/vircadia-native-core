@@ -20,6 +20,13 @@
 #include "Oven.h"
 #include "BakerCLI.h"
 
+#include <DependencyManager.h>
+#include <ResourceManager.h>
+#include <NodeList.h>
+#include <AddressManager.h>
+#include <StatTracker.h>
+
+
 static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/export";
 
 static const QString CLI_INPUT_PARAMETER = "i";
@@ -30,6 +37,12 @@ Oven::Oven(int argc, char* argv[]) :
 {
     QCoreApplication::setOrganizationName("High Fidelity");
     QCoreApplication::setApplicationName("Oven");
+
+    // Initialize classes from Dependency Manager for OBJ Baker
+    DependencyManager::set<StatTracker>();
+    DependencyManager::set<AddressManager>();
+    DependencyManager::set<NodeList>(NodeType::Unassigned, -1);
+    DependencyManager::set<ResourceManager>();
 
     // init the settings interface so we can save and load settings
     Setting::init();
