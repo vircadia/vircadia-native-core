@@ -177,6 +177,11 @@ Script.include("/~/system/libraries/controllers.js");
         this.updateLaserPointer = function(controllerData) {
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
+
+            if (HMD.tabletID !== this.tabletID) {
+                this.tabletID = HMD.tabletID;
+                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID]);
+            }
         };
 
         this.processControllerTriggers = function(controllerData) {
@@ -369,7 +374,7 @@ Script.include("/~/system/libraries/controllers.js");
             defaultRenderStates: defaultRenderStates
         });
 
-        LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID]);
+        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID]);
     }
 
     var leftOverlayLaserInput = new OverlayLaserInput(LEFT_HAND);

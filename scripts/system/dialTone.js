@@ -33,10 +33,4 @@ Audio.disconnected.connect(function(){
     Audio.playSound(disconnectSound, soundOptions);
 });
 
-Audio.mutedChanged.connect(function () {
-    if (Audio.muted) {
-        Audio.playSound(micMutedSound, soundOptions);
-    }
-});
-
 }()); // END LOCAL_SCOPE

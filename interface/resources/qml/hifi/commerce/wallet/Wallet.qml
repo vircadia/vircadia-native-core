@@ -165,7 +165,7 @@ Rectangle {
     WalletSetup {
         id: walletSetup;
         visible: root.activeView === "walletSetup";
-        z: 998;
+        z: 997;
         anchors.fill: parent;
 
         Connections {
@@ -192,7 +192,7 @@ Rectangle {
     PassphraseChange {
         id: passphraseChange;
         visible: root.activeView === "passphraseChange";
-        z: 998;
+        z: 997;
         anchors.top: titleBarContainer.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -217,7 +217,7 @@ Rectangle {
     SecurityImageChange {
         id: securityImageChange;
         visible: root.activeView === "securityImageChange";
-        z: 998;
+        z: 997;
         anchors.top: titleBarContainer.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -653,7 +653,7 @@ Rectangle {
 
     Item {
         id: keyboardContainer;
-        z: 999;
+        z: 998;
         visible: keyboard.raised;
         property bool punctuationMode: false;
         anchors {
@@ -664,11 +664,13 @@ Rectangle {
 
         Image {
             id: lowerKeyboardButton;
+            z: 999;
             source: "images/lowerKeyboard.png";
-            anchors.horizontalCenter: parent.horizontalCenter;
-            anchors.bottom: keyboard.top;
-            height: 30;
-            width: 120;
+            anchors.right: keyboard.right;
+            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
+            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
+            height: 50;
+            width: 60;
 
             MouseArea {
                 anchors.fill: parent;
