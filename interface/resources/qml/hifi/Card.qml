@@ -14,6 +14,8 @@
 import Hifi 1.0
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+import TabletScriptingInterface 1.0
+
 import "toolbars"
 import "../styles-uit"
 
@@ -243,9 +245,15 @@ Item {
     MouseArea {
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
-        onClicked: goFunction("hifi://" + hifiUrl);
+        onClicked: {
+            tabletInterface.playSound(TabletEnums.ButtonClick);
+            goFunction("hifi://" + hifiUrl);
+        }
         hoverEnabled: true;
-        onEntered: hoverThunk();
+        onEntered:  {
+            tabletInterface.playSound(TabletEnums.ButtonHover);
+            hoverThunk();
+        }
         onExited: unhoverThunk();
     }
     StateImage {
@@ -261,6 +269,7 @@ Item {
         }
     }
     function go() {
+        tabletInterface.playSound(TabletEnums.ButtonClick);
         goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
     }
     MouseArea {
