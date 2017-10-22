@@ -85,6 +85,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     packetReceiver.registerListener(PacketType::ReloadEntityServerScript, this, "handleReloadEntityServerScriptPacket");
     packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
     packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
+    packetReceiver.registerListener(PacketType::EntityScriptCallMethod, this, "handleEntityScriptCallMethodPacket");
 
     static const int LOG_INTERVAL = MSECS_PER_SECOND / 10;
     auto timer = new QTimer(this);
@@ -230,6 +231,33 @@ void EntityScriptServer::pushLogs() {
         }
     }
 }
+
+void EntityScriptServer::handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode) {
+
+    if (_entitiesScriptEngine && _entityViewer.getTree() && !_shuttingDown) {
+        auto entityID = QUuid::fromRfc4122(receivedMessage->read(NUM_BYTES_RFC4122_UUID));
+
+        quint16 methodLength;
+        receivedMessage->readPrimitive(&methodLength);
+        auto methodData = receivedMessage->read(methodLength);
+        auto method = QString::fromUtf8(methodData);
+
+        quint16 paramCount;
+        receivedMessage->readPrimitive(&paramCount);
+
+        QStringList params;
+        for (int param = 0; param < paramCount; param++) {
+            quint16 paramLength;
+            receivedMessage->readPrimitive(&paramLength);
+            auto paramData = receivedMessage->read(paramLength);
+            auto paramString = QString::fromUtf8(paramData);
+            params << paramString;
+        }
+
+        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);
+    }
+}
+
 
 void EntityScriptServer::run() {
     // make sure we request our script once the agent connects to the domain
