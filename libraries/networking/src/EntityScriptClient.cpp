@@ -79,19 +79,13 @@ void EntityScriptClient::callEntityServerMethod(QUuid entityID, const QString& m
 
         packetList->write(entityID.toRfc4122());
 
-        auto methodUtf8 = method.toUtf8();
-        quint16 methodLength = methodUtf8.length();
-        packetList->writePrimitive(methodLength);
-        packetList->write(methodUtf8);
+        packetList->writeString(method);
 
         quint16 paramCount = params.length();
         packetList->writePrimitive(paramCount);
 
         foreach(const QString& param, params) {
-            auto paramUtf8 = param.toUtf8();
-            quint16 paramLength = paramUtf8.length();
-            packetList->writePrimitive(paramLength);
-            packetList->write(paramUtf8);
+            packetList->writeString(param);
         }
 
         nodeList->sendPacketList(std::move(packetList), *entityScriptServer);

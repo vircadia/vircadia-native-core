@@ -237,20 +237,14 @@ void EntityScriptServer::handleEntityScriptCallMethodPacket(QSharedPointer<Recei
     if (_entitiesScriptEngine && _entityViewer.getTree() && !_shuttingDown) {
         auto entityID = QUuid::fromRfc4122(receivedMessage->read(NUM_BYTES_RFC4122_UUID));
 
-        quint16 methodLength;
-        receivedMessage->readPrimitive(&methodLength);
-        auto methodData = receivedMessage->read(methodLength);
-        auto method = QString::fromUtf8(methodData);
+        auto method = receivedMessage->readString();
 
         quint16 paramCount;
         receivedMessage->readPrimitive(&paramCount);
 
         QStringList params;
         for (int param = 0; param < paramCount; param++) {
-            quint16 paramLength;
-            receivedMessage->readPrimitive(&paramLength);
-            auto paramData = receivedMessage->read(paramLength);
-            auto paramString = QString::fromUtf8(paramData);
+            auto paramString = receivedMessage->readString();
             params << paramString;
         }
 
