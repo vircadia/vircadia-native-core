@@ -248,7 +248,7 @@ void EntityScriptServer::handleEntityScriptCallMethodPacket(QSharedPointer<Recei
             params << paramString;
         }
 
-        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params);
+        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
     }
 }
 

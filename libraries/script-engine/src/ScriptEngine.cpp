@@ -2476,7 +2476,7 @@ void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, const QUrl&
     doWithEnvironment(entityID, sandboxURL, operation);
 }
 
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params, const QUuid& remoteCallerID) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -2486,7 +2486,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, methodName),
-                                  Q_ARG(const QStringList&, params));
+                                  Q_ARG(const QStringList&, params),
+                                  Q_ARG(const QUuid&, remoteCallerID));
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -2500,13 +2501,41 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     if (isEntityScriptRunning(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
-        if (entityScript.property(methodName).isFunction()) {
+
+        // If this is a remote call, we need to check to see if the function is remotely callable
+        // we do this by checking for the existance of the 'remotelyCallable' property on the
+        // entityScript. And we confirm that the method name is included. If this fails, the
+        // function will not be called.
+        bool callAllowed = false;
+        if (remoteCallerID == QUuid()) {
+            callAllowed = true;
+        } else {
+            if (entityScript.property("remotelyCallable").isArray()) {
+                auto callables = entityScript.property("remotelyCallable");
+                auto callableCount = callables.property("length").toInteger();
+                for (int i = 0; i < callableCount; i++) {
+                    auto callable = callables.property(i).toString();
+                    if (callable == methodName) {
+                        callAllowed = true;
+                        break;
+                    }
+                }
+            }
+            if (!callAllowed) {
+                qDebug() << "Method [" << methodName << "] not remotely callable.";
+            }
+        }
+
+        if (callAllowed && entityScript.property(methodName).isFunction()) {
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << qScriptValueFromSequence(this, params);
-            callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
-        }
 
+            QScriptValue oldData = this->globalObject().property("remoteCallerID");
+            this->globalObject().setProperty("remoteCallerID", remoteCallerID.toString()); // Make the remoteCallerID available to javascript as a global.
+            callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
+            this->globalObject().setProperty("remoteCallerID", oldData);
+        }
     }
 }
 
