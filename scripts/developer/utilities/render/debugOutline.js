@@ -143,7 +143,7 @@ function update(deltaTime) {
             selectedID = prevID
             selectedType = prevType
             Selection.addToSelectedItemsList(selectionName, selectedType, selectedID)
-            //print("OUTLINE " + outlineGroupIndex + " picked type: " + result.type + ", id: " + result.objectID);
+            print("OUTLINE " + outlineGroupIndex + " picked type: " + result.type + ", id: " + result.objectID);
         }
     } else {
         if (prevID != 0 && !isSelectionAddEnabled) {

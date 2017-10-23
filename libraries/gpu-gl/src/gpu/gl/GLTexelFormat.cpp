@@ -501,6 +501,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                     break;
                 }
                 case gpu::COMPRESSED:
+                case gpu::NUINT2:
                 case gpu::NUM_TYPES: { // quiet compiler
                     Q_UNREACHABLE();
                 }
@@ -551,6 +552,7 @@ GLTexelFormat GLTexelFormat::evalGLTexelFormat(const Element& dstFormat, const E
                     break;
                 }
                 case gpu::COMPRESSED:
+                case gpu::NUINT2:
                 case gpu::NUM_TYPES: { // quiet compiler
                     Q_UNREACHABLE();
                 }
