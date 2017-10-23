@@ -39,7 +39,8 @@ Item {
     
     function sortSkyboxes(response) {
         var arr = JSON.parse(response);
-        for (var i = 0; i < arr.length; i++) {
+        var arrLength = arr.length;
+        for (var i = 0; i < arrLength; i++) {
             defaultThumbnails.push(arr[i].thumb);
             defaultFulls.push(arr[i].full);
             skyboxModel.append({});
@@ -101,7 +102,6 @@ Item {
         anchors.topMargin: 20
         anchors.horizontalCenter: parent.horizontalCenter
         width: 400
-        //height: parent.height
         anchors.bottom: parent.bottom
         currentIndex: -1
         cellWidth: 200
