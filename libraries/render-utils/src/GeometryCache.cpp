@@ -170,7 +170,7 @@ void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, c
     gpu::Buffer::Size offset = vertexBuffer->getSize();
     vertexBuffer->append(vertices);
 
-    gpu::Buffer::Size viewSize = vertices.size() * 2 * sizeof(glm::vec3);
+    gpu::Buffer::Size viewSize = vertices.size() * sizeof(glm::vec3);
 
     _positionView = gpu::BufferView(vertexBuffer, offset,
         viewSize, SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
