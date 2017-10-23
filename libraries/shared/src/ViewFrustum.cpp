@@ -589,7 +589,7 @@ bool ViewFrustum::getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm:
     const int MAX_VERTEX_COUNT = VERTEX_COUNT + 4 + 2; 
 
     std::array<glm::vec3, MAX_VERTEX_COUNT> vertices;
-    std::array<Edge, EDGE_COUNT> boxEdges{
+    std::array<Edge, EDGE_COUNT> boxEdges{ {
         Edge{BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR},
         Edge{TOP_LEFT_NEAR, TOP_RIGHT_NEAR},
         Edge{BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR},
@@ -602,7 +602,7 @@ bool ViewFrustum::getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm:
         Edge{TOP_LEFT_NEAR, TOP_LEFT_FAR},
         Edge{BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR},
         Edge{TOP_RIGHT_NEAR, TOP_RIGHT_FAR}
-    };
+    } };
     std::array<float, VERTEX_COUNT> distancesToNearPlane;
     std::bitset<MAX_VERTEX_COUNT> areVerticesInside;
     int vertexCount = VERTEX_COUNT;
