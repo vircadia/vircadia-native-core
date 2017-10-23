@@ -13,6 +13,7 @@
 
 #include <Application.h>
 #include <Transform.h>
+#include "avatar/AvatarManager.h"
 
 void Billboardable::setProperties(const QVariantMap& properties) {
     auto isFacingAvatar = properties["isFacingAvatar"];
@@ -32,10 +33,11 @@ bool Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offse
     if (isFacingAvatar()) {
         glm::vec3 billboardPos = transform.getTranslation();
         glm::vec3 cameraPos = qApp->getCamera().getPosition();
-        glm::vec3 look = cameraPos - billboardPos;
-        float elevation = -asinf(look.y / glm::length(look));
-        float azimuth = atan2f(look.x, look.z);
-        glm::quat rotation(glm::vec3(elevation, azimuth, 0));
+        
+        glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation()*Vectors::UP;
+        
+        glm::quat rotation(conjugate(toQuat(glm::lookAt(billboardPos, cameraPos, avatarUP))));
+        
         transform.setRotation(rotation);
         transform.postRotate(offsetRotation);
         return true;

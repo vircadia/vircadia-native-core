@@ -203,14 +203,7 @@ SelectionManager = (function() {
                 print("ERROR: entitySelectionTool.update got exception: " + JSON.stringify(e));
             }
         }
-		
-		//update overlay to face Avatar
-		if ((!activeTool) || isActiveTool(grabberMoveUp)) {
-		    Overlays.editOverlay(grabberMoveUp, {
-			    rotation: Quat.lookAt(grabberMoveUpPosition, Camera.position, Quat.getUp(MyAvatar.orientation))
-            });
-		}
-		
+
     };
 
     return that;
@@ -467,6 +460,7 @@ SelectionDisplay = (function() {
         visible: false,
         size: 0.1,
         scale: 0.1,
+        isFacingAvatar: true,
         drawInFront: true
     });
 
@@ -2113,8 +2107,7 @@ SelectionDisplay = (function() {
             z: position.z + (grabberMoveUpOffset + worldTop) * upVec.z
         };
         Overlays.editOverlay(grabberMoveUp, {
-            visible: (!activeTool) || isActiveTool(grabberMoveUp),
-            rotation: Quat.lookAt(grabberMoveUpPosition, Camera.position, upVec)
+            visible: (!activeTool) || isActiveTool(grabberMoveUp)
         });
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, {
@@ -2463,7 +2456,7 @@ SelectionDisplay = (function() {
             var vector = Vec3.subtract(newIntersection, lastXYPick);
 
             // project vector onto avatar up vector
-			// we want the avatar referential not the camera.
+            // we want the avatar referential not the camera.
             var avatarUpVector = Quat.getUp(MyAvatar.orientation);
             var dotVectorUp = Vec3.dot(vector, avatarUpVector);
             vector = Vec3.multiply(dotVectorUp, avatarUpVector);
