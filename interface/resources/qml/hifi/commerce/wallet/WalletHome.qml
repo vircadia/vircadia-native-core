@@ -43,6 +43,7 @@ Item {
 
                 calculatePendingAndInvalidated();
             }
+            refreshTimer.start();
         }
     }
 
@@ -117,6 +118,8 @@ Item {
                     historyReceived = false;
                     commerce.balance();
                     commerce.history();
+                } else {
+                    refreshTimer.stop();
                 }
             }
         }
@@ -135,6 +138,17 @@ Item {
             height: paintedHeight;
             // Style
             color: hifi.colors.white;
+        }
+    }
+
+    Timer {
+        id: refreshTimer;
+        interval: 4000; // Remove this after demo?
+        onTriggered: {
+            console.log("Refreshing Wallet Home...");
+            historyReceived = false;
+            commerce.balance();
+            commerce.history();
         }
     }
 

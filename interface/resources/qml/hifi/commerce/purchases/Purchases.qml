@@ -583,9 +583,11 @@ Rectangle {
 
     Timer {
         id: inventoryTimer;
-        interval: 90000;
+        interval: 4000; // Change this back to 90000 after demo
+        //interval: 90000;
         onTriggered: {
             if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
+                console.log("Refreshing Purchases...");
                 root.pendingInventoryReply = true;
                 commerce.inventory();
             }
