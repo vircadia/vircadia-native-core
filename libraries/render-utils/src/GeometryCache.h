@@ -155,7 +155,7 @@ public:
     static GeometryCache::Shape getShapeForEntityShape(int entityShapeEnum);
     static QString stringFromShape(GeometryCache::Shape geoShape);
 
-    static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityHalfExtents, QVector<glm::vec3> &outPointList);
+    static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList);
 
     static uint8_t CUSTOM_PIPELINE_NUMBER;
     static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);

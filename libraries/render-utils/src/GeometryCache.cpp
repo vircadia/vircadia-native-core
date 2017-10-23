@@ -109,7 +109,7 @@ static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
 
-void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityHalfExtents, QVector<glm::vec3> &outPointList) {
+void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList) {
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
     const GeometryCache::Shape geometryShape = GeometryCache::getShapeForEntityShape( entityShape );
@@ -150,7 +150,7 @@ void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, co
 
 
         uniqueVerts.push_back(curVert);
-        outPointList.push_back(curVert * entityHalfExtents);
+        outPointList.push_back(curVert * entityExtents);
     }
 }
 
