@@ -446,7 +446,7 @@ void EntityServer::domainSettingsRequestFailed() {
 void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
-    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainId();
+    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainId().remove(QRegExp("\\{|\\}"));
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
@@ -473,7 +473,7 @@ void EntityServer::startDynamicDomainVerification() {
                 QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
                 requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
                 QJsonObject request;
-                request["certificate_id"] = i.key();
+                request["certificate_id"] = i.key() + "\n";
                 networkRequest.setUrl(requestURL);
 
                 QNetworkReply* networkReply = NULL;
@@ -492,7 +492,8 @@ void EntityServer::startDynamicDomainVerification() {
                             qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
                         }
                     } else {
-                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << i.value();
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << i.value()
+                            << "More info:" << jsonObject;
                         tree->deleteEntity(i.value(), true);
                     }
 

@@ -1244,7 +1244,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
-    request["certificate_id"] = certID;
+    request["certificate_id"] = certID + "\n";
     networkRequest.setUrl(requestURL);
 
     QNetworkReply* networkReply = NULL;
@@ -1307,7 +1307,8 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                 }
             }
         } else {
-            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID;
+            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID
+                << "More info:" << jsonObject;
             deleteEntity(entityItemID, true);
         }
 
