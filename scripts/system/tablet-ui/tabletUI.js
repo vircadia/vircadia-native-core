@@ -124,10 +124,6 @@
                 print("TABLET in showTabletUI, already rezzed");
             }
             var tabletProperties = {};
-            if (HMD.tabletContextualMode)
-                print("DBACK tabletContextualMode");
-            else
-                print("DBACK NOT tabletContextualMode");
             if (!HMD.tabletContextualMode) { // contextual mode forces tablet in place -> don't update attachment
                 UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
             }
