@@ -451,6 +451,8 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
+    void cleanupRunningScripts(const QString& fileNameString, ScriptEnginePointer);
 private:
     static void initDisplay();
     void init();
@@ -720,5 +722,7 @@ private:
 
     std::atomic<bool> _pendingIdleEvent { false };
     std::atomic<bool> _pendingRenderEvent { false };
+
+    QHash<QString, ScriptEnginePointer> _runningScripts;
 };
 #endif // hifi_Application_h
