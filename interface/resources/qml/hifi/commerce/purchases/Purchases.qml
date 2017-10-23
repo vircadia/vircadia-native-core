@@ -663,6 +663,8 @@ Rectangle {
                     currentPurchasesModelStatus !== previousPurchasesModelStatus) {
                     
                     purchasesModel.setProperty(i, "statusChanged", true);
+                } else {
+                    purchasesModel.setProperty(i, "statusChanged", false);
                 }
             }
         }
