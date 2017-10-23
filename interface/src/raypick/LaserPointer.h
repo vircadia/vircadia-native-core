@@ -12,10 +12,12 @@
 #define hifi_LaserPointer_h
 
 #include <QString>
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 #include <DependencyManager.h>
-#include "raypick/RayPickScriptingInterface.h"
+#include <shared/ReadWriteLockable.h>
+
+#include "ui/overlays/Overlay.h"
 
 class RayPickResult;
 
@@ -49,9 +51,10 @@ private:
 };
 
 
-class LaserPointer {
+class LaserPointer : public ReadWriteLockable {
 
 public:
+    using Pointer = std::shared_ptr<LaserPointer>;
 
     typedef std::unordered_map<std::string, RenderState> RenderStateMap;
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
@@ -73,14 +76,8 @@ public:
     void setLaserLength(const float laserLength);
     void setLockEndUUID(QUuid objectID, const bool isOverlay);
 
-    void setIgnoreEntities(const QScriptValue& ignoreEntities);
-    void setIncludeEntities(const QScriptValue& includeEntities);
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays);
-    void setIncludeOverlays(const QScriptValue& includeOverlays);
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars);
-    void setIncludeAvatars(const QScriptValue& includeAvatars);
-
-    QReadWriteLock* getLock() { return &_lock; }
+    void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
+    void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
     void update();
 
@@ -96,8 +93,7 @@ private:
     bool _distanceScaleEnd;
     std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
 
-    QUuid _rayPickUID;
-    QReadWriteLock _lock;
+    const QUuid _rayPickUID;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);

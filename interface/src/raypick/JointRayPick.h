@@ -11,7 +11,7 @@
 #ifndef hifi_JointRayPick_h
 #define hifi_JointRayPick_h
 
-#include "RayPick.h"
+#include <pointers/rays/RayPick.h>
 
 class JointRayPick : public RayPick {
 

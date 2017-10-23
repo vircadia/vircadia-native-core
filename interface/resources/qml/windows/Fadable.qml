@@ -36,9 +36,6 @@ FocusScope {
     // Some dialogs should be destroyed when they become
     // invisible, so handle that
     onVisibleChanged: {
-        if (disableFade) {
-            return;
-        }
         // If someone directly set the visibility to false
         // toggle it back on and use the targetVisible flag to transition
         // via fading.
@@ -66,9 +63,7 @@ FocusScope {
     }
 
     onFadeTargetPropertyChanged: {
-        if (!disableFade) {
-            visible = (fadeTargetProperty != 0.0);
-        }
+        visible = (fadeTargetProperty != 0.0);
     }
 
     function fadeIn(callback) {
