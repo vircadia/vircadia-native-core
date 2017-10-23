@@ -123,6 +123,7 @@ public:
         ReplicatedBulkAvatarData,
         OctreeFileReplacementFromUrl,
         ChallengeOwnership,
+        EntityScriptCallMethod,
         NUM_PACKET_TYPE
     };
 

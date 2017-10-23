@@ -10,7 +10,6 @@
 //
 #include "JointRayPick.h"
 
-#include "DependencyManager.h"
 #include "avatar/AvatarManager.h"
 
 JointRayPick::JointRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const RayPickFilter& filter, const float maxDistance, const bool enabled) :

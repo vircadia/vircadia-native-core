@@ -23,16 +23,28 @@
 #include "ToolbarScriptingInterface.h"
 #include "Logging.h"
 
+#include <AudioInjector.h>
+
+#include "SettingHandle.h"
+
 // FIXME move to global app properties
 const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 const QString TabletScriptingInterface::QML = "hifi/tablet/TabletRoot.qml";
 
 
+static Setting::Handle<QStringList> tabletSoundsButtonClick("TabletSounds", QStringList { "/sounds/Button06.wav",
+                                                                               "/sounds/Button04.wav",
+                                                                               "/sounds/Button07.wav",
+                                                                               "/sounds/Tab01.wav",
+                                                                               "/sounds/Tab02.wav" });
+
 TabletScriptingInterface::TabletScriptingInterface() {
+    qmlRegisterType<TabletScriptingInterface>("TabletScriptingInterface", 1, 0, "TabletEnums");
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
+    tabletSoundsButtonClick.set(tabletSoundsButtonClick.get());
 }
 
 ToolbarProxy* TabletScriptingInterface::getSystemToolbarProxy() {
@@ -61,6 +73,29 @@ TabletProxy* TabletScriptingInterface::getTablet(const QString& tabletId) {
     // initialize new tablet
     tabletProxy->setToolbarMode(_toolbarMode);
     return tabletProxy;
+}
+
+void TabletScriptingInterface::preloadSounds() {
+    //preload audio events
+    const QStringList &audioSettings = tabletSoundsButtonClick.get();
+    for (int i = 0; i < TabletAudioEvents::Last; i++) {
+        QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + audioSettings.at(i));
+        SharedSoundPointer sound = DependencyManager::get<SoundCache>()->
+                getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
+        _audioEvents.insert(static_cast<TabletAudioEvents>(i), sound);
+    }
+}
+
+void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
+    SharedSoundPointer sound = _audioEvents[aEvent];
+    if (sound) {
+        AudioInjectorOptions options;
+        options.stereo = sound->isStereo();
+        options.ambisonic = sound->isAmbisonic();
+        options.localOnly = true;
+
+        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
+    }
 }
 
 void TabletScriptingInterface::setToolbarMode(bool toolbarMode) {
@@ -323,9 +358,12 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
 }
 
 void TabletProxy::onTabletShown() {
-    if (_tabletShown && _showRunningScripts) {
-        _showRunningScripts = false;
-        pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+    if (_tabletShown) {
+        static_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        if (_showRunningScripts) {
+            _showRunningScripts = false;
+            pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+        }
     }
 }
 
