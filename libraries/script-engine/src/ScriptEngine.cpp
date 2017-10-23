@@ -2531,10 +2531,10 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             args << entityID.toScriptValue(this);
             args << qScriptValueFromSequence(this, params);
 
-            QScriptValue oldData = this->globalObject().property("remoteCallerID");
-            this->globalObject().setProperty("remoteCallerID", remoteCallerID.toString()); // Make the remoteCallerID available to javascript as a global.
+            QScriptValue oldData = this->globalObject().property("Script").property("remoteCallerID");
+            this->globalObject().property("Script").setProperty("remoteCallerID", remoteCallerID.toString()); // Make the remoteCallerID available to javascript as a global.
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
-            this->globalObject().setProperty("remoteCallerID", oldData);
+            this->globalObject().property("Script").setProperty("remoteCallerID", oldData);
         }
     }
 }
