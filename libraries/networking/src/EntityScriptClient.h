@@ -58,6 +58,8 @@ public:
 
     bool reloadServerScript(QUuid entityID);
     MessageID getEntityServerScriptStatus(QUuid entityID, GetScriptStatusCallback callback);
+    void callEntityServerMethod(QUuid id, const QString& method, const QStringList& params);
+
 
 private slots:
     void handleNodeKilled(SharedNodePointer node);
