@@ -264,7 +264,7 @@ Rectangle {
 
             url: "http://www.highfidelity.com"
 
-            profile: HFWebEngineProfile;
+            //profile: HFWebEngineProfile;
 
             property string userScriptUrl: ""
 
@@ -321,7 +321,7 @@ Rectangle {
             Component.onCompleted: {
                 webChannel.registerObject("eventBridge", eventBridge);
                 webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-                webEngineView.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
+                //webEngineView.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
             }
 
             onFeaturePermissionRequested: {
