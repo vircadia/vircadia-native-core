@@ -46,6 +46,8 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             }
             break;
         case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
         case SHAPE_TYPE_STATIC_MESH:
             _url = QUrl(url);
             break;
@@ -250,16 +252,26 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         }
         _doubleHashKey.setHash2(hash);
 
-        if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_STATIC_MESH) {
-            QString url = _url.toString();
-            if (!url.isEmpty()) {
-                // fold the urlHash into both parts
-                QByteArray baUrl = url.toLocal8Bit();
-                const char *cUrl = baUrl.data();
-                uint32_t urlHash = qChecksum(cUrl, baUrl.count());
-                _doubleHashKey.setHash(_doubleHashKey.getHash() ^ urlHash);
-                _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ urlHash);
-            }
+        QString url = _url.toString();
+        if (!url.isEmpty()) {
+            // fold the urlHash into both parts
+            QByteArray baUrl = url.toLocal8Bit();
+            uint32_t urlHash = qChecksum(baUrl.data(), baUrl.size());
+            _doubleHashKey.setHash(_doubleHashKey.getHash() ^ urlHash);
+            _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ urlHash);
+        }
+
+        uint32_t numHulls = 0;
+        if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            numHulls = (uint32_t)_pointCollection.size();
+        } else if (_type == SHAPE_TYPE_SIMPLE_HULL) {
+            numHulls = 1;
+        }
+        if (numHulls > 0) {
+            hash = DoubleHashKey::hashFunction(numHulls, primeIndex++);
+            _doubleHashKey.setHash(_doubleHashKey.getHash() ^ hash);
+            hash = DoubleHashKey::hashFunction2(numHulls);
+            _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ hash);
         }
     }
     return _doubleHashKey;
