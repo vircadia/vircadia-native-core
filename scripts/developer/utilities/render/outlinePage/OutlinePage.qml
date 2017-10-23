@@ -33,7 +33,7 @@ Item {
             integral: false
             config: root.drawConfig
             property: "width"
-            max: 15.0
+            max: 5.0
             min: 0.0
             width: 280
         }  

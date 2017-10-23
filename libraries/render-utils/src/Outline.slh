@@ -35,16 +35,14 @@ void main(void) {
     // We offset by half a texel to be centered on the depth sample. If we don't do this
     // the blur will have a different width between the left / right sides and top / bottom
     // sides of the silhouette
-    vec2 halfTexel = getInvWidthHeight() / 2;
-    vec2 texCoord0 = varTexCoord0+halfTexel;
-	float outlinedDepth = texture(outlinedDepthMap, texCoord0).x;
+	float outlinedDepth = texture(outlinedDepthMap, varTexCoord0).x;
     float intensity = 0.0;
 
     if (outlinedDepth < FAR_Z) {
         // We're not on the far plane so we are on the outlined object, thus no outline to do!
 <@if IS_FILLED@>
         // But we need to fill the interior
-        float sceneDepth = texture(sceneDepthMap, texCoord0).x;
+        float sceneDepth = texture(sceneDepthMap, varTexCoord0).x;
         // Transform to linear depth for better precision
         outlinedDepth = -evalZeyeFromZdb(outlinedDepth);
         sceneDepth = -evalZeyeFromZdb(sceneDepth);
@@ -55,6 +53,8 @@ void main(void) {
 		discard;
 <@endif@>
     } else {
+        vec2 halfTexel = getInvWidthHeight() / 2;
+        vec2 texCoord0 = varTexCoord0+halfTexel;
         float weight = 0.0;
         vec2 deltaUv = params._size / params._blurKernelSize;
         vec2 lineStartUv = texCoord0 - params._size / 2.0; 
@@ -72,7 +72,7 @@ void main(void) {
                     {
                         outlinedDepth = texture(outlinedDepthMap, uv).x;
                         intensity += (outlinedDepth < FAR_Z) ? 1.0 : 0.0;
-                        weight += 1.f;
+                        weight += 1.0;
                     }
                     uv.x += deltaUv.x;
                 }
