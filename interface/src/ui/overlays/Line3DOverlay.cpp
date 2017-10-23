@@ -96,6 +96,7 @@ void Line3DOverlay::setEnd(const glm::vec3& end) {
     } else {
         _direction = glm::vec3(0.0f);
     }
+    notifyRenderTransformChange();
 }
 
 void Line3DOverlay::setLocalEnd(const glm::vec3& localEnd) {
