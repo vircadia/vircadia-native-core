@@ -492,7 +492,7 @@ void EntityServer::startDynamicDomainVerification() {
                             qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
                         }
                     } else {
-                        qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << i.value();
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << i.value();
                         tree->deleteEntity(i.value(), true);
                     }
 

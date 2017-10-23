@@ -1307,7 +1307,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                 }
             }
         } else {
-            qCDebug(entities) << "Call to proof_of_purchase_status endpoint failed; deleting entity" << entityItemID;
+            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID;
             deleteEntity(entityItemID, true);
         }
 

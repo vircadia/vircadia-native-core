@@ -1626,20 +1626,39 @@ bool EntityItem::verifyStaticCertificateProperties() {
         return false;
     }
 
-    const auto signatureBytes = QByteArray::fromBase64(getCertificateID().toLatin1());
-    const auto signature = reinterpret_cast<const unsigned char*>(signatureBytes.constData());
-    const unsigned int signatureLength = signatureBytes.length();
+    const QByteArray marketplacePublicKeyByteArray = EntityItem::_marketplacePublicKey.toUtf8();
+    const unsigned char* marketplacePublicKey = reinterpret_cast<const unsigned char*>(marketplacePublicKeyByteArray.constData());
+    int marketplacePublicKeyLength = marketplacePublicKeyByteArray.length();
 
-    const auto hash = getStaticCertificateHash();
-    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
-    const unsigned int textLength = hash.length();
-
-    BIO *bio = BIO_new_mem_buf((void*)EntityItem::_marketplacePublicKey.toUtf8().constData(), -1);
+    BIO *bio = BIO_new_mem_buf((void*)marketplacePublicKey, marketplacePublicKeyLength);
     EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
     if (evp_key) {
         RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
         if (rsa) {
-            bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
+            const QByteArray digestByteArray = getStaticCertificateHash();
+            const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
+            int digestLength = digestByteArray.length();
+
+            const QByteArray signatureByteArray = QByteArray::fromBase64(getCertificateID().toUtf8());
+            const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
+            int signatureLength = signatureByteArray.length();
+
+            ERR_clear_error();
+            bool answer = RSA_verify(NID_sha256,
+                digest,
+                digestLength,
+                signature,
+                signatureLength,
+                rsa);
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "ERROR while verifying static certificate properties! RSA error:" << error_str
+                    << "\nStatic Cert JSON:" << getStaticCertificateJSON()
+                    << "\nKey:" << EntityItem::_marketplacePublicKey << "\nKey Length:" << marketplacePublicKeyLength
+                    << "\nDigest:" << digest << "\nDigest Length:" << digestLength
+                    << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+            }
             RSA_free(rsa);
             if (bio) {
                 BIO_free(bio);
