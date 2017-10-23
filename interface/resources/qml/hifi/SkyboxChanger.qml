@@ -12,6 +12,7 @@
 import QtQuick 2.5
 import "../styles-uit"
 import "../controls-uit" as HifiControls
+import QtQuick.Controls 2.2
 
 Item {
     id: root;
@@ -20,7 +21,7 @@ Item {
     property var defaultThumbnails: [];
     property var defaultFulls: [];
     
-    SkyboxSelectionModel {
+    ListModel {
         id: skyboxModel;
     }
     
@@ -41,43 +42,17 @@ Item {
         for (var i = 0; i < arr.length; i++) {
             defaultThumbnails.push(arr[i].thumb);
             defaultFulls.push(arr[i].full);
+            skyboxModel.append({});
         }
-        setDefaultSkyboxes();
+        setSkyboxes();
     }
     
-    function setDefaultSkyboxes() {
+    function setSkyboxes() {
         for (var i = 0; i < skyboxModel.count; i++) {
             skyboxModel.setProperty(i, "thumbnailPath", defaultThumbnails[i]);
             skyboxModel.setProperty(i, "fullSkyboxPath", defaultFulls[i]);
         }
     }
-    
-    function shuffle(array) {
-        var tmp, current, top = array.length;
-        if (top) {
-            while (--top) {
-                current = Math.floor(Math.random() * (top + 1));
-                tmp = array[current];
-                array[current] = array[top];
-                array[top] = tmp;
-            }
-        }
-      return array;
-    }
-
-    function chooseRandom() {
-        for (var a = [], i=0; i < defaultFulls.length; ++i) {
-            a[i] = i;
-        }
-        
-        a = shuffle(a);
-        
-        for (var i = 0; i < skyboxModel.count; i++) {
-            skyboxModel.setProperty(i, "thumbnailPath", defaultThumbnails[a[i]]);
-            skyboxModel.setProperty(i, "fullSkyboxPath", defaultFulls[a[i]]);
-        }
-    }
-    
     
     Component.onCompleted: {
         getSkyboxes();
@@ -116,33 +91,19 @@ Item {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        HifiControls.Button {
-            id: randomButton
-            text: "Randomize"
-            color: hifi.buttons.blue
-            colorScheme: root.colorScheme
-            width: 100
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.topMargin: 5
-            anchors.rightMargin: 40
-            onClicked: {
-                chooseRandom()
-            }
-        }
     }
     
     GridView {
         id: gridView
-        interactive: false
+        interactive: true
         clip: true
         anchors.top: titleBarContainer.bottom
         anchors.topMargin: 20
         anchors.horizontalCenter: parent.horizontalCenter
         width: 400
-        height: parent.height
+        //height: parent.height
+        anchors.bottom: parent.bottom
         currentIndex: -1
-        
         cellWidth: 200
         cellHeight: 200
         model: skyboxModel
@@ -167,6 +128,14 @@ Item {
                     sendToScript({method: 'changeSkybox', url: fullSkyboxPath});
                 }
             }
+        }
+        ScrollBar.vertical: ScrollBar {
+            parent: gridView.parent
+            anchors.top: gridView.top
+            anchors.left: gridView.right
+            anchors.bottom: gridView.bottom
+            anchors.leftMargin: 10
+            width: 19
         }
     }
     
