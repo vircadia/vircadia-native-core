@@ -9,9 +9,13 @@
 //
 
 import QtQuick 2.5
+import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
+import TabletScriptingInterface 1.0
 
 import "../../styles-uit"
 import "."
+
 FocusScope {
     id: root
     implicitHeight: background.height
@@ -69,12 +73,17 @@ FocusScope {
             onImplicitWidthChanged: listView !== null ? listView.recalcSize() : 0
 
             MouseArea {
+                enabled: name !== "" && item.enabled
                 anchors.fill: parent
                 hoverEnabled: true
-                onEntered: listView.currentIndex = index
+                onEntered: {
+                    tabletInterface.playSound(TabletEnums.ButtonHover);
+                    listView.currentIndex = index
+                }
+
                 onClicked: {
-                    root.selected(item)
-                    tabletRoot.playButtonClickSound();
+                    tabletInterface.playSound(TabletEnums.ButtonClick);
+                    root.selected(item);
                 }
             }
         }

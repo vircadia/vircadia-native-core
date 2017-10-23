@@ -566,6 +566,11 @@ void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method,
     }
 }
 
+void EntityScriptingInterface::callEntityServerMethod(QUuid id, const QString& method, const QStringList& params) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+    DependencyManager::get<EntityScriptClient>()->callEntityServerMethod(id, method, params);
+}
+
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 

@@ -26,6 +26,7 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 
+
 using namespace render;
 using namespace render::entities;
 
@@ -271,6 +272,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (!isValidRenderItem()) {
         return;
     }
@@ -330,6 +332,7 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
 }
 
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
         auto transparent = isTransparent();
         if (_prevIsTransparent && !transparent) {

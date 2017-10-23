@@ -25,8 +25,9 @@
 
 #include <QtScript/QScriptEngine>
 
-#include <PerfStat.h>
 #include <Extents.h>
+#include <PerfStat.h>
+#include <Profile.h>
 
 #include "EntitySimulation.h"
 #include "VariantMapToScriptValue.h"
@@ -1628,6 +1629,7 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 
 
 void EntityTree::fixupNeedsParentFixups() {
+    PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
 
     QWriteLocker locker(&_needsParentFixupLock);
@@ -1717,6 +1719,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 }
 
 void EntityTree::update(bool simulate) {
+    PROFILE_RANGE(simulation_physics, "ET::update");
     fixupNeedsParentFixups();
     if (simulate && _simulation) {
         withWriteLock([&] {
