@@ -26,7 +26,6 @@
 #include <AddressManager.h>
 #include <StatTracker.h>
 
-
 static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/export";
 
 static const QString CLI_INPUT_PARAMETER = "i";
