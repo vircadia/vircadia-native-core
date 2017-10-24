@@ -142,6 +142,11 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
     LightPointer removed = _lights.freeElement(index);
     
     if (removed) {
+        auto shadowId = _descs[index].shadowId;
+        // Remove shadow if one exists for this light
+        if (shadowId != INVALID_INDEX) {
+            _shadows.freeElement(shadowId);
+        }
         _lightMap.erase(removed);
         _descs[index] = Desc();
     }

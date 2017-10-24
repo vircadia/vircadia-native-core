@@ -139,8 +139,8 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
 
         glm::vec2 windowSize = getWindowSize(entity);
         _webSurface->resize(QSize(windowSize.x, windowSize.y));
-
-        _modelTransform.postScale(entity->getDimensions());
+        _renderTransform = getModelTransform();
+        _renderTransform.postScale(entity->getDimensions());
     });
 }
 
@@ -180,7 +180,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
     withReadLock([&] {
-        batch.setModelTransform(_modelTransform);
+        batch.setModelTransform(_renderTransform);
     });
     batch.setResourceTexture(0, _texture);
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
