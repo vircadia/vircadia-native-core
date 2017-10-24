@@ -58,6 +58,9 @@ using UserAgentGetter = std::function<QString()>;
 
 const auto DEFAULT_USER_AGENT_GETTER = []() -> QString { return HIGH_FIDELITY_USER_AGENT; };
 
+// If you want to use STAGING instead of STABLE,
+//     don't forget to ALSO change the Domain Server Metaverse Server URL, which is at the top of:
+// <hifi repo>\domain-server\resources\web\settings\js\settings.js
 const QUrl METAVERSE_SERVER_URL_STAGING = "https://staging.highfidelity.com";
 const QUrl METAVERSE_SERVER_URL_STABLE = "https://metaverse.highfidelity.com";
 const QUrl METAVERSE_SERVER_URL = METAVERSE_SERVER_URL_STABLE;
