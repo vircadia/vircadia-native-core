@@ -207,7 +207,7 @@
 
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_HUD,
+            filter: Picks.PICK_HUD,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,

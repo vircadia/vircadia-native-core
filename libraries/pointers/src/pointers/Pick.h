@@ -1,22 +1,32 @@
 //
-//  Created by Sam Gondelman 7/11/2017
+//  Created by Sam Gondelman 10/17/2017
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_RayPick_h
-#define hifi_RayPick_h
+#ifndef hifi_Pick_h
+#define hifi_Pick_h
 
+#include <memory>
 #include <stdint.h>
 #include <bitset>
 
 #include <QtCore/QUuid>
+#include <QVector>
+#include <QVariant>
 
-#include <RegisteredMetaTypes.h>
 #include <shared/ReadWriteLockable.h>
 
-class RayPickFilter {
+enum IntersectionType {
+    NONE = 0,
+    ENTITY,
+    OVERLAY,
+    AVATAR,
+    HUD
+};
+
+class PickFilter {
 public:
     enum FlagBit {
         PICK_ENTITIES = 0,
@@ -39,11 +49,11 @@ public:
     // The key is the Flags
     Flags _flags;
 
-    RayPickFilter() {}
-    RayPickFilter(const Flags& flags) : _flags(flags) {}
+    PickFilter() {}
+    PickFilter(const Flags& flags) : _flags(flags) {}
 
-    bool operator== (const RayPickFilter& rhs) const { return _flags == rhs._flags; }
-    bool operator!= (const RayPickFilter& rhs) const { return _flags != rhs._flags; }
+    bool operator== (const PickFilter& rhs) const { return _flags == rhs._flags; }
+    bool operator!= (const PickFilter& rhs) const { return _flags != rhs._flags; }
 
     void setFlag(FlagBit flag, bool value) { _flags[flag] = value; }
 
@@ -91,36 +101,63 @@ public:
 
     static constexpr unsigned int getBitMask(FlagBit bit) { return 1 << bit; }
 
-    static const RayPickFilter NOTHING;
+    static const PickFilter NOTHING;
 };
 
-class RayPick : protected ReadWriteLockable {
-
+class PickResult {
 public:
-    using Pointer = std::shared_ptr<RayPick>;
+    PickResult() {}
+    PickResult(const QVariantMap& pickVariant) : pickVariant(pickVariant) {}
 
-    RayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled);
+    virtual QVariantMap toVariantMap() const {
+        return pickVariant;
+    }
 
-    virtual const PickRay getPickRay(bool& valid) const = 0;
+    virtual bool doesIntersect() const = 0;
+
+    // for example: if we want the closest result, compare based on distance
+    // if we want all results, combine them
+    // must return a new pointer
+    virtual std::shared_ptr<PickResult> compareAndProcessNewResult(const std::shared_ptr<PickResult> newRes) = 0;
+
+    // returns true if this result contains any valid results with distance < maxDistance
+    // can also filter out results with distance >= maxDistance
+    virtual bool checkOrFilterAgainstMaxDistance(float maxDistance) = 0;
+
+    QVariantMap pickVariant;
+};
+
+using PickResultPointer = std::shared_ptr<PickResult>;
+
+class PickQuery : protected ReadWriteLockable {
+    Q_GADGET
+public:
+    PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled);
+
+    enum PickType {
+        Ray = 0,
+        Stylus
+    };
+    Q_ENUM(PickType)
 
     void enable(bool enabled = true);
     void disable() { enable(false); }
 
-    RayPickFilter getFilter() const;
+    PickFilter getFilter() const;
     float getMaxDistance() const;
     bool isEnabled() const;
-    RayPickResult getPrevRayPickResult() const;
 
     void setPrecisionPicking(bool precisionPicking);
 
-    void setRayPickResult(const RayPickResult& rayPickResult);
+    PickResultPointer getPrevPickResult() const;
+    void setPickResult(const PickResultPointer& pickResult);
 
     QVector<QUuid> getIgnoreItems() const;
     QVector<QUuid> getIncludeItems() const;
 
-    template <typename T> 
-    QVector<T> getIgnoreItemsAs() const {
-        QVector<T> result;
+    template <typename S>
+    QVector<S> getIgnoreItemsAs() const {
+        QVector<S> result;
         withReadLock([&] {
             for (const auto& uid : _ignoreItems) {
                 result.push_back(uid);
@@ -129,9 +166,9 @@ public:
         return result;
     }
 
-    template <typename T>
-    QVector<T> getIncludeItemsAs() const {
-        QVector<T> result;
+    template <typename S>
+    QVector<S> getIncludeItemsAs() const {
+        QVector<S> result;
         withReadLock([&] {
             for (const auto& uid : _includeItems) {
                 result.push_back(uid);
@@ -144,13 +181,26 @@ public:
     void setIncludeItems(const QVector<QUuid>& items);
 
 private:
-    RayPickFilter _filter;
+    PickFilter _filter;
     const float _maxDistance;
     bool _enabled;
-    RayPickResult _prevResult;
+    PickResultPointer _prevResult;
 
     QVector<QUuid> _ignoreItems;
     QVector<QUuid> _includeItems;
 };
 
-#endif // hifi_RayPick_h
+template<typename T>
+class Pick : public PickQuery {
+public:
+    Pick(const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled) {}
+
+    virtual const T getMathematicalPick() const = 0;
+    virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
+    virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
+    virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
+    virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
+    virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
+};
+
+#endif // hifi_Pick_h

@@ -193,8 +193,13 @@
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
 
+#include <pointers/PickManager.h>
+#include <pointers/PointerManager.h>
 #include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
+#include <raypick/PickScriptingInterface.h>
+#include <raypick/PointerScriptingInterface.h>
+#include <raypick/MouseRayPick.h>
 
 #include <FadeEffect.h>
 
@@ -698,8 +703,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     DependencyManager::set<FadeEffect>();
 
+    DependencyManager::set<PickManager>();
+    DependencyManager::set<PointerManager>();
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();
+    DependencyManager::set<PointerScriptingInterface>();
+    DependencyManager::set<PickScriptingInterface>();
 
     return previousSessionCrashed;
 }
@@ -804,7 +813,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    
+
     _logger = new FileLogger(this);
     qInstallMessageHandler(messageHandler);
 
@@ -1826,25 +1835,29 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
+    DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
+
     // Setup the mouse ray pick and related operators
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(_rayPickManager.createRayPick(
-        RayPickFilter(DependencyManager::get<RayPickScriptingInterface>()->PICK_ENTITIES() | DependencyManager::get<RayPickScriptingInterface>()->PICK_INCLUDE_NONCOLLIDABLE()),
-        0.0f, true));
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
+        PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](QUuid rayPickID) {
         RayToEntityIntersectionResult entityResult;
-        RayPickResult result = _rayPickManager.getPrevRayPickResult(rayPickID);
-        entityResult.intersects = result.type != DependencyManager::get<RayPickScriptingInterface>()->INTERSECTED_NONE();
-        if (entityResult.intersects) {
-            entityResult.intersection = result.intersection;
-            entityResult.distance = result.distance;
-            entityResult.surfaceNormal = result.surfaceNormal;
-            entityResult.entityID = result.objectID;
-            entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
+        entityResult.intersects = false;
+        QVariantMap result = DependencyManager::get<PickManager>()->getPrevPickResult(rayPickID);
+        if (result["type"].isValid()) {
+            entityResult.intersects = result["type"] != PickScriptingInterface::INTERSECTED_NONE();
+            if (entityResult.intersects) {
+                entityResult.intersection = vec3FromVariant(result["intersection"]);
+                entityResult.distance = result["distance"].toFloat();
+                entityResult.surfaceNormal = vec3FromVariant(result["surfaceNormal"]);
+                entityResult.entityID = result["objectID"].toUuid();
+                entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
+            }
         }
         return entityResult;
     });
     DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](QUuid rayPickID, bool value) {
-        _rayPickManager.setPrecisionPicking(rayPickID, value);
+        DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
@@ -4950,13 +4963,13 @@ void Application::update(float deltaTime) {
 
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
-        PROFILE_RANGE(app, "RayPickManager");
-        _rayPickManager.update();
+        PROFILE_RANGE(app, "PickManager");
+        DependencyManager::get<PickManager>()->update();
     }
 
     {
-        PROFILE_RANGE(app, "LaserPointerManager");
-        _laserPointerManager.update();
+        PROFILE_RANGE(app, "PointerManager");
+        DependencyManager::get<PointerManager>()->update();
     }
 
     {
@@ -5832,6 +5845,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickScriptingInterface>().data());
     scriptEngine->registerGlobalObject("LaserPointers", DependencyManager::get<LaserPointerScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Picks", DependencyManager::get<PickScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());

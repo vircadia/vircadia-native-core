@@ -125,41 +125,50 @@ QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);
 void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
-class PickRay {
+// MathPicks also have to overide operator== for their type
+class MathPick {
+    virtual operator bool() const = 0;
+    virtual QVariantMap toVariantMap() const = 0;
+};
+
+class PickRay : public MathPick {
 public:
-    PickRay() : origin(0.0f), direction(0.0f)  { }
+    PickRay() : origin(NAN), direction(NAN)  { }
+    PickRay(const QVariantMap& pickVariant) : origin(vec3FromVariant(pickVariant["origin"])), direction(vec3FromVariant(pickVariant["direction"])) {}
     PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
     glm::vec3 origin;
     glm::vec3 direction;
+
+    operator bool() const override {
+        return !(glm::any(glm::isnan(origin)) || glm::any(glm::isnan(direction)));
+    }
+    bool operator==(const PickRay& other) const {
+        return (origin == other.origin && direction == other.direction);
+    }
+    QVariantMap toVariantMap() const override {
+        QVariantMap pickRay;
+        pickRay["origin"] = vec3toVariant(origin);
+        pickRay["direction"] = vec3toVariant(direction);
+        return pickRay;
+    }
 };
+namespace std {
+    template <>
+    struct hash<glm::vec3> {
+        size_t operator()(const glm::vec3& a) const {
+            return ((hash<float>()(a.x) ^ (hash<float>()(a.y) << 1)) >> 1) ^ (hash<float>()(a.z) << 1);
+        }
+    };
+    template <>
+    struct hash<PickRay> {
+        size_t operator()(const PickRay& a) const {
+            return (hash<glm::vec3>()(a.origin) ^ (hash<glm::vec3>()(a.direction) << 1));
+        }
+    };
+}
 Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
-
-enum IntersectionType {
-    NONE = 0,
-    ENTITY,
-    OVERLAY,
-    AVATAR,
-    HUD
-};
-
-class RayPickResult {
-public:
-    RayPickResult() {}
-    RayPickResult(const PickRay& searchRay) : searchRay(searchRay) {}
-    RayPickResult(const IntersectionType type, const QUuid& objectID, const float distance, const glm::vec3& intersection, const PickRay& searchRay, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
-        type(type), objectID(objectID), distance(distance), intersection(intersection), searchRay(searchRay), surfaceNormal(surfaceNormal) {}
-    IntersectionType type { NONE };
-    QUuid objectID;
-    float distance { FLT_MAX };
-    glm::vec3 intersection { NAN };
-    PickRay searchRay;
-    glm::vec3 surfaceNormal { NAN };
-};
-Q_DECLARE_METATYPE(RayPickResult)
-QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResult& rayPickResult);
-void rayPickResultFromScriptValue(const QScriptValue& object, RayPickResult& rayPickResult);
 
 enum ContactEventType {
     CONTACT_EVENT_TYPE_START,

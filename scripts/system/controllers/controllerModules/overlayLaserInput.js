@@ -294,7 +294,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.shouldExit = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
-            var offOverlay = (intersection.type !== RayPick.INTERSECTED_OVERLAY);
+            var offOverlay = (intersection.type !== Picks.INTERSECTED_OVERLAY);
             var triggerOff = (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE);
             if (triggerOff) {
                 this.deleteContextOverlay();
@@ -366,7 +366,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_OVERLAYS,
+            filter: Picks.PICK_OVERLAYS,
             maxDistance: PICK_MAX_DISTANCE,
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
