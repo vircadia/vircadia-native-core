@@ -588,6 +588,7 @@ void EntityScriptServer::aboutToFinish() {
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<ScriptEngines>();
+    DependencyManager::destroy<EntityScriptServerServices>();
 
     // cleanup codec & encoder
     if (_codec && _encoder) {
