@@ -364,7 +364,6 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
         connectionsNode.children.append(cNode3);
     }
     
-
     // Make all generated nodes children of rootNode
     rootNode.children = { globalSettingsNode, _objectNode, connectionsNode };
 }
