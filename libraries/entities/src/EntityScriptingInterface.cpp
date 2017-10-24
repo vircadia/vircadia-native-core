@@ -577,7 +577,14 @@ void EntityScriptingInterface::callEntityServerMethod(QUuid id, const QString& m
 
 void EntityScriptingInterface::callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
-    DependencyManager::get<EntityScriptServerStub>()->callEntityClientMethod(clientSessionID, entityID, method, params);
+    auto scriptServerServices = DependencyManager::get<EntityScriptServerServices>();
+
+    // this won't be available on clients
+    if (scriptServerServices) {
+        scriptServerServices->callEntityClientMethod(clientSessionID, entityID, method, params);
+    } else {
+        qWarning() << "Entities.callEntityClientMethod() not allowed in client";
+    }
 }
 
 

@@ -92,10 +92,7 @@ void EntityScriptClient::callEntityServerMethod(QUuid entityID, const QString& m
     }
 }
 
-void EntityScriptServerStub::callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params) {
-    qDebug() << __FUNCTION__;
-
-
+void EntityScriptServerServices::callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params) {
     // only valid to call this function if you are the entity script server
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer targetClient = nodeList->nodeWithUUID(clientSessionID);

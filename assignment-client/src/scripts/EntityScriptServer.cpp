@@ -30,7 +30,7 @@
 #include <UUID.h>
 #include <WebSocketServerClass.h>
 
-#include <EntityScriptClient.h> // for EntityScriptServerStub
+#include <EntityScriptClient.h> // for EntityScriptServerServices
 
 #include "EntityScriptServerLogging.h"
 #include "../entities/AssignmentParentFinder.h"
@@ -70,7 +70,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
 
-    DependencyManager::set<EntityScriptServerStub>();
+    DependencyManager::set<EntityScriptServerServices>();
 
 
     // Needed to ensure the creation of the DebugDraw instance on the main thread

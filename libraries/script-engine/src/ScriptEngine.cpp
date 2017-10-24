@@ -2510,8 +2510,6 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         if (remoteCallerID == QUuid()) {
             callAllowed = true;
         } else {
-            qDebug() << __FUNCTION__ << "checking remotelyCallable method: " << methodName << " on entityID:" << entityID;
-
             if (entityScript.property("remotelyCallable").isArray()) {
                 auto callables = entityScript.property("remotelyCallable");
                 auto callableCount = callables.property("length").toInteger();
