@@ -112,6 +112,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_sunIndex)) {
                 _sunIndex = _stage->addLight(_sunLight);
+                _shadowIndex = _stage->addShadow(_sunIndex);
             } else {
                 _stage->updateLightArrayBuffer(_sunIndex);
             }
@@ -248,7 +249,8 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 
 void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     if (entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-        _modelTransform.postScale(SPHERE_ENTITY_SCALE);
+        _renderTransform = getModelTransform();
+        _renderTransform.postScale(SPHERE_ENTITY_SCALE);
     }
 }
 

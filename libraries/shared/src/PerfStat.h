@@ -97,5 +97,12 @@ private:
     static QMap<QString, PerformanceTimerRecord> _records;
 };
 
+// uncomment WANT_DETAILED_PERFORMANCE_TIMERS definition to enable performance timers in high-frequency contexts
+//#define WANT_DETAILED_PERFORMANCE_TIMERS
+#ifdef WANT_DETAILED_PERFORMANCE_TIMERS
+    #define DETAILED_PERFORMANCE_TIMER(name) PerformanceTimer detailedPerformanceTimer(name);
+#else // WANT_DETAILED_PERFORMANCE_TIMERS
+    #define DETAILED_PERFORMANCE_TIMER(name) ; // no-op
+#endif // WANT_DETAILED_PERFORMANCE_TIMERS
 
 #endif // hifi_PerfStat_h
