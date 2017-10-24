@@ -33,10 +33,8 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
 
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
-    LightStage::Index globalLightIndex { 0 };
 
-    const auto globalLight = lightStage->getLight(globalLightIndex);
-    const auto shadow = lightStage->getShadow(globalLightIndex);
+    const auto shadow = lightStage->getCurrentKeyShadow();
     if (!shadow) return;
 
     const auto& fbo = shadow->framebuffer;
@@ -128,20 +126,22 @@ void RenderShadowTask::configure(const Config& configuration) {
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
-    const auto globalShadow = lightStage->getShadow(0);
 
-    // Cache old render args
-    RenderArgs* args = renderContext->args;
-    output = args->_renderMode;
+    const auto globalShadow = lightStage->getCurrentKeyShadow();
+    if (globalShadow) {
+        // Cache old render args
+        RenderArgs* args = renderContext->args;
+        output = args->_renderMode;
 
-    auto nearClip = args->getViewFrustum().getNearClip();
-    float nearDepth = -args->_boomOffset.z;
-    const int SHADOW_FAR_DEPTH = 20;
-    globalShadow->setKeylightFrustum(args->getViewFrustum(), nearDepth, nearClip + SHADOW_FAR_DEPTH);
+        auto nearClip = args->getViewFrustum().getNearClip();
+        float nearDepth = -args->_boomOffset.z;
+        const int SHADOW_FAR_DEPTH = 20;
+        globalShadow->setKeylightFrustum(args->getViewFrustum(), nearDepth, nearClip + SHADOW_FAR_DEPTH);
 
-    // Set the keylight render args
-    args->pushViewFrustum(*(globalShadow->getFrustum()));
-    args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+        // Set the keylight render args
+        args->pushViewFrustum(*(globalShadow->getFrustum()));
+        args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+    }
 }
 
 void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext, const Input& input) {
