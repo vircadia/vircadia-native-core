@@ -58,7 +58,9 @@ using UserAgentGetter = std::function<QString()>;
 
 const auto DEFAULT_USER_AGENT_GETTER = []() -> QString { return HIGH_FIDELITY_USER_AGENT; };
 
-const QUrl METAVERSE_SERVER_URL = "https://metaverse.highfidelity.com";
+const QUrl METAVERSE_SERVER_URL_STAGING = "https://staging.highfidelity.com";
+const QUrl METAVERSE_SERVER_URL_STABLE = "https://metaverse.highfidelity.com";
+const QUrl METAVERSE_SERVER_URL = METAVERSE_SERVER_URL_STABLE;
 
 class AccountManager : public QObject, public Dependency {
     Q_OBJECT
@@ -98,7 +100,6 @@ public:
     void setTemporaryDomain(const QUuid& domainID, const QString& key);
     const QString& getTemporaryDomainKey(const QUuid& domainID) { return _accountInfo.getTemporaryDomainKey(domainID); }
 
-    Q_PROPERTY(QUrl metaverseServerURL READ getMetaverseServerURL)
     QUrl getMetaverseServerURL() { return METAVERSE_SERVER_URL; }
 
 public slots:
