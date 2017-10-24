@@ -47,7 +47,7 @@ public slots:
 signals:
     void sourceCopyReadyToLoad();
 
-    private slots:
+private slots:
     void bakeSourceCopy();
     void handleFBXNetworkReply();
 
@@ -86,7 +86,7 @@ private:
 
     TextureBakerThreadGetter _textureThreadGetter;
 
-    bool _pendingErrorEmission{ false };
+    bool _pendingErrorEmission { false };
 };
 
 #endif // hifi_FBXBaker_h

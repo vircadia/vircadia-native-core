@@ -148,7 +148,7 @@ void FBXBaker::loadSourceFBX() {
     // check if the FBX is local or first needs to be downloaded
     if (_fbxURL.isLocalFile()) {
         // load up the local file
-        QFile localFBX{ _fbxURL.toLocalFile() };
+        QFile localFBX { _fbxURL.toLocalFile() };
 
         qDebug() << "Local file url: " << _fbxURL << _fbxURL.toString() << _fbxURL.toLocalFile() << ", copying to: " << _originalFBXFilePath;
 
@@ -243,7 +243,7 @@ void FBXBaker::importScene() {
 
 void FBXBaker::rewriteAndBakeSceneModels() {
     unsigned int meshIndex = 0;
-    bool hasDeformers{ false };
+    bool hasDeformers { false };
     for (FBXNode& rootChild : _rootNode.children) {
         if (rootChild.name == "Objects") {
             for (FBXNode& objectChild : rootChild.children) {
@@ -283,7 +283,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     
                     objectChild.children.push_back(dracoMeshNode);
 
-                    static const std::vector<QString> nodeNamesToDelete{
+                    static const std::vector<QString> nodeNamesToDelete {
                         // Node data that is packed into the draco mesh
                         "Vertices",
                         "PolygonVertexIndex",
@@ -357,17 +357,20 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                     for (FBXNode& textureChild : object->children) {
 
                         if (textureChild.name == "RelativeFilename") {
-                            QString fbxTextureFileName{ textureChild.properties.at(0).toByteArray() };
+                            QString fbxTextureFileName { textureChild.properties.at(0).toByteArray() };
+                            QFileInfo fbxTextureFileInfo { fbxTextureFileName.replace("\\", "/") };
+
                             QByteArray textureContent = "";
-                            QFileInfo fbxTextureFileInfo{ fbxTextureFileName.replace("\\", "/") };
-                            // Callback to get texture content and type from FBXBaker in ModelBaker
                             if (!fbxTextureFileInfo.filePath().isEmpty()) {
                                 textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
                             }
                             
+                            // Callback to get texture content and type
                             getTextureContentTypeCallback textureContentTypeCallback = [=]() {
                                 QPair<QByteArray, image::TextureUsage::Type> result;
-                                result.first = textureContent;// _textureContent.value(fbxTextureFileName.toLocal8Bit());
+                                result.first = textureContent;
+                                // grab the ID for this texture so we can figure out the
+                                // texture type from the loaded materials
                                 auto textureID{ object->properties[0].toByteArray() };
                                 auto textureType = textureTypes[textureID];
                                 result.second = textureType;
@@ -375,7 +378,8 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             };
 
                             // Compress the texture information and return the new filename to be added into the FBX scene
-                            QByteArray* bakedTextureFile = this->compressTexture(fbxTextureFileName, _fbxURL, _bakedOutputDir, _textureThreadGetter, textureContentTypeCallback, _originalOutputDir);
+                            QByteArray* bakedTextureFile = this->compressTexture(fbxTextureFileName, _fbxURL, _bakedOutputDir, _textureThreadGetter, 
+                                                                                 textureContentTypeCallback, _originalOutputDir);
 
                             // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
                             if (bakedTextureFile) {

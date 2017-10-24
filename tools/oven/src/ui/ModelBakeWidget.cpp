@@ -164,7 +164,7 @@ void ModelBakeWidget::bakeButtonClicked() {
 
     // split the list from the model line edit to see how many models we need to bake
     auto fileURLStrings = _modelLineEdit->text().split(',');
-    foreach(QString fileURLString, fileURLStrings) {
+    foreach (QString fileURLString, fileURLStrings) {
         // construct a URL from the path in the model file text box
         QUrl modelToBakeURL(fileURLString);
 
