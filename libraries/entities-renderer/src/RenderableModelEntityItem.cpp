@@ -1311,7 +1311,7 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     if (!model || (model && model->didVisualGeometryRequestFail())) {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;
-        batch.setModelTransform(_modelTransform); // we want to include the scale as well
+        batch.setModelTransform(getModelTransform()); // we want to include the scale as well
         DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
         return;
     }

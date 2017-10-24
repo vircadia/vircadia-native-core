@@ -248,7 +248,8 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 
 void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     if (entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-        _modelTransform.postScale(SPHERE_ENTITY_SCALE);
+        _renderTransform = getModelTransform();
+        _renderTransform.postScale(SPHERE_ENTITY_SCALE);
     }
 }
 
