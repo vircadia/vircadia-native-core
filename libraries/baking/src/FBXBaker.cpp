@@ -265,7 +265,7 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     // TODO Pull this out of _geometry instead so we don't have to reprocess it
                     auto extractedMesh = FBXReader::extractMesh(objectChild, meshIndex, false);
                     
-                    // Callback to get MaterialID from FBXBaker in ModelBaker
+                    // Callback to get MaterialID
                     getMaterialIDCallback materialIDcallback = [=](int partIndex) {return extractedMesh.partMaterialTextures[partIndex].first;};
                     
                     // Compress mesh information and store in dracoMeshNode
