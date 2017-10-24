@@ -16,6 +16,7 @@ Item {
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+    property bool passwordField: false
     property bool isDesktop: false
     property alias webView: web.webViewCore
     property alias profile: web.webViewCoreProfile
@@ -41,7 +42,7 @@ Item {
                 horizontalCenter: parent.horizontalCenter
             }
             spacing: 120
-            
+
             TabletWebButton {
                 id: back
                 enabledColor: hifi.colors.darkGray
@@ -165,6 +166,11 @@ Item {
         id: keyboard
         raised: parent.keyboardEnabled && parent.keyboardRaised
         numeric: parent.punctuationMode
+        password: parent.passwordField
+
+        onPasswordChanged: {
+            keyboard.mirroredText = "";
+        }
 
         anchors {
             left: parent.left
@@ -172,7 +178,7 @@ Item {
             bottom: parent.bottom
         }
     }
-    
+
     Component.onCompleted: {
         root.isDesktop = (typeof desktop !== "undefined");
         keyboardEnabled = HMD.active;

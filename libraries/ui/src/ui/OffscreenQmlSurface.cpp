@@ -1082,7 +1082,7 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
     }
 }
 
-void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric) {
+void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric, bool passwordField) {
 #if Q_OS_ANDROID
     return;
 #endif
@@ -1113,6 +1113,10 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
                 if (item->property("punctuationMode").isValid()) {
                     item->setProperty("punctuationMode", QVariant(numeric));
                 }
+                if (item->property("passwordField").isValid()) {
+                    item->setProperty("passwordField", QVariant(passwordField));
+                }
+
                 item->setProperty("keyboardRaised", QVariant(raised));
                 return;
             }
@@ -1137,9 +1141,13 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
         const QString RAISE_KEYBOARD = "_RAISE_KEYBOARD";
         const QString RAISE_KEYBOARD_NUMERIC = "_RAISE_KEYBOARD_NUMERIC";
         const QString LOWER_KEYBOARD = "_LOWER_KEYBOARD";
+        const QString RAISE_KEYBOARD_NUMERIC_PASSWORD = "_RAISE_KEYBOARD_NUMERIC_PASSWORD";
+        const QString RAISE_KEYBOARD_PASSWORD = "_RAISE_KEYBOARD_PASSWORD";
         QString messageString = message.type() == QVariant::String ? message.toString() : "";
         if (messageString.left(RAISE_KEYBOARD.length()) == RAISE_KEYBOARD) {
-            setKeyboardRaised(_currentFocusItem, true, messageString == RAISE_KEYBOARD_NUMERIC);
+            bool numeric = (messageString == RAISE_KEYBOARD_NUMERIC || messageString == RAISE_KEYBOARD_NUMERIC_PASSWORD);
+            bool passwordField = (messageString == RAISE_KEYBOARD_PASSWORD || messageString == RAISE_KEYBOARD_NUMERIC_PASSWORD);
+            setKeyboardRaised(_currentFocusItem, true, numeric, passwordField);
         } else if (messageString == LOWER_KEYBOARD) {
             setKeyboardRaised(_currentFocusItem, false);
         } else {

@@ -137,7 +137,6 @@ Item {
                 onLinkActivated: loginDialog.openUrl(link)
             }
             onFocusChanged: {
-                console.log("-------> setting variable <-------");
                 root.text = "";
             }
         }
