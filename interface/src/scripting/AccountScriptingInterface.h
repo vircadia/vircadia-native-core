@@ -17,13 +17,12 @@
 class AccountScriptingInterface : public QObject {
     Q_OBJECT
 
-    Q_PROPERTY(QString username READ getUsername)
-    Q_PROPERTY(bool loggedIn READ loggedIn)
-
     /**jsdoc
      * @namespace Account
      * @property username {String} username if user is logged in, otherwise it returns "Unknown user"
      */
+    Q_PROPERTY(QString username READ getUsername)
+    Q_PROPERTY(bool loggedIn READ loggedIn)
 
 public slots:
     static AccountScriptingInterface* getInstance();

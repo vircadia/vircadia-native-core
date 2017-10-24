@@ -35,7 +35,7 @@ void DownloadInfoResultFromScriptValue(const QScriptValue& object, DownloadInfoR
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
     
-    Q_PROPERTY(QString username READ getUsername)
+    Q_PROPERTY(QString username READ getUsername NOTIFY myUsernameChanged)
     Q_PROPERTY(bool loggedIn READ loggedIn NOTIFY loggedInChanged)
     Q_PROPERTY(QString findableBy READ getFindableBy WRITE setFindableBy NOTIFY findableByChanged)
     
@@ -43,10 +43,7 @@ public:
     static GlobalServicesScriptingInterface* getInstance();
 
     const QString& getUsername() const;
-
-    bool loggedIn() const {
-        return _loggedIn;
-    }
+    bool loggedIn() const { return _loggedIn; }
     
 public slots:
     DownloadInfoResult getDownloadInfo();
@@ -64,7 +61,7 @@ private slots:
     void setFindableBy(const QString& discoverabilityMode);
     void discoverabilityModeChanged(Discoverability::Mode discoverabilityMode);
 
-    void onUsernameChanged(QString username);
+    void onUsernameChanged(const QString& username);
 
 signals:
     void connected();

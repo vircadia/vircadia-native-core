@@ -49,7 +49,13 @@ GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance(
 }
 
 const QString& GlobalServicesScriptingInterface::getUsername() const {
-    return DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
+    auto accountManager = DependencyManager::get<AccountManager>();
+    if (accountManager->isLoggedIn()) {
+        return accountManager->getAccountInfo().getUsername();
+    }
+    else {
+        return "Unknown user";
+    }
 }
 
 bool GlobalServicesScriptingInterface::isLoggedIn() {
@@ -95,7 +101,7 @@ void GlobalServicesScriptingInterface::discoverabilityModeChanged(Discoverabilit
     emit findableByChanged(DiscoverabilityManager::findableByString(discoverabilityMode));
 }
 
-void GlobalServicesScriptingInterface::onUsernameChanged(QString username) {
+void GlobalServicesScriptingInterface::onUsernameChanged(const QString& username) {
     _loggedIn = (username != QString());
     emit myUsernameChanged(username);
     emit loggedInChanged(_loggedIn);
