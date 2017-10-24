@@ -108,6 +108,15 @@ void HMDScriptingInterface::openTablet(bool contextualMode) {
     _tabletContextualMode = contextualMode;
 }
 
+void HMDScriptingInterface::toggleShouldShowTablet() {
+    setShouldShowTablet(!getShouldShowTablet());
+}
+
+void HMDScriptingInterface::setShouldShowTablet(bool value) {
+    _showTablet = value;
+    _tabletContextualMode = false;
+}
+
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();

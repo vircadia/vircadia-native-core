@@ -89,8 +89,8 @@ public:
 
     bool isMounted() const;
 
-    void toggleShouldShowTablet() { _showTablet = !_showTablet; }
-    void setShouldShowTablet(bool value) { _showTablet = value; }
+    void toggleShouldShowTablet();
+    void setShouldShowTablet(bool value);
     bool getShouldShowTablet() const { return _showTablet; }
     bool getTabletContextualMode() const { return _tabletContextualMode; }
 
