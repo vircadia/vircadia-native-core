@@ -31,6 +31,7 @@
 #include "LightStage.h"
 #include "LightClusters.h"
 #include "BackgroundStage.h"
+#include "HazeStage.h"
 
 #include "SurfaceGeometryPass.h"
 #include "SubsurfaceScattering.h"
@@ -120,6 +121,7 @@ public:
         const DeferredFrameTransformPointer& frameTransform,
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
+        const model::HazePointer& haze,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
         const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
@@ -154,7 +156,10 @@ using RenderDeferredConfig = render::GPUJobConfig;
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet7 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer>;
+    using Inputs = render::VaryingSet8 < 
+        DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, 
+        AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer, model::HazePointer>;
+
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
@@ -183,6 +188,8 @@ protected:
     LightStage::Index _defaultLightID{ LightStage::INVALID_INDEX };
     model::SunSkyStagePointer _defaultBackground;
     BackgroundStage::Index _defaultBackgroundID{ BackgroundStage::INVALID_INDEX };
+    model::HazePointer _defaultHaze{ nullptr };
+    HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;

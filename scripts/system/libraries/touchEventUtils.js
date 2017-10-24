@@ -6,28 +6,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   controllerDispatcher.NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
+   enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, controllerDispatcher.ZERO_VEC,
-   AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
+   HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
 */
 
 var controllerDispatcher = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
 function touchTargetHasKeyboardFocus(touchTarget) {
-    if (touchTarget.entityID && touchTarget.entityID !== controllerDispatcher.NULL_UUID) {
+    if (touchTarget.entityID && touchTarget.entityID !== Uuid.NULL) {
         return Entities.keyboardFocusEntity === touchTarget.entityID;
-    } else if (touchTarget.overlayID && touchTarget.overlayID !== controllerDispatcher.NULL_UUID) {
+    } else if (touchTarget.overlayID && touchTarget.overlayID !== Uuid.NULL) {
         return Overlays.keyboardFocusOverlay === touchTarget.overlayID;
     }
 }
 
 function setKeyboardFocusOnTouchTarget(touchTarget) {
-    if (touchTarget.entityID && touchTarget.entityID !== controllerDispatcher.NULL_UUID &&
+    if (touchTarget.entityID && touchTarget.entityID !== Uuid.NULL &&
         Entities.wantsHandControllerPointerEvents(touchTarget.entityID)) {
-        Overlays.keyboardFocusOverlay = controllerDispatcher.NULL_UUID;
+        Overlays.keyboardFocusOverlay = Uuid.NULL;
         Entities.keyboardFocusEntity = touchTarget.entityID;
-    } else if (touchTarget.overlayID && touchTarget.overlayID !== controllerDispatcher.NULL_UUID) {
+    } else if (touchTarget.overlayID && touchTarget.overlayID !== Uuid.NULL) {
         Overlays.keyboardFocusOverlay = touchTarget.overlayID;
-        Entities.keyboardFocusEntity = controllerDispatcher.NULL_UUID;
+        Entities.keyboardFocusEntity = Uuid.NULL;
     }
 }
 
@@ -42,9 +42,9 @@ function sendHoverEnterEventToTouchTarget(hand, touchTarget) {
         button: "None"
     };
 
-    if (touchTarget.entityID && touchTarget.entityID !== controllerDispatcher.NULL_UUID) {
+    if (touchTarget.entityID && touchTarget.entityID !== Uuid.NULL) {
         Entities.sendHoverEnterEntity(touchTarget.entityID, pointerEvent);
-    } else if (touchTarget.overlayID && touchTarget.overlayID !== controllerDispatcher.NULL_UUID) {
+    } else if (touchTarget.overlayID && touchTarget.overlayID !== Uuid.NULL) {
         Overlays.sendHoverEnterOverlay(touchTarget.overlayID, pointerEvent);
     }
 }
@@ -60,10 +60,10 @@ function sendHoverOverEventToTouchTarget(hand, touchTarget) {
         button: "None"
     };
 
-    if (touchTarget.entityID && touchTarget.entityID !== controllerDispatcher.NULL_UUID) {
+    if (touchTarget.entityID && touchTarget.entityID !== Uuid.NULL) {
         Entities.sendMouseMoveOnEntity(touchTarget.entityID, pointerEvent);
         Entities.sendHoverOverEntity(touchTarget.entityID, pointerEvent);
-    } else if (touchTarget.overlayID && touchTarget.overlayID !== controllerDispatcher.NULL_UUID) {
+    } else if (touchTarget.overlayID && touchTarget.overlayID !== Uuid.NULL) {
         Overlays.sendMouseMoveOnOverlay(touchTarget.overlayID, pointerEvent);
         Overlays.sendHoverOverOverlay(touchTarget.overlayID, pointerEvent);
     }
@@ -81,10 +81,10 @@ function sendTouchStartEventToTouchTarget(hand, touchTarget) {
         isPrimaryHeld: true
     };
 
-    if (touchTarget.entityID && touchTarget.entityID !== controllerDispatcher.NULL_UUID) {
+    if (touchTarget.entityID && touchTarget.entityID !== Uuid.NULL) {
         Entities.sendMousePressOnEntity(touchTarget.entityID, pointerEvent);
         Entities.sendClickDownOnEntity(touchTarget.entityID, pointerEvent);
-    } else if (touchTarget.overlayID && touchTarget.overlayID !== controllerDispatcher.NULL_UUID) {
+    } else if (touchTarget.overlayID && touchTarget.overlayID !== Uuid.NULL) {
         Overlays.sendMousePressOnOverlay(touchTarget.overlayID, pointerEvent);
     }
 }
@@ -100,11 +100,11 @@ function sendTouchEndEventToTouchTarget(hand, touchTarget) {
         button: "Primary"
     };
 
-    if (touchTarget.entityID && touchTarget.entityID !== controllerDispatcher.NULL_UUID) {
+    if (touchTarget.entityID && touchTarget.entityID !== Uuid.NULL) {
         Entities.sendMouseReleaseOnEntity(touchTarget.entityID, pointerEvent);
         Entities.sendClickReleaseOnEntity(touchTarget.entityID, pointerEvent);
         Entities.sendHoverLeaveEntity(touchTarget.entityID, pointerEvent);
-    } else if (touchTarget.overlayID && touchTarget.overlayID !== controllerDispatcher.NULL_UUID) {
+    } else if (touchTarget.overlayID && touchTarget.overlayID !== Uuid.NULL) {
         Overlays.sendMouseReleaseOnOverlay(touchTarget.overlayID, pointerEvent);
     }
 }
@@ -121,10 +121,10 @@ function sendTouchMoveEventToTouchTarget(hand, touchTarget) {
         isPrimaryHeld: true
     };
 
-    if (touchTarget.entityID && touchTarget.entityID !== controllerDispatcher.NULL_UUID) {
+    if (touchTarget.entityID && touchTarget.entityID !== Uuid.NULL) {
         Entities.sendMouseMoveOnEntity(touchTarget.entityID, pointerEvent);
         Entities.sendHoldingClickOnEntity(touchTarget.entityID, pointerEvent);
-    } else if (touchTarget.overlayID && touchTarget.overlayID !== controllerDispatcher.NULL_UUID) {
+    } else if (touchTarget.overlayID && touchTarget.overlayID !== Uuid.NULL) {
         Overlays.sendMouseMoveOnOverlay(touchTarget.overlayID, pointerEvent);
     }
 }

@@ -18,7 +18,7 @@ OverlayGroup = function(opts) {
     var overlays = {};
 
     var rootPosition = opts.position || { x: 0, y: 0, z: 0 };
-    var rootRotation = opts.rotation || Quat.fromPitchYawRollRadians(0, 0, 0);
+    var rootRotation = opts.rotation || Quat.IDENTITY;
     var visible = opts.visible == true;
 
     function updateOverlays() {
@@ -36,7 +36,7 @@ OverlayGroup = function(opts) {
 
     that.createOverlay = function(type, properties) {
         properties.position = properties.position || { x: 0, y: 0, z: 0 };
-        properties.rotation = properties.rotation || Quat.fromPitchYawRollRadians(0, 0, 0);
+        properties.rotation = properties.rotation || Quat.IDENTITY;
 
         var overlay = Overlays.addOverlay(type, properties);
 

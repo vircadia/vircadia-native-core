@@ -123,6 +123,7 @@ public:
         ReplicatedBulkAvatarData,
         OctreeFileReplacementFromUrl,
         ChallengeOwnership,
+        EntityScriptCallMethod,
         NUM_PACKET_TYPE
     };
 
@@ -268,6 +269,10 @@ const PacketVersion VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT = 71;
 const PacketVersion VERSION_ENTITIES_HAS_HIGHLIGHT_SCRIPTING_INTERFACE = 72;
 const PacketVersion VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES = 73;
 const PacketVersion VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES = 74;
+const PacketVersion VERSION_ENTITIES_HAZE = 75;
+const PacketVersion VERSION_ENTITIES_UV_MODE_PROPERTY = 76;
+const PacketVersion VERSION_ENTITIES_STROKE_COLOR_PROPERTY = 77;
+
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,

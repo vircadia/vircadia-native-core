@@ -10,7 +10,7 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, makeDispatcherModuleParameters, makeRunningValues, Vec3,
    LaserPointers, RayPick, HMD, Uuid, AvatarList
 */
@@ -107,6 +107,7 @@ Script.include("/~/system/libraries/controllers.js");
         ignoreRayIntersection: true
     };
 
+
     var teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
                                 {name: "teleport", path: teleportPath, end: teleportEnd},
                                 {name: "seat", path: seatPath, end: seatEnd}];
@@ -116,6 +117,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     var coolInTimeout = null;
     var ignoredEntities = [];
+
 
     var TELEPORTER_STATES = {
         IDLE: 'idle',

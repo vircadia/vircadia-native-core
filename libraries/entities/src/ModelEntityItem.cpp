@@ -557,12 +557,6 @@ void ModelEntityItem::setAnimationLoop(bool loop) {
     });
 }
 
-bool ModelEntityItem::getAnimationLoop() const { 
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getLoop();
-    });
-}
-
 void ModelEntityItem::setAnimationHold(bool hold) { 
     withWriteLock([&] {
         _animationProperties.setHold(hold);
@@ -610,8 +604,10 @@ float ModelEntityItem::getAnimationCurrentFrame() const {
     });
 }
 
-float ModelEntityItem::getAnimationFPS() const { 
+bool ModelEntityItem::isAnimatingSomething() const {
     return resultWithReadLock<float>([&] {
-        return _animationProperties.getFPS();
-    });
+        return !_animationProperties.getURL().isEmpty() &&
+            _animationProperties.getRunning() &&
+            (_animationProperties.getFPS() != 0.0f);
+        });
 }

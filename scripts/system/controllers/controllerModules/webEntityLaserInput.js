@@ -8,9 +8,9 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Vec3, Quat, getGrabPointSphereOffset,
-   makeRunningValues, Entities, NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
+   makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, ZERO_VEC, Overlays
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, ZERO_VEC, Overlays
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -29,7 +29,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
@@ -51,7 +51,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
@@ -73,7 +73,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [
@@ -94,15 +94,15 @@ Script.include("/~/system/libraries/controllers.js");
     var HAPTIC_STYLUS_DURATION = 20.0;
 
     function laserTargetHasKeyboardFocus(laserTarget) {
-        if (laserTarget && laserTarget !== NULL_UUID) {
+        if (laserTarget && laserTarget !== Uuid.NULL) {
             return Entities.keyboardFocusOverlay === laserTarget;
         }
     }
 
     function setKeyboardFocusOnLaserTarget(laserTarget) {
-        if (laserTarget && laserTarget !== NULL_UUID) {
+        if (laserTarget && laserTarget !== Uuid.NULL) {
             Entities.wantsHandControllerPointerEvents(laserTarget);
-            Overlays.keyboardFocusOverlay = NULL_UUID;
+            Overlays.keyboardFocusOverlay = Uuid.NULL;
             Entities.keyboardFocusEntity = laserTarget;
         }
     }
@@ -121,7 +121,7 @@ Script.include("/~/system/libraries/controllers.js");
             button: "None"
         };
 
-        if (laserTarget.entityID && laserTarget.entityID !== NULL_UUID) {
+        if (laserTarget.entityID && laserTarget.entityID !== Uuid.NULL) {
             Entities.sendHoverEnterEntity(laserTarget.entityID, pointerEvent);
         }
     }
@@ -141,7 +141,7 @@ Script.include("/~/system/libraries/controllers.js");
             button: "None"
         };
 
-        if (laserTarget.entityID && laserTarget.entityID !== NULL_UUID) {
+        if (laserTarget.entityID && laserTarget.entityID !== Uuid.NULL) {
             Entities.sendMouseMoveOnEntity(laserTarget.entityID, pointerEvent);
             Entities.sendHoverOverEntity(laserTarget.entityID, pointerEvent);
         }
@@ -160,7 +160,7 @@ Script.include("/~/system/libraries/controllers.js");
             isPrimaryHeld: true
         };
 
-        if (laserTarget.entityID && laserTarget.entityID !== NULL_UUID) {
+        if (laserTarget.entityID && laserTarget.entityID !== Uuid.NULL) {
             Entities.sendMousePressOnEntity(laserTarget.entityID, pointerEvent);
             Entities.sendClickDownOnEntity(laserTarget.entityID, pointerEvent);
         }
@@ -177,7 +177,7 @@ Script.include("/~/system/libraries/controllers.js");
             button: "Primary"
         };
 
-        if (laserTarget.entityID && laserTarget.entityID !== NULL_UUID) {
+        if (laserTarget.entityID && laserTarget.entityID !== Uuid.NULL) {
             Entities.sendMouseReleaseOnEntity(laserTarget.entityID, pointerEvent);
             Entities.sendClickReleaseOnEntity(laserTarget.entityID, pointerEvent);
             Entities.sendHoverLeaveEntity(laserTarget.entityID, pointerEvent);
@@ -196,7 +196,7 @@ Script.include("/~/system/libraries/controllers.js");
             isPrimaryHeld: true
         };
 
-        if (laserTarget.entityID && laserTarget.entityID !== NULL_UUID) {
+        if (laserTarget.entityID && laserTarget.entityID !== Uuid.NULL) {
             Entities.sendMouseMoveOnEntity(laserTarget.entityID, pointerEvent);
             Entities.sendHoldingClickOnEntity(laserTarget.entityID, pointerEvent);
         }
