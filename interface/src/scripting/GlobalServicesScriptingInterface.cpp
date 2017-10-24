@@ -48,7 +48,7 @@ GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance(
     return &sharedInstance;
 }
 
-const QString& GlobalServicesScriptingInterface::getUsername() const {
+const QString GlobalServicesScriptingInterface::getUsername() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (accountManager->isLoggedIn()) {
         return accountManager->getAccountInfo().getUsername();

@@ -42,7 +42,7 @@ class GlobalServicesScriptingInterface : public QObject {
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
-    const QString& getUsername() const;
+    const QString getUsername() const;
     bool loggedIn() const { return _loggedIn; }
     
 public slots:
