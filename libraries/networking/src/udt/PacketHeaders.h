@@ -194,6 +194,7 @@ void sendWrongProtocolVersionsSignature(bool sendWrongVersion); /// for debuggin
 uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
+/*
 const PacketVersion VERSION_OCTREE_HAS_FILE_BREAKS = 1;
 const PacketVersion VERSION_ENTITIES_HAVE_ANIMATION = 1;
 const PacketVersion VERSION_ROOT_ELEMENT_HAS_DATA = 2;
@@ -272,7 +273,11 @@ const PacketVersion VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES = 74;
 const PacketVersion VERSION_ENTITIES_HAZE = 75;
 const PacketVersion VERSION_ENTITIES_UV_MODE_PROPERTY = 76;
 const PacketVersion VERSION_ENTITIES_STROKE_COLOR_PROPERTY = 77;
+*/
 
+enum class EntityVersion : PacketVersion {
+    StrokeColorProperty = 77
+};
 
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

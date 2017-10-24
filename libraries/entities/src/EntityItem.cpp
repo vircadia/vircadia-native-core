@@ -355,14 +355,6 @@ int EntityItem::expectedBytes() {
 
 // clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
-    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-
-        // NOTE: This shouldn't happen. The only versions of the bit stream that didn't support split mtu buffers should
-        // be handled by the model subclass and shouldn't call this routine.
-        qCDebug(entities) << "EntityItem::readEntityDataFromBuffer()... "
-                        "ERROR CASE...args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU";
-        return 0;
-    }
     setSourceUUID(args.sourceUUID);
 
     args.entitiesPerPacket++;
@@ -588,34 +580,32 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     // Newer bitstreams will have a last simulated and a last updated value
     quint64 lastSimulatedFromBufferAdjusted = now;
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_LAST_SIMULATED_TIME) {
-        // last simulated is stored as ByteCountCoded delta from lastEdited
-        quint64 simulatedDelta;
-        parser.readCompressedCount(simulatedDelta);
+    // last simulated is stored as ByteCountCoded delta from lastEdited
+    quint64 simulatedDelta;
+    parser.readCompressedCount(simulatedDelta);
 #ifdef VALIDATE_ENTITY_ITEM_PARSER
-        {
-            QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
-            ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
-            quint64 simulatedDelta2 = simulatedDeltaCoder;
-            Q_ASSERT(simulatedDelta2 == simulatedDelta);
-            encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
-            dataAt += encodedSimulatedDelta.size();
-            bytesRead += encodedSimulatedDelta.size();
-            Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
-        }
+    {
+        QByteArray encodedSimulatedDelta = originalDataBuffer.mid(bytesRead); // maximum possible size
+        ByteCountCoded<quint64> simulatedDeltaCoder = encodedSimulatedDelta;
+        quint64 simulatedDelta2 = simulatedDeltaCoder;
+        Q_ASSERT(simulatedDelta2 == simulatedDelta);
+        encodedSimulatedDelta = simulatedDeltaCoder; // determine true length
+        dataAt += encodedSimulatedDelta.size();
+        bytesRead += encodedSimulatedDelta.size();
+        Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
+    }
 #endif
 
-        if (overwriteLocalData) {
-            lastSimulatedFromBufferAdjusted = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
-            if (lastSimulatedFromBufferAdjusted > now) {
-                lastSimulatedFromBufferAdjusted = now;
-            }
-            #ifdef WANT_DEBUG
-                qCDebug(entities) << "                            _lastEdited:" << debugTime(_lastEdited, now);
-                qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
-                qCDebug(entities) << "        lastSimulatedFromBufferAdjusted:" << debugTime(lastSimulatedFromBufferAdjusted, now);
-            #endif
+    if (overwriteLocalData) {
+        lastSimulatedFromBufferAdjusted = lastEditedFromBufferAdjusted + simulatedDelta; // don't adjust for clock skew since we already did that
+        if (lastSimulatedFromBufferAdjusted > now) {
+            lastSimulatedFromBufferAdjusted = now;
         }
+        #ifdef WANT_DEBUG
+            qCDebug(entities) << "                            _lastEdited:" << debugTime(_lastEdited, now);
+            qCDebug(entities) << "           lastEditedFromBufferAdjusted:" << debugTime(lastEditedFromBufferAdjusted, now);
+            qCDebug(entities) << "        lastSimulatedFromBufferAdjusted:" << debugTime(lastSimulatedFromBufferAdjusted, now);
+        #endif
     }
 
     #ifdef WANT_DEBUG
@@ -817,20 +807,16 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, updateLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
-        READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-    }
-    if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES) {
-        READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
-        READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
-        READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
-        READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
-        READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
-        READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
-        READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
-        READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
-        READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
-    }
+    READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
+    READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
+    READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
+    READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
+    READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
+    READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
+    READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
+    READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+    READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
+    READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
 
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
@@ -858,10 +844,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // NOTE: we had a bad version of the stream that we added stream data after the subclass. We can attempt to recover
     // by doing this parsing here... but it's not likely going to fully recover the content.
     //
-    // TODO: Remove this code once we've sufficiently migrated content past this damaged version
-    if (args.bitstreamVersion == VERSION_ENTITIES_HAS_MARKETPLACE_ID_DAMAGED) {
-        READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-    }
 
     if (overwriteLocalData && (getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES))) {
         // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
