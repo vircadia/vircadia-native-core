@@ -31,7 +31,9 @@ public:
     void createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry);
     void setProperties(FBXNode * parentNode);
     void setMaterialNodeProperties(FBXNode* materialNode, QString material, FBXGeometry* geometry);
-    
+    template<typename NumberType>
+    void setPropertiesList(std::vector<QByteArray> stringProperties, std::vector<NumberType> numericProperties, QVariantList& propertiesList);
+
 public slots:
     virtual void bake() override;
 
@@ -57,7 +59,7 @@ private:
     qlonglong _modelID;
     std::vector<qlonglong> _materialIDs;
     qlonglong _textureID;
-    std::vector<QPair<qlonglong, int>> mapTextureMaterial;
+    std::vector<QPair<qlonglong, int>> _mapTextureMaterial;
     FBXNode _objectNode;
 };
 #endif // hifi_OBJBaker_h

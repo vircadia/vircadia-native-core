@@ -16,6 +16,8 @@
 #include "OBJReader.h"
 #include "FBXWriter.h"
 
+const double UNIT_SCALE_FACTOR = 100;
+
 OBJBaker::OBJBaker(const QUrl& objURL, TextureBakerThreadGetter textureThreadGetter,
                    const QString& bakedOutputDir, const QString& originalOutputDir) :
     _objURL(objURL),
@@ -149,7 +151,7 @@ void OBJBaker::startBake() {
 
     QByteArray objData = objFile.readAll();
 
-    bool combineParts = true;
+    bool combineParts = true; // set true so that OBJReader reads material info from material library
     OBJReader reader;
     FBXGeometry* geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _objURL);
    
@@ -211,8 +213,9 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
     // Compress the mesh information and store in dracoNode
     bool hasDeformers = false;
     ModelBaker modelBaker;
-    FBXNode* dracoNode = this->compressMesh(geometry->meshes[0], hasDeformers);
-    geometryNode.children.append(*dracoNode);
+    FBXNode dracoNode; 
+    this->compressMesh(geometry->meshes[0], hasDeformers, dracoNode);
+    geometryNode.children.append(dracoNode);
 
     // Generating Object node's child - Model node
     FBXNode modelNode;
@@ -222,7 +225,7 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
 
     // Generating Objects node's child - Material node
     QVector<FBXMeshPart> meshParts = geometry->meshes[0].parts;
-    for (auto p : meshParts) {
+    for (auto meshPart : meshParts) {
         FBXNode materialNode;
         materialNode.name = "Material";
         if (geometry->materials.size() == 1) {
@@ -230,106 +233,52 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
                 setMaterialNodeProperties(&materialNode, materialID, geometry);
             }
         } else {
-            setMaterialNodeProperties(&materialNode, p.materialID, geometry);
+            setMaterialNodeProperties(&materialNode, meshPart.materialID, geometry);
         }
         _objectNode.children.append(materialNode);
     }
     
-    // Texture Node
+    // Generating Texture Node
     int count = 0;
+    // iterate through mesh parts and process the associated textures
     for (int i = 0;i < meshParts.size();i++) {
         QString material = meshParts[i].materialID;
         FBXMaterial currentMaterial = geometry->materials[material];
         if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
             _textureID = _nodeID;
-            mapTextureMaterial.push_back(QPair<qlonglong, int>(_textureID, i));
+            _mapTextureMaterial.push_back(QPair<qlonglong, int>(_textureID, i));
             QVariant property0(_nodeID++);
             FBXNode textureNode;
             textureNode.name = "Texture";
             textureNode.properties = { property0 };
-
+            
+            // Texture node child - TextureName node
             FBXNode textureNameNode;
             textureNameNode.name = "TextureName";
             QByteArray propertyString = (!currentMaterial.albedoTexture.filename.isEmpty()) ? "Kd" : "Ka";
             auto prop0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
             textureNameNode.properties = { prop0 };
 
+            // Texture node child - Relative Filename node
             FBXNode relativeFilenameNode;
             relativeFilenameNode.name = "RelativeFilename";
             QByteArray textureFileName = (!currentMaterial.albedoTexture.filename.isEmpty()) ? currentMaterial.albedoTexture.filename : currentMaterial.specularTexture.filename;
+            
+            // Callback to get Texture content and type
             getTextureContentTypeCallback textureContentTypeCallback = [=]() {
                 QPair<QByteArray, image::TextureUsage::Type> result;
                 result.first = NULL;
                 result.second = (!currentMaterial.albedoTexture.filename.isEmpty()) ? image::TextureUsage::Type::ALBEDO_TEXTURE : image::TextureUsage::Type::SPECULAR_TEXTURE;
                 return result;
             };
+            
+            // Compress the texture using ModelBaker::compressTexture() and store compressed file's name in the node
             QByteArray* textureFile = this->compressTexture(textureFileName, _objURL, _bakedOutputDir, _textureThreadGetter, textureContentTypeCallback,_originalOutputDir);
             QVariant textureProperty0;
             textureProperty0 = QVariant::fromValue(QByteArray(textureFile->data(), (int)textureFile->size()));
             relativeFilenameNode.properties = { textureProperty0 };
-
-            FBXNode properties70Node;
-            properties70Node.name = "Properties70";
-
-            QVariant texProperty0;
-            QVariant texProperty1;
-            QVariant texProperty2;
-            QVariant texProperty3;
-            QVariant texProperty4;
-
-            double value;
-
-            // Set UseMaterial
-            FBXNode pUseMaterial;
-            pUseMaterial.name = "P";
-            propertyString = "UseMaterial";
-            texProperty0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "bool";
-            texProperty1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "";
-            texProperty2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "";
-            texProperty3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
             
-            int texVal = 1;
-            texProperty4 = texVal;
-
-            pUseMaterial.properties = { texProperty0, texProperty1, texProperty2, texProperty3, texProperty4 };
-
-            FBXNode pUVSet;
-            pUVSet.name = "P";
-            propertyString = "UVSet";
-            texProperty0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "KString";
-            texProperty1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "";
-            texProperty2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "";
-            texProperty3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "";
-            texProperty4 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-
-            pUVSet.properties = { texProperty0, texProperty1, texProperty2, texProperty3, texProperty4 };
-
-            FBXNode pUseMipMap;
-            pUseMipMap.name = "P";
-            propertyString = "UseMipMap";
-            texProperty0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "bool";
-            texProperty1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "";
-            texProperty2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-            propertyString = "";
-            texProperty3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-
-            texVal = 1;
-            texProperty4 = texVal;
-
-            pUseMipMap.properties = { texProperty0, texProperty1, texProperty2, texProperty3, texProperty4 };
-
-            properties70Node.children = { pUVSet, pUseMaterial, pUseMipMap };
-
-            textureNode.children = { textureNameNode,relativeFilenameNode, properties70Node };
+            textureNode.children = { textureNameNode,relativeFilenameNode };
 
             _objectNode.children.append(textureNode);
         }
@@ -338,7 +287,7 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
     // Generating Connections node
     FBXNode connectionsNode;
     connectionsNode.name = "Connections";
-    // connect Geometry -> Model 
+    // connect Geometry to Model 
     FBXNode cNode1;
     cNode1.name = "C";
     QByteArray propertyString("OO");
@@ -350,7 +299,7 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
     cNode1.properties = { property0, property1, property2 };
     connectionsNode.children = { cNode1};
 
-    // connect materials to model
+    // connect all materials to model
     for (int i = 0;i < geometry->materials.size();i++) {
         FBXNode cNode;
         cNode.name = "C";
@@ -361,14 +310,14 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
         connectionsNode.children.append(cNode);
     }
     
-    // Texture to material
-    for (int i = 0;i < mapTextureMaterial.size();i++) {
+    // Connect textures to materials
+    for (int i = 0;i < _mapTextureMaterial.size();i++) {
         FBXNode cNode2;
         cNode2.name = "C";
         QByteArray propertyString1("OP");
         property0 = QVariant::fromValue(QByteArray(propertyString1.data(), (int)propertyString1.size()));
-        property1 = mapTextureMaterial[i].first;
-        int matID = mapTextureMaterial[i].second;
+        property1 = _mapTextureMaterial[i].first;
+        int matID = _mapTextureMaterial[i].second;
         property2 = _materialIDs[matID];
         propertyString1 = "AmbientFactor";
         QVariant connectionProperty = QVariant::fromValue(QByteArray(propertyString1.data(), (int)propertyString1.size()));
@@ -379,7 +328,7 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
         cNode4.name = "C";
         propertyString1 = "OP";
         property0 = QVariant::fromValue(QByteArray(propertyString1.data(), (int)propertyString1.size()));
-        property1 = mapTextureMaterial[i].first;
+        property1 = _mapTextureMaterial[i].first;
         property2 = _materialIDs[matID];
         propertyString1 = "DiffuseColor";
         connectionProperty = QVariant::fromValue(QByteArray(propertyString1.data(), (int)propertyString1.size()));
@@ -388,24 +337,16 @@ void OBJBaker::createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry) {
     }
     
 
-    // Connect all generated nodes to rootNode
+    // Make all generated nodes children of rootNode
     objRoot->children = { globalSettingsNode, _objectNode, connectionsNode };
 }
 
 void OBJBaker::setProperties(FBXNode* parentNode) {
     if (parentNode->name == "P") {
-        QByteArray propertyString("UnitScaleFactor");
-        QVariant property0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-        propertyString = "double";
-        QVariant property1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-        propertyString = "Number";
-        QVariant property2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-        propertyString = "";
-        QVariant property3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-        double unitScaleFactor = 100;
-        QVariant property4(unitScaleFactor);
+        std::vector<QByteArray> stringProperties{ "UnitScaleFactor", "double", "Number", "" };
+        std::vector<double> numericProperties{ UNIT_SCALE_FACTOR };
 
-        parentNode->properties = { property0, property1, property2, property3, property4 };
+        setPropertiesList(stringProperties, numericProperties, parentNode->properties);
     } else if (parentNode->name == "Geometry") {
         _geometryID = _nodeID;
         QVariant property0(_nodeID++);
@@ -443,91 +384,58 @@ void OBJBaker::setMaterialNodeProperties(FBXNode* materialNode, QString material
     FBXNode properties70Node;
     properties70Node.name = "Properties70";
 
-    QVariant materialProperty0;
-    QVariant materialProperty1;
-    QVariant materialProperty2;
-    QVariant materialProperty3;
-    QVariant materialProperty4;
-    QVariant materialProperty5;
-    QVariant materialProperty6;
-
-    double value;
-
     // Set diffuseColor
     FBXNode pNodeDiffuseColor;
     pNodeDiffuseColor.name = "P";
-    propertyString = "DiffuseColor";
-    materialProperty0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "Color";
-    materialProperty1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "";
-    materialProperty2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "A";
-    materialProperty3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    value = (double)currentMaterial.diffuseColor[0];
-    materialProperty4 = value;
-    value = (double)currentMaterial.diffuseColor[1];
-    materialProperty5 = value;
-    value = (double)currentMaterial.diffuseColor[2];
-    materialProperty6 = value;
 
-    pNodeDiffuseColor.properties = { materialProperty0, materialProperty1, materialProperty2, materialProperty3, materialProperty4, materialProperty5, materialProperty6 };
+    std::vector<QByteArray> stringProperties{ "DiffuseColor", "Color", "", "A" };
+    std::vector<double> numericProperties{ currentMaterial.diffuseColor[0], currentMaterial.diffuseColor[1], currentMaterial.diffuseColor[2] };
+    setPropertiesList(stringProperties, numericProperties, pNodeDiffuseColor.properties);
+
     properties70Node.children.append(pNodeDiffuseColor);
 
     // Set specularColor
     FBXNode pNodeSpecularColor;
     pNodeSpecularColor.name = "P";
-    propertyString = "SpecularColor";
-    materialProperty0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "Color";
-    materialProperty1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "";
-    materialProperty2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "A";
-    materialProperty3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    value = (double)currentMaterial.specularColor[0];
-    materialProperty4 = value;
-    value = (double)currentMaterial.specularColor[1];
-    materialProperty5 = value;
-    value = (double)currentMaterial.specularColor[2];
-    materialProperty6 = value;
 
-    pNodeSpecularColor.properties = { materialProperty0, materialProperty1, materialProperty2, materialProperty3, materialProperty4, materialProperty5, materialProperty6 };
+    stringProperties = { "SpecularColor", "Color", "", "A" };
+    numericProperties = { currentMaterial.specularColor[0], currentMaterial.specularColor[1], currentMaterial.specularColor[2] };
+    setPropertiesList(stringProperties, numericProperties, pNodeSpecularColor.properties);
+
     properties70Node.children.append(pNodeSpecularColor);
 
     // Set Shininess
     FBXNode pNodeShininess;
     pNodeShininess.name = "P";
-    propertyString = "Shininess";
-    materialProperty0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "Number";
-    materialProperty1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "";
-    materialProperty2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "A";
-    materialProperty3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    value = (double)currentMaterial.shininess;
-    materialProperty4 = value;
 
-    pNodeShininess.properties = { materialProperty0, materialProperty1, materialProperty2, materialProperty3, materialProperty4 };
+    stringProperties = { "Shininess", "Number", "", "A" };
+    numericProperties = { currentMaterial.shininess };
+    setPropertiesList(stringProperties, numericProperties, pNodeShininess.properties);
+    
     properties70Node.children.append(pNodeShininess);
 
     // Set Opacity
     FBXNode pNodeOpacity;
     pNodeOpacity.name = "P";
-    propertyString = "Opacity";
-    materialProperty0 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "Number";
-    materialProperty1 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "";
-    materialProperty2 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    propertyString = "A";
-    materialProperty3 = QVariant::fromValue(QByteArray(propertyString.data(), (int)propertyString.size()));
-    value = (double)currentMaterial.opacity;
-    materialProperty4 = value;
 
-    pNodeOpacity.properties = { materialProperty0, materialProperty1, materialProperty2, materialProperty3, materialProperty4 };
+    stringProperties = { "Opacity", "Number", "", "A" };
+    numericProperties = { currentMaterial.opacity };
+    setPropertiesList(stringProperties, numericProperties, pNodeOpacity.properties);
+
     properties70Node.children.append(pNodeOpacity);
 
     materialNode->children.append(properties70Node);
+}
+
+template<typename NumberType>
+void OBJBaker::setPropertiesList(std::vector<QByteArray> stringProperties, std::vector<NumberType> numericProperties, QVariantList& propertiesList) {
+    foreach(auto stringProperty, stringProperties) {
+        auto propertyValue = QVariant::fromValue(QByteArray(stringProperty.data(), (int)stringProperty.size()));
+        propertiesList.append(propertyValue);
+    }
+
+    foreach(auto numberProperty, numericProperties) {
+        QVariant propertyValue(numberProperty);
+        propertiesList.append(propertyValue);
+    }
 }

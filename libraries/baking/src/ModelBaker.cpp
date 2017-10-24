@@ -12,28 +12,10 @@
 #include "ModelBaker.h"
 
 #include <image\Image.h>
-
-#include <QtConcurrent>
-#include <QtCore/QCoreApplication>
-#include <QtCore/QDir>
-#include <QtCore/QEventLoop>
-#include <QtCore/QFileInfo>
-#include <QtCore/QThread>
-
-#include <mutex>
-
-#include <NetworkAccessManager.h>
-#include <SharedUtil.h>
-
 #include <PathUtils.h>
 
 #include <FBXReader.h>
 #include <FBXWriter.h>
-
-#include "ModelBakingLoggingCategory.h"
-#include "TextureBaker.h"
-
-#include "FBXBaker.h"
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -51,20 +33,10 @@ ModelBaker::ModelBaker() {}
 
 void ModelBaker::bake() {}
 
-//void ModelBaker::abort() {
-//    Baker::abort();
-//
-//    // tell our underlying TextureBaker instances to abort
-//    // the FBXBaker will wait until all are aborted before emitting its own abort signal
-//    for (auto& textureBaker : _bakingTextures) {
-//        textureBaker->abort();
-//    }
-//}
-
-FBXNode* ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, getMaterialIDCallback materialIDCallback) {
+bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback) {
     if (mesh.wasCompressed) {
         handleError("Cannot re-bake a file that contains compressed mesh");
-        return nullptr;
+        return false;
     }
 
     Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
@@ -82,7 +54,7 @@ FBXNode* ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, getMaterialI
     }
 
     if (numTriangles == 0) {
-        return nullptr;
+        return false;
     }
 
     draco::TriangleSoupMeshBuilder meshBuilder;
@@ -93,7 +65,7 @@ FBXNode* ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, getMaterialI
     bool hasColors{ mesh.colors.size() > 0 };
     bool hasTexCoords{ mesh.texCoords.size() > 0 };
     bool hasTexCoords1{ mesh.texCoords1.size() > 0 };
-    bool hasPerFaceMaterials;
+    bool hasPerFaceMaterials;// { mesh.parts.size() > 1 };
     if (materialIDCallback) {
         if (mesh.parts.size() > 1 || materialIDCallback(0) != 0) {
             hasPerFaceMaterials = true;
@@ -101,7 +73,6 @@ FBXNode* ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, getMaterialI
     } else {
         hasPerFaceMaterials = true;
     }
-    
     bool needsOriginalIndices{ hasDeformers };
 
     int normalsAttributeID{ -1 };
@@ -153,7 +124,6 @@ FBXNode* ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, getMaterialI
         } else {
             materialID = partIndex;
         }
-        
         auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
             int32_t idx0 = indices[index];
             int32_t idx1 = indices[index + 1];
@@ -210,7 +180,7 @@ FBXNode* ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, getMaterialI
 
     if (!dracoMesh) {
         handleWarning("Failed to finalize the baking of a draco Geometry node");
-        return nullptr;
+        return false;
     }
 
     // we need to modify unique attribute IDs for custom attributes
@@ -237,12 +207,13 @@ FBXNode* ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, getMaterialI
     draco::EncoderBuffer buffer;
     encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
 
-    static FBXNode dracoMeshNode;
-    dracoMeshNode.name = "DracoMesh";
+    FBXNode dracoNode;
+    dracoNode.name = "DracoMesh";
     auto value = QVariant::fromValue(QByteArray(buffer.data(), (int)buffer.size()));
-    dracoMeshNode.properties.append(value);
-
-    return &dracoMeshNode;
+    dracoNode.properties.append(value);
+    
+    dracoMeshNode = dracoNode;
+    return true;
 }
 
 QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl modelURL, QString bakedOutputDir, TextureBakerThreadGetter textureThreadGetter, 
@@ -254,12 +225,16 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
     static QByteArray textureChild;
     
     QPair<QByteArray, image::TextureUsage::Type> textureContentType;
+    QByteArray textureContent;
+    image::TextureUsage::Type textureType;
     // grab the ID for this texture so we can figure out the
     // texture type from the loaded materials
-    textureContentType = textureContentTypeCallback();
+    if (textureContentTypeCallback) {
+        textureContentType = textureContentTypeCallback();
+        textureContent = textureContentType.first;
+        textureType = textureContentType.second;
+    }
     
-    QByteArray textureContent = textureContentType.first;
-    image::TextureUsage::Type textureType = textureContentType.second;
 
     QFileInfo modelTextureFileInfo{ modelTextureFileName.replace("\\", "/") };
     
@@ -281,9 +256,8 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
         // check if this was an embedded texture that we already have in-memory content for
         
         // figure out the URL to this texture, embedded or external
-        //qCDebug(model_baking) << "TextureContent" << !textureContent.isNull();
-        auto urlToTexture = getTextureURL(modelTextureFileInfo, modelTextureFileName, 
-                                          true);
+        qCDebug(model_baking) << "TextureContent" << !textureContent.isNull();
+        auto urlToTexture = getTextureURL(modelTextureFileInfo, modelTextureFileName, !textureContent.isNull());
 
         QString bakedTextureFileName;
         if (_remappedTexturePaths.contains(urlToTexture)) {
@@ -310,7 +284,6 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
             _outputFiles.push_back(bakedTextureFilePath);
 
             // bake this texture asynchronously
-            qCDebug(model_baking) << "URLHere" << urlToTexture;
             bakeTexture(urlToTexture, textureType, bakedOutputDir, bakedTextureFileName, textureContent);
         }
     }

@@ -40,9 +40,7 @@ public:
     QUrl getFBXUrl() const { return _fbxURL; }
     QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
 
-    virtual void setWasAborted(bool wasAborted) override;
-
-    public slots:
+public slots:
     virtual void bake() override;
     virtual void abort() override;
 
@@ -52,8 +50,6 @@ signals:
     private slots:
     void bakeSourceCopy();
     void handleFBXNetworkReply();
-    void handleBakedTexture();
-    void handleAbortedTexture();
 
 private:
     void setupOutputFolder();
@@ -67,12 +63,6 @@ private:
     void removeEmbeddedMediaFolder();
 
     void checkIfTexturesFinished();
-
-    QString createBakedTextureFileName(const QFileInfo& textureFileInfo);
-    QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
-
-    void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir,
-                     const QString& bakedFilename, const QByteArray& textureContent = QByteArray());
 
     QUrl _fbxURL;
 
