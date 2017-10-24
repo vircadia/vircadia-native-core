@@ -65,14 +65,7 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
     bool hasColors{ mesh.colors.size() > 0 };
     bool hasTexCoords{ mesh.texCoords.size() > 0 };
     bool hasTexCoords1{ mesh.texCoords1.size() > 0 };
-    bool hasPerFaceMaterials;// { mesh.parts.size() > 1 };
-    if (materialIDCallback) {
-        if (mesh.parts.size() > 1 || materialIDCallback(0) != 0) {
-            hasPerFaceMaterials = true;
-        }
-    } else {
-        hasPerFaceMaterials = true;
-    }
+    bool hasPerFaceMaterials = (materialIDCallback) ? (mesh.parts.size() > 1 || materialIDCallback(0) != 0 ) : true;
     bool needsOriginalIndices{ hasDeformers };
 
     int normalsAttributeID{ -1 };
@@ -113,17 +106,13 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
             1, draco::DT_UINT16);
     }
 
-
     auto partIndex = 0;
     draco::FaceIndex face;
     uint16_t materialID;
     
     for (auto& part : mesh.parts) {
-        if (materialIDCallback) {
-            materialID = materialIDCallback(partIndex);
-        } else {
-            materialID = partIndex;
-        }
+        materialID = (materialIDCallback) ? materialIDCallback(partIndex) : partIndex;
+        
         auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
             int32_t idx0 = indices[index];
             int32_t idx1 = indices[index + 1];
@@ -213,6 +202,7 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
     dracoNode.properties.append(value);
     
     dracoMeshNode = dracoNode;
+    // Mesh compression successful return true
     return true;
 }
 
@@ -227,14 +217,12 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
     QPair<QByteArray, image::TextureUsage::Type> textureContentType;
     QByteArray textureContent;
     image::TextureUsage::Type textureType;
-    // grab the ID for this texture so we can figure out the
-    // texture type from the loaded materials
+    
     if (textureContentTypeCallback) {
         textureContentType = textureContentTypeCallback();
         textureContent = textureContentType.first;
         textureType = textureContentType.second;
     }
-    
 
     QFileInfo modelTextureFileInfo{ modelTextureFileName.replace("\\", "/") };
     
@@ -277,7 +265,6 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
             bakedOutputDir + "/" + bakedTextureFileName
         };
 
-        // write the new filename into the FBX scene
         textureChild = bakedTextureFileName.toLocal8Bit();
 
         if (!_bakingTextures.contains(urlToTexture)) {
@@ -307,14 +294,14 @@ QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativ
             // external texture that we'll need to download or find
 
             // this is a relative file path which will require different handling
-            // depending on the location of the original FBX
+            // depending on the location of the original model
             if (_modelURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
-                // the absolute path we ran into for the texture in the FBX exists on this machine
+                // the absolute path we ran into for the texture in the model exists on this machine
                 // so use that file
                 urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
             } else {
                 // we didn't find the texture on this machine at the absolute path
-                // so assume that it is right beside the FBX to match the behaviour of interface
+                // so assume that it is right beside the model to match the behaviour of interface
                 urlToTexture = _modelURL.resolved(apparentRelativePath.fileName());
             }
         }
@@ -356,11 +343,11 @@ void ModelBaker::handleBakedTexture() {
 
                     // use the path to the texture being baked to determine if this was an embedded or a linked texture
 
-                    // it is embeddded if the texure being baked was inside a folder with the name of the FBX
+                    // it is embeddded if the texure being baked was inside a folder with the name of the model
                     // since that is the fake URL we provide when baking external textures
 
                     if (!_modelURL.isParentOf(bakedTexture->getTextureURL())) {
-                        // for linked textures we want to save a copy of original texture beside the original FBX
+                        // for linked textures we want to save a copy of original texture beside the original model
 
                         qCDebug(model_baking) << "Saving original texture for" << bakedTexture->getTextureURL();
 
@@ -419,21 +406,21 @@ void ModelBaker::handleBakedTexture() {
     }
 }
 
-QString ModelBaker::texturePathRelativeToModel(QUrl fbxURL, QUrl textureURL) {
-    auto fbxPath = fbxURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
+QString ModelBaker::texturePathRelativeToModel(QUrl modelURL, QUrl textureURL) {
+    auto modelPath = modelURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
     auto texturePath = textureURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
 
-    if (texturePath.startsWith(fbxPath)) {
-        // texture path is a child of the FBX path, return the texture path without the fbx path
-        return texturePath.mid(fbxPath.length());
+    if (texturePath.startsWith(modelPath)) {
+        // texture path is a child of the model path, return the texture path without the model path
+        return texturePath.mid(modelPath.length());
     } else {
-        // the texture path was not a child of the FBX path, return the empty string
+        // the texture path was not a child of the model path, return the empty string
         return "";
     }
 }
 
 void ModelBaker::checkIfTexturesFinished() {
-    // check if we're done everything we need to do for this FBX
+    // check if we're done everything we need to do for this model
     // and emit our finished signal if we're done
 
     if (_bakingTextures.isEmpty()) {

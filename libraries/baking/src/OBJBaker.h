@@ -22,17 +22,16 @@ using TextureBakerThreadGetter = std::function<QThread*()>;
 
 class OBJBaker : public ModelBaker {
     Q_OBJECT
-
 public:
     OBJBaker(const QUrl& objURL, TextureBakerThreadGetter textureThreadGetter,
              const QString& bakedOutputDir, const QString& originalOutputDir = "");
     ~OBJBaker() override;
     void loadOBJ();
-    void createFBXNodeTree(FBXNode* objRoot, FBXGeometry* geometry);
-    void setProperties(FBXNode * parentNode);
-    void setMaterialNodeProperties(FBXNode* materialNode, QString material, FBXGeometry* geometry);
-    template<typename NumberType>
-    void setPropertiesList(std::vector<QByteArray> stringProperties, std::vector<NumberType> numericProperties, QVariantList& propertiesList);
+    void createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry);
+    void setNodeProperties(FBXNode& parentNode);
+    void setMaterialNodeProperties(FBXNode& materialNode, QString material, FBXGeometry& geometry);
+    template<typename N>
+    void setPropertiesList(std::vector<QByteArray>& stringProperties, std::vector<N>& numericProperties, QVariantList& propertiesList);
 
 public slots:
     virtual void bake() override;
@@ -41,7 +40,7 @@ signals:
     void OBJLoaded();
 
 private slots:
-    void startBake();
+    void bakeOBJ();
     void handleOBJNetworkReply();
 
 private:

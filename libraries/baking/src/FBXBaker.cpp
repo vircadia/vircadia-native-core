@@ -272,12 +272,15 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                     FBXNode dracoMeshNode;
                     bool success = this->compressMesh(extractedMesh.mesh, hasDeformers, dracoMeshNode, materialIDcallback);
                     
-                    // if bake fails continue iterating through Object node's children
+                    // if bake fails - return, if there were errors and continue, if there were warnings.
                     if (!success) {
-                        continue;
+                        if (hasErrors()) {
+                            return;
+                        } else if (hasWarnings()) {
+                            continue;
+                        }
                     }
-
-                    //objectChild.children.push_back(*dracoMeshNode);
+                    
                     objectChild.children.push_back(dracoMeshNode);
 
                     static const std::vector<QString> nodeNamesToDelete{
@@ -378,6 +381,7 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             if (bakedTextureFile) {
                                 textureChild.properties[0] = *bakedTextureFile;
                             } else {
+                                // if bake fails - return, if there were errors and continue, if there were warnings.
                                 if (hasErrors()) {
                                     return;
                                 } else if (hasWarnings()) {

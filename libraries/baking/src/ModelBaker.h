@@ -52,7 +52,7 @@ private:
     QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
     void bakeTexture(const QUrl & textureURL, image::TextureUsage::Type textureType, const QDir & outputDir, 
                      const QString & bakedFilename, const QByteArray & textureContent);
-    QString texturePathRelativeToModel(QUrl fbxURL, QUrl textureURL);
+    QString texturePathRelativeToModel(QUrl modelURL, QUrl textureURL);
     void checkIfTexturesFinished();
     
     QHash<QString, int> _textureNameMatchCount;
