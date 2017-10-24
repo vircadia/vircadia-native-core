@@ -2510,6 +2510,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         if (remoteCallerID == QUuid()) {
             callAllowed = true;
         } else {
+            qDebug() << __FUNCTION__ << "checking remotelyCallable method: " << methodName << " on entityID:" << entityID;
+
             if (entityScript.property("remotelyCallable").isArray()) {
                 auto callables = entityScript.property("remotelyCallable");
                 auto callableCount = callables.property("length").toInteger();
@@ -2536,6 +2538,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
             callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
             this->globalObject().property("Script").setProperty("remoteCallerID", oldData);
         }
+    } else {
+        qDebug() << "Entity script not running for EntityID: " << entityID << " - Method [" << methodName << "] not callable.";
     }
 }
 

@@ -92,6 +92,31 @@ void EntityScriptClient::callEntityServerMethod(QUuid entityID, const QString& m
     }
 }
 
+void EntityScriptServerStub::callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params) {
+    qDebug() << __FUNCTION__;
+
+
+    // only valid to call this function if you are the entity script server
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer targetClient = nodeList->nodeWithUUID(clientSessionID);
+
+    if (nodeList->getOwnerType() == NodeType::EntityScriptServer && targetClient) {
+        auto packetList = NLPacketList::create(PacketType::EntityScriptCallMethod, QByteArray(), true, true);
+
+        packetList->write(entityID.toRfc4122());
+
+        packetList->writeString(method);
+
+        quint16 paramCount = params.length();
+        packetList->writePrimitive(paramCount);
+
+        foreach(const QString& param, params) {
+            packetList->writeString(param);
+        }
+
+        nodeList->sendPacketList(std::move(packetList), *targetClient);
+    }
+}
 
 MessageID EntityScriptClient::getEntityServerScriptStatus(QUuid entityID, GetScriptStatusCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
