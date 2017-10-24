@@ -74,4 +74,11 @@ private:
     void forceFailureOfPendingRequests(SharedNodePointer node);
 };
 
+
+class EntityScriptServerServices : public QObject, public Dependency {
+    Q_OBJECT
+public:
+    void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params);
+};
+
 #endif

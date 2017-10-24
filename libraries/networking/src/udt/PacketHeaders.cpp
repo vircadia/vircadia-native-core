@@ -62,6 +62,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
 
+        case PacketType::EntityScriptCallMethod:
+            return static_cast<PacketVersion>(EntityScriptCallMethodVersion::ClientCallable);
+
         case PacketType::MixedAudio:
         case PacketType::SilentAudioFrame:
         case PacketType::InjectAudio:

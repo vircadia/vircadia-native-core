@@ -274,6 +274,12 @@ const PacketVersion VERSION_ENTITIES_UV_MODE_PROPERTY = 76;
 const PacketVersion VERSION_ENTITIES_STROKE_COLOR_PROPERTY = 77;
 
 
+
+enum class EntityScriptCallMethodVersion : PacketVersion {
+    ServerCallable = 18,
+    ClientCallable = 19
+};
+
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
     JSONFilterWithFamilyTree = 19

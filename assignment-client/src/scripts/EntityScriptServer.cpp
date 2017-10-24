@@ -30,6 +30,8 @@
 #include <UUID.h>
 #include <WebSocketServerClass.h>
 
+#include <EntityScriptClient.h> // for EntityScriptServerServices
+
 #include "EntityScriptServerLogging.h"
 #include "../entities/AssignmentParentFinder.h"
 
@@ -67,6 +69,9 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
+
+    DependencyManager::set<EntityScriptServerServices>();
+
 
     // Needed to ensure the creation of the DebugDraw instance on the main thread
     DebugDraw::getInstance();
@@ -583,6 +588,7 @@ void EntityScriptServer::aboutToFinish() {
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<ScriptEngines>();
+    DependencyManager::destroy<EntityScriptServerServices>();
 
     // cleanup codec & encoder
     if (_codec && _encoder) {
