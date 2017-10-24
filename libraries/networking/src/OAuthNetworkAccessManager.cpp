@@ -15,7 +15,6 @@
 
 #include "AccountManager.h"
 #include "LimitedNodeList.h"
-#include "NetworkingConstants.h"
 #include "SharedUtil.h"
 
 #include "OAuthNetworkAccessManager.h"
@@ -35,7 +34,7 @@ QNetworkReply* OAuthNetworkAccessManager::createRequest(QNetworkAccessManager::O
     auto accountManager = DependencyManager::get<AccountManager>();
     
     if (accountManager->hasValidAccessToken()
-        && req.url().host() == NetworkingConstants::METAVERSE_SERVER_URL.host()) {
+        && req.url().host() == accountManager->getMetaverseServerURL().host()) {
         QNetworkRequest authenticatedRequest(req);
         authenticatedRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         authenticatedRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);

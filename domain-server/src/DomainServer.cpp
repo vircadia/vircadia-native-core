@@ -31,7 +31,6 @@
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <LogUtils.h>
-#include <NetworkingConstants.h>
 #include <udt/PacketHeaders.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
@@ -340,12 +339,12 @@ bool DomainServer::optionallySetupOAuth() {
     const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
     _oauthProviderURL = QUrl(settingsMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
 
+    auto accountManager = DependencyManager::get<AccountManager>();
     // if we don't have an oauth provider URL then we default to the default node auth url
     if (_oauthProviderURL.isEmpty()) {
-        _oauthProviderURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        _oauthProviderURL = accountManager->getMetaverseServerURL();
     }
 
-    auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setAuthURL(_oauthProviderURL);
 
     _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();

@@ -16,7 +16,6 @@
 #include "Wallet.h"
 #include "Ledger.h"
 #include "CommerceLogging.h"
-#include <NetworkingConstants.h>
 
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}
@@ -121,7 +120,6 @@ QString nameFromKey(const QString& key, const QStringList& publicKeys) {
     return "Someone";
 }
 
-static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
 void Ledger::historySuccess(QNetworkReply& reply) {
     // here we send a historyResult with some extra stuff in it
     // Namely, the styled text we'd like to show.  The issue is the
@@ -154,7 +152,7 @@ void Ledger::historySuccess(QNetworkReply& reply) {
             }
         } else {
             coloredQuantityAndAssetTitle = QString("\"<font color='#0093C5'><a href='") +
-                MARKETPLACE_ITEMS_BASE_URL +
+                DependencyManager::get<AccountManager>()->getMetaverseServerURL().toString() + "/marketplace/items/" +
                 valueObject["asset_id"].toString() +
                 QString("'>") +
                 coloredQuantityAndAssetTitle +

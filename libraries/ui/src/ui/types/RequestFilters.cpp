@@ -10,7 +10,6 @@
 //
 
 #include "RequestFilters.h"
-#include "NetworkingConstants.h"
 
 #include <QtCore/QDebug>
 #include <SettingHandle.h>
@@ -26,9 +25,10 @@ namespace {
         };
         const auto& scheme = url.scheme();
         const auto& host = url.host();
+        auto metaverseServerURL = DependencyManager::get<AccountManager>()->getMetaverseServerURL();
 
         return (scheme == "https" && HF_HOSTS.contains(host)) ||
-            ((scheme == NetworkingConstants::METAVERSE_SERVER_URL.scheme()) && (host == NetworkingConstants::METAVERSE_SERVER_URL.host()));
+            ((scheme == metaverseServerURL.scheme()) && (host == metaverseServerURL.host()));
     }
 
      bool isScript(const QString filename) {

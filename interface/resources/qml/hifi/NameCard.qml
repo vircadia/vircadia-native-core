@@ -17,7 +17,7 @@ import "../styles-uit"
 import "../controls-uit" as HifiControls
 import "toolbars"
 
-// references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager from root context
+// references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager, Account from root context
 
 Item {
     id: thisNameCard
@@ -30,7 +30,7 @@ Item {
 
     // Properties
     property string profileUrl: "";
-    property string defaultBaseUrl: AddressManager.metaverseServerUrl;
+    property string defaultBaseUrl: Account.metaverseServerURL;
     property string connectionStatus : ""
     property string uuid: ""
     property string displayName: ""

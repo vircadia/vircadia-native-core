@@ -87,7 +87,7 @@ Window {
         onReceivedHifiSchemeURL: resetAfterTeleport();
 
         // Update location after using back and forward buttons.
-        onMetaverseServerUrlChanged: updateLocationTextTimer.start();
+        onHostChanged: updateLocationTextTimer.start();
 
         ListModel { id: suggestions }
 

@@ -17,7 +17,6 @@
 #include <ThreadHelpers.h>
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
-#include <NetworkingConstants.h>
 #include <NetworkLogging.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
@@ -27,13 +26,13 @@
 QNetworkRequest createNetworkRequest() {
 
     QNetworkRequest request;
+    auto accountManager = DependencyManager::get<AccountManager>();
 
-    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    QUrl requestURL = accountManager->getMetaverseServerURL();
     requestURL.setPath(USER_ACTIVITY_URL);
 
     request.setUrl(requestURL);
 
-    auto accountManager = DependencyManager::get<AccountManager>();
 
     if (accountManager->hasValidAccessToken()) {
         request.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
