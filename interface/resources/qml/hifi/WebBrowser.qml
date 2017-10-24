@@ -253,115 +253,178 @@ Rectangle {
             height: 2
         }
 
-        HifiControls.BaseWebView {
-            id: webEngineView
+        Component {
+            id: webDialogComponent
+            Rectangle {
+                property alias webDialogView: webDialogView
+                color: "white"
+                HifiControls.BaseWebView {
+                    id: webDialogView
+                    anchors.fill: parent
+
+                    settings.autoLoadImages: true
+                    settings.javascriptEnabled: true
+                    settings.errorPageEnabled: true
+                    settings.pluginsEnabled: true
+                    settings.fullScreenSupportEnabled: true
+                    settings.autoLoadIconsForPage: true
+                    settings.touchIconsEnabled: true
+
+                    onWindowCloseRequested: {
+                        webDialog.active = false
+                        webDialog.request = null
+                    }
+                }
+            }
+        }
+
+        Item {
             width: parent.width;
             property real webViewHeight: root.height - loadProgressBar.height - 48 - 4
             height: keyboardEnabled && keyboardRaised ? webViewHeight - keyboard.height : webViewHeight
 
-            focus: true
-            objectName: "tabletWebEngineView"
+            HifiControls.BaseWebView {
+                id: webEngineView
+                anchors.fill: parent
 
-            url: "http://www.highfidelity.com"
+                focus: true
+                objectName: "tabletWebEngineView"
 
-            //profile: HFWebEngineProfile;
+                url: "https://www.highfidelity.com"
 
-            property string userScriptUrl: ""
+                //profile: HFWebEngineProfile;
 
-            onLoadingChanged: {
-                if (!loading) {
-                    suggestionRequestTimer.stop()
-                    addressBar.popup.close()
+                property string userScriptUrl: ""
+
+                onLoadingChanged: {
+                    if (!loading) {
+                        suggestionRequestTimer.stop()
+                        addressBar.popup.close()
+                    }
+                }
+
+                onLinkHovered: {
+                    //TODO: change cursor shape?
+                    console.error("hoveredUrl:", hoveredUrl)
+                }
+
+                // creates a global EventBridge object.
+                WebEngineScript {
+                    id: createGlobalEventBridge
+                    sourceCode: eventBridgeJavaScriptToInject
+                    injectionPoint: WebEngineScript.DocumentCreation
+                    worldId: WebEngineScript.MainWorld
+                }
+
+                // detects when to raise and lower virtual keyboard
+                WebEngineScript {
+                    id: raiseAndLowerKeyboard
+                    injectionPoint: WebEngineScript.Deferred
+                    sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+                    worldId: WebEngineScript.MainWorld
+                }
+
+                // User script.
+                WebEngineScript {
+                    id: userScript
+                    sourceUrl: webEngineView.userScriptUrl
+                    injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
+                    worldId: WebEngineScript.MainWorld
+                }
+
+                userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
+
+                settings.autoLoadImages: true
+                settings.javascriptEnabled: true
+                settings.errorPageEnabled: true
+                settings.pluginsEnabled: true
+                settings.fullScreenSupportEnabled: true
+                settings.autoLoadIconsForPage: true
+                settings.touchIconsEnabled: true
+
+                onCertificateError: {
+                    error.defer();
+                }
+
+                Component.onCompleted: {
+                    webChannel.registerObject("eventBridge", eventBridge);
+                    webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
+                    //webEngineView.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
+                }
+
+                onFeaturePermissionRequested: {
+                    grantFeaturePermission(securityOrigin, feature, true);
+                }
+
+                onNewViewRequested: {
+                    console.error("new view requested:", request.destination)
+                    if (request.destination == WebEngineView.NewViewInDialog) {
+                        webDialog.request = request
+                        webDialog.active = true
+                    } else {
+                        request.openIn(webEngineView);
+                    }
+                }
+
+                onRenderProcessTerminated: {
+                    var status = "";
+                    switch (terminationStatus) {
+                    case WebEngineView.NormalTerminationStatus:
+                        status = "(normal exit)";
+                        break;
+                    case WebEngineView.AbnormalTerminationStatus:
+                        status = "(abnormal exit)";
+                        break;
+                    case WebEngineView.CrashedTerminationStatus:
+                        status = "(crashed)";
+                        break;
+                    case WebEngineView.KilledTerminationStatus:
+                        status = "(killed)";
+                        break;
+                    }
+
+                    console.error("Render process exited with code " + exitCode + " " + status);
+                    reloadTimer.running = true;
+                }
+
+                onFullScreenRequested: {
+                    console.error("FS requested:", request.destination)
+                    if (request.toggleOn) {
+                        webEngineView.state = "FullScreen";
+                    } else {
+                        webEngineView.state = "";
+                    }
+                    request.accept();
+                }
+
+                onWindowCloseRequested: {
+                    console.error("window close requested:", request.destination)
+                }
+
+                Timer {
+                    id: reloadTimer
+                    interval: 0
+                    running: false
+                    repeat: false
+                    onTriggered: webEngineView.reload()
                 }
             }
 
-            onLinkHovered: {
-                //TODO: change cursor shape?
-                console.error("hoveredUrl:", hoveredUrl)
-            }
+            Loader {
+                id: webDialog
+                property WebEngineNewViewRequest request: null
+                anchors.fill: parent
+                anchors.margins: 10
 
-            // creates a global EventBridge object.
-            WebEngineScript {
-                id: createGlobalEventBridge
-                sourceCode: eventBridgeJavaScriptToInject
-                injectionPoint: WebEngineScript.DocumentCreation
-                worldId: WebEngineScript.MainWorld
-            }
-
-            // detects when to raise and lower virtual keyboard
-            WebEngineScript {
-                id: raiseAndLowerKeyboard
-                injectionPoint: WebEngineScript.Deferred
-                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-                worldId: WebEngineScript.MainWorld
-            }
-
-            // User script.
-            WebEngineScript {
-                id: userScript
-                sourceUrl: webEngineView.userScriptUrl
-                injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-                worldId: WebEngineScript.MainWorld
-            }
-
-            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
-
-            settings.autoLoadImages: true
-            settings.javascriptEnabled: true
-            settings.errorPageEnabled: true
-            settings.pluginsEnabled: true
-            settings.fullScreenSupportEnabled: true
-            settings.autoLoadIconsForPage: true
-            settings.touchIconsEnabled: true
-
-            onCertificateError: {
-                error.defer();
-            }
-
-            Component.onCompleted: {
-                webChannel.registerObject("eventBridge", eventBridge);
-                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-                //webEngineView.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
-            }
-
-            onFeaturePermissionRequested: {
-                grantFeaturePermission(securityOrigin, feature, true);
-            }
-
-            onNewViewRequested: {
-                request.openIn(webEngineView);
-            }
-
-            onRenderProcessTerminated: {
-                var status = "";
-                switch (terminationStatus) {
-                case WebEngineView.NormalTerminationStatus:
-                    status = "(normal exit)";
-                    break;
-                case WebEngineView.AbnormalTerminationStatus:
-                    status = "(abnormal exit)";
-                    break;
-                case WebEngineView.CrashedTerminationStatus:
-                    status = "(crashed)";
-                    break;
-                case WebEngineView.KilledTerminationStatus:
-                    status = "(killed)";
-                    break;
+                active: false
+                sourceComponent: webDialogComponent
+                onStatusChanged: {
+                    if (Loader.Ready === status) {
+                        focus = true
+                        item.webDialogView.profile = webEngineView.profile
+                        request.openIn(item.webDialogView)
+                    }
                 }
-
-                print("Render process exited with code " + exitCode + " " + status);
-                reloadTimer.running = true;
-            }
-
-            onWindowCloseRequested: {
-            }
-
-            Timer {
-                id: reloadTimer
-                interval: 0
-                running: false
-                repeat: false
-                onTriggered: webEngineView.reload()
             }
         }
     }
