@@ -62,6 +62,7 @@ private:
     uint16_t _lastDPI;
     QTimer _timer;
     uint64_t _lastRenderTime { 0 };
+    Transform _renderTransform;
 };
 
 } } // namespace 
