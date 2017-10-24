@@ -36,7 +36,6 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <AddressManager.h>
-#include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -224,7 +223,7 @@ void Web3DOverlay::setupQmlSurface() {
 
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
         _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());

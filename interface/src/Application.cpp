@@ -153,7 +153,6 @@
 #include "scripting/Audio.h"
 #include "networking/CloseEventSender.h"
 #include "scripting/TestScriptingInterface.h"
-#include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
@@ -2325,7 +2324,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
-    surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Account", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     // Tablet inteference with Tablet.qml. Need to avoid this in QML space
     surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
@@ -5853,7 +5852,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCache>().data());
     scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
 
-    scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("Account", GlobalServicesScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
