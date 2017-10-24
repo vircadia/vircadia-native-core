@@ -3,6 +3,7 @@
 //  interface/src/ui/overlays
 //
 //  Created by Zander Otavka on 8/7/15.
+//  Modified by Daniela Fontes on 24/10/17.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -33,7 +34,7 @@ bool Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offse
     if (isFacingAvatar()) {
         glm::vec3 billboardPos = transform.getTranslation();
         glm::vec3 cameraPos = qApp->getCamera().getPosition();
-        
+        // use the referencial from the avatar, y isn't always up
         glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation()*Vectors::UP;
         
         glm::quat rotation(conjugate(toQuat(glm::lookAt(billboardPos, cameraPos, avatarUP))));
