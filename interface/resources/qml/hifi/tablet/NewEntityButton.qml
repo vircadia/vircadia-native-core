@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
+import TabletScriptingInterface 1.0
 
 Item {
     id: newEntityButton
@@ -122,9 +123,11 @@ Item {
         hoverEnabled: true
         enabled: true
         onClicked: {
+            tabletInterface.playSound(TabletEnums.ButtonClick);
             newEntityButton.clicked();
         }
         onEntered: {
+            tabletInterface.playSound(TabletEnums.ButtonHover);
             newEntityButton.state = "hover state";
         }
         onExited: {

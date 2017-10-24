@@ -5090,6 +5090,7 @@ void Application::update(float deltaTime) {
         }
 
         this->updateCamera(appRenderArgs._renderArgs);
+        appRenderArgs._eyeToWorld = _myCamera.getTransform();
         appRenderArgs._isStereo = false;
 
         {

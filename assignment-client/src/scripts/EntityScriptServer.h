@@ -54,6 +54,9 @@ private slots:
 
     void pushLogs();
 
+    void handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
+
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
