@@ -19,13 +19,13 @@
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
+        auto metaverseServerURL = DependencyManager::get<AccountManager>()->getMetaverseServerURL();
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
-            "metaverse.highfidelity.com", "metaverse.highfidelity.io"
+            metaverseServerURL.toString(), "metaverse.highfidelity.io"
         };
         const auto& scheme = url.scheme();
         const auto& host = url.host();
-        auto metaverseServerURL = DependencyManager::get<AccountManager>()->getMetaverseServerURL();
 
         return (scheme == "https" && HF_HOSTS.contains(host)) ||
             ((scheme == metaverseServerURL.scheme()) && (host == metaverseServerURL.host()));
