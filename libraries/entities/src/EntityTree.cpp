@@ -1244,7 +1244,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
     QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
     requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/transfer");
     QJsonObject request;
-    request["certificate_id"] = certID + "\n";
+    request["certificate_id"] = certID;
     networkRequest.setUrl(requestURL);
 
     QNetworkReply* networkReply = NULL;
