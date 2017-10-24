@@ -7317,7 +7317,7 @@ void Application::switchDisplayMode() {
     _previousHMDWornStatus = currentHMDWornStatus;
 }
 
-void Application::cleanupRunningScripts(const QString &fileNameString, ScriptEnginePointer) {
+void Application::cleanupRunningScripts(const QString& fileNameString, ScriptEnginePointer) {
     _runningScripts.remove(QUrl(fileNameString).fileName());
 }
 
