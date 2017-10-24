@@ -102,12 +102,6 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
 EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
             ReadBitstreamToTreeParams& args) {
 
-    if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_SPLIT_MTU) {
-        EntityItemID tempEntityID;
-        EntityItemProperties tempProperties;
-        return constructEntityItem(Model, tempEntityID, tempProperties);
-    }
-
     // Header bytes
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
