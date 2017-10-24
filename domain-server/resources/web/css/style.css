@@ -279,3 +279,14 @@ table .headers + .headers td {
     from { -moz-transform: rotate(0deg);}
     to { -moz-transform: rotate(360deg);}
 }
+
+.warning-text {
+  padding-top: 10px;
+  color: #EB5757;
+}
+
+.account-connected-header {
+    color: #6FCF97;
+    font-size: 30px;
+    margin-right: 20px;
+}

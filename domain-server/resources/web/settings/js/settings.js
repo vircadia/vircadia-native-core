@@ -44,6 +44,45 @@ var Settings = {
   DATA_ROW_INDEX: 'data-row-index'
 };
 
+var Strings = {
+  LOADING_SETTINGS_ERROR: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
+
+  CHOOSE_DOMAIN_BUTTON: "Choose from my domains",
+  CREATE_DOMAIN_BUTTON: "Create new domain ID",
+  CREATE_DOMAIN_SUCCESS_JUST_CONNECTED: "We connnected your High Fidelity account and created a new domain ID for this machine.",
+  CREATE_DOMAIN_SUCCESS: "We created a new domain ID for this machine.",
+
+  // When a place modification fails, they will be brought back to the previous
+  // dialog with new path still set, allowing them to retry immediately, and without
+  // having to type the new path in again.
+  EDIT_PLACE_TITLE: "Modify Viewpoint or Path",
+  EDIT_PLACE_ERROR: "Failed to update place path. Please try again.",
+  EDIT_PLACE_CONFIRM_BUTTON: "Save",
+  EDIT_PLACE_CONFIRM_BUTTON_PENDING: "Saving...",
+  EDIT_PLACE_CANCEL_BUTTON: "Cancel",
+
+  REMOVE_PLACE_TITLE: "Are you sure you want to remove <strong>{{place}}</strong>?",
+  REMOVE_PLACE_ERROR: "Failed to remove place. Please try again.",
+  REMOVE_PLACE_DELETE_BUTTON: "Delete",
+  REMOVE_PLACE_DELETE_BUTTON_PENDING: "Deleting...",
+  REMOVE_PLACE_CANCEL_BUTTON: "Cancel",
+
+  ADD_PLACE_TITLE: "Choose a place",
+  ADD_PLACE_MESSAGE: "Choose the High Fidelity place to point at this domain server.",
+  ADD_PLACE_CONFIRM_BUTTON: "Choose place",
+  ADD_PLACE_CONFIRM_BUTTON_PENDING: "Saving...",
+  ADD_PLACE_CANCEL_BUTTON: "Cancel",
+  ADD_PLACE_UNKNOWN_ERROR: "There was an error adding this place name.",
+
+  ADD_PLACE_NO_PLACES_MESSAGE: "<p>You do not have any places in your High Fidelity account."
+      + "<br/><br/>Go to your <a href='https://metaverse.highfidelity.com/user/places/new'>places page</a> to create a new one. Once your place is created re-open this dialog to select it.</p>",
+  ADD_PLACE_NO_PLACES_BUTTON: "Create new place",
+  ADD_PLACE_UNABLE_TO_LOAD_ERROR: "We were unable to load your place names. Please try again later.",
+  ADD_PLACE_LOADING_DIALOG: "Loading your places...",
+};
+
+var DomainInfo = null;
+
 var viewHelpers = {
   getFormGroup: function(keypath, setting, values, isAdvanced) {
     form_group = "<div class='form-group " +
@@ -95,11 +134,10 @@ var viewHelpers = {
       } else {
         if (input_type === 'select') {
           form_group += "<select class='form-control' data-hidden-input='" + keypath + "'>'"
-
           _.each(setting.options, function(option) {
             form_group += "<option value='" + option.value + "'" +
             (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
-          })
+          });
 
           form_group += "</select>"
 
@@ -142,11 +180,12 @@ var qs = (function(a) {
     var b = {};
     for (var i = 0; i < a.length; ++i)
     {
-        var p=a[i].split('=', 2);
-        if (p.length == 1)
-            b[p[0]] = "";
-        else
-            b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+      var p=a[i].split('=', 2);
+      if (p.length == 1) {
+        b[p[0]] = "";
+      } else {
+        b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+      }
     }
     return b;
 })(window.location.search.substr(1).split('&'));
@@ -159,6 +198,10 @@ $(document).ready(function(){
   *
   * Author: LV
   */
+
+  $.ajaxSetup({
+      timeout: 20000,
+  });
 
   $('[data-clampedwidth]').each(function () {
     var elem = $(this);
@@ -346,7 +389,7 @@ $(document).ready(function(){
       swal({
         title: '',
         type: 'error',
-        text: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
+        text: Strings.LOADING_SETTINGS_ERROR
       });
     }
   });
@@ -440,26 +483,27 @@ function postSettings(jsonSettings) {
   });
 }
 
+function accessTokenIsSet() {
+  return Settings.data.values.metaverse.access_token.length > 0;
+}
+
 function setupHFAccountButton() {
-  // figure out how we should handle the HF connect button
-  var accessToken = Settings.data.values.metaverse.access_token;
 
-  // setup an object for the settings we want our button to have
-  var buttonSetting = {
-    type: 'button',
-    name: 'connected_account',
-    label: 'Connected Account',
-  }
-
-  var hasAccessToken = accessToken.length > 0;
+  var hasAccessToken = accessTokenIsSet();
+    var el;
 
   if (hasAccessToken) {
-    buttonSetting.help = "Click the button above to clear your OAuth token and disconnect your High Fidelity account.";
-    buttonSetting.classes = "btn-danger";
-    buttonSetting.button_label = "Disconnect High Fidelity Account";
-    buttonSetting.html_id = Settings.DISCONNECT_ACCOUNT_BTN_ID;
+      el = "<span class='account-connected-header'>High Fidelity Account Connected</span>";
+      el += "<button id='" + Settings.DISCONNECT_ACCOUNT_BTN_ID + "' class='btn'>Disconnect</button>";
+      el = $(el);
   } else {
-    buttonSetting.help = "Click the button above to connect your High Fidelity account.";
+      // setup an object for the settings we want our button to have
+      var buttonSetting = {
+          type: 'button',
+          name: 'connected_account',
+          label: 'Connected Account',
+      }
+    buttonSetting.help = "";
     buttonSetting.classes = "btn-primary";
     buttonSetting.button_label = "Connect High Fidelity Account";
     buttonSetting.html_id = Settings.CONNECT_ACCOUNT_BTN_ID;
@@ -469,14 +513,13 @@ function setupHFAccountButton() {
     // since we do not have an access token we change hide domain ID and auto networking settings
     // without an access token niether of them can do anything
     $("[data-keypath='metaverse.id']").hide();
-    $("[data-keypath='metaverse.automatic_networking']").hide();
 
     // use the existing getFormGroup helper to ask for a button
-    var buttonGroup = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values);
+    el = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values);
+  }
 
     // add the button group to the top of the metaverse panel
-    $('#metaverse .panel-body').prepend(buttonGroup);
-  }
+    $('#metaverse .panel-body').prepend(el);
 
 }
 
@@ -593,21 +636,20 @@ function showDomainCreationAlert(justConnected) {
 function createNewDomainID(description, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
   var domainJSON = {
-   "private_description": description
+   "label": description
     //"access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
   }
 
-  //$.post(Settings.METAVERSE_URL + "/api/v1/domains", domainJSON, function(data){
-  $.post("/api/domain", domainJSON, function(data){
+  $.post("/api/domains", domainJSON, function(data){
     // we successfully created a domain ID, set it on that field
     var domainID = data.domain_id;
     console.log("Setting domain id to ", data, domainID);
     $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
 
     if (justConnected) {
-      var successText = "We connnected your High Fidelity account and created a new domain ID for this machine."
+      var successText = Strings.CREATE_DOMAIN_SUCCESS_JUST_CONNECTED
     } else {
-      var successText = "We created a new domain ID for this machine."
+      var successText = Strings.CREATE_DOMAIN_SUCCESS;
     }
 
     successText += "</br></br>Click the button below to save your new settings and restart your domain-server.";
@@ -656,6 +698,258 @@ function createNewDomainID(description, justConnected) {
   });
 }
 
+function createDomainSpinner() {
+  var spinner = '<p class="loading-domain-info-spinner text-center" style="display: none">';
+  spinner += 'Loading  <span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>';
+  spinner += '</p>';
+  return spinner;
+}
+
+function createDomainLoadingError(message) {
+  var errorEl = $("<div class='domain-loading-error alert alert-warning' style='display: none'></div>");
+  errorEl.append(message + "  ");
+
+  var retryLink = $("<a href='#'>Please click here to try again.</a>");
+  retryLink.click(function(ev) {
+    ev.preventDefault();
+    reloadDomainInfo();
+  });
+  errorEl.append(retryLink);
+
+  return errorEl;
+}
+
+function parseJSONResponse(xhr) {
+  try {
+    return JSON.parse(xhr.responseText);
+  } catch (e) {
+  }
+  return null;
+}
+
+function domainIDIsSet() {
+  return Settings.data.values.metaverse.id.length > 0;
+}
+
+function setupDomainLabelSetting() {
+  if (!domainIDIsSet()) {
+    return;
+  }  
+
+  var html = "<div>"
+  html += "Specify a label for your domain";
+  html += "<input id='network-label' type='text' class='form-control'></input>";
+  html += "</div>";
+
+  var link = $("<a href='#'>Edit</a>");
+
+  link.click(function(ev) {
+    ev.preventDefault();
+
+    var label = "temp";
+    var modal_body = "<div class='form-group'>";
+    modal_body += "<label class='control-label'>Label</label>";
+    modal_body += "<input type='text' id='domain-label-input' class='form-control' value='" + DomainInfo.label + "'>";
+    modal_body += "<div id='domain-label-error' class='error-message' data-property='label'></div>";
+    modal_body += "</div>";
+
+    var dialog = bootbox.dialog({
+      title: 'Edit Label',
+      message: modal_body,
+      closeButton: false,
+      buttons: [
+        {
+          label: 'Cancel',
+          className: 'edit-label-cancel-btn',
+          callback: function() {
+            dialog.modal('hide');
+          }
+        },
+        {
+          label: 'Save',
+          className: 'edit-label-save-btn btn btn-primary',
+          callback: function() {
+            var data = {
+              label: $('#domain-label-input').val()
+            };
+
+            $('.edit-label-cancel-btn').attr('disabled', 'disabled');
+            $('.edit-label-save-btn').attr('disabled', 'disabled');
+            $('.edit-label-save-btn').html("Saving...");
+
+            $('.error-message').hide();
+
+            $.ajax({
+              url: '/api/domains',
+              type: 'PUT',
+              data: data,
+              success: function(xhr) {
+                dialog.modal('hide');
+                reloadDomainInfo();
+              },
+              error:function(xhr) {
+                var data = parseJSONResponse(xhr);
+                console.log(data, data.status, data.data);
+                if (data.status === "fail") {
+                  for (var key in data.data) {
+                    var errorMsg = data.data[key];
+                    console.log(key, errorMsg);
+                    var errorEl = $('.error-message[data-property="' + key + '"');
+                    console.log(errorEl);
+                    errorEl.html(errorMsg);
+                    errorEl.show();
+                  }
+                }
+                $('.edit-label-cancel-btn').removeAttr('disabled');
+                $('.edit-label-save-btn').removeAttr('disabled');
+                $('.edit-label-save-btn').html("Save");
+              }
+            });
+            return false;
+          }
+        }
+      ],
+      callback: function(result) {
+        console.log("result: ", result);
+      }
+    });
+  });
+
+  html = $(html).append(link);
+
+  var autoNetworkingEl = $('div[data-keypath="metaverse.automatic_networking"]');
+  autoNetworkingEl.after(html);
+}
+
+function setupDomainNetworkingSettings() {
+  if (!accessTokenIsSet() || !domainIDIsSet()) {
+    $("[data-keypath='metaverse.automatic_networking']").hide();
+    return;
+  }
+
+  var autoNetworkingSetting = Settings.data.values.metaverse.automatic_networking;
+  if (autoNetworkingSetting === 'full') {
+    return;
+  }
+
+  var includePort = autoNetworkingSetting === 'disabled';
+
+  var label = "Network Address";
+  if (includePort) {
+    label += " and Port";
+  }
+
+  var lowerName = name.toLowerCase();
+  var form = '<div id="network-address-port">';
+  form += '<label class="control-label">' + label + '</label>';
+  form += ' <a id="edit-network-address-port" class="domain-loading-hide" href="#">Edit</a>';
+  form += '<input type="text" class="domain-loading-hide form-control" disabled></input>';
+  form += '<div class="domain-loading-hide help-block">This defines how nodes will connect to your domain. You can read more about automatic networking <a href="">here</a>.</div>';
+  form += '</div>';
+
+  form = $(form);
+
+  form.find('#edit-network-address-port').click(function(ev) {
+    ev.preventDefault(); 
+    
+    var address = DomainInfo.network_address === null ? '' : DomainInfo.network_address;
+    var port = DomainInfo.network_port === null ? '' : DomainInfo.network_port;
+    var modal_body = "<div class='form-group'>";
+    modal_body += "<label class='control-label'>Address</label>";
+    modal_body += "<input type='text' id='network-address-input' class='form-control' value='" + address + "'>";
+    modal_body += "<div id='network-address-error' class='error-message' data-property='network_address'></div>";
+    if (includePort) {
+      modal_body += "<label class='control-label'>Port</label>";
+      modal_body += "<input type='text' id='network-port-input' class='form-control' value='" + port + "'>";
+      modal_body += "<div id='network-port-error' class='error-message' data-property='network_port'></div>";
+    }
+    modal_body += "</div>";
+
+    var dialog = bootbox.dialog({
+      title: 'Edit Network',
+      message: modal_body,
+      closeButton: false,
+      buttons: [
+        {
+          label: 'Cancel',
+          className: 'edit-network-cancel-btn',
+          callback: function() {
+            dialog.modal('hide');
+          }
+        },
+        {
+          label: 'Save',
+          className: 'edit-network-save-btn btn btn-primary',
+          callback: function() {
+            var data = {
+              network_address: $('#network-address-input').val()
+            };
+            if (includePort) {
+              data.network_port = $('#network-port-input').val();
+            }
+
+            $('.edit-network-cancel-btn').attr('disabled', 'disabled');
+            $('.edit-network-save-btn').attr('disabled', 'disabled');
+            $('.edit-network-save-btn').html("Saving...");
+
+            console.log('data', data);
+
+            $('.error-message').hide();
+
+            $.ajax({
+              url: '/api/domains',
+              type: 'PUT',
+              data: data,
+              success: function(xhr) {
+                console.log(xhr, parseJSONResponse(xhr));
+                dialog.modal('hide');
+                reloadDomainInfo();
+              },
+              error:function(xhr) {
+                var data = parseJSONResponse(xhr);
+                console.log(data, data.status, data.data);
+                if (data.status === "fail") {
+                  for (var key in data.data) {
+                    var errorMsg = data.data[key];
+                    console.log(key, errorMsg);
+                    var errorEl = $('.error-message[data-property="' + key + '"');
+                    console.log(errorEl);
+                    errorEl.html(errorMsg);
+                    errorEl.show();
+                  }
+                }
+                $('.edit-network-cancel-btn').removeAttr('disabled');
+                $('.edit-network-save-btn').removeAttr('disabled');
+                $('.edit-network-save-btn').html("Save");
+              }
+            });
+            return false;
+          }
+        }
+      ],
+      callback: function(result) {
+        console.log("result: ", result);
+      }
+    });
+  });
+
+  var spinner = createDomainSpinner();
+
+  var errorMessage = ''
+  if (includePort) {
+    errorMessage = "We were unable to load the Network address and port.";
+  } else {
+    errorMessage = "We were unable to load the Network address."
+  }
+  var errorEl = createDomainLoadingError(errorMessage);
+
+  var autoNetworkingEl = $('div[data-keypath="metaverse.automatic_networking"]');
+  autoNetworkingEl.after(spinner);
+  autoNetworkingEl.after(errorEl);
+  autoNetworkingEl.after(form);
+}
+
+
 function setupPlacesTable() {
   // create a dummy table using our view helper
   var placesTableSetting = {
@@ -690,18 +984,16 @@ function setupPlacesTable() {
 
   // append the places table in the right place
   $('#places_paths .panel-body').prepend(placesTableGroup);
+  //$('#' + Settings.PLACES_TABLE_ID).append("<tr><td colspan=3></td></tr>");
 
-
-  var spinner = '<p id="loading-places-spinner" class="text-center" style="display: none">';
-  spinner += '<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span>';
-  spinner += '</p>';
+  var spinner = createDomainSpinner();
   $('#' + Settings.PLACES_TABLE_ID).after($(spinner));
 
+  var errorEl = createDomainLoadingError("There was an error retreiving your places.");
+  $("#" + Settings.PLACES_TABLE_ID).after(errorEl);
+
   // do we have a domain ID?
-  if (Settings.data.values.metaverse.id.length > 0) {
-    // now, ask the API for what places, if any, point to this domain
-    reloadPlacesOrTemporaryName();
-  } else {
+  if (Settings.data.values.metaverse.id.length == 0) {
     // we don't have a domain ID - add a button to offer the user a chance to get a temporary one
     var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
     $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
@@ -718,20 +1010,42 @@ function placeTableRow(name, path, isTemporary, placeID) {
 
   function placeDeleteClicked() {
     var el = $(this);
-    var dialog = bootbox.confirm("Are you sure you want to remove <strong>" + name + "</strong>?", function(result) {
-      if (result) {
-        sendUpdatePlaceRequest(
-          placeID,
-          '',
-          true,
-          function() {
-            reloadPlacesOrTemporaryName();
+    var confirmString = Strings.REMOVE_PLACE_TITLE.replace("{{place}}", name);
+    var dialog = bootbox.dialog({
+      message: confirmString,
+      closeButton: false,
+      buttons: [
+        {
+          label: Strings.REMOVE_PLACE_CANCEL_BUTTON,
+          className: "delete-place-cancel-btn",
+          callback: function() {
             dialog.modal('hide');
-          }, function() {
-            dialog.modal('hide');
-          });
-      }
-      return false;
+          }
+        },
+        {
+          label: Strings.REMOVE_PLACE_DELETE_BUTTON,
+          className: "delete-place-confirm-btn btn btn-danger",
+          callback: function() {
+            $('.delete-place-cancel-btn').attr('disabled', 'disabled');
+            $('.delete-place-confirm-btn').attr('disabled', 'disabled');
+            $('.delete-place-confirm-btn').html(Strings.REMOVE_PLACE_DELETE_BUTTON_PENDING);
+            sendUpdatePlaceRequest(
+              placeID,
+              '',
+              true,
+              function() {
+                reloadDomainInfo();
+                dialog.modal('hide');
+              }, function() {
+                $('.delete-place-cancel-btn').removeAttr('disabled');
+                $('.delete-place-confirm-btn').removeAttr('disabled');
+                $('.delete-place-confirm-btn').html(Strings.REMOVE_PLACE_DELETE_BUTTON);
+                bootbox.alert(Strings.REMOVE_PLACE_ERROR);
+              });
+            return false;
+          }
+        },
+      ]
     });
   }
 
@@ -765,15 +1079,23 @@ function getDomainFromAPI(callback) {
   }
 }
 
-function reloadPlacesOrTemporaryName() {
+function reloadDomainInfo() {
   $('#' + Settings.PLACES_TABLE_ID + " tbody tr").not('.headers').remove();
-  $('#loading-places-spinner').show();
+
+  $('.domain-loading-show').show();
+  $('.domain-loading-hide').hide();
+  $('.domain-loading-error').hide();
+  $('.loading-domain-info-spinner').show();
+  $('#' + Settings.PLACES_TABLE_ID).append("<tr colspan=3>Hello</tr>");
 
   getDomainFromAPI(function(data){
-    $('#loading-places-spinner').hide();
+    $('.loading-domain-info-spinner').hide();
+    $('.domain-loading-show').hide();
 
     // check if we have owner_places (for a real domain) or a name (for a temporary domain)
     if (data.status == "success") {
+      $('.domain-loading-hide').show();
+      DomainInfo = data.domain;
       if (data.domain.owner_places) {
         // add a table row for each of these names
         _.each(data.domain.owner_places, function(place){
@@ -788,13 +1110,24 @@ function reloadPlacesOrTemporaryName() {
 
       row.find(".place-add").click(function(ev) {
         chooseFromHighFidelityPlaces(null, function() {
-          reloadPlacesOrTemporaryName();
+          reloadDomainInfo();
         });
       });
 
+      $('#network-label').val(data.domain.label);
+      var autoNetworkingSetting = Settings.data.values.metaverse.automatic_networking;
+      var address = data.domain.network_address === null ? "" : data.domain.network_address;
+      var port = data.domain.network_port === null ? "" : data.domain.network_port;
+      if (autoNetworkingSetting === 'disabled') {
+        $('#network-address-port input').val(address + ":" + port);
+      } else if (autoNetworkingSetting === 'ip') {
+        $('#network-address-port input').val(address);
+      }
+
       $('#' + Settings.PLACES_TABLE_ID + " tbody").append(row);
     } else {
-
+      DomainInfo = null;
+      $('.domain-loading-error').show();
     }
   })
 }
@@ -802,9 +1135,9 @@ function reloadPlacesOrTemporaryName() {
 function appendDomainIDButtons() {
   var domainIDInput = $(Settings.DOMAIN_ID_SELECTOR);
 
-  var createButton = dynamicButton(Settings.CREATE_DOMAIN_ID_BTN_ID, "Create new domain ID");
+  var createButton = dynamicButton(Settings.CREATE_DOMAIN_ID_BTN_ID, Strings.CREATE_DOMAIN_BUTTON);
   createButton.css('margin-top', '10px');
-  var chooseButton = dynamicButton(Settings.CHOOSE_DOMAIN_ID_BTN_ID, "Choose from my domains");
+  var chooseButton = dynamicButton(Settings.CHOOSE_DOMAIN_ID_BTN_ID, Strings.CHOOSE_DOMAIN_BUTTON);
   chooseButton.css('margin', '10px 0px 0px 10px');
 
   domainIDInput.after(chooseButton);
@@ -819,7 +1152,7 @@ function showDomainSettingsModal(clickedButton) {
   })
 }
 
-function sendUpdatePlaceRequest(id, path, clearDomainID, onSuccess, onFail) {
+function sendUpdatePlaceRequest(id, path, clearDomainID, onSuccess, onError) {
   var data = {
     place_id: id,
     path: path
@@ -832,58 +1165,73 @@ function sendUpdatePlaceRequest(id, path, clearDomainID, onSuccess, onFail) {
     type: 'PUT',
     data: data,
     success: onSuccess,
-    fail: onFail
+    error: onError
   });
 }
 
 function editHighFidelityPlace(placeID, name, path) {
-
   var dialog;
 
   var modal_body = "<div class='form-group'>";
   modal_body += "<input type='text' id='place-path-input' class='form-control' value='" + path + "'>";
   modal_body += "</div>";
 
-  var modal_buttons = {};
-  modal_buttons["success"] = {
-    label: 'Save',
-    callback: function() {
-      var placePath = $('#place-path-input').val();
-
-      if (path == placePath) {
-        return true;
+  var modal_buttons = [
+    {
+      label: Strings.EDIT_PLACE_CANCEL_BUTTON,
+      className: "edit-place-cancel-button",
+      callback: function() {
+        dialog.modal('hide');
       }
+    },
+    {
+      label: Strings.EDIT_PLACE_CONFIRM_BUTTON,
+      className: 'edit-place-save-button btn btn-primary',
+      callback: function() {
+        var placePath = $('#place-path-input').val();
 
-      $(this).attr('disabled', 'disabled');
-
-      sendUpdatePlaceRequest(
-        placeID,
-        placePath,
-        false,
-        function(data) {
-          dialog.modal('hide')
-          reloadPlacesOrTemporaryName();
-        },
-        function(data) {
-          dialog.modal('hide')
+        if (path == placePath) {
+          return true;
         }
-      );
 
-      return false;
+        $('.edit-place-cancel-button').attr('disabled', 'disabled');
+        $('.edit-place-save-button').attr('disabled', 'disabled');
+        $('.edit-place-save-button').html(Strings.EDIT_PLACE_BUTTON_PENDING);
+
+        sendUpdatePlaceRequest(
+          placeID,
+          placePath,
+          false,
+          function() {
+            dialog.modal('hide')
+            reloadDomainInfo();
+          },
+          function() {
+            $('.edit-place-cancel-button').removeAttr('disabled');
+            $('.edit-place-save-button').removeAttr('disabled');
+            $('.edit-place-save-button').html(Strings.EDIT_PLACE_CONFIRM_BUTTON);
+
+            //bootbox.alert(Strings.EDIT_PLACE_ERROR);
+          }
+        );
+
+        return false;
+      }
     }
-  }
+  ];
 
   dialog = bootbox.dialog({
-    title: "Modify Viewpoint or Path for <strong>" + name + "</strong>",
+    title: Strings.EDIT_PLACE_TITLE,
+    closeButton: false,
     message: modal_body,
     buttons: modal_buttons
   })
 }
 
 function showLoadingDialog() {
-  var message = '<p class="text-center">';
-  message += '<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span> Loading your places...';
-  message += '</p>';
+  var message = '<div class="text-center">';
+  message += '<span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"></span> ' + Strings.ADD_PLACE_LOADING_DIALOG;
+  message += '</div>';
 
   return bootbox.dialog({
     message: message,
@@ -900,13 +1248,11 @@ function chooseFromHighFidelityPlaces(forcePathTo, onSuccessfullyAdded) {
       dataType: 'json',
       jsonp: false,
       success: function(data) {
-        loadingDialog.modal('hide');
-        console.log(data);
         if (data.status == 'success') {
           var modal_buttons = {
             cancel: {
-              label: 'Cancel',
-              className: 'btn-default'
+              label: Strings.ADD_PLACE_CANCEL_BUTTON,
+              className: 'add-place-cancel-button btn-default'
             }
           };
 
@@ -914,40 +1260,63 @@ function chooseFromHighFidelityPlaces(forcePathTo, onSuccessfullyAdded) {
           var modal_body;
 
           if (data.data.places.length) {
+            var places_by_id = {};
+
             // setup a select box for the returned places
-            modal_body = "<p>Choose the High Fidelity place to point at this domain server.</p>";
+            modal_body = $('<div>');
+            modal_body.append($("<label for='place-name-select'>Places</label>"));
             place_select = $("<select id='place-name-select' class='form-control'></select>");
             _.each(data.data.places, function(place) {
+              places_by_id[place.id] = place;
               place_select.append("<option value='" + place.id + "'>" + place.name + "</option>");
             })
-            modal_body += "<label for='place-name-select'>Places</label>" + place_select[0].outerHTML
+            modal_body.append(place_select);
+            modal_body.append($("<p id='place-name-warning' class='warning-text' style='display: none'>This place name already points to a place or path. Saving this would overwrite the previous settings associated with it.</p>"));
 
             if (forcePathTo === undefined || forcePathTo === null) {
-              modal_body += "<div class='form-group'>";
-              modal_body += "<label for='place-path-input' class='control-label'>Path</label>";
-              modal_body += "<input type='text' id='place-path-input' class='form-control' value='/'>";
-              modal_body += "</div>";
+              var path = "<div class='form-group'>";
+              path += "<label for='place-path-input' class='control-label'>Path</label>";
+              path += "<input type='text' id='place-path-input' class='form-control' value='/'>";
+              path += "</div>";
+              modal_body.append($(path));
             }
 
+            console.log(modal_body, modal_body.find("#place-name-select"));
+            var place_select = modal_body.find("#place-name-select")
+            place_select.change(function(ev) {
+              var warning = modal_body.find("#place-name-warning");
+              var place = places_by_id[$(this).val()];
+              console.log(warning, place, $(this).val());
+              if (place === undefined || place.pointee === null) {
+                warning.hide();
+              } else {
+                warning.show();
+              }
+            });
+            place_select.trigger('change');
+
             modal_buttons["success"] = {
-              label: 'Choose place',
+              label: Strings.ADD_PLACE_CONFIRM_BUTTON,
+              className: 'add-place-confirm-button btn btn-primary',
               callback: function() {
                 var placeID = $('#place-name-select').val()
                 // set the place ID on the form
                 $(Settings.place_ID_SELECTOR).val(placeID).change();
 
-                if (forcePathTo === undefined) {
+                if (forcePathTo === undefined || forcePathTo === null) {
                   var placePath = $('#place-path-input').val();
                 } else {
                   var placePath = forcePathTo;
                 }
 
-                $(this).attr('disabled', 'disabled');
+                $('.add-place-confirm-button').attr('disabled', 'disabled');
+                $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON_PENDING);
+                $('.add-place-cancel-button').attr('disabled', 'disabled');
 
                 sendUpdatePlaceRequest(
                   placeID,
                   placePath,
-                  true,
+                  false,
                   function(data) {
                     dialog.modal('hide')
                     if (onSuccessfullyAdded) {
@@ -955,7 +1324,10 @@ function chooseFromHighFidelityPlaces(forcePathTo, onSuccessfullyAdded) {
                     }
                   },
                   function(data) {
-                    bootbox.alert('There was an error adding this place name');
+                    $('.add-place-confirm-button').removeAttr('disabled');
+                    $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
+                    $('.add-place-cancel-button').removeAttr('disabled');
+                    bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
                   }
                 );
 
@@ -964,28 +1336,29 @@ function chooseFromHighFidelityPlaces(forcePathTo, onSuccessfullyAdded) {
             }
           } else {
             modal_buttons["success"] = {
-              label: 'Create new place',
+              label: Strings.ADD_PLACE_NO_PLACES_BUTTON,
               callback: function() {
                 window.open(Settings.METAVERSE_URL + "/user/places", '_blank');
               }
             }
-            modal_body = "<p>You do not have any places in your High Fidelity account." +
-              "<br/><br/>Go to your <a href='https://metaverse.highfidelity.com/user/places/new'>places page</a> to create a new one. Once your place is created re-open this dialog to select it.</p>"
+            modal_body = Strings.ADD_PLACE_NO_PLACES_MESSAGE;
           }
 
           dialog = bootbox.dialog({
-            title: "Choose the place to point at this domain server",
+            title: Strings.ADD_PLACE_TITLE,
             message: modal_body,
+            closeButton: false,
             buttons: modal_buttons
           });
         } else {
-          bootbox.alert("We were unable to load your place names. Please try again later.");
+          bootbox.alert(Strings.ADD_PLACE_UNABLE_TO_LOAD_ERROR);
         }
       },
-      fail: function() {
+      error: function() {
+        bootbox.alert(Strings.ADD_PLACE_UNABLE_TO_LOAD_ERROR);
+      },
+      complete: function() {
         loadingDialog.modal('hide');
-        bootbox.alert("Failed to retrieve your places from the High Fidelity Metaverse");
-        console.log("FAILURE TO GET JSON");
       }
     });
 
@@ -1007,72 +1380,78 @@ function chooseFromHighFidelityDomains(clickedButton) {
     clickedButton.attr('disabled', 'disabled');
 
     // get a list of user domains from data-web
-    data_web_domains_url = Settings.METAVERSE_URL + "/api/v1/domains?access_token=";
-    data_web_domains_url += Settings.initialValues.metaverse.access_token;
-    data_web_domains_url = "/api/domains";
-    $.getJSON(data_web_domains_url, function(data){
+    $.ajax({
+      url: "/api/domains",
+      dataType: 'json',
+      jsonp: false,
+      success: function(data){
 
-      var modal_buttons = {
-        cancel: {
-          label: 'Cancel',
-          className: 'btn-default'
-        }
-      }
-
-      if (data.data.domains.length) {
-        // setup a select box for the returned domains
-        modal_body = "<p>Choose the High Fidelity domain you want this domain-server to represent.<br/>This will set your domain ID on the settings page.</p>";
-        domain_select = $("<select id='domain-name-select' class='form-control'></select>");
-        _.each(data.data.domains, function(domain){
-          var domainString = "";
-
-          if (domain.private_description) {
-            domainString += '"' + domain.private_description + '" - ';
+        var modal_buttons = {
+          cancel: {
+            label: 'Cancel',
+            className: 'btn-default'
           }
+        }
 
-          domainString += domain.id;
+        if (data.data.domains.length) {
+          // setup a select box for the returned domains
+          modal_body = "<p>Choose the High Fidelity domain you want this domain-server to represent.<br/>This will set your domain ID on the settings page.</p>";
+          domain_select = $("<select id='domain-name-select' class='form-control'></select>");
+          _.each(data.data.domains, function(domain){
+            var domainString = "";
 
-          domain_select.append("<option value='" + domain.id + "'>" + domainString + "</option>");
+            if (domain.description) {
+              domainString += '"' + domain.description+ '" - ';
+            }
+
+            domainString += domain.id;
+
+            domain_select.append("<option value='" + domain.id + "'>" + domainString + "</option>");
+          })
+          modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
+          modal_buttons["success"] = {
+            label: 'Choose domain',
+            callback: function() {
+              domainID = $('#domain-name-select').val()
+              // set the domain ID on the form
+              $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
+            }
+          }
+        } else {
+          modal_buttons["success"] = {
+            label: 'Create new domain',
+            callback: function() {
+              window.open(Settings.METAVERSE_URL + "/user/domains", '_blank');
+            }
+          }
+          modal_body = "<p>You do not have any domains in your High Fidelity account." +
+            "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
+        }
+
+        bootbox.dialog({
+          title: "Choose matching domain",
+          message: modal_body,
+          buttons: modal_buttons
         })
-        modal_body += "<label for='domain-name-select'>Domains</label>" + domain_select[0].outerHTML
-        modal_buttons["success"] = {
-          label: 'Choose domain',
-          callback: function() {
-            domainID = $('#domain-name-select').val()
-            // set the domain ID on the form
-            $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
-          }
-        }
-      } else {
-        modal_buttons["success"] = {
-          label: 'Create new domain',
-          callback: function() {
-            window.open(Settings.METAVERSE_URL + "/user/domains", '_blank');
-          }
-        }
-        modal_body = "<p>You do not have any domains in your High Fidelity account." +
-          "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
+      },
+      error: function() {
+        bootbox.alert("Failed to retrieve your domains from the High Fidelity Metaverse");
+      },
+      complete: function() {
+        // remove the spinner from the choose button
+        clickedButton.html("Choose from my domains")
+        clickedButton.removeAttr('disabled')
       }
+    });
 
-      bootbox.dialog({
-        title: "Choose matching domain",
-        message: modal_body,
-        buttons: modal_buttons
-      })
-
-      // remove the spinner from the choose button
-      clickedButton.html("Choose from my domains")
-      clickedButton.removeAttr('disabled')
-    })
-
-  } else {
-    bootbox.alert({
-      message: "You must have an access token to query your High Fidelity domains.<br><br>" +
+    } else {
+      bootbox.alert({
+        message: "You must have an access token to query your High Fidelity domains.<br><br>" +
         "Please follow the instructions on the settings page to add an access token.",
-      title: "Access token required"
-    })
+        title: "Access token required"
+      })
+    }
   }
-}
 
 function createTemporaryDomain() {
   swal({
@@ -1134,6 +1513,14 @@ function reloadSettings(callback) {
 
     // call our method to setup the place names table
     setupPlacesTable();
+
+    setupDomainNetworkingSettings();
+    setupDomainLabelSetting();
+
+    if (Settings.data.values.metaverse.id.length > 0) {
+      // now, ask the API for what places, if any, point to this domain
+      reloadDomainInfo();
+    }
 
     // setup any bootstrap switches
     $('.toggle-checkbox').bootstrapSwitch();
