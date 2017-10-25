@@ -37,6 +37,8 @@ TabletModalWindow {
         property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
+        property bool isPassword: false
+        property alias text: loginKeyboard.mirroredText
 
         readonly property bool isTablet: true
 
@@ -130,6 +132,7 @@ TabletModalWindow {
         id: loginKeyboard
         raised: root.keyboardEnabled && root.keyboardRaised
         numeric: root.punctuationMode
+        password: root.isPassword
         anchors {
             left: parent.left
             right: parent.right

@@ -53,7 +53,7 @@ protected:
 
     bool internalActivate() override;
     void internalDeactivate() override;
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() override;
     void compositePointer() override;
     void internalPresent() override;
     void customizeContext() override;
@@ -116,6 +116,6 @@ private:
 
         void build();
         void updatePipeline();
-        std::function<void(gpu::Batch&, const gpu::TexturePointer&)> render(HmdDisplayPlugin& plugin);
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> render(HmdDisplayPlugin& plugin);
     } _hudRenderer;
 };
