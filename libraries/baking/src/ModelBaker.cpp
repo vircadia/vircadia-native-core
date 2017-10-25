@@ -216,7 +216,7 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
 
 QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTextureTypeCallback textureTypeCallback) {
     static QByteArray textureChild;
-    QByteArray textureContent;
+    QByteArray textureContent = "";
     image::TextureUsage::Type textureType;
     
     if (textureTypeCallback) {

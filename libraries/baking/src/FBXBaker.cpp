@@ -356,12 +356,6 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
 
                         if (textureChild.name == "RelativeFilename") {
                             QString fbxTextureFileName { textureChild.properties.at(0).toByteArray() };
-                            QFileInfo fbxTextureFileInfo { fbxTextureFileName.replace("\\", "/") };
-
-                            QByteArray textureContent = "";
-                            if (!fbxTextureFileInfo.filePath().isEmpty()) {
-                                textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
-                            }
                             
                             // Callback to get texture type
                             getTextureTypeCallback textureTypeCallback = [=]() {
