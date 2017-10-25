@@ -135,7 +135,7 @@
 
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
-        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID + "\n");
+        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
             certificateId: certificateId
