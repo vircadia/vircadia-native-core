@@ -50,6 +50,8 @@ private:
 };
 
 class RenderableModelEntityItem : public ModelEntityWrapper {
+    Q_OBJECT
+
     friend class render::entities::ModelEntityRenderer;
     using Parent = ModelEntityWrapper;
 public:
@@ -105,6 +107,10 @@ public:
     virtual QStringList getJointNames() const override;
 
     bool getMeshes(MeshProxyList& result) override;
+    const void* getCollisionMeshKey() const { return _collisionMeshKey; }
+
+signals:
+    void requestCollisionGeometryUpdate();
 
 private:
     bool needsUpdateModelBounds() const;
@@ -117,7 +123,6 @@ private:
     QVariantMap _originalTextures;
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
-    bool _showCollisionGeometry { false };
     const void* _collisionMeshKey { nullptr };
 };
 
@@ -141,6 +146,8 @@ protected:
     virtual bool needsRenderUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    void flagForCollisionGeometryUpdate();
+    void setCollisionMeshKey(const void* key);
 
 private:
     void animate(const TypedEntityPointer& entity);
@@ -163,6 +170,7 @@ private:
 
     bool _needsJointSimulation{ false };
     bool _showCollisionGeometry{ false };
+    bool _needsCollisionGeometryUpdate{ false };
     const void* _collisionMeshKey{ nullptr };
 
     // used on client side

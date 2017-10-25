@@ -23,6 +23,7 @@ const char DrawNada_frag[] = "void main(void) {}"; // DrawNada is really simple.
 
 #include "DrawWhite_frag.h"
 #include "DrawTexture_frag.h"
+#include "DrawTextureMirroredX_frag.h"
 #include "DrawTextureOpaque_frag.h"
 #include "DrawColoredTexture_frag.h"
 
@@ -37,6 +38,7 @@ ShaderPointer StandardShaderLib::_drawTransformVertexPositionVS;
 ShaderPointer StandardShaderLib::_drawNadaPS;
 ShaderPointer StandardShaderLib::_drawWhitePS;
 ShaderPointer StandardShaderLib::_drawTexturePS;
+ShaderPointer StandardShaderLib::_drawTextureMirroredXPS;
 ShaderPointer StandardShaderLib::_drawTextureOpaquePS;
 ShaderPointer StandardShaderLib::_drawColoredTexturePS;
 StandardShaderLib::ProgramMap StandardShaderLib::_programs;
@@ -128,6 +130,13 @@ ShaderPointer StandardShaderLib::getDrawTexturePS() {
         _drawTexturePS = gpu::Shader::createPixel(std::string(DrawTexture_frag));
     }
     return _drawTexturePS;
+}
+
+ShaderPointer StandardShaderLib::getDrawTextureMirroredXPS() {
+    if (!_drawTextureMirroredXPS) {
+        _drawTextureMirroredXPS = gpu::Shader::createPixel(std::string(DrawTextureMirroredX_frag));
+    }
+    return _drawTextureMirroredXPS;
 }
 
 ShaderPointer StandardShaderLib::getDrawTextureOpaquePS() {
