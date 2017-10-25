@@ -31,6 +31,8 @@ Rectangle {
     property bool keyboardRaised: false;
     property bool isPassword: false;
 
+    anchors.fill: (typeof parent === undefined) ? undefined : parent;
+
     Image {
         anchors.fill: parent;
         source: "images/wallet-bg.jpg";
