@@ -234,7 +234,8 @@ void CompositorHelper::handleLeaveEvent() {
 
 bool CompositorHelper::handleRealMouseMoveEvent(bool sendFakeEvent) {
     // If the mouse move came from a capture mouse related move, we completely ignore it.
-    if (_ignoreMouseMove) {
+    // Note: if not going to synthesize event - do not touch _ignoreMouseMove flag
+    if (_ignoreMouseMove && sendFakeEvent) {
         _ignoreMouseMove = false;
         return true; // swallow the event
     }
@@ -246,7 +247,12 @@ bool CompositorHelper::handleRealMouseMoveEvent(bool sendFakeEvent) {
         auto changeInRealMouse = newPosition - _lastKnownRealMouse;
         auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
         setReticlePosition(newReticlePosition, sendFakeEvent);
-        _ignoreMouseMove = true;
+
+        // Note: if not going to synthesize event - do not touch _ignoreMouseMove flag
+        if (sendFakeEvent) {
+            _ignoreMouseMove = true;
+        }
+
         QCursor::setPos(QPoint(_lastKnownRealMouse.x(), _lastKnownRealMouse.y())); // move cursor back to where it was
         return true;  // swallow the event
     } else {
