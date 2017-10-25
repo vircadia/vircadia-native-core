@@ -34,15 +34,20 @@ class ModelBaker : public Baker{
     Q_OBJECT
 
 public:
-    ModelBaker();
+    ModelBaker(const QUrl& modelURL, TextureBakerThreadGetter textureThreadGetter,
+               const QString& bakedOutputDir, const QString& originalOutputDir);
     bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback = NULL);
-    QByteArray* compressTexture(QString textureFileName, QUrl modelUrl, QString bakedOutputDir, TextureBakerThreadGetter textureThreadGetter, 
-                                getTextureTypeCallback textureTypeCallback = NULL, const QString& originalOutputDir = "");
+    QByteArray* compressTexture(QString textureFileName, getTextureTypeCallback textureTypeCallback = NULL);
     virtual void setWasAborted(bool wasAborted) override;
     
 protected:
     void checkIfTexturesFinished();
+    
     QHash<QByteArray, QByteArray> _textureContent;
+    QString _bakedOutputDir;
+    QString _originalOutputDir;
+    TextureBakerThreadGetter _textureThreadGetter;
+    QUrl _modelURL;
 
 public slots:
     virtual void bake() override;
@@ -61,10 +66,10 @@ private:
     
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
-    QUrl _modelURL;
+    //QUrl _modelURL;
     QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
-    TextureBakerThreadGetter _textureThreadGetter;
-    QString _originalOutputDir;
+    //TextureBakerThreadGetter _textureThreadGetter;
+    //QString _originalOutputDir;
     bool _pendingErrorEmission{ false };
 };
 

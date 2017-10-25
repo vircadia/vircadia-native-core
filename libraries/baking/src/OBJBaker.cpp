@@ -36,10 +36,7 @@ const QByteArray MESH = "Mesh";
 
 OBJBaker::OBJBaker(const QUrl& objURL, TextureBakerThreadGetter textureThreadGetter,
                    const QString& bakedOutputDir, const QString& originalOutputDir) :
-    _objURL(objURL),
-    _bakedOutputDir(bakedOutputDir),
-    _originalOutputDir(originalOutputDir),
-    _textureThreadGetter(textureThreadGetter) 
+    ModelBaker(objURL, textureThreadGetter, bakedOutputDir, originalOutputDir)
 {
 
 }
@@ -56,7 +53,7 @@ OBJBaker::~OBJBaker() {
 }
 
 void OBJBaker::bake() {
-    qDebug() << "OBJBaker" << _objURL << "bake starting";
+    qDebug() << "OBJBaker" << _modelURL << "bake starting";
 
     auto tempDir = PathUtils::generateTemporaryDir();
 
@@ -67,7 +64,7 @@ void OBJBaker::bake() {
 
     _tempDir = tempDir;
 
-    _originalOBJFilePath = _tempDir.filePath(_objURL.fileName());
+    _originalOBJFilePath = _tempDir.filePath(_modelURL.fileName());
     qDebug() << "Made temporary dir " << _tempDir;
     qDebug() << "Origin file path: " << _originalOBJFilePath;
     
@@ -80,21 +77,21 @@ void OBJBaker::bake() {
 
 void OBJBaker::loadOBJ() {
     // check if the OBJ is local or it needs to be downloaded
-    if (_objURL.isLocalFile()) {
+    if (_modelURL.isLocalFile()) {
         // loading the local OBJ
-        QFile localOBJ{ _objURL.toLocalFile() };
+        QFile localOBJ{ _modelURL.toLocalFile() };
 
-        qDebug() << "Local file url: " << _objURL << _objURL.toString() << _objURL.toLocalFile() << ", copying to: " << _originalOBJFilePath;
+        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalOBJFilePath;
 
         if (!localOBJ.exists()) {
-            handleError("Could not find " + _objURL.toString());
+            handleError("Could not find " + _modelURL.toString());
             return;
         }
 
         // make a copy in the output folder
         if (!_originalOutputDir.isEmpty()) {
-            qDebug() << "Copying to: " << _originalOutputDir << "/" << _objURL.fileName();
-            localOBJ.copy(_originalOutputDir + "/" + _objURL.fileName());
+            qDebug() << "Copying to: " << _originalOutputDir << "/" << _modelURL.fileName();
+            localOBJ.copy(_originalOutputDir + "/" + _modelURL.fileName());
         }
                 
         localOBJ.copy(_originalOBJFilePath);
@@ -111,9 +108,9 @@ void OBJBaker::loadOBJ() {
         networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
         networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
         networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        networkRequest.setUrl(_objURL);
+        networkRequest.setUrl(_modelURL);
         
-        qCDebug(model_baking) << "Downloading" << _objURL;
+        qCDebug(model_baking) << "Downloading" << _modelURL;
         auto networkReply = networkAccessManager.get(networkRequest);
         
         connect(networkReply, &QNetworkReply::finished, this, &OBJBaker::handleOBJNetworkReply);
@@ -124,7 +121,7 @@ void OBJBaker::handleOBJNetworkReply() {
     auto requestReply = qobject_cast<QNetworkReply*>(sender());
 
     if (requestReply->error() == QNetworkReply::NoError) {
-        qCDebug(model_baking) << "Downloaded" << _objURL;
+        qCDebug(model_baking) << "Downloaded" << _modelURL;
 
         // grab the contents of the reply and make a copy in the output folder
         QFile copyOfOriginal(_originalOBJFilePath);
@@ -133,11 +130,11 @@ void OBJBaker::handleOBJNetworkReply() {
 
         if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
             // add an error to the error list for this obj stating that a duplicate of the original obj could not be made
-            handleError("Could not create copy of " + _objURL.toString() + " (Failed to open " + _originalOBJFilePath + ")");
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalOBJFilePath + ")");
             return;
         }
         if (copyOfOriginal.write(requestReply->readAll()) == -1) {
-            handleError("Could not create copy of " + _objURL.toString() + " (Failed to write)");
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to write)");
             return;
         }
 
@@ -145,14 +142,14 @@ void OBJBaker::handleOBJNetworkReply() {
         copyOfOriginal.close();
 
         if (!_originalOutputDir.isEmpty()) {
-            copyOfOriginal.copy(_originalOutputDir + "/" + _objURL.fileName());
+            copyOfOriginal.copy(_originalOutputDir + "/" + _modelURL.fileName());
         }
 
         // remote OBJ is loaded emit signal to trigger its baking
         emit OBJLoaded();
     } else {
         // add an error to our list stating that the OBJ could not be downloaded
-        handleError("Failed to download " + _objURL.toString());
+        handleError("Failed to download " + _modelURL.toString());
     }
 }
 
@@ -169,7 +166,7 @@ void OBJBaker::bakeOBJ() {
 
     bool combineParts = true; // set true so that OBJReader reads material info from material library
     OBJReader reader;
-    FBXGeometry* geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _objURL);
+    FBXGeometry* geometry = reader.readOBJ(objData, QVariantHash(), combineParts, _modelURL);
    
     // Write OBJ Data as FBX tree nodes
     FBXNode rootNode;
@@ -179,7 +176,7 @@ void OBJBaker::bakeOBJ() {
     auto encodedFBX = FBXWriter::encodeFBX(rootNode);
 
     // Export as baked FBX
-    auto fileName = _objURL.fileName();
+    auto fileName = _modelURL.fileName();
     auto baseName = fileName.left(fileName.lastIndexOf('.'));
     auto bakedFilename = baseName + ".baked.fbx";
 
@@ -196,7 +193,7 @@ void OBJBaker::bakeOBJ() {
 
     // Export successful
     _outputFiles.push_back(_bakedOBJFilePath);
-    qCDebug(model_baking) << "Exported" << _objURL << "to" << _bakedOBJFilePath;
+    qCDebug(model_baking) << "Exported" << _modelURL << "to" << _bakedOBJFilePath;
     
     // Export done emit finished
     emit finished();
@@ -293,7 +290,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
             };
             
             // Compress the texture using ModelBaker::compressTexture() and store compressed file's name in the node
-            QByteArray* textureFile = this->compressTexture(textureFileName, _objURL, _bakedOutputDir, _textureThreadGetter, textureContentTypeCallback, _originalOutputDir);
+            QByteArray* textureFile = this->compressTexture(textureFileName, textureContentTypeCallback);
             if (textureFile) {
                 textureProperty = QVariant::fromValue(QByteArray(textureFile->data(), (int)textureFile->size()));
             } else {

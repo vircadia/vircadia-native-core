@@ -29,7 +29,15 @@
 #pragma warning( pop )
 #endif
 
-ModelBaker::ModelBaker() {}
+ModelBaker::ModelBaker(const QUrl& modelURL, TextureBakerThreadGetter textureThreadGetter,
+                       const QString& bakedOutputDir, const QString& originalOutputDir) :
+    _modelURL(modelURL),
+    _textureThreadGetter(textureThreadGetter),
+    _bakedOutputDir(bakedOutputDir),
+    _originalOutputDir(originalOutputDir)
+{
+
+}
 
 void ModelBaker::bake() {}
 
@@ -206,12 +214,7 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
     return true;
 }
 
-QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl modelURL, QString bakedOutputDir, TextureBakerThreadGetter textureThreadGetter, 
-                                        getTextureTypeCallback textureTypeCallback, const QString& originalOutputDir) {
-    _modelURL = modelURL;
-    _textureThreadGetter = textureThreadGetter;
-    _originalOutputDir = originalOutputDir;
-
+QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTextureTypeCallback textureTypeCallback) {
     static QByteArray textureChild;
     QByteArray textureContent;
     image::TextureUsage::Type textureType;
@@ -260,7 +263,7 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
             << "to" << bakedTextureFileName;
 
         QString bakedTextureFilePath{
-            bakedOutputDir + "/" + bakedTextureFileName
+            _bakedOutputDir + "/" + bakedTextureFileName
         };
 
         textureChild = bakedTextureFileName.toLocal8Bit();
@@ -269,7 +272,7 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
             _outputFiles.push_back(bakedTextureFilePath);
 
             // bake this texture asynchronously
-            bakeTexture(urlToTexture, textureType, bakedOutputDir, bakedTextureFileName, textureContent);
+            bakeTexture(urlToTexture, textureType, _bakedOutputDir, bakedTextureFileName, textureContent);
         }
     }
    

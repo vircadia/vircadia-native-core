@@ -37,7 +37,7 @@ public:
              const QString& bakedOutputDir, const QString& originalOutputDir = "");
     ~FBXBaker() override;
 
-    QUrl getFBXUrl() const { return _fbxURL; }
+    QUrl getFBXUrl() const { return _modelURL; }
     QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
 
 public slots:
@@ -62,17 +62,10 @@ private:
     void exportScene();
     void removeEmbeddedMediaFolder();
 
-    QUrl _fbxURL;
-
     FBXNode _rootNode;
     FBXGeometry* _geometry;
 
     QString _bakedFBXFilePath;
-
-    QString _bakedOutputDir;
-
-    // If set, the original FBX and textures will also be copied here
-    QString _originalOutputDir;
 
     QDir _tempDir;
     QString _originalFBXFilePath;
@@ -80,8 +73,6 @@ private:
     QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
-
-    TextureBakerThreadGetter _textureThreadGetter;
 
     bool _pendingErrorEmission { false };
 };
