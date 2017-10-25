@@ -69,8 +69,8 @@ ParticleEffectEntityRenderer::ParticleEffectEntityRenderer(const EntityItemPoint
 }
 
 bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    entity->checkAndMaybeUpdateQueryAACube();
-        
+    entity->updateQueryAACube();
+
     if (_emitting != entity->getIsEmitting()) {
         return true;
     }

@@ -106,11 +106,11 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
-    bool checkAndMaybeUpdateQueryAACube();
-    void updateQueryAACube();
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAACubeNeedsUpdate() const;
+    virtual bool shouldPuffQueryAACube() const { return false; }
+    bool updateQueryAACube();
     void forceQueryAACubeUpdate() { _queryAACubeSet = false; }
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
@@ -234,6 +234,7 @@ private:
     glm::vec3 _angularVelocity;
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
+    bool _queryAACubeIsPuffed { false };
 };
 
 

@@ -491,6 +491,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
         return true;
     }
 
+    if (_entity->shouldSuppressLocationEdits()) {
+        return false;
+    }
+
     if (!isLocallyOwned()) {
         // we don't own the simulation
 
@@ -577,7 +581,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     }
 
     if (properties.transformChanged()) {
-        if (_entity->checkAndMaybeUpdateQueryAACube()) {
+        if (_entity->updateQueryAACube()) {
             // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
             properties.setQueryAACube(_entity->getQueryAACube());
         }
@@ -644,7 +648,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     _entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
         if (descendant->getNestableType() == NestableType::Entity) {
             EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
-            if (descendant->checkAndMaybeUpdateQueryAACube()) {
+            if (descendant->updateQueryAACube()) {
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 newQueryCubeProperties.setLastEdited(properties.getLastEdited());
