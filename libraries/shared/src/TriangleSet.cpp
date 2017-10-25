@@ -104,8 +104,9 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
     if (_bounds.findRayIntersection(origin, direction, boxDistance, face, surfaceNormal)) {
 
         // if our bounding box intersects at a distance greater than the current known
-        // best distance, than we can safely not check any of our triangles
-        if (boxDistance > bestDistance) {
+        // best distance, and our origin isn't inside the boounds, then we can safely 
+        // not check any of our triangles
+        if (boxDistance > bestDistance && !_bounds.contains(origin)) {
             return false;
         }
 
