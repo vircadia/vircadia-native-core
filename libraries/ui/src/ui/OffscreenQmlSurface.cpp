@@ -98,7 +98,7 @@ void OffscreenQmlSurface::addWhitelistContextHandler(const std::initializer_list
 }
 
 
-QmlContextCallback OffscreenQmlSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*, QObject*) {};
+QmlContextObjectCallback OffscreenQmlSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*, QObject*) {};
 
 struct TextureSet {
     // The number of surfaces with this size
@@ -688,7 +688,7 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlContext->setBaseUrl(baseUrl);
 }
 
-void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, const QmlContextCallback& onQmlLoadedCallback) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, const QmlContextObjectCallback& onQmlLoadedCallback) {
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
@@ -699,11 +699,14 @@ void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, con
     QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(qmlSource);
     // If we have whitelisted content, we must load a new context
     createNewContext |= !callbacks.empty();
-    callbacks.push_back(onQmlLoadedCallback);
 
     QQmlContext* targetContext = _qmlContext;
     if (_rootItem && createNewContext) {
         targetContext = new QQmlContext(targetContext);
+    }
+
+    for (const auto& callback : callbacks) {
+        callback(targetContext);
     }
 
 
@@ -716,23 +719,23 @@ void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, con
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this, [=](QQmlComponent::Status) { 
-            finishQmlLoad(qmlComponent, targetContext, callbacks);
+            finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
         });
         return;
     }
 
-    finishQmlLoad(qmlComponent, targetContext, callbacks);
+    finishQmlLoad(qmlComponent, targetContext, onQmlLoadedCallback);
 }
 
-void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback) {
+void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback) {
     load(qmlSource, true, onQmlLoadedCallback);
 }
 
-void OffscreenQmlSurface::load(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback) {
+void OffscreenQmlSurface::load(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback) {
     load(qmlSource, false, onQmlLoadedCallback);
 }
 
-void OffscreenQmlSurface::load(const QString& qmlSourceFile, const QmlContextCallback& onQmlLoadedCallback)  {
+void OffscreenQmlSurface::load(const QString& qmlSourceFile, const QmlContextObjectCallback& onQmlLoadedCallback)  {
     return load(QUrl(qmlSourceFile), onQmlLoadedCallback);
 }
 
@@ -740,7 +743,7 @@ void OffscreenQmlSurface::clearCache() {
     _qmlContext->engine()->clearComponentCache();
 }
 
-void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QList<QmlContextCallback>& callbacks) {
+void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QmlContextObjectCallback& callback) {
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
@@ -775,9 +778,7 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     // Make sure we will call callback for this codepath
     // Call this before qmlComponent->completeCreate() otherwise ghost window appears
     if (newItem && _rootItem) {
-        for (const auto& callback : callbacks) {
-            callback(qmlContext, newObject);
-        }
+        callback(qmlContext, newObject);
     }
 
     QObject* eventBridge = qmlContext->contextProperty("eventBridge").value<QObject*>();
@@ -814,9 +815,7 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     _rootItem->setSize(_quickWindow->renderTargetSize());
 
     // Call this callback after rootitem is set, otherwise VrMenu wont work
-    for (const auto& callback : callbacks) {
-        callback(qmlContext, newObject);
-    }
+    callback(qmlContext, newObject);
 }
 
 void OffscreenQmlSurface::updateQuick() {
