@@ -36,8 +36,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onSecurityImageResult: {
             titleBarSecurityImage.source = "";
@@ -218,7 +218,7 @@ Item {
 
             onAccepted: {
                 submitPassphraseInputButton.enabled = false;
-                commerce.setPassphrase(passphraseField.text);
+                Commerce.setPassphrase(passphraseField.text);
             }
         }
 
@@ -258,7 +258,7 @@ Item {
                 source: "image://security/securityImage";
                 cache: false;
                 onVisibleChanged: {
-                    commerce.getSecurityImage();
+                    Commerce.getSecurityImage();
                 }
             }
             Item {
@@ -326,7 +326,7 @@ Item {
                 text: "Submit"
                 onClicked: {
                     submitPassphraseInputButton.enabled = false;
-                    commerce.setPassphrase(passphraseField.text);
+                    Commerce.setPassphrase(passphraseField.text);
                 }
             }
 

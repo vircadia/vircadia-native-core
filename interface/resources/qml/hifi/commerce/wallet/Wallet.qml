@@ -36,8 +36,8 @@ Rectangle {
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onWalletStatusResult: {
             if (walletStatus === 0) {
@@ -54,7 +54,7 @@ Rectangle {
                 }
             } else if (walletStatus === 3) {
                 root.activeView = "walletHome";
-                commerce.getSecurityImage();
+                Commerce.getSecurityImage();
             } else {
                 console.log("ERROR in Wallet.qml: Unknown wallet status: " + walletStatus);
             }
@@ -64,7 +64,7 @@ Rectangle {
             if (!isLoggedIn && root.activeView !== "needsLogIn") {
                 root.activeView = "needsLogIn";
             } else if (isLoggedIn) {
-                commerce.getWalletStatus();
+                Commerce.getWalletStatus();
             }
         }
 
@@ -174,7 +174,7 @@ Rectangle {
                 if (msg.method === 'walletSetup_finished') {
                     if (msg.referrer === '') {
                         root.activeView = "initialize";
-                        commerce.getWalletStatus();
+                        Commerce.getWalletStatus();
                     } else if (msg.referrer === 'purchases') {
                         sendToScript({method: 'goToPurchases'});
                     } else {
@@ -254,7 +254,7 @@ Rectangle {
         color: hifi.colors.baseGray;
 
         Component.onCompleted: {
-            commerce.getWalletStatus();
+            Commerce.getWalletStatus();
         }
     }
 
@@ -275,7 +275,7 @@ Rectangle {
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
-            commerce.getLoginStatus();
+            Commerce.getLoginStatus();
         }
     }
 
@@ -289,7 +289,7 @@ Rectangle {
         Connections {
             onSendSignalToParent: {
                 if (msg.method === "authSuccess") {
-                    commerce.getWalletStatus();
+                    Commerce.getWalletStatus();
                 } else {
                     sendToScript(msg);
                 }

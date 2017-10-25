@@ -27,8 +27,8 @@ Item {
     property string keyFilePath;
     property bool showDebugButtons: true;
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onKeyFilePathIfExistsResult: {
             root.keyFilePath = path;
@@ -37,7 +37,7 @@ Item {
 
     onVisibleChanged: {
         if (visible) {
-            commerce.getKeyFilePathIfExists();
+            Commerce.getKeyFilePathIfExists();
         }
     }
 
@@ -67,7 +67,7 @@ Item {
         width: 150;
         text: "DBG: Clear Pass";
         onClicked: {
-            commerce.setPassphrase("");
+            Commerce.setPassphrase("");
             sendSignalToWallet({method: 'passphraseReset'});
         }
     }
@@ -82,7 +82,7 @@ Item {
         width: 150;
         text: "DBG: RST Wallet";
         onClicked: {
-            commerce.reset();
+            Commerce.reset();
             sendSignalToWallet({method: 'walletReset'});
         }
     }

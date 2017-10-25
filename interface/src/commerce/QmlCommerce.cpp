@@ -16,9 +16,7 @@
 #include "Wallet.h"
 #include <AccountManager.h>
 
-HIFI_QML_DEF(QmlCommerce)
-
-QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
+QmlCommerce::QmlCommerce() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     connect(ledger.data(), &Ledger::buyResult, this, &QmlCommerce::buyResult);

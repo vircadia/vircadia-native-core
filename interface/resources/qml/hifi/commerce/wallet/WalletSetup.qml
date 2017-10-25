@@ -37,8 +37,8 @@ Item {
         source: "images/wallet-bg.jpg";
     }
 
-    Hifi.QmlCommerce {
-        id: commerce;
+    Connections {
+        target: Commerce;
 
         onSecurityImageResult: {
             if (!exists && root.lastPage === "step_2") {
@@ -356,7 +356,7 @@ Item {
                 onClicked: {
                     root.lastPage = "step_2";
                     var securityImagePath = securityImageSelection.getImagePathFromImageID(securityImageSelection.getSelectedImageIndex())
-                    commerce.chooseSecurityImage(securityImagePath);
+                    Commerce.chooseSecurityImage(securityImagePath);
                     root.activeView = "step_3";
                     passphraseSelection.clearPassphraseFields();
                 }
@@ -440,7 +440,7 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
-                commerce.getWalletAuthenticatedStatus();
+                Commerce.getWalletAuthenticatedStatus();
                 if (!root.hasShownSecurityImageTip) {
                     securityImageTip.visible = true;
                 }
@@ -529,7 +529,7 @@ Item {
                 onClicked: {
                     if (passphraseSelection.validateAndSubmitPassphrase()) {
                         root.lastPage = "step_3";
-                        commerce.generateKeyPair();
+                        Commerce.generateKeyPair();
                         root.activeView = "step_4";
                     }
                 }
@@ -662,7 +662,7 @@ Item {
 
                     onVisibleChanged: {
                         if (visible) {
-                            commerce.getKeyFilePathIfExists();
+                            Commerce.getKeyFilePathIfExists();
                         }
                     }
                 }
