@@ -27,7 +27,12 @@ public:
     void enablePick(const QUuid& uid) const;
     void disablePick(const QUuid& uid) const;
 
-    QVariantMap getPrevPickResult(const QUuid& uid) const;
+    PickResultPointer getPrevPickResult(const QUuid& uid) const;
+
+    template <typename T>
+    std::shared_ptr<T> getPrevPickResultTyped(const QUuid& uid) const {
+        return std::static_pointer_cast<T>(getPrevPickResult(uid));
+    }
 
     void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const;
     void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignore) const;
@@ -43,6 +48,7 @@ protected:
     QHash<QUuid, PickQuery::PickType> _typeMap;
 
     PickCacheOptimizer<PickRay> _rayPickCacheOptimizer;
+    PickCacheOptimizer<StylusTip> _stylusPickCacheOptimizer;
 };
 
 #endif // hifi_PickManager_h

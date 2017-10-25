@@ -13,6 +13,6 @@ StaticRayPick::StaticRayPick(const glm::vec3& position, const glm::vec3& directi
 {
 }
 
-const PickRay StaticRayPick::getMathematicalPick() const {
+PickRay StaticRayPick::getMathematicalPick() const {
     return _pickRay;
 }

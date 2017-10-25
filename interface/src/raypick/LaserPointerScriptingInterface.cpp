@@ -28,3 +28,7 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
 void LaserPointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
     DependencyManager::get<PointerScriptingInterface>()->editRenderState(uid, renderState, properties);
 }
+
+QVariantMap LaserPointerScriptingInterface::getPrevRayPickResult(const QUuid& uid) const { 
+    return DependencyManager::get<PointerScriptingInterface>()->getPrevPickResult(uid);
+}

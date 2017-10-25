@@ -40,12 +40,12 @@ void PickManager::removePick(const QUuid& uid) {
     });
 }
 
-QVariantMap PickManager::getPrevPickResult(const QUuid& uid) const {
+PickResultPointer PickManager::getPrevPickResult(const QUuid& uid) const {
     auto pick = findPick(uid);
-    if (pick && pick->getPrevPickResult()) {
-        return pick->getPrevPickResult()->toVariantMap();
+    if (pick) {
+        return pick->getPrevPickResult();
     }
-    return QVariantMap();
+    return PickResultPointer();
 }
 
 void PickManager::enablePick(const QUuid& uid) const {
@@ -91,4 +91,5 @@ void PickManager::update() {
 
     bool shouldPickHUD = _shouldPickHUDOperator();
     _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], shouldPickHUD);
+    _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], false);
 }

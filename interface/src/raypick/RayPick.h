@@ -53,7 +53,7 @@ public:
     bool doesIntersect() const override { return intersects; }
     bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return distance < maxDistance; }
 
-    PickResultPointer compareAndProcessNewResult(const PickResultPointer newRes) override {
+    PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override {
         auto newRayRes = std::static_pointer_cast<RayPickResult>(newRes);
         if (newRayRes->distance < distance) {
             return std::make_shared<RayPickResult>(*newRayRes);

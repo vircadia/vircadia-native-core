@@ -27,7 +27,7 @@ public slots:
     Q_INVOKABLE void removeLaserPointer(const QUuid& uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
     Q_INVOKABLE void editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const;
     Q_INVOKABLE void setRenderState(const QUuid& uid, const QString& renderState) const { DependencyManager::get<PointerManager>()->setRenderState(uid, renderState.toStdString()); }
-    Q_INVOKABLE QVariantMap getPrevRayPickResult(QUuid uid) const { return DependencyManager::get<PointerManager>()->getPrevPickResult(uid); }
+    Q_INVOKABLE QVariantMap getPrevRayPickResult(const QUuid& uid) const;
 
     Q_INVOKABLE void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const { DependencyManager::get<PointerManager>()->setPrecisionPicking(uid, precisionPicking); }
     Q_INVOKABLE void setLaserLength(const QUuid& uid, float laserLength) const { DependencyManager::get<PointerManager>()->setLength(uid, laserLength); }

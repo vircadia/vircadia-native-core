@@ -21,6 +21,7 @@
 
 #include "AACube.h"
 #include "SharedUtil.h"
+#include "shared/Bilateral.h"
 
 class QColor;
 class QUrl;
@@ -152,17 +153,73 @@ public:
         return pickRay;
     }
 };
+
+struct StylusTip : public MathPick {
+    bilateral::Side side{ bilateral::Side::Invalid };
+    glm::vec3 position;
+    glm::quat orientation;
+    glm::vec3 velocity;
+    virtual operator bool() const override { return side != bilateral::Side::Invalid; }
+    QVariantMap toVariantMap() const override {
+        QVariantMap pickRay;
+        pickRay["position"] = vec3toVariant(position);
+        pickRay["orientation"] = quatToVariant(orientation);
+        pickRay["velocity"] = vec3toVariant(velocity);
+        return pickRay;
+    }
+};
+
+
 namespace std {
+	inline void hash_combine(std::size_t& seed) { }
+
+	template <typename T, typename... Rest>
+	inline void hash_combine(std::size_t& seed, const T& v, Rest... rest) {
+		std::hash<T> hasher;
+		seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+		hash_combine(seed, rest...);
+	}
+
     template <>
-    struct hash<glm::vec3> {
-        size_t operator()(const glm::vec3& a) const {
-            return ((hash<float>()(a.x) ^ (hash<float>()(a.y) << 1)) >> 1) ^ (hash<float>()(a.z) << 1);
+    struct hash<bilateral::Side> {
+        size_t operator()(const bilateral::Side& a) const {
+            return std::hash<int>()((int)a);
         }
     };
-    template <>
+
+	template <>
+    struct hash<glm::vec3> {
+        size_t operator()(const glm::vec3& a) const {
+        	size_t result = 0;
+        	hash_combine(result, a.x, a.y, a.z);
+        	return result;
+        }
+    };
+
+	template <>
+    struct hash<glm::quat> {
+        size_t operator()(const glm::quat& a) const {
+        	size_t result = 0;
+        	hash_combine(result, a.x, a.y, a.z, a.w);
+        	return result;
+        }
+    };
+
+	template <>
     struct hash<PickRay> {
         size_t operator()(const PickRay& a) const {
-            return (hash<glm::vec3>()(a.origin) ^ (hash<glm::vec3>()(a.direction) << 1));
+        	size_t result = 0;
+        	hash_combine(result, a.origin, a.direction);
+        	return result;
+        }
+    };
+
+	template <>
+    struct hash<StylusTip> {
+        size_t operator()(const StylusTip& a) const {
+            size_t result = 0;
+            hash_combine(result, a.side, a.position, a.orientation, a.velocity);
+            return result;
         }
     };
 }

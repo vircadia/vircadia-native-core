@@ -10,9 +10,11 @@
 
 #include <QtCore/QVariant>
 #include <GLMHelpers.h>
+#include <shared/QtHelpers.h>
 
 #include "Application.h"
 #include "LaserPointer.h"
+#include "StylusPointer.h"
 
 void PointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
@@ -21,13 +23,38 @@ void PointerScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptV
     DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
-QUuid PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) const {
+QUuid PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) {
+    // Interaction with managers should always happen ont he main thread
+    if (QThread::currentThread() != qApp->thread()) {
+        QUuid result;
+        BLOCKING_INVOKE_METHOD(this, "createPointer", Q_RETURN_ARG(QUuid, result), Q_ARG(PickQuery::PickType, type), Q_ARG(QVariant, properties));
+        return result;
+    }
+
     switch (type) {
         case PickQuery::PickType::Ray:
             return createLaserPointer(properties);
+        case PickQuery::PickType::Stylus:
+            return createStylus(properties);
         default:
             return QUuid();
     }
+}
+
+QUuid PointerScriptingInterface::createStylus(const QVariant& properties) const {
+    bilateral::Side side = bilateral::Side::Invalid;
+    {
+        QVariant handVar = properties.toMap()["hand"];
+        if (handVar.isValid()) {
+            side = bilateral::side(handVar.toInt());
+        }
+    }
+
+    if (bilateral::Side::Invalid == side) {
+        return QUuid();
+    }
+
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(side));
 }
 
 QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
@@ -134,3 +161,13 @@ void PointerScriptingInterface::editRenderState(const QUuid& uid, const QString&
 
     DependencyManager::get<PointerManager>()->editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
 }
+
+QVariantMap PointerScriptingInterface::getPrevPickResult(const QUuid& uid) const { 
+    QVariantMap result;
+    auto pickResult = DependencyManager::get<PointerManager>()->getPrevPickResult(uid);
+    if (pickResult) {
+        result = pickResult->toVariantMap();
+    }
+    return result;
+}
+

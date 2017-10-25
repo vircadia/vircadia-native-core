@@ -20,15 +20,16 @@ class PointerScriptingInterface : public QObject, public Dependency {
 
 public:
     QUuid createLaserPointer(const QVariant& properties) const;
+    QUuid createStylus(const QVariant& properties) const;
 
 public slots:
-    Q_INVOKABLE QUuid createPointer(const PickQuery::PickType& type, const QVariant& properties) const;
+    Q_INVOKABLE QUuid createPointer(const PickQuery::PickType& type, const QVariant& properties);
     Q_INVOKABLE void enablePointer(const QUuid& uid) const { DependencyManager::get<PointerManager>()->enablePointer(uid); }
     Q_INVOKABLE void disablePointer(const QUuid& uid) const { DependencyManager::get<PointerManager>()->disablePointer(uid); }
     Q_INVOKABLE void removePointer(const QUuid& uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
     Q_INVOKABLE void editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const;
     Q_INVOKABLE void setRenderState(const QUuid& uid, const QString& renderState) const { DependencyManager::get<PointerManager>()->setRenderState(uid, renderState.toStdString()); }
-    Q_INVOKABLE QVariantMap getPrevPickResult(const QUuid& uid) const { return DependencyManager::get<PointerManager>()->getPrevPickResult(uid); }
+    Q_INVOKABLE QVariantMap getPrevPickResult(const QUuid& uid) const;
 
     Q_INVOKABLE void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const { DependencyManager::get<PointerManager>()->setPrecisionPicking(uid, precisionPicking); }
     Q_INVOKABLE void setLaserLength(const QUuid& uid, float laserLength) const { DependencyManager::get<PointerManager>()->setLength(uid, laserLength); }
