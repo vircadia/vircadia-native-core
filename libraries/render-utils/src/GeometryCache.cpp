@@ -52,6 +52,46 @@
 
 //#define WANT_DEBUG
 
+// @note: Originally size entity::NUM_SHAPES
+//        As of Commit b93e91b9, render-utils no longer retains knowledge of
+//        entity lib, and thus doesn't know about entity::NUM_SHAPES.  Should
+//        the enumerations be altered, this will need to be updated.
+// @see ShapeEntityItem.h
+static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING{ {
+        GeometryCache::Triangle,
+        GeometryCache::Quad,
+        GeometryCache::Hexagon,
+        GeometryCache::Octagon,
+        GeometryCache::Circle,
+        GeometryCache::Cube,
+        GeometryCache::Sphere,
+        GeometryCache::Tetrahedron,
+        GeometryCache::Octahedron,
+        GeometryCache::Dodecahedron,
+        GeometryCache::Icosahedron,
+        GeometryCache::Torus,
+        GeometryCache::Cone,
+        GeometryCache::Cylinder,
+} };
+
+static const std::array<const char * const, GeometryCache::NUM_SHAPES> GEOCACHE_SHAPE_STRINGS{ {
+        "Line",
+        "Triangle",
+        "Quad",
+        "Hexagon",
+        "Octagon",
+        "Circle",
+        "Cube",
+        "Sphere",
+        "Tetrahedron",
+        "Octahedron",
+        "Dodecahedron",
+        "Icosahedron",
+        "Torus",
+        "Cone",
+        "Cylinder"
+    } };
+
 const int GeometryCache::UNKNOWN_ID = -1;
 
 
@@ -69,6 +109,51 @@ static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
 
+void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList) {
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    const GeometryCache::Shape geometryShape = GeometryCache::getShapeForEntityShape( entityShape );
+    const GeometryCache::ShapeData * shapeData = geometryCache->getShapeData( geometryShape );
+    if (!shapeData){
+        //--EARLY EXIT--( data isn't ready for some reason... )
+        return;
+    }
+
+    const gpu::BufferView & shapeVerts = shapeData->_positionView;
+    const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
+
+    outPointList.reserve((int)numItems);
+    QVector<glm::vec3> uniqueVerts;
+    uniqueVerts.reserve((int)numItems);
+
+    const float MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED = 1.0e-6f; //< 1mm^2
+    for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
+        const int numUniquePoints = (int)uniqueVerts.size();
+        const geometry::Vec &curVert = shapeVerts.get<geometry::Vec>(i);
+        bool isUniquePoint = true;
+
+        for (int uniqueIndex = 0; uniqueIndex < numUniquePoints; ++uniqueIndex) {
+            const geometry::Vec knownVert = uniqueVerts[uniqueIndex];
+            const float distToKnownPoint = glm::length2(knownVert - curVert);
+
+            if (distToKnownPoint <= MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED) {
+                isUniquePoint = false;
+                break;
+            }
+        }
+
+        if (!isUniquePoint) {
+
+            //--EARLY ITERATION EXIT--
+            continue;
+        }
+
+
+        uniqueVerts.push_back(curVert);
+        outPointList.push_back(curVert * entityExtents);
+    }
+}
+
 template <size_t SIDES>
 std::vector<vec3> polygon() {
     std::vector<vec3> result;
@@ -85,7 +170,7 @@ void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, c
     gpu::Buffer::Size offset = vertexBuffer->getSize();
     vertexBuffer->append(vertices);
 
-    gpu::Buffer::Size viewSize = vertices.size() * 2 * sizeof(glm::vec3);
+    gpu::Buffer::Size viewSize = vertices.size() * sizeof(glm::vec3);
 
     _positionView = gpu::BufferView(vertexBuffer, offset,
         viewSize, SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
@@ -441,10 +526,44 @@ void GeometryCache::buildShapes() {
     extrudePolygon<64>(_shapes[Cone], _shapeVertices, _shapeIndices, true);
     //Circle
     drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
-    // Not implememented yet:
+    // Not implemented yet:
     //Quad,
     //Torus, 
  
+}
+
+const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) const {
+    if (((int)shape < 0) || ((int)shape >= (int)_shapes.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeData - Invalid shape " << shape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( No valid shape data for shape )
+        return nullptr;
+    }
+
+    return &_shapes[shape];
+}
+
+GeometryCache::Shape GeometryCache::getShapeForEntityShape(int entityShape) {
+    if ((entityShape < 0) || (entityShape >= (int)MAPPING.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeForEntityShape - Invalid shape " << entityShape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( fall back to default assumption )
+        return GeometryCache::Sphere;
+    }
+
+    return MAPPING[entityShape];
+}
+
+QString GeometryCache::stringFromShape(GeometryCache::Shape geoShape)
+{
+    if (((int)geoShape < 0) || ((int)geoShape >= (int)GeometryCache::NUM_SHAPES)) {
+        qCWarning(renderutils) << "GeometryCache::stringFromShape - Invalid shape " << geoShape << " specified.";
+
+        //--EARLY EXIT--
+        return "INVALID_GEOCACHE_SHAPE";
+    }
+
+    return GEOCACHE_SHAPE_STRINGS[geoShape];
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {

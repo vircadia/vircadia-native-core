@@ -66,7 +66,7 @@ class PhysicsEngine;
 
 class ObjectMotionState : public btMotionState {
 public:
-    // These poroperties of the PhysicsEngine are "global" within the context of all ObjectMotionStates
+    // These properties of the PhysicsEngine are "global" within the context of all ObjectMotionStates
     // (assuming just one PhysicsEngine).  They are cached as statics for fast calculations in the
     // ObjectMotionState context.
     static void setWorldOffset(const glm::vec3& offset);
