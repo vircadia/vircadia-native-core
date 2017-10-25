@@ -140,6 +140,10 @@
         if (!$('body').hasClass("login-injected") && !userIsLoggedIn) {
             $('body').addClass("login-injected");
             var resultsElement = document.getElementById('results');
+            if (!resultsElement) { // If we're on the main page, this will evaluate to `true`
+                resultsElement = document.getElementById('item-show');
+                resultsElement.style = 'margin-top:0;';
+            }
             var logInElement = document.createElement('div');
             logInElement.classList.add("row");
             logInElement.id = "logInDiv";
@@ -193,6 +197,11 @@
             var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
             var purchasesElement = document.createElement('a');
             var dropDownElement = document.getElementById('user-dropdown');
+
+            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" + 
+                "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
+            $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
+
             purchasesElement.id = "purchasesButton";
             purchasesElement.setAttribute('href', "#");
             purchasesElement.innerHTML = "My Purchases";

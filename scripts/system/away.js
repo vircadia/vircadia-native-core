@@ -30,7 +30,6 @@ var OVERLAY_DATA = {
 };
 var AVATAR_MOVE_FOR_ACTIVE_DISTANCE = 0.8; // meters -- no longer away if avatar moves this far while away
 
-var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 var CAMERA_MATRIX = -7;
 
 var OVERLAY_DATA_HMD = {
@@ -44,7 +43,7 @@ var OVERLAY_DATA_HMD = {
     scale: 2 * MyAvatar.sensorToWorldScale,
     emissive: true,
     drawInFront: true,
-    parentID: AVATAR_SELF_ID,
+    parentID: MyAvatar.SELF_ID,
     parentJointIndex: CAMERA_MATRIX
 };
 

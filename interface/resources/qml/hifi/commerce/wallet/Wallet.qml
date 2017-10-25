@@ -29,6 +29,7 @@ Rectangle {
 
     property string activeView: "initialize";
     property bool keyboardRaised: false;
+    property bool isPassword: false;
 
     Image {
         anchors.fill: parent;
@@ -165,7 +166,7 @@ Rectangle {
     WalletSetup {
         id: walletSetup;
         visible: root.activeView === "walletSetup";
-        z: 998;
+        z: 997;
         anchors.fill: parent;
 
         Connections {
@@ -181,8 +182,10 @@ Rectangle {
                     }
                 } else if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
+                    root.isPassword = msg.isPasswordField;
                 } else if (msg.method === 'walletSetup_lowerKeyboard') {
                     root.keyboardRaised = false;
+                    root.isPassword = msg.isPasswordField;
                 } else {
                     sendToScript(msg);
                 }
@@ -192,7 +195,7 @@ Rectangle {
     PassphraseChange {
         id: passphraseChange;
         visible: root.activeView === "passphraseChange";
-        z: 998;
+        z: 997;
         anchors.top: titleBarContainer.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -202,6 +205,7 @@ Rectangle {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSetup_raiseKeyboard') {
                     root.keyboardRaised = true;
+                    root.isPassword = msg.isPasswordField;
                 } else if (msg.method === 'walletSetup_lowerKeyboard') {
                     root.keyboardRaised = false;
                 } else if (msg.method === 'walletSecurity_changePassphraseCancelled') {
@@ -217,7 +221,7 @@ Rectangle {
     SecurityImageChange {
         id: securityImageChange;
         visible: root.activeView === "securityImageChange";
-        z: 998;
+        z: 997;
         anchors.top: titleBarContainer.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -653,7 +657,7 @@ Rectangle {
 
     Item {
         id: keyboardContainer;
-        z: 999;
+        z: 998;
         visible: keyboard.raised;
         property bool punctuationMode: false;
         anchors {
@@ -664,11 +668,13 @@ Rectangle {
 
         Image {
             id: lowerKeyboardButton;
+            z: 999;
             source: "images/lowerKeyboard.png";
-            anchors.horizontalCenter: parent.horizontalCenter;
-            anchors.bottom: keyboard.top;
-            height: 30;
-            width: 120;
+            anchors.right: keyboard.right;
+            anchors.top: keyboard.showMirrorText ? keyboard.top : undefined;
+            anchors.bottom: keyboard.showMirrorText ? undefined : keyboard.bottom;
+            height: 50;
+            width: 60;
 
             MouseArea {
                 anchors.fill: parent;
@@ -683,6 +689,7 @@ Rectangle {
             id: keyboard;
             raised: HMD.mounted && root.keyboardRaised;
             numeric: parent.punctuationMode;
+            password: root.isPassword;
             anchors {
                 bottom: parent.bottom;
                 left: parent.left;

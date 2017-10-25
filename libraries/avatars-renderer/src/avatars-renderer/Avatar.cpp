@@ -994,10 +994,12 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             glm::mat4 finalMat = glm::inverse(avatarMatrix) * sensorToWorldMatrix;
             return glmExtractRotation(finalMat);
         }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX:
         case CONTROLLER_LEFTHAND_INDEX: {
             Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
             return controllerLeftHandTransform.getRotation();
         }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX:
         case CONTROLLER_RIGHTHAND_INDEX: {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getRotation();
@@ -1032,10 +1034,12 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             glm::mat4 finalMat = glm::inverse(avatarMatrix) * sensorToWorldMatrix;
             return extractTranslation(finalMat);
         }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX:
         case CONTROLLER_LEFTHAND_INDEX: {
             Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
             return controllerLeftHandTransform.getTranslation();
         }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX:
         case CONTROLLER_RIGHTHAND_INDEX: {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getTranslation();

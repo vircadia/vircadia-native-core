@@ -25,7 +25,13 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property int activeView: 1;    
+    property int activeView: 1;
+
+    onVisibleChanged: {
+        if (visible) {
+            root.activeView = 1;
+        }
+    }
 
     Image {
         anchors.fill: parent;

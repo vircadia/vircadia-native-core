@@ -188,13 +188,16 @@ public slots:
      */
     Q_INVOKABLE void deleteEntity(QUuid entityID);
 
-    /// Allows a script to call a method on an entity's script. The method will execute in the entity script
-    /// engine. If the entity does not have an entity script or the method does not exist, this call will have
-    /// no effect.
     /**jsdoc
-     * Call a method on an entity. If it is running an entity script (specified by the `script` property)
+     * Call a method on an entity in the same context as this function is called. Allows a script 
+     * to call a method on an entity's script. The method will execute in the entity script engine. 
+     * If the entity does not have an  entity script or the method does not exist, this call will 
+     * have no effect. If it is running an entity script (specified by the `script` property)
      * and it exposes a property with the specified name `method`, it will be called
-     * using `params` as the list of arguments.
+     * using `params` as the list of arguments. If this is called within an entity script, the
+     * method will be executed on the client in the entity script engine in which it was called. If
+     * this is called in an entity server script, the method will be executed on the entity server 
+     * script engine.
      *
      * @function Entities.callEntityMethod
      * @param {EntityID} entityID The ID of the entity to call the method on.
@@ -203,10 +206,44 @@ public slots:
      */
     Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
 
-    /// finds the closest model to the center point, within the radius
-    /// will return a EntityItemID.isKnownID = false if no models are in the radius
-    /// this function will not find any models in script engine contexts which don't have access to models
     /**jsdoc
+    * Call a server method on an entity. Allows a client entity script to call a method on an 
+    * entity's server script. The method will execute in the entity server script engine. If 
+    * the entity does not have an entity server script or the method does not exist, this call will 
+    * have no effect. If the entity is running an entity script (specified by the `serverScripts` property)
+    * and it exposes a property with the specified name `method`, it will be called using `params` as 
+    * the list of arguments.
+    *
+    * @function Entities.callEntityServerMethod
+    * @param {EntityID} entityID The ID of the entity to call the method on.
+    * @param {string} method The name of the method to call.
+    * @param {string[]} params The list of parameters to call the specified method with.
+    */
+    Q_INVOKABLE void callEntityServerMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
+
+    /**jsdoc
+    * Call a client method on an entity on a specific client node. Allows a server entity script to call a 
+    * method on an entity's client script for a particular client. The method will execute in the entity script 
+    * engine on that single client. If the entity does not have an entity script or the method does not exist, or
+    * the client is not connected to the domain, or you attempt to make this call outside of the entity server 
+    * script, this call will have no effect.
+    *
+    * @function Entities.callEntityClientMethod
+    * @param {SessionID} clientSessionID The session ID of the client to call the method on.
+    * @param {EntityID} entityID The ID of the entity to call the method on.
+    * @param {string} method The name of the method to call.
+    * @param {string[]} params The list of parameters to call the specified method with.
+    */
+    Q_INVOKABLE void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params = QStringList());
+
+    /**jsdoc
+     * finds the closest model to the center point, within the radius
+     * will return a EntityItemID.isKnownID = false if no models are in the radius
+     * this function will not find any models in script engine contexts which don't have access to models
+     * @function Entities.findClosestEntity
+     * @param {vec3} center point
+     * @param {float} radius to search
+     * @return {EntityID} The EntityID of the entity that is closest and in the radius.
      */
     Q_INVOKABLE QUuid findClosestEntity(const glm::vec3& center, float radius) const;
 
@@ -428,6 +465,10 @@ protected:
         std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
         function(_entitiesScriptEngine);
     };
+
+private slots:
+    void handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode);
+
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);
     bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);

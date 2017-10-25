@@ -122,7 +122,7 @@ namespace render {
         render::ScenePointer _scene;
         int8_t _cameraMode { -1 };
 
-        std::function<void(gpu::Batch&, const gpu::TexturePointer&)> _hudOperator;
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator;
         gpu::TexturePointer _hudTexture;
     };
 

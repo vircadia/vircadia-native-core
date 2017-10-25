@@ -52,6 +52,12 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
             _backgroundStage->removeBackground(_backgroundIndex);
         }
     }
+
+    if (_hazeStage) {
+        if (!HazeStage::isIndexInvalid(_hazeIndex)) {
+            _hazeStage->removeHaze(_hazeIndex);
+        }
+    }
 }
 
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
@@ -95,12 +101,18 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         assert(_backgroundStage);
     }
 
+    if (!_hazeStage) {
+        _hazeStage = args->_scene->getStage<HazeStage>();
+        assert(_hazeStage);
+    }
+
     { // Sun 
       // Need an update ?
         if (_needSunUpdate) {
             // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_sunIndex)) {
                 _sunIndex = _stage->addLight(_sunLight);
+                _shadowIndex = _stage->addShadow(_sunIndex);
             } else {
                 _stage->updateLightArrayBuffer(_sunIndex);
             }
@@ -136,6 +148,15 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         }
     }
 
+    {
+        if (_needHazeUpdate) {
+            if (HazeStage::isIndexInvalid(_hazeIndex)) {
+                _hazeIndex = _hazeStage->addHaze(_haze);
+            }
+            _needHazeUpdate = false;
+        }
+    }
+
     if (_visible) {
         // FInally, push the light visible in the frame
         // THe directional key light for sure
@@ -149,6 +170,11 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         // The background only if the mode is not inherit
         if (_backgroundMode != BACKGROUND_MODE_INHERIT) {
             _backgroundStage->_currentFrame.pushBackground(_backgroundIndex);
+        }
+
+        // Haze only if the mode is not inherit
+        if (_hazeMode != COMPONENT_MODE_INHERIT) {
+            _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
     }
 }
@@ -171,15 +197,17 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     bool sunChanged = entity->keyLightPropertiesChanged();
     bool backgroundChanged = entity->backgroundPropertiesChanged();
     bool skyboxChanged = entity->skyboxPropertiesChanged();
+    bool hazeChanged = entity->hazePropertiesChanged();
+
     entity->resetRenderingPropertiesChanged();
     _lastPosition = entity->getPosition();
     _lastRotation = entity->getRotation();
     _lastDimensions = entity->getDimensions();
 
     _keyLightProperties = entity->getKeyLightProperties();
-    _stageProperties = entity->getStageProperties();
     _skyboxProperties = entity->getSkyboxProperties();
-
+    _hazeProperties = entity->getHazeProperties();
+    _stageProperties = entity->getStageProperties();
 
 #if 0
     if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {
@@ -209,14 +237,20 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     if (sunChanged || skyboxChanged) {
         updateKeyAmbientFromEntity();
     }
+
     if (backgroundChanged || skyboxChanged) {
         updateKeyBackgroundFromEntity(entity);
+    }
+
+    if (hazeChanged) {
+        updateHazeFromEntity(entity);
     }
 }
 
 void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     if (entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-        _modelTransform.postScale(SPHERE_ENTITY_SCALE);
+        _renderTransform = getModelTransform();
+        _renderTransform.postScale(SPHERE_ENTITY_SCALE);
     }
 }
 
@@ -228,6 +262,7 @@ ItemKey ZoneEntityRenderer::getKey() {
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->keyLightPropertiesChanged() ||
         entity->backgroundPropertiesChanged() ||
+        entity->hazePropertiesChanged() ||
         entity->skyboxPropertiesChanged()) {
         return true;
     }
@@ -296,6 +331,36 @@ void ZoneEntityRenderer::updateKeyAmbientFromEntity() {
     } else {
         setAmbientURL(_keyLightProperties.getAmbientURL());
     }
+}
+
+void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) {
+    setHazeMode((ComponentMode)entity->getHazeMode());
+
+    const auto& haze = editHaze();
+
+    const uint32_t hazeMode = entity->getHazeMode();
+    haze->setHazeActive(hazeMode == COMPONENT_MODE_ENABLED);
+    haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
+
+    haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
+    xColor hazeColor = _hazeProperties.getHazeColor();
+    haze->setHazeColor(glm::vec3(hazeColor.red / 255.0, hazeColor.green / 255.0, hazeColor.blue / 255.0));
+    xColor hazeGlareColor = _hazeProperties.getHazeGlareColor();
+    haze->setDirectionalLightColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
+    haze->setHazeEnableGlare(_hazeProperties.getHazeEnableGlare());
+    haze->setDirectionalLightBlend(model::convertDirectionalLightAngleToPower(_hazeProperties.getHazeGlareAngle()));
+
+    float hazeAltitude = _hazeProperties.getHazeCeiling() - _hazeProperties.getHazeBaseRef();
+    haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(hazeAltitude));
+    haze->setHazeBaseReference(_hazeProperties.getHazeBaseRef());
+
+    haze->setHazeBackgroundBlendValue(_hazeProperties.getHazeBackgroundBlend());
+
+    haze->setHazeAttenuateKeyLight(_hazeProperties.getHazeAttenuateKeyLight());
+    haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
+    haze->setHazeKeyLightAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
+
+    haze->setZoneTransform(entity->getTransform().getMatrix());
 }
 
 void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer& entity) {
@@ -406,6 +471,10 @@ void ZoneEntityRenderer::updateSkyboxMap() {
 
 void ZoneEntityRenderer::setBackgroundMode(BackgroundMode mode) {
     _backgroundMode = mode;
+}
+
+void ZoneEntityRenderer::setHazeMode(ComponentMode mode) {
+    _hazeMode = mode;
 }
 
 void ZoneEntityRenderer::setSkyboxColor(const glm::vec3& color) {
