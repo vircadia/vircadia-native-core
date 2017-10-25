@@ -288,11 +288,8 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
             QByteArray textureFileName = (!currentMaterial.albedoTexture.filename.isEmpty()) ? currentMaterial.albedoTexture.filename : currentMaterial.specularTexture.filename;
             
             // Callback to get Texture content and type
-            getTextureContentTypeCallback textureContentTypeCallback = [=]() {
-                QPair<QByteArray, image::TextureUsage::Type> result;
-                result.first = NULL; // No need of texture content as no embedded textures present in case of an OBJ
-                result.second = (!currentMaterial.albedoTexture.filename.isEmpty()) ? image::TextureUsage::Type::ALBEDO_TEXTURE : image::TextureUsage::Type::SPECULAR_TEXTURE;
-                return result;
+            getTextureTypeCallback textureContentTypeCallback = [=]() {
+                return (!currentMaterial.albedoTexture.filename.isEmpty()) ? image::TextureUsage::Type::ALBEDO_TEXTURE : image::TextureUsage::Type::SPECULAR_TEXTURE;
             };
             
             // Compress the texture using ModelBaker::compressTexture() and store compressed file's name in the node

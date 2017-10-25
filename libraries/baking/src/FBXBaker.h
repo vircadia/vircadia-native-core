@@ -62,13 +62,10 @@ private:
     void exportScene();
     void removeEmbeddedMediaFolder();
 
-    void checkIfTexturesFinished();
-
     QUrl _fbxURL;
 
     FBXNode _rootNode;
     FBXGeometry* _geometry;
-    QHash<QByteArray, QByteArray> _textureContent;
 
     QString _bakedFBXFilePath;
 

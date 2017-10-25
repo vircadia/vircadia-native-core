@@ -365,21 +365,18 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 textureContent = _textureContent.value(fbxTextureFileName.toLocal8Bit());
                             }
                             
-                            // Callback to get texture content and type
-                            getTextureContentTypeCallback textureContentTypeCallback = [=]() {
-                                QPair<QByteArray, image::TextureUsage::Type> result;
-                                result.first = textureContent;
+                            // Callback to get texture type
+                            getTextureTypeCallback textureTypeCallback = [=]() {
                                 // grab the ID for this texture so we can figure out the
                                 // texture type from the loaded materials
                                 auto textureID{ object->properties[0].toByteArray() };
                                 auto textureType = textureTypes[textureID];
-                                result.second = textureType;
-                                return result;
+                                return textureType;
                             };
 
                             // Compress the texture information and return the new filename to be added into the FBX scene
                             QByteArray* bakedTextureFile = this->compressTexture(fbxTextureFileName, _fbxURL, _bakedOutputDir, _textureThreadGetter, 
-                                                                                 textureContentTypeCallback, _originalOutputDir);
+                                                                                 textureTypeCallback, _originalOutputDir);
 
                             // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
                             if (bakedTextureFile) {
@@ -430,26 +427,4 @@ void FBXBaker::exportScene() {
     _outputFiles.push_back(_bakedFBXFilePath);
 
     qCDebug(model_baking) << "Exported" << _fbxURL << "with re-written paths to" << _bakedFBXFilePath;
-}
-
-void FBXBaker::checkIfTexturesFinished() {
-    // check if we're done everything we need to do for this FBX
-    // and emit our finished signal if we're done
-
-    if (_bakingTextures.isEmpty()) {
-        if (shouldStop()) {
-            // if we're checking for completion but we have errors
-            // that means one or more of our texture baking operations failed
-
-            if (_pendingErrorEmission) {
-                setIsFinished(true);
-            }
-
-            return;
-        } else {
-            qCDebug(model_baking) << "Finished baking, emitting finsihed" << _fbxURL;
-
-            setIsFinished(true);
-        }
-    }
 }

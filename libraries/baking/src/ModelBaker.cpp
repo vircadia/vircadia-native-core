@@ -207,21 +207,17 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMes
 }
 
 QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl modelURL, QString bakedOutputDir, TextureBakerThreadGetter textureThreadGetter, 
-                                        getTextureContentTypeCallback textureContentTypeCallback, const QString& originalOutputDir) {
+                                        getTextureTypeCallback textureTypeCallback, const QString& originalOutputDir) {
     _modelURL = modelURL;
     _textureThreadGetter = textureThreadGetter;
     _originalOutputDir = originalOutputDir;
 
     static QByteArray textureChild;
-    
-    QPair<QByteArray, image::TextureUsage::Type> textureContentType;
     QByteArray textureContent;
     image::TextureUsage::Type textureType;
     
-    if (textureContentTypeCallback) {
-        textureContentType = textureContentTypeCallback();
-        textureContent = textureContentType.first;
-        textureType = textureContentType.second;
+    if (textureTypeCallback) {
+        textureType = textureTypeCallback();
     }
 
     QFileInfo modelTextureFileInfo{ modelTextureFileName.replace("\\", "/") };
@@ -244,7 +240,9 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, QUrl model
         // check if this was an embedded texture that we already have in-memory content for
         
         // figure out the URL to this texture, embedded or external
-        qCDebug(model_baking) << "TextureContent" << !textureContent.isNull();
+        if (!modelTextureFileInfo.filePath().isEmpty()) {
+            textureContent = _textureContent.value(modelTextureFileName.toLocal8Bit());
+        }
         auto urlToTexture = getTextureURL(modelTextureFileInfo, modelTextureFileName, !textureContent.isNull());
 
         QString bakedTextureFileName;
