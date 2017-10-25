@@ -84,6 +84,7 @@ public:
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
     void setLayeredInFront(bool layered, const render::ScenePointer& scene);
+    void setLayeredInHUD(bool layered, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -101,9 +102,10 @@ public:
     bool isVisible() const { return _isVisible; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
+    bool isLayeredInHUD() const { return _isLayeredInHUD; }
 
     virtual void updateRenderItems();
-    void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
+    void setRenderItemsNeedUpdate();
     bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
     const render::ItemIDs& fetchRenderItemIDs() const;
@@ -265,6 +267,7 @@ public slots:
 signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
+    void requestRenderUpdate();
 
 protected:
 
@@ -410,6 +413,7 @@ protected:
     int _renderInfoHasTransparent { false };
 
     bool _isLayeredInFront { false };
+    bool _isLayeredInHUD { false };
 
 private:
     float _loadingPriority { 0.0f };

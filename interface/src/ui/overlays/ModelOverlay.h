@@ -13,6 +13,7 @@
 #define hifi_ModelOverlay_h
 
 #include <Model.h>
+#include <AnimationCache.h>
 
 #include "Volume3DOverlay.h"
 
@@ -45,8 +46,12 @@ public:
 
     float getLoadPriority() const { return _loadPriority; }
 
+    bool hasAnimation() const { return !_animationURL.isEmpty(); }
+    bool jointsMapped() const { return _jointMappingURL == _animationURL && _jointMappingCompleted; }
+
     void setVisible(bool visible) override;
     void setDrawInFront(bool drawInFront) override;
+    void setDrawHUDLayer(bool drawHUDLayer) override;
 
 protected:
     Transform evalRenderTransform() override;
@@ -55,6 +60,14 @@ protected:
     template <typename itemType> using mapFunction = std::function<itemType(int jointIndex)>;
     template <typename vectorType, typename itemType>
         vectorType mapJoints(mapFunction<itemType> function) const;
+
+    void animate();
+    void mapAnimationJoints(const QStringList& modelJointNames);
+    bool isAnimatingSomething() const {
+        return !_animationURL.isEmpty() && _animationRunning && _animationFPS != 0.0f;
+    }
+    void copyAnimationJointDataToModel(QVector<JointData> jointsData);
+
 
 private:
 
@@ -66,8 +79,28 @@ private:
     bool _scaleToFit = { false };
     float _loadPriority { 0.0f };
 
+    AnimationPointer _animation;
+
+    QUrl _animationURL;
+    float _animationFPS { 0.0f };
+    float _animationCurrentFrame { 0.0f };
+    bool _animationRunning { false };
+    bool _animationLoop { false };
+    float _animationFirstFrame { 0.0f };
+    float _animationLastFrame = { 0.0f };
+    bool _animationHold { false };
+    bool _animationAllowTranslation { false };
+    uint64_t _lastAnimated { 0 };
+    int _lastKnownCurrentFrame { -1 };
+
+    QUrl _jointMappingURL;
+    bool _jointMappingCompleted { false };
+    QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
+
     bool _visibleDirty { false };
     bool _drawInFrontDirty { false };
+    bool _drawInHUDDirty { false };
+
 };
 
 #endif // hifi_ModelOverlay_h

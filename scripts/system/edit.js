@@ -228,7 +228,7 @@ var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
 
 var toolBar = (function () {
-    var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
+    var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
     var that = {},
         toolBar,
         activeButton = null,
@@ -1234,7 +1234,8 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
-    Messages.unsubscribe("Toolbar-DomainChanged");
+    // Messages.unsubscribe("Toolbar-DomainChanged"); // Do not unsubscribe because the shapes.js app also subscribes and 
+    // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
     createButton = null;
 });
 
@@ -1474,6 +1475,8 @@ function onFileSaveChanged(filename) {
 }
 
 function onFileOpenChanged(filename) {
+    // disconnect the event, otherwise the requests will stack up
+    Window.openFileChanged.disconnect(onFileOpenChanged);
     var importURL = null;
     if (filename !== "") {
         importURL = "file:///" + filename;

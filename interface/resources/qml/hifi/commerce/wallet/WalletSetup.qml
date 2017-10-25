@@ -30,6 +30,7 @@ Item {
     property string lastPage;
     property bool hasShownSecurityImageTip: false;
     property string referrer;
+    property string keyFilePath;
 
     Image {
         anchors.fill: parent;
@@ -43,7 +44,7 @@ Item {
             if (!exists && root.lastPage === "step_2") {
                 // ERROR! Invalid security image.
                 root.activeView = "step_2";
-            } else {
+            } else if (exists) {
                 titleBarSecurityImage.source = "";
                 titleBarSecurityImage.source = "image://security/securityImage";
             }
@@ -58,7 +59,7 @@ Item {
         }
 
         onKeyFilePathIfExistsResult: {
-            keyFilePath.text = path;
+            root.keyFilePath = path;
         }
     }
 
@@ -116,7 +117,7 @@ Item {
         Image {
             id: titleBarSecurityImage;
             source: "";
-            visible: !securityImageTip.visible && titleBarSecurityImage.source !== "";
+            visible: !securityImageTip.visible && titleBarSecurityImage.source !== "" && root.activeView !== "step_1" && root.activeView !== "step_2";
             anchors.right: parent.right;
             anchors.rightMargin: 6;
             anchors.top: parent.top;
@@ -125,6 +126,7 @@ Item {
             anchors.bottomMargin: 6;
             width: height;
             mipmap: true;
+            cache: false;
 
             MouseArea {
                 enabled: titleBarSecurityImage.visible;
@@ -422,6 +424,7 @@ Item {
             onClicked: {
                 root.hasShownSecurityImageTip = true;
                 securityImageTip.visible = false;
+                passphraseSelection.focusFirstTextField();
             }
         }
     }
@@ -466,6 +469,7 @@ Item {
 
         PassphraseSelection {
             id: passphraseSelection;
+            shouldImmediatelyFocus: root.hasShownSecurityImageTip;
             isShowingTip: securityImageTip.visible;
             anchors.top: passphraseTitleHelper.bottom;
             anchors.topMargin: 30;
@@ -605,7 +609,7 @@ Item {
                 anchors.fill: parent;
                 
                 RalewaySemiBold {
-                    id: keyFilePathText;
+                    id: keyFilePathHelperText;
                     text: "Private Key File Location:";
                     size: 18;
                     anchors.top: parent.top;
@@ -624,7 +628,7 @@ Item {
                     colorScheme: hifi.colorSchemes.dark;
                     anchors.left: parent.left;
                     anchors.leftMargin: 30;
-                    anchors.top: keyFilePathText.bottom;
+                    anchors.top: keyFilePathHelperText.bottom;
                     anchors.topMargin: 8;
                     height: 24;
                     width: height;
@@ -640,11 +644,12 @@ Item {
                     }
 
                     onClicked: {
-                        Qt.openUrlExternally("file:///" + keyFilePath.text.substring(0, keyFilePath.text.lastIndexOf('/')));
+                        Qt.openUrlExternally("file:///" + keyFilePath.substring(0, keyFilePath.lastIndexOf('/')));
                     }
                 }
                 RalewayRegular {
-                    id: keyFilePath;
+                    id: keyFilePathText;
+                    text: root.keyFilePath;
                     size: 18;
                     anchors.top: clipboardButton.top;
                     anchors.left: clipboardButton.right;
@@ -667,19 +672,21 @@ Item {
                     id: openInstructionsButton;
                     color: hifi.buttons.blue;
                     colorScheme: hifi.colorSchemes.dark;
-                    anchors.top: keyFilePath.bottom;
+                    anchors.top: keyFilePathText.bottom;
                     anchors.topMargin: 30;
                     anchors.left: parent.left;
                     anchors.leftMargin: 30;
                     anchors.right: parent.right;
                     anchors.rightMargin: 30;
                     height: 40;
-                    text: "Open Instructions for Later";
+                    text: "Open Backup Instructions for Later";
                     onClicked: {
                         instructions01Container.visible = false;
                         instructions02Container.visible = true;
                         keysReadyPageFinishButton.visible = true;
-                        Qt.openUrlExternally("https://www.highfidelity.com/");
+                        var keyPath = "file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/'));
+                        Qt.openUrlExternally(keyPath + "/backup_instructions.html");
+                        Qt.openUrlExternally(keyPath);
                     }
                 }
             }

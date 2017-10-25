@@ -30,6 +30,7 @@
 
 #include <ClientServerUtils.h>
 #include <FBXBaker.h>
+#include <JSBaker.h>
 #include <NodeType.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
@@ -49,10 +50,12 @@ static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx" };
+static const QStringList BAKEABLE_MODEL_EXTENSIONS = {"fbx"};
 static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
+static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = {"js"};
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
+static const QString BAKED_SCRIPT_SIMPLE_NAME = "asset.js";
 
 void AssetServer::bakeAsset(const AssetHash& assetHash, const AssetPath& assetPath, const QString& filePath) {
     qDebug() << "Starting bake for: " << assetPath << assetHash;
@@ -99,6 +102,8 @@ std::pair<BakingStatus, QString> AssetServer::getAssetStatus(const AssetPath& pa
         bakedFilename = BAKED_MODEL_SIMPLE_NAME;
     } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
     } else {
         return { Irrelevant, "" };
     }
@@ -186,6 +191,8 @@ bool AssetServer::needsToBeBaked(const AssetPath& path, const AssetHash& assetHa
         bakedFilename = BAKED_MODEL_SIMPLE_NAME;
     } else if (loaded && BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit())) {
         bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
     } else {
         return false;
     }
@@ -488,6 +495,8 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
             bakedRootFile = BAKED_MODEL_SIMPLE_NAME;
         } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(assetPathExtension.toLocal8Bit())) {
             bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
+        } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(assetPathExtension)) {
+            bakedRootFile = BAKED_SCRIPT_SIMPLE_NAME;
         }
         
         auto originalAssetHash = it->second;
@@ -1141,6 +1150,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
 
 static const QString BAKED_ASSET_SIMPLE_FBX_NAME = "asset.fbx";
 static const QString BAKED_ASSET_SIMPLE_TEXTURE_NAME = "texture.ktx";
+static const QString BAKED_ASSET_SIMPLE_JS_NAME = "asset.js";
 
 QString getBakeMapping(const AssetHash& hash, const QString& relativeFilePath) {
     return HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
@@ -1162,7 +1172,8 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
     _pendingBakes.remove(originalAssetHash);
 }
 
-void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath, QVector<QString> bakedFilePaths) {
+void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath,
+                                      QString bakedTempOutputDir, QVector<QString> bakedFilePaths) {
     bool errorCompletingBake { false };
     QString errorReason;
 
@@ -1203,14 +1214,14 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             // setup the mapping for this bake file
             auto relativeFilePath = QUrl(filePath).fileName();
             qDebug() << "Relative file path is: " << relativeFilePath;
-
             if (relativeFilePath.endsWith(".fbx", Qt::CaseInsensitive)) {
                 // for an FBX file, we replace the filename with the simple name
                 // (to handle the case where two mapped assets have the same hash but different names)
                 relativeFilePath = BAKED_ASSET_SIMPLE_FBX_NAME;
+            } else if (relativeFilePath.endsWith(".js", Qt::CaseInsensitive)) {
+                relativeFilePath = BAKED_ASSET_SIMPLE_JS_NAME;
             } else if (!originalAssetPath.endsWith(".fbx", Qt::CaseInsensitive)) {
                 relativeFilePath = BAKED_ASSET_SIMPLE_TEXTURE_NAME;
-
             }
 
             QString bakeMapping = getBakeMapping(originalAssetHash, relativeFilePath);
@@ -1232,6 +1243,16 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             errorReason = "Failed to finalize bake";
             break;
         }
+    }
+
+    for (auto& filePath : bakedFilePaths) {
+        QFile file(filePath);
+        if (!file.remove()) {
+            qWarning() << "Failed to remove temporary file:" << filePath;
+        }
+    }
+    if (!QDir(bakedTempOutputDir).rmdir(".")) {
+        qWarning() << "Failed to remove temporary directory:" << bakedTempOutputDir;
     }
 
     if (!errorCompletingBake) {
@@ -1353,6 +1374,8 @@ bool AssetServer::setBakingEnabled(const AssetPathList& paths, bool enabled) {
                 bakedFilename = BAKED_MODEL_SIMPLE_NAME;
             } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
                 bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
+            } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
+                bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
             } else {
                 continue;
             }

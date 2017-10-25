@@ -60,7 +60,8 @@ bool ModelEntityWrapper::isModelLoaded() const {
 }
 
 EntityItemPointer RenderableModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity{ new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()) };
+    EntityItemPointer entity(new RenderableModelEntityItem(entityID, properties.getDimensionsInitialized()),
+                             [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -1032,10 +1033,6 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
         model = _model;
     });
 
-    if (_modelJustLoaded) {
-        return true;
-    }
-
     if (model) {
         if (_needsJointSimulation || _moving || _animating) {
             return true;
@@ -1152,11 +1149,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         return;
     }
 
-    _modelJustLoaded = false;
     // Check for addition
     if (_hasModel && !(bool)_model) {
         model = std::make_shared<Model>(nullptr, entity.get());
-        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::handleModelLoaded);
+        connect(model.get(), &Model::setURLFinished, this, &ModelEntityRenderer::requestRenderUpdate);
+        connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         model->init();
         entity->setModel(model);
@@ -1244,13 +1241,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             mapJoints(entity, model->getJointNames());
         }
         animate(entity);
-        emit requestRenderUpdate();
-    }
-}
-
-void ModelEntityRenderer::handleModelLoaded(bool success) {
-    if (success) {
-        _modelJustLoaded = true;
         emit requestRenderUpdate();
     }
 }

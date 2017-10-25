@@ -457,7 +457,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             // if they've changed.
             entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
                 if (descendant->getNestableType() == NestableType::Entity) {
-                    if (descendant->checkAndMaybeUpdateQueryAACube()) {
+                    if (descendant->updateQueryAACube()) {
                         EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
                         EntityItemProperties newQueryCubeProperties;
                         newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
@@ -1765,3 +1765,31 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
     }
     return result;
 }
+
+bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& entityID) {
+    bool result = false;
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->verifyStaticCertificateProperties();
+            }
+        });
+    }
+    return result;
+}
+
+#ifdef DEBUG_CERT
+QString EntityScriptingInterface::computeCertificateID(const QUuid& entityID) {
+    QString result { "" };
+    if (_entityTree) {
+        _entityTree->withReadLock([&] {
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+            if (entity) {
+                result = entity->computeCertificateID();
+            }
+        });
+    }
+    return result;
+}
+#endif

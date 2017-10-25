@@ -241,7 +241,7 @@ void Model::updateRenderItems() {
                 if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
-                        
+
                         const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
                         if (state.clusterMatrices.size() == 1) {
@@ -265,6 +265,11 @@ void Model::updateRenderItems() {
 
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     });
+}
+
+void Model::setRenderItemsNeedUpdate() {
+    _renderItemsNeedUpdate = true;
+    emit requestRenderUpdate();
 }
 
 void Model::initJointTransforms() {
@@ -586,6 +591,21 @@ void Model::setVisibleInScene(bool newValue, const render::ScenePointer& scene) 
 void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
     if (_isLayeredInFront != layered) {
         _isLayeredInFront = layered;
+
+        render::Transaction transaction;
+        foreach(auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+        }
+        foreach(auto item, _collisionRenderItemsMap.keys()) {
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
+void Model::setLayeredInHUD(bool layered, const render::ScenePointer& scene) {
+    if (_isLayeredInHUD != layered) {
+        _isLayeredInHUD = layered;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {

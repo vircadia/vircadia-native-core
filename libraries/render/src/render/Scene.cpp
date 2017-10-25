@@ -15,9 +15,6 @@
 #include "Logging.h"
 #include "TransitionStage.h"
 
-// Comment this to disable transitions (fades)
-#define SCENE_ENABLE_TRANSITIONS
-
 using namespace render;
 
 void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
@@ -101,16 +98,46 @@ void consolidateTransaction(TransactionQueue& queue, Transaction& singleBatch) {
         queue.pop();
     };
 }
- 
-void Scene::processTransactionQueue() {
+
+uint32_t Scene::enqueueFrame() {
     PROFILE_RANGE(render, __FUNCTION__);
     Transaction consolidatedTransaction;
-
     {
         std::unique_lock<std::mutex> lock(_transactionQueueMutex);
         consolidateTransaction(_transactionQueue, consolidatedTransaction);
     }
-    
+
+    uint32_t frameNumber = 0;
+    {
+        std::unique_lock<std::mutex> lock(_transactionFramesMutex);
+        _transactionFrames.push_back(consolidatedTransaction);
+        _transactionFrameNumber++;
+        frameNumber = _transactionFrameNumber;
+    }
+
+    return frameNumber;
+}
+
+ 
+void Scene::processTransactionQueue() {
+    PROFILE_RANGE(render, __FUNCTION__);
+
+    TransactionFrames queuedFrames;
+    {
+        // capture the queued frames and clear the queue
+        std::unique_lock<std::mutex> lock(_transactionFramesMutex);
+        queuedFrames = _transactionFrames;
+        _transactionFrames.clear();
+    }
+
+    // go through the queue of frames and process them
+    for (auto& frame : queuedFrames) {
+        processTransactionFrame(frame);
+    }
+}
+
+void Scene::processTransactionFrame(const Transaction& transaction) {
+    PROFILE_RANGE(render, __FUNCTION__);
     {
         std::unique_lock<std::mutex> lock(_itemsMutex);
         // Here we should be able to check the value of last ItemID allocated 
@@ -123,32 +150,31 @@ void Scene::processTransactionQueue() {
         // capture anything coming from the transaction
 
         // resets and potential NEW items
-        resetItems(consolidatedTransaction._resetItems);
+        resetItems(transaction._resetItems);
 
         // Update the numItemsAtomic counter AFTER the reset changes went through
         _numAllocatedItems.exchange(maxID);
 
         // updates
-        updateItems(consolidatedTransaction._updatedItems);
+        updateItems(transaction._updatedItems);
 
         // removes
-        removeItems(consolidatedTransaction._removedItems);
+        removeItems(transaction._removedItems);
 
-#ifdef SCENE_ENABLE_TRANSITIONS
         // add transitions
-        transitionItems(consolidatedTransaction._addedTransitions);
-        reApplyTransitions(consolidatedTransaction._reAppliedTransitions);
-        queryTransitionItems(consolidatedTransaction._queriedTransitions);
-#endif
+        transitionItems(transaction._addedTransitions);
+        reApplyTransitions(transaction._reAppliedTransitions);
+        queryTransitionItems(transaction._queriedTransitions);
+
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
     }
 
-    if (consolidatedTransaction.touchTransactions()) {
+    if (transaction.touchTransactions()) {
         std::unique_lock<std::mutex> lock(_selectionsMutex);
 
         // resets and potential NEW items
-        resetSelections(consolidatedTransaction._resetSelections);
+        resetSelections(transaction._resetSelections);
     }
 }
 

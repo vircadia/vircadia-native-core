@@ -35,8 +35,23 @@ TextField {
     font.pixelSize: hifi.fontSizes.textFieldInput
     font.italic: textField.text == ""
     height: implicitHeight + 3  // Make surrounding box higher so that highlight is vertically centered.
+    property alias textFieldLabel: textFieldLabel
 
     y: textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0
+
+    // workaround for https://bugreports.qt.io/browse/QTBUG-49297
+    Keys.onPressed: {
+        switch (event.key) {
+            case Qt.Key_Return: 
+            case Qt.Key_Enter: 
+                event.accepted = true;
+
+                // emit accepted signal manually
+                if (acceptableInput) {
+                    accepted();
+                }
+        }
+    }
 
     style: TextFieldStyle {
         textColor: {

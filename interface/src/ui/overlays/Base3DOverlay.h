@@ -41,6 +41,7 @@ public:
     bool getIsSolidLine() const { return !_isDashedLine; }
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
+    bool getDrawHUDLayer() const { return _drawHUDLayer; }
     bool getIsGrabbable() const { return _isGrabbable; }
 
     void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
@@ -48,12 +49,13 @@ public:
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     virtual void setDrawInFront(bool value) { _drawInFront = value; }
+    virtual void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
 
     virtual AABox getBounds() const override = 0;
 
     void update(float deltatime) override;
-    
+
     void notifyRenderTransformChange() const;
 
     void setProperties(const QVariantMap& properties) override;
@@ -66,6 +68,8 @@ public:
                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal, QString& extraInfo) {
         return findRayIntersection(origin, direction, distance, face, surfaceNormal);
     }
+
+    virtual SpatialParentTree* getParentTree() const override;
 
 protected:
     virtual void locationChanged(bool tellPhysics = true) override;
@@ -81,6 +85,7 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
+    bool _drawHUDLayer;
     bool _isGrabbable { false };
     mutable bool _renderTransformDirty{ true };
 

@@ -84,7 +84,7 @@ Item {
     }
 
     function urlHelper(src) {
-        if (src.match(/\bhttp/)) {
+        if (src.match(/\bhttp/) || src.match(/\bfile:/)) {
             return src;
         } else {
             return "../../../" + src;
@@ -168,7 +168,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#ffffff"
+                color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
                 text: tabletButton.hoverText
             }
 
@@ -194,7 +194,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeText
             }
 
@@ -225,7 +225,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeHoverText
             }
 

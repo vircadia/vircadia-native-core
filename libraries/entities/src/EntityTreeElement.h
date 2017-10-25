@@ -21,11 +21,13 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-typedef QVector<EntityItemPointer> EntityItems;
-
 class EntityTree;
 class EntityTreeElement;
-typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
+
+using EntityItems = QVector<EntityItemPointer>;
+using EntityTreeElementWeakPointer = std::weak_ptr<EntityTreeElement>;
+using EntityTreeElementPointer = std::shared_ptr<EntityTreeElement>;
+using EntityItemFilter = std::function<bool(EntityItemPointer&)>;
 
 class EntityTreeUpdateArgs {
 public:
@@ -173,7 +175,6 @@ public:
     void setTree(EntityTreePointer tree) { _myTree = tree; }
     EntityTreePointer getTree() const { return _myTree; }
 
-    bool updateEntity(const EntityItem& entity);
     void addEntityItem(EntityItemPointer entity);
 
     EntityItemPointer getClosestEntity(glm::vec3 position) const;
@@ -198,6 +199,11 @@ public:
     /// \param frustum the query frustum
     /// \param entities[out] vector of non-const EntityItemPointer
     void getEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
+
+    /// finds all entities that match filter
+    /// \param filter function that adds matching entities to foundEntities
+    /// \param entities[out] vector of non-const EntityItemPointer
+    void getEntities(EntityItemFilter& filter,  QVector<EntityItemPointer>& foundEntities);
 
     EntityItemPointer getEntityWithID(uint32_t id) const;
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
@@ -238,10 +244,14 @@ public:
         return std::static_pointer_cast<const OctreeElement>(shared_from_this());
     }
 
+    void bumpChangedContent() { _lastChangedContent = usecTimestampNow(); }
+    uint64_t getLastChangedContent() const { return _lastChangedContent; }
+
 protected:
     virtual void init(unsigned char * octalCode) override;
     EntityTreePointer _myTree;
     EntityItems _entityItems;
+    uint64_t _lastChangedContent { 0 };
 };
 
 #endif // hifi_EntityTreeElement_h

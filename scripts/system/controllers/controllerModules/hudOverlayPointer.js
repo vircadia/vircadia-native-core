@@ -31,7 +31,7 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         parentID: AVATAR_SELF_ID
     };
     var halfEnd = {
@@ -40,7 +40,7 @@
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         visible: true
     };
     var fullPath = {
@@ -52,7 +52,7 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         parentID: AVATAR_SELF_ID
     };
     var fullEnd = {
@@ -61,7 +61,7 @@
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         visible: true
     };
     var holdPath = {
@@ -73,7 +73,7 @@
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawHUDLayer: true, // Even when burried inside of something, show it.
+        drawHUDLayer: true,
         parentID: AVATAR_SELF_ID
     };
 
@@ -178,11 +178,11 @@
             }
             var hudRayPick = controllerData.hudRayPicks[this.hand];
             var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
-            this.setReticlePosition(point2d);
-            if (!Reticle.isPointingAtSystemOverlay(point2d)) {
+            if (!Window.isPointOnDesktopWindow(point2d) && !this.triggerClicked) {
                 this.exitModule();
                 return false;
             }
+            this.setReticlePosition(point2d);
             Reticle.visible = false;
             this.movedAway = false;
             this.triggerClicked = controllerData.triggerClicks[this.hand];
@@ -239,7 +239,7 @@
 
     function cleanup() {
         ControllerDispatcherUtils.disableDispatcherModule("LeftHudOverlayPointer");
-        ControllerDispatcherUtils.disbaleDispatcherModule("RightHudOverlayPointer");
+        ControllerDispatcherUtils.disableDispatcherModule("RightHudOverlayPointer");
     }
     Script.scriptEnding.connect(cleanup);
 

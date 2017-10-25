@@ -237,6 +237,27 @@ void EntityTreeRenderer::update(bool simulate) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->update(simulate);
 
+        // Update the rendereable entities as needed
+        {
+            PerformanceTimer sceneTimer("scene");
+            auto scene = _viewState->getMain3DScene();
+            if (scene) {
+                render::Transaction transaction;
+                {
+                    PerformanceTimer pt("add");
+                    addPendingEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer pt("change");
+                    updateChangedEntities(scene, transaction);
+                }
+                {
+                    PerformanceTimer pt("enqueue");
+                    scene->enqueueTransaction(transaction);
+                }
+            }
+        }
+
         if (simulate) {
             // Handle enter/leave entity logic
             checkEnterLeaveEntities();
@@ -250,13 +271,6 @@ void EntityTreeRenderer::update(bool simulate) {
             }
         }
 
-        auto scene = _viewState->getMain3DScene();
-        if (scene) {
-            render::Transaction transaction;
-            addPendingEntities(scene, transaction);
-            updateChangedEntities(scene, transaction);
-            scene->enqueueTransaction(transaction);
-        }
     }
 }
 

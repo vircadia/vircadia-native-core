@@ -26,6 +26,7 @@ Item {
 
     id: root;
     property bool historyReceived: false;
+    property int pendingCount: 0;
 
     Hifi.QmlCommerce {
         id: commerce;
@@ -39,7 +40,10 @@ Item {
             if (result.status === 'success') {
                 transactionHistoryModel.clear();
                 transactionHistoryModel.append(result.data.history);
+
+                calculatePendingAndInvalidated();
             }
+            refreshTimer.start();
         }
     }
 
@@ -114,6 +118,8 @@ Item {
                     historyReceived = false;
                     commerce.balance();
                     commerce.history();
+                } else {
+                    refreshTimer.stop();
                 }
             }
         }
@@ -132,6 +138,17 @@ Item {
             height: paintedHeight;
             // Style
             color: hifi.colors.white;
+        }
+    }
+
+    Timer {
+        id: refreshTimer;
+        interval: 4000; // Remove this after demo?
+        onTriggered: {
+            console.log("Refreshing Wallet Home...");
+            historyReceived = false;
+            commerce.balance();
+            commerce.history();
         }
     }
 
@@ -200,55 +217,74 @@ Item {
                 model: transactionHistoryModel;
                 delegate: Item {
                     width: parent.width;
-                    height: transactionText.height + 30;
+                    height: (model.transaction_type === "pendingCount" && root.pendingCount !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);
 
-                    HifiControlsUit.Separator {
-                    visible: index === 0;
-                    colorScheme: 1;
-                    anchors.left: parent.left;
-                    anchors.right: parent.right;
-                    anchors.top: parent.top;
-                    }
-
-                    AnonymousProRegular {
-                        id: dateText;
-                        text: getFormattedDate(model.created_at * 1000);
-                        // Style
-                        size: 18;
+                    Item {
+                        visible: model.transaction_type === "pendingCount" && root.pendingCount !== 0;
+                        anchors.top: parent.top;
                         anchors.left: parent.left;
-                        anchors.top: parent.top;
-                        anchors.topMargin: 15;
-                        width: 118;
-                        height: paintedHeight;
-                        color: hifi.colors.blueAccent;
-                        wrapMode: Text.WordWrap;
-                        // Alignment
-                        horizontalAlignment: Text.AlignRight;
-                    }
+                        width: parent.width;
+                        height: visible ? parent.height : 0;
 
-                    AnonymousProRegular {
-                        id: transactionText;
-                        text: model.text;
-                        size: 18;
-                        anchors.top: parent.top;
-                        anchors.topMargin: 15;
-                        anchors.left: dateText.right;
-                        anchors.leftMargin: 20;
-                        anchors.right: parent.right;
-                        height: paintedHeight;
-                        color: hifi.colors.baseGrayHighlight;
-                        wrapMode: Text.WordWrap;
-
-                        onLinkActivated: {
-                            sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                        AnonymousProRegular {
+                            id: pendingCountText;
+                            anchors.fill: parent;
+                            text: root.pendingCount + ' Transaction' + (root.pendingCount > 1 ? 's' : '') + ' Pending';
+                            size: 18;
+                            color: hifi.colors.blueAccent;
+                            verticalAlignment: Text.AlignVCenter;
+                            horizontalAlignment: Text.AlignHCenter;
                         }
                     }
 
-                    HifiControlsUit.Separator {
-                    colorScheme: 1;
+                    Item {
+                        visible: model.transaction_type !== "pendingCount" && (model.status === "confirmed" || model.status === "invalidated");
+                        anchors.top: parent.top;
                         anchors.left: parent.left;
-                        anchors.right: parent.right;
-                        anchors.bottom: parent.bottom;
+                        width: parent.width;
+                        height: visible ? parent.height : 0;
+
+                        AnonymousProRegular {
+                            id: dateText;
+                            text: model.created_at ? getFormattedDate(model.created_at * 1000) : "";
+                            // Style
+                            size: 18;
+                            anchors.left: parent.left;
+                            anchors.top: parent.top;
+                            anchors.topMargin: 15;
+                            width: 118;
+                            height: paintedHeight;
+                            color: hifi.colors.blueAccent;
+                            wrapMode: Text.WordWrap;
+                            // Alignment
+                            horizontalAlignment: Text.AlignRight;
+                        }
+
+                        AnonymousProRegular {
+                            id: transactionText;
+                            text: model.text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.text) : model.text) : "";
+                            size: 18;
+                            anchors.top: parent.top;
+                            anchors.topMargin: 15;
+                            anchors.left: dateText.right;
+                            anchors.leftMargin: 20;
+                            anchors.right: parent.right;
+                            height: paintedHeight;
+                            color: model.status === "invalidated" ? hifi.colors.redAccent : hifi.colors.baseGrayHighlight;
+                            wrapMode: Text.WordWrap;
+                            font.strikeout: model.status === "invalidated";
+
+                            onLinkActivated: {
+                                sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                            }
+                        }
+
+                        HifiControlsUit.Separator {
+                        colorScheme: 1;
+                            anchors.left: parent.left;
+                            anchors.right: parent.right;
+                            anchors.bottom: parent.bottom;
+                        }
                     }
                 }
                 onAtYEndChanged: {
@@ -277,10 +313,14 @@ Item {
     //
 
     function getFormattedDate(timestamp) {
+        function addLeadingZero(n) {
+            return n < 10 ? '0' + n : '' + n;
+        }
+
         var a = new Date(timestamp);
         var year = a.getFullYear();
-        var month = a.getMonth();
-        var day = a.getDate();
+        var month = addLeadingZero(a.getMonth());
+        var day = addLeadingZero(a.getDate());
         var hour = a.getHours();
         var drawnHour = hour;
         if (hour === 0) {
@@ -288,15 +328,29 @@ Item {
         } else if (hour > 12) {
             drawnHour -= 12;
         }
+        drawnHour = addLeadingZero(drawnHour);
         
         var amOrPm = "AM";
         if (hour >= 12) {
             amOrPm = "PM";
         }
 
-        var min = a.getMinutes();
-        var sec = a.getSeconds();
+        var min = addLeadingZero(a.getMinutes());
+        var sec = addLeadingZero(a.getSeconds());
         return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
+    }
+
+    
+    function calculatePendingAndInvalidated(startingPendingCount) {
+        var pendingCount = startingPendingCount ? startingPendingCount : 0;
+        for (var i = 0; i < transactionHistoryModel.count; i++) {
+            if (transactionHistoryModel.get(i).status === "pending") {
+                pendingCount++;
+            }
+        }
+
+        root.pendingCount = pendingCount;
+        transactionHistoryModel.insert(0, {"transaction_type": "pendingCount"});
     }
 
     //

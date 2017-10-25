@@ -41,6 +41,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
+    _entityPropertyFlags += PROP_CERTIFICATE_ID;
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
@@ -139,8 +140,8 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 if (event.getID() == LEFT_HAND_HW_ID) {
                     offsetAngle *= -1.0f;
                 }
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) *
-                    ((cameraPosition + direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE)));
+                contextOverlayPosition = cameraPosition +
+                    (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) * (direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE));
                 contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
 
@@ -176,7 +177,12 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
 bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& entityItemID) {
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
-    return (entityProperties.getMarketplaceID().length() != 0);
+    Setting::Handle<bool> _settingSwitch{ "commerce", false };
+    if (_settingSwitch.get()) {
+        return (entityProperties.getCertificateID().length() != 0);
+    } else {
+        return (entityProperties.getMarketplaceID().length() != 0);
+    }
 }
 
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
@@ -201,7 +207,8 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        if (_commerceSettingSwitch.get()) {
+        Setting::Handle<bool> _settingSwitch{ "commerce", false };
+        if (_settingSwitch.get()) {
             openInspectionCertificate();
         } else {
             openMarketplace();

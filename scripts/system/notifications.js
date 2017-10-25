@@ -85,6 +85,7 @@
     var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
     var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
     var lodTextID = false;
+    var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications"
 
     var NotificationType = {
         UNKNOWN: 0,
@@ -94,13 +95,15 @@
         EDIT_ERROR: 4,
         TABLET: 5,
         CONNECTION: 6,
+        WALLET: 7,
         properties: [
             { text: "Snapshot" },
             { text: "Level of Detail" },
             { text: "Connection Refused" },
             { text: "Edit error" },
             { text: "Tablet" },
-            { text: "Connection" }
+            { text: "Connection" },
+            { text: "Wallet" }
         ],
         getTypeFromMenuItem: function (menuItemName) {
             var type;
@@ -548,6 +551,13 @@
         createNotification(wordWrap(msg), NotificationType.UNKNOWN); // Needs a generic notification system for user feedback, thus using this
     }
 
+    function onMessageReceived(channel, message) {
+        if (channel === NOTIFICATIONS_MESSAGE_CHANNEL) {
+            message = JSON.parse(message);
+            createNotification(wordWrap(message.message), message.notificationType);
+        }
+    }
+
     function onSnapshotTaken(pathStillSnapshot, notify) {
         if (notify) {
             var imageProperties = {
@@ -564,6 +574,10 @@
 
     function processingGif() {
         createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
+    }
+
+    function walletNotSetup() {
+        createNotification("Your wallet isn't set up. Open the WALLET app.", NotificationType.WALLET);
     }
 
     function connectionAdded(connectionName) {
@@ -640,6 +654,7 @@
             Overlays.deleteOverlay(buttons[notificationIndex]);
         }
         Menu.removeMenu(MENU_NAME);
+        Messages.unsubscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     }
 
     function menuItemEvent(menuItem) {
@@ -682,6 +697,11 @@
     Window.notifyEditError = onEditError;
     Window.notify = onNotify;
     Tablet.tabletNotification.connect(tabletNotification);
+    Wallet.walletNotSetup.connect(walletNotSetup);
+
+    Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
+    Messages.messageReceived.connect(onMessageReceived);
+
     setup();
 
 }()); // END LOCAL_SCOPE
