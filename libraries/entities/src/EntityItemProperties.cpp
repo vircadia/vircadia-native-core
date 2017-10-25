@@ -84,28 +84,11 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
-const char* shapeTypeNames[] = {
-    "none",
-    "box",
-    "sphere",
-    "capsule-x",
-    "capsule-y",
-    "capsule-z",
-    "cylinder-x",
-    "cylinder-y",
-    "cylinder-z",
-    "hull",
-    "plane",
-    "compound",
-    "simple-hull",
-    "simple-compound",
-    "static-mesh"
-};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
 void addShapeType(ShapeType type) {
-    stringToShapeTypeLookup[shapeTypeNames[type]] = type;
+    stringToShapeTypeLookup[ShapeInfo::getNameForShapeType(type)] = type;
 }
 
 void buildStringToShapeTypeLookup() {
@@ -180,9 +163,7 @@ void EntityItemProperties::setCollisionMaskFromString(const QString& maskString)
 }
 
 QString EntityItemProperties::getShapeTypeAsString() const {
-    if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
-        return QString(shapeTypeNames[_shapeType]);
-    return QString(shapeTypeNames[SHAPE_TYPE_NONE]);
+    return ShapeInfo::getNameForShapeType(_shapeType);
 }
 
 void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {

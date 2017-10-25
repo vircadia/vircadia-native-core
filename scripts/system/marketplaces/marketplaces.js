@@ -74,8 +74,8 @@
                     itemName: 'Test Flaregun',
                     itemPrice: (debugError ? 10 : 17),
                     itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
-                },
-                canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
+                    categories: ["Wearables", "Miscellaneous"]
+                }
             });
         }
     }
@@ -115,7 +115,6 @@
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
             tablet.sendToQml({
                 method: 'updatePurchases',
-                canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified,
                 referrerURL: referrerURL,
                 filterText: filterText
             });
@@ -136,9 +135,10 @@
 
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
+        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID + "\n");
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
-            certificateId: itemCertificateId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID
+            certificateId: certificateId
         });
     }
 
@@ -203,8 +203,7 @@
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
                 tablet.sendToQml({
                     method: 'updateCheckoutQML',
-                    params: parsedJsonMessage,
-                    canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
+                    params: parsedJsonMessage
                 });
             } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
                 sendCommerceSettings();

@@ -14,6 +14,12 @@
     var isWindowFocused = true;
     var isKeyboardRaised = false;
     var isNumericKeyboard = false;
+    var isPasswordField = false;
+
+    function shouldSetPasswordField() {
+        var nodeType = document.activeElement.type;
+        return nodeType === "password";
+    }
 
     function shouldRaiseKeyboard() {
         var nodeName = document.activeElement.nodeName;
@@ -53,12 +59,14 @@
     setInterval(function () {
         var keyboardRaised = shouldRaiseKeyboard();
         var numericKeyboard = shouldSetNumeric();
+        var passwordField = shouldSetPasswordField();
 
-        if (isWindowFocused && (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard)) {
+        if (isWindowFocused &&
+            (keyboardRaised !== isKeyboardRaised || numericKeyboard !== isNumericKeyboard || passwordField !== isPasswordField)) {
 
             if (typeof EventBridge !== "undefined" && EventBridge !== null) {
                 EventBridge.emitWebEvent(
-                    keyboardRaised ? ("_RAISE_KEYBOARD" + (numericKeyboard ? "_NUMERIC" : "")) : "_LOWER_KEYBOARD"
+                    keyboardRaised ? ("_RAISE_KEYBOARD" + (numericKeyboard ? "_NUMERIC" : "") + (passwordField ? "_PASSWORD" : "")) : "_LOWER_KEYBOARD"
                 );
             } else {
                 if (numWarnings < MAX_WARNINGS) {
@@ -74,6 +82,7 @@
 
             isKeyboardRaised = keyboardRaised;
             isNumericKeyboard = numericKeyboard;
+            isPasswordField = passwordField;
         }
     }, POLL_FREQUENCY);
 

@@ -314,6 +314,7 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             shape = new btCylinderShapeZ(btHalfExtents);
         }
         break;
+        case SHAPE_TYPE_CIRCLE:
         case SHAPE_TYPE_CYLINDER_Y: {
             const glm::vec3 halfExtents = info.getHalfExtents();
             const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
