@@ -27,6 +27,7 @@ Item {
     id: root;
     z: 997;
     property bool keyboardRaised: false;
+    property bool isPasswordField: false;
     property string titleBarIcon: "";
     property string titleBarText: "";
 
@@ -202,6 +203,7 @@ Item {
 
             onFocusChanged: {
                 root.keyboardRaised = focus;
+                root.isPasswordField = (focus && passphraseField.echoMode === TextInput.Password);
             }
 
             MouseArea {
@@ -209,6 +211,7 @@ Item {
 
                 onClicked: {
                     root.keyboardRaised = true;
+                    root.isPasswordField = (passphraseField.echoMode === TextInput.Password);
                     mouse.accepted = false;
                 }
             }
@@ -382,6 +385,7 @@ Item {
             id: keyboard;
             raised: HMD.mounted && root.keyboardRaised;
             numeric: parent.punctuationMode;
+            password: root.isPasswordField;
             anchors {
                 bottom: parent.bottom;
                 left: parent.left;
