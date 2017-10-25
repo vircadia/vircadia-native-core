@@ -136,7 +136,9 @@ public:
 
     enum PickType {
         Ray = 0,
-        Stylus
+        Stylus,
+
+        NUM_PICK_TYPES
     };
     Q_ENUM(PickType)
 
@@ -189,6 +191,7 @@ private:
     QVector<QUuid> _ignoreItems;
     QVector<QUuid> _includeItems;
 };
+Q_DECLARE_METATYPE(PickQuery::PickType)
 
 template<typename T>
 class Pick : public PickQuery {

@@ -9,6 +9,8 @@
 
 const PickFilter PickFilter::NOTHING;
 
+int pickTypeMetaTypeId = qRegisterMetaType<PickQuery::PickType>("PickType");
+
 PickQuery::PickQuery(const PickFilter& filter, const float maxDistance, const bool enabled) :
     _filter(filter),
     _maxDistance(maxDistance),

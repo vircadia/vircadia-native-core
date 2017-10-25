@@ -5919,6 +5919,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
+    DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
+
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine.data(), &ScriptEngine::printedMessage,
             DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);

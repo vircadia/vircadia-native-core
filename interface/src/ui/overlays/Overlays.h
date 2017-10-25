@@ -85,7 +85,7 @@ class Overlays : public QObject {
     Q_PROPERTY(OverlayID keyboardFocusOverlay READ getKeyboardFocusOverlay WRITE setKeyboardFocusOverlay)
 
 public:
-    Overlays() {};
+    Overlays();
 
     void init();
     void update(float deltatime);

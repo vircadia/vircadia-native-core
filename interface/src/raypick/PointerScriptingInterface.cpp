@@ -21,7 +21,7 @@ void PointerScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptV
     DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
-QUuid PointerScriptingInterface::createPointer(const PickQuery::PickType type, const QVariant& properties) const {
+QUuid PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) const {
     switch (type) {
         case PickQuery::PickType::Ray:
             return createLaserPointer(properties);
@@ -61,7 +61,7 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
     LaserPointer::RenderStateMap renderStates;
     if (propertyMap["renderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
-        for (QVariant& renderStateVariant : renderStateVariants) {
+        for (const QVariant& renderStateVariant : renderStateVariants) {
             if (renderStateVariant.isValid()) {
                 QVariantMap renderStateMap = renderStateVariant.toMap();
                 if (renderStateMap["name"].isValid()) {
@@ -75,7 +75,7 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
     LaserPointer::DefaultRenderStateMap defaultRenderStates;
     if (propertyMap["defaultRenderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["defaultRenderStates"].toList();
-        for (QVariant& renderStateVariant : renderStateVariants) {
+        for (const QVariant& renderStateVariant : renderStateVariants) {
             if (renderStateVariant.isValid()) {
                 QVariantMap renderStateMap = renderStateVariant.toMap();
                 if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
@@ -87,7 +87,26 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
         }
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled));
+    PointerTriggers triggers;
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    if (propertyMap["triggers"].isValid()) {
+        QList<QVariant> triggerVariants = propertyMap["triggers"].toList();
+        for (const QVariant& triggerVariant : triggerVariants) {
+            if (triggerVariant.isValid()) {
+                QVariantMap triggerMap = triggerVariant.toMap();
+                if (triggerMap["action"].isValid() && triggerMap["button"].isValid()) {
+                    controller::Endpoint::Pointer endpoint = userInputMapper->endpointFor(controller::Input(triggerMap["action"].toUInt()));
+                    if (endpoint) {
+                        std::string button = triggerMap["button"].toString().toStdString();
+                        triggers.emplace_back(endpoint, button);
+                    }
+                }
+            }
+        }
+    }
+
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, triggers,
+                                                                                               faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled));
 }
 
 void PointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {

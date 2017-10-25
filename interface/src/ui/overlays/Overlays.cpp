@@ -37,9 +37,21 @@
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
+#include <pointers/PointerManager.h>
+
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
+
+Overlays::Overlays() {
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, this, &Overlays::hoverEnterOverlay);
+    connect(pointerManager.data(), &PointerManager::hoverContinueOverlay, this, &Overlays::hoverOverOverlay);
+    connect(pointerManager.data(), &PointerManager::hoverEndOverlay, this, &Overlays::hoverLeaveOverlay);
+    connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, this, &Overlays::mousePressOnOverlay);
+    connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, this, &Overlays::mouseMoveOnOverlay);
+    connect(pointerManager.data(), &PointerManager::triggerEndOverlay, this, &Overlays::mouseReleaseOnOverlay);
+}
 
 void Overlays::cleanupAllOverlays() {
     QMap<OverlayID, Overlay::Pointer> overlaysHUD;

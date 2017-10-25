@@ -8,15 +8,37 @@
 #ifndef hifi_Pointer_h
 #define hifi_Pointer_h
 
+#include <unordered_set>
+#include <unordered_map>
+
 #include <QtCore/QUuid>
 #include <QVector>
 #include <QVariant>
 
 #include <shared/ReadWriteLockable.h>
 
+#include <controllers/impl/Endpoint.h>
+#include "PointerEvent.h"
+
+#include "Pick.h"
+
+class PointerTrigger {
+public:
+    PointerTrigger(controller::Endpoint::Pointer endpoint, const std::string& button) : _endpoint(endpoint), _button(button) {}
+
+    controller::Endpoint::Pointer getEndpoint() const { return _endpoint; }
+    const std::string& getButton() const { return _button; }
+
+private:
+    controller::Endpoint::Pointer _endpoint;
+    std::string _button { "" };
+};
+
+using PointerTriggers = std::vector<PointerTrigger>;
+
 class Pointer : protected ReadWriteLockable {
 public:
-    Pointer(const QUuid& uid) : _pickUID(uid) {}
+    Pointer(const QUuid& uid, bool enabled) : _pickUID(uid), _enabled(enabled) {}
 
     virtual ~Pointer();
 
@@ -35,12 +57,35 @@ public:
     virtual void setLength(const float length) {}
     virtual void setLockEndUUID(QUuid objectID, const bool isOverlay) {}
 
-    virtual void update() = 0;
+    void update();
+    virtual void updateVisuals(const QVariantMap& pickResult) = 0;
+    void generatePointerEvents(const QVariantMap& pickResult);
+
+    struct PickedObject {
+        PickedObject() {}
+        PickedObject(const QUuid& objectID, IntersectionType type) : objectID(objectID), type(type) {}
+
+        QUuid objectID;
+        IntersectionType type;
+    } typedef PickedObject;
+
+    using Buttons = std::unordered_set<std::string>;
+
+    virtual PickedObject getHoveredObject(const QVariantMap& pickResult) = 0;
+    virtual Buttons getPressedButtons() = 0;
 
     QUuid getRayUID() { return _pickUID; }
 
 protected:
+    bool _enabled;
     const QUuid _pickUID;
+
+    virtual PointerEvent buildPointerEvent(const QUuid& uid, const QVariantMap& pickResult) const = 0;
+
+private:
+    PickedObject _prevHoveredObject;
+    Buttons _prevButtons;
+    std::unordered_map<std::string, PickedObject> _triggeredObjects;
 };
 
 #endif // hifi_Pick_h

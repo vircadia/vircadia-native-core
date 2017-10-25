@@ -9,6 +9,7 @@
 
 #include <DependencyManager.h>
 #include "PickManager.h"
+#include "PointerManager.h"
 
 Pointer::~Pointer() {
     DependencyManager::get<PickManager>()->removePick(_pickUID);
@@ -16,10 +17,16 @@ Pointer::~Pointer() {
 
 void Pointer::enable() {
     DependencyManager::get<PickManager>()->enablePick(_pickUID);
+    withWriteLock([&] {
+        _enabled = true;
+    });
 }
 
 void Pointer::disable() {
     DependencyManager::get<PickManager>()->disablePick(_pickUID);
+    withWriteLock([&] {
+        _enabled = false;
+    });
 }
 
 const QVariantMap Pointer::getPrevPickResult() {
@@ -36,4 +43,118 @@ void Pointer::setIgnoreItems(const QVector<QUuid>& ignoreItems) const {
 
 void Pointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
     DependencyManager::get<PickManager>()->setIncludeItems(_pickUID, includeItems);
+}
+
+void Pointer::update() {
+    // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
+    withReadLock([&] {
+        QVariantMap pickResult = getPrevPickResult();
+        updateVisuals(pickResult);
+        generatePointerEvents(pickResult);
+    });
+}
+
+void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
+    // TODO: avatars/HUD?
+    auto pointerManager = DependencyManager::get<PointerManager>();
+
+    // Hover events
+    Pointer::PickedObject hoveredObject = getHoveredObject(pickResult);
+    PointerEvent hoveredEvent = buildPointerEvent(hoveredObject.objectID, pickResult);
+    hoveredEvent.setType(PointerEvent::Move);
+    hoveredEvent.setButton(PointerEvent::NoButtons);
+    if (_enabled) {
+        if (hoveredObject.type == OVERLAY) {
+            if (_prevHoveredObject.type == OVERLAY) {
+                if (hoveredObject.objectID == _prevHoveredObject.objectID) {
+                    emit pointerManager->hoverContinueOverlay(hoveredObject.objectID, hoveredEvent);
+                } else {
+                    PointerEvent prevHoveredEvent = buildPointerEvent(_prevHoveredObject.objectID, pickResult);
+                    emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, prevHoveredEvent);
+                    emit pointerManager->hoverBeginOverlay(hoveredObject.objectID, hoveredEvent);
+                }
+            } else {
+                emit pointerManager->hoverBeginOverlay(hoveredObject.objectID, hoveredEvent);
+                if (_prevHoveredObject.type == ENTITY) {
+                    emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
+                }
+            }
+        }
+
+        // TODO: this is basically repeated code.  is there a way to clean it up?
+        if (hoveredObject.type == ENTITY) {
+            if (_prevHoveredObject.type == ENTITY) {
+                if (hoveredObject.objectID == _prevHoveredObject.objectID) {
+                    emit pointerManager->hoverContinueEntity(hoveredObject.objectID, hoveredEvent);
+                } else {
+                    PointerEvent prevHoveredEvent = buildPointerEvent(_prevHoveredObject.objectID, pickResult);
+                    emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, prevHoveredEvent);
+                    emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
+                }
+            } else {
+                emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
+                if (_prevHoveredObject.type == OVERLAY) {
+                    emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
+                }
+            }
+        }
+    }
+
+    // Trigger events
+    Buttons buttons;
+    Buttons newButtons;
+    Buttons sameButtons;
+    // NOTE: After this loop: _prevButtons = buttons that were removed
+    // If !_enabled, release all buttons
+    if (_enabled) {
+        buttons = getPressedButtons();
+        for (const std::string& button : buttons) {
+            if (_prevButtons.find(button) == _prevButtons.end()) {
+                newButtons.insert(button);
+            } else {
+                sameButtons.insert(button);
+                _prevButtons.erase(button);
+            }
+        }
+    }
+
+    // Trigger begin
+    for (const std::string& button : newButtons) {
+        hoveredEvent.setType(PointerEvent::Press);
+        hoveredEvent.setButton(PointerEvent::PrimaryButton);
+        if (hoveredObject.type == ENTITY) {
+            emit pointerManager->triggerBeginEntity(hoveredObject.objectID, hoveredEvent);
+        } else if (hoveredObject.type == OVERLAY) {
+            emit pointerManager->triggerBeginOverlay(hoveredObject.objectID, hoveredEvent);
+        }
+        _triggeredObjects[button] = hoveredObject;
+    }
+
+    // Trigger continue
+    for (const std::string& button : sameButtons) {
+        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button].objectID, pickResult);
+        triggeredEvent.setType(PointerEvent::Move);
+        triggeredEvent.setButton(PointerEvent::PrimaryButton);
+        if (_triggeredObjects[button].type == ENTITY) {
+            emit pointerManager->triggerContinueEntity(_triggeredObjects[button].objectID, triggeredEvent);
+        } else if (_triggeredObjects[button].type == OVERLAY) {
+            emit pointerManager->triggerContinueOverlay(_triggeredObjects[button].objectID, triggeredEvent);
+        }
+    }
+
+    // Trigger end
+    for (const std::string& button : _prevButtons) {
+        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button].objectID, pickResult);
+        triggeredEvent.setType(PointerEvent::Release);
+        triggeredEvent.setButton(PointerEvent::PrimaryButton);
+        if (_triggeredObjects[button].type == ENTITY) {
+            emit pointerManager->triggerEndEntity(_triggeredObjects[button].objectID, triggeredEvent);
+        } else if (_triggeredObjects[button].type == OVERLAY) {
+            emit pointerManager->triggerEndOverlay(_triggeredObjects[button].objectID, triggeredEvent);
+        }
+        _triggeredObjects.erase(button);
+    }
+
+    _prevHoveredObject = hoveredObject;
+    _prevButtons = buttons;
 }

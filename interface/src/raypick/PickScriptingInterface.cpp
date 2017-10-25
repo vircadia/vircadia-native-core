@@ -17,6 +17,9 @@
 #include "JointRayPick.h"
 #include "MouseRayPick.h"
 
+#include <pointers/Pick.h>
+#include <ScriptEngine.h>
+
 QUuid PickScriptingInterface::createPick(const PickQuery::PickType type, const QVariant& properties) {
     switch (type) {
         case PickQuery::PickType::Ray:
@@ -104,4 +107,23 @@ void PickScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue
 
 void PickScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) {
     DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
+}
+
+QScriptValue pickTypesToScriptValue(QScriptEngine* engine, const PickQuery::PickType& pickType) {
+    return pickType;
+}
+
+void pickTypesFromScriptValue(const QScriptValue& object, PickQuery::PickType& pickType) {
+    pickType = static_cast<PickQuery::PickType>(object.toUInt16());
+}
+
+void PickScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
+    QScriptValue pickTypes = engine->newObject();
+    auto metaEnum = QMetaEnum::fromType<PickQuery::PickType>();
+    for (int i = 0; i < PickQuery::PickType::NUM_PICK_TYPES; ++i) {
+        pickTypes.setProperty(metaEnum.key(i), metaEnum.value(i));
+    }
+    engine->globalObject().setProperty("PickType", pickTypes);
+
+    qScriptRegisterMetaType(engine, pickTypesToScriptValue, pickTypesFromScriptValue);
 }

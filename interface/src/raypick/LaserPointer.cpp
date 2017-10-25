@@ -17,10 +17,10 @@
 #include <pointers/PickManager.h>
 #include "PickScriptingInterface.h"
 
-LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
+LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, const PointerTriggers& triggers,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled) :
-    Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps)),
-    _renderingEnabled(enabled),
+    Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps), enabled),
+    _triggers(triggers),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
     _faceAvatar(faceAvatar),
@@ -49,17 +49,9 @@ LaserPointer::~LaserPointer() {
     }
 }
 
-void LaserPointer::enable() {
-    Pointer::enable();
-    withWriteLock([&] {
-        _renderingEnabled = true;
-    });
-}
-
 void LaserPointer::disable() {
-    Pointer::disable();
+    Parent::disable();
     withWriteLock([&] {
-        _renderingEnabled = false;
         if (!_currentRenderState.empty()) {
             if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
                 disableRenderState(_renderStates[_currentRenderState]);
@@ -199,26 +191,37 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
     }
 }
 
-void LaserPointer::update() {
-    // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
-    withReadLock([&] {
-        QVariantMap prevRayPickResult = DependencyManager::get<PickManager>()->getPrevPickResult(_pickUID);
-        IntersectionType type = IntersectionType(prevRayPickResult["type"].toInt());
-        PickRay pickRay = PickRay(prevRayPickResult["searchRay"].toMap());
-        QUuid uid = prevRayPickResult["objectID"].toUuid();
-        if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
-            (type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
-            float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult["distance"].toFloat();
-            updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay, false);
-            disableRenderState(_defaultRenderStates[_currentRenderState].second);
-        } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-            disableRenderState(_renderStates[_currentRenderState]);
-            updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), pickRay, true);
-        } else if (!_currentRenderState.empty()) {
-            disableRenderState(_renderStates[_currentRenderState]);
-            disableRenderState(_defaultRenderStates[_currentRenderState].second);
+void LaserPointer::updateVisuals(const QVariantMap& prevRayPickResult) {
+    IntersectionType type = IntersectionType(prevRayPickResult["type"].toInt());
+    PickRay pickRay = PickRay(prevRayPickResult["searchRay"].toMap());
+    QUuid uid = prevRayPickResult["objectID"].toUuid();
+    if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
+        (type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
+        float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult["distance"].toFloat();
+        updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay, false);
+        disableRenderState(_defaultRenderStates[_currentRenderState].second);
+    } else if (_enabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
+        disableRenderState(_renderStates[_currentRenderState]);
+        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), pickRay, true);
+    } else if (!_currentRenderState.empty()) {
+        disableRenderState(_renderStates[_currentRenderState]);
+        disableRenderState(_defaultRenderStates[_currentRenderState].second);
+    }
+}
+
+Pointer::PickedObject LaserPointer::getHoveredObject(const QVariantMap& pickResult) {
+    return Pointer::PickedObject(pickResult["objectID"].toUuid(), IntersectionType(pickResult["type"].toUInt()));
+}
+
+Pointer::Buttons LaserPointer::getPressedButtons() {
+    std::unordered_set<std::string> toReturn;
+    for (const PointerTrigger& trigger : _triggers) {
+        // TODO: right now, LaserPointers don't support axes, only on/off buttons
+        if (trigger.getEndpoint()->peek() >= 1.0f) {
+            toReturn.insert(trigger.getButton());
         }
-    });
+    }
+    return toReturn;
 }
 
 void LaserPointer::setLength(const float length) {
@@ -290,4 +293,53 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
     }
 
     return RenderState(startID, pathID, endID);
+}
+
+PointerEvent LaserPointer::buildPointerEvent(const QUuid& uid, const QVariantMap& pickResult) const {
+    uint32_t id = 0;
+    glm::vec3 intersection = vec3FromVariant(pickResult["intersection"]);
+    glm::vec3 surfaceNormal = vec3FromVariant(pickResult["surfaceNormal"]);
+    glm::vec3 direction = -surfaceNormal;
+    IntersectionType type = IntersectionType(pickResult["type"].toUInt());
+    glm::vec2 pos2D;
+    if (type == ENTITY) {
+        pos2D = projectOntoEntityXYPlane(uid, intersection);
+    } else if (type == OVERLAY) {
+        pos2D = projectOntoOverlayXYPlane(uid, intersection);
+    }
+    return PointerEvent(PointerEvent::Move, id, pos2D, intersection, surfaceNormal, direction, PointerEvent::NoButtons);
+}
+
+glm::vec2 LaserPointer::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint) const {
+    glm::quat invRot = glm::inverse(rotation);
+    glm::vec3 localPos = invRot * (worldPos - position);
+    glm::vec3 invDimensions = glm::vec3(1.0f / dimensions.x, 1.0f / dimensions.y, 1.0f / dimensions.z);
+
+    glm::vec3 normalizedPos = (localPos * invDimensions) + registrationPoint;
+    return glm::vec2(normalizedPos.x * dimensions.x, (1.0f - normalizedPos.y) * dimensions.y);
+}
+
+glm::vec2 LaserPointer::projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::vec3& worldPos) const {
+    glm::vec3 position = vec3FromVariant(qApp->getOverlays().getProperty(overlayID, "position").value);
+    glm::quat rotation = quatFromVariant(qApp->getOverlays().getProperty(overlayID, "rotation").value);
+    glm::vec3 dimensions;
+
+    float dpi = qApp->getOverlays().getProperty(overlayID, "dpi").value.toFloat();
+    if (dpi > 0) {
+        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
+        glm::vec3 resolution = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "resolution").value), 1);
+        glm::vec3 scale = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01f);
+        const float INCHES_TO_METERS = 1.0f / 39.3701f;
+        dimensions = (resolution * INCHES_TO_METERS / dpi) * scale;
+    } else {
+        dimensions = glm::vec3(vec2FromVariant(qApp->getOverlays().getProperty(overlayID, "dimensions").value), 0.01);
+    }
+
+    const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
+    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+}
+
+glm::vec2 LaserPointer::projectOntoEntityXYPlane(const QUuid& entity, const glm::vec3& worldPos) const {
+    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entity);
+    return projectOntoXYPlane(worldPos, props.getPosition(), props.getRotation(), props.getDimensions(), props.getRegistrationPoint());
 }

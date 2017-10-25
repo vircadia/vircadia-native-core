@@ -45,13 +45,19 @@ private:
     QHash<QUuid, std::shared_ptr<Pointer>> _pointers;
 
 signals:
-    void triggerBegin(const QUuid& id, const PointerEvent& pointerEvent);
-    void triggerContinue(const QUuid& id, const PointerEvent& pointerEvent);
-    void triggerEnd(const QUuid& id, const PointerEvent& pointerEvent);
+    void triggerBeginOverlay(const QUuid& id, const PointerEvent& pointerEvent);
+    void triggerContinueOverlay(const QUuid& id, const PointerEvent& pointerEvent);
+    void triggerEndOverlay(const QUuid& id, const PointerEvent& pointerEvent);
+    void hoverBeginOverlay(const QUuid& id, const PointerEvent& pointerEvent);
+    void hoverContinueOverlay(const QUuid& id, const PointerEvent& pointerEvent);
+    void hoverEndOverlay(const QUuid& id, const PointerEvent& pointerEvent);
 
-    void hoverEnter(const QUuid& id, const PointerEvent& pointerEvent);
-    void hoverOver(const QUuid& id, const PointerEvent& pointerEvent);
-    void hoverLeave(const QUuid& id, const PointerEvent& pointerEvent);
+    void triggerBeginEntity(const QUuid& id, const PointerEvent& pointerEvent);
+    void triggerContinueEntity(const QUuid& id, const PointerEvent& pointerEvent);
+    void triggerEndEntity(const QUuid& id, const PointerEvent& pointerEvent);
+    void hoverBeginEntity(const QUuid& id, const PointerEvent& pointerEvent);
+    void hoverContinueEntity(const QUuid& id, const PointerEvent& pointerEvent);
+    void hoverEndEntity(const QUuid& id, const PointerEvent& pointerEvent);
 };
 
 #endif // hifi_pointers_PointerManager_h

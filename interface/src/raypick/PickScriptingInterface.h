@@ -35,6 +35,8 @@ class PickScriptingInterface : public QObject, public Dependency {
 public:
     QUuid createRayPick(const QVariant& properties);
 
+    void registerMetaTypes(QScriptEngine* engine);
+
 public slots:
     Q_INVOKABLE QUuid createPick(const PickQuery::PickType type, const QVariant& properties);
     Q_INVOKABLE void enablePick(const QUuid& uid);

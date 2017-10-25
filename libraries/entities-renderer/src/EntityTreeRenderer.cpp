@@ -35,6 +35,8 @@
 #include "EntitiesRendererLogging.h"
 #include "RenderableEntityItem.h"
 
+#include <pointers/PointerManager.h>
+
 size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
 
@@ -55,6 +57,14 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     EntityRenderer::initEntityRenderers();
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
+
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    connect(pointerManager.data(), &PointerManager::hoverBeginEntity, this, &EntityTreeRenderer::hoverEnterEntity);
+    connect(pointerManager.data(), &PointerManager::hoverContinueEntity, this, &EntityTreeRenderer::hoverOverEntity);
+    connect(pointerManager.data(), &PointerManager::hoverEndEntity, this, &EntityTreeRenderer::hoverLeaveEntity);
+    connect(pointerManager.data(), &PointerManager::triggerBeginEntity, this, &EntityTreeRenderer::mousePressOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerContinueEntity, this, &EntityTreeRenderer::mouseMoveOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerEndEntity, this, &EntityTreeRenderer::mouseReleaseOnEntity);
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
