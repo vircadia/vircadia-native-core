@@ -3,7 +3,7 @@
 //  examples
 //
 //  Created by Brad hefta-Gaub on 10/1/14.
-//    Modified by Daniela Fontes @DanielaFifo and Tiago Andrade @TagoWill on 4/7/2017
+//    Modified by Daniela Fontes * @DanielaFifo and Tiago Andrade @TagoWill on 4/7/2017
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  This script implements a class useful for building tools for editing entities.
@@ -203,6 +203,7 @@ SelectionManager = (function() {
                 print("ERROR: entitySelectionTool.update got exception: " + JSON.stringify(e));
             }
         }
+
     };
 
     return that;
@@ -1422,11 +1423,11 @@ SelectionDisplay = (function() {
             Overlays.editOverlay(rollHandle, {
                 scale: handleSize
             });
-            var pos = Vec3.sum(grabberMoveUpPosition, {
-                x: 0,
-                y: Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 3,
-                z: 0
-            });
+            var upDiff = Vec3.multiply((
+                Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 3), 
+                Quat.getUp(MyAvatar.orientation)
+            );
+            var pos = Vec3.sum(grabberMoveUpPosition, upDiff);
             Overlays.editOverlay(grabberMoveUp, {
                 position: pos,
                 scale: handleSize / 1.25
@@ -2099,10 +2100,11 @@ SelectionDisplay = (function() {
         });
 
         var grabberMoveUpOffset = 0.1;
+        var upVec = Quat.getUp(MyAvatar.orientation);
         grabberMoveUpPosition = {
-            x: position.x,
-            y: position.y + worldTop + grabberMoveUpOffset,
-            z: position.z
+            x: position.x + (grabberMoveUpOffset + worldTop) * upVec.x ,
+            y: position.y+ (grabberMoveUpOffset + worldTop) * upVec.y,
+            z: position.z + (grabberMoveUpOffset + worldTop) * upVec.z
         };
         Overlays.editOverlay(grabberMoveUp, {
             visible: (!activeTool) || isActiveTool(grabberMoveUp)
@@ -2416,9 +2418,6 @@ SelectionDisplay = (function() {
         mode: "TRANSLATE_UP_DOWN",
         onBegin: function(event, pickRay, pickResult) {
             upDownPickNormal = Quat.getForward(lastCameraOrientation);
-            // Remove y component so the y-axis lies along the plane we're picking on - this will
-            // give movements that follow the mouse.
-            upDownPickNormal.y = 0;
             lastXYPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, upDownPickNormal);
 
             SelectionManager.saveProperties();
@@ -2455,11 +2454,17 @@ SelectionDisplay = (function() {
             var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, upDownPickNormal);
 
             var vector = Vec3.subtract(newIntersection, lastXYPick);
+
+            // project vector onto avatar up vector
+            // we want the avatar referential not the camera.
+            var avatarUpVector = Quat.getUp(MyAvatar.orientation);
+            var dotVectorUp = Vec3.dot(vector, avatarUpVector);
+            vector = Vec3.multiply(dotVectorUp, avatarUpVector);
+
+
             vector = grid.snapToGrid(vector);
 
-            // we only care about the Y axis
-            vector.x = 0;
-            vector.z = 0;
+            
 
             var wantDebug = false;
             if (wantDebug) {

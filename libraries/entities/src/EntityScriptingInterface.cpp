@@ -50,6 +50,10 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canRezCertifiedChanged, this, &EntityScriptingInterface::canRezCertifiedChanged);
     connect(nodeList.data(), &NodeList::canRezTmpCertifiedChanged, this, &EntityScriptingInterface::canRezTmpCertifiedChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
+
+
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::EntityScriptCallMethod, this, "handleEntityScriptCallMethodPacket");
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -570,6 +574,48 @@ void EntityScriptingInterface::callEntityServerMethod(QUuid id, const QString& m
     PROFILE_RANGE(script_entities, __FUNCTION__);
     DependencyManager::get<EntityScriptClient>()->callEntityServerMethod(id, method, params);
 }
+
+void EntityScriptingInterface::callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+    auto scriptServerServices = DependencyManager::get<EntityScriptServerServices>();
+
+    // this won't be available on clients
+    if (scriptServerServices) {
+        scriptServerServices->callEntityClientMethod(clientSessionID, entityID, method, params);
+    } else {
+        qWarning() << "Entities.callEntityClientMethod() not allowed in client";
+    }
+}
+
+
+void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer entityScriptServer = nodeList->soloNodeOfType(NodeType::EntityScriptServer);
+
+    if (entityScriptServer == senderNode) {
+        auto entityID = QUuid::fromRfc4122(receivedMessage->read(NUM_BYTES_RFC4122_UUID));
+
+        auto method = receivedMessage->readString();
+
+        quint16 paramCount;
+        receivedMessage->readPrimitive(&paramCount);
+
+        QStringList params;
+        for (int param = 0; param < paramCount; param++) {
+            auto paramString = receivedMessage->readString();
+            params << paramString;
+        }
+
+        std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
+        if (_entitiesScriptEngine) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
+        }
+    }
+}
+
+
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
