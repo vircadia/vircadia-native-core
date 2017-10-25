@@ -1373,7 +1373,7 @@ function loaded() {
         elShape.addEventListener('change', createEmitTextPropertyUpdateFunction('shape'));
 
         elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
-        elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi'));
+        elWebDPI.addEventListener('change', createEmitNumberPropertyUpdateFunction('dpi', 0));
 
         elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
         elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
