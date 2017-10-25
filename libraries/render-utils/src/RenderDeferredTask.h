@@ -170,6 +170,40 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class DrawFrustumsConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(bool isFrozen MEMBER isFrozen NOTIFY dirty)
+public:
+
+    DrawFrustumsConfig(bool enabled = false) : JobConfig(enabled) {}
+
+    bool isFrozen{ false };
+signals:
+    void dirty();
+
+};
+
+class DrawFrustums {
+public:
+    using Config = DrawFrustumsConfig;
+    using JobModel = render::Job::Model<DrawFrustums, Config>;
+
+    void configure(const Config& configuration);
+    void run(const render::RenderContextPointer& renderContext);
+
+private:
+
+    bool _updateFrustums{ true };
+    gpu::PipelinePointer _pipeline;
+    gpu::BufferView _frustumMeshIndices;
+    gpu::BufferView _viewFrustumMeshVertices;
+    gpu::BufferView _shadowFrustumMeshVertices;
+    gpu::BufferStream _viewFrustumMeshStream;
+    gpu::BufferStream _shadowFrustumMeshStream;
+
+    static void updateFrustum(const ViewFrustum& frustum, gpu::BufferView& vertexBuffer);
+};
+
 class RenderDeferredTaskConfig : public render::Task::Config {
     Q_OBJECT
         Q_PROPERTY(float fadeScale MEMBER fadeScale NOTIFY dirty)

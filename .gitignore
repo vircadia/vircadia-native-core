@@ -65,6 +65,9 @@ gvr-interface/libs/*
 TAGS
 *.sw[po]
 
+# ignore QML compilation output
+*.qmlc
+
 # ignore node files for the console
 node_modules
 npm-debug.log

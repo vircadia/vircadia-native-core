@@ -190,6 +190,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     
         task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<DrawBounds>("DrawZones", zones);
+        task.addJob<DrawFrustums>("DrawFrustums");
     }
 
     // Layered Overlays
@@ -516,3 +517,88 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
+void DrawFrustums::configure(const Config& configuration) {
+    _updateFrustums = !configuration.isFrozen;
+}
+
+void DrawFrustums::run(const render::RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
+
+    RenderArgs* args = renderContext->args;
+    static uint8_t indexData[] = { 0, 1, 2, 3, 0, 4, 5, 6, 7, 4, 5, 1, 2, 6, 7, 3 };
+
+    if (!_frustumMeshIndices._buffer) {
+        auto indices = std::make_shared<gpu::Buffer>(sizeof(indexData), indexData);
+        _frustumMeshIndices = gpu::BufferView(indices, gpu::Element(gpu::SCALAR, gpu::UINT8, gpu::INDEX));
+        _viewFrustumMeshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
+        _viewFrustumMeshStream.addBuffer(_viewFrustumMeshVertices._buffer, _viewFrustumMeshVertices._offset, _viewFrustumMeshVertices._stride);
+        _shadowFrustumMeshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
+        _shadowFrustumMeshStream.addBuffer(_shadowFrustumMeshVertices._buffer, _shadowFrustumMeshVertices._offset, _shadowFrustumMeshVertices._stride);
+    }
+
+    if (_updateFrustums) {
+        updateFrustum(args->getViewFrustum(), _viewFrustumMeshVertices);
+
+        auto lightStage = renderContext->_scene->getStage<LightStage>();
+        assert(lightStage);
+
+        const auto globalShadow = lightStage->getCurrentKeyShadow();
+        if (globalShadow) {
+            updateFrustum(*globalShadow->getFrustum(), _shadowFrustumMeshVertices);
+        }
+    }
+
+    if (!_pipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
+        auto ps = gpu::StandardShaderLib::getDrawColorPS();
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding("color", 0));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(gpu::State::DepthTest(true, false));
+        _pipeline = gpu::Pipeline::create(program, state);
+    }
+
+    // Render the frustums in wireframe
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat);
+        batch.setPipeline(_pipeline);
+        batch.setIndexBuffer(_frustumMeshIndices);
+
+        batch._glUniform4f(0, 1.0f, 1.0f, 0.0f, 1.0f);
+        batch.setInputStream(0, _viewFrustumMeshStream);
+        batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
+
+        batch._glUniform4f(0, 1.0f, 0.0f, 0.0f, 1.0f);
+        batch.setInputStream(0, _shadowFrustumMeshStream);
+        batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
+
+        args->_batch = nullptr;
+    });
+}
+
+void DrawFrustums::updateFrustum(const ViewFrustum& frustum, gpu::BufferView& vertexBuffer) {
+    auto& vertices = vertexBuffer.edit<std::array<glm::vec3, 8U> >();
+    vertices[0] = frustum.getNearTopLeft();
+    vertices[1] = frustum.getNearTopRight();
+    vertices[2] = frustum.getNearBottomRight();
+    vertices[3] = frustum.getNearBottomLeft();
+    vertices[4] = frustum.getFarTopLeft();
+    vertices[5] = frustum.getFarTopRight();
+    vertices[6] = frustum.getFarBottomRight();
+    vertices[7] = frustum.getFarBottomLeft();
+}
