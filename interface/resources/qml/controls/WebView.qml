@@ -13,6 +13,7 @@ Item {
     property bool keyboardEnabled: true  // FIXME - Keyboard HMD only: Default to false
     property bool keyboardRaised: false
     property bool punctuationMode: false
+    property bool passwordField: false
     property alias flickable: webroot.interactive
 
     // FIXME - Keyboard HMD only: Make Interface either set keyboardRaised property directly in OffscreenQmlSurface
@@ -50,6 +51,7 @@ Item {
         id: keyboard
         raised: parent.keyboardEnabled && parent.keyboardRaised
         numeric: parent.punctuationMode
+        password: parent.passwordField
         anchors {
             left: parent.left
             right: parent.right

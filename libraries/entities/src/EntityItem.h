@@ -237,6 +237,7 @@ public:
 
     using SpatiallyNestable::getQueryAACube;
     virtual AACube getQueryAACube(bool& success) const override;
+    virtual bool shouldPuffQueryAACube() const override;
 
     QString getScript() const;
     void setScript(const QString& value);
@@ -269,6 +270,8 @@ public:
     void setVisible(bool value);
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
+
+    bool isChildOfMyAvatar() const;
 
     bool getCollisionless() const;
     void setCollisionless(bool value);
@@ -348,20 +351,16 @@ public:
     virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
     void updateParentID(const QUuid& value);
-    void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
-    void updateRotationFromNetwork(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
-    void updateVelocityFromNetwork(const glm::vec3& value);
     void updateDamping(float value);
     void updateRestitution(float value);
     void updateFriction(float value);
     void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
-    void updateAngularVelocityFromNetwork(const glm::vec3& value);
     void updateAngularDamping(float value);
     void updateCollisionless(bool value);
     void updateCollisionMask(uint8_t value);
@@ -626,12 +625,15 @@ protected:
     glm::vec3 _lastUpdatedVelocityValue;
     glm::vec3 _lastUpdatedAngularVelocityValue;
     glm::vec3 _lastUpdatedAccelerationValue;
+    AACube _lastUpdatedQueryAACubeValue;
 
     quint64 _lastUpdatedPositionTimestamp { 0 };
     quint64 _lastUpdatedRotationTimestamp { 0 };
     quint64 _lastUpdatedVelocityTimestamp { 0 };
     quint64 _lastUpdatedAngularVelocityTimestamp { 0 };
     quint64 _lastUpdatedAccelerationTimestamp { 0 };
+    quint64 _lastUpdatedQueryAACubeTimestamp { 0 };
+
 };
 
 #endif // hifi_EntityItem_h

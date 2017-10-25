@@ -1721,145 +1721,14 @@ bool Octree::readFromStream(uint64_t streamLength, QDataStream& inputStream, con
     device->ungetChar(firstChar);
 
     if (firstChar == (char) PacketType::EntityData) {
-        qCDebug(octree) << "Reading from binary SVO Stream length:" << streamLength;
-        return readSVOFromStream(streamLength, inputStream);
+        qCWarning(octree) << "Reading from binary SVO no longer supported";
+        return false;
     } else {
         qCDebug(octree) << "Reading from JSON SVO Stream length:" << streamLength;
         return readJSONFromStream(streamLength, inputStream, marketplaceID);
     }
 }
 
-
-bool Octree::readSVOFromStream(uint64_t streamLength, QDataStream& inputStream) {
-    qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
-
-    bool fileOk = false;
-
-    PacketVersion gotVersion = 0;
-
-    uint64_t headerLength = 0; // bytes in the header
-
-    bool wantImportProgress = true;
-
-    PacketType expectedType = expectedDataPacketType();
-    PacketVersion expectedVersion = versionForPacketType(expectedType);
-    bool hasBufferBreaks = versionHasSVOfileBreaks(expectedVersion);
-
-    // before reading the file, check to see if this version of the Octree supports file versions
-    if (getWantSVOfileVersions()) {
-
-        // read just enough of the file to parse the header...
-        const uint64_t HEADER_LENGTH = sizeof(int) + sizeof(PacketVersion);
-        unsigned char fileHeader[HEADER_LENGTH];
-        inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
-
-        headerLength = HEADER_LENGTH; // we need this later to skip to the data
-
-        unsigned char* dataAt = (unsigned char*)&fileHeader;
-        uint64_t  dataLength = HEADER_LENGTH;
-
-        // if so, read the first byte of the file and see if it matches the expected version code
-        int intPacketType;
-        memcpy(&intPacketType, dataAt, sizeof(intPacketType));
-        PacketType gotType = (PacketType) intPacketType;
-
-        dataAt += sizeof(expectedType);
-        dataLength -= sizeof(expectedType);
-        gotVersion = *dataAt;
-
-        if (gotType == expectedType) {
-            if (canProcessVersion(gotVersion)) {
-                dataAt += sizeof(gotVersion);
-                dataLength -= sizeof(gotVersion);
-                fileOk = true;
-                qCDebug(octree, "SVO file version match. Expected: %d Got: %d",
-                            versionForPacketType(expectedDataPacketType()), gotVersion);
-
-                hasBufferBreaks = versionHasSVOfileBreaks(gotVersion);
-            } else {
-                qCDebug(octree, "SVO file version mismatch. Expected: %d Got: %d",
-                            versionForPacketType(expectedDataPacketType()), gotVersion);
-            }
-        } else {
-            qCDebug(octree) << "SVO file type mismatch. Expected: " << expectedType
-                        << " Got: " << gotType;
-        }
-
-    } else {
-        qCDebug(octree) << "   NOTE: this file type does not include type and version information.";
-        fileOk = true; // assume the file is ok
-    }
-
-    if (hasBufferBreaks) {
-        qCDebug(octree) << "    this version includes buffer breaks";
-    } else {
-        qCDebug(octree) << "    this version does not include buffer breaks";
-    }
-
-    if (fileOk) {
-
-        // if this version of the file does not include buffer breaks, then we need to load the entire file at once
-        if (!hasBufferBreaks) {
-
-            // read the entire file into a buffer, WHAT!? Why not.
-            uint64_t dataLength = streamLength - headerLength;
-            unsigned char* entireFileDataSection = new unsigned char[dataLength];
-            inputStream.readRawData((char*)entireFileDataSection, dataLength);
-
-            unsigned char* dataAt = entireFileDataSection;
-
-            ReadBitstreamToTreeParams args(NO_EXISTS_BITS, NULL, 0,
-                                                SharedNodePointer(), wantImportProgress, gotVersion);
-
-            readBitstreamToTree(dataAt, dataLength, args);
-            delete[] entireFileDataSection;
-
-        } else {
-
-
-            uint64_t dataLength = streamLength - headerLength;
-            uint64_t remainingLength = dataLength;
-            const uint64_t MAX_CHUNK_LENGTH = MAX_OCTREE_PACKET_SIZE * 2;
-            unsigned char* fileChunk = new unsigned char[MAX_CHUNK_LENGTH];
-
-            while (remainingLength > 0) {
-                quint16 chunkLength = 0;
-
-                inputStream.readRawData((char*)&chunkLength, sizeof(chunkLength));
-                remainingLength -= sizeof(chunkLength);
-
-                if (chunkLength > remainingLength) {
-                    qCDebug(octree) << "UNEXPECTED chunk size of:" << chunkLength
-                                << "greater than remaining length:" << remainingLength;
-                    break;
-                }
-
-                if (chunkLength > MAX_CHUNK_LENGTH) {
-                    qCDebug(octree) << "UNEXPECTED chunk size of:" << chunkLength
-                                << "greater than MAX_CHUNK_LENGTH:" << MAX_CHUNK_LENGTH;
-                    break;
-                }
-
-                inputStream.readRawData((char*)fileChunk, chunkLength);
-
-                remainingLength -= chunkLength;
-
-                unsigned char* dataAt = fileChunk;
-                uint64_t  dataLength = chunkLength;
-
-                ReadBitstreamToTreeParams args(NO_EXISTS_BITS, NULL, 0,
-                                                    SharedNodePointer(), wantImportProgress, gotVersion);
-
-                readBitstreamToTree(dataAt, dataLength, args);
-            }
-
-            delete[] fileChunk;
-        }
-    }
-
-
-    return fileOk;
-}
 
 // hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
 // the entity later, but this helps us move things along for now

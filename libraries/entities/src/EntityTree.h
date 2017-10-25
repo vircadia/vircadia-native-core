@@ -89,8 +89,6 @@ public:
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const override { return true; }
     virtual PacketType expectedDataPacketType() const override { return PacketType::EntityData; }
-    virtual bool canProcessVersion(PacketVersion thisVersion) const override
-                    { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType packetType) const override;
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
@@ -111,9 +109,6 @@ public:
     virtual bool suppressEmptySubtrees() const override { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
     virtual bool mustIncludeAllChildData() const override { return false; }
-
-    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const override
-                    { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
 
     virtual void update() override { update(true); }
 
