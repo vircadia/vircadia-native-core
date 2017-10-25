@@ -702,6 +702,7 @@ private:
     FileScriptingInterface* _fileDownload;
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
+    SharedSoundPointer _sampleSound;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;

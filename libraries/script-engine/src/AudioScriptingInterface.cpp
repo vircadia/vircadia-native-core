@@ -30,6 +30,11 @@ ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer
     return playSound(sound, options);
 }
 
+ScriptAudioInjector* AudioScriptingInterface::playSystemSound(Sound* sound, const QVector3D& position) {
+    SharedSoundPointer spSound = QSharedPointer<Sound>(sound);
+    return playSystemSound(spSound, position);
+}
+
 ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) {
     if (QThread::currentThread() != thread()) {
         ScriptAudioInjector* injector = NULL;
