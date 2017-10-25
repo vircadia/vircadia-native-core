@@ -2214,6 +2214,16 @@ extern void setupPreferences();
 void Application::initializeUi() {
     // Make sure all QML surfaces share the main thread GL context
     OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "qrc:///qml/OverlayWindowTest.qml" },
+        [](QQmlContext* context) {
+        qDebug() << "Whitelist OverlayWindow worked";
+        context->setContextProperty("OverlayWindowTestString", "TestWorked");
+    });
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "qrc:///qml/hifi/audio/Audio.qml" },
+        [](QQmlContext* context) {
+        qDebug() << "QQQ" << __FUNCTION__ << "Whitelist Audio worked";
+    });
+
 
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -2230,10 +2240,9 @@ void Application::initializeUi() {
     auto surfaceContext = offscreenUi->getSurfaceContext();
 
     offscreenUi->setProxyWindow(_window->windowHandle());
-    offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(QString("qrc:///qml/hifi/Desktop.qml"));
+    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
 
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -7194,13 +7203,17 @@ void Application::updateDisplayMode() {
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto desktop = offscreenUi->getDesktop();
 
     // Make the switch atomic from the perspective of other threads
     {
         std::unique_lock<std::mutex> lock(_displayPluginLock);
-        // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
-        bool wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
-        offscreenUi->getDesktop()->setProperty("repositionLocked", true);
+        bool wasRepositionLocked = false;
+        if (desktop) {
+            // Tell the desktop to no reposition (which requires plugin info), until we have set the new plugin, below.
+            wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
+            offscreenUi->getDesktop()->setProperty("repositionLocked", true);
+        }
 
         if (_displayPlugin) {
             disconnect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
@@ -7246,7 +7259,6 @@ void Application::updateDisplayMode() {
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
         connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);
-        auto desktop = offscreenUi->getDesktop();
         if (desktop) {
             desktop->setProperty("repositionLocked", wasRepositionLocked);
         }

@@ -62,7 +62,7 @@ QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
 
     QUrl url { properties[SOURCE_PROPERTY].toString() };
     if (url.scheme() != "http" && url.scheme() != "https" && url.scheme() != "file" && url.scheme() != "about" &&
-            url.scheme() != "atp") {
+            url.scheme() != "atp" && url.scheme() != "qrc") {
         properties[SOURCE_PROPERTY] = QUrl::fromLocalFile(url.toString()).toString();
     }
 

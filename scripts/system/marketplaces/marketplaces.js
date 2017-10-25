@@ -346,7 +346,7 @@
                 Menu.setIsOptionChecked("Disable Preview", isHmdPreviewDisabled);
                 break;
             case 'purchases_openGoTo':
-                tablet.loadQMLSource("TabletAddressDialog.qml");
+                tablet.loadQMLSource("hifi/tablet/TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
                 setCertificateInfo("", message.itemCertificateId);

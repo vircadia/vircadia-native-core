@@ -656,7 +656,7 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.disable();
             tablet.landscape = false;
         } else {
-            tablet.loadQMLSource("Edit.qml", true);
+            tablet.loadQMLSource("hifi/tablet/Edit.qml", true);
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
             gridTool.setVisible(true);

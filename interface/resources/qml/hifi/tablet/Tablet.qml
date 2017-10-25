@@ -2,6 +2,7 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import QtQuick.Layouts 1.3
 
+import "."
 import "../../styles-uit"
 import "../audio" as HifiAudio
 
@@ -11,6 +12,31 @@ Item {
     property int rowIndex: 0
     property int columnIndex: 0
     property int count: (flowMain.children.length - 1)
+
+    Component {
+        id: buttonComponent
+        TabletButton { }
+    }
+    
+    Component.onCompleted: {
+        tablet.populateButtons();
+    }
+    
+    function createClickedHandler(proxy) {
+        return function() { proxy.clicked(); }
+    }
+    
+    function populateButtons() {
+        var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        var buttons = tabletProxy.getButtons();
+        for (var i = 0; i < buttons.length; i++) {
+            var proxy = buttons[i];
+            var button = tablet.addButtonProxy(proxy.getProperties());
+            button.clicked.connect(createClickedHandler(proxy));
+            proxy.setQmlButton(button);
+        }
+        sortButtons();
+    }
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
@@ -47,9 +73,7 @@ Item {
 
     // called by C++ code when a button should be added to the tablet
     function addButtonProxy(properties) {
-        var component = Qt.createComponent("TabletButton.qml");
-        var button = component.createObject(flowMain);
-
+        var button = buttonComponent.createObject(flowMain);
         // copy all properites to button
         var keys = Object.keys(properties).forEach(function (key) {
             button[key] = properties[key];
@@ -61,8 +85,6 @@ Item {
         } else {
             button.tabletRoot = parent.parent;
         }
-
-        sortButtons();
 
         return button;
     }
@@ -83,11 +105,8 @@ Item {
 
         anchors {
             top: parent.top
-            topMargin: 0
             left: parent.left
-            leftMargin: 0
             right: parent.right
-            rightMargin: 0
         }
 
         gradient: Gradient {

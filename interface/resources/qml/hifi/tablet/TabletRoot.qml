@@ -68,18 +68,17 @@ Item {
 
     function loadSource(url) {
         tabletApps.clear();
-        loader.source = "";  // make sure we load the qml fresh each time.
-        loader.source = url;
-        tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+        loader.load(url) 
+    	tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
     }
 
     function loadQMLOnTop(url) {
         tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
-        loader.source = "";
-        loader.source = tabletApps.get(currentApp).appUrl;
-        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
-            loader.item.gotoPreviousApp = true;
-        }
+        loader.load(tabletApps.get(currentApp).appUrl, function(){
+	        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+	            loader.item.gotoPreviousApp = true;
+	        }
+        }) 
     }
 
     function loadWebOnTop(url, injectJavaScriptUrl) {
@@ -92,13 +91,11 @@ Item {
     }
 
     function loadWebBase() {
-        loader.source = "";
-        loader.source = "TabletWebView.qml";
+    	loader.load("hifi/tablet/TabletWebView.qml");
     }
 
     function loadTabletWebBase() {
-        loader.source = "";
-        loader.source = "./BlocksWebView.qml";
+    	loader.load("hifi/tablet/BlocksWebView.qml");
     }
         
     function returnToPreviousApp() {
@@ -110,7 +107,7 @@ Item {
             loadSource("TabletWebView.qml");
             loadWebUrl(webUrl, scriptUrl);
         } else {
-            loader.source = tabletApps.get(currentApp).appUrl;
+        	loader.load(tabletApps.get(currentApp).appUrl);
         }
     }
 
@@ -173,46 +170,71 @@ Item {
         }
     }
 
-    Loader {
-        id: loader
-        objectName: "loader"
-        asynchronous: false
-
-        width: parent.width
-        height: parent.height
-
-        // Hook up callback for clara.io download from the marketplace.
-        Connections {
-            id: eventBridgeConnection
-            target: eventBridge
-            onWebEventReceived: {
-                if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
-                    ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
-                }
-            }
-        }
-
-        onLoaded: {
-            if (loader.item.hasOwnProperty("sendToScript")) {
-                loader.item.sendToScript.connect(tabletRoot.sendToScript);
-            }
-            if (loader.item.hasOwnProperty("setRootMenu")) {
-                loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
-            }
-            loader.item.forceActiveFocus();
-
-            if (openModal) {
-                openModal.canceled();
-                openModal.destroy();
-                openModal = null;
-            }
-
-            if (openBrowser) {
-                openBrowser.destroy();
-                openBrowser = null;
+    // Hook up callback for clara.io download from the marketplace.
+    Connections {
+        id: eventBridgeConnection
+        target: eventBridge
+        onWebEventReceived: {
+            if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
             }
         }
     }
+
+	Item {
+		id: loader
+        objectName: "loader";
+        anchors.fill: parent;
+    	property string source: "";
+    	property var item: null;
+    	signal loaded;
+    	
+		onWidthChanged: {
+    		if (loader.item) {
+	        	loader.item.width = loader.width;
+    		}
+		}
+    	
+    	onHeightChanged: {
+    		if (loader.item) {
+	        	loader.item.height = loader.height;
+    		}
+		}
+    	
+    	function load(newSource, callback) {
+    		loader.source = newSource;
+    		loader.item = null;
+	        QmlSurface.load(newSource, loader, function(newItem) {
+	        	loader.item = newItem;
+	        	loader.item.width = loader.width;
+	        	loader.item.height = loader.height;
+	        	loader.loaded();
+	            if (loader.item.hasOwnProperty("sendToScript")) {
+	                loader.item.sendToScript.connect(tabletRoot.sendToScript);
+	            }
+	            if (loader.item.hasOwnProperty("setRootMenu")) {
+	                loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
+	            }
+	            loader.item.forceActiveFocus();
+	
+	            if (openModal) {
+	                openModal.canceled();
+	                openModal.destroy();
+	                openModal = null;
+	            }
+	
+	            if (openBrowser) {
+	                openBrowser.destroy();
+	                openBrowser = null;
+	            }
+	            
+	            if (callback) {
+	            	callback();
+	            }
+	        });
+			console.log("QQQ done calling QmlSurface.load")
+    	}
+	}
 
     width: 480
     height: 706
