@@ -67,7 +67,6 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
             break;
         case SHAPE_TYPE_BOX:
         case SHAPE_TYPE_HULL:
-        case SHAPE_TYPE_SIMPLE_HULL:
             break;
         case SHAPE_TYPE_SPHERE: {
                 float radius = glm::length(halfExtents) / SQUARE_ROOT_OF_3;
@@ -361,7 +360,7 @@ const DoubleHashKey& ShapeInfo::getHash() const {
             numHulls = 1;
         }
         if (numHulls > 0) {
-            hash = DoubleHashKey::hashFunction(numHulls, primeIndex++);
+            uint32_t hash = DoubleHashKey::hashFunction(numHulls, primeIndex++);
             _doubleHashKey.setHash(_doubleHashKey.getHash() ^ hash);
             hash = DoubleHashKey::hashFunction2(numHulls);
             _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ hash);
