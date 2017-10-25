@@ -116,8 +116,6 @@ private slots:
     void tokenGrantFinished();
     void profileRequestFinished();
 
-    void timeoutICEAddressLookup();
-
 signals:
     void iceServerChanged();
     void userConnected();
