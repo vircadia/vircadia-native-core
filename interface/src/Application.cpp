@@ -2251,7 +2251,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
-    QmlContextCallback callback = [](QQmlContext* context, QObject*) {
+    QmlContextCallback callback = [](QQmlContext* context) {
         context->setContextProperty("Commerce", new QmlCommerce());
     };
     OffscreenQmlSurface::addWhitelistContextHandler({
