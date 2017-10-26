@@ -814,9 +814,15 @@ void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<ReceivedMe
 
 void DomainGatekeeper::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
 
-    limitedNodeList->sendPacket(std::move(pingReplyPacket), message->getSenderSockAddr());
+    // before we respond to this ICE ping packet, make sure we have a peer in the list that matches
+    QUuid icePeerID = QUuid::fromRfc4122({ message->getRawMessage(), NUM_BYTES_RFC4122_UUID });
+    
+    if (_icePeers.contains(icePeerID)) {
+        auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
+
+        limitedNodeList->sendPacket(std::move(pingReplyPacket), message->getSenderSockAddr());
+    }
 }
 
 void DomainGatekeeper::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {
