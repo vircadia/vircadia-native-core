@@ -35,7 +35,8 @@ class QQuickItem;
 // one copy in flight, and one copy being used by the receiver
 #define GPU_RESOURCE_BUFFER_SIZE 3
 
-using QmlContextCallback = std::function<void(QQmlContext*, QObject*)>;
+using QmlContextCallback = std::function<void(QQmlContext*)>;
+using QmlContextObjectCallback = std::function<void(QQmlContext*, QObject*)>;
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
@@ -43,7 +44,7 @@ class OffscreenQmlSurface : public QObject {
 public:
     static void setSharedContext(QOpenGLContext* context);
 
-    static QmlContextCallback DEFAULT_CONTEXT_CALLBACK;
+    static QmlContextObjectCallback DEFAULT_CONTEXT_CALLBACK;
     static void addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback);
     static void addWhitelistContextHandler(const QUrl& url, const QmlContextCallback& callback) { addWhitelistContextHandler({ { url } }, callback); };
 
@@ -56,10 +57,10 @@ public:
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
 
-    Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
-    Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
-    Q_INVOKABLE void load(const QUrl& qmlSource, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
-    Q_INVOKABLE void load(const QString& qmlSourceFile, const QmlContextCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void load(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+    Q_INVOKABLE void load(const QString& qmlSourceFile, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
     void clearCache();
     void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
     // Optional values for event handling
@@ -124,7 +125,7 @@ protected:
 private:
     static QOpenGLContext* getSharedContext();
 
-    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QList<QmlContextCallback>& callbacks);
+    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QmlContextObjectCallback& callbacks);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     void setupFbo();
     bool allowNewFrame(uint8_t fps);
