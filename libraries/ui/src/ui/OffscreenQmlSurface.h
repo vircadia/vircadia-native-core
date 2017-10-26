@@ -30,13 +30,14 @@ class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
+class QJSValue;
 
 // GPU resources are typically buffered for one copy being used by the renderer, 
 // one copy in flight, and one copy being used by the receiver
 #define GPU_RESOURCE_BUFFER_SIZE 3
 
 using QmlContextCallback = std::function<void(QQmlContext*)>;
-using QmlContextObjectCallback = std::function<void(QQmlContext*, QObject*)>;
+using QmlContextObjectCallback = std::function<void(QQmlContext*, QQuickItem*)>;
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
@@ -56,6 +57,8 @@ public:
     virtual void create();
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
+
+    Q_INVOKABLE void createContentFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback);
 
     Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
     Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
@@ -123,9 +126,10 @@ protected:
     void setFocusText(bool newFocusText);
 
 private:
+    QQmlContext* contextForUrl(const QUrl& url, bool forceNewContext = false);
     static QOpenGLContext* getSharedContext();
 
-    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, const QmlContextObjectCallback& callbacks);
+    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, QQuickItem* parent, const QmlContextObjectCallback& callbacks);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     void setupFbo();
     bool allowNewFrame(uint8_t fps);
