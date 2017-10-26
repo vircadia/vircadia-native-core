@@ -14,10 +14,12 @@
 #include <assert.h>
 #include <cstring>
 #include <cmath>
+#include <bitset>
 #include <glm/gtx/quaternion.hpp>
 
 #include "NumericalConstants.h"
 #include "GLMHelpers.h"
+#include "Plane.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
     // compute the projection of the point vector onto the segment vector
@@ -312,6 +314,134 @@ bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direc
         return true;
     }
     return false;
+}
+
+static void getTrianglePlaneIntersectionPoints(const glm::vec3 trianglePoints[3], const float pointPlaneDistances[3],
+                                               const int clippedPointIndex, const int keptPointIndices[2],
+                                               glm::vec3 points[2]) {
+    assert(clippedPointIndex >= 0 && clippedPointIndex < 3);
+    const auto& clippedPoint = trianglePoints[clippedPointIndex];
+    const float clippedPointPlaneDistance = pointPlaneDistances[clippedPointIndex];
+    for (auto i = 0; i < 2; i++) {
+        assert(keptPointIndices[i] >= 0 && keptPointIndices[i] < 3);
+        const auto& keptPoint = trianglePoints[keptPointIndices[i]];
+        const float keptPointPlaneDistance = pointPlaneDistances[keptPointIndices[i]];
+        auto intersectionEdgeRatio = clippedPointPlaneDistance / (clippedPointPlaneDistance - keptPointPlaneDistance);
+        points[i] = clippedPoint + (keptPoint - clippedPoint) * intersectionEdgeRatio;
+    }
+}
+
+int clipTriangleWithPlane(const Triangle& triangle, const Plane& plane, Triangle* clippedTriangles, int maxClippedTriangleCount) {
+    float pointDistanceToPlane[3];
+    std::bitset<3> arePointsClipped;
+    glm::vec3 triangleVertices[3] = { triangle.v0, triangle.v1, triangle.v2 };
+    int clippedTriangleCount = 0;
+    int i;
+
+    assert(clippedTriangleCount > 0);
+
+    for (i = 0; i < 3; i++) {
+        pointDistanceToPlane[i] = plane.distance(triangleVertices[i]);
+        arePointsClipped.set(i, pointDistanceToPlane[i] < 0.0f);
+    }
+
+    switch (arePointsClipped.count()) {
+        case 0:
+            // Easy, the entire triangle is kept as is.
+            *clippedTriangles = triangle;
+            clippedTriangleCount = 1;
+            break;
+
+        case 1:
+        {
+            int clippedPointIndex = 2;
+            int keptPointIndices[2] = { 0, 1 };
+            glm::vec3 newVertices[2];
+
+            // Determine which point was clipped.
+            if (arePointsClipped.test(0)) {
+                clippedPointIndex = 0;
+                keptPointIndices[0] = 2;
+            } else if (arePointsClipped.test(1)) {
+                clippedPointIndex = 1;
+                keptPointIndices[1] = 2;
+            }
+            // We have a quad now, so we need to create two triangles.
+            getTrianglePlaneIntersectionPoints(triangleVertices, pointDistanceToPlane, clippedPointIndex, keptPointIndices, newVertices);
+            clippedTriangles->v0 = triangleVertices[keptPointIndices[0]];
+            clippedTriangles->v1 = triangleVertices[keptPointIndices[1]];
+            clippedTriangles->v2 = newVertices[1];
+            clippedTriangles++;
+            clippedTriangleCount++;
+
+            if (clippedTriangleCount < maxClippedTriangleCount) {
+                clippedTriangles->v0 = triangleVertices[keptPointIndices[0]];
+                clippedTriangles->v1 = newVertices[0];
+                clippedTriangles->v2 = newVertices[1];
+                clippedTriangles++;
+                clippedTriangleCount++;
+            }
+        }
+        break;
+
+        case 2:
+        {
+            int keptPointIndex = 2;
+            int clippedPointIndices[2] = { 0, 1 };
+            glm::vec3 newVertices[2];
+
+            // Determine which point was NOT clipped.
+            if (!arePointsClipped.test(0)) {
+                keptPointIndex = 0;
+                clippedPointIndices[0] = 2;
+            } else if (!arePointsClipped.test(1)) {
+                keptPointIndex = 1;
+                clippedPointIndices[1] = 2;
+            }
+            // We have a single triangle
+            getTrianglePlaneIntersectionPoints(triangleVertices, pointDistanceToPlane, keptPointIndex, clippedPointIndices, newVertices);
+            clippedTriangles->v0 = triangleVertices[keptPointIndex];
+            clippedTriangles->v1 = newVertices[0];
+            clippedTriangles->v2 = newVertices[1];
+            clippedTriangleCount = 1;
+        }
+        break;
+
+        default:
+            // Entire triangle is clipped.
+           break;
+    }
+
+    return clippedTriangleCount;
+}
+
+int clipTriangleWithPlanes(const Triangle& triangle, const Plane* planes, int planeCount, Triangle* clippedTriangles, int maxClippedTriangleCount) {
+    auto planesEnd = planes + planeCount;
+    int triangleCount = 1;
+    std::vector<Triangle> trianglesToTest;
+
+    assert(maxClippedTriangleCount > 0);
+
+    *clippedTriangles = triangle;
+
+    while (planes < planesEnd) {
+        int clippedSubTriangleCount;
+
+        trianglesToTest.clear();
+        trianglesToTest.insert(trianglesToTest.begin(), clippedTriangles, clippedTriangles + triangleCount);
+        triangleCount = 0;
+
+        for (const auto& triangleToTest : trianglesToTest) {
+            clippedSubTriangleCount = clipTriangleWithPlane(triangleToTest, *planes,
+                                                            clippedTriangles + triangleCount, maxClippedTriangleCount - triangleCount);
+            triangleCount += clippedSubTriangleCount;
+            if (triangleCount >= maxClippedTriangleCount) {
+                return triangleCount;
+            }
+        }
+        ++planes;
+    }
+    return triangleCount;
 }
 
 // Do line segments (r1p1.x, r1p1.y)--(r1p2.x, r1p2.y) and (r2p1.x, r2p1.y)--(r2p2.x, r2p2.y) intersect?

@@ -149,6 +149,7 @@ public:
 
     Vec4 transform(const Vec4& pos) const;
     Vec3 transform(const Vec3& pos) const;
+    Vec3 transformDirection(const Vec3& pos) const;
 
     bool containsNaN() const { return isNaN(_rotation) || isNaN(glm::dot(_scale, _translation)); }
 
@@ -539,6 +540,13 @@ inline Transform::Vec3 Transform::transform(const Vec3& pos) const {
     getMatrix(m);
     Vec4 result = m * Vec4(pos, 1.0f);
     return Vec3(result.x / result.w, result.y / result.w, result.z / result.w);
+}
+
+inline Transform::Vec3 Transform::transformDirection(const Vec3& pos) const {
+    Mat4 m;
+    getMatrix(m);
+    Vec4 result = m * Vec4(pos, 0.0f);
+    return Vec3(result.x, result.y, result.z);
 }
 
 inline Transform::Mat4& Transform::getCachedMatrix(Transform::Mat4& result) const {

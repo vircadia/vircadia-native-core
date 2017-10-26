@@ -25,7 +25,10 @@ LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
 }
 
-void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum, float nearDepth, float farDepth) {
+void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum, 
+                                            float viewMinShadowDistance, float viewMaxShadowDistance, 
+                                            float nearDepth, float farDepth) {
+    assert(viewMinShadowDistance < viewMaxShadowDistance);
     assert(nearDepth < farDepth);
 
     // Orient the keylight frustum
@@ -48,8 +51,8 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum, floa
     const Transform view{ _frustum->getView()};
     const Transform viewInverse{ view.getInverseMatrix() };
 
-    auto nearCorners = viewFrustum.getCorners(nearDepth);
-    auto farCorners = viewFrustum.getCorners(farDepth);
+    auto nearCorners = viewFrustum.getCorners(viewMinShadowDistance);
+    auto farCorners = viewFrustum.getCorners(viewMaxShadowDistance);
 
     vec3 min{ viewInverse.transform(nearCorners.bottomLeft) };
     vec3 max{ min };
@@ -73,6 +76,8 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum, floa
     fitFrustum(farCorners.topLeft);
     fitFrustum(farCorners.topRight);
 
+    // Re-adjust near shadow distance to 
+    max.z = glm::max(max.z, -nearDepth);
     glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, -max.z, -min.z);
     _frustum->setProjection(ortho);
 
@@ -81,6 +86,16 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum, floa
 
     // Update the buffer
     _schemaBuffer.edit<Schema>().projection = ortho;
+    _schemaBuffer.edit<Schema>().viewInverse = viewInverse.getMatrix();
+}
+
+void LightStage::Shadow::setFrustum(const ViewFrustum& shadowFrustum) {
+    const Transform view{ shadowFrustum.getView() };
+    const Transform viewInverse{ view.getInverseMatrix() };
+
+    *_frustum = shadowFrustum;
+    // Update the buffer
+    _schemaBuffer.edit<Schema>().projection = shadowFrustum.getProjection();
     _schemaBuffer.edit<Schema>().viewInverse = viewInverse.getMatrix();
 }
 

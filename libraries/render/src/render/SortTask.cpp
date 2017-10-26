@@ -40,7 +40,8 @@ struct BackToFrontSort {
     }
 };
 
-void render::depthSortItems(const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems) {
+void render::depthSortItems(const RenderContextPointer& renderContext, bool frontToBack, 
+                            const ItemBounds& inItems, ItemBounds& outItems, AABox* bounds) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -75,8 +76,18 @@ void render::depthSortItems(const RenderContextPointer& renderContext, bool fron
     }
 
     // Finally once sorted result to a list of itemID
-    for (auto& item : itemBoundSorts) {
-       outItems.emplace_back(ItemBound(item._id, item._bounds));
+    if (!bounds) {
+        for (auto& item : itemBoundSorts) {
+            outItems.emplace_back(ItemBound(item._id, item._bounds));
+        }
+    } else if (!itemBoundSorts.empty()) {
+        if (bounds->isNull()) {
+            *bounds = itemBoundSorts.front()._bounds;
+        }
+        for (auto& item : itemBoundSorts) {
+            *bounds += item._bounds;
+            outItems.emplace_back(ItemBound(item._id, item._bounds));
+        }
     }
 }
 
@@ -112,6 +123,25 @@ void DepthSortShapes::run(const RenderContextPointer& renderContext, const Shape
         }
 
         depthSortItems(renderContext, _frontToBack, inItems, outItems->second);
+    }
+}
+
+void DepthSortShapesAndComputeBounds::run(const RenderContextPointer& renderContext, const ShapeBounds& inShapes, Outputs& outputs) {
+    auto& outShapes = outputs.edit0();
+    auto& outBounds = outputs.edit1();
+
+    outShapes.clear();
+    outShapes.reserve(inShapes.size());
+    outBounds = AABox();
+
+    for (auto& pipeline : inShapes) {
+        auto& inItems = pipeline.second;
+        auto outItems = outShapes.find(pipeline.first);
+        if (outItems == outShapes.end()) {
+            outItems = outShapes.insert(std::make_pair(pipeline.first, ItemBounds{})).first;
+        }
+
+        depthSortItems(renderContext, _frontToBack, inItems, outItems->second, &outBounds);
     }
 }
 
