@@ -10,6 +10,7 @@
 //
 
 #include "RequestFilters.h"
+#include "NetworkingConstants.h"
 
 #include <QtCore/QDebug>
 #include <SettingHandle.h>
@@ -19,7 +20,7 @@
 namespace {
 
     bool isAuthableHighFidelityURL(const QUrl& url) {
-        auto metaverseServerURL = DependencyManager::get<AccountManager>()->getMetaverseServerURL();
+        auto metaverseServerURL = NetworkingConstants::METAVERSE_SERVER_URL;
         static const QStringList HF_HOSTS = {
             "highfidelity.com", "highfidelity.io",
             metaverseServerURL.toString(), "metaverse.highfidelity.io"

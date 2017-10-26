@@ -94,6 +94,7 @@
 #include <MessagesClient.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
+#include <NetworkingConstants.h>
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -960,7 +961,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(accountManager->getMetaverseServerURL());
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
     auto addressManager = DependencyManager::get<AddressManager>();
 

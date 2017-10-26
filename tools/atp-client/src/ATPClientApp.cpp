@@ -17,6 +17,7 @@
 #include <QCommandLineParser>
 
 #include <NetworkLogging.h>
+#include <NetworkingConstants.h>
 #include <SharedLogging.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
@@ -144,7 +145,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
 
     auto accountManager = DependencyManager::get<AccountManager>();
     accountManager->setIsAgent(true);
-    accountManager->setAuthURL(accountManager->getMetaverseServerURL());
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
     auto nodeList = DependencyManager::get<NodeList>();
 

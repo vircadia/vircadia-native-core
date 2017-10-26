@@ -17,9 +17,12 @@
 
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
+#include <NetworkingConstants.h>
 
 #include "ScriptEngine.h"
 #include "XMLHttpRequestClass.h"
+
+const QString METAVERSE_API_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/api/";
 
 Q_DECLARE_METATYPE(QByteArray*)
 
@@ -137,9 +140,7 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
         _url.setUrl(url);
         _async = async;
 
-        auto metaverseApiUrl = DependencyManager::get<AccountManager>()->getMetaverseServerURL().toString() + "/api/";
-
-        if (url.toLower().left(metaverseApiUrl.length()) == metaverseApiUrl) {
+        if (url.toLower().left(METAVERSE_API_URL.length()) == METAVERSE_API_URL) {
             auto accountManager = DependencyManager::get<AccountManager>();
                 
             if (accountManager->hasValidAccessToken()) {

@@ -12,8 +12,8 @@
 #include "ContextOverlayInterface.h"
 #include "Application.h"
 
-#include <AccountManager.h>
 #include <EntityTreeRenderer.h>
+#include <NetworkingConstants.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -263,6 +263,8 @@ void ContextOverlayInterface::openInspectionCertificate() {
     }
 }
 
+static const QString MARKETPLACE_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/marketplace/items/";
+
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
     // the marketplace (if the current entity has a
@@ -270,7 +272,7 @@ void ContextOverlayInterface::openMarketplace() {
     if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         // construct the url to the marketplace item
-        QString url = DependencyManager::get<AccountManager>()->getMetaverseServerURL().toString() + "/marketplace/items/" + _entityMarketplaceID;
+        QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
         QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
         tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
         _hmdScriptingInterface->openTablet();
