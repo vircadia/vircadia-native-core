@@ -59,7 +59,6 @@ private:
     void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
     void exportScene();
-    void removeEmbeddedMediaFolder();
 
     FBXNode _rootNode;
     FBXGeometry* _geometry;

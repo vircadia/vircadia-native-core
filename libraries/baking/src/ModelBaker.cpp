@@ -28,12 +28,12 @@
 #pragma warning( pop )
 #endif
 
-ModelBaker::ModelBaker(const QUrl& modelURL, TextureBakerThreadGetter textureThreadGetter,
-                       const QString& bakedOutputDir, const QString& originalOutputDir) :
-    modelURL(modelURL),
-    textureThreadGetter(textureThreadGetter),
-    bakedOutputDir(bakedOutputDir),
-    originalOutputDir(originalOutputDir)
+ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
+                       const QString& bakedOutputDirectory, const QString& originalOutputDirectory) :
+    modelURL(inputModelURL),
+    textureThreadGetter(inputTextureThreadGetter),
+    bakedOutputDir(bakedOutputDirectory),
+    originalOutputDir(originalOutputDirectory)
 {
 
 }

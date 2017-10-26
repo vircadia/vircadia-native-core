@@ -34,8 +34,8 @@ class ModelBaker : public Baker{
     Q_OBJECT
 
 public:
-    ModelBaker(const QUrl& modelURL, TextureBakerThreadGetter textureThreadGetter,
-               const QString& bakedOutputDir, const QString& originalOutputDir);
+    ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
+               const QString& bakedOutputDirectory, const QString& originalOutputDirectory);
     bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback = NULL);
     QByteArray* compressTexture(QString textureFileName, getTextureTypeCallback textureTypeCallback = NULL);
     virtual void setWasAborted(bool wasAborted) override;
