@@ -13,6 +13,7 @@ import QtQuick.Controls 2.2
 
 import "../styles-uit"
 import "../controls-uit" as HiFiControls
+import TabletScriptingInterface 1.0
 
 CheckBox {
     id: checkBox
@@ -32,6 +33,17 @@ CheckBox {
     readonly property int checkSize: Math.max(boxSize - 8, 10)
     readonly property int checkRadius: isRound ? checkSize / 2 : 2
     focusPolicy: Qt.ClickFocus
+    hoverEnabled: true
+
+    onClicked: {
+        tabletInterface.playSound(TabletEnums.ButtonClick);
+    }
+
+    onHoveredChanged: {
+        if (hovered) {
+            tabletInterface.playSound(TabletEnums.ButtonHover);
+        }
+    }
 
     indicator: Rectangle {
         id: box

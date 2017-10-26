@@ -80,16 +80,18 @@ Item {
 
         onFocusChanged: {
             if (focus) {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                var hidePassword = (currentPassphraseField.echoMode === TextInput.Password);
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
             } else if (!passphraseFieldAgain.focus) {
-                sendSignalToWallet({method: 'walletSetup_lowerKeyboard'});
+                sendSignalToWallet({method: 'walletSetup_lowerKeyboard', isPasswordField: false});
             }
         }
 
         MouseArea {
             anchors.fill: parent;
             onPressed: {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                var hidePassword = (currentPassphraseField.echoMode === TextInput.Password);
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
                 mouse.accepted = false;
             }
         }
@@ -116,16 +118,18 @@ Item {
         MouseArea {
             anchors.fill: parent;
             onPressed: {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                var hidePassword = (passphraseField.echoMode === TextInput.Password);
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
                 mouse.accepted = false;
             }
         }
 
         onFocusChanged: {
             if (focus) {
-                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+                var hidePassword = (passphraseField.echoMode === TextInput.Password);
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
             } else if (!passphraseFieldAgain.focus) {
-                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard', isPasswordField: false});
             }
         }
 
@@ -150,16 +154,18 @@ Item {
         MouseArea {
             anchors.fill: parent;
             onPressed: {
-                sendSignalToWallet({method: 'walletSetup_raiseKeyboard'});
+                var hidePassword = (passphraseFieldAgain.echoMode === TextInput.Password);
+                sendSignalToWallet({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
                 mouse.accepted = false;
             }
         }
 
         onFocusChanged: {
             if (focus) {
-                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard'});
+                var hidePassword = (passphraseFieldAgain.echoMode === TextInput.Password);
+                sendMessageToLightbox({method: 'walletSetup_raiseKeyboard', isPasswordField: hidePassword});
             } else if (!passphraseField.focus) {
-                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard'});
+                sendMessageToLightbox({method: 'walletSetup_lowerKeyboard', isPasswordField: false});
             }
         }
 

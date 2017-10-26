@@ -143,8 +143,8 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 if (event.getID() == LEFT_HAND_HW_ID) {
                     offsetAngle *= -1.0f;
                 }
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) *
-                    ((cameraPosition + direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE)));
+                contextOverlayPosition = cameraPosition +
+                    (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) * (direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE));
                 contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
 

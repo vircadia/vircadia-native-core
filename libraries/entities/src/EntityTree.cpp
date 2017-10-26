@@ -15,8 +15,9 @@
 
 #include <QtScript/QScriptEngine>
 
-#include <PerfStat.h>
 #include <Extents.h>
+#include <PerfStat.h>
+#include <Profile.h>
 
 #include "EntitySimulation.h"
 #include "VariantMapToScriptValue.h"
@@ -1028,7 +1029,8 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         changedProperties[index] = QString("queryAACube:") +
             QString::number((int)center.x) + "," +
             QString::number((int)center.y) + "," +
-            QString::number((int)center.z);
+            QString::number((int)center.z) + "/" +
+            QString::number(properties.getQueryAACube().getDimensions().x);
     }
     if (properties.positionChanged()) {
         int index = changedProperties.indexOf("position");
@@ -1370,6 +1372,7 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 
 
 void EntityTree::fixupNeedsParentFixups() {
+    PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
 
     QWriteLocker locker(&_needsParentFixupLock);
@@ -1459,6 +1462,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 }
 
 void EntityTree::update(bool simulate) {
+    PROFILE_RANGE(simulation_physics, "ET::update");
     fixupNeedsParentFixups();
     if (simulate && _simulation) {
         withWriteLock([&] {
@@ -1804,7 +1808,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
                 addToNeedsParentFixupList(entity);
             }
             entity->forceQueryAACubeUpdate();
-            entity->checkAndMaybeUpdateQueryAACube();
+            entity->updateQueryAACube();
             moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
             i++;
         } else {

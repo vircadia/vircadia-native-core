@@ -11,10 +11,19 @@
 
 #include "LaserPointerScriptingInterface.h"
 
-#include <QVariant>
-#include "GLMHelpers.h"
+#include <QtCore/QVariant>
 
-QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) {
+#include <GLMHelpers.h>
+#include <RegisteredMetaTypes.h>
+
+void LaserPointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const { 
+    qApp->getLaserPointerManager().setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
+}
+void LaserPointerScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) const {
+    qApp->getLaserPointerManager().setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems)); 
+}
+
+QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 
     bool faceAvatar = false;
@@ -30,6 +39,11 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
     bool lockEnd = false;
     if (propertyMap["lockEnd"].isValid()) {
         lockEnd = propertyMap["lockEnd"].toBool();
+    }
+
+    bool distanceScaleEnd = false;
+    if (propertyMap["distanceScaleEnd"].isValid()) {
+        distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
     }
 
     bool enabled = false;
@@ -66,10 +80,10 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         }
     }
 
-    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
+    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled);
 }
 
-void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& renderState, const QVariant& properties) {
+void LaserPointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
     QVariantMap propMap = properties.toMap();
 
     QVariant startProps;
@@ -90,7 +104,7 @@ void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& r
     qApp->getLaserPointerManager().editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
 }
 
-const RenderState LaserPointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {
+RenderState LaserPointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {
     QUuid startID;
     if (propMap["start"].isValid()) {
         QVariantMap startMap = propMap["start"].toMap();

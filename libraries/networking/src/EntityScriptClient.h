@@ -58,6 +58,8 @@ public:
 
     bool reloadServerScript(QUuid entityID);
     MessageID getEntityServerScriptStatus(QUuid entityID, GetScriptStatusCallback callback);
+    void callEntityServerMethod(QUuid id, const QString& method, const QStringList& params);
+
 
 private slots:
     void handleNodeKilled(SharedNodePointer node);
@@ -70,6 +72,13 @@ private:
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetScriptStatusCallback>> _pendingEntityScriptStatusRequests;
 
     void forceFailureOfPendingRequests(SharedNodePointer node);
+};
+
+
+class EntityScriptServerServices : public QObject, public Dependency {
+    Q_OBJECT
+public:
+    void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params);
 };
 
 #endif

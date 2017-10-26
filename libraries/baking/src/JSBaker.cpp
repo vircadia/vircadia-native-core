@@ -72,7 +72,7 @@ void JSBaker::bake() {
 bool JSBaker::bakeJS(const QByteArray& inputFile, QByteArray& outputFile) {
     // Read from inputFile and write to outputFile per character 
     QTextStream in(inputFile, QIODevice::ReadOnly);
-    QTextStream out(outputFile, QIODevice::WriteOnly);
+    QTextStream out(&outputFile, QIODevice::WriteOnly);
 
     // Algorithm requires the knowledge of previous and next character for each character read
     QChar currentCharacter;

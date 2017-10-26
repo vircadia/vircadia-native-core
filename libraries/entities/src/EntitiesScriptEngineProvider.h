@@ -20,7 +20,8 @@
 
 class EntitiesScriptEngineProvider {
 public:
-    virtual void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params = QStringList()) = 0;
+    virtual void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, 
+                                        const QStringList& params = QStringList(), const QUuid& remoteCallerID = QUuid()) = 0;
     virtual QFuture<QVariant> getLocalEntityScriptDetails(const EntityItemID& entityID) = 0;
 };
 

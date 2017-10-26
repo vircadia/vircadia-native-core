@@ -28,6 +28,8 @@
 #include <GeometryCache.h>
 #include <OctreeConstants.h>
 #include <SharedUtil.h>
+#include <ShapeEntityItem.h>
+#include <ShapeInfo.h>
 
 #include "InterfaceLogging.h"
 #include "world.h"
@@ -391,6 +393,22 @@ void runUnitTests() {
         }
 
     }
+}
+
+void shapeInfoCalculator(const ShapeEntityItem * const shapeEntity, ShapeInfo &shapeInfo) {
+
+    if (shapeEntity == nullptr) {
+
+        //--EARLY EXIT--
+        return;
+    }
+
+    ShapeInfo::PointCollection pointCollection;
+    ShapeInfo::PointList points;
+    pointCollection.push_back(points);
+
+    GeometryCache::computeSimpleHullPointListForShape((int)shapeEntity->getShape(), shapeEntity->getDimensions(), pointCollection.back());
+    shapeInfo.setPointCollection(pointCollection);
 }
 
 

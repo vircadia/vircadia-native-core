@@ -120,6 +120,7 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
+#include <ShapeEntityItem.h>
 #include <SoundCache.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
@@ -207,6 +208,17 @@
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
+#ifdef DEBUG_EVENT_QUEUE
+// This is a HACK that uses private headers included with the qt source distrubution.
+// To use this feature you need to add these directores to your include path:
+// E:/Qt/5.9.1/Src/qtbase/include/QtCore/5.9.1/QtCore
+// E:/Qt/5.9.1/Src/qtbase/include/QtCore/5.9.1
+#define QT_BOOTSTRAPPED
+#include <private/qthread_p.h>
+#include <private/qobject_p.h>
+#undef QT_BOOTSTRAPPED
+#endif
+
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
@@ -264,9 +276,7 @@ private:
         switch ((int)event->type()) {
             case ApplicationEvent::Render:
                 render();
-                // Ensure we never back up the render events.  Each render should be triggered only in response
-                // to the NEXT render event after the last render occured
-                QCoreApplication::removePostedEvents(this, ApplicationEvent::Render);
+                qApp->_pendingRenderEvent.store(false);
                 return true;
 
             default:
@@ -1806,6 +1816,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         _rayPickManager.setPrecisionPicking(rayPickID, value);
     });
 
+    // Preload Tablet sounds
+    DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
+
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 
@@ -2214,7 +2227,7 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
+    offscreenUi->createDesktop(QString("qrc:///qml/hifi/Desktop.qml"));
 
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -2283,6 +2296,8 @@ void Application::initializeUi() {
 
     surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
+    surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
@@ -2351,8 +2366,8 @@ void Application::initializeUi() {
 }
 
 void Application::updateCamera(RenderArgs& renderArgs) {
-    PROFILE_RANGE(render, "/updateCamera");
-    PerformanceTimer perfTimer("CameraUpdates");
+    PROFILE_RANGE(render, __FUNCTION__);
+    PerformanceTimer perfTimer("updateCamera");
 
     glm::vec3 boomOffset;
     auto myAvatar = getMyAvatar();
@@ -2568,7 +2583,7 @@ void Application::resizeGL() {
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
-    PROFILE_RANGE(render, "HandleSandboxStatus");
+    PROFILE_RANGE(render, __FUNCTION__);
 
     bool sandboxIsRunning = SandboxUtils::readStatus(reply->readAll());
     qDebug() << "HandleSandboxStatus" << sandboxIsRunning;
@@ -2680,9 +2695,14 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
+// thread-safe
 void Application::onPresent(quint32 frameCount) {
-    postEvent(this, new QEvent((QEvent::Type)ApplicationEvent::Idle), Qt::HighEventPriority);
-    if (_renderEventHandler && !isAboutToQuit()) {
+    bool expected = false;
+    if (_pendingIdleEvent.compare_exchange_strong(expected, true)) {
+        postEvent(this, new QEvent((QEvent::Type)ApplicationEvent::Idle), Qt::HighEventPriority);
+    }
+    expected = false;
+    if (_renderEventHandler && !isAboutToQuit() && _pendingRenderEvent.compare_exchange_strong(expected, true)) {
         postEvent(_renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
     }
 }
@@ -2749,7 +2769,26 @@ bool Application::handleFileOpenEvent(QFileOpenEvent* fileEvent) {
     return false;
 }
 
+#ifdef DEBUG_EVENT_QUEUE
+static int getEventQueueSize(QThread* thread) {
+    auto threadData = QThreadData::get2(thread);
+    QMutexLocker locker(&threadData->postEventList.mutex);
+    return threadData->postEventList.size();
+}
+
+static void dumpEventQueue(QThread* thread) {
+    auto threadData = QThreadData::get2(thread);
+    QMutexLocker locker(&threadData->postEventList.mutex);
+    qDebug() << "AJT: event list, size =" << threadData->postEventList.size();
+    for (auto& postEvent : threadData->postEventList) {
+        QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
+        qDebug() << "AJT:    " << type;
+    }
+}
+#endif // DEBUG_EVENT_QUEUE
+
 bool Application::event(QEvent* event) {
+
     if (!Menu::getInstance()) {
         return false;
     }
@@ -2769,8 +2808,18 @@ bool Application::event(QEvent* event) {
         // see (windowMinimizedChanged)
         case ApplicationEvent::Idle:
             idle();
-            // Don't process extra idle events that arrived in the event queue while we were doing this idle
-            QCoreApplication::removePostedEvents(this, ApplicationEvent::Idle);
+
+#ifdef DEBUG_EVENT_QUEUE
+            {
+                int count = getEventQueueSize(QThread::currentThread());
+                if (count > 400) {
+                    dumpEventQueue(QThread::currentThread());
+                }
+            }
+#endif // DEBUG_EVENT_QUEUE
+
+            _pendingIdleEvent.store(false);
+
             return true;
 
         case QEvent::MouseMove:
@@ -4148,6 +4197,10 @@ void Application::init() {
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
+    // This allows collision to be set up properly for shape entities supported by GeometryCache.
+    // This is before entity setup to ensure that it's ready for whenever instance collision is initialized.
+    ShapeEntityItem::setShapeInfoCalulator(ShapeEntityItem::ShapeInfoCalculator(&shapeInfoCalculator));
+
     getEntities()->init();
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
@@ -4558,7 +4611,6 @@ void Application::updateDialogs(float deltaTime) const {
 static bool domainLoadingInProgress = false;
 
 void Application::update(float deltaTime) {
-
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
 
     if (!_physicsEnabled) {
@@ -4753,11 +4805,11 @@ void Application::update(float deltaTime) {
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     {
-        PROFILE_RANGE_EX(simulation_physics, "Physics", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        PROFILE_RANGE(simulation_physics, "Physics");
         PerformanceTimer perfTimer("physics");
         if (_physicsEnabled) {
             {
-                PROFILE_RANGE_EX(simulation_physics, "UpdateStates", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PROFILE_RANGE(simulation_physics, "PreStep");
 
                 PerformanceTimer perfTimer("updateStates)");
                 static VectorOfMotionStates motionStates;
@@ -4791,14 +4843,14 @@ void Application::update(float deltaTime) {
                 });
             }
             {
-                PROFILE_RANGE_EX(simulation_physics, "StepSimulation", 0xffff8000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PROFILE_RANGE(simulation_physics, "Step");
                 PerformanceTimer perfTimer("stepSimulation");
                 getEntities()->getTree()->withWriteLock([&] {
                     _physicsEngine->stepSimulation();
                 });
             }
             {
-                PROFILE_RANGE_EX(simulation_physics, "HarvestChanges", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+                PROFILE_RANGE(simulation_physics, "PostStep");
                 PerformanceTimer perfTimer("harvestChanges");
                 if (_physicsEngine->hasOutgoingChanges()) {
                     // grab the collision events BEFORE handleOutgoingChanges() because at this point
@@ -4806,6 +4858,7 @@ void Application::update(float deltaTime) {
                     auto& collisionEvents = _physicsEngine->getCollisionEvents();
 
                     getEntities()->getTree()->withWriteLock([&] {
+                        PROFILE_RANGE(simulation_physics, "Harvest");
                         PerformanceTimer perfTimer("handleOutgoingChanges");
 
                         const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
@@ -4818,18 +4871,25 @@ void Application::update(float deltaTime) {
 
                     if (!_aboutToQuit) {
                         // handleCollisionEvents() AFTER handleOutgoinChanges()
-                        PerformanceTimer perfTimer("entities");
-                        avatarManager->handleCollisionEvents(collisionEvents);
-                        // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                        // deadlock.)
-                        _entitySimulation->handleCollisionEvents(collisionEvents);
+                        {
+                            PROFILE_RANGE(simulation_physics, "CollisionEvents");
+                            PerformanceTimer perfTimer("entities");
+                            avatarManager->handleCollisionEvents(collisionEvents);
+                            // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                            // deadlock.)
+                            _entitySimulation->handleCollisionEvents(collisionEvents);
+                        }
 
+                        PROFILE_RANGE(simulation_physics, "UpdateEntities");
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
                         getEntities()->update(true); // update the models...
                     }
 
-                    myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+                    {
+                        PROFILE_RANGE(simulation_physics, "MyAvatar");
+                        myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
+                    }
 
                     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails) &&
                             Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming)) {
@@ -4848,13 +4908,13 @@ void Application::update(float deltaTime) {
     // AvatarManager update
     {
         {
+            PROFILE_RANGE(simulation, "OtherAvatars");
             PerformanceTimer perfTimer("otherAvatars");
-            PROFILE_RANGE_EX(simulation, "OtherAvatars", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
             avatarManager->updateOtherAvatars(deltaTime);
         }
 
         {
-            PROFILE_RANGE_EX(simulation, "MyAvatar", 0xffff00ff, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE(simulation, "MyAvatar");
             PerformanceTimer perfTimer("MyAvatar");
             qApp->updateMyAvatarLookAtPosition();
             avatarManager->updateMyAvatar(deltaTime);
@@ -4998,6 +5058,7 @@ void Application::update(float deltaTime) {
         }
 
         this->updateCamera(appRenderArgs._renderArgs);
+        appRenderArgs._eyeToWorld = _myCamera.getTransform();
         appRenderArgs._isStereo = false;
 
         {
@@ -5725,6 +5786,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
     qScriptRegisterMetaType(scriptEngine.data(),
                             wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
+    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
+    scriptEngine->registerGlobalObject("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
 
     auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>().data();
@@ -7166,7 +7229,7 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
-        connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
+        connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);
         auto desktop = offscreenUi->getDesktop();
         if (desktop) {
             desktop->setProperty("repositionLocked", wasRepositionLocked);

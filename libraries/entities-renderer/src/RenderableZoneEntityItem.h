@@ -14,11 +14,15 @@
 
 #include <ZoneEntityItem.h>
 #include <model/Skybox.h>
+#include <model/Haze.h>
 #include <model/Stage.h>
 #include <LightStage.h>
 #include <BackgroundStage.h>
+#include <HazeStage.h>
 #include <TextureCache.h>
 #include "RenderableEntityItem.h"
+#include <ComponentMode.h>
+
 #if 0
 #include <Model.h>
 #endif
@@ -44,12 +48,14 @@ private:
     void updateKeyZoneItemFromEntity();
     void updateKeySunFromEntity();
     void updateKeyAmbientFromEntity();
+    void updateHazeFromEntity(const TypedEntityPointer& entity);
     void updateKeyBackgroundFromEntity(const TypedEntityPointer& entity);
     void updateAmbientMap();
     void updateSkyboxMap();
     void setAmbientURL(const QString& ambientUrl);
     void setSkyboxURL(const QString& skyboxUrl);
     void setBackgroundMode(BackgroundMode mode);
+    void setHazeMode(ComponentMode mode);
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);
 
@@ -57,7 +63,7 @@ private:
     model::LightPointer editAmbientLight() { _needAmbientUpdate = true; return _ambientLight; }
     model::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
     model::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
-
+    model::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
 
     bool _needsInitialSimulation{ true };
     glm::vec3 _lastPosition;
@@ -76,20 +82,29 @@ private:
     const model::LightPointer _sunLight{ std::make_shared<model::Light>() };
     const model::LightPointer _ambientLight{ std::make_shared<model::Light>() };
     const model::SunSkyStagePointer _background{ std::make_shared<model::SunSkyStage>() };
+    const model::HazePointer _haze{ std::make_shared<model::Haze>() };
+
     BackgroundMode _backgroundMode{ BACKGROUND_MODE_INHERIT };
+    ComponentMode _hazeMode{ COMPONENT_MODE_INHERIT };
 
     indexed_container::Index _sunIndex{ LightStage::INVALID_INDEX };
+    indexed_container::Index _shadowIndex{ LightStage::INVALID_INDEX };
     indexed_container::Index _ambientIndex{ LightStage::INVALID_INDEX };
 
     BackgroundStagePointer _backgroundStage;
     BackgroundStage::Index _backgroundIndex{ BackgroundStage::INVALID_INDEX };
 
+    HazeStagePointer _hazeStage;
+    HazeStage::Index _hazeIndex{ HazeStage::INVALID_INDEX };
+
     bool _needUpdate{ true };
     bool _needSunUpdate{ true };
     bool _needAmbientUpdate{ true };
     bool _needBackgroundUpdate{ true };
+    bool _needHazeUpdate{ true };
 
     KeyLightPropertyGroup _keyLightProperties;
+    HazePropertyGroup _hazeProperties;
     StagePropertyGroup _stageProperties;
     SkyboxPropertyGroup _skyboxProperties;
 
@@ -105,6 +120,7 @@ private:
     bool _validSkyboxTexture{ false };
 
     QString _proceduralUserData;
+    Transform _renderTransform;
 };
 
 } } // namespace 

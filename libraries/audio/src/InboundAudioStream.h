@@ -186,6 +186,7 @@ protected:
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Decoder* _decoder { nullptr };
+    int _mismatchedAudioCodecCount { 0 };
 };
 
 float calculateRepeatedFrameFadeFactor(int indexOfRepeat);

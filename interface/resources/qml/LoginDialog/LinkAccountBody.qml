@@ -119,6 +119,7 @@ Item {
             width: parent.width
             focus: true
             label: "Username or Email"
+            activeFocusOnPress: true
 
             ShortcutText {
                 anchors {
@@ -135,6 +136,9 @@ Item {
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
+            onFocusChanged: {
+                root.text = "";
+            }
         }
 
         TextField {
@@ -143,6 +147,7 @@ Item {
 
             label: "Password"
             echoMode: showPassword.checked ? TextInput.Normal : TextInput.Password
+            activeFocusOnPress: true
 
             ShortcutText {
                 anchors {
@@ -158,6 +163,10 @@ Item {
                 linkColor: hifi.colors.blueAccent
 
                 onLinkActivated: loginDialog.openUrl(link)
+            }
+            onFocusChanged: {
+                root.text = "";
+                root.isPassword = true;
             }
         }
 
@@ -230,18 +239,6 @@ Item {
                     }
                 }
             }
-        }
-    }
-
-    // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
-    Keyboard {
-        raised: keyboardEnabled && keyboardRaised
-        numeric: punctuationMode
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-            bottomMargin: keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
     }
 
