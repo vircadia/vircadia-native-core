@@ -125,11 +125,7 @@ void Web3DOverlay::destroyWebSurface() {
     }
 
     _webSurface->pause();
-    auto overlays = &(qApp->getOverlays());
-    QObject::disconnect(overlays, &Overlays::mousePressOnOverlay, this, nullptr);
-    QObject::disconnect(overlays, &Overlays::mouseReleaseOnOverlay, this, nullptr);
-    QObject::disconnect(overlays, &Overlays::mouseMoveOnOverlay, this, nullptr);
-    QObject::disconnect(overlays, &Overlays::hoverLeaveOverlay, this, nullptr);
+
     QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
     QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
     DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
@@ -160,35 +156,17 @@ void Web3DOverlay::buildWebSurface() {
         _webSurface->resume();
     });
 
-    auto selfOverlayID = getOverlayID();
-    std::weak_ptr<Web3DOverlay> weakSelf = std::dynamic_pointer_cast<Web3DOverlay>(qApp->getOverlays().getOverlay(selfOverlayID));
-    auto forwardPointerEvent = [=](OverlayID overlayID, const PointerEvent& event) {
-        auto self = weakSelf.lock();
-        if (self && overlayID == selfOverlayID) {
-            self->handlePointerEvent(event);
-        }
-    };
-
-    auto overlays = &(qApp->getOverlays());
-    QObject::connect(overlays, &Overlays::mousePressOnOverlay, this, forwardPointerEvent);
-    QObject::connect(overlays, &Overlays::mouseReleaseOnOverlay, this, forwardPointerEvent);
-    QObject::connect(overlays, &Overlays::mouseMoveOnOverlay, this, forwardPointerEvent);
-    QObject::connect(overlays, &Overlays::hoverLeaveOverlay, this, [=](OverlayID overlayID, const PointerEvent& event) {
-        auto self = weakSelf.lock();
-        if (!self) {
-            return;
-        }
-        if (overlayID == selfOverlayID && (self->_pressed || (!self->_activeTouchPoints.empty() && self->_touchBeginAccepted))) {
-            PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
-                event.getButton(), event.getButtons(), event.getKeyboardModifiers());
-            forwardPointerEvent(overlayID, endEvent);
-        }
-    });
-
     QObject::connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
     QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
 }
 
+void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
+    if ((_pressed || (!_activeTouchPoints.empty() && _touchBeginAccepted))) {
+        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
+            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
+        handlePointerEvent(endEvent);
+    }
+}
 
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
