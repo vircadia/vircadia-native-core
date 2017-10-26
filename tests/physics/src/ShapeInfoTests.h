@@ -18,10 +18,6 @@
 //#include "BulletTestUtils.h"
 //#include "../QTestExtensions.h"
 
-// Enable this to manually run testHashCollisions
-// (NOT a regular unit test; takes ~17 secs to run on an i7)
-#define MANUAL_TEST false
-
 class ShapeInfoTests : public QObject {
     Q_OBJECT
 private slots:

@@ -17,7 +17,7 @@
 
 #include <ShapeInfo.h>
 
-#include "DoubleHashKey.h"
+#include "HashKey.h"
 
 class ShapeManager {
 public:
@@ -41,18 +41,18 @@ public:
     bool hasShape(const btCollisionShape* shape) const;
 
 private:
-    bool releaseShapeByKey(const DoubleHashKey& key);
+    bool releaseShapeByKey(const HashKey& key);
 
     class ShapeReference {
     public:
         int refCount;
         const btCollisionShape* shape;
-        DoubleHashKey key;
+        HashKey key;
         ShapeReference() : refCount(0), shape(nullptr) {}
     };
 
-    btHashMap<DoubleHashKey, ShapeReference> _shapeMap;
-    btAlignedObjectArray<DoubleHashKey> _pendingGarbage;
+    btHashMap<HashKey, ShapeReference> _shapeMap;
+    btAlignedObjectArray<HashKey> _pendingGarbage;
 };
 
 #endif // hifi_ShapeManager_h
