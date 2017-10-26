@@ -41,12 +41,12 @@ FBXBaker::FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGet
 }
 
 FBXBaker::~FBXBaker() {
-    if (_tempDir.exists()) {
-        if (!_tempDir.remove(_originalFBXFilePath)) {
-            qCWarning(model_baking) << "Failed to remove temporary copy of fbx file:" << _originalFBXFilePath;
+    if (modelTempDir.exists()) {
+        if (!modelTempDir.remove(originalModelFilePath)) {
+            qCWarning(model_baking) << "Failed to remove temporary copy of fbx file:" << originalModelFilePath;
         }
-        if (!_tempDir.rmdir(".")) {
-            qCWarning(model_baking) << "Failed to remove temporary directory:" << _tempDir;
+        if (!modelTempDir.rmdir(".")) {
+            qCWarning(model_baking) << "Failed to remove temporary directory:" << modelTempDir;
         }
     }
 }
@@ -56,12 +56,12 @@ void FBXBaker::abort() {
 
     // tell our underlying TextureBaker instances to abort
     // the FBXBaker will wait until all are aborted before emitting its own abort signal
-    for (auto& textureBaker : _bakingTextures) {
+    for (auto& textureBaker : bakingTextures) {
         textureBaker->abort();
     }
 }
 
-void FBXBaker::bake() {
+void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << modelURL << "bake starting";
 
     auto tempDir = PathUtils::generateTemporaryDir();
@@ -71,11 +71,11 @@ void FBXBaker::bake() {
         return;
     }
 
-    _tempDir = tempDir;
+    modelTempDir = tempDir;
 
-    _originalFBXFilePath = _tempDir.filePath(modelURL.fileName());
-    qDebug() << "Made temporary dir " << _tempDir;
-    qDebug() << "Origin file path: " << _originalFBXFilePath;
+    originalModelFilePath = modelTempDir.filePath(modelURL.fileName());
+    qDebug() << "Made temporary dir " << modelTempDir;
+    qDebug() << "Origin file path: " << originalModelFilePath;
 
     // setup the output folder for the results of this bake
     setupOutputFolder();
@@ -148,7 +148,7 @@ void FBXBaker::loadSourceFBX() {
         // load up the local file
         QFile localFBX { modelURL.toLocalFile() };
 
-        qDebug() << "Local file url: " << modelURL << modelURL.toString() << modelURL.toLocalFile() << ", copying to: " << _originalFBXFilePath;
+        qDebug() << "Local file url: " << modelURL << modelURL.toString() << modelURL.toLocalFile() << ", copying to: " << originalModelFilePath;
 
         if (!localFBX.exists()) {
             //QMessageBox::warning(this, "Could not find " + _fbxURL.toString(), "");
@@ -162,7 +162,7 @@ void FBXBaker::loadSourceFBX() {
             localFBX.copy(originalOutputDir + "/" + modelURL.fileName());
         }
 
-        localFBX.copy(_originalFBXFilePath);
+        localFBX.copy(originalModelFilePath);
 
         // emit our signal to start the import of the FBX source copy
         emit sourceCopyReadyToLoad();
@@ -193,13 +193,13 @@ void FBXBaker::handleFBXNetworkReply() {
         qCDebug(model_baking) << "Downloaded" << modelURL;
 
         // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(_originalFBXFilePath);
+        QFile copyOfOriginal(originalModelFilePath);
 
-        qDebug(model_baking) << "Writing copy of original FBX to" << _originalFBXFilePath << copyOfOriginal.fileName();
+        qDebug(model_baking) << "Writing copy of original FBX to" << originalModelFilePath << copyOfOriginal.fileName();
 
         if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
             // add an error to the error list for this FBX stating that a duplicate of the original FBX could not be made
-            handleError("Could not create copy of " + modelURL.toString() + " (Failed to open " + _originalFBXFilePath + ")");
+            handleError("Could not create copy of " + modelURL.toString() + " (Failed to open " + originalModelFilePath + ")");
             return;
         }
         if (copyOfOriginal.write(requestReply->readAll()) == -1) {
@@ -223,11 +223,11 @@ void FBXBaker::handleFBXNetworkReply() {
 }
 
 void FBXBaker::importScene() {
-    qDebug() << "file path: " << _originalFBXFilePath.toLocal8Bit().data() << QDir(_originalFBXFilePath).exists();
+    qDebug() << "file path: " << originalModelFilePath.toLocal8Bit().data() << QDir(originalModelFilePath).exists();
 
-    QFile fbxFile(_originalFBXFilePath);
+    QFile fbxFile(originalModelFilePath);
     if (!fbxFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalFBXFilePath + " for reading");
+        handleError("Error opening " + originalModelFilePath + " for reading");
         return;
     }
 
@@ -402,20 +402,20 @@ void FBXBaker::exportScene() {
     auto baseName = fileName.left(fileName.lastIndexOf('.'));
     auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
 
-    _bakedFBXFilePath = bakedOutputDir + "/" + bakedFilename;
+    bakedModelFilePath = bakedOutputDir + "/" + bakedFilename;
 
     auto fbxData = FBXWriter::encodeFBX(_rootNode);
 
-    QFile bakedFile(_bakedFBXFilePath);
+    QFile bakedFile(bakedModelFilePath);
 
     if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedFBXFilePath + " for writing");
+        handleError("Error opening " + bakedModelFilePath + " for writing");
         return;
     }
 
     bakedFile.write(fbxData);
 
-    _outputFiles.push_back(_bakedFBXFilePath);
+    _outputFiles.push_back(bakedModelFilePath);
 
-    qCDebug(model_baking) << "Exported" << modelURL << "with re-written paths to" << _bakedFBXFilePath;
+    qCDebug(model_baking) << "Exported" << modelURL << "with re-written paths to" << bakedModelFilePath;
 }

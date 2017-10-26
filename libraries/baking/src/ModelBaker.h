@@ -39,7 +39,7 @@ public:
     bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback = NULL);
     QByteArray* compressTexture(QString textureFileName, getTextureTypeCallback textureTypeCallback = NULL);
     virtual void setWasAborted(bool wasAborted) override;
-    
+
 protected:
     void checkIfTexturesFinished();
     
@@ -48,6 +48,10 @@ protected:
     QString originalOutputDir;
     TextureBakerThreadGetter textureThreadGetter;
     QUrl modelURL;
+    QString bakedModelFilePath;
+    QDir modelTempDir;
+    QString originalModelFilePath;
+    QMultiHash<QUrl, QSharedPointer<TextureBaker>> bakingTextures;
 
 public slots:
     virtual void bake() override;
@@ -66,10 +70,6 @@ private:
     
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
-    //QUrl _modelURL;
-    QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
-    //TextureBakerThreadGetter _textureThreadGetter;
-    //QString _originalOutputDir;
     bool _pendingErrorEmission{ false };
 };
 

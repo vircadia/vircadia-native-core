@@ -42,12 +42,12 @@ OBJBaker::OBJBaker(const QUrl& objURL, TextureBakerThreadGetter textureThreadGet
 }
 
 OBJBaker::~OBJBaker() {
-    if (_tempDir.exists()) {
-        if (!_tempDir.remove(_originalOBJFilePath)) {
-            qCWarning(model_baking) << "Failed to remove temporary copy of OBJ file:" << _originalOBJFilePath;
+    if (modelTempDir.exists()) {
+        if (!modelTempDir.remove(originalModelFilePath)) {
+            qCWarning(model_baking) << "Failed to remove temporary copy of OBJ file:" << originalModelFilePath;
         }
-        if (!_tempDir.rmdir(".")) {
-            qCWarning(model_baking) << "Failed to remove temporary directory:" << _tempDir;
+        if (!modelTempDir.rmdir(".")) {
+            qCWarning(model_baking) << "Failed to remove temporary directory:" << modelTempDir;
         }
     }
 }
@@ -62,11 +62,11 @@ void OBJBaker::bake() {
         return;
     }
 
-    _tempDir = tempDir;
+    modelTempDir = tempDir;
 
-    _originalOBJFilePath = _tempDir.filePath(modelURL.fileName());
-    qDebug() << "Made temporary dir " << _tempDir;
-    qDebug() << "Origin file path: " << _originalOBJFilePath;
+    originalModelFilePath = modelTempDir.filePath(modelURL.fileName());
+    qDebug() << "Made temporary dir " << modelTempDir;
+    qDebug() << "Origin file path: " << originalModelFilePath;
     
     // trigger bakeOBJ once OBJ is loaded
     connect(this, &OBJBaker::OBJLoaded, this, &OBJBaker::bakeOBJ);
@@ -81,7 +81,7 @@ void OBJBaker::loadOBJ() {
         // loading the local OBJ
         QFile localOBJ{ modelURL.toLocalFile() };
 
-        qDebug() << "Local file url: " << modelURL << modelURL.toString() << modelURL.toLocalFile() << ", copying to: " << _originalOBJFilePath;
+        qDebug() << "Local file url: " << modelURL << modelURL.toString() << modelURL.toLocalFile() << ", copying to: " << originalModelFilePath;
 
         if (!localOBJ.exists()) {
             handleError("Could not find " + modelURL.toString());
@@ -94,7 +94,7 @@ void OBJBaker::loadOBJ() {
             localOBJ.copy(originalOutputDir + "/" + modelURL.fileName());
         }
                 
-        localOBJ.copy(_originalOBJFilePath);
+        localOBJ.copy(originalModelFilePath);
 
         // local OBJ is loaded emit signal to trigger its baking
         emit OBJLoaded();
@@ -124,13 +124,13 @@ void OBJBaker::handleOBJNetworkReply() {
         qCDebug(model_baking) << "Downloaded" << modelURL;
 
         // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(_originalOBJFilePath);
+        QFile copyOfOriginal(originalModelFilePath);
 
-        qDebug(model_baking) << "Writing copy of original obj to" << _originalOBJFilePath << copyOfOriginal.fileName();
+        qDebug(model_baking) << "Writing copy of original obj to" << originalModelFilePath << copyOfOriginal.fileName();
 
         if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
             // add an error to the error list for this obj stating that a duplicate of the original obj could not be made
-            handleError("Could not create copy of " + modelURL.toString() + " (Failed to open " + _originalOBJFilePath + ")");
+            handleError("Could not create copy of " + modelURL.toString() + " (Failed to open " + originalModelFilePath + ")");
             return;
         }
         if (copyOfOriginal.write(requestReply->readAll()) == -1) {
@@ -156,9 +156,9 @@ void OBJBaker::handleOBJNetworkReply() {
 
 void OBJBaker::bakeOBJ() {
     // Read the OBJ file
-    QFile objFile(_originalOBJFilePath);
+    QFile objFile(originalModelFilePath);
     if (!objFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalOBJFilePath + " for reading");
+        handleError("Error opening " + originalModelFilePath + " for reading");
         return;
     }
 
@@ -180,20 +180,20 @@ void OBJBaker::bakeOBJ() {
     auto baseName = fileName.left(fileName.lastIndexOf('.'));
     auto bakedFilename = baseName + ".baked.fbx";
 
-    _bakedOBJFilePath = bakedOutputDir + "/" + bakedFilename;
+    bakedModelFilePath = bakedOutputDir + "/" + bakedFilename;
 
     QFile bakedFile;
-    bakedFile.setFileName(_bakedOBJFilePath);
+    bakedFile.setFileName(bakedModelFilePath);
     if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedOBJFilePath + " for writing");
+        handleError("Error opening " + bakedModelFilePath + " for writing");
         return;
     }
 
     bakedFile.write(encodedFBX);
 
     // Export successful
-    _outputFiles.push_back(_bakedOBJFilePath);
-    qCDebug(model_baking) << "Exported" << modelURL << "to" << _bakedOBJFilePath;
+    _outputFiles.push_back(bakedModelFilePath);
+    qCDebug(model_baking) << "Exported" << modelURL << "to" << bakedModelFilePath;
     
     // Export done emit finished
     emit finished();

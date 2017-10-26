@@ -45,11 +45,6 @@ private slots:
 
 private:
     qlonglong _nodeID = 0;
-    QString _bakedOBJFilePath;
-    QDir _tempDir;
-    QString _originalOBJFilePath;
-    QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
-
     qlonglong _geometryID;
     qlonglong _modelID;
     std::vector<qlonglong> _materialIDs;

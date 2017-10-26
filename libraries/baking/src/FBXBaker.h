@@ -38,7 +38,7 @@ public:
     ~FBXBaker() override;
 
     QUrl getFBXUrl() const { return modelURL; }
-    QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
+    QString getBakedFBXFilePath() const { return bakedModelFilePath; }
 
 public slots:
     virtual void bake() override;
@@ -64,13 +64,6 @@ private:
 
     FBXNode _rootNode;
     FBXGeometry* _geometry;
-
-    QString _bakedFBXFilePath;
-
-    QDir _tempDir;
-    QString _originalFBXFilePath;
-
-    QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
 

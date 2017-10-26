@@ -268,7 +268,7 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTexture
 
         textureChild = bakedTextureFileName.toLocal8Bit();
 
-        if (!_bakingTextures.contains(urlToTexture)) {
+        if (!bakingTextures.contains(urlToTexture)) {
             _outputFiles.push_back(bakedTextureFilePath);
 
             // bake this texture asynchronously
@@ -325,7 +325,7 @@ void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type t
     connect(bakingTexture.data(), &TextureBaker::aborted, this, &ModelBaker::handleAbortedTexture);
 
     // keep a shared pointer to the baking texture
-    _bakingTextures.insert(textureURL, bakingTexture);
+    bakingTextures.insert(textureURL, bakingTexture);
 
     // start baking the texture on one of our available worker threads
     bakingTexture->moveToThread(textureThreadGetter());
@@ -376,7 +376,7 @@ void ModelBaker::handleBakedTexture() {
 
 
                 // now that this texture has been baked and handled, we can remove that TextureBaker from our hash
-                _bakingTextures.remove(bakedTexture->getTextureURL());
+                bakingTextures.remove(bakedTexture->getTextureURL());
 
                 checkIfTexturesFinished();
             } else {
@@ -387,10 +387,10 @@ void ModelBaker::handleBakedTexture() {
                 _pendingErrorEmission = true;
 
                 // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
-                _bakingTextures.remove(bakedTexture->getTextureURL());
+                bakingTextures.remove(bakedTexture->getTextureURL());
 
                 // abort any other ongoing texture bakes since we know we'll end up failing
-                for (auto& bakingTexture : _bakingTextures) {
+                for (auto& bakingTexture : bakingTextures) {
                     bakingTexture->abort();
                 }
 
@@ -400,7 +400,7 @@ void ModelBaker::handleBakedTexture() {
             // we have errors to attend to, so we don't do extra processing for this texture
             // but we do need to remove that TextureBaker from our list
             // and then check if we're done with all textures
-            _bakingTextures.remove(bakedTexture->getTextureURL());
+            bakingTextures.remove(bakedTexture->getTextureURL());
 
             checkIfTexturesFinished();
         }
@@ -424,7 +424,7 @@ void ModelBaker::checkIfTexturesFinished() {
     // check if we're done everything we need to do for this model
     // and emit our finished signal if we're done
 
-    if (_bakingTextures.isEmpty()) {
+    if (bakingTextures.isEmpty()) {
         if (shouldStop()) {
             // if we're checking for completion but we have errors
             // that means one or more of our texture baking operations failed
@@ -447,14 +447,14 @@ void ModelBaker::handleAbortedTexture() {
     TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
 
     if (bakedTexture) {
-        _bakingTextures.remove(bakedTexture->getTextureURL());
+        bakingTextures.remove(bakedTexture->getTextureURL());
     }
 
     // since a texture we were baking aborted, our status is also aborted
     _shouldAbort.store(true);
 
     // abort any other ongoing texture bakes since we know we'll end up failing
-    for (auto& bakingTexture : _bakingTextures) {
+    for (auto& bakingTexture : bakingTextures) {
         bakingTexture->abort();
     }
 
