@@ -50,9 +50,9 @@ static const int INTERFACE_RUNNING_CHECK_FREQUENCY_MS = 1000;
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-static const QStringList BAKEABLE_MODEL_EXTENSIONS = {"fbx"};
+static const QStringList BAKEABLE_MODEL_EXTENSIONS = { "fbx" };
 static QStringList BAKEABLE_TEXTURE_EXTENSIONS;
-static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = {"js"};
+static const QStringList BAKEABLE_SCRIPT_EXTENSIONS = {};
 static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
 static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
 static const QString BAKED_SCRIPT_SIMPLE_NAME = "asset.js";
