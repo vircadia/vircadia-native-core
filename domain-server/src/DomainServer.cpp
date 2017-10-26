@@ -1754,6 +1754,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_RESTART = "/restart";
     const QString URI_API_PLACES = "/api/places";
     const QString URI_API_DOMAINS = "/api/domains";
+    const QString URI_API_DOMAINS_ID = "/api/domains/";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -1923,6 +1924,35 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             url.setQuery("access_token=" + accessTokenVariant->toString());
 
+            qDebug() << "Sending request to " << url;
+
+            QNetworkRequest req(url);
+            req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+            QNetworkReply* reply = NetworkAccessManager::getInstance().get(req);
+
+            connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
+                if (reply->error() != QNetworkReply::NoError) {
+                    qDebug() << reply << reply->errorString() << reply->readAll();
+                    connection->respond(HTTPConnection::StatusCode500, reply->readAll());
+                    return;
+                }
+
+                static const char* CONTENT_TYPE_JSON { "application/json" };
+                connection->respond(HTTPConnection::StatusCode200, reply->readAll());
+            });
+            return true;
+
+        } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
+            auto id = url.path().mid(URI_API_DOMAINS_ID.length());
+            QUrl url { BASE_METAVERSE_URL + "/api/v1/domains/" + id };
+
+            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
+            if (accessTokenVariant && accessTokenVariant->isValid()) {
+                url.setQuery("access_token=" + accessTokenVariant->toString());
+            }
+
+            qDebug() << "Sending request to " << url;
+
             QNetworkRequest req(url);
             req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
             QNetworkReply* reply = NetworkAccessManager::getInstance().get(req);
@@ -2084,7 +2114,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject root {
                 {"access_token", accessTokenVariant->toString()},
                 {"domain",
-                    QJsonObject({ { "description", it.value() } })
+                    QJsonObject({ { "label", it.value() } })
                 }
             };
             QJsonDocument doc { root };
@@ -2162,9 +2192,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 domainObj["network_port"] = port.isEmpty() ? QJsonValue::Null : QJsonValue(port);
             }
 
-            it = params.find("description");
+            it = params.find("label");
             if (it != params.end()) {
-                domainObj["description"] = it.value();
+                domainObj["label"] = it.value();
             }
 
 
