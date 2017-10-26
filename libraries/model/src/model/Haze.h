@@ -30,10 +30,25 @@ namespace model {
             -LOG_P_005 / hazeRange_m.z);
     }
 
-    inline float convertHazeRangeToHazeRangeFactor(const float hazeRange_m) { return (-LOG_P_005 / hazeRange_m); }
+
+    inline float convertHazeRangeToHazeRangeFactor(const float hazeRange_m) {
+        // limit range to no less than 1.0 metres
+        if (hazeRange_m < 1.0f) {
+            return -LOG_P_005;
+        }
+        else {
+            return -LOG_P_005 / hazeRange_m;
+        }
+    }
 
     inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeAltitude_m) {
-        return -LOG_P_005 / hazeAltitude_m;
+        // limit altitude to no less than 1.0 metres
+        if (hazeAltitude_m < 1.0) {
+            return -LOG_P_005;
+        }
+        else {
+            return -LOG_P_005 / hazeAltitude_m;
+        }
     }
 
     // Derivation (s is the proportion of sun blend, a is the angle at which the blend is 50%, solve for m = 0.5
