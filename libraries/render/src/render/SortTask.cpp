@@ -140,8 +140,14 @@ void DepthSortShapesAndComputeBounds::run(const RenderContextPointer& renderCont
         if (outItems == outShapes.end()) {
             outItems = outShapes.insert(std::make_pair(pipeline.first, ItemBounds{})).first;
         }
+        AABox bounds;
 
-        depthSortItems(renderContext, _frontToBack, inItems, outItems->second, &outBounds);
+        depthSortItems(renderContext, _frontToBack, inItems, outItems->second, &bounds);
+        if (!outBounds.isNull()) {
+            outBounds += bounds;
+        } else {
+            outBounds = bounds;
+        }
     }
 }
 
