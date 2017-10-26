@@ -56,6 +56,12 @@ const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
 #endif
 
+bool forwardMetaverseAPIRequest(HTTPConnection* connection, const QString metaversePath,
+                                std::vector<std::pair<QString, QString>> dataWhitelist) {
+    
+    return false;
+}
+
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
@@ -2069,16 +2075,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             auto params = connection->parseUrlEncodedForm();
 
-            auto it = params.find("private_description");
+            auto it = params.find("label");
             if (it == params.end()) {
-                connection->respond(HTTPConnection::StatusCode400);
+                connection->respond(HTTPConnection::StatusCode400, "Missing label");
                 return true;
             }
 
             QJsonObject root {
                 {"access_token", accessTokenVariant->toString()},
                 {"domain",
-                    QJsonObject({ { "private_description", it.value() } })
+                    QJsonObject({ { "description", it.value() } })
                 }
             };
             QJsonDocument doc { root };
@@ -2156,9 +2162,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 domainObj["network_port"] = port.isEmpty() ? QJsonValue::Null : QJsonValue(port);
             }
 
-            it = params.find("private_description");
+            it = params.find("description");
             if (it != params.end()) {
-                domainObj["private_description"] = it.value();
+                domainObj["description"] = it.value();
             }
 
 

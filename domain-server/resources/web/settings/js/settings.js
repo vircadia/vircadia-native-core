@@ -493,8 +493,10 @@ function setupHFAccountButton() {
     var el;
 
   if (hasAccessToken) {
-      el = "<span class='account-connected-header'>High Fidelity Account Connected</span>";
+      el = "<p>";
+      el += "<span class='account-connected-header'>High Fidelity Account Connected</span>";
       el += "<button id='" + Settings.DISCONNECT_ACCOUNT_BTN_ID + "' class='btn'>Disconnect</button>";
+      el += "</p>";
       el = $(el);
   } else {
       // setup an object for the settings we want our button to have
@@ -563,14 +565,8 @@ function prepareAccessTokenPrompt() {
 
     console.log("Prepping access token prompt");
 
-    // if the user doesn't have a domain ID set, give them the option to create one now
-    if (!Settings.data.values.metaverse.id) {
-      // show domain ID selection alert
-      showDomainIDChoiceAlert();
-    } else {
-      swal.close();
-      saveSettings();
-    }
+    swal.close();
+    saveSettings();
   });
 }
 
@@ -632,6 +628,8 @@ function showDomainCreationAlert(justConnected) {
     }
   });
 }
+
+//function createDomainID()
 
 function createNewDomainID(description, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
@@ -732,13 +730,14 @@ function domainIDIsSet() {
 }
 
 function setupDomainLabelSetting() {
-  if (!domainIDIsSet()) {
+  if (!domainIDIsSet() || !accessTokenIsSet()) {
+    $(".panel#label").hide();
     return;
   }  
 
   var html = "<div>"
   html += "Specify a label for your domain";
-  html += "<input id='network-label' type='text' class='form-control'></input>";
+  html += "<input id='network-label' type='text' class='form-control domain-loading-hide' disabled></input>";
   html += "</div>";
 
   var link = $("<a href='#'>Edit</a>");
@@ -747,9 +746,9 @@ function setupDomainLabelSetting() {
     ev.preventDefault();
 
     var label = "temp";
-    var modal_body = "<div class='form-group'>";
+    var modal_body = "<div class='form-inline'>";
     modal_body += "<label class='control-label'>Label</label>";
-    modal_body += "<input type='text' id='domain-label-input' class='form-control' value='" + DomainInfo.label + "'>";
+    modal_body += "<input type='text' id='domain-label-input' class='form-control' value='" + DomainInfo.description + "'>";
     modal_body += "<div id='domain-label-error' class='error-message' data-property='label'></div>";
     modal_body += "</div>";
 
@@ -770,7 +769,7 @@ function setupDomainLabelSetting() {
           className: 'edit-label-save-btn btn btn-primary',
           callback: function() {
             var data = {
-              label: $('#domain-label-input').val()
+              description: $('#domain-label-input').val()
             };
 
             $('.edit-label-cancel-btn').attr('disabled', 'disabled');
@@ -817,8 +816,15 @@ function setupDomainLabelSetting() {
 
   html = $(html).append(link);
 
-  var autoNetworkingEl = $('div[data-keypath="metaverse.automatic_networking"]');
-  autoNetworkingEl.after(html);
+  var spinner = createDomainSpinner();
+  var errorEl = createDomainLoadingError("Error loading label.");
+
+  html.append(spinner);
+  html.append(errorEl);
+
+  $('div#label .panel-body').append(errorEl);
+  $('div#label .panel-body').append(html);
+  console.log($('div#label .panel-body'));
 }
 
 function setupDomainNetworkingSettings() {
@@ -1032,6 +1038,7 @@ function placeTableRow(name, path, isTemporary, placeID) {
             sendUpdatePlaceRequest(
               placeID,
               '',
+              null,
               true,
               function() {
                 reloadDomainInfo();
@@ -1109,12 +1116,14 @@ function reloadDomainInfo() {
       var row = $("<tr> <td></td> <td></td> <td class='buttons'><a href='javascript:void(0);' class='place-add glyphicon glyphicon-plus'></a></td> </tr>");
 
       row.find(".place-add").click(function(ev) {
-        chooseFromHighFidelityPlaces(null, function() {
+        chooseFromHighFidelityPlaces(Settings.initialValues.metaverse.access_token, null, function() {
           reloadDomainInfo();
         });
       });
 
-      $('#network-label').val(data.domain.label);
+      var label = data.domain.description;
+      label = label === null ? '' : label;
+      $('#network-label').val(label);
       var autoNetworkingSetting = Settings.data.values.metaverse.automatic_networking;
       var address = data.domain.network_address === null ? "" : data.domain.network_address;
       var port = data.domain.network_port === null ? "" : data.domain.network_port;
@@ -1152,11 +1161,30 @@ function showDomainSettingsModal(clickedButton) {
   })
 }
 
-function sendUpdatePlaceRequest(id, path, clearDomainID, onSuccess, onError) {
+function sendCreateDomainRequest(onSuccess, onError) {
+  $.ajax({
+    url: '/api/domains',
+    type: 'POST',
+    data: { label: "TEST" },
+    success: function(data) {
+      //if (data.status === 'success') {
+        onSuccess(data.domain_id);
+      //} else {
+        //onError();
+      //}
+    },
+    error: onError
+  });
+}
+
+function sendUpdatePlaceRequest(id, path, domainID, clearDomainID, onSuccess, onError) {
   var data = {
     place_id: id,
     path: path
   };
+  if (domainID) {
+    data.domain_id = domainID;
+  }
   if (clearDomainID) {
     data.domain_id = null;
   }
@@ -1201,6 +1229,7 @@ function editHighFidelityPlace(placeID, name, path) {
         sendUpdatePlaceRequest(
           placeID,
           placePath,
+          null,
           false,
           function() {
             dialog.modal('hide')
@@ -1239,8 +1268,8 @@ function showLoadingDialog() {
   });
 }
 
-function chooseFromHighFidelityPlaces(forcePathTo, onSuccessfullyAdded) {
-  if (Settings.initialValues.metaverse.access_token) {
+function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAdded) {
+  if (accessToken) {
 
     var loadingDialog = showLoadingDialog();
 
@@ -1313,23 +1342,43 @@ function chooseFromHighFidelityPlaces(forcePathTo, onSuccessfullyAdded) {
                 $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON_PENDING);
                 $('.add-place-cancel-button').attr('disabled', 'disabled');
 
-                sendUpdatePlaceRequest(
-                  placeID,
-                  placePath,
-                  false,
-                  function(data) {
-                    dialog.modal('hide')
-                    if (onSuccessfullyAdded) {
-                      onSuccessfullyAdded();
+                function finishSettingUpPlace(domainID) {
+                  sendUpdatePlaceRequest(
+                    placeID,
+                    placePath,
+                    domainID,
+                    false,
+                    function(data) {
+                      $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
+                      dialog.modal('hide')
+                      if (onSuccessfullyAdded) {
+                        onSuccessfullyAdded(places_by_id[placeID].name);
+                      }
+                      saveSettings();
+                    },
+                    function(data) {
+                      $('.add-place-confirm-button').removeAttr('disabled');
+                      $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
+                      $('.add-place-cancel-button').removeAttr('disabled');
+                      bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
                     }
-                  },
-                  function(data) {
+                  );
+                }
+
+                if (domainIDIsSet()) {
+                  finishSettingUpPlace();
+                } else {
+                  sendCreateDomainRequest(function(domainID) {
+                    finishSettingUpPlace(domainID);
+                  }, function() {
                     $('.add-place-confirm-button').removeAttr('disabled');
                     $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
                     $('.add-place-cancel-button').removeAttr('disabled');
                     bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
-                  }
-                );
+                    bootbox.alert("FAIL");
+                  });
+                }
+
 
                 return false;
               }
