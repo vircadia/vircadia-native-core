@@ -119,9 +119,11 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
     }
 
     // Trigger begin
+    const std::string SHOULD_FOCUS_BUTTON = "Focus";
     for (const std::string& button : newButtons) {
         hoveredEvent.setType(PointerEvent::Press);
         hoveredEvent.setButton(PointerEvent::PrimaryButton);
+        hoveredEvent.setShouldFocus(button == SHOULD_FOCUS_BUTTON);
         if (hoveredObject.type == ENTITY) {
             emit pointerManager->triggerBeginEntity(hoveredObject.objectID, hoveredEvent);
         } else if (hoveredObject.type == OVERLAY) {

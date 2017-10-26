@@ -49,20 +49,6 @@ LaserPointer::~LaserPointer() {
     }
 }
 
-void LaserPointer::disable() {
-    Parent::disable();
-    withWriteLock([&] {
-        if (!_currentRenderState.empty()) {
-            if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
-                disableRenderState(_renderStates[_currentRenderState]);
-            }
-            if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-                disableRenderState(_defaultRenderStates[_currentRenderState].second);
-            }
-        }
-    });
-}
-
 void LaserPointer::setRenderState(const std::string& state) {
     withWriteLock([&] {
         if (!_currentRenderState.empty() && state != _currentRenderState) {

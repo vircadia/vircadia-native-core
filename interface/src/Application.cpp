@@ -1472,13 +1472,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity,
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
-        if (getEntities()->wantsKeyboardFocus(entityItemID)) {
-            setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
-            setKeyboardFocusEntity(entityItemID);
-        } else {
-            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+        if (event.shouldFocus()) {
+            if (getEntities()->wantsKeyboardFocus(entityItemID)) {
+                setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+                setKeyboardFocusEntity(entityItemID);
+            } else {
+                setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            }
         }
     });
 

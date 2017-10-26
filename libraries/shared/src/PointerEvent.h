@@ -55,9 +55,11 @@ public:
     Button getButton() const { return _button; }
     uint32_t getButtons() const { return _buttons; }
     Qt::KeyboardModifiers getKeyboardModifiers() const { return _keyboardModifiers; }
+    bool shouldFocus() const { return _shouldFocus; }
 
     void setType(EventType type) { _type = type; }
     void setButton(Button button) { _button = button; }
+    void setShouldFocus(bool focus) { _shouldFocus = focus; }
 
 private:
     EventType _type;
@@ -70,6 +72,8 @@ private:
     Button _button { NoButtons };  // button associated with this event, (if type is Press, this will be the button that is pressed)
     uint32_t _buttons { NoButtons }; // the current state of all the buttons.
     Qt::KeyboardModifiers _keyboardModifiers; // set of keys held when event was generated
+
+    bool _shouldFocus { true };
 };
 
 QDebug& operator<<(QDebug& dbg, const PointerEvent& p);

@@ -908,9 +908,11 @@ void Overlays::mousePressPointerEvent(const OverlayID& overlayID, const PointerE
         thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
     }
     if (thisOverlay) {
-        // Focus keyboard on web overlays
-        DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-        setKeyboardFocusOverlay(overlayID);
+        if (event.shouldFocus()) {
+            // Focus keyboard on web overlays
+            DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            setKeyboardFocusOverlay(overlayID);
+        }
 
         // Send to web overlay
         QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));

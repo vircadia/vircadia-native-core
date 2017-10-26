@@ -77,8 +77,8 @@ public:
     QUuid getRayUID() { return _pickUID; }
 
 protected:
-    bool _enabled;
     const QUuid _pickUID;
+    bool _enabled;
 
     virtual PointerEvent buildPointerEvent(const QUuid& uid, const QVariantMap& pickResult) const = 0;
 

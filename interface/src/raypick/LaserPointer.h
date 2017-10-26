@@ -58,8 +58,6 @@ public:
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
     ~LaserPointer();
 
-    void disable() override;
-
     void setRenderState(const std::string& state) override;
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
