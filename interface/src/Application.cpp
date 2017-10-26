@@ -760,7 +760,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0),
-    _snapshotSound(nullptr)
+    _snapshotSound(nullptr),
+    _sampleSound(nullptr)
+
 {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
@@ -805,7 +807,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    
     _logger = new FileLogger(this);
     qInstallMessageHandler(messageHandler);
 
@@ -981,6 +982,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Save avatar location immediately after a teleport.
     connect(myAvatar.get(), &MyAvatar::positionGoneTo,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
+
+    // Inititalize sample before registering
+    QFileInfo infSample = QFileInfo(PathUtils::resourcesPath() + "sounds/sample.wav");
+    _sampleSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(infSample.absoluteFilePath()));
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
     scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
@@ -1788,9 +1793,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
-    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
-
+    QFileInfo infSnap = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(infSnap.absoluteFilePath()));
+    
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
     if (testProperty.isValid()) {
@@ -4228,6 +4233,7 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
+    
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
 
@@ -6834,6 +6840,10 @@ void Application::loadScriptURLDialog() const {
             DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
         }
     });
+}
+
+SharedSoundPointer Application::getSampleSound() const {
+    return _sampleSound;
 }
 
 void Application::loadLODToolsDialog() {
