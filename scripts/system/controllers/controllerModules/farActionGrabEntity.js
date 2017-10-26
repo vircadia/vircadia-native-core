@@ -119,6 +119,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.actionID = null; // action this script created...
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
+        this.previousCollisionStatus = false;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
@@ -342,7 +343,9 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.madeDynamic) {
                 var props = {};
                 props.dynamic = false;
+                props.collisionless = this.previousCollisionStatus;
                 props.localVelocity = {x: 0, y: 0, z: 0};
+                props.localRotation = {x: 0, y: 0, z: 0};
                 Entities.editEntity(this.grabbedThingID, props);
                 this.madeDynamic = false;
             }
@@ -507,10 +510,12 @@ Script.include("/~/system/libraries/controllers.js");
                         if (entityIsGrabbable(targetProps)) {
                             if (!entityIsDistanceGrabbable(targetProps)) {
                                 targetProps.dynamic = true;
+                                this.previousCollisionStatus = targetProps.collisionless;
+                                targetProps.collisionless = true;
                                 Entities.editEntity(entityID, targetProps);
                                 this.madeDynamic = true;
                             }
-                            
+
                             if (!this.distanceRotating) {
                                 this.grabbedThingID = entityID;
                                 this.grabbedDistance = rayPickInfo.distance;
