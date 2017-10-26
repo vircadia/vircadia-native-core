@@ -44,10 +44,10 @@ protected:
     void checkIfTexturesFinished();
     
     QHash<QByteArray, QByteArray> textureContentMap;
+    QUrl modelURL;
+    TextureBakerThreadGetter textureThreadGetter;
     QString bakedOutputDir;
     QString originalOutputDir;
-    TextureBakerThreadGetter textureThreadGetter;
-    QUrl modelURL;
     QString bakedModelFilePath;
     QDir modelTempDir;
     QString originalModelFilePath;
