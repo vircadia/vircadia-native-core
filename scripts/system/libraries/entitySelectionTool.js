@@ -1346,6 +1346,11 @@ SelectionDisplay = (function() {
             }
         }
 
+        // place yaw, pitch and roll rotations on the avatar referential
+        yawHandleRotation = Quat.multiply(MyAvatar.orientation , yawHandleRotation);
+        pitchHandleRotation = Quat.multiply(MyAvatar.orientation , pitchHandleRotation);
+        rollHandleRotation = Quat.multiply(MyAvatar.orientation , rollHandleRotation);
+
         var rotateHandlesVisible = true;
         var rotationOverlaysVisible = false;
         // note:  Commented out as these are currently unused here; however,
@@ -3498,6 +3503,8 @@ SelectionDisplay = (function() {
         initialPosition = SelectionManager.worldPosition;
         rotationNormal = { x: 0, y: 0, z: 0 };
         rotationNormal[rotAroundAxis] = 1;
+        //get the correct axis according to the avatar referencial
+        rotationNormal = Vec3.multiplyQbyV(MyAvatar.orientation, rotationNormal);
 
         // Size the overlays to the current selection size
         var diagonal = (Vec3.length(SelectionManager.worldDimensions) / 2) * 1.1;
@@ -3599,9 +3606,8 @@ SelectionDisplay = (function() {
             var snapAngle = snapToInner ? innerSnapAngle : 1.0;
             angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
 
-            var vec3Degrees = { x: 0, y: 0, z: 0 };
-            vec3Degrees[rotAroundAxis] = angleFromZero;
-            var rotChange = Quat.fromVec3Degrees(vec3Degrees);
+            
+            var rotChange = Quat.angleAxis(angleFromZero, rotationNormal);
             updateSelectionsRotation(rotChange);
 
             updateRotationDegreesOverlay(angleFromZero, handleRotation, rotCenter);
