@@ -191,9 +191,9 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
 
 	    auto lightStage = args->_scene->getStage<LightStage>();
-	    if (lightStage && lightStage->_currentFrame._sunLights.size() > 0) {
-	    model::LightPointer keyLight;
-	        keyLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
+	    if (lightStage) {
+	        model::LightPointer keyLight;
+	        keyLight = lightStage->getCurrentKeyLight();
 	        if (keyLight != nullptr) {
 	            batch.setUniformBuffer(HazeEffect_LightingMapSlot, keyLight->getLightSchemaBuffer());
 	        }

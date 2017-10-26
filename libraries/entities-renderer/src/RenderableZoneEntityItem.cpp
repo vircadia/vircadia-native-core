@@ -40,22 +40,26 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
     if (_stage) {
         if (!LightStage::isIndexInvalid(_sunIndex)) {
             _stage->removeLight(_sunIndex);
+            _sunIndex = INVALID_INDEX;
+            _shadowIndex = INVALID_INDEX;
         }
         if (!LightStage::isIndexInvalid(_ambientIndex)) {
             _stage->removeLight(_ambientIndex);
-
+            _ambientIndex = INVALID_INDEX;
         }
     }
 
     if (_backgroundStage) {
         if (!BackgroundStage::isIndexInvalid(_backgroundIndex)) {
             _backgroundStage->removeBackground(_backgroundIndex);
+            _backgroundIndex = INVALID_INDEX;
         }
     }
 
     if (_hazeStage) {
         if (!HazeStage::isIndexInvalid(_hazeIndex)) {
             _hazeStage->removeHaze(_hazeIndex);
+            _hazeIndex = INVALID_INDEX;
         }
     }
 }

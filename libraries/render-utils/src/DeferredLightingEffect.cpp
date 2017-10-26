@@ -105,13 +105,13 @@ void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Bat
     PerformanceTimer perfTimer("DLE->setupBatch()");
     model::LightPointer keySunLight;
     auto lightStage = args->_scene->getStage<LightStage>();
-    if (lightStage && lightStage->_currentFrame._sunLights.size()) {
-        keySunLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
+    if (lightStage) {
+        keySunLight = lightStage->getCurrentKeyLight();
     }
 
     model::LightPointer keyAmbiLight;
-    if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
-        keyAmbiLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
+    if (lightStage) {
+        keyAmbiLight = lightStage->getCurrentAmbientLight();
     }
 
     if (keySunLight) {

@@ -168,6 +168,38 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
     return removed;
 }
 
+LightStage::LightPointer LightStage::getCurrentKeyLight() const {
+    Index keyLightId{ 0 };
+    if (!_currentFrame._sunLights.empty()) {
+        keyLightId = _currentFrame._sunLights.front();
+    }
+    return _lights.get(keyLightId);
+}
+
+LightStage::LightPointer LightStage::getCurrentAmbientLight() const {
+    Index keyLightId{ 0 };
+    if (!_currentFrame._ambientLights.empty()) {
+        keyLightId = _currentFrame._ambientLights.front();
+    }
+    return _lights.get(keyLightId);
+}
+
+LightStage::ShadowPointer LightStage::getCurrentKeyShadow() const {
+    Index keyLightId{ 0 };
+    if (!_currentFrame._sunLights.empty()) {
+        keyLightId = _currentFrame._sunLights.front();
+    }
+    return getShadow(keyLightId);
+}
+
+LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow() const {
+    Index keyLightId{ 0 };
+    if (!_currentFrame._sunLights.empty()) {
+        keyLightId = _currentFrame._sunLights.front();
+    }
+    return LightAndShadow(getLight(keyLightId), getShadow(keyLightId));
+}
+
 void LightStage::updateLightArrayBuffer(Index lightId) {
     auto lightSize = sizeof(model::Light::LightSchema);
     if (!_lightArrayBuffer) {

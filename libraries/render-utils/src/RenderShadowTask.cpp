@@ -22,8 +22,10 @@
 #include "DeferredLightingEffect.h"
 #include "FramebufferCache.h"
 
+// These values are used for culling the objects rendered in the shadow map
+// but are readjusted afterwards
 #define SHADOW_FRUSTUM_NEAR 1.0f
-#define SHADOW_FRUSTUM_FAR  100.0f
+#define SHADOW_FRUSTUM_FAR  500.0f
 
 using namespace render;
 
@@ -110,8 +112,11 @@ static void adjustNearFar(const AABox& inShapeBounds, ViewFrustum& shadowFrustum
     float far = 0.0f;
 
     computeNearFar(sceneBoundVertices, shadowClipPlanes, near, far);
+    // Limit the far range to the one used originally. There's no point in rendering objects
+    // that are not in the view frustum.
+    far = glm::min(far, shadowFrustum.getFarClip());
 
-    const auto depthEpsilon = 0.25f;
+    const auto depthEpsilon = 0.1f;
     auto projMatrix = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near - depthEpsilon, far + depthEpsilon);
     auto shadowProjection = shadowFrustum.getProjection();
 
