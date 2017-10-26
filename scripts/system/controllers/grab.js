@@ -260,14 +260,14 @@ function Grabber() {
 
     this.mouseRayOverlays = RayPick.createRayPick({
         joint: "Mouse",
-        filter: RayPick.PICK_OVERLAYS,
+        filter: Picks.PICK_OVERLAYS,
         enabled: true
     });
     RayPick.setIncludeItems(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
     var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = LaserPointers.createLaserPointer({
         joint: "Mouse",
-        filter: RayPick.PICK_ENTITIES,
+        filter: Picks.PICK_ENTITIES,
         faceAvatar: true,
         enabled: true,
         renderStates: renderStates
@@ -321,12 +321,12 @@ Grabber.prototype.pressEvent = function(event) {
     }
 
     var overlayResult = RayPick.getPrevRayPickResult(this.mouseRayOverlays);
-    if (overlayResult.type != RayPick.INTERSECTED_NONE) {
+    if (overlayResult.type != Picks.INTERSECTED_NONE) {
         return;
     }
 
     var pickResults = LaserPointers.getPrevRayPickResult(this.mouseRayEntities);
-    if (pickResults.type == RayPick.INTERSECTED_NONE) {
+    if (pickResults.type == Picks.INTERSECTED_NONE) {
         LaserPointers.setRenderState(this.mouseRayEntities, "");
         return;
     }

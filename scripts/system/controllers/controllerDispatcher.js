@@ -252,7 +252,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     length: 1000
                 };
 
-                if (rayPicks[h].type === RayPick.INTERSECTED_ENTITY) {
+                if (rayPicks[h].type === Picks.INTERSECTED_ENTITY) {
                     // XXX check to make sure this one isn't already in nearbyEntityProperties?
                     if (rayPicks[h].distance < NEAR_GRAB_PICK_RADIUS * sensorScaleFactor) {
                         var nearEntityID = rayPicks[h].objectID;
@@ -390,35 +390,35 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.leftControllerRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
         this.leftControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_LEFTHAND",
-            filter: RayPick.PICK_HUD,
+            filter: Picks.PICK_HUD,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
         this.rightControllerRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_RIGHTHAND",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
         });
         this.rightControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_RIGHTHAND",
-            filter: RayPick.PICK_HUD,
+            filter: Picks.PICK_HUD,
             enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
         });
         this.mouseRayPick = RayPick.createRayPick({
             joint: "Mouse",
-            filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true
         });
 
