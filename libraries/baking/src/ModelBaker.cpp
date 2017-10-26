@@ -38,8 +38,6 @@ ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter input
 
 }
 
-void ModelBaker::bake() {}
-
 void ModelBaker::abort() {
     Baker::abort();
 
@@ -288,38 +286,6 @@ QByteArray* ModelBaker::compressTexture(QString modelTextureFileName, getTexture
     return &textureChild;
 }
 
-QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded) {
-    QUrl urlToTexture;
-
-    // use QFileInfo to easily split up the existing texture filename into its components
-    auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
-
-    if (isEmbedded) {
-        urlToTexture = modelURL.toString() + "/" + apparentRelativePath.filePath();
-    } else {
-        if (textureFileInfo.exists() && textureFileInfo.isFile()) {
-            // set the texture URL to the local texture that we have confirmed exists
-            urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
-        } else {
-            // external texture that we'll need to download or find
-
-            // this is a relative file path which will require different handling
-            // depending on the location of the original model
-            if (modelURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
-                // the absolute path we ran into for the texture in the model exists on this machine
-                // so use that file
-                urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
-            } else {
-                // we didn't find the texture on this machine at the absolute path
-                // so assume that it is right beside the model to match the behaviour of interface
-                urlToTexture = modelURL.resolved(apparentRelativePath.fileName());
-            }
-        }
-    }
-
-    return urlToTexture;
-}
-
 void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType,
                            const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
     
@@ -416,6 +382,57 @@ void ModelBaker::handleBakedTexture() {
     }
 }
 
+void ModelBaker::handleAbortedTexture() {
+    // grab the texture bake that was aborted and remove it from our hash since we don't need to track it anymore
+    TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
+
+    if (bakedTexture) {
+        bakingTextures.remove(bakedTexture->getTextureURL());
+    }
+
+    // since a texture we were baking aborted, our status is also aborted
+    _shouldAbort.store(true);
+
+    // abort any other ongoing texture bakes since we know we'll end up failing
+    for (auto& bakingTexture : bakingTextures) {
+        bakingTexture->abort();
+    }
+
+    checkIfTexturesFinished();
+}
+
+QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded) {
+    QUrl urlToTexture;
+
+    // use QFileInfo to easily split up the existing texture filename into its components
+    auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
+
+    if (isEmbedded) {
+        urlToTexture = modelURL.toString() + "/" + apparentRelativePath.filePath();
+    } else {
+        if (textureFileInfo.exists() && textureFileInfo.isFile()) {
+            // set the texture URL to the local texture that we have confirmed exists
+            urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
+        } else {
+            // external texture that we'll need to download or find
+
+            // this is a relative file path which will require different handling
+            // depending on the location of the original model
+            if (modelURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
+                // the absolute path we ran into for the texture in the model exists on this machine
+                // so use that file
+                urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
+            } else {
+                // we didn't find the texture on this machine at the absolute path
+                // so assume that it is right beside the model to match the behaviour of interface
+                urlToTexture = modelURL.resolved(apparentRelativePath.fileName());
+            }
+        }
+    }
+
+    return urlToTexture;
+}
+
 QString ModelBaker::texturePathRelativeToModel(QUrl modelURL, QUrl textureURL) {
     auto modelPath = modelURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
     auto texturePath = textureURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
@@ -449,25 +466,6 @@ void ModelBaker::checkIfTexturesFinished() {
             setIsFinished(true);
         }
     }
-}
-
-void ModelBaker::handleAbortedTexture() {
-    // grab the texture bake that was aborted and remove it from our hash since we don't need to track it anymore
-    TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
-
-    if (bakedTexture) {
-        bakingTextures.remove(bakedTexture->getTextureURL());
-    }
-
-    // since a texture we were baking aborted, our status is also aborted
-    _shouldAbort.store(true);
-
-    // abort any other ongoing texture bakes since we know we'll end up failing
-    for (auto& bakingTexture : bakingTextures) {
-        bakingTexture->abort();
-    }
-
-    checkIfTexturesFinished();
 }
 
 QString ModelBaker::createBakedTextureFileName(const QFileInfo& textureFileInfo) {
