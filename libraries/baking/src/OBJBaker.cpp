@@ -332,8 +332,8 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     }
     
     // Connect textures to materials
-    int mapSize = _mapTextureMaterial.size();
-    for (int i = 0;i < mapSize;i++) {
+    auto mapSize = _mapTextureMaterial.size();
+    for (size_t i = 0;i < mapSize;i++) {
         FBXNode cNode2;
         cNode2.name = C_NODE_NAME;
         propertyString = CONNECTIONS_NODE_PROPERTY_1;
