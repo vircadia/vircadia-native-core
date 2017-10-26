@@ -34,7 +34,7 @@ public:
     HifiSockAddr(const sockaddr* sockaddr);
 
     bool isNull() const { return _address.isNull() && _port == 0; }
-    void clear() { _address = QHostAddress::Null; _port = 0;}
+    void clear() { _address.clear(); _port = 0;}
 
     HifiSockAddr& operator=(const HifiSockAddr& rhsSockAddr);
     void swap(HifiSockAddr& otherSockAddr);
