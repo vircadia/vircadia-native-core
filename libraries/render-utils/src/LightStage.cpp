@@ -18,6 +18,12 @@ std::string LightStage::_stageName { "LIGHT_STAGE"};
 LightStage::LightStage() {
 }
 
+LightStage::Shadow::Schema::Schema() :
+    bias{ 0.005f },
+    scale{ 1.0f / MAP_SIZE } {
+
+}
+
 LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
     framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
     map = framebuffer->getDepthStencilBuffer();

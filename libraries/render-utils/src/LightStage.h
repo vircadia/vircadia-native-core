@@ -60,17 +60,21 @@ public:
 
         gpu::FramebufferPointer framebuffer;
         gpu::TexturePointer map;
+
     protected:
         model::LightPointer _light;
         std::shared_ptr<ViewFrustum> _frustum;
 
         class Schema {
         public:
+
+            Schema();
+
             glm::mat4 projection;
             glm::mat4 viewInverse;
 
-            glm::float32 bias = 0.003f;
-            glm::float32 scale = 1 / MAP_SIZE;
+            glm::float32 bias;
+            glm::float32 scale;
         };
         UniformBufferView _schemaBuffer = nullptr;
         
