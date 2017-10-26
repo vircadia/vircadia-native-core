@@ -43,11 +43,11 @@ public:
 protected:
     void checkIfTexturesFinished();
     
-    QHash<QByteArray, QByteArray> _textureContent;
-    QString _bakedOutputDir;
-    QString _originalOutputDir;
-    TextureBakerThreadGetter _textureThreadGetter;
-    QUrl _modelURL;
+    QHash<QByteArray, QByteArray> textureContentMap;
+    QString bakedOutputDir;
+    QString originalOutputDir;
+    TextureBakerThreadGetter textureThreadGetter;
+    QUrl modelURL;
 
 public slots:
     virtual void bake() override;

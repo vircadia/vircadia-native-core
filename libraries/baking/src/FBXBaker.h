@@ -37,7 +37,7 @@ public:
              const QString& bakedOutputDir, const QString& originalOutputDir = "");
     ~FBXBaker() override;
 
-    QUrl getFBXUrl() const { return _modelURL; }
+    QUrl getFBXUrl() const { return modelURL; }
     QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
 
 public slots:
