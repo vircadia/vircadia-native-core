@@ -203,7 +203,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
 }
 
 void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, CullFunctor cullFunctor) {
-    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
+    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&) { return true; };
 
     // Prepare the ShapePipeline
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();

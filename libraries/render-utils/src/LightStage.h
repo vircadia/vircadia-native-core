@@ -69,7 +69,7 @@ public:
             glm::mat4 projection;
             glm::mat4 viewInverse;
 
-            glm::float32 bias = 0.005f;
+            glm::float32 bias = 0.003f;
             glm::float32 scale = 1 / MAP_SIZE;
         };
         UniformBufferView _schemaBuffer = nullptr;

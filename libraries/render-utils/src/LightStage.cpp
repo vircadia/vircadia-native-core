@@ -76,9 +76,10 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
     fitFrustum(farCorners.topLeft);
     fitFrustum(farCorners.topRight);
 
-    // Re-adjust near shadow distance to 
-    max.z = glm::max(max.z, -nearDepth);
-    glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, -max.z, -min.z);
+    // Re-adjust near shadow distance
+    auto near = glm::max(max.z, -nearDepth);
+    auto far = -min.z;
+    glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, near, far);
     _frustum->setProjection(ortho);
 
     // Calculate the frustum's internal state
