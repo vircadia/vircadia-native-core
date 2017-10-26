@@ -28,7 +28,6 @@ protected:
         const void* extra) override;
 private:
     SoundCache(QObject* parent = NULL);
-    SharedSoundPointer _sampleSound;
 };
 
 #endif // hifi_SoundCache_h
