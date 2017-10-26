@@ -55,6 +55,7 @@ protected:
 
 public slots:
     virtual void bake() override;
+    virtual void abort() override;
 
 private slots:
     void handleBakedTexture();

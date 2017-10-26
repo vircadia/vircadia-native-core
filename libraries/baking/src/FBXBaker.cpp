@@ -51,15 +51,15 @@ FBXBaker::~FBXBaker() {
     }
 }
 
-void FBXBaker::abort() {
-    Baker::abort();
-
-    // tell our underlying TextureBaker instances to abort
-    // the FBXBaker will wait until all are aborted before emitting its own abort signal
-    for (auto& textureBaker : bakingTextures) {
-        textureBaker->abort();
-    }
-}
+//void FBXBaker::abort() {
+//    Baker::abort();
+//
+//    // tell our underlying TextureBaker instances to abort
+//    // the FBXBaker will wait until all are aborted before emitting its own abort signal
+//    for (auto& textureBaker : bakingTextures) {
+//        textureBaker->abort();
+//    }
+//}
 
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << modelURL << "bake starting";

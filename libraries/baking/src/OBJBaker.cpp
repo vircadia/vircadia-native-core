@@ -257,7 +257,6 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     }
     
     // Generating Texture Node
-    int count = 0;
     // iterate through mesh parts and process the associated textures
     for (int i = 0;i < meshParts.size();i++) {
         QString material = meshParts[i].materialID;
@@ -333,7 +332,8 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, FBXGeometry& geometry) {
     }
     
     // Connect textures to materials
-    for (int i = 0;i < _mapTextureMaterial.size();i++) {
+    int mapSize = _mapTextureMaterial.size();
+    for (int i = 0;i < mapSize;i++) {
         FBXNode cNode2;
         cNode2.name = C_NODE_NAME;
         propertyString = CONNECTIONS_NODE_PROPERTY_1;

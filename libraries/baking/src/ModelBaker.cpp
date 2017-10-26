@@ -41,6 +41,16 @@ ModelBaker::ModelBaker(const QUrl& modelURL, TextureBakerThreadGetter textureThr
 
 void ModelBaker::bake() {}
 
+void ModelBaker::abort() {
+    Baker::abort();
+
+    // tell our underlying TextureBaker instances to abort
+    // the FBXBaker will wait until all are aborted before emitting its own abort signal
+    for (auto& textureBaker : bakingTextures) {
+        textureBaker->abort();
+    }
+}
+
 bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers,FBXNode& dracoMeshNode, getMaterialIDCallback materialIDCallback) {
     if (mesh.wasCompressed) {
         handleError("Cannot re-bake a file that contains compressed mesh");
