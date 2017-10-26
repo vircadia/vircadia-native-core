@@ -22,7 +22,7 @@ RowLayout {
     property var sample: null;
     property bool isPlaying: false;
     function createSampleSound() {
-        sound = SampleSound;
+        sound = ApplicationInterface.getSampleSound();
         sample = null;
     }
     function playSound() {
@@ -30,7 +30,7 @@ RowLayout {
         // FIXME: Audio.playSystemSound should not require position
         if (sample === null && !isPlaying) {
             sample = Audio.playSystemSound(sound, MyAvatar.qmlPosition);
-			isPlaying = true;
+            isPlaying = true;
             sample.finished.connect(reset);
         }
     }
