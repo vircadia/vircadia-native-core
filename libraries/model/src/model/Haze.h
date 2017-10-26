@@ -16,8 +16,8 @@
 #include "NumericalConstants.h"
 
 namespace model {
-    const float LOG_P_005 = (float)log(0.05);
-    const float LOG_P_05 = (float)log(0.5);
+    const float LOG_P_005 = logf(0.05f);
+    const float LOG_P_05 = logf(0.5f);
 
     // Derivation (d is distance, b is haze coefficient, f is attenuation, solve for f = 0.05
     //  f = exp(-d * b)
@@ -30,26 +30,10 @@ namespace model {
             -LOG_P_005 / hazeRange_m.z);
     }
 
+    // limit range and altitude to no less than 1.0 metres
+    inline float convertHazeRangeToHazeRangeFactor(const float hazeRange_m) { return -LOG_P_005 / glm::max(hazeRange_m, 1.0f); }
 
-    inline float convertHazeRangeToHazeRangeFactor(const float hazeRange_m) {
-        // limit range to no less than 1.0 metres
-        if (hazeRange_m < 1.0f) {
-            return -LOG_P_005;
-        }
-        else {
-            return -LOG_P_005 / hazeRange_m;
-        }
-    }
-
-    inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeAltitude_m) {
-        // limit altitude to no less than 1.0 metres
-        if (hazeAltitude_m < 1.0) {
-            return -LOG_P_005;
-        }
-        else {
-            return -LOG_P_005 / hazeAltitude_m;
-        }
-    }
+    inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeAltitude_m) { return -LOG_P_005 / glm::max(hazeAltitude_m, 1.0f); }
 
     // Derivation (s is the proportion of sun blend, a is the angle at which the blend is 50%, solve for m = 0.5
     //  s = dot(lookAngle, sunAngle) = cos(a)
@@ -57,7 +41,7 @@ namespace model {
     //  log(m) = p * log(s)
     //  p = log(m) / log(s)
     inline float convertDirectionalLightAngleToPower(const float directionalLightAngle) {
-        return LOG_P_05 / (float)log(cos(RADIANS_PER_DEGREE * directionalLightAngle));
+        return LOG_P_05 / logf(cosf(RADIANS_PER_DEGREE * directionalLightAngle));
     }
 
     const glm::vec3 initialHazeColor{ 0.5f, 0.6f, 0.7f };
