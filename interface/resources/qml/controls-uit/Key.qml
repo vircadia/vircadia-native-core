@@ -67,7 +67,7 @@ Item {
             var deviceId = Web3DOverlay.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
             var hand = deviceId - 1;
 
-            if(hand == leftHand || hand == rightHand) {
+            if (hand == leftHand || hand == rightHand) {
                 Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, hand);
             }
         }

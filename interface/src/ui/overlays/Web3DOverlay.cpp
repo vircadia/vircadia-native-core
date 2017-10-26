@@ -274,16 +274,18 @@ void Web3DOverlay::onResizeWebSurface() {
     _webSurface->resize(QSize(_resolution.x, _resolution.y));
 }
 
-Q_INVOKABLE int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y)
-{
+const int INVALID_DEVICE_ID = -1;
+
+Q_INVOKABLE int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
     auto mapped = _webSurface->getRootItem()->mapFromGlobal(QPoint(x, y));
 
     for (auto pair : _activeTouchPoints) {
-        if (mapped.x() == (int) pair.second.pos().x() && mapped.y() == (int) pair.second.pos().y())
+        if (mapped.x() == (int)pair.second.pos().x() && mapped.y() == (int)pair.second.pos().y()) {
             return pair.first;
+        }
     }
 
-    return -1;
+    return INVALID_DEVICE_ID;
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
