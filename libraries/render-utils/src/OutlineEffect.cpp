@@ -278,6 +278,9 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
     auto outlineFrameBuffer = inputs.get1();
     auto outlineRect = inputs.get3();
 
+    // TODO : If scissor isn't possible in stereo, send the AABox in the shader
+    // and do a raycasting per pixel to determine if we need to do the outline
+    // This should improve performance.
     if (outlineFrameBuffer && outlineRect.z>0 && outlineRect.w>0) {
         auto sceneDepthBuffer = inputs.get2();
         const auto frameTransform = inputs.get0();
@@ -299,6 +302,9 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+#if !OUTLINE_USE_SCISSOR
+                batch.enableStereo(false);
+#endif
                 batch.setFramebuffer(destinationFrameBuffer);
 
                 batch.setViewportTransform(args->_viewport);
