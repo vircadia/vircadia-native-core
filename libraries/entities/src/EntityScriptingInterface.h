@@ -380,19 +380,19 @@ public slots:
     Q_INVOKABLE QString getNestableType(QUuid id);
 
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
-    Q_INVOKABLE void setKeyboardFocusEntity(QUuid id);
+    Q_INVOKABLE void setKeyboardFocusEntity(const EntityItemID& id);
 
-    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendMousePressOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendMouseMoveOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendMouseReleaseOnEntity(const EntityItemID& id, const PointerEvent& event);
 
-    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendClickDownOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendHoldingClickOnEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendClickReleaseOnEntity(const EntityItemID& id, const PointerEvent& event);
 
-    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
+    Q_INVOKABLE void sendHoverEnterEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendHoverOverEntity(const EntityItemID& id, const PointerEvent& event);
+    Q_INVOKABLE void sendHoverLeaveEntity(const EntityItemID& id, const PointerEvent& event);
 
     Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
 
@@ -439,8 +439,11 @@ signals:
     void canWriteAssetsChanged(bool canWriteAssets);
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
+    void mousePressOffEntity();
+    void mouseDoublePressOffEntity();
 
     void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
