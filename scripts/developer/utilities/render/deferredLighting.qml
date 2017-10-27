@@ -121,16 +121,18 @@ Rectangle {
                 }
             }
 
-            Row {
+            Item {
+                height: childrenRect.height
                 anchors.left: parent.left
                 anchors.right: parent.right 
+
                 HifiControls.Label {
                     text: "Tone Mapping Curve"
-                 //   anchors.left: parent.left           
+                    anchors.left: parent.left           
                 }
 
                 HifiControls.ComboBox {
-                   // anchors.right: parent.right           
+                    anchors.right: parent.right           
                     currentIndex: 1
                     model: ListModel {
                         id: cbItems
@@ -146,17 +148,16 @@ Rectangle {
         }
         Separator {}          
         
-        Row {
+        Item {
+            height: childrenRect.height
             anchors.left: parent.left
             anchors.right: parent.right 
+
             id: framebuffer
-            spacing: 10 
-            height: 24
 
             HifiControls.Label {
                 text: "Debug Framebuffer"
-                height: 24
-               // anchors.left: parent.left           
+                anchors.left: parent.left           
             }
             
             property var config: render.mainViewTask.getConfig("DebugDeferredBuffer")
@@ -167,8 +168,7 @@ Rectangle {
             }
 
             HifiControls.ComboBox {
-                height: 24
-               // anchors.right: parent.right           
+                anchors.right: parent.right           
                 currentIndex: 0
                 model: ListModel {
                     id: cbItemsFramebuffer
