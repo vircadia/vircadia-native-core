@@ -293,6 +293,7 @@ EntityPropertyFlags HazePropertyGroup::getEntityProperties(EncodeBitstreamParams
     requestedProperties += PROP_HAZE_ENABLE_GLARE;
     requestedProperties += PROP_HAZE_GLARE_ANGLE;
 
+    requestedProperties += PROP_HAZE_ALTITUDE_EFFECT;
     requestedProperties += PROP_HAZE_CEILING;
     requestedProperties += PROP_HAZE_BASE_REF;
 

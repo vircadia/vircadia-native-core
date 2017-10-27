@@ -219,21 +219,21 @@ protected:
     
     uint8_t _hazeMode = (uint8_t)HAZE_OFF;
     
-    float _hazeRange;
-    xColor _hazeColor;
-    xColor _hazeGlareColor;
-    bool _hazeEnableGlare;
-    float _hazeGlareAngle;
+    float _hazeRange{ model::initialHazeRange_m };
+    xColor _hazeColor{ model::initialHazeColorXcolor };
+    xColor _hazeGlareColor{ model::initialHazeGlareColorXcolor };
+    bool _hazeEnableGlare{ false };
+    float _hazeGlareAngle{ model::initialGlareAngle_degs };
 
-    bool _hazeAltitudeEffect;
-    float _hazeCeiling;
+    bool _hazeAltitudeEffect{ false };
+    float _hazeCeiling{ model::initialHazeBaseReference_m + model::initialHazeHeight_m };
     float _hazeBaseRef;
 
-    float _hazeBackgroundBlend;
+    float _hazeBackgroundBlend{ model::initialHazeBackgroundBlend };
 
-    bool _hazeAttenuateKeyLight;
-    float _hazeKeyLightRange;
-    float _hazeKeyLightAltitude;
+    bool _hazeAttenuateKeyLight{ false };
+    float _hazeKeyLightRange{ model::initialHazeKeyLightRange_m };
+    float _hazeKeyLightAltitude{ model::initialHazeKeyLightAltitude_m };
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;

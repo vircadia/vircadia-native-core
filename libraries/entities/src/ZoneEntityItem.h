@@ -74,32 +74,6 @@ public:
     void setHazeMode(const uint32_t value);
     uint32_t getHazeMode() const;
 
-    void setHazeRange(const float hazeRange);
-    float getHazeRange() const;
-    void setHazeColor(const xColor hazeColor);
-    xColor getHazeColor() const;
-    void setHazeGlareColor(const xColor hazeGlareColor);
-    xColor getHazeGlareColor() const;
-    void setHazeEnableGlare(const bool hazeEnableGlare);
-    bool getHazeEnableGlare() const;
-    void setHazeGlareAngle(const float hazeGlareAngle);
-    float getHazeGlareAngle() const;
-
-    void setHazeCeiling(const float hazeCeiling);
-    float getHazeCeiling() const;
-    void setHazeBaseRef(const float hazeBaseRef);
-    float getHazeBaseRef() const;
-
-    void setHazeBackgroundBlend(const float hazeBackgroundBlend);
-    float getHazeBackgroundBlend() const;
-
-    void setHazeAttenuateKeyLight(const bool hazeAttenuateKeyLight);
-    bool getHazeAttenuateKeyLight() const;
-    void setHazeKeyLightRange(const float hazeKeyLightRange);
-    float getHazeKeyLightRange() const;
-    void setHazeKeyLightAltitude(const float hazeKeyLightAltitude);
-    float getHazeKeyLightAltitude() const;
-
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
     const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
@@ -150,21 +124,6 @@ protected:
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
     uint32_t _hazeMode{ DEFAULT_HAZE_MODE };
-
-    float _hazeRange{ model::initialHazeRange_m };
-    xColor _hazeColor{ model::initialHazeColorXcolor };
-    xColor _hazeGlareColor{ model::initialHazeGlareColorXcolor };
-    bool _hazeEnableGlare{ false };
-    float _hazeGlareAngle{ model::initialGlareAngle_degs };
-
-    float _hazeCeiling{ model::initialHazeBaseReference_m + model::initialHazeHeight_m };
-    float _hazeBaseRef{ model::initialHazeBaseReference_m };
-
-    float _hazeBackgroundBlend{ model::initialHazeBackgroundBlend };
-
-    bool _hazeAttenuateKeyLight{ false };
-    float _hazeKeyLightRange{ model::initialHazeKeyLightRange_m };
-    float _hazeKeyLightAltitude{ model::initialHazeKeyLightAltitude_m };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
