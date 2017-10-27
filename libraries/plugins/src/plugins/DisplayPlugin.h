@@ -204,7 +204,7 @@ public:
 
     void waitForPresent();
 
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator();
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
 
     static const QString& MENU_PATH();
 
@@ -218,7 +218,7 @@ protected:
 
     gpu::ContextPointer _gpuContext;
 
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&)> _hudOperator { std::function<void(gpu::Batch&, const gpu::TexturePointer&)>() };
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator { std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)>() };
 
 private:
     QMutex _presentMutex;

@@ -82,7 +82,7 @@ public:
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
 
-    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false);
+    void setKeyboardRaised(QObject* object, bool raised, bool numeric = false, bool passwordField = false);
     Q_INVOKABLE void synthesizeKeyPress(QString key, QObject* targetOverride = nullptr);
 
     using TextureAndFence = std::pair<uint32_t, void*>;

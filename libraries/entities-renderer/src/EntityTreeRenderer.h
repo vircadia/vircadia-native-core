@@ -117,21 +117,6 @@ public:
     void onEntityChanged(const EntityItemID& id);
 
 signals:
-    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mousePressOffEntity();
-    void mouseDoublePressOffEntity();
-
-    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-
-    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
