@@ -104,6 +104,14 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
         case entity::Shape::Sphere:
             _type = EntityTypes::Sphere;
             break;
+        case entity::Shape::Circle:
+            // Circle is implicitly flat so we enforce flat dimensions
+            setDimensions(getDimensions());
+            break;
+        case entity::Shape::Quad:
+            // Quad is implicitly flat so we enforce flat dimensions
+            setDimensions(getDimensions());
+            break;
         default:
             _type = EntityTypes::Shape;
             break;
@@ -196,6 +204,18 @@ void ShapeEntityItem::setColor(const QColor& value) {
     setAlpha(value.alpha());
 }
 
+void ShapeEntityItem::setDimensions(const glm::vec3& value) {
+    const float MAX_FLAT_DIMENSION = 0.0001f;
+	if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
+        // enforce flatness in Y
+        glm::vec3 newDimensions = value;
+        newDimensions.y = MAX_FLAT_DIMENSION;
+        EntityItem::setDimensions(newDimensions);
+	} else {
+        EntityItem::setDimensions(value);
+    }
+}
+
 bool ShapeEntityItem::supportsDetailedRayIntersection() const {
     return _shape == entity::Sphere;
 }
@@ -249,13 +269,8 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
     const glm::vec3 entityDimensions = getDimensions();
 
     switch (_shape){
-        case entity::Shape::Quad: {
-            // Not in GeometryCache::buildShapes, unsupported.
-            _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
-            //TODO WL21389: Add a SHAPE_TYPE_QUAD ShapeType and treat 
-            // as a special box (later if desired support)
-        }
-        break;
+        case entity::Shape::Quad:
+            // Quads collide like flat Cubes
         case entity::Shape::Cube: {
             _collisionShapeType = SHAPE_TYPE_BOX;
         }
@@ -275,19 +290,10 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
             }
         }
         break;
-        case entity::Shape::Circle: {
-            _collisionShapeType = SHAPE_TYPE_CIRCLE;
-        }
-        break;
+        case entity::Shape::Circle:
+            // Circles collide like flat Cylinders
         case entity::Shape::Cylinder: {
             _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
-            // TODO WL21389: determine if rotation is axis-aligned
-            //const Transform::Quat & rot = _transform.getRotation();
-
-            // TODO WL21389: some way to tell apart SHAPE_TYPE_CYLINDER_Y, _X, _Z based on rotation and
-            //       hull ( or dimensions, need circular cross section)
-            // Should allow for minor variance along axes?
-
         }
         break;
         case entity::Shape::Cone: {
@@ -330,7 +336,7 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
         case entity::Shape::Torus: {
             // Not in GeometryCache::buildShapes, unsupported.
             _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
-            //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later if desired support)
+            //TODO handle this shape more correctly
         }
         break;
         default: {
