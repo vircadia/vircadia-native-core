@@ -32,7 +32,7 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
@@ -434,6 +434,7 @@ Rectangle {
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
+                isWearable: model.categories.indexOf("Wearables") > -1;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
@@ -582,9 +583,11 @@ Rectangle {
 
     Timer {
         id: inventoryTimer;
-        interval: 90000;
+        interval: 4000; // Change this back to 90000 after demo
+        //interval: 90000;
         onTriggered: {
             if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
+                console.log("Refreshing Purchases...");
                 root.pendingInventoryReply = true;
                 commerce.inventory();
             }
@@ -660,6 +663,8 @@ Rectangle {
                     currentPurchasesModelStatus !== previousPurchasesModelStatus) {
                     
                     purchasesModel.setProperty(i, "statusChanged", true);
+                } else {
+                    purchasesModel.setProperty(i, "statusChanged", false);
                 }
             }
         }

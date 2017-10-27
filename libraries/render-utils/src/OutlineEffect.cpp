@@ -31,6 +31,8 @@
 
 using namespace render;
 
+#define OUTLINE_USE_SCISSOR false
+
 OutlineRessources::OutlineRessources() {
 }
 
@@ -122,6 +124,15 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
         outputs = expandRect(outlinedRect, blurPixelWidth+1, framebufferSize);
         outlinedRect = expandRect(outputs, blurPixelWidth+1, framebufferSize);
 
+        // Clear the framebuffer without stereo
+        // Needs to be distinct from the other batch because using the clear call 
+        // while stereo is enabled triggers a warning
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.setFramebuffer(ressources->getDepthFramebuffer());
+            batch.clearDepthFramebuffer(1.0f);
+        });
+
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
 
@@ -133,9 +144,10 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
             args->getViewFrustum().evalProjectionMatrix(projMat);
             args->getViewFrustum().evalViewTransform(viewMat);
 
+#if OUTLINE_USE_SCISSOR
             batch.setStateScissorRect(outlinedRect);
+#endif
             batch.setFramebuffer(ressources->getDepthFramebuffer());
-            batch.clearDepthFramebuffer(1.0f, true);
 
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
@@ -282,7 +294,6 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-                batch.enableStereo(false);
                 batch.setFramebuffer(destinationFrameBuffer);
 
                 batch.setViewportTransform(args->_viewport);
@@ -290,7 +301,9 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 batch.resetViewTransform();
                 batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
                 batch.setPipeline(pipeline);
+#if OUTLINE_USE_SCISSOR
                 batch.setStateScissorRect(outlineRect);
+#endif
 
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
                 batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
@@ -307,7 +320,7 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false, false));
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        state->setScissorEnable(true);
+        state->setScissorEnable(OUTLINE_USE_SCISSOR);
 
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::Shader::createPixel(std::string(Outline_frag));
@@ -355,9 +368,10 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
         RenderArgs* args = renderContext->args;
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            batch.enableStereo(false);
             batch.setViewportTransform(args->_viewport);
+#if OUTLINE_USE_SCISSOR
             batch.setStateScissorRect(outlineRect);
+#endif
 
             const auto geometryBuffer = DependencyManager::get<GeometryCache>();
 
@@ -392,7 +406,7 @@ void DebugOutline::initializePipelines() {
 
     auto state = std::make_shared<gpu::State>();
     state->setDepthTest(gpu::State::DepthTest(false));
-    state->setScissorEnable(true);
+    state->setScissorEnable(OUTLINE_USE_SCISSOR);
 
     const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
 
@@ -448,7 +462,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setColorWriteMask(false, false, false, false);
-        state->setScissorEnable(true);
+        state->setScissorEnable(OUTLINE_USE_SCISSOR);
         initMaskPipelines(*shapePlumber, state);
     }
     auto sharedParameters = std::make_shared<OutlineSharedParameters>();

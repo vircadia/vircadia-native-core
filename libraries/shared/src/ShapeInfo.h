@@ -46,7 +46,8 @@ enum ShapeType {
     SHAPE_TYPE_SIMPLE_HULL,
     SHAPE_TYPE_SIMPLE_COMPOUND,
     SHAPE_TYPE_STATIC_MESH,
-    SHAPE_TYPE_ELLIPSOID
+    SHAPE_TYPE_ELLIPSOID,
+    SHAPE_TYPE_CIRCLE
 };
 
 class ShapeInfo {
@@ -57,6 +58,8 @@ public:
     using PointCollection = QVector<PointList>;
     using TriangleIndices = QVector<int32_t>;
 
+    static QString getNameForShapeType(ShapeType type);
+
     void clear();
 
     void setParams(ShapeType type, const glm::vec3& halfExtents, QString url="");
@@ -66,7 +69,7 @@ public:
     void setCapsuleY(float radius, float halfHeight);
     void setOffset(const glm::vec3& offset);
 
-    int getType() const { return _type; }
+    ShapeType getType() const { return _type; }
 
     const glm::vec3& getHalfExtents() const { return _halfExtents; }
     const glm::vec3& getOffset() const { return _offset; }

@@ -34,13 +34,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
 
-    _selectionToSceneHandlers[0].initialize("contextOverlayHighlightList");
-    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[0], &SelectionToSceneHandler::selectedItemsListChanged);
-    for (auto i = 1; i < render::Scene::MAX_OUTLINE_COUNT ; i++) {
-        _selectionToSceneHandlers[i].initialize(QString("contextOverlayHighlightList")+QString::number(i));
-        connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[i], &SelectionToSceneHandler::selectedItemsListChanged);
-    }
-
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
@@ -48,10 +41,10 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
     _entityPropertyFlags += PROP_CERTIFICATE_ID;
 
-    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
-    connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
-    connect(entityTreeRenderer, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverEnterEntity(const EntityItemID&, const PointerEvent&)));
-    connect(entityTreeRenderer, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverLeaveEntity(const EntityItemID&, const PointerEvent&)));
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &ContextOverlayInterface::createOrDestroyContextOverlay);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity, this, &ContextOverlayInterface::contextOverlays_hoverEnterEntity);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity, this, &ContextOverlayInterface::contextOverlays_hoverLeaveEntity);
     connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
         if (_contextOverlayJustClicked && _hmdScriptingInterface->isMounted()) {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
@@ -64,8 +57,17 @@ ContextOverlayInterface::ContextOverlayInterface() {
             _contextOverlayJustClicked = false;
         }
     });
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
+    connect(&qApp->getOverlays(), &Overlays::mousePressOnOverlay, this, &ContextOverlayInterface::contextOverlays_mousePressOnOverlay);
+    connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
+    connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
+
+    _selectionToSceneHandlers[0].initialize("contextOverlayHighlightList");
+    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[0], &SelectionToSceneHandler::selectedItemsListChanged);
+    for (auto i = 1; i < render::Scene::MAX_OUTLINE_COUNT; i++) {
+        _selectionToSceneHandlers[i].initialize(QString("contextOverlayHighlightList") + QString::number(i));
+        connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[i], &SelectionToSceneHandler::selectedItemsListChanged);
+    }
 }
 
 static const uint32_t MOUSE_HW_ID = 0;
@@ -143,8 +145,8 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 if (event.getID() == LEFT_HAND_HW_ID) {
                     offsetAngle *= -1.0f;
                 }
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) *
-                    ((cameraPosition + direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE)));
+                contextOverlayPosition = cameraPosition +
+                    (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f)))) * (direction * (distance - CONTEXT_OVERLAY_OFFSET_DISTANCE));
                 contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_SIZE, CONTEXT_OVERLAY_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
 
