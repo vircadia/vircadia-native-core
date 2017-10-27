@@ -679,7 +679,7 @@ function setupDomainLabelSetting() {
                 dialog.modal('hide');
                 reloadDomainInfo();
               },
-              error:function(xhr) {
+              error: function(xhr) {
                 var data = parseJSONResponse(xhr);
                 console.log(data, data.status, data.data);
                 if (data.status === "fail") {
@@ -1281,9 +1281,6 @@ function reloadSettings(callback) {
       var cloudWizardExit = qs["cloud-wizard-exit"];
       if (cloudWizardExit != undefined) {
         $('#cloud-domains-alert').show();
-        $('#cloud-domains-alert .glyphicon').on('click', function() {
-          $('#cloud-domains-alert').remove();
-        });
       }
     }
 

@@ -288,7 +288,6 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
                   });
                 }
 
-
                 return false;
               }
             }

@@ -28,14 +28,14 @@ body {
 .table .value-row td,
 .table .value-category td,
 .table .inputs td {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 
 .table .table-checkbox {
-    /* Fix IE sizing checkboxes to fill table cell */
-    width: auto;
-    margin-left: auto;
-    margin-right: auto;
+  /* Fix IE sizing checkboxes to fill table cell */
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .value-category:not(.inputs) {
@@ -82,7 +82,7 @@ span.port {
 
 #setup-sidebar.affix {
   /* This overrides a case where going to the bottom of the page,
-   * then scrolling up, causes `position: relative` to be added to the style 
+   * then scrolling up, causes `position: relative` to be added to the style
    */
   position: fixed !important;
 }
@@ -148,55 +148,55 @@ table {
 }
 
 caption {
-    color: #333;
-    font-weight: 700;
-    padding-top: 0;
+  color: #333;
+  font-weight: 700;
+  padding-top: 0;
 }
 
 table > tbody > .headers > td {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 
 table .headers + .headers td {
-    font-size: 13px;
-    color: #222;
+  font-size: 13px;
+  color: #222;
 }
 
 #security table .headers td + td {
-    text-align: center;
+  text-align: center;
 }
 
 .tooltip.top .tooltip-arrow {
-    border-top-color: #fff;
-    border-width: 10px 10px 0;
-    margin-bottom: -5px;
+  border-top-color: #fff;
+  border-width: 10px 10px 0;
+  margin-bottom: -5px;
 }
 
 .tooltip-inner {
-    padding: 20px 20px 10px 20px;
-    font-size: 14px;
-    text-align: left;
-    color: #333;
-    background-color: #fff;
-    box-shadow: 0 3px 8px 8px #e8e8e8;
+  padding: 20px 20px 10px 20px;
+  font-size: 14px;
+  text-align: left;
+  color: #333;
+  background-color: #fff;
+  box-shadow: 0 3px 8px 8px #e8e8e8;
 }
 
 .tooltip.in {
-    opacity: 1;
+  opacity: 1;
 }
 
 .tooltip-inner ul {
-    padding-left: 0;
-    margin-bottom: 15px;
+  padding-left: 0;
+  margin-bottom: 15px;
 }
 
 .tooltip-inner li {
-    list-style-type: none;
-    margin-bottom: 5px;
+  list-style-type: none;
+  margin-bottom: 5px;
 }
 
 #security .tooltip-inner {
-    max-width: 520px;
+  max-width: 520px;
 }
 
 #xs-advanced-container {
@@ -245,8 +245,8 @@ table .headers + .headers td {
 }
 
 .col-centered {
-    float: none;
-    margin: 0 auto;
+  float: none;
+  margin: 0 auto;
 }
 
 .centered-hack-parent {
@@ -275,20 +275,20 @@ table .headers + .headers td {
 
 /* From https://gist.github.com/alexandrevicenzi/680147013e902a4eaa5d */
 .glyphicon-refresh-animate {
-    -animation: spin .7s infinite linear;
-    -ms-animation: spin .7s infinite linear;
-    -webkit-animation: spinw .7s infinite linear;
-    -moz-animation: spinm .7s infinite linear;
+  -animation: spin .7s infinite linear;
+  -ms-animation: spin .7s infinite linear;
+  -webkit-animation: spinw .7s infinite linear;
+  -moz-animation: spinm .7s infinite linear;
 }
 
 @keyframes spin {
-    from { transform: scale(1) rotate(0deg); }
-    to { transform: scale(1) rotate(360deg); }
+  from { transform: scale(1) rotate(0deg); }
+  to { transform: scale(1) rotate(360deg); }
 }
 
 @-webkit-keyframes spinw {
-    from { -webkit-transform: rotate(0deg); }
-    to { -webkit-transform: rotate(360deg); }
+  from { -webkit-transform: rotate(0deg); }
+  to { -webkit-transform: rotate(360deg); }
 }
 
 @-moz-keyframes spinm {
@@ -313,17 +313,6 @@ table .headers + .headers td {
   text-decoration-line: underline;
   font-weight: normal;
   color: #2F80ED;
-}
-
-#cloud-domains-alert {
-  position:fixed; top: 55px; width: 100%; z-index: 99;
-}
-
-#cloud-domains-alert .glyphicon {
-  font-size: 11px;
-  color: #000000;
-  mix-blend-mode: normal;
-  opacity: 0.2;
 }
 
 #manage-cloud-domains-link {

@@ -3,12 +3,12 @@
   <h4 class="step-title"></h4>
   <dl class="row">
     <dd class="col-md-12">
-      <span class='step-description'>By connecting you High Fidelity Account you will be granting access to your account information.</span>
+      <span class='step-description'>By connecting your High Fidelity Account you will be granting access to your account information.</span>
     </dd>
   </dl>
   <dl class="row">
     <dd class="col-md-12">
-      <a id="connect-account-btn" role="button" class="btn btn-primary btn-md btn-block" href="https://staging.highfidelity.com/user/tokens/new?for_domain_server=true" target="_blank">Connect your High Fidelity account</a>
+      <a id="connect-account-btn" role="button" class="btn btn-primary btn-md btn-block" target="_blank">Connect your High Fidelity account</a>
     </dd>
   </dl>
 
@@ -37,7 +37,7 @@
         <p id="place-name-link"></p>
           <div id="place-name-edit">
             <span class='glyphicon glyphicon-pencil'></span>
-            <a href="javascript:void(0);" id="change-place-name">Choose a custom Place Name instead</a>
+            <a href="#" id="change-place-name">Choose a custom Place Name instead</a>
           </div>
       </div>
     </div>

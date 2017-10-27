@@ -12,13 +12,15 @@
       <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col">
         <script id="list-group-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
-            <% panelID = group.name ? group.name : group.html_id %>
-            <li>
-              <a href="#<%- panelID %>" class="list-group-item">
-                <span class="badge"></span>
-                <%- group.label %>
-              </a>
-            </li>
+            <% if (!group.hidden) { %>
+              <% panelID = group.name ? group.name : group.html_id %>
+              <li>
+                <a href="#<%- panelID %>" class="list-group-item">
+                  <span class="badge"></span>
+                  <%- group.label %>
+                </a>
+              </li>
+            <% } %>
           <% }); %>
         </script>
 
@@ -34,49 +36,55 @@
     </div>
 
     <div class="col-md-9 col-sm-9 col-xs-12">
+
       <div id="xs-advanced-container" class="col-xs-12 hidden-sm hidden-md hidden-lg">
         <button id="advanced-toggle-button-xs" class="btn btn-info advanced-toggle">Show advanced</button>
       </div>
 
       <div class="col-xs-12">
 
+        <div id="cloud-domains-alert" class="alert alert-info alert-dismissible" role="alert" style="display: none;">
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <span class="alert-link">
+            <a href="https://highfidelity.com/user/cloud_domains" target="_blank" class="blue-link">Visit Cloud Hosted Domains</a> to manage all your cloud domains
+          </span>
+        </div>
+
         <form id="settings-form" role="form">
 
         <script id="panels-template" type="text/template">
           <% _.each(descriptions, function(group){ %>
-            <% if (group.hidden) { %>
-              <% $("a[href=#" + group.name + "]").remove() %>
-              <% return %>
-            <% } %>
-            <% var settings = _.partition(group.settings, function(value, index) { return !value.deprecated })[0] %>
-            <% split_settings = _.partition(settings, function(value, index) { return !value.advanced }) %>
-            <% isAdvanced = _.isEmpty(split_settings[0]) && !_.isEmpty(split_settings[1]) %>
-            <% if (isAdvanced) { %>
-              <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
-            <% } %>
+            <% if (!group.hidden) { %>
+              <% var settings = _.partition(group.settings, function(value, index) { return !value.deprecated })[0] %>
+              <% split_settings = _.partition(settings, function(value, index) { return !value.advanced }) %>
+              <% isAdvanced = _.isEmpty(split_settings[0]) && !_.isEmpty(split_settings[1]) %>
+              <% if (isAdvanced) { %>
+                <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
+              <% } %>
 
-            <% isGrouped = !!group.name %>
-            <% panelID = isGrouped ? group.name : group.html_id %>
+              <% isGrouped = !!group.name %>
+              <% panelID = isGrouped ? group.name : group.html_id %>
 
-            <div class="panel panel-default<%- (isAdvanced) ? ' advanced-setting' : '' %><%- (isGrouped) ? ' grouped' : '' %>"
-                 id="<%- panelID %>">
-              <div class="panel-heading">
-                <h3 class="panel-title"><%- group.label %></h3>
-              </div>
-              <div class="panel-body">
-                <% _.each(split_settings[0], function(setting) { %>
-                  <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
-                  <%= getFormGroup(keypath, setting, values, false) %>
-                <% }); %>
-                <% if (!_.isEmpty(split_settings[1])) { %>
-                  <% $("#advanced-toggle-button").show() %>
-                  <% _.each(split_settings[1], function(setting) { %>
+              <div class="panel panel-default<%- (isAdvanced) ? ' advanced-setting' : '' %><%- (isGrouped) ? ' grouped' : '' %>"
+                   id="<%- panelID %>">
+                <div class="panel-heading">
+                  <h3 class="panel-title"><%- group.label %></h3>
+                </div>
+                <div class="panel-body">
+                  <% _.each(split_settings[0], function(setting) { %>
                     <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
-                    <%= getFormGroup(keypath, setting, values, true) %>
+                    <%= getFormGroup(keypath, setting, values, false) %>
                   <% }); %>
-                <% }%>
+                  <% if (!_.isEmpty(split_settings[1])) { %>
+                    <% $("#advanced-toggle-button").show() %>
+                    <% _.each(split_settings[1], function(setting) { %>
+                      <% keypath = isGrouped ? group.name + "." + setting.name : setting.name %>
+                      <%= getFormGroup(keypath, setting, values, true) %>
+                    <% }); %>
+                  <% }%>
+                </div>
               </div>
-            </div>
+            <% } %>
           <% }); %>
         </script>
         <div id="panels"></div>
