@@ -44,6 +44,7 @@ if (UNIX)
 endif ()
 
 if (WIN32)
+  add_dependency_external_projects(wasapi)
   package_libraries_for_deployment()
 endif ()
 

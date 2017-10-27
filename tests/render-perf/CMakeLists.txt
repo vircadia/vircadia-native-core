@@ -16,7 +16,6 @@ link_hifi_libraries(shared networking model fbx ktx image octree gl gpu gpu-gl r
 
 if (WIN32)
     target_link_libraries(${TARGET_NAME} Winmm.lib)
-    add_dependency_external_projects(wasapi)
 endif()
 
 package_libraries_for_deployment()
