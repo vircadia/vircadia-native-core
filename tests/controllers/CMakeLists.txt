@@ -19,6 +19,7 @@ if (WIN32)
 endif()
 if (WIN32)
     target_link_libraries(${TARGET_NAME} Winmm.lib)
+    add_dependency_external_projects(wasapi)
 endif()
 
 package_libraries_for_deployment()
