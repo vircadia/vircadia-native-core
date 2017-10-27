@@ -415,7 +415,7 @@ var toolBar = (function () {
             }
         });
 
-        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
+        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
@@ -434,7 +434,7 @@ var toolBar = (function () {
         tablet.fromQml.connect(fromQml);
 
         createButton.clicked.connect(function() {
-            if ( ! (Entities.canRez() || Entities.canRezTmp()) ) {
+            if ( ! (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified()) ) {
                 Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
                 return;
             }
@@ -634,7 +634,7 @@ var toolBar = (function () {
         if (active === isActive) {
             return;
         }
-        if (active && !Entities.canRez() && !Entities.canRezTmp()) {
+        if (active && !Entities.canRez() && !Entities.canRezTmp() && !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
             Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             return;
         }
@@ -789,7 +789,7 @@ function handleDomainChange() {
         return;
     }
 
-    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
     createButton.editProperties({
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
         captionColorOverride: (hasRezPermissions ? "" : "#888888"),
@@ -1491,7 +1491,7 @@ function onFileOpenChanged(filename) {
         }
     }
     if (importURL) {
-        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
             toolBar.toggle();
         }
         importSVO(importURL);
@@ -1501,7 +1501,7 @@ function onFileOpenChanged(filename) {
 function onPromptTextChanged(prompt) {
     Window.promptTextChanged.disconnect(onPromptTextChanged);
     if (prompt !== "") {
-        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
             toolBar.toggle();
         }
         importSVO(prompt);
@@ -1570,7 +1570,8 @@ function getPositionToCreateEntity(extra) {
 }
 
 function importSVO(importURL) {
-    if (!Entities.canRez() && !Entities.canRezTmp()) {
+    if (!Entities.canRez() && !Entities.canRezTmp() &&
+        !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
     }
