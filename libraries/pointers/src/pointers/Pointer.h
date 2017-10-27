@@ -38,7 +38,7 @@ using PointerTriggers = std::vector<PointerTrigger>;
 
 class Pointer : protected ReadWriteLockable {
 public:
-    Pointer(const QUuid& uid, bool enabled) : _pickUID(uid), _enabled(enabled) {}
+    Pointer(const QUuid& uid, bool enabled, bool hover) : _pickUID(uid), _enabled(enabled), _hover(hover) {}
 
     virtual ~Pointer();
 
@@ -49,13 +49,13 @@ public:
     virtual void setRenderState(const std::string& state) = 0;
     virtual void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) = 0;
     
-    virtual void setPrecisionPicking(const bool precisionPicking);
+    virtual void setPrecisionPicking(bool precisionPicking);
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
     // Pointers can choose to implement these
-    virtual void setLength(const float length) {}
-    virtual void setLockEndUUID(QUuid objectID, const bool isOverlay) {}
+    virtual void setLength(float length) {}
+    virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay) {}
 
     void update();
     virtual void updateVisuals(const QVariantMap& pickResult) = 0;
@@ -79,13 +79,17 @@ public:
 protected:
     const QUuid _pickUID;
     bool _enabled;
+    bool _hover;
 
-    virtual PointerEvent buildPointerEvent(const QUuid& uid, const QVariantMap& pickResult) const = 0;
+    virtual PointerEvent buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const = 0;
 
 private:
     PickedObject _prevHoveredObject;
     Buttons _prevButtons;
     std::unordered_map<std::string, PickedObject> _triggeredObjects;
+
+    PointerEvent::Button chooseButton(const std::string& button);
+
 };
 
 #endif // hifi_Pick_h

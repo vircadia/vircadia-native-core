@@ -54,16 +54,16 @@ public:
     typedef std::unordered_map<std::string, RenderState> RenderStateMap;
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
-    LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, const PointerTriggers& triggers,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
+    LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
+        bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool enabled);
     ~LaserPointer();
 
     void setRenderState(const std::string& state) override;
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
-    void setLength(const float length) override;
-    void setLockEndUUID(QUuid objectID, const bool isOverlay) override;
+    void setLength(float length) override;
+    void setLockEndUUID(const QUuid& objectID, bool isOverlay) override;
 
     void updateVisuals(const QVariantMap& prevRayPickResult) override;
 
@@ -73,7 +73,7 @@ public:
     static RenderState buildRenderState(const QVariantMap& propMap);
 
 protected:
-    PointerEvent buildPointerEvent(const QUuid& uid, const QVariantMap& pickResult) const override;
+    PointerEvent buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const override;
 
 private:
     PointerTriggers _triggers;
@@ -88,10 +88,14 @@ private:
     std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);
     void disableRenderState(const RenderState& renderState);
 
-    glm::vec2 projectOntoEntityXYPlane(const QUuid& entity, const glm::vec3& worldPos) const;
+
+    glm::vec3 intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction) const;
+    glm::vec3 intersectRayWithOverlayXYPlane(const QUuid& overlayID, const glm::vec3& origin, const glm::vec3& direction) const;
+    glm::vec3 intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const;
+    glm::vec2 projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos) const;
     glm::vec2 projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::vec3& worldPos) const;
     glm::vec2 projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint) const;
 

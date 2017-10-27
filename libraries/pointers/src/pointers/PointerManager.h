@@ -31,12 +31,12 @@ public:
     void editRenderState(const QUuid& uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
     const QVariantMap getPrevPickResult(const QUuid& uid) const;
 
-    void setPrecisionPicking(const QUuid& uid, const bool precisionPicking) const;
+    void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const;
     void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const;
     void setIncludeItems(const QUuid& uid, const QVector<QUuid>& includeEntities) const;
 
-    void setLength(const QUuid& uid, const float length) const;
-    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay) const;
+    void setLength(const QUuid& uid, float length) const;
+    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const;
 
     void update();
 
