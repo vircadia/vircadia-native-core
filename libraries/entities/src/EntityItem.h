@@ -293,7 +293,6 @@ public:
 
     bool getLocked() const;
     void setLocked(bool value);
-    void updateLocked(bool value);
 
     QString getUserData() const;
     virtual void setUserData(const QString& value);
@@ -306,7 +305,6 @@ public:
 
     quint8 getSimulationPriority() const { return _simulationOwner.getPriority(); }
     QUuid getSimulatorID() const { return _simulationOwner.getID(); }
-    void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
     void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
     uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
@@ -356,34 +354,10 @@ public:
     virtual void setCollisionShape(const btCollisionShape* shape) {}
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
-    //virtual void setRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
-
-    void updateDimensions(const glm::vec3& value);
-
     virtual void setParentID(const QUuid& parentID);
     virtual void setRotation(glm::quat orientation);
     virtual void setVelocity(const glm::vec3& velocity);
-
-    /*
-    void updateParentID(const QUuid& value);
-    void updateRotation(const glm::quat& rotation);
-    void updateDensity(float value);
-    void updateMass(float value);
-    void updateVelocity(const glm::vec3& value);
-    void updateDamping(float value);
-    void updateRestitution(float value);
-    void updateFriction(float value);
-    void updateGravity(const glm::vec3& value);
-    void updateAngularVelocity(const glm::vec3& value);
-    void updateAngularDamping(float value);
-    void updateCollisionless(bool value);
-    void updateCollisionMask(uint8_t value);
-    void updateDynamic(bool value);
-    void updateLifetime(float value);
-    void updateCreated(uint64_t value);
-    */
-
     virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const;
@@ -589,12 +563,6 @@ protected:
     //
     // damping = 1 - exp(-1 / timescale)
     //
-
-    // NOTE: Radius support is obsolete, but these private helper functions are available for this class to
-    //       parse old data streams
-
-    /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
-    void setRadius(float value);
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags { 0 };   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation

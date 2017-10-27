@@ -774,7 +774,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
     }
 
-    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, updateDimensions);
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setDimensions);
     READ_ENTITY_PROPERTY(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, setGravity);
 
@@ -804,7 +804,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
     READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
-    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, updateLocked);
+    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
     READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
@@ -1309,7 +1309,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
     // these affect TerseUpdate properties
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, updateSimulationOwner);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocity);
@@ -1317,7 +1317,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(acceleration, setAcceleration);
 
     // these (along with "position" above) affect tree structure
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
 
     // these (along with all properties above) affect the simulation
@@ -1332,7 +1332,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, setDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, setCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, updateLocked);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1422,17 +1422,6 @@ const Transform EntityItem::getTransformToCenter(bool& success) const {
         result.postTranslate((ENTITY_ITEM_HALF_VEC3 - getRegistrationPoint()) * getDimensions()); // Position to center
     }
     return result;
-}
-
-void EntityItem::setDimensions(const glm::vec3& value) {
-    if (value.x <= 0.0f || value.y <= 0.0f || value.z <= 0.0f) {
-        return;
-    }
-    if (_dimensions != value) {
-        _dimensions = value;
-        locationChanged();
-        dimensionsChanged();
-    }
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
@@ -1534,25 +1523,6 @@ AACube EntityItem::getQueryAACube(bool& success) const {
 
 bool EntityItem::shouldPuffQueryAACube() const {
     return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent();
-}
-
-// NOTE: This should only be used in cases of old bitstreams which only contain radius data
-//    0,0,0 --> maxDimension,maxDimension,maxDimension
-//    ... has a corner to corner distance of glm::length(maxDimension,maxDimension,maxDimension)
-//    ... radius = cornerToCornerLength / 2.0f
-//    ... radius * 2.0f = cornerToCornerLength
-//    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
-//    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
-//    ... radius * 2.0f = sqrt(3 x maxDimension ^ 2)
-//    ... (radius * 2.0f) ^2 = 3 x maxDimension ^ 2
-//    ... ((radius * 2.0f) ^2) / 3 = maxDimension ^ 2
-//    ... sqrt(((radius * 2.0f) ^2) / 3) = maxDimension
-//    ... sqrt((diameter ^2) / 3) = maxDimension
-//
-void EntityItem::setRadius(float value) {
-    float diameter = value * 2.0f;
-    float maxDimension = sqrt((diameter * diameter) / 3.0f);
-    setDimensions(glm::vec3(maxDimension, maxDimension, maxDimension));
 }
 
 // TODO: get rid of all users of this function...
@@ -1746,11 +1716,14 @@ void EntityItem::setParentID(const QUuid& value) {
     }
 }
 
-void EntityItem::updateDimensions(const glm::vec3& value) {
-    if (getDimensions() != value) {
-        setDimensions(value);
+void EntityItem::setDimensions(const glm::vec3& value) {
+    const float MIN_ENTITY_DIMENSION = 0.00001f;
+    glm::vec3 newDimensions = glm::max(value, glm::vec3(MIN_ENTITY_DIMENSION));
+    if (getDimensions() != newDimensions) {
+        _dimensions = newDimensions;
         markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
         _queryAACubeSet = false;
+        locationChanged();
         dimensionsChanged();
     }
 }
@@ -1983,6 +1956,7 @@ void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
     _simulationOwner.set(id, priority);
 }
 
+/*
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
     if (wantTerseEditLogging() && _simulationOwner != owner) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
@@ -1990,8 +1964,9 @@ void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
 
     _simulationOwner.set(owner);
 }
+*/
 
-void EntityItem::updateSimulationOwner(const SimulationOwner& owner) {
+void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
     // NOTE: this method only used by EntityServer.  The Interface uses special code in readEntityDataFromBuffer().
     if (wantTerseEditLogging() && _simulationOwner != owner) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
@@ -2776,12 +2751,6 @@ bool EntityItem::getLocked() const {
 }
 
 void EntityItem::setLocked(bool value) {
-    withWriteLock([&] {
-        _locked = value;
-    });
-}
-
-void EntityItem::updateLocked(bool value) {
     bool changed { false };
     withWriteLock([&] {
         if (_locked != value) {
