@@ -89,11 +89,13 @@
         {
           "name": "description",
           "label": "Description",
+          "advanced": true,
           "help": "A description of your domain (256 character limit)."
         },
         {
           "name": "maturity",
           "label": "Maturity",
+          "advanced": true,
           "help": "A maturity rating, available as a guideline for content on your domain.",
           "default": "unrated",
           "type": "select",
@@ -123,6 +125,7 @@
         {
           "name": "hosts",
           "label": "Hosts",
+          "advanced": true,
           "type": "table",
           "can_add_new_rows": true,
           "help": "Usernames of hosts who can reliably show your domain to new visitors.",
@@ -138,6 +141,7 @@
         {
           "name": "tags",
           "label": "Tags",
+          "advanced": true,
           "type": "table",
           "can_add_new_rows": true,
           "help": "Common categories under which your domain falls.",

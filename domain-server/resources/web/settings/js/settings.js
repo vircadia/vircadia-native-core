@@ -297,7 +297,14 @@ $(document).ready(function(){
   var sidebarTemplate = $('#list-group-template').html()
   Settings.sidebarTemplate = _.template(sidebarTemplate)
 
-  // $('body').scrollspy({ target: '#setup-sidebar'})
+  var navbarHeight = $('.navbar').outerHeight(true);
+
+  $('#setup-sidebar').affix({
+    offset: {
+      top: 1,
+      bottom: navbarHeight
+    }
+  });
 
   reloadSettings(function(success){
     if (success) {
@@ -309,6 +316,10 @@ $(document).ready(function(){
         text: Strings.LOADING_SETTINGS_ERROR
       });
     }
+    $('body').scrollspy({
+      target: '#setup-sidebar',
+      offset: navbarHeight
+    });
   });
 });
 
