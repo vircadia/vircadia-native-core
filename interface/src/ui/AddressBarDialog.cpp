@@ -39,7 +39,7 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     });
     _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
-    connect(addressManager.data(), &AddressManager::hostChanged, this, &AddressBarDialog::metaverseServerUrlChanged);
+    connect(addressManager.data(), &AddressManager::hostChanged, this, &AddressBarDialog::hostChanged);
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::setUseFeed, this, &AddressBarDialog::setUseFeed);
     connect(qApp, &Application::receivedHifiSchemeURL, this, &AddressBarDialog::receivedHifiSchemeURL);
 }

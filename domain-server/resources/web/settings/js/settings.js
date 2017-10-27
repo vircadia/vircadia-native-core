@@ -1,5 +1,7 @@
 var Settings = {
   showAdvanced: false,
+  // STABLE METAVERSE_URL: https://metaverse.highfidelity.com
+  // STAGING METAVERSE_URL: https://staging.highfidelity.com
   METAVERSE_URL: 'https://metaverse.highfidelity.com',
   ADVANCED_CLASS: 'advanced-setting',
   DEPRECATED_CLASS: 'deprecated-setting',
