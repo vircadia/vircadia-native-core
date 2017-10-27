@@ -1099,6 +1099,8 @@ SelectionDisplay = (function() {
         ------------------------------*/
 
         var cameraPosition = Camera.getPosition();
+        var look = Vec3.normalize(Vec3.subtract(cameraPosition, objectCenter));
+
         if (cameraPosition.x > objectCenter.x) {
             // must be BRF or BRN
             if (cameraPosition.z < objectCenter.z) {
@@ -1350,6 +1352,38 @@ SelectionDisplay = (function() {
         yawHandleRotation = Quat.multiply(MyAvatar.orientation , yawHandleRotation);
         pitchHandleRotation = Quat.multiply(MyAvatar.orientation , pitchHandleRotation);
         rollHandleRotation = Quat.multiply(MyAvatar.orientation , rollHandleRotation);
+        var avatarReferential = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({
+            x: 0,
+            y: 180,
+            z: 0
+        }));
+        var upVector = Quat.getUp(avatarReferential);
+        var rightVector = Quat.getRight(avatarReferential);
+        var frontVector = Quat.getFront(avatarReferential);
+        // Centers
+        var xSign = -1.0;
+        var zSign = -1.0;
+        if (Vec3.dot(look, rightVector) > 0) {
+            xSign = 1.0;
+        }
+        if (Vec3.dot(look, frontVector) > 0) {
+            zSign = 1.0;
+        }
+
+        yawCenter = Vec3.sum(boundsCenter, Vec3.multiply(-(dimensions.y / 2), upVector)); 
+        var myBotom = Vec3.multiply(-(dimensions.y / 2) - rotateHandleOffset, upVector); 
+        var myRight = Vec3.multiply(xSign * (dimensions.x / 2) + xSign * rotateHandleOffset, rightVector);  
+        var myFront = Vec3.multiply(zSign * (dimensions.z / 2) + zSign * rotateHandleOffset, frontVector); 
+        yawCorner = Vec3.sum(boundsCenter, Vec3.sum(Vec3.sum(myBotom, myRight), myFront));
+        
+        
+        yawHandleRotation = Quat.lookAt(yawCorner, Vec3.sum(yawCorner, upVector), Vec3.subtract(yawCenter,yawCorner));
+        yawHandleRotation = Quat.multiply(Quat.angleAxis(45, upVector), yawHandleRotation);
+
+        //Quat.fromPitchYawRollDegrees(0,270,0)
+        pitchCenter = Vec3.sum(boundsCenter, Vec3.multiply(xSign * (dimensions.x / 2), rightVector)); 
+        rollCenter = Vec3.sum(boundsCenter, Vec3.multiply(zSign * (dimensions.z / 2), frontVector)); 
+
 
         var rotateHandlesVisible = true;
         var rotationOverlaysVisible = false;
@@ -3504,7 +3538,12 @@ SelectionDisplay = (function() {
         rotationNormal = { x: 0, y: 0, z: 0 };
         rotationNormal[rotAroundAxis] = 1;
         //get the correct axis according to the avatar referencial
-        rotationNormal = Vec3.multiplyQbyV(MyAvatar.orientation, rotationNormal);
+        var avatarReferential = Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({
+            x: 0,
+            y: 180,
+            z: 0
+        }));
+        rotationNormal = Vec3.multiplyQbyV(avatarReferential, rotationNormal);
 
         // Size the overlays to the current selection size
         var diagonal = (Vec3.length(SelectionManager.worldDimensions) / 2) * 1.1;
