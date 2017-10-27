@@ -19,6 +19,7 @@
 #include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
 #include <ComponentMode.h>
+#include <model/HazeInit.h>
 
 class ZoneEntityItem : public EntityItem {
 public:
@@ -150,20 +151,20 @@ protected:
 
     uint32_t _hazeMode{ DEFAULT_HAZE_MODE };
 
-    float _hazeRange{ HazePropertyGroup::DEFAULT_HAZE_RANGE };
-    xColor _hazeColor{ HazePropertyGroup::DEFAULT_HAZE_COLOR };
-    xColor _hazeGlareColor{ HazePropertyGroup::DEFAULT_HAZE_GLARE_COLOR };
+    float _hazeRange{ model::initialHazeRange_m };
+    xColor _hazeColor{ model::initialHazeColorXcolor };
+    xColor _hazeGlareColor{ model::initialHazeGlareColorXcolor };
     bool _hazeEnableGlare{ false };
-    float _hazeGlareAngle{ HazePropertyGroup::DEFAULT_HAZE_GLARE_ANGLE };
+    float _hazeGlareAngle{ model::initialGlareAngle_degs };
 
-    float _hazeCeiling{ HazePropertyGroup::DEFAULT_HAZE_CEILING };
-    float _hazeBaseRef{ HazePropertyGroup::DEFAULT_HAZE_BASE_REF };
+    float _hazeCeiling{ model::initialHazeBaseReference_m + model::initialHazeHeight_m };
+    float _hazeBaseRef{ model::initialHazeBaseReference_m };
 
-    float _hazeBackgroundBlend{ HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND };
+    float _hazeBackgroundBlend{ model::initialHazeBackgroundBlend };
 
     bool _hazeAttenuateKeyLight{ false };
-    float _hazeKeyLightRange{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_RANGE };
-    float _hazeKeyLightAltitude{ HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE };
+    float _hazeKeyLightRange{ model::initialHazeKeyLightRange_m };
+    float _hazeKeyLightAltitude{ model::initialHazeKeyLightAltitude_m };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
