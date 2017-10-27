@@ -8,7 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.0
+import QtQuick 2.7
+import QtGraphicalEffects 1.0
 import "."
 
 Rectangle {
@@ -112,8 +113,6 @@ Rectangle {
     }
 
     Rectangle {
-        y: 0
-        x: 0
         height: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
         color: "#252525"
@@ -122,13 +121,18 @@ Rectangle {
         TextInput {
             id: mirrorText
             visible: showMirrorText
-            FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
-            font.family: ralewaySemiBold.name
-            font.pointSize: 13.5
+            FontLoader { id: font; source: "../../fonts/FiraSans-Regular.ttf"; }
+            font.family: font.name
+            font.pixelSize: 20
             verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
-            color: "#FFFFFF";
-            anchors.fill: parent
+            horizontalAlignment: Text.AlignLeft
+            color: "#00B4EF";
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.right: lowerKeyboard.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+
             wrapMode: Text.WordWrap
             readOnly: false // we need this to allow control to accept QKeyEvent
             selectByMouse: false
@@ -140,16 +144,107 @@ Rectangle {
                     event.accepted = true;
                 }
             }
+
+            MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus
+                anchors.fill: parent
+            }
         }
 
-        MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus
-            anchors.fill: parent
+        Item {
+            id: lowerKeyboard
+            anchors.right: parent.right
+            anchors.rightMargin: keyboardRect.width - (key_Backspace.x + key_Backspace.width + key_Backspace.contentPadding)
+            width: key_Backspace.width * 2
+            height: parent.height
+
+            Rectangle {
+                id: roundedRect
+                color: "#121212"
+                radius: 6
+                border.color: "#00000000"
+                anchors.fill: parent
+                anchors.margins: 4
+
+                MouseArea {
+                    id: mouseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+
+                    onClicked: {
+                        webEntity.lowerKeyboard();
+                    }
+
+                    onEntered: {
+                        roundedRect.state = "mouseOver";
+                    }
+
+                    onExited: {
+                        roundedRect.state = "";
+                    }
+
+                    onPressed: {
+                        roundedRect.state = "mouseClicked";
+                    }
+
+                    onReleased: {
+                        if (containsMouse) {
+                            roundedRect.state = "mouseOver";
+                        } else {
+                            roundedRect.state = "";
+                        }
+                    }
+                }
+
+                states: [
+                    State {
+                        name: "mouseOver"
+                        PropertyChanges {
+                            target: roundedRect
+                            color: "#121212"
+                            border.width: 2
+                            border.color: "#00b4ef"
+                        }
+                    },
+                    State {
+                        name: "mouseClicked"
+                        PropertyChanges {
+                            target: roundedRect
+                            border.width: 2
+                            border.color: "#00b4ef"
+                        }
+                        PropertyChanges {
+                            target: colorOverlay
+                            color: '#00B4EF'
+                        }
+                    },
+                    State {
+                        name: "mouseDepressed"
+                        PropertyChanges {
+                            target: roundedRect
+                            color: "#0578b1"
+                            border.width: 0
+                        }
+                    }
+                ]
+
+                Image {
+                    id: buttonImage
+                    anchors.centerIn: parent
+                    source: "../../images/lowerKeyboard.png" // "file:///D:/AI/hifi-elderorb-vs2/interface/resources/images/lowerKeyboard.png";
+                }
+
+                ColorOverlay {
+                    id: colorOverlay
+                    anchors.fill: buttonImage
+                    source: buttonImage
+                    color: 'white'
+                }
+            }
         }
     }
 
     Rectangle {
         id: keyboardRect
-        x: 0
         y: showMirrorText ? mirrorTextHeight : 0
         width: keyboardWidth
         height: raisedHeight
@@ -180,7 +275,7 @@ Rectangle {
                 Key { width: 43; glyph: "i"; }
                 Key { width: 43; glyph: "o"; }
                 Key { width: 43; glyph: "p"; }
-                Key { width: 43; glyph: "←"; }
+                Key { width: 43; glyph: "←"; id: key_Backspace }
             }
 
             Row {

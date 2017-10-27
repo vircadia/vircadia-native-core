@@ -5,6 +5,8 @@ Item {
     id: keyItem
     width: 45
     height: 50
+
+    property int contentPadding: 4
     property string glyph: "a"
     property bool toggle: false   // does this button have the toggle behaivor?
     property bool toggled: false  // is this button currently toggled?
@@ -105,14 +107,8 @@ Item {
         color: "#121212"
         radius: 2
         border.color: "#00000000"
-        anchors.right: parent.right
-        anchors.rightMargin: 4
-        anchors.left: parent.left
-        anchors.leftMargin: 4
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 4
-        anchors.top: parent.top
-        anchors.topMargin: 4
+        anchors.fill: parent
+        anchors.margins: contentPadding
     }
 
     Text {

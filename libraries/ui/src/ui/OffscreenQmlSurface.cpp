@@ -1082,7 +1082,19 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key, QObject* targetOverrid
     }
 }
 
+void OffscreenQmlSurface::lowerKeyboard() {
+
+    QSignalBlocker blocker(_quickWindow);
+
+    if (_currentFocusItem) {
+        _currentFocusItem->setFocus(false);
+        setKeyboardRaised(_currentFocusItem, false);
+    }
+}
+
 void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool numeric, bool passwordField) {
+    qCDebug(uiLogging) << "setKeyboardRaised: " << object << ", raised: " << raised << ", numeric: " << numeric << ", password: " << passwordField;
+
 #if Q_OS_ANDROID
     return;
 #endif
