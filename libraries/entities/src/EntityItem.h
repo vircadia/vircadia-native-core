@@ -262,6 +262,8 @@ public:
     bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
+    virtual void setAngularVelocity(const glm::vec3& angularVelocity);
+
     float getAngularDamping() const;
     void setAngularDamping(float value);
 
@@ -354,10 +356,17 @@ public:
     virtual void setCollisionShape(const btCollisionShape* shape) {}
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
-    virtual void updateRegistrationPoint(const glm::vec3& value);
+    //virtual void setRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
-    void updateParentID(const QUuid& value);
+
     void updateDimensions(const glm::vec3& value);
+
+    virtual void setParentID(const QUuid& parentID);
+    virtual void setRotation(glm::quat orientation);
+    virtual void setVelocity(const glm::vec3& velocity);
+
+    /*
+    void updateParentID(const QUuid& value);
     void updateRotation(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
@@ -373,6 +382,8 @@ public:
     void updateDynamic(bool value);
     void updateLifetime(float value);
     void updateCreated(uint64_t value);
+    */
+
     virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     uint32_t getDirtyFlags() const;

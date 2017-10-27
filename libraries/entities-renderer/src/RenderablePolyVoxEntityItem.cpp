@@ -641,10 +641,10 @@ ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
     return SHAPE_TYPE_COMPOUND;
 }
 
-void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value) {
+void RenderablePolyVoxEntityItem::setRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         _meshDirty = true;
-        EntityItem::updateRegistrationPoint(value);
+        EntityItem::setRegistrationPoint(value);
     }
 }
 
