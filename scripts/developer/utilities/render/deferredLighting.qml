@@ -13,7 +13,7 @@ import QtQuick.Layouts 1.3
 
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
-import "../lib/configprop"
+import  "configSlider"
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -36,7 +36,7 @@ Rectangle {
         anchors.right: parent.right       
        // padding: hifi.dimensions.contentMargin.x
 
-         ConfigSlider {                    
+        ConfigSlider {                    
             label: qsTr("ToneMapping")
             integral: false
             config: render.mainViewTask.getConfig("ToneMapping")

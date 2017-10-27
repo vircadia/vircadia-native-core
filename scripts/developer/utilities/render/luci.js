@@ -13,6 +13,8 @@
 (function() {
     var TABLET_BUTTON_NAME = "LUCI";
     var QMLAPP_URL = Script.resolvePath("./deferredLighting.qml");
+    var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
+    var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
 
    
     var onLuciScreen = false;
@@ -27,7 +29,9 @@
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
-         text: TABLET_BUTTON_NAME,
+        text: TABLET_BUTTON_NAME,
+        icon: ICON_URL,
+        activeIcon: ACTIVE_ICON_URL,
         sortOrder: 1
     });
 
