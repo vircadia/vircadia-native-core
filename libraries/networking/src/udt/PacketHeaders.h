@@ -277,4 +277,8 @@ enum class MessageDataVersion : PacketVersion {
     TextOrBinaryData = 18
 };
 
+enum class IcePingVersion : PacketVersion {
+    SendICEPeerID = 18
+};
+
 #endif // hifi_PacketHeaders_h
