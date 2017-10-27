@@ -37,7 +37,7 @@ bool Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offse
         // use the referencial from the avatar, y isn't always up
         glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getOrientation()*Vectors::UP;
         
-        glm::quat rotation(conjugate(toQuat(glm::lookAt(billboardPos, cameraPos, avatarUP))));
+        glm::quat rotation(conjugate(toQuat(glm::lookAt(cameraPos, billboardPos, avatarUP))));
         
         transform.setRotation(rotation);
         transform.postRotate(offsetRotation);
