@@ -11,8 +11,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "../lib/hifi-qml/styles-uit"
-import "../lib/hifi-qml/controls-uit" as HifiControls
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
 import "../lib/configprop"
 
 Rectangle {

@@ -12,8 +12,8 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4 as Original
 import QtQuick.Controls.Styles 1.4
 
-import "../hifi-qml/styles-uit"
-import "../hifi-qml/controls-uit" as HifiControls
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
 
 
 Item {
