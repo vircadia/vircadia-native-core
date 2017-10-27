@@ -17,9 +17,9 @@
 #include <pointers/PickManager.h>
 #include "PickScriptingInterface.h"
 
-LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, const PointerTriggers& triggers,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled) :
-    Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps), enabled),
+LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
+        const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool enabled) :
+    Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps), enabled, hover),
     _triggers(triggers),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
@@ -83,7 +83,7 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
     }
 }
 
-void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState) {
+void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState) {
     if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(pickRay.origin));
@@ -210,13 +210,13 @@ Pointer::Buttons LaserPointer::getPressedButtons() {
     return toReturn;
 }
 
-void LaserPointer::setLength(const float length) {
+void LaserPointer::setLength(float length) {
     withWriteLock([&] {
         _laserLength = length;
     });
 }
 
-void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay) {
+void LaserPointer::setLockEndUUID(const QUuid& objectID, bool isOverlay) {
     withWriteLock([&] {
         _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay);
     });
@@ -281,19 +281,48 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
     return RenderState(startID, pathID, endID);
 }
 
-PointerEvent LaserPointer::buildPointerEvent(const QUuid& uid, const QVariantMap& pickResult) const {
+PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const {
     uint32_t id = 0;
     glm::vec3 intersection = vec3FromVariant(pickResult["intersection"]);
     glm::vec3 surfaceNormal = vec3FromVariant(pickResult["surfaceNormal"]);
     glm::vec3 direction = -surfaceNormal;
     IntersectionType type = IntersectionType(pickResult["type"].toUInt());
+    QUuid pickedID = pickResult["objectID"].toUuid();
     glm::vec2 pos2D;
-    if (type == ENTITY) {
-        pos2D = projectOntoEntityXYPlane(uid, intersection);
-    } else if (type == OVERLAY) {
-        pos2D = projectOntoOverlayXYPlane(uid, intersection);
+    if (pickedID != target.objectID) {
+        QVariantMap searchRay = pickResult["searchRay"].toMap();
+        glm::vec3 origin = vec3FromVariant(searchRay["origin"]);
+        glm::vec3 direction = vec3FromVariant(searchRay["direction"]);
+        if (target.type == ENTITY) {
+            intersection = intersectRayWithEntityXYPlane(target.objectID, origin, direction);
+        } else if (target.type == OVERLAY) {
+            intersection = intersectRayWithOverlayXYPlane(target.objectID, origin, direction);
+        }
+    }
+    if (target.type == ENTITY) {
+        pos2D = projectOntoEntityXYPlane(target.objectID, intersection);
+    } else if (target.type == OVERLAY) {
+        pos2D = projectOntoOverlayXYPlane(target.objectID, intersection);
     }
     return PointerEvent(PointerEvent::Move, id, pos2D, intersection, surfaceNormal, direction, PointerEvent::NoButtons);
+}
+
+glm::vec3 LaserPointer::intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const {
+    glm::vec3 n = rotation * Vectors::FRONT;
+    float t = glm::dot(n, point - origin) / glm::dot(n, direction);
+    return origin + t * direction;
+}
+
+glm::vec3 LaserPointer::intersectRayWithOverlayXYPlane(const QUuid& overlayID, const glm::vec3& origin, const glm::vec3& direction) const {
+    glm::vec3 position = vec3FromVariant(qApp->getOverlays().getProperty(overlayID, "position").value);
+    glm::quat rotation = quatFromVariant(qApp->getOverlays().getProperty(overlayID, "rotation").value);
+    const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
+    return intersectRayWithXYPlane(origin, direction, position, rotation, DEFAULT_REGISTRATION_POINT);
+}
+
+glm::vec3 LaserPointer::intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction) const {
+    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
+    return intersectRayWithXYPlane(origin, direction, props.getPosition(), props.getRotation(), props.getRegistrationPoint());
 }
 
 glm::vec2 LaserPointer::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint) const {
@@ -325,7 +354,7 @@ glm::vec2 LaserPointer::projectOntoOverlayXYPlane(const QUuid& overlayID, const 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
 }
 
-glm::vec2 LaserPointer::projectOntoEntityXYPlane(const QUuid& entity, const glm::vec3& worldPos) const {
-    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entity);
+glm::vec2 LaserPointer::projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos) const {
+    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
     return projectOntoXYPlane(worldPos, props.getPosition(), props.getRotation(), props.getDimensions(), props.getRegistrationPoint());
 }

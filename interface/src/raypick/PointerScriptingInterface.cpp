@@ -87,6 +87,11 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
         }
     }
 
+    bool hover = false;
+    if (propertyMap["hover"].isValid()) {
+        hover = propertyMap["hover"].toBool();
+    }
+
     PointerTriggers triggers;
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     if (propertyMap["triggers"].isValid()) {
@@ -105,7 +110,7 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
         }
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, triggers,
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
                                                                                                faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled));
 }
 
