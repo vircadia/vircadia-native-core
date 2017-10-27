@@ -17,5 +17,8 @@ if (WIN32)
     target_include_directories(${TARGET_NAME} PRIVATE ${OPENVR_INCLUDE_DIRS})
     target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
 endif()
+if (WIN32)
+	target_link_libraries(${TARGET_NAME} Winmm.lib)
+endif()
 
 package_libraries_for_deployment()
