@@ -21,9 +21,7 @@
 
 #include <model/Geometry.h>
 
-const uint8_t FADE_WAITING_TO_START = 0;
-const uint8_t FADE_IN_PROGRESS = 1;
-const uint8_t FADE_COMPLETE = 2;
+#include "Model.h"
 
 class Model;
 
@@ -83,7 +81,7 @@ namespace render {
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
-    ModelMeshPartPayload(Model* model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
+    ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
     typedef render::Payload<ModelMeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -92,8 +90,6 @@ public:
     void updateTransformForSkinnedMesh(const Transform& renderTransform,
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
-
-    float computeFadeAlpha();
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -110,7 +106,7 @@ public:
     void computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices);
 
     gpu::BufferPointer _clusterBuffer;
-    Model* _model;
+    ModelWeakPointer _model;
 
     int _meshIndex;
     int _shapeID;
@@ -120,8 +116,13 @@ public:
     bool _materialNeedsUpdate { true };
 
 private:
-    quint64 _fadeStartTime { 0 };
-    uint8_t _fadeState { FADE_WAITING_TO_START };
+
+    enum State : uint8_t {
+        WAITING_TO_START = 0,
+        STARTED = 1,
+    };
+
+    mutable State _state { WAITING_TO_START } ;
 };
 
 namespace render {

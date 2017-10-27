@@ -140,3 +140,77 @@ void GLMHelpersTests::testSimd() {
     }
     qDebug() << "Done ";
 }
+
+void GLMHelpersTests::testGenerateBasisVectors() {
+    { // very simple case: primary along X, secondary is linear combination of X and Y
+        glm::vec3 u(1.0f, 0.0f, 0.0f);
+        glm::vec3 v(1.0f, 1.0f, 0.0f);
+        glm::vec3 w;
+
+        generateBasisVectors(u, v, u, v, w);
+
+        QCOMPARE_WITH_ABS_ERROR(u, Vectors::UNIT_X, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(v, Vectors::UNIT_Y, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(w, Vectors::UNIT_Z, EPSILON);
+    }
+
+    { // point primary along Y instead of X
+        glm::vec3 u(0.0f, 1.0f, 0.0f);
+        glm::vec3 v(1.0f, 1.0f, 0.0f);
+        glm::vec3 w;
+
+        generateBasisVectors(u, v, u, v, w);
+
+        QCOMPARE_WITH_ABS_ERROR(u, Vectors::UNIT_Y, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(v, Vectors::UNIT_X, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(w, -Vectors::UNIT_Z, EPSILON);
+    }
+
+    { // pass bad data (both vectors along Y).  The helper will guess X for secondary.
+        glm::vec3 u(0.0f, 1.0f, 0.0f);
+        glm::vec3 v(0.0f, 1.0f, 0.0f);
+        glm::vec3 w;
+
+        generateBasisVectors(u, v, u, v, w);
+
+        QCOMPARE_WITH_ABS_ERROR(u, Vectors::UNIT_Y, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(v, Vectors::UNIT_X, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(w, -Vectors::UNIT_Z, EPSILON);
+    }
+
+    { // pass bad data (both vectors along X).  The helper will guess X for secondary, fail, then guess Y.
+        glm::vec3 u(1.0f, 0.0f, 0.0f);
+        glm::vec3 v(1.0f, 0.0f, 0.0f);
+        glm::vec3 w;
+
+        generateBasisVectors(u, v, u, v, w);
+
+        QCOMPARE_WITH_ABS_ERROR(u, Vectors::UNIT_X, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(v, Vectors::UNIT_Y, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(w, Vectors::UNIT_Z, EPSILON);
+    }
+
+    { // general case for arbitrary rotation
+        float angle = 1.234f;
+        glm::vec3 axis = glm::normalize(glm::vec3(1.0f, 2.0f, 3.0f));
+        glm::quat rotation = glm::angleAxis(angle, axis);
+
+        // expected values
+        glm::vec3 x = rotation * Vectors::UNIT_X;
+        glm::vec3 y = rotation * Vectors::UNIT_Y;
+        glm::vec3 z = rotation * Vectors::UNIT_Z;
+
+        // primary is along x
+        // secondary is linear combination of x and y
+        // tertiary is unknown
+        glm::vec3 u  = 1.23f * x;
+        glm::vec3 v = 2.34f * x + 3.45f * y;
+        glm::vec3 w;
+
+        generateBasisVectors(u, v, u, v, w);
+
+        QCOMPARE_WITH_ABS_ERROR(u, x, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(v, y, EPSILON);
+        QCOMPARE_WITH_ABS_ERROR(w, z, EPSILON);
+    }
+}

@@ -16,11 +16,11 @@
 
 #include <OctreeUtils.h>
 #include <PerfStat.h>
-#include <RenderArgs.h>
 
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
+#include "Args.h"
 
 #include "drawCellBounds_vert.h"
 #include "drawCellBounds_frag.h"
@@ -151,7 +151,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
             float angle = glm::degrees(getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
             Transform crosshairModel;
             crosshairModel.setTranslation(glm::vec3(0.0, 0.0, -1000.0));
-            crosshairModel.setScale(1000.0 * tan(glm::radians(angle))); // Scaling at the actual tan of the lod angle => Multiplied by TWO
+            crosshairModel.setScale(1000.0f * tanf(glm::radians(angle))); // Scaling at the actual tan of the lod angle => Multiplied by TWO
             batch.resetViewTransform();
             batch.setModelTransform(crosshairModel);
             batch.setPipeline(getDrawLODReticlePipeline());

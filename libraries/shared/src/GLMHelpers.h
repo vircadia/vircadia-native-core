@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 // Bring the most commonly used GLM types into the default namespace
 using glm::ivec2;
@@ -230,6 +231,7 @@ glm::tvec4<T, P> lerp(const glm::tvec4<T, P>& x, const glm::tvec4<T, P>& y, T a)
 
 glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
 glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans);
+glm::mat4 createMatFromScale(const glm::vec3& scale);
 glm::quat cancelOutRoll(const glm::quat& q);
 glm::quat cancelOutRollAndPitch(const glm::quat& q);
 glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
@@ -251,6 +253,9 @@ inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value
 inline bool isNaN(const glm::quat& value) { return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
 
 glm::mat4 orthoInverse(const glm::mat4& m);
+
+//  Return a random vector of average length 1
+glm::vec3 randVector();
 
 //
 // Safe replacement of glm_mat4_mul() for unaligned arguments instead of __m128

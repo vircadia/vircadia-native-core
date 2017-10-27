@@ -17,7 +17,7 @@
 
 #include <DeferredLightingEffect.h>
 #include <render/ShapePipeline.h>
-#include <render/Context.h>
+#include <render/Engine.h>
 
 #define DEFERRED_LIGHTING
 

@@ -53,31 +53,3 @@ QVariantMap AssignmentDynamic::getArguments() {
     qDebug() << "UNEXPECTED -- AssignmentDynamic::getArguments called in assignment-client.";
     return QVariantMap();
 }
-
-glm::vec3 AssignmentDynamic::getPosition() {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::getPosition called in assignment-client.";
-    return glm::vec3(0.0f);
-}
-
-glm::quat AssignmentDynamic::getRotation() {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::getRotation called in assignment-client.";
-    return glm::quat();
-}
-
-glm::vec3 AssignmentDynamic::getLinearVelocity() {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::getLinearVelocity called in assignment-client.";
-    return glm::vec3(0.0f);
-}
-
-void AssignmentDynamic::setLinearVelocity(glm::vec3 linearVelocity) {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::setLinearVelocity called in assignment-client.";
-}
-
-glm::vec3 AssignmentDynamic::getAngularVelocity() {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::getAngularVelocity called in assignment-client.";
-    return glm::vec3(0.0f);
-}
-
-void AssignmentDynamic::setAngularVelocity(glm::vec3 angularVelocity) {
-    qDebug() << "UNEXPECTED -- AssignmentDynamic::setAngularVelocity called in assignment-client.";
-}

@@ -16,6 +16,7 @@
 #include <QThread>
 #include <QTimer>
 
+#include <shared/QtHelpers.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
@@ -69,17 +70,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     DependencyManager::set<ResourceScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
-    // setup a thread for the NodeList and its PacketReceiver
-    QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("NodeList Thread");
-    nodeThread->start();
-
-    // make sure the node thread is given highest priority
-    nodeThread->setPriority(QThread::TimeCriticalPriority);
-
-    // put the NodeList on the node thread
-    nodeList->moveToThread(nodeThread);
-
+    nodeList->startThread();
     // set the logging target to the the CHILD_TARGET_NAME
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
@@ -151,7 +142,7 @@ void AssignmentClient::stopAssignmentClient() {
         QThread* currentAssignmentThread = _currentAssignment->thread();
 
         // ask the current assignment to stop
-        QMetaObject::invokeMethod(_currentAssignment, "stop", Qt::BlockingQueuedConnection);
+        BLOCKING_INVOKE_METHOD(_currentAssignment, "stop");
 
         // ask the current assignment to delete itself on its thread
         _currentAssignment->deleteLater();
@@ -166,14 +157,8 @@ void AssignmentClient::stopAssignmentClient() {
 }
 
 AssignmentClient::~AssignmentClient() {
-    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
-    
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    // ask the node thread to quit and wait until it is done
-    nodeThread->quit();
-    nodeThread->wait();
 }
 
 void AssignmentClient::aboutToQuit() {

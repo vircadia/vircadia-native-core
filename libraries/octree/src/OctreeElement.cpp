@@ -233,7 +233,7 @@ OctreeElementPointer OctreeElement::removeChildAtIndex(int childIndex) {
     return returnedChild;
 }
 
-bool OctreeElement::isParentOf(OctreeElementPointer possibleChild) const {
+bool OctreeElement::isParentOf(const OctreeElementPointer& possibleChild) const {
     if (possibleChild) {
         for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
             OctreeElementPointer childAt = getChildAtIndex(childIndex);
@@ -300,7 +300,7 @@ void OctreeElement::deleteAllChildren() {
     }
 }
 
-void OctreeElement::setChildAtIndex(int childIndex, OctreeElementPointer child) {
+void OctreeElement::setChildAtIndex(int childIndex, const OctreeElementPointer& child) {
 #ifdef SIMPLE_CHILD_ARRAY
     int previousChildCount = getChildCount();
     if (child) {

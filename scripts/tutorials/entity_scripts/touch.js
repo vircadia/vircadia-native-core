@@ -2,7 +2,7 @@
 
     //  touch.js 
     // 
-    //  Sample file using spring action, haptic vibration, and color change to demonstrate two spheres 
+    //  Sample file using tractor action, haptic vibration, and color change to demonstrate two spheres 
     //  That can give a sense of touch to the holders.  
     //  Create two standard spheres, make them grabbable, and attach this entity script.  Grab them and touch them together.
     //  
@@ -53,7 +53,7 @@
         _this = this;
     }
 
-    function updateSpringAction(timescale) {
+    function updateTractorAction(timescale) {
         var targetProps = Entities.getEntityProperties(_this.entityID);
         //
         //  Look for nearby entities to touch 
@@ -113,7 +113,7 @@
         var success = Entities.updateAction(_this.copy, _this.actionID, props);
     }
 
-    function createSpringAction(timescale) {
+    function createTractorAction(timescale) {
 
         var targetProps = Entities.getEntityProperties(_this.entityID);
         var props = {
@@ -123,7 +123,7 @@
             angularTimeScale: timescale,
             ttl: ACTION_TTL
         };
-        _this.actionID = Entities.addAction("spring", _this.copy, props);
+        _this.actionID = Entities.addAction("tractor", _this.copy, props);
         return;
     }
 
@@ -170,7 +170,7 @@
         });
     }
 
-    function deleteSpringAction() {
+    function deleteTractorAction() {
         Entities.deleteAction(_this.copy, _this.actionID);
     }
 
@@ -188,15 +188,15 @@
         },
         startNearGrab: function(entityID, data) {
             createCopy();
-            createSpringAction(TIMESCALE);
+            createTractorAction(TIMESCALE);
             makeOriginalInvisible();
             setHand(Entities.getEntityProperties(_this.entityID).position);
         },
         continueNearGrab: function() {
-            updateSpringAction(TIMESCALE);
+            updateTractorAction(TIMESCALE);
         },
         releaseGrab: function() {
-            deleteSpringAction();
+            deleteTractorAction();
             deleteCopy();
             makeOriginalVisible();
         }

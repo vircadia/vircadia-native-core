@@ -34,6 +34,8 @@ ModalWindow {
 
     HifiConstants { id: hifi }
 
+    property var filesModel: ListModel { }
+
     Settings {
         category: "FileDialog"
         property alias width: root.width
@@ -253,7 +255,9 @@ ModalWindow {
                 }
 
                 currentSelectionUrl = helper.pathToUrl(fileTableView.model.get(row).filePath);
-                currentSelectionIsFolder = fileTableView.model.isFolder(row);
+                currentSelectionIsFolder = fileTableView.model !== filesModel ?
+                            fileTableView.model.isFolder(row) :
+                            fileTableModel.isFolder(row);
                 if (root.selectDirectory || !currentSelectionIsFolder) {
                     currentSelection.text = capitalizeDrive(helper.urlToPath(currentSelectionUrl));
                 } else {
@@ -331,7 +335,12 @@ ModalWindow {
             }
         }
 
-        ListModel {
+        Component {
+            id: filesModelBuilder
+            ListModel { }
+        }
+
+        QtObject {
             id: fileTableModel
 
             // FolderListModel has a couple of problems:
@@ -383,7 +392,11 @@ ModalWindow {
                 if (row === -1) {
                     return false;
                 }
-                return get(row).fileIsDir;
+                return filesModel.get(row).fileIsDir;
+            }
+
+            function get(row) {
+                return filesModel.get(row)
             }
 
             function update() {
@@ -401,7 +414,7 @@ ModalWindow {
                     rows = 0,
                     i;
 
-                clear();
+                var newFilesModel = filesModelBuilder.createObject(root);
 
                 comparisonFunction = sortOrder === Qt.AscendingOrder
                     ? function(a, b) { return a < b; }
@@ -423,7 +436,7 @@ ModalWindow {
                     while (lower < upper) {
                         middle = Math.floor((lower + upper) / 2);
                         var lessThan;
-                        if (comparisonFunction(sortValue, get(middle)[sortField])) {
+                        if (comparisonFunction(sortValue, newFilesModel.get(middle)[sortField])) {
                             lessThan = true;
                             upper = middle;
                         } else {
@@ -432,7 +445,7 @@ ModalWindow {
                         }
                     }
 
-                    insert(lower, {
+                    newFilesModel.insert(lower, {
                        fileName: fileName,
                        fileModified: (fileIsDir ? new Date(0) : model.getItem(i, "fileModified")),
                        fileSize: model.getItem(i, "fileSize"),
@@ -443,6 +456,7 @@ ModalWindow {
 
                     rows++;
                 }
+                filesModel = newFilesModel;
 
                 d.clearSelection();
             }
@@ -469,12 +483,12 @@ ModalWindow {
             sortIndicatorOrder: Qt.AscendingOrder
             sortIndicatorVisible: true
 
-            model: fileTableModel
+            model: filesModel
 
             function updateSort() {
-                model.sortOrder = sortIndicatorOrder;
-                model.sortColumn = sortIndicatorColumn;
-                model.update();
+                fileTableModel.sortOrder = sortIndicatorOrder;
+                fileTableModel.sortColumn = sortIndicatorColumn;
+                fileTableModel.update();
             }
 
             onSortIndicatorColumnChanged: { updateSort(); }
@@ -561,11 +575,12 @@ ModalWindow {
             }
 
             function navigateToCurrentRow() {
+                var currentModel = fileTableView.model !== filesModel ? fileTableView.model : fileTableModel
                 var row = fileTableView.currentRow
-                var isFolder = model.isFolder(row);
-                var file = model.get(row).filePath;
+                var isFolder = currentModel.isFolder(row);
+                var file = currentModel.get(row).filePath;
                 if (isFolder) {
-                    fileTableView.model.folder = helper.pathToUrl(file);
+                    currentModel.folder = helper.pathToUrl(file);
                 } else {
                     okAction.trigger();
                 }
@@ -580,7 +595,8 @@ ModalWindow {
                 var newPrefix = prefix + event.text.toLowerCase();
                 var matchedIndex = -1;
                 for (var i = 0; i < model.count; ++i) {
-                    var name = model.get(i).fileName.toLowerCase();
+                    var name = model !== filesModel ? model.get(i).fileName.toLowerCase() :
+                                                      filesModel.get(i).fileName.toLowerCase();
                     if (0 === name.indexOf(newPrefix)) {
                         matchedIndex = i;
                         break;

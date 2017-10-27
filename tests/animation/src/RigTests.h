@@ -43,13 +43,13 @@
 
 class RigTests : public QObject {
     Q_OBJECT
-    
+
  private slots:
     void initTestCase();
     void initialPoseArmsDown();
 
  private:
-    RigPointer _rig;
+    Rig _rig;
 };
 
 #endif // hifi_RigTests_h

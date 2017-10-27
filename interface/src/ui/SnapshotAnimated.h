@@ -51,6 +51,7 @@ private:
     static void processFrames();
 public:
     static void saveSnapshotAnimated(QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
+    static bool isAlreadyTakingSnapshotAnimated() { return snapshotAnimatedFirstFrameTimestamp != 0; };
     static Setting::Handle<bool> alsoTakeAnimatedSnapshot;
     static Setting::Handle<float> snapshotAnimatedDuration;
 };

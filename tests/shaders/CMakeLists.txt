@@ -5,6 +5,8 @@ set(TARGET_NAME shaders-test)
 setup_hifi_project(Quick Gui OpenGL)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
+setup_memory_debugger()
+
 # link in the shared libraries
 link_hifi_libraries(shared octree gl gpu gpu-gl model render fbx networking entities 
                     script-engine physics 

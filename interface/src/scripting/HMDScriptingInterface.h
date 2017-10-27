@@ -22,6 +22,7 @@ class QScriptEngine;
 #include <DependencyManager.h>
 #include <display-plugins/AbstractHMDScriptingInterface.h>
 
+#include <QReadWriteLock>
 
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
@@ -31,6 +32,7 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(bool showTablet READ getShouldShowTablet)
     Q_PROPERTY(QUuid tabletID READ getCurrentTabletFrameID WRITE setCurrentTabletFrameID)
     Q_PROPERTY(QUuid homeButtonID READ getCurrentHomeButtonID WRITE setCurrentHomeButtonID)
+    Q_PROPERTY(QUuid homeButtonHighlightID READ getCurrentHomeButtonHightlightID WRITE setCurrentHomeButtonHightlightID)
     Q_PROPERTY(QUuid tabletScreenID READ getCurrentTabletScreenID WRITE setCurrentTabletScreenID)
 
 public:
@@ -43,6 +45,7 @@ public:
     Q_INVOKABLE QString preferredAudioOutput() const;
 
     Q_INVOKABLE bool isHMDAvailable(const QString& name = "");
+    Q_INVOKABLE bool isHeadControllerAvailable(const QString& name = "");
     Q_INVOKABLE bool isHandControllerAvailable(const QString& name = "");
     Q_INVOKABLE bool isSubdeviceContainingNameAvailable(const QString& name);
 
@@ -50,12 +53,8 @@ public:
     Q_INVOKABLE void requestHideHandControllers();
     Q_INVOKABLE bool shouldShowHandControllers() const;
 
-    Q_INVOKABLE bool setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
-    Q_INVOKABLE void disableHandLasers(int hands) const;
-
-    Q_INVOKABLE bool setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const;
-    Q_INVOKABLE void disableExtraLaser() const;
-
+    Q_INVOKABLE void activateHMDHandMouse();
+    Q_INVOKABLE void deactivateHMDHandMouse();
 
     /// Suppress the activation of any on-screen keyboard so that a script operation will
     /// not be interrupted by a keyboard popup
@@ -99,6 +98,9 @@ public:
     void setCurrentHomeButtonID(QUuid homeButtonID) { _homeButtonID = homeButtonID; }
     QUuid getCurrentHomeButtonID() const { return _homeButtonID; }
 
+    void setCurrentHomeButtonHightlightID(QUuid homeButtonHightlightID) { _homeButtonHightlightID = homeButtonHightlightID; }
+    QUuid getCurrentHomeButtonHightlightID() const { return _homeButtonHightlightID; }
+
     void setCurrentTabletScreenID(QUuid tabletID) { _tabletScreenID = tabletID; }
     QUuid getCurrentTabletScreenID() const { return _tabletScreenID; }
 
@@ -107,6 +109,7 @@ private:
     QUuid _tabletUIID; // this is the entityID of the tablet frame
     QUuid _tabletScreenID; // this is the overlayID which is part of (a child of) the tablet-ui.
     QUuid _homeButtonID;
+    QUuid _homeButtonHightlightID;
     QUuid _tabletEntityID;
 
     // Get the position of the HMD
@@ -118,6 +121,9 @@ private:
     bool getHUDLookAtPosition3D(glm::vec3& result) const;
     glm::mat4 getWorldHMDMatrix() const;
     std::atomic<int> _showHandControllersCount { 0 };
+
+    QReadWriteLock _hmdHandMouseLock;
+    int _hmdHandMouseCount;
 };
 
 #endif // hifi_HMDScriptingInterface_h

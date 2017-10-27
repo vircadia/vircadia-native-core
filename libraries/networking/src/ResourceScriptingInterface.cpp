@@ -11,5 +11,5 @@
 #include "ResourceManager.h"
 
 void ResourceScriptingInterface::overrideUrlPrefix(const QString& prefix, const QString& replacement) {
-    ResourceManager::setUrlPrefixOverride(prefix, replacement);
+    DependencyManager::get<ResourceManager>()->setUrlPrefixOverride(prefix, replacement);
 }

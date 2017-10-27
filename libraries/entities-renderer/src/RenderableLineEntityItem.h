@@ -12,28 +12,31 @@
 #ifndef hifi_RenderableLineEntityItem_h
 #define hifi_RenderableLineEntityItem_h
 
-#include <LineEntityItem.h>
 #include "RenderableEntityItem.h"
+#include <LineEntityItem.h>
 #include <GeometryCache.h>
 
-class RenderableLineEntityItem : public LineEntityItem {
+
+namespace render { namespace entities { 
+
+class LineEntityRenderer : public TypedEntityRenderer<LineEntityItem> {
+    using Parent = TypedEntityRenderer<LineEntityItem>;
+    friend class EntityRenderer;
+
 public:
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-    RenderableLineEntityItem(const EntityItemID& entityItemID) :
-        LineEntityItem(entityItemID),
-       _lineVerticesID(GeometryCache::UNKNOWN_ID)
-    { }
-    ~RenderableLineEntityItem();
-
-    virtual void render(RenderArgs* args) override;
-
-    SIMPLE_RENDERABLE();
+    LineEntityRenderer(const EntityItemPointer& entity) : Parent(entity) { }
 
 protected:
-    void updateGeometry();
-    
-    int _lineVerticesID;
+    virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
+
+private:
+    int _lineVerticesID { GeometryCache::UNKNOWN_ID };
+    QVector<glm::vec3> _linePoints;
 };
 
+} } // namespace 
 
 #endif // hifi_RenderableLineEntityItem_h

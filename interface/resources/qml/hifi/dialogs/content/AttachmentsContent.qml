@@ -50,7 +50,7 @@ Item {
                         margins: 4
                     }
                     clip: true
-                    snapMode: ListView.SnapToItem
+                    cacheBuffer: 4000
 
                     model: ListModel {}
                     delegate: Item {

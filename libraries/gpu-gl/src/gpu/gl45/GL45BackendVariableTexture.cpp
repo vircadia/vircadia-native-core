@@ -31,11 +31,45 @@ using GL45VariableAllocationTexture = GL45Backend::GL45VariableAllocationTexture
 
 GL45VariableAllocationTexture::GL45VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL45Texture(backend, texture) {
     ++_frameTexturesCreated;
+    Backend::textureResourceCount.increment();
 }
 
 GL45VariableAllocationTexture::~GL45VariableAllocationTexture() {
-    Backend::updateTextureGPUMemoryUsage(_size, 0);
+    Backend::textureResourceCount.decrement();
+    Backend::textureResourceGPUMemSize.update(_size, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
+
+Size GL45VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+    Size amountCopied = 0;
+    amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
+    incrementPopulatedSize(amountCopied);
+    return amountCopied;
+}
+
+
+void copyTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLuint srcId, GLuint destId, uint16_t numMips, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
+    for (uint16_t mip = populatedMips; mip < numMips; ++mip) {
+        auto mipDimensions = texture.evalMipDimensions(mip);
+        uint16_t targetMip = mip - destMipOffset;
+        uint16_t sourceMip = mip - srcMipOffset;
+        auto faces = GLTexture::getFaceCount(texTarget);
+        for (uint8_t face = 0; face < faces; ++face) {
+            glCopyImageSubData(
+                srcId, texTarget, sourceMip, 0, 0, face,
+                destId, texTarget, targetMip, 0, 0, face,
+                mipDimensions.x, mipDimensions.y, 1
+                );
+            (void)CHECK_GL_ERROR();
+        }
+    }
+}
+
+void GL45VariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
+    uint16_t numMips = _gpuObject.getNumMips();
+    copyTexGPUMem(_gpuObject, _target, srcId, destId, numMips, srcMipOffset, destMipOffset, populatedMips);
+}
+
 
 // Managed size resource textures
 using GL45ResourceTexture = GL45Backend::GL45ResourceTexture;
@@ -61,7 +95,6 @@ GL45ResourceTexture::GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend
     _memoryPressureStateStale = true;
     copyMipsFromTexture();
     syncSampler();
-
 }
 
 void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
@@ -76,20 +109,20 @@ void GL45ResourceTexture::allocateStorage(uint16 allocatedMip) {
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
     }
-
-    Backend::updateTextureGPUMemoryUsage(0, _size);
-
+    Backend::textureResourceGPUMemSize.update(0, _size);
 }
 
-void GL45ResourceTexture::copyMipsFromTexture() {
+Size GL45ResourceTexture::copyMipsFromTexture() {
     auto mipLevels = _gpuObject.getNumMips();
     size_t maxFace = GLTexture::getFaceCount(_target);
+    Size amount = 0;
     for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
         uint16_t targetMip = sourceMip - _allocatedMip;
         for (uint8_t face = 0; face < maxFace; ++face) {
-            copyMipFaceFromTexture(sourceMip, targetMip, face);
+            amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
+    return amount;
 }
 
 void GL45ResourceTexture::syncSampler() const {
@@ -106,32 +139,27 @@ void GL45ResourceTexture::promote() {
 
     GLuint oldId = _id;
     auto oldSize = _size;
+    uint16_t oldAllocatedMip = _allocatedMip;
+
     // create new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
-    uint16_t oldAllocatedMip = _allocatedMip;
+
     // allocate storage for new level
     allocateStorage(targetAllocatedMip);
-    uint16_t mips = _gpuObject.getNumMips();
+    
     // copy pre-existing mips
-    for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
-        auto mipDimensions = _gpuObject.evalMipDimensions(mip);
-        uint16_t targetMip = mip - _allocatedMip;
-        uint16_t sourceMip = mip - oldAllocatedMip;
-        auto faces = getFaceCount(_target);
-        for (uint8_t face = 0; face < faces; ++face) {
-            glCopyImageSubData(
-                oldId, _target, sourceMip, 0, 0, face,
-                _id, _target, targetMip, 0, 0, face,
-                mipDimensions.x, mipDimensions.y, 1
-                );
-            (void)CHECK_GL_ERROR();
-        }
-    }
+    copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
+
     // destroy the old texture
     glDeleteTextures(1, &oldId);
-    // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+
+    // Update sampler
     syncSampler();
+
+    // update the memory usage
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
+    // no change to Backend::textureResourcePopulatedGPUMemSize
+
     populateTransferQueue();
 }
 
@@ -140,33 +168,37 @@ void GL45ResourceTexture::demote() {
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
     auto oldSize = _size;
+    auto oldPopulatedMip = _populatedMip;
+
+    // allocate new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
+    uint16_t oldAllocatedMip = _allocatedMip;
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
-    uint16_t mips = _gpuObject.getNumMips();
+
     // copy pre-existing mips
-    for (uint16_t mip = _populatedMip; mip < mips; ++mip) {
-        auto mipDimensions = _gpuObject.evalMipDimensions(mip);
-        uint16_t targetMip = mip - _allocatedMip;
-        uint16_t sourceMip = targetMip + 1;
-        auto faces = getFaceCount(_target);
-        for (uint8_t face = 0; face < faces; ++face) {
-            glCopyImageSubData(
-                oldId, _target, sourceMip, 0, 0, face,
-                _id, _target, targetMip, 0, 0, face,
-                mipDimensions.x, mipDimensions.y, 1
-            );
-            (void)CHECK_GL_ERROR();
-        }
-    }
+    copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
+
     // destroy the old texture
     glDeleteTextures(1, &oldId);
-    // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+
+    // Update sampler
     syncSampler();
+
+    // update the memory usage
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
+     // Demoting unpopulate the memory delta
+    if (oldPopulatedMip != _populatedMip) {
+        auto numPopulatedDemoted = _populatedMip - oldPopulatedMip;
+        Size amountUnpopulated = 0;
+        for (int i = 0; i < numPopulatedDemoted; i++) {
+             amountUnpopulated += _gpuObject.evalMipSize(oldPopulatedMip + i);
+        }
+       decrementPopulatedSize(amountUnpopulated);
+    }
+
     populateTransferQueue();
 }
-
 
 void GL45ResourceTexture::populateTransferQueue() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
@@ -195,11 +227,14 @@ void GL45ResourceTexture::populateTransferQueue() {
 
             // break down the transfers into chunks so that no single transfer is 
             // consuming more than X bandwidth
+            // For compressed format, regions must be a multiple of the 4x4 tiles, so enforce 4 lines as the minimum block
             auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
             const auto lines = mipDimensions.y;
-            auto bytesPerLine = mipSize / lines;
+            const uint32_t BLOCK_NUM_LINES { 4 };
+            const auto numBlocks = (lines + (BLOCK_NUM_LINES - 1)) / BLOCK_NUM_LINES;
+            auto bytesPerBlock = mipSize / numBlocks;
             Q_ASSERT(0 == (mipSize % lines));
-            uint32_t linesPerTransfer = (uint32_t)(MAX_TRANSFER_SIZE / bytesPerLine);
+            uint32_t linesPerTransfer = BLOCK_NUM_LINES * (uint32_t)(MAX_TRANSFER_SIZE / bytesPerBlock);
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);

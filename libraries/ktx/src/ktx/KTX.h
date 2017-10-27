@@ -22,7 +22,14 @@
 
 #include <shared/Storage.h>
 
-/* KTX Spec:
+#include "../khronos/KHR.h"
+
+/* 
+
+KTX Specification: https://www.khronos.org/opengles/sdk/tools/KTX/file_format_spec/
+
+
+**** A KTX header is 64 bytes layed out as follows
 
 Byte[12] identifier
 UInt32 endianness
@@ -39,14 +46,18 @@ UInt32 numberOfFaces
 UInt32 numberOfMipmapLevels
 UInt32 bytesOfKeyValueData
   
+**** Each KTX key value pair block is 4 byte aligned
+
 for each keyValuePair that fits in bytesOfKeyValueData
     UInt32   keyAndValueByteSize
     Byte     keyAndValue[keyAndValueByteSize]
     Byte     valuePadding[3 - ((keyAndValueByteSize + 3) % 4)]
 end
-  
+
+**** Each mip and cube face is 4 byte aligned 
+
 for each mipmap_level in numberOfMipmapLevels*
-    UInt32 imageSize; 
+    UInt32 imageSize;
     for each array_element in numberOfArrayElements*
        for each face in numberOfFaces
            for each z_slice in pixelDepth*
@@ -67,229 +78,22 @@ end
 ** Uncompressed texture data matches a GL_UNPACK_ALIGNMENT of 4.
 */
 
-
-
 namespace ktx {
-    const uint32_t PACKING_SIZE { sizeof(uint32_t) };
-    const std::string HIFI_MIN_POPULATED_MIP_KEY{ "hifi.minMip" };
+    // Alignment constants
+    static const uint32_t ALIGNMENT { sizeof(uint32_t) };
+    static const uint32_t ALIGNMENT_REMAINDER { ALIGNMENT - 1 };
+    static const uint32_t NUM_CUBEMAPFACES = khronos::gl::texture::cubemap::NUM_CUBEMAPFACES;
+
+    // FIXME move out of this header, not specific to ktx
+    const std::string HIFI_MIN_POPULATED_MIP_KEY { "hifi.minMip" };
+
 
     using Byte = uint8_t;
 
-    enum class GLType : uint32_t {
-        COMPRESSED_TYPE                 = 0,
-
-        // GL 4.4 Table 8.2
-        UNSIGNED_BYTE                   = 0x1401,
-        BYTE                            = 0x1400,
-        UNSIGNED_SHORT                  = 0x1403,
-        SHORT                           = 0x1402,
-        UNSIGNED_INT                    = 0x1405,
-        INT                             = 0x1404,
-        HALF_FLOAT                      = 0x140B,
-        FLOAT                           = 0x1406,
-        UNSIGNED_BYTE_3_3_2             = 0x8032,
-        UNSIGNED_BYTE_2_3_3_REV         = 0x8362,
-        UNSIGNED_SHORT_5_6_5            = 0x8363,
-        UNSIGNED_SHORT_5_6_5_REV        = 0x8364,
-        UNSIGNED_SHORT_4_4_4_4          = 0x8033,
-        UNSIGNED_SHORT_4_4_4_4_REV      = 0x8365,
-        UNSIGNED_SHORT_5_5_5_1          = 0x8034,
-        UNSIGNED_SHORT_1_5_5_5_REV      = 0x8366,
-        UNSIGNED_INT_8_8_8_8            = 0x8035,
-        UNSIGNED_INT_8_8_8_8_REV        = 0x8367,
-        UNSIGNED_INT_10_10_10_2         = 0x8036,
-        UNSIGNED_INT_2_10_10_10_REV     = 0x8368,
-        UNSIGNED_INT_24_8               = 0x84FA,
-        UNSIGNED_INT_10F_11F_11F_REV    = 0x8C3B,
-        UNSIGNED_INT_5_9_9_9_REV        = 0x8C3E,
-        FLOAT_32_UNSIGNED_INT_24_8_REV  = 0x8DAD,
-    };
-
-    enum class GLFormat : uint32_t {
-        COMPRESSED_FORMAT               = 0,
-
-        // GL 4.4 Table 8.3
-        STENCIL_INDEX                   = 0x1901,
-        DEPTH_COMPONENT                 = 0x1902,
-        DEPTH_STENCIL                   = 0x84F9,
-
-        RED                             = 0x1903,
-        GREEN                           = 0x1904,
-        BLUE                            = 0x1905,
-        RG                              = 0x8227,
-        RGB                             = 0x1907,
-        RGBA                            = 0x1908,
-        BGR                             = 0x80E0,
-        BGRA                            = 0x80E1,
-
-        RG_INTEGER                      = 0x8228,
-        RED_INTEGER                     = 0x8D94,
-        GREEN_INTEGER                   = 0x8D95,
-        BLUE_INTEGER                    = 0x8D96,
-        RGB_INTEGER                     = 0x8D98,
-        RGBA_INTEGER                    = 0x8D99,
-        BGR_INTEGER                     = 0x8D9A,
-        BGRA_INTEGER                    = 0x8D9B,
-    };
-
-    enum class GLInternalFormat_Uncompressed : uint32_t {
-        // GL 4.4 Table 8.12
-        R8                              = 0x8229,
-        R8_SNORM                        = 0x8F94,
-
-        R16                             = 0x822A,
-        R16_SNORM                       = 0x8F98,
-
-        RG8                             = 0x822B,
-        RG8_SNORM                       = 0x8F95,
-
-        RG16                            = 0x822C,
-        RG16_SNORM                      = 0x8F99,
-
-        R3_G3_B2                        = 0x2A10,
-        RGB4                            = 0x804F,
-        RGB5                            = 0x8050,
-        RGB565                          = 0x8D62,
-
-        RGB8                            = 0x8051,
-        RGB8_SNORM                      = 0x8F96,
-        RGB10                           = 0x8052,
-        RGB12                           = 0x8053,
-
-        RGB16                           = 0x8054,
-        RGB16_SNORM                     = 0x8F9A,
-
-        RGBA2                           = 0x8055,
-        RGBA4                           = 0x8056,
-        RGB5_A1                         = 0x8057,
-        RGBA8                           = 0x8058,
-        RGBA8_SNORM                     = 0x8F97,
-
-        RGB10_A2                        = 0x8059,
-        RGB10_A2UI                      = 0x906F,
-
-        RGBA12                          = 0x805A,
-        RGBA16                          = 0x805B,
-        RGBA16_SNORM                    = 0x8F9B,
-
-        SRGB8                           = 0x8C41,
-        SRGB8_ALPHA8                    = 0x8C43,
-
-        R16F                            = 0x822D,
-        RG16F                           = 0x822F,
-        RGB16F                          = 0x881B,
-        RGBA16F                         = 0x881A,
-
-        R32F      = 0x822E,
-        RG32F      = 0x8230,
-        RGB32F      = 0x8815,
-        RGBA32F      = 0x8814,
-
-        R11F_G11F_B10F      = 0x8C3A,
-        RGB9_E5      = 0x8C3D,
-
-
-        R8I      = 0x8231,
-        R8UI      = 0x8232,
-        R16I      = 0x8233,
-        R16UI      = 0x8234,
-        R32I      = 0x8235,
-        R32UI      = 0x8236,
-        RG8I      = 0x8237,
-        RG8UI      = 0x8238,
-        RG16I      = 0x8239,
-        RG16UI      = 0x823A,
-        RG32I      = 0x823B,
-        RG32UI      = 0x823C,
-
-        RGB8I      = 0x8D8F,
-        RGB8UI      = 0x8D7D,
-        RGB16I      = 0x8D89,
-        RGB16UI      = 0x8D77,
-
-        RGB32I      = 0x8D83,
-        RGB32UI      = 0x8D71,
-        RGBA8I      = 0x8D8E,
-        RGBA8UI      = 0x8D7C,
-        RGBA16I      = 0x8D88,
-        RGBA16UI      = 0x8D76,
-        RGBA32I      = 0x8D82,
-
-        RGBA32UI      = 0x8D70,
-
-        // GL 4.4 Table 8.13
-        DEPTH_COMPONENT16 = 0x81A5,
-        DEPTH_COMPONENT24 = 0x81A6,
-        DEPTH_COMPONENT32 = 0x81A7,
-
-        DEPTH_COMPONENT32F = 0x8CAC,
-        DEPTH24_STENCIL8 = 0x88F0,
-        DEPTH32F_STENCIL8 = 0x8CAD,
-
-        STENCIL_INDEX1 = 0x8D46,
-        STENCIL_INDEX4 = 0x8D47,
-        STENCIL_INDEX8 = 0x8D48,
-        STENCIL_INDEX16 = 0x8D49,
-    };
-
-    enum class GLInternalFormat_Compressed : uint32_t {
-        // GL 4.4 Table 8.14
-        COMPRESSED_RED = 0x8225,
-        COMPRESSED_RG = 0x8226,
-        COMPRESSED_RGB = 0x84ED,
-        COMPRESSED_RGBA = 0x84EE,
-
-        COMPRESSED_SRGB = 0x8C48,
-        COMPRESSED_SRGB_ALPHA = 0x8C49,
-
-        COMPRESSED_SRGB_S3TC_DXT1_EXT = 0x8C4C,
-        COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT = 0x8C4D,
-        COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT = 0x8C4E,
-        COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT = 0x8C4F,
-
-        COMPRESSED_RED_RGTC1 = 0x8DBB,
-        COMPRESSED_SIGNED_RED_RGTC1 = 0x8DBC,
-        COMPRESSED_RG_RGTC2 = 0x8DBD,
-        COMPRESSED_SIGNED_RG_RGTC2 = 0x8DBE,
-
-        COMPRESSED_RGBA_BPTC_UNORM = 0x8E8C,
-        COMPRESSED_SRGB_ALPHA_BPTC_UNORM = 0x8E8D,
-        COMPRESSED_RGB_BPTC_SIGNED_FLOAT = 0x8E8E,
-        COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT = 0x8E8F,
-
-        COMPRESSED_RGB8_ETC2 = 0x9274,
-        COMPRESSED_SRGB8_ETC2 = 0x9275,
-        COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9276,
-        COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9277,
-        COMPRESSED_RGBA8_ETC2_EAC = 0x9278,
-        COMPRESSED_SRGB8_ALPHA8_ETC2_EAC = 0x9279,
-
-        COMPRESSED_R11_EAC = 0x9270,
-        COMPRESSED_SIGNED_R11_EAC = 0x9271,
-        COMPRESSED_RG11_EAC = 0x9272,
-        COMPRESSED_SIGNED_RG11_EAC = 0x9273,
-    };
- 
-    enum class GLBaseInternalFormat : uint32_t {
-        // GL 4.4 Table 8.11
-        DEPTH_COMPONENT = 0x1902,
-        DEPTH_STENCIL = 0x84F9,
-        RED = 0x1903,
-        RG = 0x8227,
-        RGB = 0x1907,
-        RGBA = 0x1908,
-        STENCIL_INDEX = 0x1901,
-    };
-
-    enum CubeMapFace {
-        POS_X = 0,
-        NEG_X = 1,
-        POS_Y = 2,
-        NEG_Y = 3,
-        POS_Z = 4,
-        NEG_Z = 5,
-        NUM_CUBEMAPFACES = 6,
-    };
+    using GLType = khronos::gl::Type;
+    using GLFormat = khronos::gl::texture::Format;
+    using GLInternalFormat = khronos::gl::texture::InternalFormat;
+    using GLBaseInternalFormat = khronos::gl::texture::BaseInternalFormat;
 
     using Storage = storage::Storage;
     using StoragePointer = std::shared_ptr<Storage>;
@@ -299,30 +103,54 @@ namespace ktx {
 
     bool checkIdentifier(const Byte* identifier);
 
+    // Returns the number of bytes required be added to the passed value to make it 4 byte aligned
+    template <typename T>
+    inline uint8_t evalPadding(T value) {
+        return ALIGNMENT_REMAINDER - ((value + ALIGNMENT_REMAINDER) % ALIGNMENT);
+    }
+
+    // Returns the passed value rounded up to the next 4 byte aligned value, if it's not already 4 byte aligned
+    template <typename T>
+    inline T evalPaddedSize(T value) {
+        return (value + ALIGNMENT_REMAINDER) & ~(T)ALIGNMENT_REMAINDER;
+    }
+
+    template <typename T>
+    inline T evalAlignedCount(T value) {
+        return (value + ALIGNMENT_REMAINDER) / ALIGNMENT;
+    }
+
+    template <typename T>
+    inline bool checkAlignment(T value) {
+        return ((value & ALIGNMENT_REMAINDER) == 0);
+    }
+
+
     // Header
     struct Header {
-        static const size_t IDENTIFIER_LENGTH = 12;
+        static const uint32_t COMPRESSED_FORMAT { 0 };
+        static const uint32_t COMPRESSED_TYPE { 0 };
+        static const uint32_t COMPRESSED_TYPE_SIZE { 1 };
+        static const size_t IDENTIFIER_LENGTH { 12 };
         using Identifier = std::array<uint8_t, IDENTIFIER_LENGTH>;
         static const Identifier IDENTIFIER;
 
         static const uint32_t ENDIAN_TEST = 0x04030201;
         static const uint32_t REVERSE_ENDIAN_TEST = 0x01020304;
 
-        static uint32_t evalPadding(size_t byteSize);
-
         Header();
 
         Byte identifier[IDENTIFIER_LENGTH];
         uint32_t endianness { ENDIAN_TEST };
 
-        uint32_t glType;
+        uint32_t glType { static_cast<uint32_t>(GLType::UNSIGNED_BYTE) };
         uint32_t glTypeSize { 0 };
-        uint32_t glFormat;
-        uint32_t glInternalFormat;
-        uint32_t glBaseInternalFormat;
+        uint32_t glFormat { static_cast<uint32_t>(GLFormat::RGBA) };
+        uint32_t glInternalFormat { static_cast<uint32_t>(GLInternalFormat::RGBA8) };
+        uint32_t glBaseInternalFormat { static_cast<uint32_t>(GLBaseInternalFormat::RGBA) };
 
         uint32_t pixelWidth { 1 };
-        uint32_t pixelHeight { 0 };
+        uint32_t pixelHeight { 1 };
         uint32_t pixelDepth { 0 };
         uint32_t numberOfArrayElements { 0 };
         uint32_t numberOfFaces { 1 };
@@ -335,28 +163,33 @@ namespace ktx {
         uint32_t getPixelDepth() const { return (pixelDepth ? pixelDepth : 1); }
         uint32_t getNumberOfSlices() const { return (numberOfArrayElements ? numberOfArrayElements : 1); }
         uint32_t getNumberOfLevels() const { return (numberOfMipmapLevels ? numberOfMipmapLevels : 1); }
+        bool isCompressed() const { return glFormat == COMPRESSED_FORMAT; }
 
         uint32_t evalMaxDimension() const;
         uint32_t evalPixelOrBlockWidth(uint32_t level) const;
         uint32_t evalPixelOrBlockHeight(uint32_t level) const;
         uint32_t evalPixelOrBlockDepth(uint32_t level) const;
 
-        size_t evalPixelOrBlockSize() const;
+        size_t evalPixelOrBlockBitSize() const;
         size_t evalRowSize(uint32_t level) const;
         size_t evalFaceSize(uint32_t level) const;
         size_t evalImageSize(uint32_t level) const;
 
-        void setUncompressed(GLType type, uint32_t typeSize, GLFormat format, GLInternalFormat_Uncompressed internalFormat, GLBaseInternalFormat baseInternalFormat) {
+        // FIXME base internal format should automatically be determined by internal format
+        // FIXME type size should automatically be determined by type
+        void setUncompressed(GLType type, uint32_t typeSize, GLFormat format, GLInternalFormat internalFormat, GLBaseInternalFormat baseInternalFormat) {
             glType = (uint32_t) type;
             glTypeSize = typeSize;
             glFormat = (uint32_t) format;
             glInternalFormat = (uint32_t) internalFormat;
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
         }
-        void setCompressed(GLInternalFormat_Compressed internalFormat, GLBaseInternalFormat baseInternalFormat) {
-            glType = (uint32_t) GLType::COMPRESSED_TYPE;
-            glTypeSize = 1;
-            glFormat = (uint32_t) GLFormat::COMPRESSED_FORMAT;
+
+        // FIXME base internal format should automatically be determined by internal format
+        void setCompressed(GLInternalFormat internalFormat, GLBaseInternalFormat baseInternalFormat) {
+            glType = COMPRESSED_TYPE;
+            glFormat = COMPRESSED_FORMAT;
+            glTypeSize = COMPRESSED_TYPE_SIZE;
             glInternalFormat = (uint32_t) internalFormat;
             glBaseInternalFormat = (uint32_t) baseInternalFormat;
         }
@@ -364,18 +197,9 @@ namespace ktx {
         GLType getGLType() const { return (GLType)glType; }
         uint32_t getTypeSize() const { return glTypeSize; }
         GLFormat getGLFormat() const { return (GLFormat)glFormat; }
-        GLInternalFormat_Uncompressed getGLInternaFormat_Uncompressed() const { return (GLInternalFormat_Uncompressed)glInternalFormat; }
-        GLInternalFormat_Compressed getGLInternaFormat_Compressed() const { return (GLInternalFormat_Compressed)glInternalFormat; }
+        GLInternalFormat getGLInternaFormat() const { return (GLInternalFormat)glInternalFormat; }
         GLBaseInternalFormat getGLBaseInternalFormat() const { return (GLBaseInternalFormat)glBaseInternalFormat; }
 
-
-        void setDimensions(uint32_t width, uint32_t height = 0, uint32_t depth = 0, uint32_t numSlices = 0, uint32_t numFaces = 1) {
-            pixelWidth = (width > 0 ? width : 1);
-            pixelHeight = height;
-            pixelDepth = depth;
-            numberOfArrayElements = numSlices;
-            numberOfFaces = ((numFaces == 1) || (numFaces == NUM_CUBEMAPFACES) ? numFaces : 1);
-        }
         void set1D(uint32_t width) { setDimensions(width); }
         void set1DArray(uint32_t width, uint32_t numSlices) { setDimensions(width, 0, 0, (numSlices > 0 ? numSlices : 1)); }
         void set2D(uint32_t width, uint32_t height) { setDimensions(width, height); }
@@ -385,12 +209,33 @@ namespace ktx {
         void setCube(uint32_t width, uint32_t height) { setDimensions(width, height, 0, 0, NUM_CUBEMAPFACES); }
         void setCubeArray(uint32_t width, uint32_t height, uint32_t numSlices) { setDimensions(width, height, 0, (numSlices > 0 ? numSlices : 1), NUM_CUBEMAPFACES); }
 
+        bool isValid() const;
+
+        // Generate a set of image descriptors based on the assumption that the full mip pyramid is populated
         ImageDescriptors generateImageDescriptors() const;
+
+    private:
+        uint32_t evalPixelOrBlockDimension(uint32_t pixelDimension) const;
+        uint32_t evalMipPixelOrBlockDimension(uint32_t level, uint32_t pixelDimension) const;
+
+        static inline uint32_t evalMipDimension(uint32_t mipLevel, uint32_t pixelDimension) {
+            return std::max(pixelDimension >> mipLevel, 1U);
+        }
+
+        void setDimensions(uint32_t width, uint32_t height = 0, uint32_t depth = 0, uint32_t numSlices = 0, uint32_t numFaces = 1) {
+            pixelWidth = (width > 0 ? width : 1);
+            pixelHeight = height;
+            pixelDepth = depth;
+            numberOfArrayElements = numSlices;
+            numberOfFaces = numFaces;
+        }
     };
-    static const size_t KTX_HEADER_SIZE = 64;
+
+    // Size as specified by the KTX specification 
+    static const size_t KTX_HEADER_SIZE { 64 };
     static_assert(sizeof(Header) == KTX_HEADER_SIZE, "KTX Header size is static and should not change from the spec");
-    static const size_t KV_SIZE_WIDTH = 4; // Number of bytes for keyAndValueByteSize
-    static const size_t IMAGE_SIZE_WIDTH = 4; // Number of bytes for imageSize
+    static const size_t KV_SIZE_WIDTH { ALIGNMENT }; // Number of bytes for keyAndValueByteSize
+    static const size_t IMAGE_SIZE_WIDTH { ALIGNMENT }; // Number of bytes for imageSize
 
     // Key Values
     struct KeyValue {
@@ -418,13 +263,14 @@ namespace ktx {
         using FaceOffsets = std::vector<size_t>;
         using FaceBytes = std::vector<const Byte*>;
 
+        const uint32_t _numFaces;
         // This is the byte offset from the _start_ of the image region. For example, level 0
         // will have a byte offset of 0.
-        const uint32_t _numFaces;
         const size_t _imageOffset;
         const uint32_t _imageSize;
         const uint32_t _faceSize;
         const uint32_t _padding;
+
         ImageHeader(bool cube, size_t imageOffset, uint32_t imageSize, uint32_t padding) :
             _numFaces(cube ? NUM_CUBEMAPFACES : 1),
             _imageOffset(imageOffset),
@@ -465,7 +311,7 @@ namespace ktx {
 
     class KTX;
 
-    // A KTX descriptor is a lightweight container for all the information about a serialized KTX file, but without the 
+    // A KTX descriptor is a lightweight container for all the information about a serialized KTX file, but without the
     // actual image / face data available.
     struct KTXDescriptor {
         KTXDescriptor(const Header& header, const KeyValues& keyValues, const ImageDescriptors& imageDescriptors) : header(header), keyValues(keyValues), images(imageDescriptors) {}
@@ -480,11 +326,11 @@ namespace ktx {
     class KTX {
         void resetStorage(const StoragePointer& src);
 
-        KTX();
+        KTX() {}
         KTX(const StoragePointer& storage, const Header& header, const KeyValues& keyValues, const Images& images);
     public:
-        ~KTX();
-
+        static bool validate(const StoragePointer& src);
+            
         // Define a KTX object manually to write it somewhere (in a file on disk?)
         // This path allocate the Storage where to store header, keyvalues and copy mips
         // Then COPY all the data
@@ -494,7 +340,7 @@ namespace ktx {
         // Instead of creating a full Copy of the src data in a KTX object, the write serialization can be performed with the
         // following two functions
         //   size_t sizeNeeded = KTX::evalStorageSize(header, images);
-        //   
+        //
         //   //allocate a buffer of size "sizeNeeded" or map a file with enough capacity
         //   Byte* destBytes = new Byte[sizeNeeded];
         //
@@ -529,6 +375,7 @@ namespace ktx {
         KTXDescriptor toDescriptor() const;
         size_t getKeyValueDataSize() const;
         size_t getTexelsDataSize() const;
+        bool isValid() const;
 
         Header _header;
         StoragePointer _storage;
@@ -539,5 +386,7 @@ namespace ktx {
     };
 
 }
+
+Q_DECLARE_METATYPE(ktx::KTXDescriptor*);
 
 #endif // hifi_ktx_KTX_h

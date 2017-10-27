@@ -25,6 +25,8 @@ typedef glm::vec3 Color;
 
 class Skybox {
 public:
+    typedef gpu::BufferView UniformBufferView;
+
     Skybox();
     Skybox& operator= (const Skybox& skybox);
     virtual ~Skybox() {};
@@ -42,6 +44,8 @@ public:
     virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
 
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
+
+    const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
 
 protected:
     static const int SKYBOX_SKYMAP_SLOT { 0 };

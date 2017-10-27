@@ -24,6 +24,27 @@ ObjectDynamic::ObjectDynamic(EntityDynamicType type, const QUuid& id, EntityItem
 ObjectDynamic::~ObjectDynamic() {
 }
 
+void ObjectDynamic::remapIDs(QHash<EntityItemID, EntityItemID>& map) {
+    withWriteLock([&]{
+        if (!_id.isNull()) {
+            // just force our ID to something new -- action IDs don't go into the map
+            _id = QUuid::createUuid();
+        }
+
+        if (!_otherID.isNull()) {
+            QHash<EntityItemID, EntityItemID>::iterator iter = map.find(_otherID);
+            if (iter == map.end()) {
+                // not found, add it
+                QUuid oldOtherID = _otherID;
+                _otherID = QUuid::createUuid();
+                map.insert(oldOtherID, _otherID);
+            } else {
+                _otherID = iter.value();
+            }
+        }
+    });
+}
+
 qint64 ObjectDynamic::getEntityServerClockSkew() const {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -139,56 +160,6 @@ btRigidBody* ObjectDynamic::getRigidBody() {
     return nullptr;
 }
 
-glm::vec3 ObjectDynamic::getPosition() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::vec3(0.0f);
-    }
-    return bulletToGLM(rigidBody->getCenterOfMassPosition());
-}
-
-glm::quat ObjectDynamic::getRotation() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::quat(0.0f, 0.0f, 0.0f, 1.0f);
-    }
-    return bulletToGLM(rigidBody->getOrientation());
-}
-
-glm::vec3 ObjectDynamic::getLinearVelocity() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::vec3(0.0f);
-    }
-    return bulletToGLM(rigidBody->getLinearVelocity());
-}
-
-void ObjectDynamic::setLinearVelocity(glm::vec3 linearVelocity) {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return;
-    }
-    rigidBody->setLinearVelocity(glmToBullet(glm::vec3(0.0f)));
-    rigidBody->activate();
-}
-
-glm::vec3 ObjectDynamic::getAngularVelocity() {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return glm::vec3(0.0f);
-    }
-    return bulletToGLM(rigidBody->getAngularVelocity());
-}
-
-void ObjectDynamic::setAngularVelocity(glm::vec3 angularVelocity) {
-    auto rigidBody = getRigidBody();
-    if (!rigidBody) {
-        return;
-    }
-    rigidBody->setAngularVelocity(glmToBullet(angularVelocity));
-    rigidBody->activate();
-}
-
 void ObjectDynamic::activateBody(bool forceActivation) {
     auto rigidBody = getRigidBody();
     if (rigidBody) {
@@ -273,4 +244,39 @@ QList<btRigidBody*> ObjectDynamic::getRigidBodies() {
     QList<btRigidBody*> result;
     result += getRigidBody();
     return result;
+}
+
+SpatiallyNestablePointer ObjectDynamic::getOther() {
+    SpatiallyNestablePointer other;
+    withWriteLock([&]{
+        if (_otherID == QUuid()) {
+            // no other
+            return;
+        }
+        other = _other.lock();
+        if (other && other->getID() == _otherID) {
+            // other is already up-to-date
+            return;
+        }
+        if (other) {
+            // we have a pointer to other, but it's wrong
+            other.reset();
+            _other.reset();
+        }
+        // we have an other-id but no pointer to other cached
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        EntityItemPointer ownerEntity = _ownerEntity.lock();
+        if (!ownerEntity) {
+            return;
+        }
+        bool success;
+        _other = parentFinder->find(_otherID, success, ownerEntity->getParentTree());
+        if (success) {
+            other = _other.lock();
+        }
+    });
+    return other;
 }

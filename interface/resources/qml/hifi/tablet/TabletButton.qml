@@ -1,8 +1,11 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
+import TabletScriptingInterface 1.0
 
 Item {
     id: tabletButton
+
+    property string captionColorOverride: ""
     property var uuid;
     property string icon: "icons/tablet-icons/edit-i.svg"
     property string hoverIcon: tabletButton.icon
@@ -82,7 +85,7 @@ Item {
     }
 
     function urlHelper(src) {
-        if (src.match(/\bhttp/)) {
+        if (src.match(/\bhttp/) || src.match(/\bfile:/)) {
             return src;
         } else {
             return "../../../" + src;
@@ -102,7 +105,7 @@ Item {
 
     Text {
         id: text
-        color: "#ffffff"
+        color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
         text: tabletButton.text
         font.bold: true
         font.pixelSize: 18
@@ -116,6 +119,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         enabled: true
+        preventStealing: true
         onClicked: {
             console.log("Tablet Button Clicked!");
             if (tabletButton.inDebugMode) {
@@ -127,11 +131,13 @@ Item {
             }
             tabletButton.clicked();
             if (tabletRoot) {
-                tabletRoot.playButtonClickSound();
+                tabletInterface.playSound(TabletEnums.ButtonClick);
             }
         }
         onEntered: {
             tabletButton.isEntered = true;
+            tabletInterface.playSound(TabletEnums.ButtonHover);
+
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
             } else {
@@ -165,7 +171,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#ffffff"
+                color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
                 text: tabletButton.hoverText
             }
 
@@ -191,7 +197,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeText
             }
 
@@ -222,7 +228,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeHoverText
             }
 

@@ -13,6 +13,11 @@
 
 #include "LightStage.h"
 
+std::string LightStage::_stageName { "LIGHT_STAGE"};
+
+LightStage::LightStage() {
+}
+
 LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
     framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
     map = framebuffer->getDepthStencilBuffer();
@@ -137,6 +142,11 @@ LightStage::LightPointer LightStage::removeLight(Index index) {
     LightPointer removed = _lights.freeElement(index);
     
     if (removed) {
+        auto shadowId = _descs[index].shadowId;
+        // Remove shadow if one exists for this light
+        if (shadowId != INVALID_INDEX) {
+            _shadows.freeElement(shadowId);
+        }
         _lightMap.erase(removed);
         _descs[index] = Desc();
     }
@@ -162,6 +172,17 @@ void LightStage::updateLightArrayBuffer(Index lightId) {
         _lightArrayBuffer->setSubData<model::Light::LightSchema>(lightId, lightSchema);
     } else {
         // this should not happen ?
+    }
+}
+
+LightStageSetup::LightStageSetup() {
+}
+
+void LightStageSetup::run(const render::RenderContextPointer& renderContext) {
+    auto stage = renderContext->_scene->getStage(LightStage::getName());
+    if (!stage) {
+        stage = std::make_shared<LightStage>();
+        renderContext->_scene->resetStage(LightStage::getName(), stage);
     }
 }
 

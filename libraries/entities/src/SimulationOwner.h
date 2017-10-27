@@ -66,6 +66,7 @@ public:
 
     bool hasExpired() const { return usecTimestampNow() > _expiry; }
 
+    uint8_t getPendingPriority() const { return _pendingBidPriority; }
     bool pendingRelease(const quint64& timestamp); // return true if valid pending RELEASE
     bool pendingTake(const quint64& timestamp); // return true if valid pending TAKE
     void clearCurrentOwner();
@@ -84,9 +85,9 @@ public:
 private:
     QUuid _id; // owner
     quint64 _expiry; // time when ownership can transition at equal priority
-    quint64 _pendingTimestamp; // time when pending update was set
+    quint64 _pendingBidTimestamp; // time when pending bid was set
     quint8 _priority; // priority of current owner
-    quint8 _pendingPriority; // priority of pendingTake
+    quint8 _pendingBidPriority; // priority at which we'd like to own it
     quint8 _pendingState; // NOTHING, TAKE, or RELEASE
 };
 

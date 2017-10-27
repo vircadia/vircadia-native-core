@@ -1,4 +1,5 @@
 import QtQuick 2.0
+import TabletScriptingInterface 1.0
 
 Item {
     id: keyItem
@@ -32,9 +33,19 @@ Item {
             }
         }
 
+        onContainsMouseChanged: {
+            if (containsMouse) {
+                tabletInterface.playSound(TabletEnums.ButtonHover);
+            }
+        }
+
         onClicked: {
             mouse.accepted = true;
+            tabletInterface.playSound(TabletEnums.ButtonClick);
+
             webEntity.synthesizeKeyPress(glyph);
+            webEntity.synthesizeKeyPress(glyph, mirrorText);
+
             if (toggle) {
                 toggled = !toggled;
             }

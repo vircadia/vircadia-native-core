@@ -36,7 +36,6 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNoiseReduction = "Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
@@ -44,7 +43,6 @@ namespace MenuOption {
     const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioTools = "Show Level Meter";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString AvatarBookmarks = "Avatar Bookmarks";
@@ -96,7 +94,8 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EnableCharacterController = "Collide with world";
+    const QString EnableFlying = "Enable Flying";
+    const QString EnableAvatarCollisions = "Enable Avatar Collisions";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EntityScriptServerLog = "Entity Script Server Log";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
@@ -106,6 +105,7 @@ namespace MenuOption {
     const QString ExpandPhysicsSimulationTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString FirstPerson = "First Person";
+    const QString FirstPersonHMD = "Enter First Person Mode in HMD";
     const QString FivePointCalibration = "5 Point Calibration";
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
@@ -115,7 +115,6 @@ namespace MenuOption {
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";
-    const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
@@ -124,7 +123,6 @@ namespace MenuOption {
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
-    const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NamesAboveHeads = "Names Above Heads";
@@ -145,6 +143,7 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString ReloadContent = "Reload Content (Clears all caches)";
+    const QString RenderClearKtxCache = "Clear KTX Cache (requires restart)";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
     const QString RenderMaxTexture4MB = "4 MB";
@@ -161,6 +160,9 @@ namespace MenuOption {
     const QString RenderResolutionQuarter = "1/4";
     const QString RenderSensorToWorldMatrix = "Show SensorToWorld Matrix";
     const QString RenderIKTargets = "Show IK Targets";
+    const QString RenderIKConstraints = "Show IK Constraints";
+    const QString RenderIKChains = "Show IK Chains";
+    const QString RenderDetailedCollision = "Show Detailed Collision";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";
@@ -175,6 +177,7 @@ namespace MenuOption {
     const QString ShowDSConnectTable = "Show Domain Connection Timing";
     const QString ShowMyLookAtVectors = "Show My Eye Vectors";
     const QString ShowOtherLookAtVectors = "Show Other Eye Vectors";
+    const QString EnableLookAtSnapping = "Enable LookAt Snapping";
     const QString ShowRealtimeEntityStats = "Show Realtime Entity Stats";
     const QString StandingHMDSensorMode = "Standing HMD Sensor Mode";
     const QString SimulateEyeTracking = "Simulate";
@@ -197,6 +200,8 @@ namespace MenuOption {
     const QString VisibleToFriends = "Friends";
     const QString VisibleToNoOne = "No one";
     const QString WorldAxes = "World Axes";
+    const QString DesktopTabletToToolbar = "Desktop Tablet Becomes Toolbar";
+    const QString HMDTabletToToolbar = "HMD Tablet Becomes Toolbar";
 }
 
 #endif // hifi_Menu_h

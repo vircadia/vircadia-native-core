@@ -14,8 +14,8 @@ import "configSlider"
 Column {
     id: root
     spacing: 8
-    property var sceneOctree: Render.getConfig("DrawSceneOctree");
-    property var itemSelection: Render.getConfig("DrawItemSelection");
+    property var sceneOctree: Render.getConfig("RenderMainView.DrawSceneOctree");
+    property var itemSelection: Render.getConfig("RenderMainView.DrawItemSelection");
 
      Component.onCompleted: {
         sceneOctree.enabled = true;
@@ -30,8 +30,8 @@ Column {
     Component.onDestruction: {
         sceneOctree.enabled = false;
         itemSelection.enabled = false;  
-        Render.getConfig("FetchSceneSelection").freezeFrustum = false;
-        Render.getConfig("CullSceneSelection").freezeFrustum = false;                     
+        Render.getConfig("RenderMainView.FetchSceneSelection").freezeFrustum = false;
+        Render.getConfig("RenderMainView.CullSceneSelection").freezeFrustum = false;                     
     }
 
     GroupBox {
@@ -45,8 +45,8 @@ Column {
                     text: "Freeze Culling Frustum"
                     checked: false
                     onCheckedChanged: { 
-                        Render.getConfig("FetchSceneSelection").freezeFrustum = checked;
-                        Render.getConfig("CullSceneSelection").freezeFrustum = checked;
+                        Render.getConfig("RenderMainView.FetchSceneSelection").freezeFrustum = checked;
+                        Render.getConfig("RenderMainView.CullSceneSelection").freezeFrustum = checked;
                     }
                 }
                 Label {
@@ -98,8 +98,8 @@ Column {
 
         Column{
             Repeater {
-                model: [ "Opaque:DrawOpaqueDeferred", "Transparent:DrawTransparentDeferred", "Light:DrawLight",
-                        "Opaque Overlays:DrawOverlay3DOpaque", "Transparent Overlays:DrawOverlay3DTransparent" ]
+                model: [ "Opaque:RenderMainView.DrawOpaqueDeferred", "Transparent:RenderMainView.DrawTransparentDeferred", "Light:RenderMainView.DrawLight",
+                        "Opaque Overlays:RenderMainView.DrawOverlay3DOpaque", "Transparent Overlays:RenderMainView.DrawOverlay3DTransparent" ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: true

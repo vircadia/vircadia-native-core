@@ -15,12 +15,14 @@
 #include <QtQuick/QQuickWindow>
 #include <QtQml/QtQml>
 
+#include <shared/QtHelpers.h>
 #include <gl/GLHelpers.h>
 
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 #include <DependencyManager.h>
-#include <TabletScriptingInterface.h>
+
+#include "ui/TabletScriptingInterface.h"
 #include "FileDialogHelper.h"
 #include "VrMenu.h"
 
@@ -89,16 +91,23 @@ QObject* OffscreenUi::getFlags() {
     return offscreenFlags;
 }
 
-void OffscreenUi::create(QOpenGLContext* context) {
-    OffscreenQmlSurface::create(context);
-    auto rootContext = getRootContext();
+void OffscreenUi::removeModalDialog(QObject* modal) {
+    if (modal) {
+        _modalDialogListeners.removeOne(modal);
+        modal->deleteLater();
+    }
+}
 
-    rootContext->setContextProperty("OffscreenUi", this);
-    rootContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
-    rootContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
+void OffscreenUi::create() {
+    OffscreenQmlSurface::create();
+    auto myContext = getSurfaceContext();
+
+    myContext->setContextProperty("OffscreenUi", this);
+    myContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
+    myContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-    rootContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+    myContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
@@ -127,6 +136,14 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     shownProperty.write(!shownProperty.read().toBool());
 }
 
+bool OffscreenUi::isPointOnDesktopWindow(QVariant point) {
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_desktop, "isPointOnWindow",
+                           Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QVariant, point));
+    return result.toBool();
+}
+
 void OffscreenUi::hide(const QString& name) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     if (item) {
@@ -142,45 +159,6 @@ bool OffscreenUi::isVisible(const QString& name) {
         return false;
     }
 }
-
-class ModalDialogListener : public QObject {
-    Q_OBJECT
-    friend class OffscreenUi;
-
-protected:
-    ModalDialogListener(QQuickItem* dialog) : _dialog(dialog) {
-        if (!dialog) {
-            _finished = true;
-            return;
-        }
-        connect(_dialog, SIGNAL(destroyed()), this, SLOT(onDestroyed()));
-    }
-
-    ~ModalDialogListener() {
-        if (_dialog) {
-            disconnect(_dialog);
-        }
-    }
-
-    virtual QVariant waitForResult() {
-        while (!_finished) {
-            QCoreApplication::processEvents();
-        }
-        return _result;
-    }
-
-protected slots:
-    void onDestroyed() {
-        _finished = true;
-        disconnect(_dialog);
-        _dialog = nullptr;
-    }
-
-protected:
-    QQuickItem* _dialog;
-    bool _finished { false };
-    QVariant _result;
-};
 
 class MessageBoxListener : public ModalDialogListener {
     Q_OBJECT
@@ -202,6 +180,9 @@ private slots:
     void onSelected(int button) {
         _result = button;
         _finished = true;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit response(_result);
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         disconnect(_dialog);
     }
 };
@@ -248,7 +229,7 @@ int OffscreenUi::waitForMessageBoxResult(QQuickItem* messageBox) {
 QMessageBox::StandardButton OffscreenUi::messageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     if (QThread::currentThread() != thread()) {
         QMessageBox::StandardButton result = QMessageBox::StandardButton::NoButton;
-        QMetaObject::invokeMethod(this, "messageBox", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "messageBox",
             Q_RETURN_ARG(QMessageBox::StandardButton, result),
             Q_ARG(Icon, icon),
             Q_ARG(QString, title),
@@ -261,6 +242,25 @@ QMessageBox::StandardButton OffscreenUi::messageBox(Icon icon, const QString& ti
     return static_cast<QMessageBox::StandardButton>(waitForMessageBoxResult(createMessageBox(icon, title, text, buttons, defaultButton)));
 }
 
+ModalDialogListener* OffscreenUi::asyncMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    if (QThread::currentThread() != thread()) {
+        ModalDialogListener* ret;
+        BLOCKING_INVOKE_METHOD(this, "asyncMessageBox",
+                               Q_RETURN_ARG(ModalDialogListener*, ret),
+                               Q_ARG(Icon, icon),
+                               Q_ARG(QString, title),
+                               Q_ARG(QString, text),
+                               Q_ARG(QMessageBox::StandardButtons, buttons),
+                               Q_ARG(QMessageBox::StandardButton, defaultButton));
+        return ret;
+    }
+
+    MessageBoxListener* messageBoxListener = new MessageBoxListener(createMessageBox(icon, title, text, buttons, defaultButton));
+    QObject* modalDialog = qobject_cast<QObject*>(messageBoxListener);
+    _modalDialogListeners.push_back(modalDialog);
+    return messageBoxListener;
+}
+
 QMessageBox::StandardButton OffscreenUi::critical(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_CRITICAL, title, text, buttons, defaultButton);
@@ -269,15 +269,36 @@ QMessageBox::StandardButton OffscreenUi::information(const QString& title, const
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_INFORMATION, title, text, buttons, defaultButton);
 }
+
+ModalDialogListener* OffscreenUi::asyncCritical(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    return DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_CRITICAL, title, text, buttons, defaultButton);
+}
+
+ModalDialogListener* OffscreenUi::asyncInformation(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    return DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_INFORMATION, title, text, buttons, defaultButton);
+}
+
 QMessageBox::StandardButton OffscreenUi::question(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_QUESTION, title, text, buttons, defaultButton);
 }
+
+ModalDialogListener *OffscreenUi::asyncQuestion(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    return DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_QUESTION, title, text, buttons, defaultButton);
+}
+
 QMessageBox::StandardButton OffscreenUi::warning(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_WARNING, title, text, buttons, defaultButton);
 }
 
+ModalDialogListener* OffscreenUi::asyncWarning(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    return DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_WARNING, title, text, buttons, defaultButton);
+}
 
 
 class InputDialogListener : public ModalDialogListener {
@@ -294,6 +315,9 @@ class InputDialogListener : public ModalDialogListener {
 private slots:
     void onSelected(const QVariant& result) {
         _result = result;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit response(_result);
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         _finished = true;
         disconnect(_dialog);
     }
@@ -347,10 +371,35 @@ QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const
     return result;
 }
 
+ModalDialogListener* OffscreenUi::getTextAsync(const Icon icon, const QString& title, const QString& label, const QString& text) {
+    return DependencyManager::get<OffscreenUi>()->inputDialogAsync(icon, title, label, text);
+}
+
+ModalDialogListener* OffscreenUi::getItemAsync(const Icon icon, const QString& title, const QString& label, const QStringList& items,
+    int current, bool editable) {
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto inputDialog = offscreenUi->createInputDialog(icon, title, label, current);
+    if (!inputDialog) {
+        return nullptr;
+    }
+    inputDialog->setProperty("items", items);
+    inputDialog->setProperty("editable", editable);
+
+    InputDialogListener* inputDialogListener = new InputDialogListener(inputDialog);
+    offscreenUi->getModalDialogListeners().push_back(qobject_cast<QObject*>(inputDialogListener));
+
+    return inputDialogListener;
+}
+
+ModalDialogListener* OffscreenUi::getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config) {
+    return DependencyManager::get<OffscreenUi>()->customInputDialogAsync(icon, title, config);
+}
+
 QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        QMetaObject::invokeMethod(this, "inputDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "inputDialog",
             Q_RETURN_ARG(QVariant, result),
             Q_ARG(Icon, icon),
             Q_ARG(QString, title),
@@ -362,10 +411,28 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
 }
 
+ModalDialogListener* OffscreenUi::inputDialogAsync(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
+    if (QThread::currentThread() != thread()) {
+        ModalDialogListener* ret;
+        BLOCKING_INVOKE_METHOD(this, "inputDialogAsync",
+            Q_RETURN_ARG(ModalDialogListener*, ret),
+            Q_ARG(Icon, icon),
+            Q_ARG(QString, title),
+            Q_ARG(QString, label),
+            Q_ARG(QVariant, current));
+        return ret;
+    }
+
+    InputDialogListener* inputDialogListener = new InputDialogListener(createInputDialog(icon, title, label, current));
+    QObject* inputDialog = qobject_cast<QObject*>(inputDialogListener);
+    _modalDialogListeners.push_back(inputDialog);
+    return inputDialogListener;
+}
+
 QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        QMetaObject::invokeMethod(this, "customInputDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "customInputDialog",
                                   Q_RETURN_ARG(QVariant, result),
                                   Q_ARG(Icon, icon),
                                   Q_ARG(QString, title),
@@ -380,6 +447,23 @@ QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, c
     }
 
     return result;
+}
+
+ModalDialogListener* OffscreenUi::customInputDialogAsync(const Icon icon, const QString& title, const QVariantMap& config) {
+    if (QThread::currentThread() != thread()) {
+        ModalDialogListener* ret;
+        BLOCKING_INVOKE_METHOD(this, "customInputDialogAsync",
+                               Q_RETURN_ARG(ModalDialogListener*, ret),
+                               Q_ARG(Icon, icon),
+                               Q_ARG(QString, title),
+                               Q_ARG(QVariantMap, config));
+        return ret;
+    }
+
+    InputDialogListener* inputDialogListener = new InputDialogListener(createCustomInputDialog(icon, title, config));
+    QObject* inputDialog = qobject_cast<QObject*>(inputDialogListener);
+    _modalDialogListeners.push_back(inputDialog);
+    return inputDialogListener;
 }
 
 void OffscreenUi::togglePinned() {
@@ -547,25 +631,25 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     }
 
 #ifdef DEBUG
-    getRootContext()->setContextProperty("DebugQML", QVariant(true));
+    getSurfaceContext()->setContextProperty("DebugQML", QVariant(true));
 #else 
-    getRootContext()->setContextProperty("DebugQML", QVariant(false));
+    getSurfaceContext()->setContextProperty("DebugQML", QVariant(false));
 #endif
 
-    _desktop = dynamic_cast<QQuickItem*>(load(url));
-    Q_ASSERT(_desktop);
-    getRootContext()->setContextProperty("desktop", _desktop);
+    load(url, [=](QQmlContext* context, QObject* newObject) {
+        Q_UNUSED(context)
+        _desktop = static_cast<QQuickItem*>(newObject);
+        getSurfaceContext()->setContextProperty("desktop", _desktop);
+        _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
-    _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
+        _vrMenu = new VrMenu(this);
+        for (const auto& menuInitializer : _queuedMenuInitializers) {
+            menuInitializer(_vrMenu);
+        }
 
-    _vrMenu = new VrMenu(this);
-    for (const auto& menuInitializer : _queuedMenuInitializers) {
-        menuInitializer(_vrMenu);
-    }
-
-    new KeyboardFocusHack();
-
-    connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
+        new KeyboardFocusHack();
+        connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
+    });
 }
 
 QQuickItem* OffscreenUi::getDesktop() {
@@ -599,8 +683,11 @@ class FileDialogListener : public ModalDialogListener {
 
 private slots:
     void onSelectedFile(QVariant file) {
-        _result = file;
+        _result = file.toUrl().toLocalFile();
         _finished = true;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit response(_result);
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         disconnect(_dialog);
     }
 };
@@ -636,10 +723,39 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
     return result.toUrl().toLocalFile();
 }
 
+ModalDialogListener* OffscreenUi::fileDialogAsync(const QVariantMap& properties) {
+    QVariant buildDialogResult;
+    bool invokeResult;
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode()) {
+       invokeResult =  QMetaObject::invokeMethod(_desktop, "fileDialog",
+                                  Q_RETURN_ARG(QVariant, buildDialogResult),
+                                  Q_ARG(QVariant, QVariant::fromValue(properties)));
+    } else {
+        QQuickItem* tabletRoot = tablet->getTabletRoot();
+        invokeResult =  QMetaObject::invokeMethod(tabletRoot, "fileDialog",
+                                  Q_RETURN_ARG(QVariant, buildDialogResult),
+                                  Q_ARG(QVariant, QVariant::fromValue(properties)));
+        emit tabletScriptingInterface->tabletNotification();
+    }
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create file open dialog";
+        return nullptr;
+    }
+
+    FileDialogListener* fileDialogListener = new FileDialogListener(qvariant_cast<QQuickItem*>(buildDialogResult));
+    QObject* fileModalDialog = qobject_cast<QObject*>(fileDialogListener);
+    _modalDialogListeners.push_back(fileModalDialog);
+
+    return fileDialogListener;
+}
+
 QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "fileOpenDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "fileOpenDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
@@ -658,10 +774,32 @@ QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, 
     return fileDialog(map);
 }
 
+ModalDialogListener* OffscreenUi::fileOpenDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        ModalDialogListener* ret;
+        BLOCKING_INVOKE_METHOD(this, "fileOpenDialogAsync",
+            Q_RETURN_ARG(ModalDialogListener*, ret),
+            Q_ARG(QString, caption),
+            Q_ARG(QString, dir),
+            Q_ARG(QString, filter),
+            Q_ARG(QString*, selectedFilter),
+            Q_ARG(QFileDialog::Options, options));
+        return ret;
+    }
+
+    // FIXME support returning the selected filter... somehow?
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    return fileDialogAsync(map);
+}
+
 QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "fileSaveDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "fileSaveDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
@@ -682,10 +820,34 @@ QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, 
     return fileDialog(map);
 }
 
+ModalDialogListener* OffscreenUi::fileSaveDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        ModalDialogListener* ret;
+        BLOCKING_INVOKE_METHOD(this, "fileSaveDialogAsync",
+            Q_RETURN_ARG(ModalDialogListener*, ret),
+            Q_ARG(QString, caption),
+            Q_ARG(QString, dir),
+            Q_ARG(QString, filter),
+            Q_ARG(QString*, selectedFilter),
+            Q_ARG(QFileDialog::Options, options));
+        return ret;
+    }
+
+    // FIXME support returning the selected filter... somehow?
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    map.insert("saveDialog", true);
+
+    return fileDialogAsync(map);
+}
+
 QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "existingDirectoryDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "existingDirectoryDialog",
                                   Q_RETURN_ARG(QString, result),
                                   Q_ARG(QString, caption),
                                   Q_ARG(QString, dir),
@@ -704,16 +866,56 @@ QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QStri
     return fileDialog(map);
 }
 
+ModalDialogListener* OffscreenUi::existingDirectoryDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        ModalDialogListener* ret;
+        BLOCKING_INVOKE_METHOD(this, "existingDirectoryDialogAsync",
+                               Q_RETURN_ARG(ModalDialogListener*, ret),
+                               Q_ARG(QString, caption),
+                               Q_ARG(QString, dir),
+                               Q_ARG(QString, filter),
+                               Q_ARG(QString*, selectedFilter),
+                               Q_ARG(QFileDialog::Options, options));
+        return ret;
+    }
+
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    map.insert("selectDirectory", true);
+    return fileDialogAsync(map);
+}
+
 QString OffscreenUi::getOpenFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    Q_UNUSED(ignored)
     return DependencyManager::get<OffscreenUi>()->fileOpenDialog(caption, dir, filter, selectedFilter, options);
 }
 
+ModalDialogListener* OffscreenUi::getOpenFileNameAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    Q_UNUSED(ignored)
+    return DependencyManager::get<OffscreenUi>()->fileOpenDialogAsync(caption, dir, filter, selectedFilter, options);
+}
+
 QString OffscreenUi::getSaveFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    Q_UNUSED(ignored)
     return DependencyManager::get<OffscreenUi>()->fileSaveDialog(caption, dir, filter, selectedFilter, options);
 }
 
+ModalDialogListener* OffscreenUi::getSaveFileNameAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    Q_UNUSED(ignored)
+    return DependencyManager::get<OffscreenUi>()->fileSaveDialogAsync(caption, dir, filter, selectedFilter, options);
+}
+
 QString OffscreenUi::getExistingDirectory(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    Q_UNUSED(ignored)
     return DependencyManager::get<OffscreenUi>()->existingDirectoryDialog(caption, dir, filter, selectedFilter, options);
+}
+
+ModalDialogListener* OffscreenUi::getExistingDirectoryAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    Q_UNUSED(ignored)
+    return DependencyManager::get<OffscreenUi>()->existingDirectoryDialogAsync(caption, dir, filter, selectedFilter, options);
 }
 
 class AssetDialogListener : public ModalDialogListener {
@@ -731,6 +933,9 @@ class AssetDialogListener : public ModalDialogListener {
     private slots:
     void onSelectedAsset(QVariant asset) {
         _result = asset;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit response(_result);
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         _finished = true;
         disconnect(_dialog);
     }
@@ -768,11 +973,44 @@ QString OffscreenUi::assetDialog(const QVariantMap& properties) {
     return result.toUrl().toString();
 }
 
+ModalDialogListener *OffscreenUi::assetDialogAsync(const QVariantMap& properties) {
+    // ATP equivalent of fileDialog().
+    QVariant buildDialogResult;
+    bool invokeResult;
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode()) {
+        invokeResult = QMetaObject::invokeMethod(_desktop, "assetDialog",
+            Q_RETURN_ARG(QVariant, buildDialogResult),
+            Q_ARG(QVariant, QVariant::fromValue(properties)));
+    } else {
+        QQuickItem* tabletRoot = tablet->getTabletRoot();
+        invokeResult = QMetaObject::invokeMethod(tabletRoot, "assetDialog",
+            Q_RETURN_ARG(QVariant, buildDialogResult),
+            Q_ARG(QVariant, QVariant::fromValue(properties)));
+        emit tabletScriptingInterface->tabletNotification();
+    }
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create asset open dialog";
+        return nullptr;
+    }
+
+    AssetDialogListener* assetDialogListener = new AssetDialogListener(qvariant_cast<QQuickItem*>(buildDialogResult));
+    QObject* assetModalDialog = qobject_cast<QObject*>(assetDialogListener);
+    _modalDialogListeners.push_back(assetModalDialog);
+    return assetDialogListener;
+}
+
+QList<QObject *> &OffscreenUi::getModalDialogListeners() {
+    return _modalDialogListeners;
+}
+
 QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     // ATP equivalent of fileOpenDialog().
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "assetOpenDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "assetOpenDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
@@ -791,9 +1029,39 @@ QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir,
     return assetDialog(map);
 }
 
+ModalDialogListener* OffscreenUi::assetOpenDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    // ATP equivalent of fileOpenDialog().
+    if (QThread::currentThread() != thread()) {
+        ModalDialogListener* ret;
+        BLOCKING_INVOKE_METHOD(this, "assetOpenDialogAsync",
+            Q_RETURN_ARG(ModalDialogListener*, ret),
+            Q_ARG(QString, caption),
+            Q_ARG(QString, dir),
+            Q_ARG(QString, filter),
+            Q_ARG(QString*, selectedFilter),
+            Q_ARG(QFileDialog::Options, options));
+        return ret;
+    }
+
+    // FIXME support returning the selected filter... somehow?
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", dir);
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    return assetDialogAsync(map);
+}
+
 QString OffscreenUi::getOpenAssetName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
     // ATP equivalent of getOpenFileName().
+    Q_UNUSED(ignored)
     return DependencyManager::get<OffscreenUi>()->assetOpenDialog(caption, dir, filter, selectedFilter, options);
+}
+
+ModalDialogListener* OffscreenUi::getOpenAssetNameAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    // ATP equivalent of getOpenFileName().
+    Q_UNUSED(ignored)
+    return DependencyManager::get<OffscreenUi>()->assetOpenDialogAsync(caption, dir, filter, selectedFilter, options);
 }
 
 bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {
@@ -835,5 +1103,31 @@ unsigned int OffscreenUi::getMenuUserDataId() const {
     return _vrMenu->_userDataId;
 }
 
-#include "OffscreenUi.moc"
+ModalDialogListener::ModalDialogListener(QQuickItem *dialog) : _dialog(dialog) {
+    if (!dialog) {
+        _finished = true;
+        return;
+    }
+    connect(_dialog, SIGNAL(destroyed()), this, SLOT(onDestroyed()));
+}
 
+ModalDialogListener::~ModalDialogListener() {
+    if (_dialog) {
+        disconnect(_dialog);
+    }
+}
+
+QVariant ModalDialogListener::waitForResult() {
+    while (!_finished) {
+        QCoreApplication::processEvents();
+    }
+    return _result;
+}
+
+void ModalDialogListener::onDestroyed() {
+    _finished = true;
+    disconnect(_dialog);
+    _dialog = nullptr;
+}
+
+#include "OffscreenUi.moc"

@@ -95,7 +95,7 @@ void GL41Backend::updateInput() {
                             // GLenum perLocationStride = strides[bufferNum];
                             GLenum perLocationStride = attrib._element.getLocationSize();
                             GLuint stride = (GLuint)strides[bufferNum];
-                            GLuint pointer = (GLuint)(attrib._offset + offsets[bufferNum]);
+                            uintptr_t pointer = (uintptr_t)(attrib._offset + offsets[bufferNum]);
                             GLboolean isNormalized = attrib._element.isNormalized();
 
                             for (size_t locNum = 0; locNum < locationCount; ++locNum) {

@@ -20,7 +20,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <tbb/concurrent_unordered_set.h>
+#include <TBBHelpers.h>
 
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
@@ -52,6 +52,7 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
+    void startThread();
     NodeType_t getOwnerType() const { return _ownerType.load(); }
     void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
@@ -76,8 +77,6 @@ public:
     void toggleIgnoreRadius() { ignoreNodesInRadius(!getIgnoreRadiusEnabled()); }
     void enableIgnoreRadius() { ignoreNodesInRadius(true); }
     void disableIgnoreRadius() { ignoreNodesInRadius(false); }
-    void radiusIgnoreNodeBySessionID(const QUuid& nodeID, bool radiusIgnoreEnabled);
-    bool isRadiusIgnoringNode(const QUuid& other) const;
     void ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled);
     bool isIgnoringNode(const QUuid& nodeID) const;
     void personalMuteNodeBySessionID(const QUuid& nodeID, bool muteEnabled);
@@ -165,8 +164,6 @@ private:
     QTimer _keepAlivePingTimer;
     bool _requestsDomainListData;
 
-    mutable QReadWriteLock _radiusIgnoredSetLock;
-    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _radiusIgnoredNodeIDs;
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
     mutable QReadWriteLock _personalMutedSetLock;

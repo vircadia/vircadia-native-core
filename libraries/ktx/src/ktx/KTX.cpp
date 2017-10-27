@@ -16,12 +16,7 @@
 
 using namespace ktx;
 
-uint32_t Header::evalPadding(size_t byteSize) {
-    //auto padding = byteSize % PACKING_SIZE;
- //   return (uint32_t) (padding ? PACKING_SIZE - padding : 0);
-    return (uint32_t) (3 - (byteSize + 3) % PACKING_SIZE);// padding ? PACKING_SIZE - padding : 0);
-}
-
+int ktxDescriptorMetaTypeId = qRegisterMetaType<KTXDescriptor*>();
 
 const Header::Identifier ktx::Header::IDENTIFIER {{
     0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
@@ -35,85 +30,69 @@ uint32_t Header::evalMaxDimension() const {
     return std::max(getPixelWidth(), std::max(getPixelHeight(), getPixelDepth()));
 }
 
+uint32_t Header::evalPixelOrBlockDimension(uint32_t pixelDimension) const {
+    if (isCompressed()) {
+        return khronos::gl::texture::evalCompressedBlockCount(getGLInternaFormat(), pixelDimension);
+    } 
+    return pixelDimension;
+}
+
+uint32_t Header::evalMipPixelOrBlockDimension(uint32_t mipLevel, uint32_t pixelDimension) const {
+    uint32_t mipPixelDimension = evalMipDimension(mipLevel, pixelDimension);
+    return evalPixelOrBlockDimension(mipPixelDimension);
+}
+
 uint32_t Header::evalPixelOrBlockWidth(uint32_t level) const {
-    auto pixelWidth = std::max(getPixelWidth() >> level, 1U);
-    if (getGLType() == GLType::COMPRESSED_TYPE) {
-        return (pixelWidth + 3) / 4;
-    } else {
-        return pixelWidth;
-    }
+    return evalMipPixelOrBlockDimension(level, getPixelWidth());
 }
+
 uint32_t Header::evalPixelOrBlockHeight(uint32_t level) const {
-    auto pixelWidth = std::max(getPixelHeight() >> level, 1U);
-    if (getGLType() == GLType::COMPRESSED_TYPE) {
-        auto format = getGLInternaFormat_Compressed();
-        switch (format) {
-            case GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT: // BC1
-            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: // BC1A
-            case GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: // BC3
-            case GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1: // BC4
-            case GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2: // BC5
-                return (pixelWidth + 3) / 4;
-            default:
-                throw std::runtime_error("Unknown format");
-        }
-    } else {
-        return pixelWidth;
-    }
+    return evalMipPixelOrBlockDimension(level, getPixelHeight());
 }
+
 uint32_t Header::evalPixelOrBlockDepth(uint32_t level) const {
-    return std::max(getPixelDepth() >> level, 1U);
+    return evalMipDimension(level, getPixelDepth());
 }
 
-size_t Header::evalPixelOrBlockSize() const {
-    if (getGLType() == GLType::COMPRESSED_TYPE) {
-        auto format = getGLInternaFormat_Compressed();
-        if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_S3TC_DXT1_EXT) {
-            return 8;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT) {
-            return 8;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT) {
-            return 16;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_RED_RGTC1) {
-            return 8;
-        } else if (format == GLInternalFormat_Compressed::COMPRESSED_RG_RGTC2) {
-            return 16;
-        }
+size_t Header::evalPixelOrBlockBitSize() const {
+    size_t result = 0;
+    auto format = getGLInternaFormat();
+    if (isCompressed()) {
+        result = khronos::gl::texture::evalCompressedBlockBitSize(format);
     } else {
-        auto baseFormat = getGLBaseInternalFormat();
-        if (baseFormat == GLBaseInternalFormat::RED) {
-            return 1;
-        } else if (baseFormat == GLBaseInternalFormat::RG) {
-            return 2;
-        } else if (baseFormat == GLBaseInternalFormat::RGB) {
-            return 3;
-        } else if (baseFormat == GLBaseInternalFormat::RGBA) {
-            return 4;
-        }
+        result = khronos::gl::texture::evalUncompressedBlockBitSize(format);
     }
 
-    qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
-    return 0;
+    if (0 == result) {
+        qWarning() << "Unknown ktx format: " << glFormat << " " << glBaseInternalFormat << " " << glInternalFormat;
+    }
+    return result;
 }
 
 size_t Header::evalRowSize(uint32_t level) const {
     auto pixWidth = evalPixelOrBlockWidth(level);
-    auto pixSize = evalPixelOrBlockSize();
+    auto pixSize = evalPixelOrBlockBitSize();
     if (pixSize == 0) {
         return 0;
     }
-    auto netSize = pixWidth * pixSize;
-    auto padding = evalPadding(netSize);
-    return netSize + padding;
+    auto totalByteSize = pixWidth * pixSize;
+    // Round to the nearest upper byte size
+    totalByteSize = (totalByteSize / 8) + (((totalByteSize % 8) != 0) & 1);
+    return evalPaddedSize(totalByteSize);
 }
+
 size_t Header::evalFaceSize(uint32_t level) const {
     auto pixHeight = evalPixelOrBlockHeight(level);
     auto pixDepth = evalPixelOrBlockDepth(level);
     auto rowSize = evalRowSize(level);
     return pixDepth * pixHeight * rowSize;
 }
+
 size_t Header::evalImageSize(uint32_t level) const {
     auto faceSize = evalFaceSize(level);
+    if (!checkAlignment(faceSize)) {
+        return 0;
+    }
     if (numberOfFaces == NUM_CUBEMAPFACES && numberOfArrayElements == 0) {
         return faceSize;
     } else {
@@ -139,6 +118,9 @@ ImageDescriptors Header::generateImageDescriptors() const {
     size_t imageOffset = 0;
     for (uint32_t level = 0; level < numberOfMipmapLevels; ++level) {
         auto imageSize = static_cast<uint32_t>(evalImageSize(level));
+        if (!checkAlignment(imageSize)) {
+            return ImageDescriptors();
+        }
         if (imageSize == 0) {
             return ImageDescriptors();
         }
@@ -180,7 +162,7 @@ KeyValue::KeyValue(const std::string& key, const std::string& value) :
 }
 
 uint32_t KeyValue::serializedByteSize() const {
-    return (uint32_t) (sizeof(uint32_t) + _byteSize + Header::evalPadding(_byteSize));
+    return (uint32_t)sizeof(uint32_t) + evalPaddedSize(_byteSize);
 }
 
 uint32_t KeyValue::serializedKeyValuesByteSize(const KeyValues& keyValues) {
@@ -188,14 +170,8 @@ uint32_t KeyValue::serializedKeyValuesByteSize(const KeyValues& keyValues) {
     for (auto& keyval : keyValues) {
         keyValuesSize += keyval.serializedByteSize();
     }
-    return (keyValuesSize + Header::evalPadding(keyValuesSize));
-}
-
-
-KTX::KTX() {
-}
-
-KTX::~KTX() {
+    Q_ASSERT(keyValuesSize % 4 == 0);
+    return keyValuesSize;
 }
 
 void KTX::resetStorage(const StoragePointer& storage) {
@@ -218,7 +194,7 @@ size_t KTX::getTexelsDataSize() const {
     if (!_storage) {
         return 0;
     }
-    return  (_storage->data() + _storage->size()) - getTexelsData();
+    return  _storage->size() - sizeof(Header) - getKeyValueDataSize();
 }
 
 const Byte* KTX::getKeyValueData() const {

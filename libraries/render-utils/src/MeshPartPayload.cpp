@@ -14,8 +14,6 @@
 #include <PerfStat.h>
 
 #include "DeferredLightingEffect.h"
-#include "Model.h"
-#include "EntityItem.h"
 
 using namespace render;
 
@@ -260,7 +258,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     gpu::Batch& batch = *(args->_batch);
 
-    auto locations = args->_pipeline->locations;
+    auto locations = args->_shapePipeline->locations;
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
@@ -319,36 +317,47 @@ template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer&
 template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
 }
+
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
-    _model(model),
-    _meshIndex(_meshIndex),
+ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
+    _meshIndex(meshIndex),
     _shapeID(shapeIndex) {
 
-    assert(_model && _model->isLoaded());
-    auto& modelMesh = _model->getGeometry()->getMeshes().at(_meshIndex);
+    assert(model && model->isLoaded());
+    _model = model;
+    auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    const Model::MeshState& state = model->getMeshState(_meshIndex);
+
     updateMeshPart(modelMesh, partIndex);
+    computeAdjustedLocalBound(state.clusterMatrices);
 
     updateTransform(transform, offsetTransform);
+    Transform renderTransform = transform;
+    if (state.clusterMatrices.size() == 1) {
+        renderTransform = transform.worldTransform(Transform(state.clusterMatrices[0]));
+    }
+    updateTransformForSkinnedMesh(renderTransform, transform, state.clusterBuffer);
+
     initCache();
 }
 
 void ModelMeshPartPayload::initCache() {
-    assert(_model->isLoaded());
+    ModelPointer model = _model.lock();
+    assert(model && model->isLoaded());
 
     if (_drawMesh) {
         auto vertexFormat = _drawMesh->getVertexFormat();
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
         _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
 
-        const FBXGeometry& geometry = _model->getFBXGeometry();
+        const FBXGeometry& geometry = model->getFBXGeometry();
         const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
 
         _isBlendShaped = !mesh.blendshapes.isEmpty();
     }
 
-    auto networkMaterial = _model->getGeometry()->getShapeMaterial(_shapeID);
+    auto networkMaterial = model->getGeometry()->getShapeMaterial(_shapeID);
     if (networkMaterial) {
         _drawMaterial = networkMaterial;
     }
@@ -370,55 +379,55 @@ ItemKey ModelMeshPartPayload::getKey() const {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
-    if (!_model->isVisible()) {
-        builder.withInvisible();
-    }
+    ModelPointer model = _model.lock();
+    if (model) {
+        if (!model->isVisible()) {
+            builder.withInvisible();
+        }
 
-    if (_model->isLayeredInFront()) {
-        builder.withLayered();
-    }
+        if (model->isLayeredInFront() || model->isLayeredInHUD()) {
+            builder.withLayered();
+        }
 
-    if (_isBlendShaped || _isSkinned) {
-        builder.withDeformed();
-    }
+        if (_isBlendShaped || _isSkinned) {
+            builder.withDeformed();
+        }
 
-    if (_drawMaterial) {
-        auto matKey = _drawMaterial->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
+        if (_drawMaterial) {
+            auto matKey = _drawMaterial->getKey();
+            if (matKey.isTranslucent()) {
+                builder.withTransparent();
+            }
         }
     }
-
-    if (_fadeState != FADE_COMPLETE) {
-        builder.withTransparent();
-    }
-
     return builder.build();
 }
 
 int ModelMeshPartPayload::getLayer() const {
-    // MAgic number while we are defining the layering mechanism:
-    const int LAYER_3D_FRONT = 1;
-    const int LAYER_3D = 0;
-    if (_model->isLayeredInFront()) {
-        return LAYER_3D_FRONT;
-    } else {
-        return LAYER_3D;
+    ModelPointer model = _model.lock();
+    if (model) {
+        if (model->isLayeredInFront()) {
+            return Item::LAYER_3D_FRONT;
+        } else if (model->isLayeredInHUD()) {
+            return Item::LAYER_3D_HUD;
+        }
     }
+    return Item::LAYER_3D;
 }
 
 ShapeKey ModelMeshPartPayload::getShapeKey() const {
 
     // guard against partially loaded meshes
-    if (!_model || !_model->isLoaded() || !_model->getGeometry()) {
+    ModelPointer model = _model.lock();
+    if (!model || !model->isLoaded() || !model->getGeometry()) {
         return ShapeKey::Builder::invalid();
     }
 
-    const FBXGeometry& geometry = _model->getFBXGeometry();
-    const auto& networkMeshes = _model->getGeometry()->getMeshes();
+    const FBXGeometry& geometry = model->getFBXGeometry();
+    const auto& networkMeshes = model->getGeometry()->getMeshes();
 
     // guard against partially loaded meshes
-    if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)_model->_meshStates.size()) {
+    if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)model->_meshStates.size()) {
         return ShapeKey::Builder::invalid();
     }
 
@@ -427,8 +436,8 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
     // to false to rebuild out mesh groups.
     if (_meshIndex < 0 || _meshIndex >= (int)networkMeshes.size() || _meshIndex > geometry.meshes.size()) {
-        _model->_needsFixupInScene = true; // trigger remove/add cycle
-        _model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
+        model->_needsFixupInScene = true; // trigger remove/add cycle
+        model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
         return ShapeKey::Builder::invalid();
     }
 
@@ -452,7 +461,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isSkinned = _isSkinned;
-    bool wireframe = _model->isWireframe();
+    bool wireframe = model->isWireframe();
 
     if (wireframe) {
         isTranslucent = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
@@ -461,7 +470,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     ShapeKey::Builder builder;
     builder.withMaterial();
 
-    if (isTranslucent || _fadeState != FADE_COMPLETE) {
+    if (isTranslucent) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -488,23 +497,26 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
     if (!_isBlendShaped) {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-
         batch.setInputFormat((_drawMesh->getVertexFormat()));
-
         batch.setInputStream(0, _drawMesh->getVertexStream());
     } else {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-
         batch.setInputFormat((_drawMesh->getVertexFormat()));
 
-        batch.setInputBuffer(0, _model->_blendedVertexBuffers[_meshIndex], 0, sizeof(glm::vec3));
-        batch.setInputBuffer(1, _model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
-        batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
+        ModelPointer model = _model.lock();
+        if (model) {
+            batch.setInputBuffer(0, model->_blendedVertexBuffers[_meshIndex], 0, sizeof(glm::vec3));
+            batch.setInputBuffer(1, model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
+            batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
+        } else {
+            batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
+            batch.setInputFormat((_drawMesh->getVertexFormat()));
+            batch.setInputStream(0, _drawMesh->getVertexStream());
+        }
     }
 
-    if (_fadeState != FADE_COMPLETE) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, computeFadeAlpha());
-    } else if (!_hasColorAttrib) {
+    // TODO: Get rid of that extra call
+    if (!_hasColorAttrib) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
@@ -517,48 +529,25 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-float ModelMeshPartPayload::computeFadeAlpha() {
-    if (_fadeState == FADE_WAITING_TO_START) {
-        return 0.0f;
-    }
-    float fadeAlpha = 1.0f;
-    const float INV_FADE_PERIOD = 1.0f / (float)(1 * USECS_PER_SECOND);
-    float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
-    if (fraction < 1.0f) {
-        fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
-    }
-    if (fadeAlpha >= 1.0f) {
-        _fadeState = FADE_COMPLETE;
-        // when fade-in completes we flag model for one last "render item update"
-        _model->setRenderItemsNeedUpdate();
-        return 1.0f;
-    }
-    return Interpolate::simpleNonLinearBlend(fadeAlpha);
-}
-
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!_model->addedToScene() || !_model->isVisible()) {
+    ModelPointer model = _model.lock();
+    if (!model || !model->isAddedToScene() || !model->isVisible()) {
         return; // bail asap
     }
 
-    if (_fadeState == FADE_WAITING_TO_START) {
-        if (_model->isLoaded()) {
-            if (EntityItem::getEntitiesShouldFadeFunction()()) {
-                _fadeStartTime = usecTimestampNow();
-                _fadeState = FADE_IN_PROGRESS;
-            } else {
-                _fadeState = FADE_COMPLETE;
-            }
-            _model->setRenderItemsNeedUpdate();
+    if (_state == WAITING_TO_START) {
+        if (model->isLoaded()) {
+            _state = STARTED;
+            model->setRenderItemsNeedUpdate();
         } else {
             return;
         }
     }
 
-    if (_materialNeedsUpdate && _model->getGeometry()->areTexturesLoaded()) {
-        _model->setRenderItemsNeedUpdate();
+    if (_materialNeedsUpdate && model->getGeometry()->areTexturesLoaded()) {
+        model->setRenderItemsNeedUpdate();
         _materialNeedsUpdate = false;
     }
 
@@ -570,7 +559,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *(args->_batch);
-    auto locations =  args->_pipeline->locations;
+    auto locations =  args->_shapePipeline->locations;
     assert(locations);
 
     bindTransform(batch, locations, args->_renderMode);

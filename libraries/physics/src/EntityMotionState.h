@@ -79,6 +79,7 @@ public:
 
     virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
+    bool isLocallyOwned() const override;
     bool shouldBeLocallyOwned() const override;
 
     friend class PhysicalEntitySimulation;
@@ -106,6 +107,7 @@ protected:
     // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
     EntityItem* _entity;
 
+    bool _serverVariablesSet { false };
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
     glm::vec3 _serverVelocity;

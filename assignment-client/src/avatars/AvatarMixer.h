@@ -28,7 +28,13 @@ class AvatarMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AvatarMixer(ReceivedMessage& message);
-    ~AvatarMixer();
+
+    static bool shouldReplicateTo(const Node& from, const Node& to) {
+        return to.getType() == NodeType::DownstreamAvatarMixer &&
+               to.getPublicSocket() != from.getPublicSocket() &&
+               to.getLocalSocket() != from.getLocalSocket();
+    }
+
 public slots:
     /// runs the avatar mixer
     void run() override;
@@ -42,10 +48,12 @@ private slots:
     void handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
+    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleReplicatedPacket(QSharedPointer<ReceivedMessage> message);
+    void handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void domainSettingsRequestComplete();
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
     void start();
@@ -59,7 +67,14 @@ private:
     void parseDomainServerSettings(const QJsonObject& domainSettings);
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
-    void manageDisplayName(const SharedNodePointer& node);
+    void manageIdentityData(const SharedNodePointer& node);
+    bool isAvatarInWhitelist(const QUrl& url);
+
+    const QString REPLACEMENT_AVATAR_DEFAULT{ "" };
+    QStringList _avatarWhitelist { };
+    QString _replacementAvatar { REPLACEMENT_AVATAR_DEFAULT };
+
+    void optionallyReplicatePacket(ReceivedMessage& message, const Node& node);
 
     p_high_resolution_clock::time_point _lastFrameTimestamp;
 

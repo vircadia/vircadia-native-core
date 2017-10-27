@@ -1,0 +1,101 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  simple_fade.frag
+//  fragment shader
+//
+//  Created by Olivier Prat on 06/05/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+<@include model/Material.slh@>
+
+<@include Fade.slh@>
+<$declareFadeFragmentInstanced()$>
+
+// the interpolated normal
+in vec3 _normal;
+in vec3 _modelNormal;
+in vec4 _color;
+in vec2 _texCoord0;
+in vec4 _position;
+in vec4 _worldPosition;
+
+//PROCEDURAL_COMMON_BLOCK
+
+#line 1001
+//PROCEDURAL_BLOCK
+
+#line 2030
+void main(void) {
+    vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
+
+    <$fetchFadeObjectParamsInstanced(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+
+    Material material = getMaterial();
+    vec3 normal = normalize(_normal.xyz); 
+    vec3 diffuse = _color.rgb; 
+    vec3 specular = DEFAULT_SPECULAR;
+    float shininess = DEFAULT_SHININESS;
+    float emissiveAmount = 0.0;
+
+#ifdef PROCEDURAL
+
+#ifdef PROCEDURAL_V1
+    specular = getProceduralColor().rgb;
+    // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
+    //specular = pow(specular, vec3(2.2));
+    emissiveAmount = 1.0;
+#else 
+    emissiveAmount = getProceduralColors(diffuse, specular, shininess);
+#endif
+
+#endif
+
+    const float ALPHA_THRESHOLD = 0.999;
+    if (_color.a < ALPHA_THRESHOLD) {
+        if (emissiveAmount > 0.0) {
+            packDeferredFragmentTranslucent(
+                normal,
+                _color.a,
+                specular+fadeEmissive,
+                DEFAULT_FRESNEL,
+                DEFAULT_ROUGHNESS);
+        } else {
+            packDeferredFragmentTranslucent(
+                normal,
+                _color.a,
+                diffuse+fadeEmissive,
+                DEFAULT_FRESNEL,
+                DEFAULT_ROUGHNESS);
+        }
+    } else {
+        if (emissiveAmount > 0.0) {
+            packDeferredFragmentLightmap(
+                normal,
+                1.0,
+                diffuse+fadeEmissive,
+                max(0, 1.0 - shininess / 128.0),
+                DEFAULT_METALLIC,
+                specular,
+                specular);
+        } else {
+            packDeferredFragment(
+                normal,
+                1.0,
+                diffuse,
+                max(0, 1.0 - shininess / 128.0),
+                length(specular),
+                DEFAULT_EMISSIVE+fadeEmissive,
+                DEFAULT_OCCLUSION,
+                DEFAULT_SCATTERING);
+        }
+    }
+}

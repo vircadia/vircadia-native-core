@@ -1,95 +1,42 @@
 <!--
 //  particleExplorer.hml
-//  
+//
 //
 //  Created by James B. Pollack @imgntn on 9/26/2015
 //  Copyright 2015 High Fidelity, Inc.
 //
-//  Loads dat.gui, underscore, and the app
-//  Quickly edit the aesthetics of a particle system.  
+
+//  Reworked by Menithal on 20/5/2017
+//  Using a custom built system for High Fidelity
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-// 
- -->    
+//
+ -->
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="../html/css/colpick.css">
-<script type="text/javascript" src="dat.gui.min.js"></script>
-<script type="text/javascript" src="underscore-min.js"></script>
-<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
-<script type="text/javascript" src="../html/js/eventBridgeLoader.js"></script>
-<script type="text/javascript" src="../html/js/jquery-2.1.4.min.js"></script>
-<script type="text/javascript" src="../html/js/colpick.js"></script>
-<script type="text/javascript" src="particleExplorer.js"></script>
-<script>
-    function loaded() {
-        // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
-        document.addEventListener("contextmenu", function (event) {
-            event.preventDefault();
-        }, false);
-    }
-</script>
-<style>
+    <link rel="stylesheet" type="text/css" href="../html/css/colpick.css">
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script type="text/javascript" src="../html/js/eventBridgeLoader.js"></script>
+    <!---->
+    <script type="text/javascript" src="../html/js/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="../html/js/colpick.js"></script>
 
-body{
-    background-color:black;
-    overflow-x: hidden;
-}
+    <script type="text/javascript" src="underscore-min.js"></script>
+    <script type="text/javascript" src="hifi-entity-ui.js?v1"></script>
 
-#my-gui-container{
-
-}
-
-.importer{
-    margin-bottom:4px;
-}
-.exported-props-section {
-    width: 50%;
-    margin: 0 auto; 
-
-}
-#exported-props {
-    /* Set the margin-left and margin-right automatically set */
-    color: white;
-    white-space: pre-wrap;       /* css-3 */
-}
-
-.color-box {
-    display: block;
-    width: 60%;
-    height: 21px;
-    margin-top: 4px;
-    float: left;
-}
-
-.color-box.highlight {
-    width: 13.5pt;
-    height: 13.5pt;
-    border: 1.5pt solid black;
-}
-
-::-webkit-input-placeholder {
-    text-align: center;
-    font-family: Helvetica
-}
-
-#importer-input{
-    width:90%;
-    line-height: 2;
-    margin-left:5%;
-}
-
-</style>
+    <link rel="stylesheet" type="text/css" href="../html/css/hifi-style.css">
+    <link rel="stylesheet" type="text/css" href="../html/css/edit-style.css">
+    <link rel="stylesheet" type="text/css" href="particle-style.css">
 </head>
-<body  onload="loaded();">
-<div class="importer">
-<input type='text' id="importer-input" placeholder="Import: Paste JSON here."  onkeypress="handleInputKeyPress(event)">
-<div class = "exported-props-section">
-  <div id = "exported-props"></div> 
-</div>
-<div id="my-gui-container">
-</div>
-
+<body>
+    <div id="particle-explorer">
+        <div class="section-header">
+            <label> Particle Explorer </label>
+        </div>
+        <!-- This will be filled by the script! -->
+    </div>
+    <div id="rem"></div>
+    <script type="text/javascript" src="particleExplorer.js"></script>
 </body>
 </html>

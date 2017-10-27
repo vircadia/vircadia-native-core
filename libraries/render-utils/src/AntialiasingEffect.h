@@ -33,7 +33,7 @@ public:
     void configure(const Config& config) {}
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
 
-    const gpu::PipelinePointer& getAntialiasingPipeline();
+    const gpu::PipelinePointer& getAntialiasingPipeline(RenderArgs* args);
     const gpu::PipelinePointer& getBlendPipeline();
 
 private:

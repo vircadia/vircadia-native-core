@@ -35,8 +35,8 @@ var audioOptions = new AudioEffectOptions({
     wetDryMix: 50,
 });
 
-AudioDevice.setReverbOptions(audioOptions);
-AudioDevice.setReverb(true);
+Audio.setReverbOptions(audioOptions);
+Audio.setReverb(true);
 print("Reverb is ON.");
 
 var panel = new Panel(10, 160);
@@ -66,7 +66,7 @@ var parameters = [
 ]
 
 function setter(name) {
-    return function(value) { audioOptions[name] = value; AudioDevice.setReverbOptions(audioOptions); }
+    return function(value) { audioOptions[name] = value; Audio.setReverbOptions(audioOptions); }
 }
 
 function getter(name) {
@@ -89,7 +89,7 @@ Controller.mouseReleaseEvent.connect(function(event) { return panel.mouseRelease
 
 function scriptEnding() {
     panel.destroy();
-    AudioDevice.setReverb(false);
+    Audio.setReverb(false);
     print("Reverb is OFF.");
 }
 Script.scriptEnding.connect(scriptEnding);

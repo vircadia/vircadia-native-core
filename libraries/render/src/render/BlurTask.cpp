@@ -217,7 +217,7 @@ void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::Fra
     auto blurVPipeline = getBlurVPipeline();
     auto blurHPipeline = getBlurHPipeline();
 
-    _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->_context->isStereo());
+    _parameters->setWidthHeight(args->_viewport.z, args->_viewport.w, args->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
     _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, args->_viewport));
 
@@ -330,7 +330,7 @@ void BlurGaussianDepthAware::run(const RenderContextPointer& renderContext, cons
 
     auto sourceViewport = args->_viewport;
 
-    _parameters->setWidthHeight(sourceViewport.z, sourceViewport.w, args->_context->isStereo());
+    _parameters->setWidthHeight(sourceViewport.z, sourceViewport.w, args->isStereo());
     glm::ivec2 textureSize(blurringResources.sourceTexture->getDimensions());
     _parameters->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, sourceViewport));
     _parameters->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);

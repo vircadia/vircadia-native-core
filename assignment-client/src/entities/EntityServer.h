@@ -59,6 +59,8 @@ public:
     virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) override;
     virtual void trackViewerGone(const QUuid& sessionID) override;
 
+    virtual void aboutToFinish() override;
+
 public slots:
     virtual void nodeAdded(SharedNodePointer node) override;
     virtual void nodeKilled(SharedNodePointer node) override;

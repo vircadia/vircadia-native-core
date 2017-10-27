@@ -16,9 +16,10 @@
 
 #include <PerfStat.h>
 #include <ViewFrustum.h>
-#include <RenderArgs.h>
 
 #include <gpu/Context.h>
+
+#include "Args.h"
 
 #include "drawItemBounds_vert.h"
 #include "drawItemBounds_frag.h"

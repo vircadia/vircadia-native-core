@@ -47,6 +47,7 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include <QtCore/QDebug>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QTimer>
 #include <QProcess>
 #include <QSysInfo>
 #include <QThread>
@@ -768,9 +769,10 @@ bool similarStrings(const QString& stringA, const QString& stringB) {
 }
 
 void disableQtBearerPoll() {
-    // to work around the Qt constant wireless scanning, set the env for polling interval very high
-    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT16_MAX).toLocal8Bit();
-    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
+    // to disable the Qt constant wireless scanning, set the env for polling interval
+    qDebug() << "Disabling Qt wireless polling by using a negative value for QTimer::setInterval";
+    const QByteArray DISABLE_BEARER_POLL_TIMEOUT = QString::number(-1).toLocal8Bit();
+    qputenv("QT_BEARER_POLL_TIMEOUT", DISABLE_BEARER_POLL_TIMEOUT);
 }
 
 void printSystemInformation() {
@@ -1075,3 +1077,39 @@ void setMaxCores(uint8_t maxCores) {
     SetProcessAffinityMask(process, newProcessAffinity);
 #endif
 }
+
+void quitWithParentProcess() {
+    if (qApp) {
+        qDebug() << "Parent process died, quitting";
+        qApp->quit();
+    }
+}
+
+#ifdef Q_OS_WIN
+VOID CALLBACK parentDiedCallback(PVOID lpParameter, BOOLEAN timerOrWaitFired) {
+    if (!timerOrWaitFired) {
+        quitWithParentProcess();
+    }
+}
+
+void watchParentProcess(int parentPID) {
+    DWORD processID = parentPID;
+    HANDLE procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
+
+    HANDLE newHandle;
+    RegisterWaitForSingleObject(&newHandle, procHandle, parentDiedCallback, NULL, INFINITE, WT_EXECUTEONLYONCE);
+}
+#elif defined(Q_OS_MAC) || defined(Q_OS_LINUX)
+void watchParentProcess(int parentPID) {
+    auto timer = new QTimer(qApp);
+    timer->setInterval(MSECS_PER_SECOND);
+    QObject::connect(timer, &QTimer::timeout, qApp, [parentPID]() {
+        auto ppid = getppid();
+        if (parentPID != ppid) {
+            // If the PPID changed, then that means our parent process died.
+            quitWithParentProcess();
+        }
+    });
+    timer->start();
+}
+#endif

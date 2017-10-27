@@ -16,10 +16,9 @@
 #include <mutex>
 #include <vector>
 
-#include <tbb/concurrent_queue.h>
-
 #include <QThread>
 
+#include <TBBHelpers.h>
 #include <NodeList.h>
 
 #include "AvatarMixerSlave.h"

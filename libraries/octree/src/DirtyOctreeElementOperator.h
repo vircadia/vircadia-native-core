@@ -16,12 +16,12 @@
 
 class DirtyOctreeElementOperator : public RecurseOctreeOperator {
 public:
-    DirtyOctreeElementOperator(OctreeElementPointer element);
+    DirtyOctreeElementOperator(const OctreeElementPointer& element);
 
     ~DirtyOctreeElementOperator() {}
 
-    virtual bool preRecursion(OctreeElementPointer element) override;
-    virtual bool postRecursion(OctreeElementPointer element) override;
+    virtual bool preRecursion(const OctreeElementPointer& element) override;
+    virtual bool postRecursion(const OctreeElementPointer& element) override;
 private:
     glm::vec3 _point;
     OctreeElementPointer _element;

@@ -25,7 +25,9 @@ StoragePointer Storage::createView(size_t viewSize, size_t offset) const {
         viewSize = selfSize;
     }
     if ((viewSize + offset) > selfSize) {
-        throw std::runtime_error("Invalid mapping range");
+        return StoragePointer();
+        //TODO: Disable te exception for now and return an empty storage instead.
+        //throw std::runtime_error("Invalid mapping range");
     }
     return std::make_shared<ViewStorage>(shared_from_this(), viewSize, data() + offset);
 }
@@ -68,7 +70,15 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
-    if (_file.open(QFile::ReadWrite)) {
+    bool opened = _file.open(QFile::ReadWrite);
+    if (opened) {
+        _hasWriteAccess = true;
+    } else {
+        _hasWriteAccess = false;
+        opened = _file.open(QFile::ReadOnly);
+    }
+
+    if (opened) {
         _mapped = _file.map(0, _file.size());
         if (_mapped) {
             _valid = true;
@@ -82,9 +92,8 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
 
 FileStorage::~FileStorage() {
     if (_mapped) {
-        if (!_file.unmap(_mapped)) {
-            throw std::runtime_error("Unable to unmap file");
-        }
+        _file.unmap(_mapped);
+        _mapped = nullptr;
     }
     if (_file.isOpen()) {
         _file.close();

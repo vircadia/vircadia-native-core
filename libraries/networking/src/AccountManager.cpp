@@ -28,6 +28,7 @@
 
 #include <SettingHandle.h>
 
+#include "NetworkingConstants.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "udt/PacketHeaders.h"
@@ -44,7 +45,6 @@ Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
-static const auto METAVERSE_SESSION_ID_HEADER = QString("HFM-SessionID").toLocal8Bit();
 
 JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, const QString& jsonCallbackMethod,
                                                QObject* errorCallbackReceiver, const QString& errorCallbackMethod,
@@ -92,6 +92,7 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
+const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
@@ -189,8 +190,20 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
             requestProfile();
         }
 
+        // prepare to refresh our token if it is about to expire
+        if (needsToRefreshToken()) {
+            refreshAccessToken();
+        }
+
         // tell listeners that the auth endpoint has changed
         emit authEndpointChanged();
+    }
+}
+
+void AccountManager::setSessionID(const QUuid& sessionID) {
+    if (_sessionID != sessionID) {
+        qCDebug(networking) << "Metaverse session ID changed to" << uuidStringWithoutCurlyBraces(sessionID);
+        _sessionID = sessionID;
     }
 }
 
@@ -225,6 +238,10 @@ void AccountManager::sendRequest(const QString& path,
                                 uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
 
     QUrl requestURL = _authURL;
+    
+    if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
+        requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    }
 
     if (path.startsWith("/")) {
         requestURL.setPath(path);
@@ -443,6 +460,11 @@ bool AccountManager::hasValidAccessToken() {
 
         return false;
     } else {
+
+        if (!_isWaitingForTokenRefresh && needsToRefreshToken()) {
+            refreshAccessToken();
+        }
+
         return true;
     }
 }
@@ -456,6 +478,15 @@ bool AccountManager::checkAndSignalForAccessToken() {
     }
 
     return hasToken;
+}
+
+bool AccountManager::needsToRefreshToken() {
+    if (!_accountInfo.getAccessToken().token.isEmpty() && _accountInfo.getAccessToken().expiryTimestamp > 0) {
+        qlonglong expireThreshold = QDateTime::currentDateTime().addSecs(1 * 60 * 60).toMSecsSinceEpoch();
+        return _accountInfo.getAccessToken().expiryTimestamp < expireThreshold;
+    } else {
+        return false;
+    }
 }
 
 void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken) {
@@ -490,8 +521,6 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
 
-    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
-
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("username=" + login + "&");
@@ -515,8 +544,6 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     QUrl grantURL = _authURL;
     grantURL.setPath("/oauth/token");
 
-    const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
-
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
@@ -528,6 +555,40 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     QNetworkReply* requestReply = networkAccessManager.post(request, postData);
     connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
     connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
+}
+
+void AccountManager::refreshAccessToken() {
+
+    // we can't refresh our access token if we don't have a refresh token, so check for that first
+    if (!_accountInfo.getAccessToken().refreshToken.isEmpty()) {
+        qCDebug(networking) << "Refreshing access token since it will be expiring soon.";
+
+        _isWaitingForTokenRefresh = true;
+
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+        QNetworkRequest request;
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+        QUrl grantURL = _authURL;
+        grantURL.setPath("/oauth/token");
+
+        QByteArray postData;
+        postData.append("grant_type=refresh_token&");
+        postData.append("refresh_token=" + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
+        postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+
+        request.setUrl(grantURL);
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+        QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+        connect(requestReply, &QNetworkReply::finished, this, &AccountManager::refreshAccessTokenFinished);
+        connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(refreshAccessTokenError(QNetworkReply::NetworkError)));
+    } else {
+        qCWarning(networking) << "Cannot refresh access token without refresh token."
+            << "Access token will need to be manually refreshed.";
+    }
 }
 
 void AccountManager::requestAccessTokenFinished() {
@@ -568,8 +629,45 @@ void AccountManager::requestAccessTokenFinished() {
 
 void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) {
     // TODO: error handling
-    qCDebug(networking) << "AccountManager requestError - " << error;
+    qCDebug(networking) << "AccountManager: failed to fetch access token - " << error;
     emit loginFailed();
+}
+
+void AccountManager::refreshAccessTokenFinished() {
+    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
+    const QJsonObject& rootObject = jsonResponse.object();
+
+    if (!rootObject.contains("error")) {
+        // construct an OAuthAccessToken from the json object
+
+        if (!rootObject.contains("access_token") || !rootObject.contains("expires_in")
+            || !rootObject.contains("token_type")) {
+            // TODO: error handling - malformed token response
+            qCDebug(networking) << "Received a response for refresh grant that is missing one or more expected values.";
+        } else {
+            // clear the path from the response URL so we have the right root URL for this access token
+            QUrl rootURL = requestReply->url();
+            rootURL.setPath("");
+
+            qCDebug(networking) << "Storing an account with a refreshed access-token for" << qPrintable(rootURL.toString());
+
+            _accountInfo.setAccessTokenFromJSON(rootObject);
+
+            persistAccountToFile();
+        }
+    } else {
+        qCWarning(networking) << "Error in response for refresh grant - " << rootObject["error_description"].toString();
+    }
+
+    _isWaitingForTokenRefresh = false;
+}
+
+void AccountManager::refreshAccessTokenError(QNetworkReply::NetworkError error) {
+    // TODO: error handling
+    qCDebug(networking) << "AccountManager: failed to refresh access token - " << error;
+    _isWaitingForTokenRefresh = false;
 }
 
 void AccountManager::requestProfile() {

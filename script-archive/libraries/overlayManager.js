@@ -269,9 +269,6 @@
         "minorGridWidth", "majorGridEvery"
     ]);
 
-    LocalModelsOverlay = generateOverlayClass(Volume3DOverlay, "localmodels", [
-    ]);
-
     ModelOverlay = generateOverlayClass(Volume3DOverlay, "model", [
         "url", "dimensions", "textures"
     ]);

@@ -13,7 +13,7 @@ var WebChannel;
 
 openEventBridge = function(callback) {
     WebChannel = new QWebChannel(qt.webChannelTransport, function (channel) {
-        EventBridge = WebChannel.objects.eventBridgeWrapper.eventBridge;
+        EventBridge = WebChannel.objects.eventBridge;
         callback(EventBridge);
     });
 }

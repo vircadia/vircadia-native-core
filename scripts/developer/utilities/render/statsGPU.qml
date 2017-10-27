@@ -20,9 +20,7 @@ Item {
         id: stats
         spacing: 8
         anchors.fill:parent
- 
-        property var config: Render.getConfig("Stats")
- 
+    
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
             return (height - spacing * (children.length - 1)) / children.length
@@ -38,31 +36,31 @@ Item {
            valueNumDigits: "4"
            plots: [
             {
-                   object: Render.getConfig("OpaqueRangeTimer"),
+                   object: Render.getConfig("RenderMainView.OpaqueRangeTimer"),
                    prop: "gpuRunTime",
                    label: "Opaque",
                    color: "#FFFFFF"
                }, 
                {
-                   object: Render.getConfig("LinearDepth"),
+                   object: Render.getConfig("RenderMainView.LinearDepth"),
                    prop: "gpuRunTime",
                    label: "LinearDepth",
                    color: "#00FF00"
                },{
-                   object: Render.getConfig("SurfaceGeometry"),
+                   object: Render.getConfig("RenderMainView.SurfaceGeometry"),
                    prop: "gpuRunTime",
                    label: "SurfaceGeometry",
                    color: "#00FFFF"
                },
                {
-                   object: Render.getConfig("RenderDeferred"),
+                   object: Render.getConfig("RenderMainView.RenderDeferred"),
                    prop: "gpuRunTime",
                    label: "DeferredLighting",
                    color: "#FF00FF"
                }
                ,
                {
-                   object: Render.getConfig("ToneAndPostRangeTimer"),
+                   object: Render.getConfig("RenderMainView.ToneAndPostRangeTimer"),
                    prop: "gpuRunTime",
                    label: "tone and post",
                    color: "#FF0000"
@@ -78,31 +76,31 @@ Item {
            valueNumDigits: "3"
            plots: [
             {
-                   object: Render.getConfig("OpaqueRangeTimer"),
+                   object: Render.getConfig("RenderMainView.OpaqueRangeTimer"),
                    prop: "batchRunTime",
                    label: "Opaque",
                    color: "#FFFFFF"
                }, 
                {
-                   object: Render.getConfig("LinearDepth"),
+                   object: Render.getConfig("RenderMainView.LinearDepth"),
                    prop: "batchRunTime",
                    label: "LinearDepth",
                    color: "#00FF00"
                },{
-                   object: Render.getConfig("SurfaceGeometry"),
+                   object: Render.getConfig("RenderMainView.SurfaceGeometry"),
                    prop: "batchRunTime",
                    label: "SurfaceGeometry",
                    color: "#00FFFF"
                },
                {
-                   object: Render.getConfig("RenderDeferred"),
+                   object: Render.getConfig("RenderMainView.RenderDeferred"),
                    prop: "batchRunTime",
                    label: "DeferredLighting",
                    color: "#FF00FF"
                }
                ,
                {
-                   object: Render.getConfig("ToneAndPostRangeTimer"),
+                   object: Render.getConfig("RenderMainView.ToneAndPostRangeTimer"),
                    prop: "batchRunTime",
                    label: "tone and post",
                    color: "#FF0000"

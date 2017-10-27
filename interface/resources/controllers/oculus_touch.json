@@ -57,6 +57,8 @@
         { "from": "OculusTouch.LeftThumbUp", "to": "Standard.LeftThumbUp" },
         { "from": "OculusTouch.RightThumbUp", "to": "Standard.RightThumbUp" },
         { "from": "OculusTouch.LeftIndexPoint", "to": "Standard.LeftIndexPoint" },
-        { "from": "OculusTouch.RightIndexPoint", "to": "Standard.RightIndexPoint" }
+        { "from": "OculusTouch.RightIndexPoint", "to": "Standard.RightIndexPoint" },
+
+        { "from": "OculusTouch.Head", "to" : "Standard.Head", "when" : [ "Application.InHMD"] }
     ]
 }

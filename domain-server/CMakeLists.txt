@@ -14,6 +14,8 @@ if (APPLE)
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 endif ()
 
+setup_memory_debugger()
+
 # TODO: find a solution that will handle web file changes in resources on windows without a re-build.
 # Currently the resources are only copied on post-build. If one is changed but the domain-server is not, they will
 # not be re-copied. This is worked-around on OS X/UNIX by using a symlink.

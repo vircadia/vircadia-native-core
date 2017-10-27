@@ -112,6 +112,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
         const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
         const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
         const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
+        const QString EDITORS_CAN_REPLACE_CONTENT_KEYPATH = "security.editors_can_replace_content";
 
         qDebug() << "Previous domain-server settings version was"
             << QString::number(oldVersion, 'g', 8) << "and the new version is"
@@ -293,6 +294,21 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
             // persist the new config so the user config file has the correctly merged config
             persistToFile();
+        }
+
+        if (oldVersion < 1.8) {
+            unpackPermissions();
+            // This was prior to addition of domain content replacement, add that to localhost permissions by default
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canReplaceDomainContent);
+            packPermissions();
+        }
+
+        if (oldVersion < 1.9) {
+            unpackPermissions();
+            // This was prior to addition of canRez(Tmp)Certified; add those to localhost permissions by default
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canRezPermanentCertifiedEntities);
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canRezTemporaryCertifiedEntities);
+            packPermissions();
         }
     }
 
@@ -991,6 +1007,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
             unpackPermissions();
             apiRefreshGroupInformation();
             emit updateNodePermissions();
+            emit settingsUpdated();
         }
 
         return true;
@@ -1196,13 +1213,15 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
 bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
+    static const QString BROADCASTING_KEY = "broadcasting";
+    static const QString DESCRIPTION_ROOT_KEY = "descriptors";
 
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
 
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
-        QJsonValue rootValue = postedObject[rootKey];
+        const QJsonValue& rootValue = postedObject[rootKey];
 
         if (!settingsVariant.contains(rootKey)) {
             // we don't have a map below this key yet, so set it up now
@@ -1247,7 +1266,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != SECURITY_ROOT_KEY) {
+                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY && rootKey != SETTINGS_PATHS_KEY ) {
                     needRestart = true;
                 }
             } else {
@@ -1261,9 +1280,10 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
                 // if we matched the setting then update the value
                 if (!matchingDescriptionObject.isEmpty()) {
-                    QJsonValue settingValue = rootValue.toObject()[settingKey];
+                    const QJsonValue& settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
-                    if (rootKey != SECURITY_ROOT_KEY || settingKey == AC_SUBNET_WHITELIST_KEY) {
+                    if ((rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY && rootKey != DESCRIPTION_ROOT_KEY)
+                        || settingKey == AC_SUBNET_WHITELIST_KEY) {
                         needRestart = true;
                     }
                 } else {

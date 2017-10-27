@@ -41,14 +41,30 @@ void LocationBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark);
     QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
 
-    Bookmarks::setupMenus(menubar, menu);
+    // Legacy Location to Bookmark.
+
+    // Enable/Disable menus as needed
+    enableMenuItems(_bookmarks.count() > 0);
+
+    // Load Bookmarks
+    for (auto it = _bookmarks.begin(); it != _bookmarks.end(); ++it) {
+        QString bookmarkName = it.key();
+        QString bookmarkAddress = it.value().toString();
+        addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
+    }
+
     Bookmarks::sortActions(menubar, _bookmarksMenu);
 }
 
 void LocationBookmarks::setHomeLocation() {
     auto addressManager = DependencyManager::get<AddressManager>();
     QString bookmarkAddress = addressManager->currentAddress().toString();
+
     Bookmarks::addBookmarkToFile(HOME_BOOKMARK, bookmarkAddress);
+}
+
+void LocationBookmarks::setHomeLocationToAddress(const QVariant& address) {
+    Bookmarks::insert("Home", address);
 }
 
 void LocationBookmarks::teleportToBookmark() {
@@ -58,23 +74,24 @@ void LocationBookmarks::teleportToBookmark() {
 }
 
 void LocationBookmarks::addBookmark() {
-    bool ok = false;
-    auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString(), &ok);
-    if (!ok) {
-        return;
-    }
+    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString());
 
-    bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
-    if (bookmarkName.length() == 0) {
-        return;
-    }
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        auto bookmarkName = response.toString();
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-    QString bookmarkAddress = addressManager->currentAddress().toString();
-    Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
+        bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
+        if (bookmarkName.length() == 0) {
+            return;
+        }
+
+        auto addressManager = DependencyManager::get<AddressManager>();
+        QString bookmarkAddress = addressManager->currentAddress().toString();
+        Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
+    });
 }
 
-void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) {
+void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address) {
     QAction* teleportAction = _bookmarksMenu->newAction();
     teleportAction->setData(address);
     connect(teleportAction, SIGNAL(triggered()), this, SLOT(teleportToBookmark()));

@@ -16,9 +16,9 @@
 #include <mutex>
 #include <vector>
 
-#include <tbb/concurrent_queue.h>
-
 #include <QThread>
+
+#include <TBBHelpers.h>
 
 #include "AudioMixerSlave.h"
 

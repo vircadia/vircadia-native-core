@@ -71,7 +71,7 @@ class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius)
 
 public:
-    AmbientOcclusionEffectConfig() : render::GPUJobConfig::Persistent("Ambient Occlusion", false) {}
+    AmbientOcclusionEffectConfig() : render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false) {}
 
     const int MAX_RESOLUTION_LEVEL = 4;
     const int MAX_BLUR_RADIUS = 6;

@@ -1,3 +1,5 @@
+/* eslint-env jasmine */
+
 describe('Entity', function() {
     var center = Vec3.sum(
         MyAvatar.position,
@@ -18,6 +20,14 @@ describe('Entity', function() {
             z: 1,
         },
     };
+
+    it('serversExist', function() {
+        expect(Entities.serversExist()).toBe(true);
+    });
+
+    it('canRezTmp', function() {
+        expect(Entities.canRezTmp()).toBe(true);
+    });
 
     beforeEach(function() {
         boxEntity = Entities.addEntity(boxProps);

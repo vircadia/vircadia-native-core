@@ -17,6 +17,7 @@
 #include <Application.h>
 #include <MainWindow.h>
 #include <PathUtils.h>
+#include <ui/TabletScriptingInterface.h>
 
 #include "AddressBarDialog.h"
 #include "ConnectionFailureDialog.h"
@@ -28,7 +29,6 @@
 #include "PreferencesDialog.h"
 #include "UpdateDialog.h"
 
-#include "TabletScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 
 static const QVariant TABLET_ADDRESS_DIALOG = "TabletAddressDialog.qml";

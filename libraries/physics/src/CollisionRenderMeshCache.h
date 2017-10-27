@@ -1,6 +1,6 @@
 //
 //  CollisionRenderMeshCache.h
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2016.07.13
 //  Copyright 2016 High Fidelity, Inc.
@@ -21,7 +21,7 @@
 
 class CollisionRenderMeshCache {
 public:
-	using Key = const void*; // must actually be a const btCollisionShape*
+    using Key = const void*; // must actually be a const btCollisionShape*
 
     CollisionRenderMeshCache();
     ~CollisionRenderMeshCache();

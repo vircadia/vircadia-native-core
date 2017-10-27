@@ -113,6 +113,18 @@ QString HifiSockAddr::toString() const {
     return _address.toString() + ":" + QString::number(_port);
 }
 
+bool HifiSockAddr::hasPrivateAddress() const {
+    // an address is private if it is loopback or falls in any of the RFC1918 address spaces
+    const QPair<QHostAddress, int> TWENTY_FOUR_BIT_BLOCK = { QHostAddress("10.0.0.0"), 8 };
+    const QPair<QHostAddress, int> TWENTY_BIT_BLOCK = { QHostAddress("172.16.0.0") , 12 };
+    const QPair<QHostAddress, int> SIXTEEN_BIT_BLOCK = { QHostAddress("192.168.0.0"), 16 };
+
+    return _address.isLoopback()
+        || _address.isInSubnet(TWENTY_FOUR_BIT_BLOCK)
+        || _address.isInSubnet(TWENTY_BIT_BLOCK)
+        || _address.isInSubnet(SIXTEEN_BIT_BLOCK);
+}
+
 QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr) {
     debug.nospace() << sockAddr._address.toString().toLocal8Bit().constData() << ":" << sockAddr._port;
     return debug.space();

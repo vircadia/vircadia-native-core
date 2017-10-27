@@ -15,9 +15,9 @@
 
 #include <PerfStat.h>
 #include <PathUtils.h>
-#include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include "StencilMaskPass.h"
 
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -37,14 +37,14 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     initForwardPipelines(*shapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
-    const auto opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
-    const auto transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    const auto lights = items[RenderFetchCullSortTask::LIGHT];
-    const auto metas = items[RenderFetchCullSortTask::META];
-    const auto overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-    const auto overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
-    const auto background = items[RenderFetchCullSortTask::BACKGROUND];
-    const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
+    const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
+//    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+//    const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
+//    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
+//    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+//    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
+//    const auto& spatialSelection = items[1];
 
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
@@ -94,7 +94,7 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext,
             gpu::Framebuffer::BUFFER_COLOR0 |
             gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
+            vec4(vec3(0), 1), 1.0, 0, true);
     });
 
     framebuffer = _framebuffer;
@@ -131,11 +131,7 @@ const gpu::PipelinePointer Stencil::getPipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        const gpu::int8 STENCIL_OPAQUE = 1;
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS,
-                    gpu::State::STENCIL_OP_REPLACE,
-                    gpu::State::STENCIL_OP_REPLACE,
-                    gpu::State::STENCIL_OP_KEEP));
+        PrepareStencil::drawBackground(*state);
 
         _stencilPipeline = gpu::Pipeline::create(program, state);
     }

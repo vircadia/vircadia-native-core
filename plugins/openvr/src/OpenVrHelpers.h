@@ -25,6 +25,7 @@ bool openVrQuitRequested();
 void enableOpenVrKeyboard(PluginContainer* container);
 void disableOpenVrKeyboard();
 bool isOpenVrKeyboardShown();
+QString getVrSettingString(const char* section, const char* setting);
 
 
 template<typename F>
@@ -79,6 +80,12 @@ struct PoseData {
             poses[i] = resetMat * toGlm(vrPoses[i].mDeviceToAbsoluteTracking);
             linearVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vVelocity));
             angularVelocities[i] = transformVectorFast(resetMat, toGlm(vrPoses[i].vAngularVelocity));
+        }
+    }
+
+    void resetToInvalid() {
+        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            vrPoses[i].bPoseIsValid = false;
         }
     }
 };

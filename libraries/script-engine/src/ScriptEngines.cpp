@@ -12,11 +12,10 @@
 
 #include <QtWidgets/QApplication>
 
+#include <shared/QtHelpers.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
-
-#include <OffscreenUi.h>
 
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
@@ -26,8 +25,12 @@
 #define __LOC__ __FILE__ "(" __STR1__(__LINE__) ") : Warning Msg: "
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-
 static const bool HIFI_SCRIPT_DEBUGGABLES { true };
+static const QString SETTINGS_KEY { "RunningScripts" };
+static const QUrl DEFAULT_SCRIPTS_LOCATION { "file:///~//defaultScripts.js" };
+// Using a QVariantList so this is human-readable in the settings file
+static Setting::Handle<QVariantList> runningScriptsHandle(SETTINGS_KEY, { QVariant(DEFAULT_SCRIPTS_LOCATION) });
+
 
 ScriptsModel& getScriptsModel() {
     static ScriptsModel scriptsModel;
@@ -50,6 +53,10 @@ void ScriptEngines::onInfoMessage(const QString& message, const QString& scriptN
     emit infoMessage(message, scriptName);
 }
 
+void ScriptEngines::onClearDebugWindow() {
+    emit clearDebugWindow();
+}
+
 void ScriptEngines::onErrorLoadingScript(const QString& url) {
     emit errorLoadingScript(url);
 }
@@ -61,25 +68,12 @@ ScriptEngines::ScriptEngines(ScriptEngine::Context context)
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
     _scriptsModelFilter.setDynamicSortFilter(true);
-
-    static const int SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS = 5000;
-    QTimer* scriptSaveTimer = new QTimer(this);
-    scriptSaveTimer->setSingleShot(true);
-    QMetaObject::Connection timerConnection = connect(scriptSaveTimer, &QTimer::timeout, [] {
-        DependencyManager::get<ScriptEngines>()->saveScripts();
-    });
-    connect(qApp, &QCoreApplication::aboutToQuit, [=] {
-        disconnect(timerConnection);
-    });
-    connect(this, &ScriptEngines::scriptCountChanged, this, [scriptSaveTimer] {
-        scriptSaveTimer->start(SCRIPT_SAVE_COUNTDOWN_INTERVAL_MS);
-    }, Qt::QueuedConnection);
 }
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
     if (rawScriptURL.scheme() == "file") {
         QUrl fullNormal = rawScriptURL;
-        QUrl defaultScriptLoc = defaultScriptsLocation();
+        QUrl defaultScriptLoc = PathUtils::defaultScriptsLocation();
 
         // if this url is something "beneath" the default script url, replace the local path with ~
         if (fullNormal.scheme() == defaultScriptLoc.scheme() &&
@@ -98,7 +92,7 @@ QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
 
 QString expandScriptPath(const QString& rawPath) {
     QStringList splitPath = rawPath.split("/");
-    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
     return defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/"); // 2 to skip the slashes in /~/
 }
 
@@ -117,7 +111,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
             QFileInfo fileInfo(url.toLocalFile());
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
 
-            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(url)) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
                                         << "-- outside of standard libraries: "
@@ -143,16 +137,14 @@ void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
     _scriptInitializers.push_back(initializer);
 }
 
-void ScriptEngines::addScriptEngine(ScriptEngine* engine) {
-    if (_isStopped) {
-        engine->deleteLater();
-    } else {
+void ScriptEngines::addScriptEngine(ScriptEnginePointer engine) {
+    if (!_isStopped) {
         QMutexLocker locker(&_allScriptsMutex);
         _allKnownScriptEngines.insert(engine);
     }
 }
 
-void ScriptEngines::removeScriptEngine(ScriptEngine* engine) {
+void ScriptEngines::removeScriptEngine(ScriptEnginePointer engine) {
     // If we're not already in the middle of stopping all scripts, then we should remove ourselves
     // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
     // because that method removes scripts from its list as it iterates them
@@ -167,9 +159,9 @@ void ScriptEngines::shutdownScripting() {
     QMutexLocker locker(&_allScriptsMutex);
     qCDebug(scriptengine) << "Stopping all scripts.... currently known scripts:" << _allKnownScriptEngines.size();
 
-    QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
+    QMutableSetIterator<ScriptEnginePointer> i(_allKnownScriptEngines);
     while (i.hasNext()) {
-        ScriptEngine* scriptEngine = i.next();
+        ScriptEnginePointer scriptEngine = i.next();
         QString scriptName = scriptEngine->getFilename();
 
         // NOTE: typically all script engines are running. But there's at least one known exception to this, the
@@ -193,12 +185,9 @@ void ScriptEngines::shutdownScripting() {
             qCDebug(scriptengine) << "waiting on script:" << scriptName;
             scriptEngine->waitTillDoneRunning();
             qCDebug(scriptengine) << "done waiting on script:" << scriptName;
-
-            scriptEngine->deleteLater();
-
-            // Once the script is stopped, we can remove it from our set
-            i.remove();
         }
+        // Once the script is stopped, we can remove it from our set
+        i.remove();
     }
     qCDebug(scriptengine) << "DONE Stopping all scripts....";
 }
@@ -280,13 +269,8 @@ QVariantList ScriptEngines::getRunning() {
     return result;
 }
 
-
-static const QString SETTINGS_KEY = "RunningScripts";
-
 void ScriptEngines::loadDefaultScripts() {
-    QUrl defaultScriptsLoc = defaultScriptsLocation();
-    defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "/defaultScripts.js");
-    loadScript(defaultScriptsLoc.toString());
+    loadScript(DEFAULT_SCRIPTS_LOCATION);
 }
 
 void ScriptEngines::loadOneScript(const QString& scriptFilename) {
@@ -294,17 +278,11 @@ void ScriptEngines::loadOneScript(const QString& scriptFilename) {
 }
 
 void ScriptEngines::loadScripts() {
-    // check first run...
-    Setting::Handle<bool> firstRun { Settings::firstRun, true };
-    if (firstRun.get()) {
-        qCDebug(scriptengine) << "This is a first run...";
-        // clear the scripts, and set out script to our default scripts
-        clearScripts();
-        loadDefaultScripts();
-        return;
-    }
-
-    // loads all saved scripts
+    // START BACKWARD COMPATIBILITY CODE
+    // The following code makes sure people don't lose all their scripts
+    // This should be removed after a reasonable ammount of time went by
+    // Load old setting format if present
+    bool foundDeprecatedSetting = false;
     Settings settings;
     int size = settings.beginReadArray(SETTINGS_KEY);
     for (int i = 0; i < size; ++i) {
@@ -312,35 +290,58 @@ void ScriptEngines::loadScripts() {
         QString string = settings.value("script").toString();
         if (!string.isEmpty()) {
             loadScript(string);
+            foundDeprecatedSetting = true;
         }
     }
     settings.endArray();
-}
+    if (foundDeprecatedSetting) {
+        // Remove old settings found and return
+        settings.beginWriteArray(SETTINGS_KEY);
+        settings.remove("");
+        settings.endArray();
+        settings.remove(SETTINGS_KEY + "/size");
+        return;
+    }
+    // END BACKWARD COMPATIBILITY CODE
 
-void ScriptEngines::clearScripts() {
-    // clears all scripts from the settingsSettings settings;
-    Settings settings;
-    settings.beginWriteArray(SETTINGS_KEY);
-    settings.remove("");
-    settings.endArray();
+    // loads all saved scripts
+    auto runningScripts = runningScriptsHandle.get();
+    for (auto script : runningScripts) {
+        auto string = script.toString();
+        if (!string.isEmpty()) {
+            loadScript(string);
+        }
+    }
 }
 
 void ScriptEngines::saveScripts() {
-    // Saves all currently running user-loaded scripts
-    Settings settings;
-    settings.beginWriteArray(SETTINGS_KEY);
-    settings.remove("");
+    // Do not save anything if we are in the process of shutting down
+    if (qApp->closingDown()) {
+        qWarning() << "Trying to save scripts during shutdown.";
+        return;
+    }
 
-    QStringList runningScripts = getRunningScripts();
-    int i = 0;
-    for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
-        if (getScriptEngine(*it)->isUserLoaded()) {
-            settings.setArrayIndex(i);
-            settings.setValue("script", normalizeScriptURL(*it).toString());
-            ++i;
+    // don't save scripts if we started with --scripts, as we would overwrite
+    // the scripts that the user expects to be there when launched without the
+    // --scripts override.
+    if (_defaultScriptsLocationOverridden) {
+        return;
+    }
+
+    // Saves all currently running user-loaded scripts
+    QVariantList list;
+
+    {
+        QReadLocker lock(&_scriptEnginesHashLock);
+        for (auto it = _scriptEnginesHash.begin(); it != _scriptEnginesHash.end(); ++it) {
+            if (it.value() && it.value()->isUserLoaded()) {
+                auto normalizedUrl = normalizeScriptURL(it.key());
+                list.append(normalizedUrl.toString());
+            }
         }
     }
-    settings.endArray();
+
+    runningScriptsHandle.set(list);
 }
 
 QStringList ScriptEngines::getRunningScripts() {
@@ -356,9 +357,16 @@ QStringList ScriptEngines::getRunningScripts() {
 void ScriptEngines::stopAllScripts(bool restart) {
     QVector<QString> toReload;
     QReadLocker lock(&_scriptEnginesHashLock);
-    for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
+
+    if (_isReloading) {
+        return;
+    } else {
+        _isReloading = true;
+    }
+
+    for (QHash<QUrl, ScriptEnginePointer>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
-        ScriptEngine *scriptEngine = it.value();
+        ScriptEnginePointer scriptEngine = it.value();
         // skip already stopped scripts
         if (scriptEngine->isFinished() || scriptEngine->isStopping()) {
             continue;
@@ -375,7 +383,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
     }
     // wait for engines to stop (ie: providing time for .scriptEnding cleanup handlers to run) before
     // triggering reload of any Client scripts / Entity scripts
-    QTimer::singleShot(500, this, [=]() {
+    QTimer::singleShot(1000, this, [=]() {
         for(const auto &scriptName : toReload) {
             auto scriptEngine = getScriptEngine(scriptName);
             if (scriptEngine && !scriptEngine->isFinished()) {
@@ -390,6 +398,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
             qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
             emit scriptsReloading();
         }
+        _isReloading = false;
     });
 }
 
@@ -403,11 +412,12 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
 
         QReadLocker lock(&_scriptEnginesHashLock);
         if (_scriptEnginesHash.contains(scriptURL)) {
-            ScriptEngine* scriptEngine = _scriptEnginesHash[scriptURL];
+            ScriptEnginePointer scriptEngine = _scriptEnginesHash[scriptURL];
             if (restart) {
                 auto scriptCache = DependencyManager::get<ScriptCache>();
                 scriptCache->deleteScript(scriptURL);
-                connect(scriptEngine, &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
+                connect(scriptEngine.data(), &ScriptEngine::finished,
+                        this, [this](QString scriptName, ScriptEnginePointer engine) {
                     reloadScript(scriptName);
                 });
             }
@@ -431,16 +441,15 @@ void ScriptEngines::setScriptsLocation(const QString& scriptsLocation) {
 void ScriptEngines::reloadAllScripts() {
     qCDebug(scriptengine) << "reloadAllScripts -- clearing caches";
     DependencyManager::get<ScriptCache>()->clearCache();
-    DependencyManager::get<OffscreenUi>()->clearCache();
     qCDebug(scriptengine) << "reloadAllScripts -- stopping all scripts";
     stopAllScripts(true);
 }
 
-ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor,
+ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserLoaded, bool loadScriptFromEditor,
                                         bool activateMainWindow, bool reload) {
     if (thread() != QThread::currentThread()) {
-        ScriptEngine* result { nullptr };
-        QMetaObject::invokeMethod(this, "loadScript", Qt::BlockingQueuedConnection, Q_RETURN_ARG(ScriptEngine*, result),
+        ScriptEnginePointer result { nullptr };
+        BLOCKING_INVOKE_METHOD(this, "loadScript", Q_RETURN_ARG(ScriptEnginePointer, result),
             Q_ARG(QUrl, scriptFilename),
             Q_ARG(bool, isUserLoaded),
             Q_ARG(bool, loadScriptFromEditor),
@@ -453,7 +462,8 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         (scriptFilename.scheme() != "http" &&
          scriptFilename.scheme() != "https" &&
          scriptFilename.scheme() != "atp" &&
-         scriptFilename.scheme() != "file")) {
+         scriptFilename.scheme() != "file" &&
+         scriptFilename.scheme() != "about")) {
         // deal with a "url" like c:/something
         scriptUrl = normalizeScriptURL(QUrl::fromLocalFile(scriptFilename.toString()));
     } else {
@@ -465,19 +475,16 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
         return scriptEngine;
     }
 
-    scriptEngine = new ScriptEngine(_context, NO_SCRIPT, "about:" + scriptFilename.fileName());
+    scriptEngine = ScriptEnginePointer(new ScriptEngine(_context, NO_SCRIPT, "about:" + scriptFilename.fileName()));
+    addScriptEngine(scriptEngine);
     scriptEngine->setUserLoaded(isUserLoaded);
-    connect(scriptEngine, &ScriptEngine::doneRunning, this, [scriptEngine] {
-        scriptEngine->deleteLater();
-    }, Qt::QueuedConnection);
 
-
-    if (scriptFilename.isEmpty()) {
+    if (scriptFilename.isEmpty() || !scriptUrl.isValid()) {
         launchScriptEngine(scriptEngine);
     } else {
         // connect to the appropriate signals of this script engine
-        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &ScriptEngines::onScriptEngineLoaded);
-        connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
+        connect(scriptEngine.data(), &ScriptEngine::scriptLoaded, this, &ScriptEngines::onScriptEngineLoaded);
+        connect(scriptEngine.data(), &ScriptEngine::errorLoadingScript, this, &ScriptEngines::onScriptEngineError);
 
         // get the script engine object to load the script at the designated script URL
         scriptEngine->loadURL(scriptUrl, reload);
@@ -486,8 +493,8 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
     return scriptEngine;
 }
 
-ScriptEngine* ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
-    ScriptEngine* result = nullptr;
+ScriptEnginePointer ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
+    ScriptEnginePointer result;
     {
         QReadLocker lock(&_scriptEnginesHashLock);
         const QUrl scriptURL = normalizeScriptURL(rawScriptURL);
@@ -502,7 +509,8 @@ ScriptEngine* ScriptEngines::getScriptEngine(const QUrl& rawScriptURL) {
 // FIXME - change to new version of ScriptCache loading notification
 void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
     UserActivityLogger::getInstance().loadedScript(rawScriptURL);
-    ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    QSharedPointer<BaseScriptEngine> baseScriptEngine = qobject_cast<ScriptEngine*>(sender())->sharedFromThis();
+    ScriptEnginePointer scriptEngine = qSharedPointerCast<ScriptEngine>(baseScriptEngine);
 
     launchScriptEngine(scriptEngine);
 
@@ -512,15 +520,18 @@ void ScriptEngines::onScriptEngineLoaded(const QString& rawScriptURL) {
         QUrl normalized = normalizeScriptURL(url);
         _scriptEnginesHash.insertMulti(normalized, scriptEngine);
     }
+
+    // Update settings with new script
+    saveScripts();
     emit scriptCountChanged();
 }
 
-void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
-    connect(scriptEngine, &ScriptEngine::finished, this, &ScriptEngines::onScriptFinished, Qt::DirectConnection);
-    connect(scriptEngine, &ScriptEngine::loadScript, [&](const QString& scriptName, bool userLoaded) {
+void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {
+    connect(scriptEngine.data(), &ScriptEngine::finished, this, &ScriptEngines::onScriptFinished, Qt::DirectConnection);
+    connect(scriptEngine.data(), &ScriptEngine::loadScript, [&](const QString& scriptName, bool userLoaded) {
         loadScript(scriptName, userLoaded);
     });
-    connect(scriptEngine, &ScriptEngine::reloadScript, [&](const QString& scriptName, bool userLoaded) {
+    connect(scriptEngine.data(), &ScriptEngine::reloadScript, [&](const QString& scriptName, bool userLoaded) {
         loadScript(scriptName, userLoaded, false, false, true);
     });
 
@@ -529,7 +540,11 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
         initializer(scriptEngine);
     }
 
-    auto const wantDebug = scriptEngine->isDebuggable() || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
+    // FIXME disabling 'shift key' debugging for now.  If you start up the application with
+    // the shift key held down, it triggers a deadlock because of script interfaces running
+    // on the main thread
+    auto const wantDebug = scriptEngine->isDebuggable(); //  || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
+
     if (HIFI_SCRIPT_DEBUGGABLES && wantDebug) {
         scriptEngine->runDebuggable();
     } else {
@@ -537,7 +552,7 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
     }
 }
 
-void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEngine* engine) {
+void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEnginePointer engine) {
     bool removed = false;
     {
         QWriteLocker lock(&_scriptEnginesHashLock);
@@ -552,6 +567,8 @@ void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEngine* 
     }
 
     if (removed) {
+        // Update settings with removed script
+        saveScripts();
         emit scriptCountChanged();
     }
 }
@@ -563,5 +580,5 @@ void ScriptEngines::onScriptEngineError(const QString& scriptFilename) {
 }
 
 QString ScriptEngines::getDefaultScriptsLocation() const {
-    return defaultScriptsLocation().toString();
+    return PathUtils::defaultScriptsLocation().toString();
 }

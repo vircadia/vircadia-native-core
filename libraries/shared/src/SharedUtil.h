@@ -235,4 +235,7 @@ const QString& getInterfaceSharedMemoryName();
 
 void setMaxCores(uint8_t maxCores);
 
+const QString PARENT_PID_OPTION = "parent-pid";
+void watchParentProcess(int parentPID);
+
 #endif // hifi_SharedUtil_h

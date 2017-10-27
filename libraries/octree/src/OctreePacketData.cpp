@@ -582,9 +582,7 @@ bool OctreePacketData::compressContent() {
 
     if (compressedData.size() < (int)MAX_OCTREE_PACKET_DATA_SIZE) {
         _compressedBytes = compressedData.size();
-        for (int i = 0; i < _compressedBytes; i++) {
-            _compressed[i] = compressedData[i];
-        }
+        memcpy(_compressed, compressedData.constData(), _compressedBytes);
         _dirty = false;
         success = true;
     }
@@ -598,25 +596,22 @@ void OctreePacketData::loadFinalizedContent(const unsigned char* data, int lengt
     if (data && length > 0) {
 
         if (_enableCompression) {
-            QByteArray compressedData;
-            for (int i = 0; i < length; i++) {
-                compressedData[i] = data[i];
-                _compressed[i] = compressedData[i];
-            }
             _compressedBytes = length;
+            memcpy(_compressed, data, _compressedBytes);
+
+            QByteArray compressedData;
+            compressedData.resize(_compressedBytes);
+            memcpy(compressedData.data(), data, _compressedBytes);
+
             QByteArray uncompressedData = qUncompress(compressedData);
             if (uncompressedData.size() <= _bytesAvailable) {
                 _bytesInUse = uncompressedData.size();
                 _bytesAvailable -= uncompressedData.size();
-
-                for (int i = 0; i < _bytesInUse; i++) {
-                    _uncompressed[i] = uncompressedData[i];
-                }
+                memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
             }
         } else {
-            for (int i = 0; i < length; i++) {
-                _uncompressed[i] = _compressed[i] = data[i];
-            }
+            memcpy(_uncompressed, data, length);
+            memcpy(_compressed, data, length);
             _bytesInUse = _compressedBytes = length;
         }
     } else {

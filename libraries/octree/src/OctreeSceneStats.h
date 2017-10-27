@@ -39,7 +39,7 @@ public:
     OctreeSceneStats& operator= (const OctreeSceneStats& other); // copy assignment
 
     /// Call when beginning the computation of a scene. Initializes internal structures
-    void sceneStarted(bool fullScene, bool moving, OctreeElementPointer root, JurisdictionMap* jurisdictionMap);
+    void sceneStarted(bool fullScene, bool moving, const OctreeElementPointer& root, JurisdictionMap* jurisdictionMap);
     bool getIsSceneStarted() const { return _isStarted; }
 
     /// Call when the computation of a scene is completed. Finalizes internal structures
@@ -57,28 +57,28 @@ public:
     void encodeStopped();
 
     /// Track that a element was traversed as part of computation of a scene.
-    void traversed(const OctreeElementPointer element);
+    void traversed(const OctreeElementPointer& element);
 
     /// Track that a element was skipped as part of computation of a scene due to being beyond the LOD distance.
-    void skippedDistance(const OctreeElementPointer element);
+    void skippedDistance(const OctreeElementPointer& element);
 
     /// Track that a element was skipped as part of computation of a scene due to being out of view.
-    void skippedOutOfView(const OctreeElementPointer element);
+    void skippedOutOfView(const OctreeElementPointer& element);
 
     /// Track that a element was skipped as part of computation of a scene due to previously being in view while in delta sending
-    void skippedWasInView(const OctreeElementPointer element);
+    void skippedWasInView(const OctreeElementPointer& element);
 
     /// Track that a element was skipped as part of computation of a scene due to not having changed since last full scene sent
-    void skippedNoChange(const OctreeElementPointer element);
+    void skippedNoChange(const OctreeElementPointer& element);
 
     /// Track that a element was skipped as part of computation of a scene due to being occluded
-    void skippedOccluded(const OctreeElementPointer element);
+    void skippedOccluded(const OctreeElementPointer& element);
 
     /// Track that a element's color was was sent as part of computation of a scene
-    void colorSent(const OctreeElementPointer element);
+    void colorSent(const OctreeElementPointer& element);
 
     /// Track that a element was due to be sent, but didn't fit in the packet and was moved to next packet
-    void didntFit(const OctreeElementPointer element);
+    void didntFit(const OctreeElementPointer& element);
 
     /// Track that the color bitmask was was sent as part of computation of a scene
     void colorBitsWritten();

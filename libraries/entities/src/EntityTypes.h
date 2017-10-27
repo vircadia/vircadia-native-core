@@ -17,8 +17,6 @@
 #include <QHash>
 #include <QString>
 
-#include <OctreeRenderer.h> // for RenderArgs
-
 #include "EntitiesLogging.h"
 
 class EntityItem;

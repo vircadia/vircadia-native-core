@@ -92,7 +92,7 @@ public:
     void captureNamedDrawCallInfo(std::string name);
 
     Batch();
-    explicit Batch(const Batch& batch);
+    Batch(const Batch& batch);
     ~Batch();
 
     void clear();
@@ -217,6 +217,12 @@ public:
     // Reset the stage caches and states
     void resetStages();
 
+    void disableContextViewCorrection();
+    void restoreContextViewCorrection();
+
+    void disableContextStereo();
+    void restoreContextStereo();
+
     // Debugging
     void pushProfileRange(const char* name);
     void popProfileRange();
@@ -300,6 +306,12 @@ public:
         COMMAND_getQuery,
 
         COMMAND_resetStages,
+
+        COMMAND_disableContextViewCorrection,
+        COMMAND_restoreContextViewCorrection,
+
+        COMMAND_disableContextStereo,
+        COMMAND_restoreContextStereo,
 
         COMMAND_runLambda,
 
@@ -467,7 +479,7 @@ public:
     NamedBatchDataMap _namedData;
 
     bool _enableStereo{ true };
-    bool _enableSkybox{ false };
+    bool _enableSkybox { false };
 
 protected:
     friend class Context;

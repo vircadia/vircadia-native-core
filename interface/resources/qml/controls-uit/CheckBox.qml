@@ -14,17 +14,30 @@ import QtQuick.Controls.Styles 1.4
 
 import "../styles-uit"
 
+import TabletScriptingInterface 1.0
+
 Original.CheckBox {
     id: checkBox
 
     property int colorScheme: hifi.colorSchemes.light
+    property string color: hifi.colors.lightGrayText
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool isRedCheck: false
     property int boxSize: 14
-    readonly property int boxRadius: 3
+    property int boxRadius: 3
+    property bool wrap: true;
     readonly property int checkSize: Math.max(boxSize - 8, 10)
     readonly property int checkRadius: 2
     activeFocusOnPress: true
+
+    onClicked: {
+        tabletInterface.playSound(TabletEnums.ButtonClick);
+    }
+
+// TODO: doesnt works for QQC1. check with QQC2
+//    onHovered: {
+//        tabletInterface.playSound(TabletEnums.ButtonHover);
+//    }
 
     style: CheckBoxStyle {
         indicator: Rectangle {
@@ -89,9 +102,10 @@ Original.CheckBox {
 
         label: Label {
             text: control.text
-            colorScheme: checkBox.colorScheme
+            color: control.color
             x: 2
-            wrapMode: Text.Wrap
+            wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap
+            elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
             enabled: checkBox.enabled
         }
     }

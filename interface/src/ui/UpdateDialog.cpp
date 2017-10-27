@@ -23,11 +23,8 @@ UpdateDialog::UpdateDialog(QQuickItem* parent) :
     auto applicationUpdater = DependencyManager::get<AutoUpdater>();
     int currentVersion = QCoreApplication::applicationVersion().toInt();
     int latestVersion = applicationUpdater.data()->getBuildData().lastKey();
-    int versionsBehind = latestVersion - currentVersion;
     _updateAvailableDetails = "v" + QString::number(latestVersion) + " released on "
         + QString(applicationUpdater.data()->getBuildData()[latestVersion]["releaseTime"]).replace("  ", " ");
-    _updateAvailableDetails += "\nYou are " + QString::number(versionsBehind) + " version" 
-        + (versionsBehind > 1 ? "s" : "") + " behind";
 
     _releaseNotes = "";
     for (int i = latestVersion; i > currentVersion; i--) {

@@ -21,9 +21,6 @@
 
 #include "GLHelpers.h"
 
-// Minimum gl version required is 4.1
-#define MINIMUM_GL_VERSION 0x0401
-
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
 {

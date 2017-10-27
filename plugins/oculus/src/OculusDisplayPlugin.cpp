@@ -244,7 +244,7 @@ QString OculusDisplayPlugin::getPreferredAudioInDevice() const {
     if (!OVR_SUCCESS(ovr_GetAudioDeviceInGuidStr(buffer))) {
         return QString();
     }
-    return AudioClient::friendlyNameForAudioDevice(buffer);
+    return AudioClient::getWinDeviceName(buffer);
 }
 
 QString OculusDisplayPlugin::getPreferredAudioOutDevice() const {
@@ -252,7 +252,7 @@ QString OculusDisplayPlugin::getPreferredAudioOutDevice() const {
     if (!OVR_SUCCESS(ovr_GetAudioDeviceOutGuidStr(buffer))) {
         return QString();
     }
-    return AudioClient::friendlyNameForAudioDevice(buffer);
+    return AudioClient::getWinDeviceName(buffer);
 }
 
 OculusDisplayPlugin::~OculusDisplayPlugin() {

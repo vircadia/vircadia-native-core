@@ -51,8 +51,16 @@ namespace entity {
     }
 }
 
+// shapeCalculator is a hook for external code that knows how to configure a ShapeInfo
+// for given entity::Shape and dimensions
+ShapeEntityItem::ShapeInfoCalculator shapeCalculator = nullptr;
+
+void ShapeEntityItem::setShapeInfoCalulator(ShapeEntityItem::ShapeInfoCalculator callback) {
+    shapeCalculator = callback;
+}
+
 ShapeEntityItem::Pointer ShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    Pointer entity { new ShapeEntityItem(entityID) };
+    Pointer entity(new ShapeEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -87,6 +95,7 @@ EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredP
 }
 
 void ShapeEntityItem::setShape(const entity::Shape& shape) {
+    const entity::Shape prevShape = _shape;
     _shape = shape;
     switch (_shape) {
         case entity::Shape::Cube:
@@ -98,6 +107,11 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
         default:
             _type = EntityTypes::Shape;
             break;
+    }
+
+    if (_shape != prevShape) {
+        // Internally grabs writeLock
+        markDirtyFlags(Simulation::DIRTY_SHAPE);
     }
 }
 
@@ -160,12 +174,6 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
-// This value specifes how the shape should be treated by physics calculations.  
-// For now, all polys will act as spheres
-ShapeType ShapeEntityItem::getShapeType() const {
-    return (_shape == entity::Shape::Cube) ? SHAPE_TYPE_BOX : SHAPE_TYPE_ELLIPSOID;
-}
-
 void ShapeEntityItem::setColor(const rgbColor& value) {
     memcpy(_color, value, sizeof(rgbColor));
 }
@@ -223,10 +231,119 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
 void ShapeEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "SHAPE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "              shape:" << stringFromShape(_shape);
+    qCDebug(entities) << "               name:" << _name;
+    qCDebug(entities) << "              shape:" << stringFromShape(_shape) << " (EnumId: " << _shape << " )";
+    qCDebug(entities) << " collisionShapeType:" << ShapeInfo::getNameForShapeType(getShapeType());
     qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "           position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
+    qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
+}
+
+void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
+
+    // This will be called whenever DIRTY_SHAPE flag (set by dimension change, etc)
+    // is set.
+
+    const glm::vec3 entityDimensions = getDimensions();
+
+    switch (_shape){
+        case entity::Shape::Quad: {
+            // Not in GeometryCache::buildShapes, unsupported.
+            _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            //TODO WL21389: Add a SHAPE_TYPE_QUAD ShapeType and treat 
+            // as a special box (later if desired support)
+        }
+        break;
+        case entity::Shape::Cube: {
+            _collisionShapeType = SHAPE_TYPE_BOX;
+        }
+        break;
+        case entity::Shape::Sphere: {
+
+            float diameter = entityDimensions.x;
+            const float MIN_DIAMETER = 0.001f;
+            const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
+            if (diameter > MIN_DIAMETER
+                && fabsf(diameter - entityDimensions.y) / diameter < MIN_RELATIVE_SPHERICAL_ERROR
+                && fabsf(diameter - entityDimensions.z) / diameter < MIN_RELATIVE_SPHERICAL_ERROR) {
+
+                _collisionShapeType = SHAPE_TYPE_SPHERE;
+            } else {
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
+        }
+        break;
+        case entity::Shape::Circle: {
+            _collisionShapeType = SHAPE_TYPE_CIRCLE;
+        }
+        break;
+        case entity::Shape::Cylinder: {
+            _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
+            // TODO WL21389: determine if rotation is axis-aligned
+            //const Transform::Quat & rot = _transform.getRotation();
+
+            // TODO WL21389: some way to tell apart SHAPE_TYPE_CYLINDER_Y, _X, _Z based on rotation and
+            //       hull ( or dimensions, need circular cross section)
+            // Should allow for minor variance along axes?
+
+        }
+        break;
+        case entity::Shape::Cone: {
+            if (shapeCalculator) {
+                shapeCalculator(this, info);
+                // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
+                _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+            } else {
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
+        }
+        break;
+        // gons, ones, & angles built via GeometryCache::extrudePolygon
+        case entity::Shape::Triangle:
+        case entity::Shape::Hexagon:
+        case entity::Shape::Octagon: {
+            if (shapeCalculator) {
+                shapeCalculator(this, info);
+                // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
+                _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+            } else {
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
+        }
+        break;
+        // hedrons built via GeometryCache::setUpFlatShapes
+        case entity::Shape::Tetrahedron:
+        case entity::Shape::Octahedron:
+        case entity::Shape::Dodecahedron:
+        case entity::Shape::Icosahedron: {
+            if ( shapeCalculator ) {
+                shapeCalculator(this, info);
+                // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
+                _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+            } else {
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
+        }
+        break;
+        case entity::Shape::Torus: {
+            // Not in GeometryCache::buildShapes, unsupported.
+            _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later if desired support)
+        }
+        break;
+        default: {
+            _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+        }
+        break;
+    }
+
+    EntityItem::computeShapeInfo(info);
+}
+
+// This value specifies how the shape should be treated by physics calculations.
+ShapeType ShapeEntityItem::getShapeType() const {
+    return _collisionShapeType;
 }
 

@@ -21,7 +21,7 @@ const int AvatarActionHold::velocitySmoothFrames = 6;
 
 
 AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity)
+    ObjectActionTractor(id, ownerEntity)
 {
     _type = DYNAMIC_TYPE_HOLD;
     _measuredLinearVelocities.resize(AvatarActionHold::velocitySmoothFrames);
@@ -113,7 +113,8 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
 }
 
 bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
-                                 glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
+                                 glm::vec3& linearVelocity, glm::vec3& angularVelocity,
+                                 float& linearTimeScale, float& angularTimeScale) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
 
@@ -133,9 +134,9 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             // fetch the hand controller pose
             controller::Pose pose;
             if (isRightHand) {
-                pose = myAvatar->getRightHandControllerPoseInWorldFrame();
+                pose = myAvatar->getControllerPoseInWorldFrame(controller::Action::RIGHT_HAND);
             } else {
-                pose = myAvatar->getLeftHandControllerPoseInWorldFrame();
+                pose = myAvatar->getControllerPoseInWorldFrame(controller::Action::LEFT_HAND);
             }
 
             if (pose.isValid()) {
@@ -164,7 +165,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
 
                 Transform avatarTransform;
                 avatarTransform = myAvatar->getTransform();
-                palmPosition = avatarTransform.transform(camRelPos / myAvatar->getDomainLimitedScale());
+                palmPosition = avatarTransform.transform(camRelPos);
                 palmRotation = avatarTransform.getRotation() * camRelRot;
             } else {
                 glm::vec3 avatarRigidBodyPosition;
@@ -213,6 +214,9 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
 
         // update linearVelocity based on offset via _relativePosition;
         linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
+
+        linearTimeScale = _linearTimeScale;
+        angularTimeScale = _angularTimeScale;
     });
 
     return true;
@@ -220,12 +224,12 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
 
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     if (_kinematic) {
-        if (prepareForSpringUpdate(deltaTimeStep)) {
+        if (prepareForTractorUpdate(deltaTimeStep)) {
             doKinematicUpdate(deltaTimeStep);
         }
     } else {
         forceBodyNonStatic();
-        ObjectActionSpring::updateActionWorker(deltaTimeStep);
+        ObjectActionTractor::updateActionWorker(deltaTimeStep);
     }
 }
 

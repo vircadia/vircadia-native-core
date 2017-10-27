@@ -20,6 +20,8 @@
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
 
+#include <shared/QtHelpers.h>
+#include <ThreadHelpers.h>
 #include <LogHandler.h>
 #include <UUID.h>
 
@@ -231,7 +233,7 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
 
 void NodeList::reset() {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "reset", Qt::BlockingQueuedConnection);
+        QMetaObject::invokeMethod(this, "reset");
         return;
     }
 
@@ -239,10 +241,6 @@ void NodeList::reset() {
 
     _numNoReplyDomainCheckIns = 0;
 
-    // lock and clear our set of radius ignored IDs
-    _radiusIgnoredSetLock.lockForWrite();
-    _radiusIgnoredNodeIDs.clear();
-    _radiusIgnoredSetLock.unlock();
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
     _ignoredNodeIDs.clear();
@@ -329,7 +327,7 @@ void NodeList::sendDomainServerCheckIn() {
                 << "but no keypair is present. Waiting for keypair generation to complete.";
             accountManager->generateNewUserKeypair();
 
-            // don't send the check in packet - wait for the keypair first
+            // don't send the check in packet - wait for the new public key to be available to the domain-server first
             return;
         }
 
@@ -653,8 +651,9 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
     NodePermissions permissions;
+    bool isReplicated;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions >> isReplicated;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -665,7 +664,14 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, permissions, connectionUUID);
+                                             nodeLocalSocket, isReplicated, false, connectionUUID, permissions);
+
+    // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
+    // and always have their public socket as their active socket
+    if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
+        node->setLastHeardMicrostamp(usecTimestampNow());
+        node->activatePublicSocket();
+    }
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -710,14 +716,20 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
-    // connect to the correct signal on this node so we know when to ping it
-    connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
 
-    // start the ping timer for this node
-    node->startPingTimer();
+    // we don't hole punch to downstream servers, since it is assumed that we have a direct line to them
+    // we also don't hole punch to relayed upstream nodes, since we do not communicate directly with them
 
-    // ping this node immediately
-    pingPunchForInactiveNode(node);
+    if (!NodeType::isDownstream(node->getType()) && !node->isUpstream()) {
+        // connect to the correct signal on this node so we know when to ping it
+        connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
+
+        // start the ping timer for this node
+        node->startPingTimer();
+
+        // ping this node immediately
+        pingPunchForInactiveNode(node);
+    }
 }
 
 void NodeList::handleNodePingTimeout() {
@@ -760,8 +772,11 @@ void NodeList::stopKeepalivePingTimer() {
 }
 
 void NodeList::sendKeepAlivePings() {
+    // send keep-alive ping packets to nodes of types we care about that are not relayed to us from an upstream node
+
     eachMatchingNode([this](const SharedNodePointer& node)->bool {
-        return _nodeTypesOfInterest.contains(node->getType());
+        auto type = node->getType();
+        return !node->isUpstream() && _nodeTypesOfInterest.contains(type) && !NodeType::isDownstream(type);
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });
@@ -791,26 +806,10 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
     sendPacket(std::move(ignorePacket), *destinationNode);
 }
 
-void NodeList::radiusIgnoreNodeBySessionID(const QUuid& nodeID, bool radiusIgnoreEnabled) {
-    if (radiusIgnoreEnabled) {
-        QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for insert
-        // add this nodeID to our set of ignored IDs
-        _radiusIgnoredNodeIDs.insert(nodeID);
-    } else {
-        QWriteLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // write lock for unsafe_erase
-        _radiusIgnoredNodeIDs.unsafe_erase(nodeID);
-    }
-}
-
-bool NodeList::isRadiusIgnoringNode(const QUuid& nodeID) const {
-    QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for reading
-    return _radiusIgnoredNodeIDs.find(nodeID) != _radiusIgnoredNodeIDs.cend();
-}
-
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
-        eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
+        eachMatchingNode([](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
                 return true;
             } else {
@@ -931,7 +930,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         if (_personalMutedNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
-            auto personalMutePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+            auto personalMutePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true, true);
 
             // Force the "enabled" flag in this packet to true
             personalMutePacketList->writePrimitive(true);
@@ -958,7 +957,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         if (_ignoredNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
-            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true, true);
 
             // Force the "enabled" flag in this packet to true
             ignorePacketList->writePrimitive(true);
@@ -1114,4 +1113,9 @@ void NodeList::setRequestsDomainListData(bool isRequesting) {
         sendPacket(std::move(packet), *destinationNode);
     });
     _requestsDomainListData = isRequesting;
+}
+
+
+void NodeList::startThread() {
+    moveToNewNamedThread(this, "NodeList Thread", QThread::TimeCriticalPriority);
 }

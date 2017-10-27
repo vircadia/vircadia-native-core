@@ -14,6 +14,7 @@
 #include <QDebug>
 
 #include "ScriptEngineLogging.h"
+#include "ScriptEngine.h"
 #include "ScriptUUID.h"
 
 QUuid ScriptUUID::fromString(const QString& s) {
@@ -36,6 +37,11 @@ bool ScriptUUID::isNull(const QUuid& id) {
     return id.isNull();
 }
 
-void ScriptUUID::print(const QString& lable, const QUuid& id) {
-    qCDebug(scriptengine) << qPrintable(lable) << id.toString();
+void ScriptUUID::print(const QString& label, const QUuid& id) {
+    QString message = QString("%1 %2").arg(qPrintable(label));
+    message = message.arg(id.toString());
+    qCDebug(scriptengine) << message;
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
+        scriptEngine->print(message);
+    }
 }

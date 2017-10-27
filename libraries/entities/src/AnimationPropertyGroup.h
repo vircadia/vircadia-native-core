@@ -19,7 +19,6 @@
 
 #include <QtScript/QScriptEngine>
 
-#include "AnimationLoop.h"
 #include "EntityItemPropertiesMacros.h"
 #include "PropertyGroup.h"
 
@@ -31,7 +30,7 @@ class ReadBitstreamToTreeParams;
 
 class AnimationPropertyGroup : public PropertyGroup {
 public:
-    void associateWithAnimationLoop(AnimationLoop* animationLoop) { _animationLoop = animationLoop; }
+    static const float MAXIMUM_POSSIBLE_FRAME;
 
     // EntityItemProperty related helpers
     virtual void copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties,
@@ -84,13 +83,13 @@ public:
     DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, Running, running, bool, false); // was animationIsPlaying
     DEFINE_PROPERTY(PROP_ANIMATION_LOOP, Loop, loop, bool, true); // was animationSettings.loop
     DEFINE_PROPERTY(PROP_ANIMATION_FIRST_FRAME, FirstFrame, firstFrame, float, 0.0f); // was animationSettings.firstFrame
-    DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float, AnimationLoop::MAXIMUM_POSSIBLE_FRAME); // was animationSettings.lastFrame
+    DEFINE_PROPERTY(PROP_ANIMATION_LAST_FRAME, LastFrame, lastFrame, float, MAXIMUM_POSSIBLE_FRAME); // was animationSettings.lastFrame
     DEFINE_PROPERTY(PROP_ANIMATION_HOLD, Hold, hold, bool, false); // was animationSettings.hold
+    DEFINE_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, AllowTranslation, allowTranslation, bool, true); 
 
 protected:
+    friend bool operator==(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b);
     void setFromOldAnimationSettings(const QString& value);
-
-    AnimationLoop* _animationLoop = nullptr;
 };
 
 #endif // hifi_AnimationPropertyGroup_h

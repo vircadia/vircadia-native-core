@@ -23,10 +23,12 @@ import "../../../windows"
 import "../../../dialogs/fileDialog"
 
 //FIXME implement shortcuts for favorite location
-Item {
+Rectangle {
     id: root
-    anchors.top: parent.top
+    anchors.top: parent ? parent.top : undefined
     HifiConstants { id: hifi }
+
+    color: hifi.colors.baseGray;
 
     Settings {
         category: "FileDialog"

@@ -16,15 +16,7 @@
 
 #include "MovingEntitiesOperator.h"
 
-MovingEntitiesOperator::MovingEntitiesOperator(EntityTreePointer tree) :
-    _tree(tree),
-    _changeTime(usecTimestampNow()),
-    _foundOldCount(0),
-    _foundNewCount(0),
-    _lookingCount(0),
-    _wantDebug(false)
-{
-}
+MovingEntitiesOperator::MovingEntitiesOperator() { }
 
 MovingEntitiesOperator::~MovingEntitiesOperator() {
     if (_wantDebug) {
@@ -51,7 +43,7 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItemPointer entity, const AACube& newCube) {
-    EntityTreeElementPointer oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
+    EntityTreeElementPointer oldContainingElement = entity->getElement();
     AABox newCubeClamped = newCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
 
     if (_wantDebug) {
@@ -109,7 +101,7 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItemPointer entity, const
 }
 
 // does this entity tree element contain the old entity
-bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElementPointer element) {
+bool MovingEntitiesOperator::shouldRecurseSubTree(const OctreeElementPointer& element) {
     bool containsEntity = false;
 
     // If we don't have an old entity, then we don't contain the entity, otherwise
@@ -141,12 +133,12 @@ bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElementPointer element) 
     return containsEntity;
 }
 
-bool MovingEntitiesOperator::preRecursion(OctreeElementPointer element) {
+bool MovingEntitiesOperator::preRecursion(const OctreeElementPointer& element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
-    // and of the following are true:
+    // any of the following are true:
     //   * We have not yet found the old entity, and this branch contains our old entity
     //   * We have not yet found the new entity, and this branch contains our new entity
     //
@@ -193,7 +185,6 @@ bool MovingEntitiesOperator::preRecursion(OctreeElementPointer element) {
 
             // If this element is the best fit for the new bounds of this entity then add the entity to the element
             if (!details.newFound && entityTreeElement->bestFitBounds(details.newCube)) {
-                EntityItemID entityItemID = details.entity->getEntityItemID();
                 // remove from the old before adding
                 EntityTreeElementPointer oldElement = details.entity->getElement();
                 if (oldElement != entityTreeElement) {
@@ -201,7 +192,8 @@ bool MovingEntitiesOperator::preRecursion(OctreeElementPointer element) {
                         oldElement->removeEntityItem(details.entity);
                     }
                     entityTreeElement->addEntityItem(details.entity);
-                    _tree->setContainingElement(entityItemID, entityTreeElement);
+                } else {
+                    entityTreeElement->bumpChangedContent();
                 }
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization
@@ -221,7 +213,7 @@ bool MovingEntitiesOperator::preRecursion(OctreeElementPointer element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool MovingEntitiesOperator::postRecursion(OctreeElementPointer element) {
+bool MovingEntitiesOperator::postRecursion(const OctreeElementPointer& element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -232,8 +224,6 @@ bool MovingEntitiesOperator::postRecursion(OctreeElementPointer element) {
     if ((shouldRecurseSubTree(element))) {
         element->markWithChangedTime();
     }
-    
-
 
     // It's not OK to prune if we have the potential of deleting the original containing element
     // because if we prune the containing element then new might end up reallocating the same memory later 
@@ -261,7 +251,7 @@ bool MovingEntitiesOperator::postRecursion(OctreeElementPointer element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElementPointer MovingEntitiesOperator::possiblyCreateChildAt(OctreeElementPointer element, int childIndex) {
+OctreeElementPointer MovingEntitiesOperator::possiblyCreateChildAt(const OctreeElementPointer& element, int childIndex) {
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity locations.
     if (_foundNewCount < _lookingCount) {
@@ -287,4 +277,11 @@ OctreeElementPointer MovingEntitiesOperator::possiblyCreateChildAt(OctreeElement
         }
     }
     return NULL; 
+}
+
+void MovingEntitiesOperator::reset() {
+    _entitiesToMove.clear();
+    _foundOldCount = 0;
+    _foundNewCount = 0;
+    _lookingCount = 0;
 }

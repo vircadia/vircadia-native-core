@@ -236,6 +236,7 @@ controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInp
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Shift), "Shift"));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageUp), QKeySequence(Qt::Key_PageUp).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Tab), QKeySequence(Qt::Key_Tab).toString()));
 
         availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseButton"));
         availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseButton"));

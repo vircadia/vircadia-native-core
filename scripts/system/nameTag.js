@@ -13,7 +13,6 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const CLIENTONLY = false;
-const NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 const ENTITY_CHECK_INTERVAL = 5000; // ms = 5 seconds
 const STARTUP_DELAY = 2000; // ms = 2 second
 const OLD_AGE = 3500; // we recreate the entity if older than this time in seconds 
@@ -24,7 +23,7 @@ const SIZE_Y = 0.075;
 const LETTER_OFFSET = 0.03; // arbitrary value to dynamically change width, could be more accurate by detecting characters
 const LINE_HEIGHT = 0.05;
 
-var nameTagEntityID = NULL_UUID;
+var nameTagEntityID = Uuid.NULL;
 var lastCheckForEntity = 0;
 
 // create the name tag entity after a brief delay
@@ -62,9 +61,9 @@ function updateNameTag() {
 };
 
 function deleteNameTag() {
-    if(nameTagEntityID !== NULL_UUID) {
+    if(nameTagEntityID !== Uuid.NULL) {
         Entities.deleteEntity(nameTagEntityID);
-        nameTagEntityID = NULL_UUID;
+        nameTagEntityID = Uuid.NULL;
     }
 }
 
@@ -85,7 +84,7 @@ function cleanup() {
 Script.update.connect(update);
 function update() {
     // if no entity we return
-    if(nameTagEntityID == NULL_UUID) {
+    if(nameTagEntityID == Uuid.NULL) {
         return;
     }
 

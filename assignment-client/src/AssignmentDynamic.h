@@ -24,6 +24,8 @@ public:
     AssignmentDynamic(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AssignmentDynamic();
 
+    virtual void remapIDs(QHash<EntityItemID, EntityItemID>& map) override {};
+
     virtual void removeFromSimulation(EntitySimulationPointer simulation) const override;
     virtual EntityItemWeakPointer getOwnerEntity() const override { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) override { _ownerEntity = ownerEntity; }
@@ -37,13 +39,6 @@ private:
     QByteArray _data;
 
 protected:
-    virtual glm::vec3 getPosition() override;
-    virtual glm::quat getRotation() override;
-    virtual glm::vec3 getLinearVelocity() override;
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
-    virtual glm::vec3 getAngularVelocity() override;
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) override;
-
     bool _active;
     EntityItemWeakPointer _ownerEntity;
 };

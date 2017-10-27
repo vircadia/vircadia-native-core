@@ -22,9 +22,12 @@ macro(install_beside_console)
     else ()
       # setup install of executable and things copied by fixup/windeployqt
       install(
-        FILES "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
+        DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
         DESTINATION ${COMPONENT_INSTALL_DIR}
         COMPONENT ${SERVER_COMPONENT}
+        PATTERN "*.pdb" EXCLUDE
+        PATTERN "*.lib" EXCLUDE
+        PATTERN "*.exp" EXCLUDE
       )
 
       # on windows for PR and production builds, sign the executable

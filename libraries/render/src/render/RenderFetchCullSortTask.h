@@ -13,8 +13,6 @@
 #define hifi_RenderFetchCullSortTask_h
 
 #include <gpu/Pipeline.h>
-
-#include "Task.h"
 #include "CullTask.h"
 
 class RenderFetchCullSortTask {
@@ -28,12 +26,12 @@ public:
         OVERLAY_OPAQUE_SHAPE,
         OVERLAY_TRANSPARENT_SHAPE,
         BACKGROUND,
-        SPATIAL_SELECTION,
 
         NUM_BUCKETS
     };
 
-    using Output = std::array<render::Varying, Buckets::NUM_BUCKETS>;
+    using BucketList = render::VaryingArray<render::ItemBounds, Buckets::NUM_BUCKETS>;
+    using Output = render::VaryingSet2<BucketList, render::ItemSpatialTree::ItemSelection>;
     using JobModel = render::Task::ModelO<RenderFetchCullSortTask, Output>;
 
     RenderFetchCullSortTask() {}

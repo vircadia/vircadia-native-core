@@ -38,6 +38,9 @@ public:
     bool isSupported() const override;
     const QString getName() const override { return NAME; }
 
+    glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
+    glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override;
+
     void init() override;
 
     float getTargetFrameRate() const override;
@@ -56,7 +59,10 @@ public:
     bool isKeyboardVisible() override;
 
     // Possibly needs an additional thread for VR submission
-    int getRequiredThreadCount() const override; 
+    int getRequiredThreadCount() const override;
+
+    QString getPreferredAudioInDevice() const override;
+    QString getPreferredAudioOutDevice() const override;
 
 protected:
     bool internalActivate() override;

@@ -22,6 +22,8 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 
+#include <gpu/Batch.h>
+
 namespace gpu {
     namespace gl {
         class GLBackend;
@@ -30,7 +32,7 @@ namespace gpu {
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
-    Q_PROPERTY(float overlayAlpha MEMBER _overlayAlpha)
+    Q_PROPERTY(float hudAlpha MEMBER _hudAlpha)
     using Parent = DisplayPlugin;
 protected:
     using Mutex = std::mutex;
@@ -38,10 +40,12 @@ protected:
     using Condition = std::condition_variable;
 public:
     ~OpenGLDisplayPlugin();
-    // These must be final to ensure proper ordering of operations 
+    // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
     bool activate() override final;
     void deactivate() override final;
+    bool startStandBySession() override final;
+    void endSession() override final;
     bool eventFilter(QObject* receiver, QEvent* event) override;
     bool isDisplayVisible() const override { return true; }
 
@@ -55,7 +59,10 @@ public:
         return getSurfaceSize();
     }
 
+    virtual bool setDisplayTexture(const QString& name) override;
+    virtual bool onDisplayTextureReset() { return false; };
     QImage getScreenshot(float aspectRatio = 0.0f) const override;
+    QImage getSecondaryCameraScreenshot() const override;
 
     float presentRate() const override;
 
@@ -75,6 +82,8 @@ public:
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
 
+    void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
+
 protected:
     friend class PresentThread;
 
@@ -86,7 +95,7 @@ protected:
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
     virtual void compositeScene();
-    virtual void compositeOverlay();
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
     virtual void compositePointer();
     virtual void compositeExtra() {};
 
@@ -100,9 +109,15 @@ protected:
     virtual bool internalActivate() { return true; }
     virtual void internalDeactivate() {}
 
+    // Returns true on successful activation of standby session
+    virtual bool activateStandBySession() { return true; }
+    virtual void deactivateSession() {}
+
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer fbo);
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
     virtual void updateFrameData();
 
     void withMainThreadContext(std::function<void()> f) const;
@@ -116,19 +131,22 @@ protected:
     bool _vsyncEnabled { true };
     QThread* _presentThread{ nullptr };
     std::queue<gpu::FramePointer> _newFrameQueue;
-    RateCounter<100> _droppedFrameRate;
-    RateCounter<100> _newFrameRate;
-    RateCounter<100> _presentRate;
-    RateCounter<100> _renderRate;
+    RateCounter<200> _droppedFrameRate;
+    RateCounter<200> _newFrameRate;
+    RateCounter<200> _presentRate;
+    RateCounter<200> _renderRate;
 
     gpu::FramePointer _currentFrame;
     gpu::Frame* _lastFrame { nullptr };
     gpu::FramebufferPointer _compositeFramebuffer;
-    gpu::PipelinePointer _overlayPipeline;
+    gpu::PipelinePointer _hudPipeline;
+    gpu::PipelinePointer _mirrorHUDPipeline;
+    gpu::ShaderPointer _mirrorHUDPS;
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;
-    float _compositeOverlayAlpha { 1.0f };
+    gpu::TexturePointer _displayTexture{};
+    float _compositeHUDAlpha { 1.0f };
 
     struct CursorData {
         QImage image;
@@ -162,6 +180,6 @@ protected:
     // Any resource shared by the main thread and the presentation thread must
     // be serialized through this mutex
     mutable Mutex _presentMutex;
-    float _overlayAlpha{ 1.0f };
+    float _hudAlpha{ 1.0f };
 };
 

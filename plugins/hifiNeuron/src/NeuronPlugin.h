@@ -25,8 +25,6 @@ class NeuronPlugin : public InputPlugin {
 public:
     friend void FrameDataReceivedCallback(void* context, void* sender, _BvhDataHeaderEx* header, float* data);
 
-    bool isHandController() const override { return false; }
-
     // Plugin functions
     virtual void init() override;
     virtual bool isSupported() const override;

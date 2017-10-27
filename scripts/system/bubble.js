@@ -10,7 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global Script, Users, Overlays, AvatarList, Controller, Camera, getControllerWorldLocation */
+/* global Script, Users, Overlays, AvatarList, Controller, Camera, getControllerWorldLocation, UserActivityLogger */
 
 (function () { // BEGIN LOCAL_SCOPE
     var button;
@@ -25,10 +25,10 @@
     // The bubble model itself
     var bubbleOverlay = Overlays.addOverlay("model", {
         url: Script.resolvePath("assets/models/Bubble-v14.fbx"), // If you'd like to change the model, modify this line (and the dimensions below)
-        dimensions: { x: 1.0, y: 0.75, z: 1.0 },
+        dimensions: { x: MyAvatar.sensorToWorldScale, y: 0.75 * MyAvatar.sensorToWorldScale, z: MyAvatar.sensorToWorldScale },
         position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, z: MyAvatar.position.z },
-        rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
-        scale: { x: 2, y: MyAvatar.scale * 0.5 + 0.5, z: 2 },
+        rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
+        scale: { x: 2 , y: MyAvatar.scale * 0.5 + 0.5, z: 2  },
         visible: false,
         ignoreRayIntersection: true
     });
@@ -62,9 +62,22 @@
         }
 
         Overlays.editOverlay(bubbleOverlay, {
-            position: { x: MyAvatar.position.x, y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, z: MyAvatar.position.z },
-            rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
-            scale: { x: 2, y: MyAvatar.scale * 0.5 + 0.5, z: 2 },
+            dimensions: { 
+                x: MyAvatar.sensorToWorldScale, 
+                y: 0.75 * MyAvatar.sensorToWorldScale, 
+                z: MyAvatar.sensorToWorldScale 
+            },
+            position: { 
+                x: MyAvatar.position.x, 
+                y: -MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE, 
+                z: MyAvatar.position.z 
+            },
+            rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
+            scale: { 
+                x: 2 , 
+                y: MyAvatar.scale * 0.5  + 0.5 , 
+                z: 2  
+            },
             visible: true
         });
         bubbleOverlayTimestamp = Date.now();
@@ -76,6 +89,7 @@
     // Called from the C++ scripting interface to show the bubble overlay
     function enteredIgnoreRadius() {
         createOverlays();
+        UserActivityLogger.bubbleActivated();
     }
 
     // Used to set the state of the bubble HUD button
@@ -98,32 +112,42 @@
 
             if (delay < BUBBLE_RAISE_ANIMATION_DURATION_MS) {
                 Overlays.editOverlay(bubbleOverlay, {
+                    dimensions: { 
+                        x: MyAvatar.sensorToWorldScale, 
+                        y: 0.75 * MyAvatar.sensorToWorldScale, 
+                        z: MyAvatar.sensorToWorldScale 
+                    },
                     // Quickly raise the bubble from the ground up
                     position: {
                         x: MyAvatar.position.x,
                         y: (-((BUBBLE_RAISE_ANIMATION_DURATION_MS - delay) / BUBBLE_RAISE_ANIMATION_DURATION_MS)) * MyAvatar.scale * 2 + MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE,
                         z: MyAvatar.position.z
                     },
-                    rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
+                    rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
                     scale: {
-                        x: 2,
+                        x: 2 ,
                         y: ((1 - ((BUBBLE_RAISE_ANIMATION_DURATION_MS - delay) / BUBBLE_RAISE_ANIMATION_DURATION_MS)) * MyAvatar.scale * 0.5 + 0.5),
-                        z: 2
+                        z: 2 
                     }
                 });
             } else {
                 // Keep the bubble in place for a couple seconds
                 Overlays.editOverlay(bubbleOverlay, {
+                    dimensions: { 
+                        x: MyAvatar.sensorToWorldScale, 
+                        y: 0.75 * MyAvatar.sensorToWorldScale, 
+                        z: MyAvatar.sensorToWorldScale 
+                    },            
                     position: {
                         x: MyAvatar.position.x,
                         y: MyAvatar.position.y + MyAvatar.scale * BUBBLE_HEIGHT_SCALE,
                         z: MyAvatar.position.z
                     },
-                    rotation: Quat.fromPitchYawRollDegrees(MyAvatar.bodyPitch, 0, MyAvatar.bodyRoll),
+                    rotation: Quat.multiply(MyAvatar.orientation, Quat.fromVec3Degrees({x: 0.0, y: 180.0, z: 0.0})),
                     scale: {
                         x: 2,
-                        y: MyAvatar.scale * 0.5 + 0.5,
-                        z: 2
+                        y: MyAvatar.scale * 0.5  + 0.5 ,
+                        z: 2 
                     }
                 });
             }
@@ -139,10 +163,14 @@
     }
 
     // When the space bubble is toggled...
-    function onBubbleToggled() {
-        var bubbleActive = Users.getIgnoreRadiusEnabled();
-        writeButtonProperties(bubbleActive);
-        if (bubbleActive) {
+    // NOTE: the c++ calls this with just the first param -- we added a second
+    // just for not logging the initial state of the bubble when we startup.
+    function onBubbleToggled(enabled, doNotLog) {
+        writeButtonProperties(enabled);
+        if (doNotLog !== true) {
+            UserActivityLogger.bubbleToggled(enabled);
+        }
+        if (enabled) {
             createOverlays();
         } else {
             hideOverlays();
@@ -163,7 +191,7 @@
         sortOrder: 4
     });
 
-    onBubbleToggled();
+    onBubbleToggled(Users.getIgnoreRadiusEnabled(), true); // pass in true so we don't log this initial one in the UserActivity table
 
     button.clicked.connect(Users.toggleIgnoreRadius);
     Users.ignoreRadiusEnabledChanged.connect(onBubbleToggled);

@@ -14,7 +14,7 @@
 
 #include <QUrl>
 
-#include <FileCache.h>
+#include <shared/FileCache.h>
 
 namespace ktx {
     class KTX;
@@ -27,22 +27,18 @@ class KTXCache : public cache::FileCache {
     Q_OBJECT
 
 public:
+    // Whenever a change is made to the serialized format for the KTX cache that isn't backward compatible,
+    // this value should be incremented.  This will force the KTX cache to be wiped
+    static const int CURRENT_VERSION;
+    static const int INVALID_VERSION;
+    static const char* SETTING_VERSION_NAME;
+
     KTXCache(const std::string& dir, const std::string& ext);
 
-    KTXFilePointer writeFile(const char* data, Metadata&& metadata);
-    KTXFilePointer getFile(const Key& key);
+    void initialize() override;
 
 protected:
     std::unique_ptr<cache::File> createFile(Metadata&& metadata, const std::string& filepath) override final;
-};
-
-class KTXFile : public cache::File {
-    Q_OBJECT
-
-protected:
-    friend class KTXCache;
-
-    KTXFile(Metadata&& metadata, const std::string& filepath);
 };
 
 #endif // hifi_KTXCache_h

@@ -19,6 +19,7 @@
 #include <GenericThread.h>
 #include <Node.h>
 #include <OctreePacketData.h>
+#include "OctreeQueryNode.h"
 
 class OctreeQueryNode;
 class OctreeServer;
@@ -34,7 +35,7 @@ public:
 
     void setIsShuttingDown();
     bool isShuttingDown() { return _isShuttingDown; }
-    
+
     QUuid getNodeUuid() const { return _nodeUuid; }
 
     static AtomicUIntStat _totalBytes;
@@ -51,22 +52,30 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process() override;
 
-    /// Called before a packetDistributor pass to allow for pre-distribution processing
-    virtual void preDistributionProcessing() {};
+    virtual void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
+            bool viewFrustumChanged, bool isFullScene);
+    virtual bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters);
 
-    OctreeServer* _myServer { nullptr };
+    OctreePacketData _packetData;
     QWeakPointer<Node> _node;
+    OctreeServer* _myServer { nullptr };
 
 private:
-    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent, bool dontSuppressDuplicate = false);
+    /// Called before a packetDistributor pass to allow for pre-distribution processing
+    virtual void preDistributionProcessing() {};
+    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, bool dontSuppressDuplicate = false);
     int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
-    
+
+    virtual bool hasSomethingToSend(OctreeQueryNode* nodeData) { return !nodeData->elementBag.isEmpty(); }
+    virtual bool shouldStartNewTraversal(OctreeQueryNode* nodeData, bool viewFrustumChanged) { return viewFrustumChanged || !hasSomethingToSend(nodeData); }
+    virtual void preStartNewScene(OctreeQueryNode* nodeData, bool isFullScene);
+    virtual bool shouldTraverseAndSend(OctreeQueryNode* nodeData) { return hasSomethingToSend(nodeData); }
 
     QUuid _nodeUuid;
 
-    OctreePacketData _packetData;
-
-    int _nodeMissingCount { 0 };
+    int _truePacketsSent { 0 }; // available for debug stats
+    int _trueBytesSent { 0 }; // available for debug stats
+    int _packetsSentThisInterval { 0 }; // used for bandwidth throttle condition
     bool _isShuttingDown { false };
 };
 

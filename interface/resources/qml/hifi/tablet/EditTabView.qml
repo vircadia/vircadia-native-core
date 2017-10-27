@@ -5,7 +5,6 @@ import QtWebChannel 1.0
 import QtQuick.Controls.Styles 1.4
 import "../../controls"
 import "../toolbars"
-import HFWebEngineProfile 1.0
 import QtGraphicalEffects 1.0
 import "../../controls-uit" as HifiControls
 import "../../styles-uit"
@@ -22,7 +21,7 @@ TabView {
         enabled: true
         property string originalUrl: ""
 
-        Rectangle { 
+        Rectangle {
             color: "#404040"
 
             Text {
@@ -181,8 +180,7 @@ TabView {
 
         WebView {
             id: entityListToolWebView
-            url: "../../../../../scripts/system/html/entityList.html"
-            eventBridge: editRoot.eventBridge
+            url: Paths.defaultScripts + "/system/html/entityList.html"
             anchors.fill: parent
             enabled: true
         }
@@ -196,8 +194,7 @@ TabView {
 
         WebView {
             id: entityPropertiesWebView
-            url: "../../../../../scripts/system/html/entityProperties.html"
-            eventBridge: editRoot.eventBridge
+            url: Paths.defaultScripts + "/system/html/entityProperties.html"
             anchors.fill: parent
             enabled: true
         }
@@ -211,8 +208,7 @@ TabView {
 
         WebView {
             id: gridControlsWebView
-            url: "../../../../../scripts/system/html/gridControls.html"
-            eventBridge: editRoot.eventBridge
+            url: Paths.defaultScripts + "/system/html/gridControls.html"
             anchors.fill: parent
             enabled: true
         }
@@ -226,8 +222,7 @@ TabView {
 
         WebView {
             id: particleExplorerWebView
-            url: "../../../../../scripts/system/particle_explorer/particleExplorer.html"
-            eventBridge: editRoot.eventBridge
+            url: Paths.defaultScripts + "/system/particle_explorer/particleExplorer.html"
             anchors.fill: parent
             enabled: true
         }
@@ -290,7 +285,7 @@ TabView {
                 editTabView.currentIndex = id;
             } else {
                 console.warn('Attempt to switch to invalid tab:', id);
-            }			
+            }
         } else if (typeof id === 'string'){
             switch (id.toLowerCase()) {
                 case 'create':
@@ -298,16 +293,16 @@ TabView {
                     break;
                 case 'list':
                     editTabView.currentIndex = 1;
-                    break; 
+                    break;
                 case 'properties':
                     editTabView.currentIndex = 2;
-                    break; 
+                    break;
                 case 'grid':
                     editTabView.currentIndex = 3;
-                    break; 
+                    break;
                 case 'particle':
                     editTabView.currentIndex = 4;
-                    break; 
+                    break;
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);
             }

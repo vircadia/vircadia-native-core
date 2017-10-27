@@ -9,32 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AddEntityOperator.h"
+
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
-#include "AddEntityOperator.h"
-
 AddEntityOperator::AddEntityOperator(EntityTreePointer tree, EntityItemPointer newEntity) :
     _tree(tree),
     _newEntity(newEntity),
-    _foundNew(false),
-    _changeTime(usecTimestampNow()),
-    _newEntityBox()
+    _newEntityBox(),
+    _foundNew(false)
 {
     // caller must have verified existence of newEntity
     assert(_newEntity);
 
     bool success;
     auto queryCube = _newEntity->getQueryAACube(success);
-    if (!success) {
-        _newEntity->markAncestorMissing(true);
-    }
-
     _newEntityBox = queryCube.clamp((float)(-HALF_TREE_SCALE), (float)HALF_TREE_SCALE);
 }
 
-bool AddEntityOperator::preRecursion(OctreeElementPointer element) {
+bool AddEntityOperator::preRecursion(const OctreeElementPointer& element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
 
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
@@ -50,10 +45,8 @@ bool AddEntityOperator::preRecursion(OctreeElementPointer element) {
 
         // If this element is the best fit for the new entity properties, then add/or update it
         if (entityTreeElement->bestFitBounds(_newEntityBox)) {
-
+            _tree->addEntityMapEntry(_newEntity);
             entityTreeElement->addEntityItem(_newEntity);
-            _tree->setContainingElement(_newEntity->getEntityItemID(), entityTreeElement);
-
             _foundNew = true;
             keepSearching = false;
         } else {
@@ -64,7 +57,7 @@ bool AddEntityOperator::preRecursion(OctreeElementPointer element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool AddEntityOperator::postRecursion(OctreeElementPointer element) {
+bool AddEntityOperator::postRecursion(const OctreeElementPointer& element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -78,7 +71,7 @@ bool AddEntityOperator::postRecursion(OctreeElementPointer element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElementPointer AddEntityOperator::possiblyCreateChildAt(OctreeElementPointer element, int childIndex) {
+OctreeElementPointer AddEntityOperator::possiblyCreateChildAt(const OctreeElementPointer& element, int childIndex) {
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity location.
     // Check to see if 

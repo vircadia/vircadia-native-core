@@ -181,10 +181,10 @@ Item {
                 HifiControls.SpinBox {
                     id: scaleSpinner;
                     anchors { left: parent.left; right: parent.right; bottom: parent.bottom; }
-                    decimals: 1;
-                    minimumValue: 0.1
+                    decimals: 2;
+                    minimumValue: 0.01
                     maximumValue: 10
-                    stepSize: 0.1;
+                    stepSize: 0.05;
                     value: attachment ? attachment.scale : 1.0
                     colorScheme: hifi.colorSchemes.dark
                     onValueChanged: {

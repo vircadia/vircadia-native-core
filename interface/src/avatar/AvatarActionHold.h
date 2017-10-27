@@ -16,12 +16,12 @@
 
 #include <EntityItem.h>
 #include <AnimPose.h>
-#include <ObjectActionSpring.h>
+#include <ObjectActionTractor.h>
 
 #include "avatar/MyAvatar.h"
 
 
-class AvatarActionHold : public ObjectActionSpring {
+class AvatarActionHold : public ObjectActionTractor {
 public:
     AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
@@ -38,7 +38,8 @@ public:
 
     bool getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
     virtual bool getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
-                           glm::vec3& linearVelocity, glm::vec3& angularVelocity) override;
+                           glm::vec3& linearVelocity, glm::vec3& angularVelocity,
+                           float& linearTimeScale, float& angularTimeScale) override;
 
     virtual void prepareForPhysicsSimulation() override;
 

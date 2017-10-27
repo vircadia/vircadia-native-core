@@ -23,6 +23,8 @@ public:
     
     PacketVersion getVersion() const { return _packetVersion; }
     const QUuid& getSourceID() const { return _sourceID; }
+
+    qint64 getMaxSegmentSize() const override { return NLPacket::maxPayloadSize(_packetType, _isOrdered); }
     
 private:
     NLPacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false,

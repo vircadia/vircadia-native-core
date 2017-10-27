@@ -52,7 +52,7 @@ void setupPreferences() {
 
     {
         auto getter = [=]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
-        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); };
+        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); qApp->clearAvatarOverrideUrl(); };
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
         preferences->addPreference(preference);
     }
@@ -92,26 +92,22 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool { return qApp->getDesktopTabletBecomesToolbarSetting(); };
-        auto setter = [](bool value) { qApp->setDesktopTabletBecomesToolbarSetting(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Desktop Tablet Becomes Toolbar", getter, setter));
-    }
-    {
-        auto getter = []()->bool { return qApp->getHmdTabletBecomesToolbarSetting(); };
-        auto setter = [](bool value) { qApp->setHmdTabletBecomesToolbarSetting(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "HMD Tablet Becomes Toolbar", getter, setter));
-    }
-    {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
+    }
+    {
+        static const QString RETICLE_ICON_NAME = { Cursor::Manager::getIconName(Cursor::Icon::RETICLE) };
+        auto getter = []()->bool { return qApp->getPreferredCursor() == RETICLE_ICON_NAME; };
+        auto setter = [](bool value) { qApp->setPreferredCursor(value ? RETICLE_ICON_NAME : QString()); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
     }
 
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
-        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
+        auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); emit DependencyManager::get<Snapshot>()->snapshotLocationSet(value); };
         auto preference = new BrowsePreference(SNAPSHOTS, "Put my snapshots here", getter, setter);
         preferences->addPreference(preference);
     }
@@ -182,13 +178,31 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [=]()->float { return myAvatar->getUniformScale(); };
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getTargetScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Avatar scale (default is 1.0)", getter, setter);
-        preference->setMin(0.01f);
-        preference->setMax(99.9f);
+        auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
+        preference->setStep(0.05f);
         preference->setDecimals(2);
-        preference->setStep(1);
+        preferences->addPreference(preference);
+        
+        // When the Interface is first loaded, this section setupPreferences(); is loaded - 
+        // causing the myAvatar->getDomainMinScale() and myAvatar->getDomainMaxScale() to get set to incorrect values
+        // which can't be changed across domain switches. Having these values loaded up when you load the Dialog each time
+        // is a way around this, therefore they're not specified here but in the QML.
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getUserHeight(); };
+        auto setter = [=](float value) { myAvatar->setUserHeight(value); };
+        auto preference = new SpinnerPreference(AVATAR_TUNING, "User height (meters)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(2.2f);
+        preference->setDecimals(3);
+        preference->setStep(0.001f);
         preferences->addPreference(preference);
     }
     {
@@ -227,17 +241,17 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-    static const QString AUDIO("Audio");
+    static const QString AUDIO_BUFFERS("Audio Buffers");
     {
         auto getter = []()->bool { return !DependencyManager::get<AudioClient>()->getReceivedAudioStream().dynamicJitterBufferEnabled(); };
         auto setter = [](bool value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setDynamicJitterBufferEnabled(!value); };
-        auto preference = new CheckPreference(AUDIO, "Disable dynamic jitter buffer", getter, setter);
+        auto preference = new CheckPreference(AUDIO_BUFFERS, "Disable dynamic jitter buffer", getter, setter);
         preferences->addPreference(preference);
     }
     {
         auto getter = []()->float { return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getStaticJitterBufferFrames(); };
         auto setter = [](float value) { DependencyManager::get<AudioClient>()->getReceivedAudioStream().setStaticJitterBufferFrames(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Static jitter buffer frames", getter, setter);
+        auto preference = new SpinnerPreference(AUDIO_BUFFERS, "Static jitter buffer frames", getter, setter);
         preference->setMin(0);
         preference->setMax(2000);
         preference->setStep(1);
@@ -246,13 +260,13 @@ void setupPreferences() {
     {
         auto getter = []()->bool { return !DependencyManager::get<AudioClient>()->getOutputStarveDetectionEnabled(); };
         auto setter = [](bool value) { DependencyManager::get<AudioClient>()->setOutputStarveDetectionEnabled(!value); };
-        auto preference = new CheckPreference(AUDIO, "Disable output starve detection", getter, setter);
+        auto preference = new CheckPreference(AUDIO_BUFFERS, "Disable output starve detection", getter, setter);
         preferences->addPreference(preference);
     }
     {
         auto getter = []()->float { return DependencyManager::get<AudioClient>()->getOutputBufferSize(); };
         auto setter = [](float value) { DependencyManager::get<AudioClient>()->setOutputBufferSize(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Output buffer initial frames", getter, setter);
+        auto preference = new SpinnerPreference(AUDIO_BUFFERS, "Output buffer initial frames", getter, setter);
         preference->setMin(AudioClient::MIN_BUFFER_FRAMES);
         preference->setMax(AudioClient::MAX_BUFFER_FRAMES);
         preference->setStep(1);
@@ -262,13 +276,13 @@ void setupPreferences() {
     {
         auto getter = []()->bool { return DependencyManager::get<AudioClient>()->isSimulatingJitter(); };
         auto setter = [](bool value) { return DependencyManager::get<AudioClient>()->setIsSimulatingJitter(value); };
-        auto preference = new CheckPreference(AUDIO, "Packet jitter simulator", getter, setter);
+        auto preference = new CheckPreference(AUDIO_BUFFERS, "Packet jitter simulator", getter, setter);
         preferences->addPreference(preference);
     }
     {
         auto getter = []()->float { return DependencyManager::get<AudioClient>()->getGateThreshold(); };
         auto setter = [](float value) { return DependencyManager::get<AudioClient>()->setGateThreshold(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Packet throttle threshold", getter, setter);
+        auto preference = new SpinnerPreference(AUDIO_BUFFERS, "Packet throttle threshold", getter, setter);
         preference->setMin(1);
         preference->setMax(200);
         preference->setStep(1);
@@ -297,36 +311,25 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-
-    {
-        auto getter = []()->float { return controller::InputDevice::getReticleMoveSpeed(); };
-        auto setter = [](float value) { controller::InputDevice::setReticleMoveSpeed(value); };
-        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle movement speed", getter, setter);
-        preference->setMin(0);
-        preference->setMax(100);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-
     {
         static const QString RENDER("Graphics");
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
-            if (ambientOcclusionConfig) {
-                auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
-                auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
+            if (mainViewAmbientOcclusionConfig) {
+                auto getter = [mainViewAmbientOcclusionConfig]()->QString { return mainViewAmbientOcclusionConfig->getPreset(); };
+                auto setter = [mainViewAmbientOcclusionConfig](QString preset) { mainViewAmbientOcclusionConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
-                preference->setItems(ambientOcclusionConfig->getPresetList());
+                preference->setItems(mainViewAmbientOcclusionConfig->getPresetList());
                 preferences->addPreference(preference);
             }
 
-            auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
-            if (shadowConfig) {
-                auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
-                auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+            auto mainViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+            if (mainViewShadowConfig) {
+                auto getter = [mainViewShadowConfig]()->QString { return mainViewShadowConfig->getPreset(); };
+                auto setter = [mainViewShadowConfig](QString preset) { mainViewShadowConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
-                preference->setItems(shadowConfig->getPresetList());
+                preference->setItems(mainViewShadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
         }

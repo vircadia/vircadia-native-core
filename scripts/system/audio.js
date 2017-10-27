@@ -15,6 +15,7 @@
 
 var TABLET_BUTTON_NAME = "AUDIO";
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+var AUDIO_QML_SOURCE = "../audio/Audio.qml";
 
 var MUTE_ICONS = {
     icon: "icons/tablet-icons/mic-mute-i.svg",
@@ -27,14 +28,13 @@ var UNMUTE_ICONS = {
 };
 
 function onMuteToggled() {
-    if (AudioDevice.getMuted()) {
+    if (Audio.muted) {
         button.editProperties(MUTE_ICONS);
     } else {
         button.editProperties(UNMUTE_ICONS);
     }
 }
 
-var shouldActivateButton = false;
 var onAudioScreen = false;
 
 function onClicked() {
@@ -44,24 +44,20 @@ function onClicked() {
     } else {
         var entity = HMD.tabletID;
         Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
-        shouldActivateButton = true;
-        shouldActivateButton = true;
-        tablet.loadQMLSource("../Audio.qml");
-        onAudioScreen = true;
+        tablet.loadQMLSource(AUDIO_QML_SOURCE);
     }
 }
 
 function onScreenChanged(type, url) {
+    onAudioScreen = (type === "QML" && url === AUDIO_QML_SOURCE);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
-    button.editProperties({isActive: shouldActivateButton});
-    shouldActivateButton = false;
-    onAudioScreen = false;
+    button.editProperties({isActive: onAudioScreen});
 }
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
-    icon: AudioDevice.getMuted() ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
-    activeIcon: AudioDevice.getMuted() ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,
+    icon: Audio.muted ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
+    activeIcon: Audio.muted ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,
     text: TABLET_BUTTON_NAME,
     sortOrder: 1
 });
@@ -70,7 +66,7 @@ onMuteToggled();
 
 button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);
-AudioDevice.muteToggled.connect(onMuteToggled);
+Audio.mutedChanged.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
     if (onAudioScreen) {
@@ -78,7 +74,7 @@ Script.scriptEnding.connect(function () {
     }
     button.clicked.disconnect(onClicked);
     tablet.screenChanged.disconnect(onScreenChanged);
-    AudioDevice.muteToggled.disconnect(onMuteToggled);
+    Audio.mutedChanged.disconnect(onMuteToggled);
     tablet.removeButton(button);
 });
 

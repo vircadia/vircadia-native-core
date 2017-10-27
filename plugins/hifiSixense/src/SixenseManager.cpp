@@ -29,6 +29,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <ui-plugins/PluginContainer.h>
+#include <Preferences.h>
 #include <SettingHandle.h>
 
 #include <QLoggingCategory>
@@ -46,19 +47,26 @@ static const unsigned int BUTTON_TRIGGER = 1U << 8;
 
 const glm::vec3 SixenseManager::DEFAULT_AVATAR_POSITION { -0.25f, -0.35f, -0.3f }; // in hydra frame
 const float SixenseManager::CONTROLLER_THRESHOLD { 0.35f };
+
+bool SixenseManager::_isEnabled = false;
 bool SixenseManager::_sixenseLoaded = false;
+
+#define BAIL_IF_NOT_ENABLED \
+    if (!_isEnabled) { \
+        return; \
+    }
 
 #define BAIL_IF_NOT_LOADED \
     if (!_sixenseLoaded) { \
         return; \
     }
 
-
-
 const char* SixenseManager::NAME { "Sixense" };
-const char* SixenseManager::HYDRA_ID_STRING { "Razer Hydra" };
+const char* SixenseManager::SIXENSE_ID_STRING { "Sixense" };
 
-const char* MENU_PARENT { "Developer" };
+const bool DEFAULT_ENABLED = false;
+
+const char* MENU_PARENT{ "Developer" };
 const char* MENU_NAME { "Sixense" };
 const char* MENU_PATH { "Developer" ">" "Sixense" };
 const char* TOGGLE_SMOOTH { "Smooth Sixense Movement" };
@@ -71,6 +79,22 @@ bool SixenseManager::isSupported() const {
 #else
     return false;
 #endif
+}
+
+void SixenseManager::init() {
+    loadSettings();
+
+    auto preferences = DependencyManager::get<Preferences>();
+    static const QString SIXENSE_PLUGIN { "Sixense Controllers" };
+    {
+        auto getter = [this]()->bool { return _isEnabled; };
+        auto setter = [this](bool value) {
+            _isEnabled = value;
+            saveSettings();
+        };
+        auto preference = new CheckPreference(SIXENSE_PLUGIN, "Enabled", getter, setter);
+        preferences->addPreference(preference);
+    }
 }
 
 bool SixenseManager::activate() {
@@ -133,6 +157,7 @@ void SixenseManager::setSixenseFilter(bool filter) {
 }
 
 void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    BAIL_IF_NOT_ENABLED
     BAIL_IF_NOT_LOADED
 
 #ifdef HAVE_SIXENSE
@@ -553,14 +578,19 @@ QString SixenseManager::InputDevice::getDefaultMappingConfig() const {
     return MAPPING_JSON;
 }
 
+const char* SETTINGS_ENABLED_KEY = "enabled";
+const char* SETTINGS_AVATAR_POSITION_KEY = "avatarPosition";
+const char* SETTINGS_AVATAR_ROTATION_KEY = "avatarPosition";
+
 // virtual
 void SixenseManager::saveSettings() const {
     Settings settings;
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        settings.setVec3Value(QString("avatarPosition"), _inputDevice->_avatarPosition);
-        settings.setQuatValue(QString("avatarRotation"), _inputDevice->_avatarRotation);
+        settings.setValue(QString(SETTINGS_ENABLED_KEY), _isEnabled);
+        settings.setVec3Value(QString(SETTINGS_AVATAR_POSITION_KEY), _inputDevice->_avatarPosition);
+        settings.setQuatValue(QString(SETTINGS_AVATAR_ROTATION_KEY), _inputDevice->_avatarRotation);
     }
     settings.endGroup();
 }
@@ -570,8 +600,9 @@ void SixenseManager::loadSettings() {
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        settings.getVec3ValueIfValid(QString("avatarPosition"), _inputDevice->_avatarPosition);
-        settings.getQuatValueIfValid(QString("avatarRotation"), _inputDevice->_avatarRotation);
+        _isEnabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
+        settings.getVec3ValueIfValid(QString(SETTINGS_AVATAR_POSITION_KEY), _inputDevice->_avatarPosition);
+        settings.getQuatValueIfValid(QString(SETTINGS_AVATAR_ROTATION_KEY), _inputDevice->_avatarRotation);
     }
     settings.endGroup();
 }

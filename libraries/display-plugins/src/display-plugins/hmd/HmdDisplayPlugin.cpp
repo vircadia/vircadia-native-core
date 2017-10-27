@@ -27,13 +27,14 @@
 #include <gpu/StandardShaderLib.h>
 #include <gpu/gl/GLBackend.h>
 
+#include <TextureCache.h>
 #include <PathUtils.h>
 
 #include "../Logging.h"
 #include "../CompositorHelper.h"
-#include <../render-utils/shaders/render-utils/glowLine_vert.h>
-#include <../render-utils/shaders/render-utils/glowLine_frag.h>
 
+#include "render-utils/hmd_ui_vert.h"
+#include "render-utils/hmd_ui_frag.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString DISABLE_PREVIEW = "Disable Preview";
@@ -44,51 +45,21 @@ static const bool DEFAULT_MONO_VIEW = true;
 static const bool DEFAULT_DISABLE_PREVIEW = false;
 #endif
 static const glm::mat4 IDENTITY_MATRIX;
-static const size_t NUMBER_OF_HANDS = 2;
 
 //#define LIVE_SHADER_RELOAD 1
 extern glm::vec3 getPoint(float yaw, float pitch);
-
-struct HandLaserData {
-    vec4 p1;
-    vec4 p2;
-    vec4 color;
-};
-
-static QString readFile(const QString& filename) {
-    QFile file(filename);
-    file.open(QFile::Text | QFile::ReadOnly);
-    QString result;
-    result.append(QTextStream(&file).readAll());
-    return result;
-}
 
 glm::uvec2 HmdDisplayPlugin::getRecommendedUiSize() const {
     return CompositorHelper::VIRTUAL_SCREEN_SIZE;
 }
 
-QRect HmdDisplayPlugin::getRecommendedOverlayRect() const {
+QRect HmdDisplayPlugin::getRecommendedHUDRect() const {
     return CompositorHelper::VIRTUAL_SCREEN_RECOMMENDED_OVERLAY_RECT;
 }
 
-bool HmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
-    if (!_vsyncEnabled && !_disablePreviewItemAdded) {
-        _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
-            [this](bool clicked) {
-                _disablePreview = clicked;
-                _container->setBoolSetting("disableHmdPreview", _disablePreview);
-                if (_disablePreview) {
-                    _clearPreviewFlag = true;
-                }
-            }, true, _disablePreview);
-        _disablePreviewItemAdded = true;
-    }
-    return Parent::beginFrameRender(frameIndex);
-}
-
+#define DISABLE_PREVIEW_MENU_ITEM_DELAY_MS 500
 
 bool HmdDisplayPlugin::internalActivate() {
-    _disablePreviewItemAdded = false;
     _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
     _clearPreviewFlag = true;
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
@@ -102,6 +73,19 @@ bool HmdDisplayPlugin::internalActivate() {
 #else
     _disablePreview = _container->getBoolSetting("disableHmdPreview", DEFAULT_DISABLE_PREVIEW || _vsyncEnabled);
 #endif
+
+    QTimer::singleShot(DISABLE_PREVIEW_MENU_ITEM_DELAY_MS, [this] {
+        if (isActive() && !_vsyncEnabled) {
+            _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), DISABLE_PREVIEW,
+                [this](bool clicked) {
+                _disablePreview = clicked;
+                _container->setBoolSetting("disableHmdPreview", _disablePreview);
+                if (_disablePreview) {
+                    _clearPreviewFlag = true;
+                }
+            }, true, _disablePreview);
+        }
+    });
 
     _container->removeMenu(FRAMERATE);
     for_each_eye([&](Eye eye) {
@@ -117,31 +101,9 @@ void HmdDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 }
 
-static const int32_t LINE_DATA_SLOT = 1;
-
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
-    _overlayRenderer.build();
-
-    {
-        auto state = std::make_shared<gpu::State>();
-        auto VS = gpu::Shader::createVertex(std::string(glowLine_vert));
-        auto PS = gpu::Shader::createPixel(std::string(glowLine_frag));
-        auto program = gpu::Shader::createProgram(VS, PS);
-        state->setCullMode(gpu::State::CULL_NONE);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        
-        gpu::Shader::BindingSet bindings;
-        bindings.insert({ "lineData", LINE_DATA_SLOT });;
-        gpu::Shader::makeProgram(*program, bindings);
-        _glowLinePipeline = gpu::Pipeline::create(program, state);
-        _handLaserUniforms = std::array<gpu::BufferPointer, 2>{ { std::make_shared<gpu::Buffer>(), std::make_shared<gpu::Buffer>() } };
-        _extraLaserUniforms = std::make_shared<gpu::Buffer>();
-    };
-
+    _hudRenderer.build();
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
@@ -154,12 +116,8 @@ void HmdDisplayPlugin::uncustomizeContext() {
         batch.setFramebuffer(_compositeFramebuffer);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
     });
-    _overlayRenderer = OverlayRenderer();
+    _hudRenderer = HUDRenderer();
     _previewTexture.reset();
-    _handLaserUniforms[0].reset();
-    _handLaserUniforms[1].reset();
-    _extraLaserUniforms.reset();
-    _glowLinePipeline.reset();
     Parent::uncustomizeContext();
 }
 
@@ -208,10 +166,18 @@ float HmdDisplayPlugin::getLeftCenterPixel() const {
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
-    // Composite together the scene, overlay and mouse cursor
+    // Composite together the scene, hud and mouse cursor
     hmdPresent();
 
-    if (!_disablePreview) {
+    if (_displayTexture) {
+        // Note: _displayTexture must currently be the same size as the display.
+        uvec2 dims = uvec2(_displayTexture->getDimensions());
+        auto viewport = ivec4(uvec2(0), dims);
+        render([&](gpu::Batch& batch) {
+            renderFromTexture(batch, _displayTexture, viewport, viewport);
+        });
+        swapBuffers();
+    } else if (!_disablePreview) {
         // screen preview mirroring
         auto sourceSize = _renderTargetSize;
         if (_monoPreview) {
@@ -221,12 +187,20 @@ void HmdDisplayPlugin::internalPresent() {
         float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);
         float newWidth = sourceSize.x - shiftLeftBy;
 
+        // Experimentally adjusted the region presented in preview to avoid seeing the masked pixels and recenter the center...
+        static float SCALE_WIDTH = 0.9f;
+        static float SCALE_OFFSET = 2.0f;
+        newWidth *= SCALE_WIDTH;
+        shiftLeftBy *= SCALE_OFFSET;
+
         const unsigned int RATIO_Y = 9;
         const unsigned int RATIO_X = 16;
         glm::uvec2 originalClippedSize { newWidth, newWidth * RATIO_Y / RATIO_X };
 
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
+
+        auto fbo = gpu::FramebufferPointer();
 
         render([&](gpu::Batch& batch) {
 
@@ -270,20 +244,15 @@ void HmdDisplayPlugin::internalPresent() {
                     viewport = ivec4(scissorOffset - scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
                 }
 
+                // TODO: only bother getting and passing in the hmdPreviewFramebuffer if the camera is on
+                fbo = DependencyManager::get<TextureCache>()->getHmdPreviewFramebuffer(windowSize.x, windowSize.y);
+
                 viewport.z *= 2;
             }
-
-            batch.enableStereo(false);
-            batch.resetViewTransform();
-            batch.setFramebuffer(gpu::FramebufferPointer());
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-            batch.setStateScissorRect(scissor); // was viewport
-            batch.setViewportTransform(viewport);
-            batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-            batch.setPipeline(_presentPipeline);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
         });
         swapBuffers();
+
     } else if (_clearPreviewFlag) {
         QImage image;
         if (_vsyncEnabled) {
@@ -306,26 +275,18 @@ void HmdDisplayPlugin::internalPresent() {
             _previewTexture->assignStoredMip(0, image.byteCount(), image.constBits());
             _previewTexture->setAutoGenerateMips(true);
         }
-        
+
         auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
 
         render([&](gpu::Batch& batch) {
-            batch.enableStereo(false);
-            batch.resetViewTransform();
-            batch.setFramebuffer(gpu::FramebufferPointer());
-            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-            batch.setStateScissorRect(viewport);
-            batch.setViewportTransform(viewport);
-            batch.setResourceTexture(0, _previewTexture);
-            batch.setPipeline(_presentPipeline);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            renderFromTexture(batch, _previewTexture, viewport, viewport);
         });
         _clearPreviewFlag = false;
         swapBuffers();
     }
     postPreview();
 
-    // If preview is disabled, we need to check to see if the window size has changed 
+    // If preview is disabled, we need to check to see if the window size has changed
     // and re-render the no-preview message
     if (_disablePreview) {
         auto window = _container->getPrimaryWidget();
@@ -378,141 +339,14 @@ void HmdDisplayPlugin::updateFrameData() {
         auto correction = glm::inverse(batchPose) * currentPose;
         getGLBackend()->setCameraCorrection(correction);
     }
-
-    withPresentThreadLock([&] {
-        _presentHandLasers = _handLasers;
-        _presentHandPoses = _handPoses;
-        _presentUiModelTransform = _uiModelTransform;
-
-        _presentExtraLaser = _extraLaser;
-        _presentExtraLaserStart = _extraLaserStart;
-    });
-
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    glm::mat4 modelMat = compositorHelper->getModelTransform().getMatrix();
-    static const float OUT_OF_BOUNDS = -1;
-    std::array<vec2, NUMBER_OF_HANDS> handGlowPoints { { vec2(OUT_OF_BOUNDS), vec2(OUT_OF_BOUNDS) } };
-    vec2 extraGlowPoint(OUT_OF_BOUNDS);
-
-    float uiRadius = compositorHelper->getHmdUiRadius();
-
-    // compute the glow point interesections
-    for (size_t i = 0; i < NUMBER_OF_HANDS; ++i) {
-        if (_presentHandPoses[i] == IDENTITY_MATRIX) {
-            continue;
-        }
-        const auto& handLaser = _presentHandLasers[i];
-        if (!handLaser.valid()) {
-            continue;
-        }
-
-        const vec3& laserDirection = handLaser.direction;
-        mat4 model = _presentHandPoses[i];
-        vec3 castStart = vec3(model[3]);
-        vec3 castDirection = glm::quat_cast(model) * laserDirection;
-
-        // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js:19
-        static const vec3 GRAB_POINT_SPHERE_OFFSET(0.04f, 0.13f, 0.039f);  // x = upward, y = forward, z = lateral
-
-        // swizzle grab point so that (x = upward, y = lateral, z = forward)
-        vec3 grabPointOffset = glm::vec3(GRAB_POINT_SPHERE_OFFSET.x, GRAB_POINT_SPHERE_OFFSET.z, -GRAB_POINT_SPHERE_OFFSET.y);
-        if (i == 0) {
-            grabPointOffset.x *= -1.0f; // this changes between left and right hands
-        }
-        castStart += glm::quat_cast(model) * grabPointOffset;
-
-        // Find the intersection of the laser with he UI and use it to scale the model matrix
-        float distance;
-        if (!glm::intersectRaySphere(castStart, castDirection,
-                                     _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
-            continue;
-        }
-
-        _presentHandLaserPoints[i].first = castStart;
-        _presentHandLaserPoints[i].second = _presentHandLaserPoints[i].first + (castDirection * distance);
-
-        vec3 intersectionPosition = castStart + (castDirection * distance) - _presentUiModelTransform.getTranslation();
-        intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
-
-        // Take the interesection normal and convert it to a texture coordinate
-        vec2 yawPitch;
-        {
-            vec2 xdir = glm::normalize(vec2(intersectionPosition.x, -intersectionPosition.z));
-            yawPitch.x = glm::atan(xdir.x, xdir.y);
-            yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + (float)M_PI_2;
-        }
-        vec2 halfFov = CompositorHelper::VIRTUAL_UI_TARGET_FOV / 2.0f;
-
-        // Are we out of range
-        if (glm::any(glm::greaterThan(glm::abs(yawPitch), halfFov))) {
-            continue;
-        }
-
-        yawPitch /= CompositorHelper::VIRTUAL_UI_TARGET_FOV;
-        yawPitch += 0.5f;
-        handGlowPoints[i] = yawPitch;
-    }
-
-    // compute the glow point interesections
-    if (_presentExtraLaser.valid()) {
-        const vec3& laserDirection = _presentExtraLaser.direction;
-        vec3 castStart = _presentExtraLaserStart;
-        vec3 castDirection = laserDirection;
-
-        // Find the intersection of the laser with he UI and use it to scale the model matrix
-        float distance;
-        if (glm::intersectRaySphere(castStart, castDirection,
-            _presentUiModelTransform.getTranslation(), uiRadius * uiRadius, distance)) {
-
-
-            _presentExtraLaserPoints.first = castStart;
-            _presentExtraLaserPoints.second = _presentExtraLaserPoints.first + (castDirection * distance);
-
-            vec3 intersectionPosition = castStart + (castDirection * distance) - _presentUiModelTransform.getTranslation();
-            intersectionPosition = glm::inverse(_presentUiModelTransform.getRotation()) * intersectionPosition;
-
-            // Take the interesection normal and convert it to a texture coordinate
-            vec2 yawPitch;
-            {
-                vec2 xdir = glm::normalize(vec2(intersectionPosition.x, -intersectionPosition.z));
-                yawPitch.x = glm::atan(xdir.x, xdir.y);
-                yawPitch.y = (acosf(intersectionPosition.y) * -1.0f) + (float)M_PI_2;
-            }
-            vec2 halfFov = CompositorHelper::VIRTUAL_UI_TARGET_FOV / 2.0f;
-
-            // Are we out of range
-            if (!glm::any(glm::greaterThan(glm::abs(yawPitch), halfFov))) {
-                yawPitch /= CompositorHelper::VIRTUAL_UI_TARGET_FOV;
-                yawPitch += 0.5f;
-                extraGlowPoint = yawPitch;
-            }
-        }
-    }
-
-
-    for_each_eye([&](Eye eye) {
-        auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
-        _overlayRenderer.mvps[eye] = _eyeProjections[eye] * modelView;
-    });
-
-    // Setup the uniforms
-    {
-        auto& uniforms = _overlayRenderer.uniforms;
-        uniforms.alpha = _compositeOverlayAlpha;
-        uniforms.glowPoints = vec4(handGlowPoints[0], handGlowPoints[1]);
-        uniforms.glowColors[0] = _presentHandLasers[0].color;
-        uniforms.glowColors[1] = _presentHandLasers[1].color;
-        uniforms.extraGlowPoint = extraGlowPoint;
-        uniforms.extraGlowColor = _presentExtraLaser.color;
-    }
 }
 
-void HmdDisplayPlugin::OverlayRenderer::build() {
+void HmdDisplayPlugin::HUDRenderer::build() {
     vertices = std::make_shared<gpu::Buffer>();
     indices = std::make_shared<gpu::Buffer>();
 
     //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
-    
+
     static const float fov = CompositorHelper::VIRTUAL_UI_TARGET_FOV.y;
     static const float aspectRatio = CompositorHelper::VIRTUAL_UI_ASPECT_RATIO;
     static const uint16_t stacks = 128;
@@ -563,38 +397,20 @@ void HmdDisplayPlugin::OverlayRenderer::build() {
     format = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     format->setAttribute(gpu::Stream::TEXCOORD, gpu::Stream::TEXCOORD, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
-    uniformBuffers[0] = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
-    uniformBuffers[1] = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
+    uniformsBuffer = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
     updatePipeline();
 }
 
-void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
-    static const QString vsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.vert";
-    static const QString fsFile = PathUtils::resourcesPath() + "/shaders/hmd_ui_glow.frag";
-
-#if LIVE_SHADER_RELOAD
-    static qint64 vsBuiltAge = 0;
-    static qint64 fsBuiltAge = 0;
-    QFileInfo vsInfo(vsFile);
-    QFileInfo fsInfo(fsFile);
-    auto vsAge = vsInfo.lastModified().toMSecsSinceEpoch();
-    auto fsAge = fsInfo.lastModified().toMSecsSinceEpoch();
-    if (!pipeline || vsAge > vsBuiltAge || fsAge > fsBuiltAge) {
-        vsBuiltAge = vsAge;
-        fsBuiltAge = fsAge;
-#else
+void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
     if (!pipeline) {
-#endif
-        QString vsSource = readFile(vsFile);
-        QString fsSource = readFile(fsFile);
-        auto vs = gpu::Shader::createVertex(vsSource.toLocal8Bit().toStdString());
-        auto ps = gpu::Shader::createPixel(fsSource.toLocal8Bit().toStdString());
+        auto vs = gpu::Shader::createVertex(std::string(hmd_ui_vert));
+        auto ps = gpu::Shader::createPixel(std::string(hmd_ui_frag));
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::gl::GLBackend::makeProgram(*program, gpu::Shader::BindingSet());
-        this->uniformsLocation = program->getUniformBuffers().findLocation("overlayBuffer");
+        uniformsLocation = program->getUniformBuffers().findLocation("hudBuffer");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(gpu::State::DepthTest(false));
+        state->setDepthTest(gpu::State::DepthTest(true, true, gpu::LESS_EQUAL));
         state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
@@ -603,30 +419,33 @@ void HmdDisplayPlugin::OverlayRenderer::updatePipeline() {
     }
 }
 
-void HmdDisplayPlugin::OverlayRenderer::render(HmdDisplayPlugin& plugin) {
+std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::HUDRenderer::render(HmdDisplayPlugin& plugin) {
     updatePipeline();
-    for_each_eye([&](Eye eye){
-        uniforms.mvp = mvps[eye];
-        uniformBuffers[eye]->setSubData(0, uniforms);
-    });
-    plugin.render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setFramebuffer(plugin._compositeFramebuffer);
-        batch.setPipeline(pipeline);
-        batch.setInputFormat(format);
-        gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
-        gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
-        batch.setInputBuffer(gpu::Stream::POSITION, posView);
-        batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
-        batch.setIndexBuffer(gpu::UINT16, indices, 0);
-        batch.setResourceTexture(0, plugin._currentFrame->overlay);
-        // FIXME use stereo information input to set both MVPs in the uniforms
-        for_each_eye([&](Eye eye) {
-            batch.setUniformBuffer(uniformsLocation, uniformBuffers[eye]);
-            batch.setViewportTransform(plugin.eyeViewport(eye));
+    return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+        if (pipeline) {
+            batch.setPipeline(pipeline);
+
+            batch.setInputFormat(format);
+            gpu::BufferView posView(vertices, VERTEX_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::POSITION)._element);
+            gpu::BufferView uvView(vertices, TEXTURE_OFFSET, vertices->getSize(), VERTEX_STRIDE, format->getAttributes().at(gpu::Stream::TEXCOORD)._element);
+            batch.setInputBuffer(gpu::Stream::POSITION, posView);
+            batch.setInputBuffer(gpu::Stream::TEXCOORD, uvView);
+            batch.setIndexBuffer(gpu::UINT16, indices, 0);
+
+            uniformsBuffer->setSubData(0, uniforms);
+            batch.setUniformBuffer(uniformsLocation, uniformsBuffer);
+
+            auto compositorHelper = DependencyManager::get<CompositorHelper>();
+            glm::mat4 modelTransform = compositorHelper->getUiTransform();
+            if (mirror) {
+                modelTransform = glm::scale(modelTransform, glm::vec3(-1, 1, 1));
+            }
+            batch.setModelTransform(modelTransform);
+            batch.setResourceTexture(0, hudTexture);
+
             batch.drawIndexed(gpu::TRIANGLES, indexCount);
-        });
-    });
+        }
+    };
 }
 
 void HmdDisplayPlugin::compositePointer() {
@@ -653,90 +472,8 @@ void HmdDisplayPlugin::compositePointer() {
     });
 }
 
-void HmdDisplayPlugin::compositeOverlay() {
-    if (!_currentFrame || !_currentFrame->overlay) {
-        return;
-    }
-
-    _overlayRenderer.render(*this);
-}
-
-bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const vec4& color, const vec3& direction) {
-    HandLaserInfo info;
-    info.mode = mode;
-    info.color = color;
-    info.direction = direction;
-    withNonPresentThreadLock([&] {
-        if (hands & Hand::LeftHand) {
-            _handLasers[0] = info;
-        }
-        if (hands & Hand::RightHand) {
-            _handLasers[1] = info;
-        }
-    });
-    // FIXME defer to a child class plugin to determine if hand lasers are actually 
-    // available based on the presence or absence of hand controllers
-    return true;
-}
-
-bool HmdDisplayPlugin::setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) {
-    HandLaserInfo info;
-    info.mode = mode;
-    info.color = color;
-    info.direction = sensorSpaceDirection;
-    withNonPresentThreadLock([&] {
-        _extraLaser = info;
-        _extraLaserStart = sensorSpaceStart;
-    });
-
-    // FIXME defer to a child class plugin to determine if hand lasers are actually 
-    // available based on the presence or absence of hand controllers
-    return true;
-}
-
-
-void HmdDisplayPlugin::compositeExtra() {
-    // If neither hand laser is activated, exit
-    if (!_presentHandLasers[0].valid() && !_presentHandLasers[1].valid() && !_presentExtraLaser.valid()) {
-        return;
-    }
-
-    if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX && !_presentExtraLaser.valid()) {
-        return;
-    }
-    
-    render([&](gpu::Batch& batch) {
-        batch.setFramebuffer(_compositeFramebuffer);
-        batch.setModelTransform(Transform());
-        batch.setViewportTransform(ivec4(uvec2(0), _renderTargetSize));
-        batch.setViewTransform(_currentPresentFrameInfo.presentPose, false);
-        // Compile the shaders
-        batch.setPipeline(_glowLinePipeline);
-
-
-        bilateral::for_each_side([&](bilateral::Side side){
-            auto index = bilateral::index(side);
-            if (_presentHandPoses[index] == IDENTITY_MATRIX) {
-                return;
-            }
-            const auto& laser = _presentHandLasers[index];
-            if (laser.valid()) {
-                const auto& points = _presentHandLaserPoints[index];
-                _handLaserUniforms[index]->resize(sizeof(HandLaserData));
-                _handLaserUniforms[index]->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _handLasers[index].color });
-                batch.setUniformBuffer(LINE_DATA_SLOT, _handLaserUniforms[index]);
-                batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-            }
-        });
-
-        if (_presentExtraLaser.valid()) {
-            const auto& points = _presentExtraLaserPoints;
-            _extraLaserUniforms->resize(sizeof(HandLaserData));
-            _extraLaserUniforms->setSubData(0, HandLaserData { vec4(points.first, 1.0f), vec4(points.second, 1.0f), _presentExtraLaser.color });
-            batch.setUniformBuffer(LINE_DATA_SLOT, _extraLaserUniforms);
-            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-        }
-    });
+std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::getHUDOperator() {
+    return _hudRenderer.render(*this);
 }
 
 HmdDisplayPlugin::~HmdDisplayPlugin() {

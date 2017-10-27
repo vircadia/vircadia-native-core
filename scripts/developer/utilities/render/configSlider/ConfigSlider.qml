@@ -1,6 +1,5 @@
 //
 //  ConfigSlider.qml
-//  examples/utilities/tools/render
 //
 //  Created by Zach Pomerantz on 2/8/2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -8,12 +7,21 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+
+import QtQuick 2.7
+import QtQuick.Controls 1.4 as Original
+import QtQuick.Controls.Styles 1.4
+
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
+
 
 Item {
+    HifiConstants { id: luci }
     id: root
-    width: 400
+
+    anchors.left: parent.left
+    anchors.right: parent.right    
     height: 24
     property bool integral: false
     property var config
@@ -28,21 +36,22 @@ Item {
         bindingControl.when = true;
     }
 
-    Label {
+    HifiControls.Label {
         id: labelControl
         text: root.label
+        enabled: true
         anchors.left: root.left
-        anchors.leftMargin: 8
-        anchors.top: root.top
-        anchors.topMargin: 7
+        anchors.right: root.horizontalCenter
+        anchors.verticalCenter: root.verticalCenter
+        //anchors.topMargin: 7
     }
 
-    Label {
+    HifiControls.Label {
+        id: labelValue
         text: sliderControl.value.toFixed(root.integral ? 0 : 2)
-        anchors.left: root.left
-        anchors.leftMargin: 200
-        anchors.top: root.top
-        anchors.topMargin: 7
+        anchors.right: root.right
+        anchors.bottom: root.bottom
+        anchors.bottomMargin: 0
     }
 
     Binding {
@@ -53,14 +62,14 @@ Item {
         when: false
     }
 
-    Slider {
+    HifiControls.Slider {
         id: sliderControl
         stepSize: root.integral ? 1.0 : 0.0
-        width: 150
-        height: 20
+        //height: 20
+        anchors.left: root.horizontalCenter
         anchors.right: root.right
-        anchors.rightMargin: 8
+        anchors.rightMargin: 0
         anchors.top: root.top
-        anchors.topMargin: 3
+        anchors.topMargin: 0
     }
 }

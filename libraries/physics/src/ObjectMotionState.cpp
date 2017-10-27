@@ -1,6 +1,6 @@
 //
 //  ObjectMotionState.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.11.05
 //  Copyright 2014 High Fidelity, Inc.
@@ -63,10 +63,7 @@ ShapeManager* ObjectMotionState::getShapeManager() {
 }
 
 ObjectMotionState::ObjectMotionState(const btCollisionShape* shape) :
-    _motionType(MOTION_TYPE_STATIC),
     _shape(shape),
-    _body(nullptr),
-    _mass(0.0f),
     _lastKinematicStep(worldSimulationStep)
 {
 }
@@ -74,7 +71,43 @@ ObjectMotionState::ObjectMotionState(const btCollisionShape* shape) :
 ObjectMotionState::~ObjectMotionState() {
     assert(!_body);
     setShape(nullptr);
-    _type = MOTIONSTATE_TYPE_INVALID;
+}
+
+void ObjectMotionState::setMass(float mass) {
+    _density = 1.0f;
+    if (_shape) {
+        // we compute the density for the current shape's Aabb volume
+        // and save that instead of the total mass
+        btTransform transform;
+        transform.setIdentity();
+        btVector3 minCorner, maxCorner;
+        _shape->getAabb(transform, minCorner, maxCorner);
+        btVector3 diagonal = maxCorner - minCorner;
+        float volume = diagonal.getX() * diagonal.getY() * diagonal.getZ();
+        if (volume > EPSILON) {
+            _density = fabsf(mass) / volume;
+        }
+    }
+}
+
+float ObjectMotionState::getMass() const {
+    if (_shape) {
+        // scale the density by the current Aabb volume to get mass
+        btTransform transform;
+        transform.setIdentity();
+        btVector3 minCorner, maxCorner;
+        _shape->getAabb(transform, minCorner, maxCorner);
+        btVector3 diagonal = maxCorner - minCorner;
+        float volume = diagonal.getX() * diagonal.getY() * diagonal.getZ();
+
+        // cap the max mass for numerical stability
+        const float MIN_OBJECT_MASS = 0.0f;
+        const float MAX_OBJECT_DENSITY = 20000.0f; // kg/m^3 density of Tungsten
+        const float MAX_OBJECT_VOLUME = 1.0e6f;
+        const float MAX_OBJECT_MASS = MAX_OBJECT_DENSITY * MAX_OBJECT_VOLUME;
+        return glm::clamp(_density * volume, MIN_OBJECT_MASS, MAX_OBJECT_MASS);
+    }
+    return 0.0f;
 }
 
 void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {
@@ -169,6 +202,7 @@ void ObjectMotionState::setShape(const btCollisionShape* shape) {
 }
 
 void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
+    assert(_body && _shape);
     if (flags & Simulation::DIRTY_POSITION) {
         btTransform worldTrans = _body->getWorldTransform();
         btVector3 newPosition = glmToBullet(getObjectPosition());
@@ -206,7 +240,7 @@ void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
         }
     }
 
-    if (_body->getCollisionShape()->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+    if (_body && _body->getCollisionShape()->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
         if (flags & Simulation::DIRTY_LINEAR_VELOCITY) {
             btVector3 newLinearVelocity = glmToBullet(getObjectLinearVelocity());
             if (!(flags & Simulation::DIRTY_PHYSICS_ACTIVATION)) {
@@ -249,6 +283,7 @@ void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
 }
 
 bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+    assert(_body && _shape);
     if (flags & Simulation::DIRTY_SHAPE) {
         // make sure the new shape is valid
         if (!isReadyToComputeShape()) {

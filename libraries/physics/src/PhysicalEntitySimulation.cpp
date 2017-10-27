@@ -1,6 +1,6 @@
 //
 //  PhysicalEntitySimulation.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2015.04.27
 //  Copyright 2015 High Fidelity, Inc.
@@ -130,7 +130,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     }
 
     // then remove the objects (aka MotionStates) from physics
-    _physicsEngine->removeObjects(_physicalObjects);
+    _physicsEngine->removeSetOfObjects(_physicalObjects);
 
     // delete the MotionStates
     // TODO: after we invert the entities/physics lib dependencies we will let EntityItem delete
@@ -348,8 +348,7 @@ void PhysicalEntitySimulation::addDynamic(EntityDynamicPointer dynamic) {
 void PhysicalEntitySimulation::applyDynamicChanges() {
     QList<EntityDynamicPointer> dynamicsFailedToAdd;
     if (_physicsEngine) {
-        // FIXME put fine grain locking into _physicsEngine
-        QMutexLocker lock(&_mutex);
+        QMutexLocker lock(&_dynamicsMutex);
         foreach(QUuid dynamicToRemove, _dynamicsToRemove) {
             _physicsEngine->removeDynamic(dynamicToRemove);
         }
@@ -360,9 +359,10 @@ void PhysicalEntitySimulation::applyDynamicChanges() {
                 }
             }
         }
+        // applyDynamicChanges will clear _dynamicsToRemove and _dynamicsToAdd
+        EntitySimulation::applyDynamicChanges();
     }
-    // applyDynamicChanges will clear _dynamicsToRemove and _dynamicsToAdd
-    EntitySimulation::applyDynamicChanges();
+
     // put back the ones that couldn't yet be added
     foreach (EntityDynamicPointer dynamicFailedToAdd, dynamicsFailedToAdd) {
         addDynamic(dynamicFailedToAdd);

@@ -2,15 +2,15 @@ Follow the [build guide](BUILD.md) to figure out how to build High Fidelity for 
 
 During generation, CMake should produce an `install` target and a `package` target.
 
-###Install
+### Install
 
 The `install` target will copy the High Fidelity targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.
 
-###Packaging
+### Packaging
 
 To produce an installer, run the `package` target.
 
-####Windows
+#### Windows
 
 To produce an executable installer on Windows, the following are required:
 
@@ -20,6 +20,6 @@ To produce an executable installer on Windows, the following are required:
 
 Run the `package` target to create an executable installer using the Nullsoft Scriptable Install System.
 
-####OS X
+#### OS X
 
 Run the `package` target to create an Apple Disk Image (.dmg).

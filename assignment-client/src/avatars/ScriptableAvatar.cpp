@@ -13,12 +13,13 @@
 #include <QThread>
 #include <glm/gtx/transform.hpp>
 
+#include <shared/QtHelpers.h>
 #include <GLMHelpers.h>
 #include <AnimUtil.h>
 #include "ScriptableAvatar.h"
 
 
-QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
+QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     _globalPosition = getPosition();
     return AvatarData::toByteArrayStateful(dataDetail);
 }
@@ -34,7 +35,7 @@ void ScriptableAvatar::startAnimation(const QString& url, float fps, float prior
         return;
     }
     _animation = DependencyManager::get<AnimationCache>()->getAnimation(url);
-    _animationDetails = AnimationDetails("", QUrl(url), fps, 0, loop, hold, false, firstFrame, lastFrame, true, firstFrame);
+    _animationDetails = AnimationDetails("", QUrl(url), fps, 0, loop, hold, false, firstFrame, lastFrame, true, firstFrame, false);
     _maskedJoints = maskedJoints;
 }
 
@@ -49,7 +50,7 @@ void ScriptableAvatar::stopAnimation() {
 AnimationDetails ScriptableAvatar::getAnimationDetails() {
     if (QThread::currentThread() != thread()) {
         AnimationDetails result;
-        QMetaObject::invokeMethod(this, "getAnimationDetails", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "getAnimationDetails", 
                                   Q_RETURN_ARG(AnimationDetails, result));
         return result;
     }

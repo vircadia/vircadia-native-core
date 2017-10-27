@@ -38,13 +38,14 @@
 #include "AudioMixer.h"
 
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
+static const int DISABLE_STATIC_JITTER_FRAMES = -1;
 static const float DEFAULT_NOISE_MUTING_THRESHOLD = 1.0f;
 static const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 static const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 static const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 
-int AudioMixer::_numStaticJitterFrames{ -1 };
+int AudioMixer::_numStaticJitterFrames{ DISABLE_STATIC_JITTER_FRAMES };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
 float AudioMixer::_attenuationPerDoublingInDistance{ DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE };
 std::map<QString, std::shared_ptr<CodecPlugin>> AudioMixer::_availableCodecs{ };
@@ -54,9 +55,15 @@ QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
 QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
 
 AudioMixer::AudioMixer(ReceivedMessage& message) :
-    ThreadedAssignment(message) {
+    ThreadedAssignment(message)
+{
+
+    // Always clear settings first
+    // This prevents previous assignment settings from sticking around
+    clearDomainSettings();
 
     // hash the available codecs (on the mixer)
+    _availableCodecs.clear(); // Make sure struct is clean
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     std::for_each(codecPlugins.cbegin(), codecPlugins.cend(),
         [&](const CodecPluginPointer& codec) {
@@ -86,6 +93,15 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 
+    packetReceiver.registerListenerForTypes({
+        PacketType::ReplicatedMicrophoneAudioNoEcho,
+        PacketType::ReplicatedMicrophoneAudioWithEcho,
+        PacketType::ReplicatedInjectAudio,
+        PacketType::ReplicatedSilentAudioFrame
+    },
+        this, "queueReplicatedAudioPacket"
+    );
+
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
@@ -95,6 +111,33 @@ void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, Share
     }
 
     getOrCreateClientData(node.data())->queuePacket(message, node);
+}
+
+void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> message) {
+    // make sure we have a replicated node for the original sender of the packet
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                    message->getSenderSockAddr(), message->getSenderSockAddr(),
+                                                    true, true);
+    replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
+
+    // construct a "fake" audio received message from the byte array and packet list information
+    auto audioData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
+
+    PacketType rewrittenType = PacketTypeEnum::getReplicatedPacketMapping().key(message->getType());
+
+    if (rewrittenType == PacketType::Unknown) {
+        qDebug() << "Cannot unwrap replicated packet type not present in REPLICATED_PACKET_WRAPPING";
+    }
+
+    auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
+                                                                     versionForPacketType(rewrittenType),
+                                                                     message->getSenderSockAddr(), nodeID);
+
+    getOrCreateClientData(replicatedNode.data())->queuePacket(replicatedMessage, replicatedNode);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
@@ -122,19 +165,6 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
         });
     }
 }
-
-DisplayPluginList getDisplayPlugins() {
-    DisplayPluginList result;
-    return result;
-}
-
-InputPluginList getInputPlugins() {
-    InputPluginList result;
-    return result;
-}
-
-// must be here to satisfy a reference in PluginManager::saveSettings()
-void saveInputPluginSettings(const InputPluginList& plugins) {}
 
 const std::pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(std::vector<QString> codecs) {
     QString selectedCodecName;
@@ -232,7 +262,7 @@ void AudioMixer::sendStatsPacket() {
     }
 
     // general stats
-    statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == -1;
+    statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == DISABLE_STATIC_JITTER_FRAMES;
 
     statsObject["threads"] = _slavePool.numThreads();
 
@@ -341,7 +371,10 @@ void AudioMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // prepare the NodeList
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({
+        NodeType::Agent, NodeType::EntityScriptServer,
+        NodeType::UpstreamAudioMixer, NodeType::DownstreamAudioMixer
+    });
     nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     // parse out any AudioMixer settings
@@ -490,7 +523,17 @@ int AudioMixer::prepareFrame(const SharedNodePointer& node, unsigned int frame) 
     return data->checkBuffersBeforeFrameSend();
 }
 
-void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
+void AudioMixer::clearDomainSettings() {
+    _numStaticJitterFrames = DISABLE_STATIC_JITTER_FRAMES;
+    _attenuationPerDoublingInDistance = DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE;
+    _noiseMutingThreshold = DEFAULT_NOISE_MUTING_THRESHOLD;
+    _codecPreferenceOrder.clear();
+    _audioZones.clear();
+    _zoneSettings.clear();
+    _zoneReverbSettings.clear();
+}
+
+void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
     qDebug() << "AVX2 Support:" << (cpuSupportsAVX2() ? "enabled" : "disabled");
 
     if (settingsObject.contains(AUDIO_THREADING_GROUP_KEY)) {
@@ -525,7 +568,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
             qDebug() << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
         } else {
             qDebug() << "Disabling dynamic jitter buffers.";
-            _numStaticJitterFrames = -1;
+            _numStaticJitterFrames = DISABLE_STATIC_JITTER_FRAMES;
         }
 
         // check for deprecated audio settings

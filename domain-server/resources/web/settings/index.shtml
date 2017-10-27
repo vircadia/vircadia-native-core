@@ -26,7 +26,7 @@
         </ul>
 
         <button id="advanced-toggle-button" class="btn btn-info advanced-toggle">Show advanced</button>
-        <button class="btn btn-success save-button">Save and restart</button>
+        <button class="btn btn-success save-button">Save</button>
       </div>
     </div>
 
@@ -77,29 +77,15 @@
   </div>
 
   <div class="col-xs-12 hidden-sm hidden-md hidden-lg">
-    <button class="btn btn-success save-button" id="small-save-button">Save and restart</button>
+    <button class="btn btn-success save-button" id="small-save-button">Save</button>
   </div>
 </div>
-
-<div class="modal fade" id="restart-modal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">domain-server is restarting</h4>
-      </div>
-      <div class="modal-body">
-        <h5>This page will automatically refresh in <span id="refresh-time">3 seconds</span>.</h5>
-      </div>
-    </div><!-- /.modal-content -->
-  </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->
 
 <!--#include virtual="footer.html"-->
 <script src='/js/underscore-min.js'></script>
 <script src='/js/underscore-keypath.min.js'></script>
 <script src='/js/bootbox.min.js'></script>
 <script src='js/bootstrap-switch.min.js'></script>
-<script src='/js/sweetalert.min.js'></script>
 <script src='js/settings.js'></script>
 <script src='js/form2js.min.js'></script>
 <script src='js/sha256.js'></script>

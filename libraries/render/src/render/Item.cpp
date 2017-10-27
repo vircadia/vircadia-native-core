@@ -13,7 +13,12 @@
 #include <numeric>
 #include "gpu/Batch.h"
 
+#include "TransitionStage.h"
+
 using namespace render;
+
+const Item::ID Item::INVALID_ITEM_ID = 0;
+const ItemCell Item::INVALID_CELL = -1;
 
 const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
 
@@ -23,6 +28,11 @@ const float Item::Status::Value::GREEN = 120.0f;
 const float Item::Status::Value::CYAN = 180.0f;
 const float Item::Status::Value::BLUE = 240.0f;
 const float Item::Status::Value::MAGENTA = 300.0f;
+
+const int Item::LAYER_2D = 0;
+const int Item::LAYER_3D = 1;
+const int Item::LAYER_3D_FRONT = 2;
+const int Item::LAYER_3D_HUD = 3;
 
 void Item::Status::Value::setScale(float scale) {
     _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
@@ -77,4 +87,51 @@ void Item::resetPayload(const PayloadPointer& payload) {
         _payload = payload;
         _key = _payload->getKey();
     }
+}
+
+const ShapeKey Item::getShapeKey() const {
+    auto shapeKey = _payload->getShapeKey();
+    if (!TransitionStage::isIndexInvalid(_transitionId)) {
+        // Objects that are fading are rendered double-sided to give a sense of volume
+        return ShapeKey::Builder(shapeKey).withFade().withoutCullFace();
+    }
+    return shapeKey;
+}
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload) {
+        if (!payload) {
+            return ItemKey::Builder::opaqueShape().withTypeMeta();
+        }
+        return payload->getKey();
+    }
+
+    template <> const ShapeKey shapeGetShapeKey(const PayloadProxyInterface::Pointer& payload) {
+        if (!payload) {
+            return ShapeKey::Builder::ownPipeline();
+        }
+        return payload->getShapeKey();
+    }
+
+    template <> const Item::Bound payloadGetBound(const PayloadProxyInterface::Pointer& payload) {
+        if (!payload) {
+            return render::Item::Bound();
+        }
+        return payload->getBound();
+    }
+
+    template <> void payloadRender(const PayloadProxyInterface::Pointer& payload, RenderArgs* args) {
+        if (!args || !payload) {
+            return;
+        }
+        payload->render(args);
+    }
+
+    template <> uint32_t metaFetchMetaSubItems(const PayloadProxyInterface::Pointer& payload, ItemIDs& subItems) {
+        if (!payload) {
+            return 0;
+        }
+        return payload->metaFetchMetaSubItems(subItems);
+    }
+
 }

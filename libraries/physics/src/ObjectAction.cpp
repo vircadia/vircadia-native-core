@@ -1,6 +1,6 @@
 //
 //  ObjectAction.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Seth Alves 2015-6-2
 //  Copyright 2015 High Fidelity, Inc.
@@ -55,6 +55,10 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     }
 
     if (!_active) {
+        return;
+    }
+
+    if (ownerEntity->getLocked()) {
         return;
     }
 

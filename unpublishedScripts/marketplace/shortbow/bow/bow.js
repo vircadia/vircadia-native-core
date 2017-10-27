@@ -103,7 +103,7 @@ function getControllerLocation(controllerHand) {
     const STRING_PULL_SOUND_URL = Script.resolvePath('Bow_draw.1.L.wav');
     const ARROW_HIT_SOUND_URL = Script.resolvePath('Arrow_impact1.L.wav');
 
-    const ARROW_MODEL_URL = Script.resolvePath('arrow.fbx');
+    const ARROW_MODEL_URL = Script.resolvePath('models/arrow.baked.fbx');
     const ARROW_DIMENSIONS = {
         x: 0.20,
         y: 0.19,

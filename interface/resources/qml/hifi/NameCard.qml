@@ -43,6 +43,7 @@ Item {
     property bool selected: false
     property bool isAdmin: false
     property bool isPresent: true
+    property bool isReplicated: false
     property string placeName: ""
     property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : "transparent"))
     property alias avImage: avatarImage
@@ -132,62 +133,16 @@ Item {
         color: hifi.colors.textFieldLightBackground
         border.color: hifi.colors.blueHighlight
         border.width: 0
-        TextInput {
-            id: myDisplayNameText
-            // Properties
-            text: thisNameCard.displayName
-            maximumLength: 256
-            clip: true
-            // Size
-            width: parent.width
-            height: parent.height
-            // Anchors
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: 10
-            anchors.right: parent.right
-            anchors.rightMargin: editGlyph.width + editGlyph.anchors.rightMargin
-            // Style
-            color: hifi.colors.darkGray
-            FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
-            font.family: firaSansSemiBold.name
-            font.pixelSize: displayNameTextPixelSize
-            selectionColor: hifi.colors.blueAccent
-            selectedTextColor: "black"
-            // Text Positioning
-            verticalAlignment: TextInput.AlignVCenter
-            horizontalAlignment: TextInput.AlignLeft
-            autoScroll: false;
-            // Signals
-            onEditingFinished: {
-                if (MyAvatar.displayName !== text) {
-                    MyAvatar.displayName = text;
-                    UserActivityLogger.palAction("display_name_change", text);
-                }
-                cursorPosition = 0
-                focus = false
-                myDisplayName.border.width = 0
-                color = hifi.colors.darkGray
-                pal.currentlyEditingDisplayName = false
-                autoScroll = false;
-            }
-        }
         MouseArea {
             anchors.fill: parent
             hoverEnabled: true
             onClicked: {
-                myDisplayName.border.width = 1
-                myDisplayNameText.focus ? myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX, mouseY, TextInput.CursorOnCharacter) : myDisplayNameText.selectAll();
-                myDisplayNameText.focus = true
-                myDisplayNameText.color = "black"
-                pal.currentlyEditingDisplayName = true
-                myDisplayNameText.autoScroll = true;
+                myDisplayNameText.focus = true;
+                myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX - myDisplayNameText.anchors.leftMargin, mouseY, TextInput.CursorOnCharacter);
             }
             onDoubleClicked: {
                 myDisplayNameText.selectAll();
                 myDisplayNameText.focus = true;
-                pal.currentlyEditingDisplayName = true
-                myDisplayNameText.autoScroll = true;
             }
             onEntered: myDisplayName.color = hifi.colors.lightGrayText;
             onExited: myDisplayName.color = hifi.colors.textFieldLightBackground;
@@ -206,6 +161,54 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             color: hifi.colors.baseGray
+        }
+        TextInput {
+            id: myDisplayNameText
+            // Properties
+            text: thisNameCard.displayName
+            maximumLength: 256
+            clip: true
+            // Size
+            width: parent.width
+            height: parent.height
+            // Anchors
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.right: parent.right
+            anchors.rightMargin: editGlyph.width + editGlyph.anchors.rightMargin
+            // Style
+            FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+            font.family: firaSansSemiBold.name
+            font.pixelSize: displayNameTextPixelSize
+            selectionColor: hifi.colors.blueAccent
+            selectedTextColor: "black"
+            // Text Positioning
+            verticalAlignment: TextInput.AlignVCenter
+            horizontalAlignment: TextInput.AlignLeft
+            autoScroll: false;
+            // Signals
+            onEditingFinished: {
+                if (MyAvatar.displayName !== text) {
+                    MyAvatar.displayName = text;
+                    UserActivityLogger.palAction("display_name_change", text);
+                }
+                focus = false;
+            }
+            onFocusChanged: {
+                if (focus === true) {
+                    myDisplayName.border.width = 1
+                    color = "black"
+                    autoScroll = true;
+                    pal.currentlyEditingDisplayName = true
+                } else {
+                    myDisplayName.border.width = 0
+                    color: hifi.colors.darkGray
+                    cursorPosition = 0;
+                    autoScroll = false;
+                    pal.currentlyEditingDisplayName = false
+                }
+            }
         }
     }
     // DisplayName container for others' cards
@@ -588,14 +591,11 @@ Item {
             console.log("This avatar is no longer present. goToUserInDomain() failed.");
             return;
         }
-        var vector = Vec3.subtract(avatar.position, MyAvatar.position);
-        var distance = Vec3.length(vector);
-        var target = Vec3.multiply(Vec3.normalize(vector), distance - 2.0);
         // FIXME: We would like the avatar to recompute the avatar's "maybe fly" test at the new position, so that if high enough up,
         // the avatar goes into fly mode rather than falling. However, that is not exposed to Javascript right now.
         // FIXME: it would be nice if this used the same teleport steps and smoothing as in the teleport.js script.
         // Note, however, that this script allows teleporting to a person in the air, while teleport.js is going to a grounded target.
-        MyAvatar.orientation = Quat.lookAtSimple(MyAvatar.position, avatar.position);
-        MyAvatar.position = Vec3.sum(MyAvatar.position, target);
+        MyAvatar.position = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.orientation, {x: 0, y: 0, z: -2}));
+        MyAvatar.orientation = Quat.multiply(avatar.orientation, {y: 1});
     }
 }

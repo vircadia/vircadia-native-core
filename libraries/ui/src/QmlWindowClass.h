@@ -19,6 +19,8 @@
 class QScriptEngine;
 class QScriptContext;
 
+#define QML_TOOL_WINDOW 0
+
 // FIXME refactor this class to be a QQuickItem derived type and eliminate the needless wrapping 
 class QmlWindowClass : public QObject {
     Q_OBJECT
@@ -31,18 +33,18 @@ public:
     QmlWindowClass();
     ~QmlWindowClass();
 
-    virtual void initQml(QVariantMap properties);
+    Q_INVOKABLE virtual void initQml(QVariantMap properties);
     QQuickItem* asQuickItem() const;
 
 public slots:
-    bool isVisible() const;
+    bool isVisible();
     void setVisible(bool visible);
 
-    glm::vec2 getPosition() const;
+    glm::vec2 getPosition();
     void setPosition(const glm::vec2& position);
     void setPosition(int x, int y);
 
-    glm::vec2 getSize() const;
+    glm::vec2 getSize();
     void setSize(const glm::vec2& size);
     void setSize(int width, int height);
     void setTitle(const QString& title);
@@ -53,6 +55,7 @@ public slots:
 
     // Scripts can use this to send a message to the QML object
     void sendToQml(const QVariant& message);
+    void clearDebugWindow();
 
     // QmlWindow content may include WebView requiring EventBridge.
     void emitScriptEvent(const QVariant& scriptMessage);
@@ -84,9 +87,12 @@ protected:
 
     virtual QString qmlSource() const { return "QmlWindow.qml"; }
 
+#if QML_TOOL_WINDOW
     // FIXME needs to be initialized in the ctor once we have support
     // for tool window panes in QML
     bool _toolWindow { false };
+#endif
+
     QPointer<QObject> _qmlWindow;
     QString _source;
 

@@ -41,13 +41,21 @@
 #include "ScriptCache.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
+#include "ConsoleScriptingInterface.h"
 #include "SettingHandle.h"
+#include "Profile.h"
 
 class QScriptEngineDebugger;
 
 static const QString NO_SCRIPT("");
 
 static const int SCRIPT_FPS = 60;
+static const int DEFAULT_MAX_ENTITY_PPS = 9000;
+static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
+
+class ScriptEngines;
+
+Q_DECLARE_METATYPE(ScriptEnginePointer)
 
 class CallbackData {
 public:
@@ -144,6 +152,7 @@ public:
     /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed
     /// to scripts. we may not need this to be invokable
     void loadURL(const QUrl& scriptURL, bool reload);
+    bool hasValidScriptSuffix(const QString& scriptFileName);
 
     Q_INVOKABLE QString getContext() const;
     Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
@@ -178,6 +187,8 @@ public:
     Q_INVOKABLE void print(const QString& message);
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
     Q_INVOKABLE QUrl resourcesPath() const;
+    Q_INVOKABLE void beginProfileRange(const QString& label) const;
+    Q_INVOKABLE void endProfileRange(const QString& label) const;
 
     // Entity Script Related methods
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
@@ -189,7 +200,8 @@ public:
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap = false); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
-                                            const QStringList& params = QStringList()) override;
+                                            const QStringList& params = QStringList(),
+                                            const QUuid& remoteCallerID = QUuid()) override;
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
@@ -221,7 +233,8 @@ public:
     void scriptErrorMessage(const QString& message);
     void scriptWarningMessage(const QString& message);
     void scriptInfoMessage(const QString& message);
-
+    void scriptPrintedMessage(const QString& message);
+    void clearDebugLogWindow();
     int getNumRunningEntityScripts() const;
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
 
@@ -234,13 +247,14 @@ signals:
     void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
-    void finished(const QString& fileNameString, ScriptEngine* engine);
+    void finished(const QString& fileNameString, ScriptEnginePointer);
     void cleanupMenuItem(const QString& menuItemString);
     void printedMessage(const QString& message, const QString& scriptName);
     void errorMessage(const QString& message, const QString& scriptName);
     void warningMessage(const QString& message, const QString& scriptName);
     void infoMessage(const QString& message, const QString& scriptName);
     void runningStateChanged();
+    void clearDebugWindow();
     void loadScript(const QString& scriptName, bool isUserLoaded);
     void reloadScript(const QString& scriptName, bool isUserLoaded);
     void doneRunning();
@@ -301,6 +315,7 @@ protected:
     Vec3 _vec3Library;
     Mat4 _mat4Library;
     ScriptUUID _uuidLibrary;
+    ConsoleScriptingInterface _consoleScriptingInterface;
     std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
 
@@ -318,6 +333,12 @@ protected:
     static const QString _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS;
 
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
+
+    QSharedPointer<ScriptEngines> _scriptEngines;
 };
+
+ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
+                                        const QString& scriptContents,
+                                        const QString& fileNameString);
 
 #endif // hifi_ScriptEngine_h

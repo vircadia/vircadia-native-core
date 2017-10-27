@@ -13,7 +13,7 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu */
+   MyAvatar, Menu, AvatarInputs, Vec3 */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
@@ -25,8 +25,17 @@
     var debugTablet = false;
     var tabletScalePercentage = 100.0;
     UIWebTablet = null;
+    var MSECS_PER_SEC = 1000.0;
+    var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
+    var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
+
+    function checkTablet() {
+        if (gTablet === null) {
+            gTablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        }
+    }
 
     function tabletIsValid() {
         if (!UIWebTablet) {
@@ -49,7 +58,8 @@
     }
 
     function getTabletScalePercentageFromSettings() {
-        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
+        checkTablet()
+        var toolbarMode = gTablet.toolbarMode;
         var tabletScalePercentage = DEFAULT_TABLET_SCALE;
         if (!toolbarMode) {
             if (HMD.active) {
@@ -61,9 +71,9 @@
         return tabletScalePercentage;
     }
 
-    function updateTabletWidthFromSettings() {
+    function updateTabletWidthFromSettings(force) {
         var newTabletScalePercentage = getTabletScalePercentageFromSettings();
-        if (newTabletScalePercentage !== tabletScalePercentage && UIWebTablet) {
+        if ((force || (newTabletScalePercentage !== tabletScalePercentage)) && UIWebTablet) {
             tabletScalePercentage = newTabletScalePercentage;
             UIWebTablet.setWidth(DEFAULT_WIDTH * (tabletScalePercentage / 100));
         }
@@ -73,26 +83,36 @@
         updateTabletWidthFromSettings();
     }
 
+    function onSensorToWorldScaleChanged(sensorScaleFactor) {
+        if (HMD.active) {
+            var newTabletScalePercentage = getTabletScalePercentageFromSettings();
+            resizeTablet(DEFAULT_WIDTH * (newTabletScalePercentage / 100), undefined, sensorScaleFactor);
+        }
+    }
+
     function rezTablet() {
         if (debugTablet) {
             print("TABLET rezzing");
         }
+        checkTablet()
 
         tabletScalePercentage = getTabletScalePercentageFromSettings();
-        UIWebTablet = new WebTablet("qml/hifi/tablet/TabletRoot.qml",
+        UIWebTablet = new WebTablet("hifi/tablet/TabletRoot.qml",
                                     DEFAULT_WIDTH * (tabletScalePercentage / 100),
-                                    null, activeHand, true);
+                                    null, activeHand, true, null, false);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
+        HMD.homeButtonHighlightID = UIWebTablet.homeButtonHighlightID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
         HMD.displayModeChanged.connect(onHmdChanged);
+        MyAvatar.sensorToWorldScaleChanged.connect(onSensorToWorldScaleChanged);
 
         tabletRezzed = true;
     }
 
     function showTabletUI() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = true;
+        checkTablet()
 
         if (!tabletRezzed || !tabletIsValid()) {
             closeTabletUI();
@@ -108,13 +128,17 @@
             tabletProperties.visible = true;
             Overlays.editOverlay(HMD.tabletID, tabletProperties);
             Overlays.editOverlay(HMD.homeButtonID, { visible: true });
+            Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
+            updateTabletWidthFromSettings(true);
         }
+        gTablet.tabletShown = true;
     }
 
     function hideTabletUI() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
+        checkTablet()
+        gTablet.tabletShown = false;
         if (!UIWebTablet) {
             return;
         }
@@ -125,12 +149,14 @@
 
         Overlays.editOverlay(HMD.tabletID, { visible: false });
         Overlays.editOverlay(HMD.homeButtonID, { visible: false });
+        Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: false });
         Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
         Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 1 });
     }
 
     function closeTabletUI() {
-        Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown = false;
+        checkTablet()
+        gTablet.tabletShown = false;
         if (UIWebTablet) {
             if (UIWebTablet.onClose) {
                 UIWebTablet.onClose();
@@ -144,22 +170,25 @@
             UIWebTablet = null;
             HMD.tabletID = null;
             HMD.homeButtonID = null;
+            HMD.homeButtonHighlightID = null;
             HMD.tabletScreenID = null;
         } else if (debugTablet) {
             print("TABLET closeTabletUI, UIWebTablet is null");
         }
         tabletRezzed = false;
+        gTablet = null
     }
 
 
     function updateShowTablet() {
-        var MSECS_PER_SEC = 1000.0;
         var now = Date.now();
 
+        checkTablet()
+
         // close the WebTablet if it we go into toolbar mode.
-        var tabletShown = Tablet.getTablet("com.highfidelity.interface.tablet.system").tabletShown;
-        var toolbarMode = Tablet.getTablet("com.highfidelity.interface.tablet.system").toolbarMode;
-        var landscape = Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape;
+        var tabletShown = gTablet.tabletShown;
+        var toolbarMode = gTablet.toolbarMode;
+        var landscape = gTablet.landscape;
 
         if (tabletShown && toolbarMode) {
             closeTabletUI();
@@ -167,22 +196,16 @@
             return;
         }
 
-        if (tabletShown) {
-            var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
-            var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
-            var currentMicLevel = getMicLevel();
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.updateMicEnabled(currentMicEnabled);
-            tablet.updateAudioBar(currentMicLevel);
-        }
+        var needInstantUpdate = UIWebTablet && UIWebTablet.getLandscape() !== landscape;
 
-        updateTabletWidthFromSettings();
-        if (UIWebTablet) {
-            UIWebTablet.setLandscape(landscape);
-        }
-
-        if (validCheckTime - now > MSECS_PER_SEC) {
+        if ((now - validCheckTime > MSECS_PER_SEC) || needInstantUpdate) {
             validCheckTime = now;
+
+            updateTabletWidthFromSettings();
+
+            if (UIWebTablet) {
+                UIWebTablet.setLandscape(landscape);
+            }
             if (tabletRezzed && UIWebTablet && !tabletIsValid()) {
                 // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
                 // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
@@ -214,6 +237,23 @@
                     closeTabletUI();
                     rezTablet();
                     tabletShown = false;
+
+                    // also cause the stylus model to be loaded
+                    var tmpStylusID = Overlays.addOverlay("model", {
+                                               name: "stylus",
+                                               url: Script.resourcesPath() + "meshes/tablet-stylus-fat.fbx",
+                                               loadPriority: 10.0,
+                                               position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.1, z: -2})),
+                                               dimensions: { x: 0.01, y: 0.01, z: 0.2 },
+                                               solid: true,
+                                               visible: true,
+                                               ignoreRayIntersection: true,
+                                               drawInFront: false,
+                                               lifetime: 3
+                                       });
+                    Script.setTimeout(function() {
+                        Overlays.deleteOverlay(tmpStylusID);
+                    }, 300);
                 } else if (!tabletShown) {
                     hideTabletUI();
                 }
@@ -228,7 +268,8 @@
         }
         if (channel === "home") {
             if (UIWebTablet) {
-                Tablet.getTablet("com.highfidelity.interface.tablet.system").landscape = false;
+                checkTablet()
+                gTablet.landscape = false;
             }
         }
     }
@@ -237,33 +278,37 @@
     Messages.subscribe("home");
     Messages.messageReceived.connect(handleMessage);
 
-    Script.setInterval(updateShowTablet, 100);
-
-    // Initialise variables used to calculate audio level
-    var accumulatedLevel = 0.0;
-    // Note: Might have to tweak the following two based on the rate we're getting the data
-    var AVERAGING_RATIO = 0.05;
-
-    // Calculate microphone level with the same scaling equation (log scale, exponentially averaged) in AvatarInputs and pal.js
-    function getMicLevel() {
-        var LOUDNESS_FLOOR = 11.0;
-        var LOUDNESS_SCALE = 2.8 / 5.0;
-        var LOG2 = Math.log(2.0);
-        var micLevel = 0.0;
-        accumulatedLevel = AVERAGING_RATIO * accumulatedLevel + (1 - AVERAGING_RATIO) * (MyAvatar.audioLoudness);
-        // Convert to log base 2
-        var logLevel = Math.log(accumulatedLevel + 1) / LOG2;
-
-        if (logLevel <= LOUDNESS_FLOOR) {
-            micLevel = logLevel / LOUDNESS_FLOOR * LOUDNESS_SCALE;
-        } else {
-            micLevel = (logLevel - (LOUDNESS_FLOOR - 1.0)) * LOUDNESS_SCALE;
-        }
-        if (micLevel > 1.0) {
-            micLevel = 1.0;
-        }
-        return micLevel;
+    var clickMapping = Controller.newMapping('tabletToggle-click');
+    var wantsMenu = 0;
+    clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
+    clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
+    if (clicked) {
+        //activeHudPoint2d(Controller.Standard.RightHand);
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.RightHand);
     }
+        wantsMenu = clicked;
+    });
+    
+    clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
+        if (clicked) {
+            //activeHudPoint2d(Controller.Standard.LeftHand);
+            Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
+        }
+        wantsMenu = clicked;
+    });
+    
+    clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
+    if (clicked) {
+        //activeHudPoint2dGamePad();
+        var noHands = -1;
+        Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
+    }
+
+        wantsMenu = clicked;
+    });
+    clickMapping.enable();
+
+    Script.setInterval(updateShowTablet, 100);
 
     Script.scriptEnding.connect(function () {
 
@@ -278,6 +323,7 @@
         Overlays.deleteOverlay(tabletID);
         HMD.tabletID = null;
         HMD.homeButtonID = null;
+        HMD.homeButtonHighlightID = null;
         HMD.tabletScreenID = null;
     });
 }()); // END LOCAL_SCOPE

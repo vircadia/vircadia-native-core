@@ -24,8 +24,8 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/makeUserConnection.js",
     "system/tablet-goto.js",
     "system/marketplaces/marketplaces.js",
+    "system/commerce/wallet.js",
     "system/edit.js",
-    "system/selectAudioDevice.js",
     "system/notifications.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
@@ -33,6 +33,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js"
+    // "system/chat.js"
 ];
 
 // add a menu item for debugging

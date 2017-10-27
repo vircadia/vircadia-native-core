@@ -28,6 +28,8 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return _touch != nullptr; }
+    bool isHeadController() const override { return true; }
+    bool isHeadControllerMounted() const;
     QStringList getSubdeviceNames() override;
 
     bool activate() override;
@@ -75,8 +77,13 @@ private:
 
     private:
         void stopHapticPulse(bool leftHand);
-        void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
-        void handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, const ovrPoseStatef& handPose);
+        void handlePose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
+                        ovrHandType hand, const ovrPoseStatef& handPose);
+        void handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,
+                                            ovrHandType hand, const ovrPoseStatef& handPose);
+        void handleHeadPose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
+                            const ovrPoseStatef& headPose);
+
         int _trackedControllers { 0 };
 
         // perform an action when the TouchDevice mutex is acquired.

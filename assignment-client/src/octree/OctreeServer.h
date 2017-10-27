@@ -96,6 +96,9 @@ public:
     static void trackTreeWaitTime(float time);
     static float getAverageTreeWaitTime() { return _averageTreeWaitTime.getAverage(); }
 
+    static void trackTreeTraverseTime(float time) { _averageTreeTraverseTime.updateAverage(time); }
+    static float getAverageTreeTraverseTime() { return _averageTreeTraverseTime.getAverage(); }
+
     static void trackNodeWaitTime(float time) { _averageNodeWaitTime.updateAverage(time); }
     static float getAverageNodeWaitTime() { return _averageNodeWaitTime.getAverage(); }
 
@@ -137,6 +140,7 @@ private slots:
     void handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message);
+    void handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMessage> message);
     void removeSendThread();
 
 protected:
@@ -160,6 +164,8 @@ protected:
     
     UniqueSendThread createSendThread(const SharedNodePointer& node);
     virtual UniqueSendThread newSendThread(const SharedNodePointer& node);
+
+    void replaceContentFromMessageData(QByteArray content);
 
     int _argc;
     const char** _argv;
@@ -224,6 +230,8 @@ protected:
     static int _longTreeWait;
     static int _shortTreeWait;
     static int _noTreeWait;
+
+    static SimpleMovingAverage _averageTreeTraverseTime;
 
     static SimpleMovingAverage _averageNodeWaitTime;
 

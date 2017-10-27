@@ -19,7 +19,6 @@ StackView {
     objectName: "stack"
     property string title: "General Settings"
     property alias gotoPreviousApp: root.gotoPreviousApp;
-    property var eventBridge;
     signal sendToScript(var message);
 
     function pushSource(path) {
@@ -33,6 +32,6 @@ StackView {
     TabletPreferencesDialog {
         id: root
         objectName: "TabletGeneralPreferences"
-        showCategories: ["UI", "Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Sixense Controllers", "Perception Neuron", "Kinect"]
+        showCategories: ["UI", "Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Game Controller", "Sixense Controllers", "Perception Neuron", "Kinect", "Leap Motion"]
     }
 }

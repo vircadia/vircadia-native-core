@@ -26,15 +26,26 @@ namespace render {
 
         Q_PROPERTY(quint32 bufferCPUCount MEMBER bufferCPUCount NOTIFY dirty)
         Q_PROPERTY(quint32 bufferGPUCount MEMBER bufferGPUCount NOTIFY dirty)
-        Q_PROPERTY(qint64 bufferCPUMemoryUsage MEMBER bufferCPUMemoryUsage NOTIFY dirty)
-        Q_PROPERTY(qint64 bufferGPUMemoryUsage MEMBER bufferGPUMemoryUsage NOTIFY dirty)
+        Q_PROPERTY(qint64 bufferCPUMemSize MEMBER bufferCPUMemSize NOTIFY dirty)
+        Q_PROPERTY(qint64 bufferGPUMemSize MEMBER bufferGPUMemSize NOTIFY dirty)
 
         Q_PROPERTY(quint32 textureCPUCount MEMBER textureCPUCount NOTIFY dirty)
         Q_PROPERTY(quint32 textureGPUCount MEMBER textureGPUCount NOTIFY dirty)
-        Q_PROPERTY(qint64 textureCPUMemoryUsage MEMBER textureCPUMemoryUsage NOTIFY dirty)
-        Q_PROPERTY(qint64 textureGPUMemoryUsage MEMBER textureGPUMemoryUsage NOTIFY dirty)
-        Q_PROPERTY(qint64 textureGPUVirtualMemoryUsage MEMBER textureGPUVirtualMemoryUsage NOTIFY dirty)
-        Q_PROPERTY(quint32 textureGPUTransferCount MEMBER textureGPUTransferCount NOTIFY dirty)
+        Q_PROPERTY(quint32 textureResidentGPUCount MEMBER textureResidentGPUCount NOTIFY dirty)
+        Q_PROPERTY(quint32 textureFramebufferGPUCount MEMBER textureFramebufferGPUCount NOTIFY dirty)
+        Q_PROPERTY(quint32 textureResourceGPUCount MEMBER textureResourceGPUCount NOTIFY dirty)
+        Q_PROPERTY(quint32 textureExternalGPUCount MEMBER textureExternalGPUCount NOTIFY dirty)
+
+        Q_PROPERTY(qint64 textureCPUMemSize MEMBER textureCPUMemSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureGPUMemSize MEMBER textureGPUMemSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureResidentGPUMemSize MEMBER textureResidentGPUMemSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureFramebufferGPUMemSize MEMBER textureFramebufferGPUMemSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureResourceGPUMemSize MEMBER textureResourceGPUMemSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureExternalGPUMemSize MEMBER textureExternalGPUMemSize NOTIFY dirty)
+
+        Q_PROPERTY(quint32 texturePendingGPUTransferCount MEMBER texturePendingGPUTransferCount NOTIFY dirty)
+        Q_PROPERTY(qint64 texturePendingGPUTransferSize MEMBER texturePendingGPUTransferSize NOTIFY dirty)
+        Q_PROPERTY(qint64 textureResourcePopulatedGPUMemSize MEMBER textureResourcePopulatedGPUMemSize NOTIFY dirty)
 
         Q_PROPERTY(quint32 frameAPIDrawcallCount MEMBER frameAPIDrawcallCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameDrawcallCount MEMBER frameDrawcallCount NOTIFY dirty)
@@ -56,15 +67,25 @@ namespace render {
 
         quint32 bufferCPUCount{ 0 };
         quint32 bufferGPUCount{ 0 };
-        qint64 bufferCPUMemoryUsage{ 0 };
-        qint64 bufferGPUMemoryUsage{ 0 };
+        qint64 bufferCPUMemSize { 0 };
+        qint64 bufferGPUMemSize { 0 };
 
         quint32 textureCPUCount{ 0 };
-        quint32 textureGPUCount{ 0 };
-        qint64 textureCPUMemoryUsage{ 0 };
-        qint64 textureGPUMemoryUsage{ 0 };
-        qint64 textureGPUVirtualMemoryUsage{ 0 };
-        quint32 textureGPUTransferCount{ 0 };
+        quint32 textureGPUCount { 0 };
+        quint32 textureResidentGPUCount { 0 };
+        quint32 textureFramebufferGPUCount { 0 };
+        quint32 textureResourceGPUCount { 0 };
+        quint32 textureExternalGPUCount { 0 };
+        quint32 texturePendingGPUTransferCount { 0 };
+
+        qint64 textureCPUMemSize { 0 };
+        qint64 textureGPUMemSize { 0 };
+        qint64 textureResidentGPUMemSize { 0 };
+        qint64 textureFramebufferGPUMemSize { 0 };
+        qint64 textureResourceGPUMemSize { 0 };
+        qint64 textureExternalGPUMemSize { 0 };
+        qint64 texturePendingGPUTransferSize { 0 };
+        qint64 textureResourcePopulatedGPUMemSize { 0 };
 
         quint32 frameAPIDrawcallCount{ 0 };
         quint32 frameDrawcallCount{ 0 };

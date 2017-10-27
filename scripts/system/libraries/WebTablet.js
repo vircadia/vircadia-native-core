@@ -8,27 +8,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 /* global getControllerWorldLocation, Tablet, WebTablet:true, HMD, Settings, Script,
-   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4 */
+   Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4, resizeTablet */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
 Script.include(Script.resolvePath("../libraries/Xform.js"));
 
-var VEC3_ZERO = {x: 0, y: 0, z: 0};
-var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
 var DEFAULT_DPI = 34;
 var DEFAULT_WIDTH = 0.4375;
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
-var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
-var ROT_IDENT = {x: 0, y: 0, z: 0, w: 1};
+var ROT_Y_180 = {x: 0.0, y: 1.0, z: 0, w: 0};
+var ROT_LANDSCAPE = {x: 1.0, y: 1.0, z: 0, w: 0};
+var ROT_LANDSCAPE_WINDOW = {x: 0.0, y: 0.0, z: 0.0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
-var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
 var NO_HANDS = -1;
+var DELAY_FOR_30HZ = 33; // milliseconds
+
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
@@ -41,51 +41,20 @@ var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-
 // returns object with two fields:
 //    * position - position in front of the user
 //    * rotation - rotation of entity so it faces the user.
-function calcSpawnInfo(hand, height) {
+function calcSpawnInfo(hand, landscape) {
     var finalPosition;
 
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
     var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
 
-    if (!hand) {
-        hand = NO_HANDS;
-    }
-
-    if (HMD.active && hand !== NO_HANDS) {
-        var handController = getControllerWorldLocation(hand, true);
-
-        var TABLET_UP_OFFSET = 0.1;
-        var TABLET_FORWARD_OFFSET = 0.1;
-        var normal = Vec3.multiplyQbyV(handController.rotation, {x: 0, y: -1, z: 0});
-        var pitch = Math.asin(normal.y);
-        var MAX_PITCH = Math.PI / 4;
-        if (pitch < -MAX_PITCH) {
-            pitch = -MAX_PITCH;
-        } else if (pitch > MAX_PITCH) {
-            pitch = MAX_PITCH;
-        }
-
-        // rebuild normal from pitch and heading.
-        var heading = Math.atan2(normal.z, normal.x);
-        normal = {x: Math.cos(heading), y: Math.sin(pitch), z: Math.sin(heading)};
-
-        var position = Vec3.sum(handController.position, {x: 0, y: TABLET_UP_OFFSET, z: 0});
-        var rotation = Quat.lookAt({x: 0, y: 0, z: 0}, normal, Y_AXIS);
-        var offset = Vec3.multiplyQbyV(rotation, {x: 0, y: height / 2, z: TABLET_FORWARD_OFFSET});
-
-        return {
-            position: Vec3.sum(offset, position),
-            rotation: rotation
-        };
-    } else {
-        var forward = Quat.getForward(headRot);
-        finalPosition = Vec3.sum(headPos, Vec3.multiply(0.6, forward));
-        var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, {x: 0, y: 1, z: 0});
-        return {
-            position: finalPosition,
-            rotation: Quat.multiply(orientation, {x: 0, y: 1, z: 0, w: 0})
-        };
-    }
+    var forward = Quat.getForward(headRot);
+    var FORWARD_OFFSET = 0.5 * MyAvatar.sensorToWorldScale;
+    finalPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
+    var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+    return {
+        position: finalPosition,
+        rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
+    };
 }
 
 /**
@@ -96,21 +65,26 @@ function calcSpawnInfo(hand, height) {
  * @param hand [number] -1 indicates no hand, Controller.Standard.RightHand or Controller.Standard.LeftHand
  * @param clientOnly [bool] true indicates tablet model is only visible to client.
  */
-WebTablet = function (url, width, dpi, hand, clientOnly, location) {
+WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     var _this = this;
 
+    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+
     // scale factor of natural tablet dimensions.
-    this.width = width || DEFAULT_WIDTH;
-    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
-    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
-    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    var tabletWidth = (width || DEFAULT_WIDTH) * sensorScaleFactor;
+    var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+    var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    var tabletDepth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
     this.landscape = false;
 
+    visible = visible === true;
+
+    var tabletDpi;
     if (dpi) {
-        this.dpi = dpi;
+        tabletDpi = dpi;
     } else {
-        this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
+        tabletDpi = DEFAULT_DPI * (DEFAULT_WIDTH / tabletWidth);
     }
 
     var modelURL = LOCAL_TABLET_MODEL_PATH;
@@ -120,11 +94,13 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         modelURL: modelURL,
         url: modelURL, // for overlay
         grabbable: true, // for overlay
+        loadPriority: 10.0, // for overlay
         userData: JSON.stringify({
             "grabbableKey": {"grabbable": true}
         }),
-        dimensions: this.getDimensions(),
-        parentID: AVATAR_SELF_ID
+        dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
+        parentID: MyAvatar.SELF_ID,
+        visible: visible
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -142,8 +118,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var WEB_ENTITY_Y_OFFSET = 0.004;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2) * (1 / sensorScaleFactor);
+    var WEB_ENTITY_Y_OFFSET = 0.004 * (1 / sensorScaleFactor);
 
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
@@ -151,27 +127,44 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
         resolution: this.getTabletTextureResolution(),
-        dpi: this.dpi,
+        dpi: tabletDpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
         parentID: this.tabletEntityID,
         parentJointIndex: -1,
         showKeyboardFocusHighlight: false,
-        isAA: HMD.active
+        visible: visible
     });
 
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
+    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * (1 / sensorScaleFactor);
     this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
         localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
         localRotation: {x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
-        visible: true,
+        visible: visible,
         drawInFront: false,
         parentID: this.tabletEntityID,
         parentJointIndex: -1
     });
+
+    this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
+        name: "homeButtonHighlight",
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
+        localRotation: { x: 0, y: 1, z: 0, w: 0 },
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
+        solid: true,
+        outerRadius: 25 * tabletScaleFactor,
+        innerRadius: 20 * tabletScaleFactor,
+        ignoreIntersection: true,
+        alpha: 1.0,
+        color: { red: 255, green: 255, blue: 255 },
+        visible: visible,
+        drawInFront: false,
+        parentID: this.tabletEntityID,
+        parentJointIndex: -1
+     });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonID == senderID) {
@@ -192,6 +185,23 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
             }
         }
     };
+
+    this.myOnHoverEnterOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverEnterOverlay(overlayID, pointerEvent);
+    };
+
+    Overlays.hoverEnterOverlay.connect(this.myOnHoverEnterOverlay);
+
+    this.myOnHoverLeaveOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverLeaveOverlay(overlayID, pointerEvent);
+    };
+
+    Overlays.hoverLeaveOverlay.connect(this.myOnHoverLeaveOverlay);
+
+    this.myOnHoverOverOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverOverOverlay(overlayID, pointerEvent);
+    };
+    Overlays.hoverOverOverlay.connect(this.myOnHoverOverOverlay);
 
     this.state = "idle";
 
@@ -237,30 +247,30 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location) {
     Camera.modeUpdated.connect(this.myCameraModeChanged);
 };
 
-WebTablet.prototype.getDimensions = function() {
-    if (this.landscape) {
-        return { x: this.width * 2, y: this.height, z: this.depth };
-    } else {
-        return { x: this.width, y: this.height, z: this.depth };
-    }
-};
-
 WebTablet.prototype.getTabletTextureResolution = function() {
     if (this.landscape) {
-        return { x: TABLET_TEXTURE_RESOLUTION.x * 2, y: TABLET_TEXTURE_RESOLUTION.y };
+        return { x: TABLET_TEXTURE_RESOLUTION.y , y: TABLET_TEXTURE_RESOLUTION.x };
     } else {
         return TABLET_TEXTURE_RESOLUTION;
     }
 };
 
+WebTablet.prototype.getLandscape = function() {
+    return this.landscape;
+}
+
 WebTablet.prototype.setLandscape = function(newLandscapeValue) {
-    if (this.landscape == newLandscapeValue) {
+    if (this.landscape === newLandscapeValue) {
         return;
     }
+
     this.landscape = newLandscapeValue;
-    Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
+    Overlays.editOverlay(this.tabletEntityID,
+                         { rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) :
+                                                      Quat.multiply(Camera.orientation, ROT_Y_180) });
     Overlays.editOverlay(this.webOverlayID, {
-        resolution: this.getTabletTextureResolution()
+        resolution: this.getTabletTextureResolution(),
+        rotation: Quat.multiply(Camera.orientation, ROT_LANDSCAPE_WINDOW)
     });
 };
 
@@ -274,7 +284,8 @@ WebTablet.prototype.getLocation = function() {
 };
 
 WebTablet.prototype.setHomeButtonTexture = function() {
-    Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
+    // TODO - is this still needed?
+    // Entities.editEntity(this.tabletEntityID, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
 };
 
 WebTablet.prototype.setURL = function (url) {
@@ -290,37 +301,19 @@ WebTablet.prototype.getOverlayObject = function () {
 };
 
 WebTablet.prototype.setWidth = function (width) {
-
-    // scale factor of natural tablet dimensions.
-    this.width = width || DEFAULT_WIDTH;
-    var tabletScaleFactor = this.width / TABLET_NATURAL_DIMENSIONS.x;
-    this.height = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
-    this.depth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
-    this.dpi = DEFAULT_DPI * (DEFAULT_WIDTH / this.width);
-
-    // update tablet model dimensions
-    Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
-
-    // update webOverlay
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
-    var WEB_ENTITY_Y_OFFSET = 0.004;
-    Overlays.editOverlay(this.webOverlayID, {
-        localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
-        dpi: this.dpi
-    });
-
-    // update homeButton
-    var HOME_BUTTON_Y_OFFSET = (this.height / 2) - (this.height / 20);
-    Overlays.editOverlay(this.homeButtonID, {
-        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
-        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
-    });
+    // imported from libraries/utils.js
+    resizeTablet(width);
 };
 
 WebTablet.prototype.destroy = function () {
+    Overlays.hoverEnterOverlay.disconnect(this.myOnHoverEnterOverlay);
+    Overlays.hoverLeaveOverlay.disconnect(this.myOnHoverLeaveOverlay);
+    Overlays.hoverOverOverlay.disconnect(this.myOnHoverOverOverlay);
+
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
+    Overlays.deleteOverlay(this.homeButtonHighlightID);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
@@ -334,10 +327,9 @@ WebTablet.prototype.destroy = function () {
 WebTablet.prototype.geometryChanged = function (geometry) {
     if (!HMD.active) {
         var tabletProperties = {};
-
         // compute position, rotation & parentJointIndex of the tablet
         this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        Entities.editEntity(this.tabletEntityID, tabletProperties);
+        Overlays.editOverlay(HMD.tabletID, tabletProperties);
     }
 };
 
@@ -368,10 +360,19 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
     windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
 
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
+
+    // scale factor of natural tablet dimensions.
+    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
+    var tabletWidth = getTabletWidthFromSettings() * sensorScaleFactor;
+    var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+    var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    var tabletDepth = TABLET_NATURAL_DIMENSIONS.z * tabletScaleFactor;
+    var tabletDpi = DEFAULT_DPI * (DEFAULT_WIDTH / tabletWidth);
+
     var MAX_PADDING_FACTOR = 2.2;
     var PADDING_FACTOR = Math.min(Window.innerHeight / this.getTabletTextureResolution().y, MAX_PADDING_FACTOR);
-    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / this.dpi) * INCHES_TO_METERS;
-    var WEB_ENTITY_Z_OFFSET = (this.depth / 2);
+    var TABLET_HEIGHT = (this.getTabletTextureResolution().y / tabletDpi) * INCHES_TO_METERS;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2);
 
     // calcualte distance from camera
     var dist = (PADDING_FACTOR * TABLET_HEIGHT) / (2 * Math.tan(fov / 2) * (DESKTOP_TABLET_SCALE / 100)) - WEB_ENTITY_Z_OFFSET;
@@ -400,9 +401,27 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
     return {
         position: worldMousePosition,
-        rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
+        rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) : Quat.multiply(Camera.orientation, ROT_Y_180)
     };
 };
+
+WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
+    if (overlayID === this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 1.0 });
+    }
+}
+
+WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
+    if (overlayID !== this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+    }
+}
+
+WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
+    if (overlayID === this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+    }
+}
 
 // compute position, rotation & parentJointIndex of the tablet
 WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMouse, tabletProperties) {
@@ -411,7 +430,7 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
         tabletProperties.parentJointIndex = SENSOR_TO_ROOM_MATRIX;
 
         // compute the appropriate position of the tablet, near the hand controller that was used to spawn it.
-        var spawnInfo = calcSpawnInfo(hand, this.height);
+        var spawnInfo = calcSpawnInfo(hand, this.landscape);
         tabletProperties.position = spawnInfo.position;
         tabletProperties.rotation = spawnInfo.rotation;
     } else {
@@ -434,15 +453,10 @@ WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMou
 };
 
 WebTablet.prototype.onHmdChanged = function () {
-
     var tabletProperties = {};
     // compute position, rotation & parentJointIndex of the tablet
     this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-    Entities.editEntity(this.tabletEntityID, tabletProperties);
-
-    // Full scene FXAA should be disabled on the overlay when the tablet in desktop mode.
-    // This should make the text more readable.
-    Overlays.editOverlay(this.webOverlayID, { isAA: HMD.active });
+    Overlays.editOverlay(HMD.tabletID, tabletProperties);
 };
 
 WebTablet.prototype.pickle = function () {
@@ -456,7 +470,7 @@ WebTablet.prototype.register = function() {
 
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
-    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, jointIndex));
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
         if (props.name === "WebTablet Tablet") {
@@ -522,15 +536,7 @@ WebTablet.prototype.mousePressEvent = function (event) {
 };
 
 WebTablet.prototype.cameraModeChanged = function (newMode) {
-    // reposition the tablet.
-    // This allows HMD.position to reflect the new camera mode.
-    if (HMD.active) {
-        var self = this;
-        var tabletProperties = {};
-        // compute position, rotation & parentJointIndex of the tablet
-        self.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-        Entities.editEntity(self.tabletEntityID, tabletProperties);
-    }
+    ;
 };
 
 function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
@@ -545,9 +551,47 @@ function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
     }
 }
 
+WebTablet.prototype.scheduleMouseMoveProcessor = function() {
+    var _this = this;
+    if (!this.moveEventTimer) {
+        this.moveEventTimer = Script.setTimeout(function() {
+            _this.mouseMoveProcessor();
+        }, DELAY_FOR_30HZ);
+    }
+};
+
+WebTablet.prototype.handleHomeButtonHover = function(x, y) {
+    var pickRay = Camera.computePickRay(x, y);
+    var entityPickResults;
+    var homebuttonHovered = false;
+    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
+    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
+        entityPickResults.overlayID === this.tabletEntityID)) {
+        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID], []);
+        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
+            homebuttonHovered = true;
+        }
+    }
+
+    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homebuttonHovered ? 1.0 : 0.0 });
+}
+
 WebTablet.prototype.mouseMoveEvent = function (event) {
     if (this.dragging) {
-        var pickRay = Camera.computePickRay(event.x, event.y);
+        this.currentMouse = {
+            x: event.x,
+            y: event.y
+        };
+        this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(event.x, event.y);
+    }
+};
+
+WebTablet.prototype.mouseMoveProcessor = function () {
+    this.moveEventTimer = null;
+    if (this.dragging) {
+        var pickRay = Camera.computePickRay(this.currentMouse.x, this.currentMouse.y);
 
         // transform pickRay into camera local coordinates
         var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
@@ -566,6 +610,9 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
                 localPosition: localPosition
             });
         }
+        this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(this.currentMouse.x, this.currentMouse.y);
     }
 };
 

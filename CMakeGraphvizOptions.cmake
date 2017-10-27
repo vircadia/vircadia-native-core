@@ -1,1 +1,2 @@
 set(GRAPHVIZ_EXTERNAL_LIBS FALSE)
+set(GRAPHVIZ_IGNORE_TARGETS "shared;networking")

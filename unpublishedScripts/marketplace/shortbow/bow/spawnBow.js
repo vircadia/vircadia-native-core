@@ -37,7 +37,7 @@ var userData = {
 var id = Entities.addEntity({
     "position": MyAvatar.position,
     "collisionsWillMove": 1,
-    "compoundShapeURL": Script.resolvePath("bow_collision_hull.obj"),
+    "compoundShapeURL": Script.resolvePath("models/bow_collision_hull.obj"),
     "created": "2016-09-01T23:57:55Z",
     "dimensions": {
         "x": 0.039999999105930328,
@@ -50,7 +50,7 @@ var id = Entities.addEntity({
         "y": -9.8,
         "z": 0
     },
-    "modelURL": Script.resolvePath("bow-deadly.fbx"),
+    "modelURL": Script.resolvePath("models/bow-deadly.baked.fbx"),
     "name": "Hifi-Bow",
     "rotation": {
         "w": 0.9718012809753418,

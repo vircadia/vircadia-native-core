@@ -38,9 +38,9 @@ void main(void) {
     int frontCondition = 1 -int(gl_FrontFacing) * 2;
     vec3 color = varColor.rgb;
     packDeferredFragmentTranslucent(
-        interpolatedNormal * frontCondition,
+        float(frontCondition) * interpolatedNormal,
         texel.a * varColor.a,
-        polyline.color * texel.rgb,
+        color * texel.rgb,
         vec3(0.01, 0.01, 0.01),
         10.0);
 }

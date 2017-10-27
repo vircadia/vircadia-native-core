@@ -66,7 +66,7 @@ protected:
 public:
     static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings = Shader::BindingSet());
 
-    ~GLBackend();
+    virtual ~GLBackend();
 
     void setCameraCorrection(const Mat4& correction);
     void render(const Batch& batch) final override;
@@ -142,6 +142,13 @@ public:
 
     // Reset stages
     virtual void do_resetStages(const Batch& batch, size_t paramOffset) final;
+
+    
+    virtual void do_disableContextViewCorrection(const Batch& batch, size_t paramOffset) final;
+    virtual void do_restoreContextViewCorrection(const Batch& batch, size_t paramOffset) final;
+
+    virtual void do_disableContextStereo(const Batch& batch, size_t paramOffset) final;
+    virtual void do_restoreContextStereo(const Batch& batch, size_t paramOffset) final;
 
     virtual void do_runLambda(const Batch& batch, size_t paramOffset) final;
 
@@ -330,6 +337,8 @@ protected:
         bool _skybox { false };
         Transform _view;
         CameraCorrection _correction;
+        bool _viewCorrectionEnabled{ true };
+
 
         Mat4 _projection;
         Vec4i _viewport { 0, 0, 1, 1 };
@@ -397,6 +406,7 @@ protected:
         bool _invalidProgram { false };
 
         BufferView _cameraCorrectionBuffer { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
+        BufferView _cameraCorrectionBufferIdentity { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
 
         State::Data _stateCache{ State::DEFAULT };
         State::Signature _stateSignatureCache { 0 };
@@ -406,6 +416,8 @@ protected:
 
         PipelineStageState() {
             _cameraCorrectionBuffer.edit<CameraCorrection>() = CameraCorrection();
+            _cameraCorrectionBufferIdentity.edit<CameraCorrection>() = CameraCorrection();
+            _cameraCorrectionBufferIdentity._buffer->flush();
         }
     } _pipeline;
 

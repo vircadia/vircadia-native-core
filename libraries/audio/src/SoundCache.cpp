@@ -9,10 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <qthread.h>
+#include "SoundCache.h"
+
+#include <QtCore/QThread>
+
+#include <shared/QtHelpers.h>
 
 #include "AudioLogging.h"
-#include "SoundCache.h"
 
 static const int SOUNDS_LOADING_PRIORITY { -7 }; // Make sure sounds load after the low rez texture mips
 
@@ -29,7 +32,7 @@ SoundCache::SoundCache(QObject* parent) :
 SharedSoundPointer SoundCache::getSound(const QUrl& url) {
     if (QThread::currentThread() != thread()) {
         SharedSoundPointer result;
-        QMetaObject::invokeMethod(this, "getSound", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "getSound", 
                                   Q_RETURN_ARG(SharedSoundPointer, result), Q_ARG(const QUrl&, url));
         return result;
     }

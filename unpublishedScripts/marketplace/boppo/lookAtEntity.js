@@ -89,7 +89,7 @@ LookAtTarget = function(sourceEntityID) {
                 }
             });
             if (!actionFound) {
-                Entities.addAction('spring', _sourceEntityID, getNewActionProperties());
+                Entities.addAction('tractor', _sourceEntityID, getNewActionProperties());
             }
         }
     };

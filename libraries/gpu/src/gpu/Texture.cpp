@@ -14,6 +14,7 @@
 
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/component_wise.hpp>
+#include <glm/gtc/packing.hpp>
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
@@ -31,8 +32,9 @@ using namespace gpu;
 
 int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
-std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
-std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
+
+ContextMetricCount Texture::_textureCPUCount;
+ContextMetricSize Texture::_textureCPUMemSize;
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
 
@@ -58,61 +60,18 @@ void Texture::setEnableSparseTextures(bool enabled) {
 #endif
 }
 
-void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
-    if (prevObjectSize == newObjectSize) {
-        return;
-    }
-    if (prevObjectSize > newObjectSize) {
-        _textureCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
-    } else {
-        _textureCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
-    }
-}
-
 bool Texture::getEnableSparseTextures() { 
     return _enableSparseTextures.load(); 
 }
 
 uint32_t Texture::getTextureCPUCount() {
-    return _textureCPUCount.load();
+    return _textureCPUCount.getValue();
 }
 
-Texture::Size Texture::getTextureCPUMemoryUsage() {
-    return _textureCPUMemoryUsage.load();
+Texture::Size Texture::getTextureCPUMemSize() {
+    return _textureCPUMemSize.getValue();
 }
 
-uint32_t Texture::getTextureGPUCount() {
-    return Context::getTextureGPUCount();
-}
-
-uint32_t Texture::getTextureGPUSparseCount() {
-    return Context::getTextureGPUSparseCount();
-}
-
-Texture::Size Texture::getTextureTransferPendingSize() {
-    return Context::getTextureTransferPendingSize();
-}
-
-Texture::Size Texture::getTextureGPUMemoryUsage() {
-    return Context::getTextureGPUMemoryUsage();
-}
-
-Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
-    return Context::getTextureGPUVirtualMemoryUsage();
-}
-
-
-Texture::Size Texture::getTextureGPUFramebufferMemoryUsage() {
-    return Context::getTextureGPUFramebufferMemoryUsage();
-}
-
-Texture::Size Texture::getTextureGPUSparseMemoryUsage() {
-    return Context::getTextureGPUSparseMemoryUsage();
-}
-
-uint32_t Texture::getTextureGPUTransferCount() {
-    return Context::getTextureGPUTransferCount();
-}
 
 Texture::Size Texture::getAllowedGPUMemoryUsage() {
     return _allowedCPUMemoryUsage;
@@ -165,42 +124,40 @@ bool MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
     return (mipFace && mipFace->getSize());
 }
 
-bool MemoryStorage::allocateMip(uint16 level) {
-    bool changed = false;
+void MemoryStorage::allocateMip(uint16 level) {
+    auto faceCount = Texture::NUM_FACES_PER_TYPE[getType()];
     if (level >= _mips.size()) {
-        _mips.resize(level+1, std::vector<PixelsPointer>(Texture::NUM_FACES_PER_TYPE[getType()]));
-        changed = true;
+        _mips.resize(level + 1, std::vector<PixelsPointer>(faceCount));
     }
 
     auto& mip = _mips[level];
-    for (auto& face : mip) {
-        if (!face) {
-            changed = true;
-        }
+    if (mip.size() != faceCount) {
+        mip.resize(faceCount);
     }
-
     bumpStamp();
-
-    return changed;
 }
 
 void MemoryStorage::assignMipData(uint16 level, const storage::StoragePointer& storagePointer) {
-
     allocateMip(level);
     auto& mip = _mips[level];
+
+    auto faceCount = Texture::NUM_FACES_PER_TYPE[getType()];
 
     // here we grabbed an array of faces
     // The bytes assigned here are supposed to contain all the faces bytes of the mip.
     // For tex1D, 2D, 3D there is only one face
     // For Cube, we expect the 6 faces in the order X+, X-, Y+, Y-, Z+, Z-
-    auto sizePerFace = storagePointer->size() / mip.size();
-    size_t offset = 0;
-    for (auto& face : mip) {
-        face = storagePointer->createView(sizePerFace, offset);
-        offset += sizePerFace;
-    }
+    auto sizePerFace = storagePointer->size() / faceCount;
 
-    bumpStamp();
+    if (sizePerFace > 0) {
+        size_t offset = 0;
+        for (auto& face : mip) {
+            face = storagePointer->createView(sizePerFace, offset);
+            offset += sizePerFace;
+        }
+
+        bumpStamp();
+    }
 }
 
 
@@ -216,6 +173,7 @@ void Texture::MemoryStorage::assignMipFaceData(uint16 level, uint8 face, const s
 TexturePointer Texture::createExternal(const ExternalRecycler& recycler, const Sampler& sampler) {
     TexturePointer tex = std::make_shared<Texture>(TextureUsageType::EXTERNAL);
     tex->_type = TEX_2D;
+    tex->_texelFormat = Element::COLOR_RGBA_32;
     tex->_maxMipLevel = 0;
     tex->_sampler = sampler;
     tex->setExternalRecycler(recycler);
@@ -261,11 +219,11 @@ TexturePointer Texture::create(TextureUsageType usageType, Type type, const Elem
 
 Texture::Texture(TextureUsageType usageType) :
     Resource(), _usageType(usageType) {
-    _textureCPUCount++;
+    _textureCPUCount.increment();
 }
 
 Texture::~Texture() {
-    _textureCPUCount--;
+    _textureCPUCount.decrement();
     if (_usageType == TextureUsageType::EXTERNAL) {
         Texture::ExternalUpdates externalUpdates;
         {
@@ -407,8 +365,12 @@ void Texture::setStoredMipFormat(const Element& format) {
     _storage->setFormat(format);
 }
 
-const Element& Texture::getStoredMipFormat() const {
-    return _storage->getFormat();
+Element Texture::getStoredMipFormat() const {
+    if (_storage) {
+        return _storage->getFormat();
+    } else {
+        return Element();
+    }
 }
 
 void Texture::assignStoredMip(uint16 level, Size size, const Byte* bytes) {
@@ -436,7 +398,11 @@ void Texture::assignStoredMip(uint16 level, storage::StoragePointer& storage) {
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipSize(level, getStoredMipFormat());
     auto size = storage->size();
-    if (storage->size() <= expectedSize) {
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
+    if (storage->size() < expectedSize) {
+        _storage->assignMipData(level, storage);
+        _stamp++;
+    } else if (size == expectedSize) {
         _storage->assignMipData(level, storage);
         _stamp++;
     } else if (size > expectedSize) {
@@ -463,7 +429,11 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipFaceSize(level, getStoredMipFormat());
     auto size = storage->size();
-    if (size <= expectedSize) {
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
+    if (size < expectedSize) {
+        _storage->assignMipFaceData(level, face, storage);
+        _stamp++;
+    } else if (size == expectedSize) {
         _storage->assignMipFaceData(level, face, storage);
         _stamp++;
     } else if (size > expectedSize) {
@@ -714,6 +684,21 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
     PROFILE_RANGE(render_gpu, "sphericalHarmonicsFromTexture");
 
+    auto mipFormat = cubeTexture.getStoredMipFormat();
+    std::function<glm::vec3(uint32)> unpackFunc;
+
+    switch (mipFormat.getSemantic()) {
+        case gpu::R11G11B10:
+            unpackFunc = glm::unpackF2x11_1x10;
+            break;
+        case gpu::RGB9E5:
+            unpackFunc = glm::unpackF3x9_E1x5;
+            break;
+        default:
+            assert(false);
+            break;
+    }
+
     const uint sqOrder = order*order;
 
     // allocate memory for calculations
@@ -747,17 +732,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
         PROFILE_RANGE(render_gpu, "ProcessFace");
 
-        auto mipFormat = cubeTexture.getStoredMipFormat();
-        auto numComponents = mipFormat.getScalarCount();
-        int roffset { 0 };
-        int goffset { 1 };
-        int boffset { 2 };
-        if ((mipFormat.getSemantic() == gpu::BGRA) || (mipFormat.getSemantic() == gpu::SBGRA)) {
-            roffset = 2;
-            boffset = 0;
-        }
-
-        auto data = cubeTexture.accessStoredMipFace(0, face)->readData();
+        auto data = reinterpret_cast<const uint32*>( cubeTexture.accessStoredMipFace(0, face)->readData() );
         if (data == nullptr) {
             continue;
         }
@@ -837,29 +812,24 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
                 // index of texel in texture
 
-                // get color from texture and map to range [0, 1]
-                float red { 0.0f };
-                float green { 0.0f };
-                float blue { 0.0f };
+                // get color from texture
+                glm::vec3 color{ 0.0f, 0.0f, 0.0f };
                 for (int i = 0; i < stride; ++i) {
                     for (int j = 0; j < stride; ++j) {
-                        int k = (int)(x + i - halfStride + (y + j - halfStride) * width) * numComponents;
-                        red += ColorUtils::sRGB8ToLinearFloat(data[k + roffset]);
-                        green += ColorUtils::sRGB8ToLinearFloat(data[k + goffset]);
-                        blue += ColorUtils::sRGB8ToLinearFloat(data[k + boffset]);
+                        int k = (int)(x + i - halfStride + (y + j - halfStride) * width);
+                        color += unpackFunc(data[k]);
                     }
                 }
-                glm::vec3 clr(red, green, blue);
 
                 // scale color and add to previously accumulated coefficients
                 // red
-                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.r * fDiffSolid);
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), color.r * fDiffSolid);
                 sphericalHarmonicsAdd(resultR.data(), order, resultR.data(), shBuffB.data());
                 // green
-                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.g * fDiffSolid);
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), color.g * fDiffSolid);
                 sphericalHarmonicsAdd(resultG.data(), order, resultG.data(), shBuffB.data());
                 // blue
-                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), clr.b * fDiffSolid);
+                sphericalHarmonicsScale(shBuffB.data(), order, shBuff.data(), color.b * fDiffSolid);
                 sphericalHarmonicsAdd(resultB.data(), order, resultB.data(), shBuffB.data());
             }
         }

@@ -52,6 +52,8 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* transform(glm::mat4 transform);
         Q_INVOKABLE QObject* postTransform(glm::mat4 transform);
         Q_INVOKABLE QObject* rotate(glm::quat rotation);
+        Q_INVOKABLE QObject* lowVelocity(float rotationConstant, float translationConstant);
+        Q_INVOKABLE QObject* logicalNot();
 
     private:
         void to(const Endpoint::Pointer& destination);

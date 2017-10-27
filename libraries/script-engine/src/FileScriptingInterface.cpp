@@ -32,26 +32,58 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
     // nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd) {
+void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isZip, bool isBlocks) {
     qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
     qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
+    qCDebug(scriptengine) << "Filename: " << fileName;
     QString tempDir = path;
-    tempDir.remove(fileName);
+    if (!isZip) {
+        tempDir.remove(fileName);
+    } else {
+        QTemporaryDir zipTemp;
+        tempDir = zipTemp.path();
+        path.remove("file:///");
+    }
+    
     qCDebug(scriptengine) << "Temporary directory at: " + tempDir;
     if (!isTempDir(tempDir)) {
         qCDebug(scriptengine) << "Temporary directory mismatch; risk of losing files";
         return;
     }
 
-    QString file = unzipFile(path, tempDir);
-    QString filename = QUrl::fromLocalFile(file).toString();
-    if (file != "") {
-        qCDebug(scriptengine) << "File to upload: " + filename;
+    QStringList fileList = unzipFile(path, tempDir);
+    
+    if (!fileList.isEmpty()) {
+        qCDebug(scriptengine) << "File to upload: " + fileList.first();
     } else {
         qCDebug(scriptengine) << "Unzip failed";
     }
-    emit unzipResult(path, filename, autoAdd);
+
+    if (path.contains("vr.google.com/downloads")) {
+        isZip = true;
+    }
+    emit unzipResult(path, fileList, autoAdd, isZip, isBlocks);
+
+}
+
+QStringList FileScriptingInterface::unzipFile(QString path, QString tempDir) {
+
+    QDir dir(path);
+    QString dirName = dir.path();
+    qCDebug(scriptengine) << "Directory to unzip: " << dirName;
+    QString target = tempDir + "/model_repo";
+    QStringList list = JlCompress::extractDir(dirName, target);
+
+    qCDebug(scriptengine) << list;
+
+    if (!list.isEmpty()) {
+        return list;
+    } else {
+        qCDebug(scriptengine) << "Extraction failed";
+        return list;
+    }
+
 }
 
 // fix to check that we are only referring to a temporary directory
@@ -85,29 +117,11 @@ QString FileScriptingInterface::convertUrlToPath(QUrl url) {
 // this function is not in use
 void FileScriptingInterface::downloadZip(QString path, const QString link) {
     QUrl url = QUrl(link);
-    auto request = ResourceManager::createResourceRequest(nullptr, url);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
     connect(request, &ResourceRequest::finished, this, [this, path]{
         unzipFile(path, ""); // so intellisense isn't mad
     });
     request->send();
-}
-
-QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
-
-    QDir dir(path);
-    QString dirName = dir.path();
-    QString target = tempDir + "/model_repo";
-    QStringList list = JlCompress::extractDir(dirName, target);
-
-    qCDebug(scriptengine) << list;
-
-    if (!list.isEmpty()) {
-        return list.front();
-    } else {
-        qCDebug(scriptengine) << "Extraction failed";
-        return "";
-    }
-
 }
 
 // this function is not in use

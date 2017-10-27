@@ -46,6 +46,20 @@ private:
     const QLoggingCategory& _category;
 };
 
+
+inline void syncBegin(const QLoggingCategory& category, const QString& name, const QString& id, const QVariantMap& args = QVariantMap(), const QVariantMap& extra = QVariantMap()) {
+    if (category.isDebugEnabled()) {
+        tracing::traceEvent(category, name, tracing::DurationBegin, id, args, extra);
+    }
+}
+
+
+inline void syncEnd(const QLoggingCategory& category, const QString& name, const QString& id, const QVariantMap& args = QVariantMap(), const QVariantMap& extra = QVariantMap()) {
+    if (category.isDebugEnabled()) {
+        tracing::traceEvent(category, name, tracing::DurationEnd, id, args, extra);
+    }
+}
+
 inline void asyncBegin(const QLoggingCategory& category, const QString& name, const QString& id, const QVariantMap& args = QVariantMap(), const QVariantMap& extra = QVariantMap()) {
     if (category.isDebugEnabled()) {
         tracing::traceEvent(category, name, tracing::AsyncNestableStart, id, args, extra);
@@ -80,6 +94,8 @@ inline void metadata(const QString& metadataType, const QVariantMap& args) {
 #define PROFILE_RANGE_EX(category, name, argbColor, payload, ...) Duration profileRangeThis(trace_##category(), name, argbColor, (uint64_t)payload, ##__VA_ARGS__);
 #define PROFILE_RANGE_BEGIN(category, rangeId, name, argbColor) rangeId = Duration::beginRange(trace_##category(), name, argbColor)
 #define PROFILE_RANGE_END(category, rangeId) Duration::endRange(trace_##category(), rangeId)
+#define PROFILE_SYNC_BEGIN(category, name, id, ...) syncBegin(trace_##category(), name, id, ##__VA_ARGS__);
+#define PROFILE_SYNC_END(category, name, id, ...) syncEnd(trace_##category(), name, id, ##__VA_ARGS__);
 #define PROFILE_ASYNC_BEGIN(category, name, id, ...) asyncBegin(trace_##category(), name, id, ##__VA_ARGS__);
 #define PROFILE_ASYNC_END(category, name, id, ...) asyncEnd(trace_##category(), name, id, ##__VA_ARGS__);
 #define PROFILE_COUNTER_IF_CHANGED(category, name, type, value) { static type lastValue = 0; type newValue = value;  if (newValue != lastValue) { counter(trace_##category(), name, { { name, newValue }}); lastValue = newValue; } }
@@ -91,5 +107,15 @@ inline void metadata(const QString& metadataType, const QVariantMap& args) {
 #define SAMPLE_PROFILE_RANGE_EX(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_RANGE_EX(category, name, argbColor, payload, ##__VA_ARGS__); }
 #define SAMPLE_PROFILE_COUNTER(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_COUNTER(category, name, ##__VA_ARGS__); }
 #define SAMPLE_PROFILE_INSTANT(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_INSTANT(category, name, ##__VA_ARGS__); }
+
+// uncomment WANT_DETAILED_PROFILING definition to enable profiling in high-frequency contexts
+//#define WANT_DETAILED_PROFILING
+#ifdef WANT_DETAILED_PROFILING
+#define DETAILED_PROFILE_RANGE(category, name) Duration profileRangeThis(trace_##category(), name);
+#define DETAILED_PROFILE_RANGE_EX(category, name, argbColor, payload, ...) Duration profileRangeThis(trace_##category(), name, argbColor, (uint64_t)payload, ##__VA_ARGS__);
+#else // WANT_DETAILED_PROFILING
+#define DETAILED_PROFILE_RANGE(category, name) ; // no-op
+#define DETAILED_PROFILE_RANGE_EX(category, name, argbColor, payload, ...) ; // no-op
+#endif // WANT_DETAILED_PROFILING
 
 #endif

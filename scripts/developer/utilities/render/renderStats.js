@@ -14,8 +14,8 @@ var qml = Script.resolvePath('stats.qml');
 var window = new OverlayWindow({
     title: 'Render Stats',
     source: qml,
-    width: 320, 
-    height: 720
+    width: 400, 
+    height: 400
 });
 window.setPosition(500, 50);
 window.closed.connect(function() { Script.stop(); });

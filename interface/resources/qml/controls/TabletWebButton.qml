@@ -17,26 +17,26 @@ Rectangle {
     property alias pixelSize: label.font.pixelSize;
     property bool selected: false
     property bool hovered: false
-    property bool enabled: false
     property int spacing: 2
     property var action: function () {}
     property string enabledColor: hifi.colors.blueHighlight
     property string disabledColor: hifi.colors.blueHighlight
-    property string highlightColor: hifi.colors.blueHighlight;
     width: label.width + 64
     height: 32
     color: hifi.colors.white
+    enabled: false
+
     HifiConstants { id: hifi }
+
     RalewaySemiBold {
         id: label;
-        color: enabledColor
+        color: enabled ? enabledColor : disabledColor
         font.pixelSize: 15;
         anchors {
             horizontalCenter: parent.horizontalCenter;
             verticalCenter: parent.verticalCenter;
         }
     }
-
         
     Rectangle {
         id: indicator

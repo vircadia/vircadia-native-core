@@ -35,6 +35,7 @@ void AnimOverlay::buildBoneSet(BoneSet boneSet) {
     case LeftHandBoneSet: buildLeftHandBoneSet(); break;
     case RightHandBoneSet: buildRightHandBoneSet(); break;
     case HipsOnlyBoneSet: buildHipsOnlyBoneSet(); break;
+    case BothFeetBoneSet: buildBothFeetBoneSet(); break;
     default:
     case EmptyBoneSet: buildEmptyBoneSet(); break;
     }
@@ -195,6 +196,20 @@ void AnimOverlay::buildHipsOnlyBoneSet() {
     int hipsJoint = _skeleton->nameToJointIndex("Hips");
     _boneSetVec[hipsJoint] = 1.0f;
 }
+
+void AnimOverlay::buildBothFeetBoneSet() {
+    assert(_skeleton);
+    buildEmptyBoneSet();
+    int rightFoot = _skeleton->nameToJointIndex("RightFoot");
+    for_each_child_joint(_skeleton, rightFoot, [&](int i) {
+        _boneSetVec[i] = 1.0f;
+    });
+    int leftFoot = _skeleton->nameToJointIndex("LeftFoot");
+    for_each_child_joint(_skeleton, leftFoot, [&](int i) {
+        _boneSetVec[i] = 1.0f;
+    });
+}
+
 
 // for AnimDebugDraw rendering
 const AnimPoseVec& AnimOverlay::getPosesInternal() const {

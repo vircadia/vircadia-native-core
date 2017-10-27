@@ -1,0 +1,64 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  polyvox_fade.frag
+//  fragment shader
+//
+//  Created by Olivier Prat on 2017-06-08
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include model/Material.slh@>
+<@include DeferredBufferWrite.slh@>
+
+<@include Fade.slh@>
+
+in vec3 _normal;
+in vec4 _position;
+in vec4 _worldPosition;
+in vec4 _worldFadePosition;
+
+uniform sampler2D xMap;
+uniform sampler2D yMap;
+uniform sampler2D zMap;
+uniform vec3 voxelVolumeSize;
+
+// Declare after all samplers to prevent sampler location mix up with voxel shading (sampler locations are hardcoded in RenderablePolyVoxEntityItem)
+<$declareFadeFragment()$>
+
+void main(void) {
+    vec3    emissive;
+    FadeObjectParams fadeParams;
+
+    <$fetchFadeObjectParams(fadeParams)$>
+    applyFade(fadeParams, _worldFadePosition.xyz, emissive);
+
+    vec3 worldNormal = cross(dFdy(_worldPosition.xyz), dFdx(_worldPosition.xyz));
+    worldNormal = normalize(worldNormal);
+
+    float inPositionX = (_worldPosition.x - 0.5) / voxelVolumeSize.x;
+    float inPositionY = (_worldPosition.y - 0.5) / voxelVolumeSize.y;
+    float inPositionZ = (_worldPosition.z - 0.5) / voxelVolumeSize.z;
+
+    vec4 xyDiffuse = texture(xMap, vec2(-inPositionX, -inPositionY));
+    vec4 xzDiffuse = texture(yMap, vec2(-inPositionX, inPositionZ));
+    vec4 yzDiffuse = texture(zMap, vec2(inPositionZ, -inPositionY));
+
+    vec3 xyDiffuseScaled = xyDiffuse.rgb * abs(worldNormal.z);
+    vec3 xzDiffuseScaled = xzDiffuse.rgb * abs(worldNormal.y);
+    vec3 yzDiffuseScaled = yzDiffuse.rgb * abs(worldNormal.x);
+    vec4 diffuse = vec4(xyDiffuseScaled + xzDiffuseScaled + yzDiffuseScaled, 1.0);
+
+    packDeferredFragment(
+        _normal,
+        1.0,
+        vec3(diffuse),
+        DEFAULT_ROUGHNESS,
+        DEFAULT_METALLIC,
+        DEFAULT_EMISSIVE+emissive,
+        DEFAULT_OCCLUSION,
+        DEFAULT_SCATTERING);
+}

@@ -54,8 +54,122 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
 
+    packetReceiver.registerListenerForTypes({
+        PacketType::ReplicatedAvatarIdentity,
+        PacketType::ReplicatedKillAvatar
+    }, this, "handleReplicatedPacket");
+
+    packetReceiver.registerListener(PacketType::ReplicatedBulkAvatarData, this, "handleReplicatedBulkAvatarPacket");
+
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
+        if (node->getType() == NodeType::DownstreamAvatarMixer) {
+            getOrCreateClientData(node);
+        }
+    });
+}
+
+SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockAddr& senderSockAddr) {
+    auto replicatedNode = DependencyManager::get<NodeList>()->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                                              senderSockAddr,
+                                                                              senderSockAddr,
+                                                                              true, true);
+
+    replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
+
+    return replicatedNode;
+}
+
+void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto nodeID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
+
+    SharedNodePointer replicatedNode;
+
+    if (message->getType() == PacketType::ReplicatedKillAvatar) {
+        // this is a kill packet, which we should only process if we already have the node in our list
+        // since it of course does not make sense to add a node just to remove it an instant later
+        replicatedNode = nodeList->nodeWithUUID(nodeID);
+
+        if (!replicatedNode) {
+            return;
+        }
+    } else {
+        replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+    }
+
+    // we better have a node to work with at this point
+    assert(replicatedNode);
+
+    if (message->getType() == PacketType::ReplicatedAvatarIdentity) {
+        handleAvatarIdentityPacket(message, replicatedNode);
+    } else if (message->getType() == PacketType::ReplicatedKillAvatar) {
+        handleKillAvatarPacket(message, replicatedNode);
+    }
+}
+
+void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
+    while (message->getBytesLeftToRead()) {
+        // first, grab the node ID for this replicated avatar
+        auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        // make sure we have an upstream replicated node that matches
+        auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+
+        // grab the size of the avatar byte array so we know how much to read
+        quint16 avatarByteArraySize;
+        message->readPrimitive(&avatarByteArraySize);
+
+        // read the avatar byte array
+        auto avatarByteArray = message->read(avatarByteArraySize);
+
+        // construct a "fake" avatar data received message from the byte array and packet list information
+        auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(avatarByteArray, PacketType::AvatarData,
+                                                                         versionForPacketType(PacketType::AvatarData),
+                                                                         message->getSenderSockAddr(), nodeID);
+
+        // queue up the replicated avatar data with the client data for the replicated node
+        auto start = usecTimestampNow();
+        getOrCreateClientData(replicatedNode)->queuePacket(replicatedMessage, replicatedNode);
+        auto end = usecTimestampNow();
+        _queueIncomingPacketElapsedTime += (end - start);
+    }
+}
+
+void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {
+    // first, make sure that this is a packet from a node we are supposed to replicate
+    if (node.isReplicated()) {
+
+        // check if this is a packet type we replicate
+        // which means it must be a packet type present in REPLICATED_PACKET_MAPPING or must be the
+        // replicated version of one of those packet types
+        PacketType replicatedType = PacketTypeEnum::getReplicatedPacketMapping().value(message.getType());
+
+        if (replicatedType == PacketType::Unknown) {
+            if (PacketTypeEnum::getReplicatedPacketMapping().key(message.getType()) != PacketType::Unknown) {
+                replicatedType = message.getType();
+            } else {
+                qDebug() << __FUNCTION__ << "called without replicatable packet type - returning";
+                return;
+            }
+        }
+
+        std::unique_ptr<NLPacket> packet;
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->eachMatchingNode([&](const SharedNodePointer& downstreamNode) {
+            return shouldReplicateTo(node, *downstreamNode);
+        }, [&](const SharedNodePointer& node) {
+            if (!packet) {
+                // construct an NLPacket to send to the replicant that has the contents of the received packet
+                packet = NLPacket::create(replicatedType, message.getSize());
+                packet->write(message.getMessage());
+            }
+
+            nodeList->sendUnreliablePacket(*packet, *node);
+        });
+    }
 }
 
 void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
@@ -65,17 +179,15 @@ void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, S
     _queueIncomingPacketElapsedTime += (end - start);
 }
 
-
-AvatarMixer::~AvatarMixer() {
-}
-
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    QByteArray individualData = nodeData->getAvatar().identityByteArray();
-    individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
-    auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-    identityPackets->write(individualData);
-    DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
-    ++_sumIdentityPackets;
+    if (destinationNode->getType() == NodeType::Agent && !destinationNode->isUpstream()) {
+        QByteArray individualData = nodeData->getAvatar().identityByteArray();
+        individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
+        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+        identityPackets->write(individualData);
+        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
+        ++_sumIdentityPackets;
+    }
 }
 
 std::chrono::microseconds AvatarMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
@@ -132,7 +244,10 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    manageDisplayName(node);
+                    if (node->getType() == NodeType::Agent) {
+                        manageIdentityData(node);
+                    }
+
                     ++_sumListeners;
                 });
             }, &lockWait, &nodeTransform, &functor);
@@ -183,8 +298,16 @@ void AvatarMixer::start() {
 
 // NOTE: nodeData->getAvatar() might be side effected, must be called when access to node/nodeData
 // is guaranteed to not be accessed by other thread
-void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
+void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+
+    // there is no need to manage identity data we haven't received yet
+    // so bail early if we've never received an identity packet for this avatar
+    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity()) {
+        return;
+    }
+
+    bool sendIdentity = false;
     if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
         AvatarData& avatar = nodeData->getAvatar();
         const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
@@ -210,9 +333,45 @@ void AvatarMixer::manageDisplayName(const SharedNodePointer& node) {
         soFar.second++; // refcount
         nodeData->flagIdentityChange();
         nodeData->setAvatarSessionDisplayNameMustChange(false);
-        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name.
+        sendIdentity = true;
         qCDebug(avatars) << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
     }
+    if (nodeData && nodeData->getAvatarSkeletonModelUrlMustChange()) { // never true for an empty _avatarWhitelist
+        nodeData->setAvatarSkeletonModelUrlMustChange(false);
+        AvatarData& avatar = nodeData->getAvatar();
+        static const QUrl emptyURL("");
+        QUrl url = avatar.cannonicalSkeletonModelURL(emptyURL);
+        if (!isAvatarInWhitelist(url)) {
+            qCDebug(avatars) << "Forbidden avatar" << nodeData->getNodeID() << avatar.getSkeletonModelURL() << "replaced with" << (_replacementAvatar.isEmpty() ? "default" : _replacementAvatar);
+            avatar.setSkeletonModelURL(_replacementAvatar);
+            sendIdentity = true;
+        }
+    }
+    if (sendIdentity && !node->isUpstream()) {
+        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
+        // since this packet includes a change to either the skeleton model URL or the display name
+        // it needs a new sequence number
+        nodeData->getAvatar().pushIdentitySequenceNumber();
+
+        // tell node whose name changed about its new session display name or avatar.
+        sendIdentityPacket(nodeData, node);
+    }
+}
+
+bool AvatarMixer::isAvatarInWhitelist(const QUrl& url) {
+    // The avatar is in the whitelist if:
+    // 1. The avatar's URL's host matches one of the hosts of the URLs in the whitelist AND
+    // 2. The avatar's URL's path starts with the path of that same URL in the whitelist
+    for (const auto& whiteListedPrefix : _avatarWhitelist) {
+        auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+        // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+        if (url.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
+            url.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void AvatarMixer::throttle(std::chrono::microseconds duration, int frame) {
@@ -279,13 +438,38 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
            }
         }
 
+        std::unique_ptr<NLPacket> killPacket;
+        std::unique_ptr<NLPacket> replicatedKillPacket;
+
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
-        killPacket->write(killedNode->getUUID().toRfc4122());
-        killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
+        nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
+            // we relay avatar kill packets to agents that are not upstream
+            // and downstream avatar mixers, if the node that was just killed was being replicated
+            return (node->getType() == NodeType::Agent && !node->isUpstream()) ||
+                   (killedNode->isReplicated() && shouldReplicateTo(*killedNode, *node));
+        }, [&](const SharedNodePointer& node) {
+            if (node->getType() == NodeType::Agent) {
+                if (!killPacket) {
+                    killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
+                    killPacket->write(killedNode->getUUID().toRfc4122());
+                    killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
+                }
 
-        nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
+                nodeList->sendUnreliablePacket(*killPacket, *node);
+            } else {
+                // send a replicated kill packet to the downstream avatar mixer
+                if (!replicatedKillPacket) {
+                    replicatedKillPacket = NLPacket::create(PacketType::ReplicatedKillAvatar,
+                                                  NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
+                    replicatedKillPacket->write(killedNode->getUUID().toRfc4122());
+                    replicatedKillPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
+                }
+
+                nodeList->sendUnreliablePacket(*replicatedKillPacket, *node);
+            }
+        });
+
 
         // we also want to remove sequence number data for this avatar on our other avatars
         // so invoke the appropriate method on the AvatarMixerClientData for other avatars
@@ -398,16 +582,19 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             AvatarData& avatar = nodeData->getAvatar();
 
             // parse the identity packet and update the change timestamp if appropriate
-            AvatarData::Identity identity;
-            AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
             bool identityChanged = false;
             bool displayNameChanged = false;
-            avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
+            bool skeletonModelUrlChanged = false;
+            avatar.processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged, skeletonModelUrlChanged);
+
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
                 if (displayNameChanged) {
                     nodeData->setAvatarSessionDisplayNameMustChange(true);
+                }
+                if (skeletonModelUrlChanged && !_avatarWhitelist.isEmpty()) {
+                    nodeData->setAvatarSkeletonModelUrlMustChange(true);
                 }
             }
         }
@@ -416,11 +603,13 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     _handleAvatarIdentityPacketElapsedTime += (end - start);
 }
 
-void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message) {
+void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     auto start = usecTimestampNow();
     DependencyManager::get<NodeList>()->processKillNode(*message);
     auto end = usecTimestampNow();
     _handleKillAvatarPacketElapsedTime += (end - start);
+
+    optionallyReplicatePacket(*message, *node);
 }
 
 void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -665,14 +854,13 @@ void AvatarMixer::sendStatsPacket() {
 
 void AvatarMixer::run() {
     qCDebug(avatars) << "Waiting for connection to domain to request settings from domain-server.";
-    
+
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &AvatarMixer::domainSettingsRequestComplete);
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
-   
-    ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
 
+    ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
 }
 
 AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node) {
@@ -691,11 +879,14 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
 
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({
+        NodeType::Agent, NodeType::EntityScriptServer,
+        NodeType::UpstreamAvatarMixer, NodeType::DownstreamAvatarMixer
+    });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
-    
+
     // start our tight loop...
     start();
 }
@@ -745,7 +936,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     } else {
         qCDebug(avatars) << "Avatar mixer will automatically determine number of threads to use. Using:" << _slavePool.numThreads() << "threads.";
     }
-    
+
     const QString AVATARS_SETTINGS_KEY = "avatars";
 
     static const QString MIN_SCALE_OPTION = "min_avatar_scale";
@@ -764,4 +955,20 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     qCDebug(avatars) << "This domain requires a minimum avatar scale of" << _domainMinimumScale
                      << "and a maximum avatar scale of" << _domainMaximumScale;
 
+    const QString AVATAR_WHITELIST_DEFAULT{ "" };
+    static const QString AVATAR_WHITELIST_OPTION = "avatar_whitelist";
+    _avatarWhitelist = domainSettings[AVATARS_SETTINGS_KEY].toObject()[AVATAR_WHITELIST_OPTION].toString(AVATAR_WHITELIST_DEFAULT).split(',', QString::KeepEmptyParts);
+
+    static const QString REPLACEMENT_AVATAR_OPTION = "replacement_avatar";
+    _replacementAvatar = domainSettings[AVATARS_SETTINGS_KEY].toObject()[REPLACEMENT_AVATAR_OPTION].toString(REPLACEMENT_AVATAR_DEFAULT);
+
+    if ((_avatarWhitelist.count() == 1) && _avatarWhitelist[0].isEmpty()) {
+        _avatarWhitelist.clear(); // KeepEmptyParts above will parse "," as ["", ""] (which is ok), but "" as [""] (which is not ok).
+    }
+
+    if (_avatarWhitelist.isEmpty()) {
+        qCDebug(avatars) << "All avatars are allowed.";
+    } else {
+        qCDebug(avatars) << "Avatars other than" << _avatarWhitelist << "will be replaced by" << (_replacementAvatar.isEmpty() ? "default" : _replacementAvatar);
+    }
 }

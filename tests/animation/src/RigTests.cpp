@@ -47,7 +47,7 @@
 #include <Rig.h>
 #include "RigTests.h"
 
-static void reportJoint(RigPointer rig, int index) { // Handy for debugging
+static void reportJoint(const Rig& rig, int index) { // Handy for debugging
     std::cout << "\n";
     std::cout << index << " " << rig->getAnimSkeleton()->getJointName(index).toUtf8().data() << "\n";
     glm::vec3 pos;
@@ -58,16 +58,16 @@ static void reportJoint(RigPointer rig, int index) { // Handy for debugging
     std::cout << " rot:" << safeEulerAngles(rot) << "\n";
     std::cout << "\n";
 }
-static void reportByName(RigPointer rig, const QString& name) {
+static void reportByName(const Rig& rig, const QString& name) {
     int jointIndex = rig->indexOfJoint(name);
     reportJoint(rig, jointIndex);
 }
-static void reportAll(RigPointer rig) {
+static void reportAll(const Rig& rig) {
     for (int i = 0; i < rig->getJointStateCount(); i++) {
         reportJoint(rig, i);
     }
 }
-static void reportSome(RigPointer rig) {
+static void reportSome(const Rig& rig) {
     QString names[] = {"Head", "Neck", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "Spine2", "Spine1", "Spine", "Hips", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToe_End"};
     for (auto name : names) {
         reportByName(rig, name);
@@ -91,8 +91,7 @@ void RigTests::initTestCase() {
 #endif
     QVERIFY((bool)geometry);
 
-    _rig = std::make_shared<Rig>();
-    _rig->initJointStates(*geometry, glm::mat4());
+    _rig.initJointStates(*geometry, glm::mat4());
     std::cout << "Rig is ready " << geometry->joints.count() << " joints " << std::endl;
     reportAll(_rig);
 }

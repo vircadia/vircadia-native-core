@@ -1,9 +1,18 @@
 {
     "name": "Vive to Standard",
     "channels": [
+        { "from": "Vive.LY", "to": "Standard.LeftIndexPoint",
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.7, "max": 0.75 } ]
+        },
+        { "from": "Vive.RY", "to": "Standard.RightIndexPoint",
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.7, "max": 0.75 } ]
+        },
+
         { "from": "Vive.LY", "when": "Vive.LSY", "filters": ["invert"], "to": "Standard.LY" },
         { "from": "Vive.LX", "when": "Vive.LSX", "to": "Standard.LX" },
-        { 
+        {
             "from": "Vive.LT", "to": "Standard.LT",
             "filters": [
                 { "type": "deadZone", "min": 0.05 }
@@ -13,11 +22,15 @@
 
         { "from": "Vive.LeftGrip", "to": "Standard.LeftGrip" },
         { "from": "Vive.LS", "to": "Standard.LS" },
+        { "from": "Vive.LSTouch", "to": "Standard.LeftThumbUp",
+            "peek": true,
+            "filters": [ { "type": "logicalNot" } ]
+        },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
         { "from": "Vive.RY", "when": "Vive.RSY", "filters": ["invert"], "to": "Standard.RY" },
         { "from": "Vive.RX", "when": "Vive.RSX", "to": "Standard.RX" },
-        { 
+        {
             "from": "Vive.RT", "to": "Standard.RT",
             "filters": [
                 { "type": "deadZone", "min": 0.05 }
@@ -27,6 +40,10 @@
 
         { "from": "Vive.RightGrip", "to": "Standard.RightGrip" },
         { "from": "Vive.RS", "to": "Standard.RS" },
+        { "from": "Vive.RSTouch", "to": "Standard.RightThumbUp",
+            "peek": true,
+            "filters": [ { "type": "logicalNot" } ]
+        },
         { "from": "Vive.RSTouch", "to": "Standard.RSTouch" },
 
         { "from": "Vive.LSCenter", "to": "Standard.LeftPrimaryThumb" },
@@ -34,7 +51,49 @@
         { "from": "Vive.RSCenter", "to": "Standard.RightPrimaryThumb" },
         { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
-        { "from": "Vive.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ]  },
-        { "from": "Vive.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  }
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand"},
+        { "from": "Vive.RightHand", "to": "Standard.RightHand"},
+
+        {
+            "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}]
+        },
+
+        {
+            "from": "Vive.RightFoot", "to" : "Standard.RightFoot",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}]
+        },
+
+        {
+            "from": "Vive.Hips", "to" : "Standard.Hips",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}]
+        },
+
+        {
+            "from": "Vive.Spine2", "to" : "Standard.Spine2",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}]
+        },
+
+        { "from": "Vive.Head", "to" : "Standard.Head"},
+
+        { "from": "Vive.RightArm", "to" : "Standard.RightArm" },
+        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm" },
+        
+        { "from": "Vive.TrackedObject00", "to" : "Standard.TrackedObject00" },
+        { "from": "Vive.TrackedObject01", "to" : "Standard.TrackedObject01" },
+        { "from": "Vive.TrackedObject02", "to" : "Standard.TrackedObject02" },
+        { "from": "Vive.TrackedObject03", "to" : "Standard.TrackedObject03" },
+        { "from": "Vive.TrackedObject04", "to" : "Standard.TrackedObject04" },
+        { "from": "Vive.TrackedObject05", "to" : "Standard.TrackedObject05" },
+        { "from": "Vive.TrackedObject06", "to" : "Standard.TrackedObject06" },
+        { "from": "Vive.TrackedObject07", "to" : "Standard.TrackedObject07" },
+        { "from": "Vive.TrackedObject08", "to" : "Standard.TrackedObject08" },
+        { "from": "Vive.TrackedObject09", "to" : "Standard.TrackedObject09" },
+        { "from": "Vive.TrackedObject10", "to" : "Standard.TrackedObject10" },
+        { "from": "Vive.TrackedObject11", "to" : "Standard.TrackedObject11" },
+        { "from": "Vive.TrackedObject12", "to" : "Standard.TrackedObject12" },
+        { "from": "Vive.TrackedObject13", "to" : "Standard.TrackedObject13" },
+        { "from": "Vive.TrackedObject14", "to" : "Standard.TrackedObject14" },
+        { "from": "Vive.TrackedObject15", "to" : "Standard.TrackedObject15" }
     ]
 }

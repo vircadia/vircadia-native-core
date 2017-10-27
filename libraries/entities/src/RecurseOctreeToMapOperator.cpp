@@ -14,7 +14,7 @@
 #include "EntityItemProperties.h"
 
 RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
-                                                       OctreeElementPointer top,
+                                                       const OctreeElementPointer& top,
                                                        QScriptEngine* engine,
                                                        bool skipDefaultValues,
                                                        bool skipThoseWithBadParents) :
@@ -34,14 +34,14 @@ RecurseOctreeToMapOperator::RecurseOctreeToMapOperator(QVariantMap& map,
     }
 };
 
-bool RecurseOctreeToMapOperator::preRecursion(OctreeElementPointer element) {
+bool RecurseOctreeToMapOperator::preRecursion(const OctreeElementPointer& element) {
     if (element == _top) {
         _withinTop = true;
     }
     return true;
 }
 
-bool RecurseOctreeToMapOperator::postRecursion(OctreeElementPointer element) {
+bool RecurseOctreeToMapOperator::postRecursion(const OctreeElementPointer& element) {
 
     EntityItemProperties defaultProperties;
 

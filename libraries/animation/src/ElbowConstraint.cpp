@@ -13,6 +13,7 @@
 
 #include <GeometryUtil.h>
 #include <NumericalConstants.h>
+#include "AnimUtil.h"
 
 ElbowConstraint::ElbowConstraint() :
         _minAngle(-PI),
@@ -77,3 +78,10 @@ bool ElbowConstraint::apply(glm::quat& rotation) const {
     return false;
 }
 
+glm::quat ElbowConstraint::computeCenterRotation() const {
+    const size_t NUM_LIMITS = 2;
+    glm::quat limits[NUM_LIMITS];
+    limits[0] = glm::angleAxis(_minAngle, _axis) * _referenceRotation;
+    limits[1] = glm::angleAxis(_maxAngle, _axis) * _referenceRotation;
+    return averageQuats(NUM_LIMITS, limits);
+}

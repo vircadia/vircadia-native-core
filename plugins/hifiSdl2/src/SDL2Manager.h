@@ -25,9 +25,9 @@ public:
     // Plugin functions
     bool isSupported() const override;
     const QString getName() const override { return NAME; }
+    const QString getID() const override { return SDL2_ID_STRING; }
 
     QStringList getSubdeviceNames() override;
-    bool isHandController() const override { return false; }
 
     void init() override;
     void deinit() override;
@@ -39,6 +39,9 @@ public:
 
     void pluginFocusOutEvent() override;
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
+
+    virtual void saveSettings() const override;
+    virtual void loadSettings() override;
 
 signals:
     void joystickAdded(Joystick* joystick);
@@ -78,8 +81,10 @@ private:
     int buttonRelease() const { return SDL_RELEASED; }
 
     QMap<SDL_JoystickID, Joystick::Pointer> _openJoysticks;
-    bool _isInitialized { false } ;
+    bool _isEnabled { false };
+    bool _isInitialized { false };
     static const char* NAME;
+    static const char* SDL2_ID_STRING;
     QStringList _subdeviceNames;
 };
 

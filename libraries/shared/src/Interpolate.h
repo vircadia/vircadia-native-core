@@ -30,6 +30,9 @@ public:
     static float simpleNonLinearBlend(float fraction);
 
     static float calculateFadeRatio(quint64 start);
+
+    // Basic ease-in-ease-out function for smoothing values.
+    static float easeInOutQuad(float lerpValue);
 };
 
 #endif // hifi_Interpolate_h

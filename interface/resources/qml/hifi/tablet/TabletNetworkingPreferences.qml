@@ -19,7 +19,6 @@ StackView {
     objectName: "stack"
     property var title: "Networking Settings"
 
-    property var eventBridge;
     signal sendToScript(var message);
 
     function pushSource(path) {

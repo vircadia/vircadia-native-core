@@ -1,5 +1,5 @@
 //
-//  KeyLightPropertyGroup.h
+//  KeyLightPropertyGroup.cpp
 //  libraries/entities/src
 //
 //  Created by Sam Gateau on 2015/10/23.
@@ -9,12 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "KeyLightPropertyGroup.h"
+
 #include <QJsonDocument>
 #include <OctreePacketData.h>
 
-#include <AnimationLoop.h>
-
-#include "KeyLightPropertyGroup.h"
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 

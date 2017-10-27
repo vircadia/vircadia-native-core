@@ -1,6 +1,6 @@
 //
 //  ContactEvent.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2015.01.20
 //  Copyright 2015 High Fidelity, Inc.

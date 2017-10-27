@@ -29,7 +29,6 @@ StackView {
     initialItem: addressBarDialog
     width: parent !== null ? parent.width : undefined
     height: parent !== null ? parent.height : undefined
-    property var eventBridge;
     property int cardWidth: 212;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
@@ -40,11 +39,24 @@ StackView {
     property var rpcCounter: 0;
     signal sendToScript(var message);
     function rpc(method, parameters, callback) {
+        console.debug('TabletAddressDialog: rpc: method = ', method, 'parameters = ', parameters, 'callback = ', callback)
+
         rpcCalls[rpcCounter] = callback;
         var message = {method: method, params: parameters, id: rpcCounter++, jsonrpc: "2.0"};
         sendToScript(message);
     }
     function fromScript(message) {
+        if (message.method === 'refreshFeeds') {
+            var feeds = [happeningNow, places, snapshots];
+            console.debug('TabletAddressDialog::fromScript: refreshFeeds', 'feeds = ', feeds);
+
+            feeds.forEach(function(feed) {
+                Qt.callLater(feed.fillDestinations);
+            });
+
+            return;
+        }
+
         var callback = rpcCalls[message.id];
         if (!callback) {
             console.log('No callback for message fromScript', JSON.stringify(message));
@@ -80,7 +92,6 @@ StackView {
             var card = tabletWebView.createObject();
             card.url = addressBarDialog.metaverseServerUrl + targetString;
             card.parentStackItem = root;
-            card.eventBridge = root.eventBridge;
             root.push(card);
             return;
         }
@@ -96,9 +107,25 @@ StackView {
         property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
-        
+
         width: parent.width
         height: parent.height
+
+        MouseArea {
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+                bottom: keyboard.top
+            }
+
+            propagateComposedEvents: true
+            onPressed: {
+                parent.forceActiveFocus();
+                addressBarDialog.keyboardEnabled = false;
+                mouse.accepted = false;
+            }
+        }
 
         anchors {
             right: parent.right
@@ -229,9 +256,9 @@ StackView {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
-                        if (!addressLine.focus || !HMD.active) {
-                            addressLine.focus = true;
-                            addressLine.forceActiveFocus();
+                        addressLine.focus = true;
+                        addressLine.forceActiveFocus();
+                        if (HMD.active) {
                             addressBarDialog.keyboardEnabled = HMD.active;
                         }
                         tabletRoot.playButtonClickSound();

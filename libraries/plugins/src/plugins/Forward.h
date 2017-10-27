@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 
 enum class PluginType {
     DISPLAY_PLUGIN,
@@ -26,8 +27,12 @@ class PluginManager;
 
 using DisplayPluginPointer = std::shared_ptr<DisplayPlugin>;
 using DisplayPluginList = std::vector<DisplayPluginPointer>;
+using DisplayPluginProvider = std::function<DisplayPluginList()>;
 using InputPluginPointer = std::shared_ptr<InputPlugin>;
 using InputPluginList = std::vector<InputPluginPointer>;
+using InputPluginProvider = std::function<InputPluginList()>;
 using CodecPluginPointer = std::shared_ptr<CodecPlugin>;
 using CodecPluginList = std::vector<CodecPluginPointer>;
+using CodecPluginProvider = std::function<CodecPluginList()>;
 using SteamClientPluginPointer = std::shared_ptr<SteamClientPlugin>;
+using InputPluginSettingsPersister = std::function<void(const InputPluginList&)>;

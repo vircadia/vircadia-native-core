@@ -45,9 +45,6 @@ public:
     float getBaseRoll() const { return _baseRoll; }
     void setBaseRoll(float roll) { _baseRoll = glm::clamp(roll, MIN_HEAD_ROLL, MAX_HEAD_ROLL); }
 
-    virtual void setFinalYaw(float finalYaw) { _baseYaw = finalYaw; }
-    virtual void setFinalPitch(float finalPitch) { _basePitch = finalPitch; }
-    virtual void setFinalRoll(float finalRoll) { _baseRoll = finalRoll; }
     virtual float getFinalYaw() const { return _baseYaw; }
     virtual float getFinalPitch() const { return _basePitch; }
     virtual float getFinalRoll() const { return _baseRoll; }
@@ -60,10 +57,11 @@ public:
     void setBlendshape(QString name, float val);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     const QVector<float>& getSummedBlendshapeCoefficients();
+    int getNumSummedBlendshapeCoefficients() const;
     void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { _blendshapeCoefficients = blendshapeCoefficients; }
 
     const glm::vec3& getLookAtPosition() const { return _lookAtPosition; }
-    void setLookAtPosition(const glm::vec3& lookAtPosition) { 
+    void setLookAtPosition(const glm::vec3& lookAtPosition) {
         if (_lookAtPosition != lookAtPosition) {
             _lookAtPositionChanged = usecTimestampNow();
         }
@@ -85,22 +83,24 @@ protected:
     glm::vec3 _lookAtPosition;
     quint64 _lookAtPositionChanged { 0 };
 
-    bool _isFaceTrackerConnected;
-    bool _isEyeTrackerConnected;
-    float _leftEyeBlink;
-    float _rightEyeBlink;
-    float _averageLoudness;
-    float _browAudioLift;
+    bool _isFaceTrackerConnected { false };
+    bool _isEyeTrackerConnected { false };
+    float _leftEyeBlink { 0.0f };
+    float _rightEyeBlink { 0.0f };
+    float _averageLoudness { 0.0f };
+    float _browAudioLift { 0.0f };
 
     QVector<float> _blendshapeCoefficients;
-    QVector<float> _baseBlendshapeCoefficients;
-    QVector<float> _currBlendShapeCoefficients;
+    QVector<float> _transientBlendshapeCoefficients;
+    QVector<float> _summedBlendshapeCoefficients;
     AvatarData* _owningAvatar;
 
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HeadData(const HeadData&);
     HeadData& operator= (const HeadData&);
+
+    void setHeadOrientation(const glm::quat& orientation);
 };
 
 #endif // hifi_HeadData_h

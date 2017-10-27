@@ -1,6 +1,6 @@
 //
 //  ShapeFactory.cpp
-//  libraries/physcis/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows 2014.12.01
 //  Copyright 2014 High Fidelity, Inc.
@@ -17,7 +17,7 @@
 #include "BulletUtil.h"
 
 // These are the same normalized directions used by the btShapeHull class.
-// 12 points for the face centers of a duodecohedron plus another 30 points
+// 12 points for the face centers of a dodecahedron plus another 30 points
 // for the midpoints the edges, for a total of 42.
 const uint32_t NUM_UNIT_SPHERE_DIRECTIONS = 42;
 static const btVector3 _unitSphereDirections[NUM_UNIT_SPHERE_DIRECTIONS] = {
@@ -288,12 +288,47 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             shape = new btCapsuleShape(radius, height);
         }
         break;
+        case SHAPE_TYPE_CAPSULE_X: {
+            glm::vec3 halfExtents = info.getHalfExtents();
+            float radius = halfExtents.y;
+            float height = 2.0f * halfExtents.x;
+            shape = new btCapsuleShapeX(radius, height);
+        }
+        break;
+        case SHAPE_TYPE_CAPSULE_Z: {
+            glm::vec3 halfExtents = info.getHalfExtents();
+            float radius = halfExtents.x;
+            float height = 2.0f * halfExtents.z;
+            shape = new btCapsuleShapeZ(radius, height);
+        }
+        break;
+        case SHAPE_TYPE_CYLINDER_X: {
+            const glm::vec3 halfExtents = info.getHalfExtents();
+            const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
+            shape = new btCylinderShapeX(btHalfExtents);
+        }
+        break;
+        case SHAPE_TYPE_CYLINDER_Z: {
+            const glm::vec3 halfExtents = info.getHalfExtents();
+            const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
+            shape = new btCylinderShapeZ(btHalfExtents);
+        }
+        break;
+        case SHAPE_TYPE_CIRCLE:
+        case SHAPE_TYPE_CYLINDER_Y: {
+            const glm::vec3 halfExtents = info.getHalfExtents();
+            const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
+            shape = new btCylinderShape(btHalfExtents);
+        }
+        break;
         case SHAPE_TYPE_COMPOUND:
         case SHAPE_TYPE_SIMPLE_HULL: {
             const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();
             uint32_t numSubShapes = info.getNumSubShapes();
             if (numSubShapes == 1) {
-                shape = createConvexHull(pointCollection[0]);
+                if (!pointCollection.isEmpty()) {
+                    shape = createConvexHull(pointCollection[0]);
+                }
             } else {
                 auto compound = new btCompoundShape();
                 btTransform trans;

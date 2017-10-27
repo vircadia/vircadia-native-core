@@ -48,7 +48,7 @@ void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
-    if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
+    if (_stereo.isStereo() && !_pipeline._stateCache.scissorEnable) {
         qWarning("Clear without scissor in stereo mode");
     }
 
@@ -63,11 +63,17 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     int useScissor = batch._params[paramOffset + 0]._int;
 
     GLuint glmask = 0;
+    bool restoreStencilMask = false;
+    uint8_t cacheStencilMask = 0xFF;
     if (masks & Framebuffer::BUFFER_STENCIL) {
         glClearStencil(stencil);
         glmask |= GL_STENCIL_BUFFER_BIT;
-        // TODO: we will probably need to also check the write mask of stencil like we do
-        // for depth buffer, but as would say a famous Fez owner "We'll cross that bridge when we come to it"
+    
+        cacheStencilMask = _pipeline._stateCache.stencilActivation.getWriteMaskFront();
+        if (cacheStencilMask != 0xFF) {
+            restoreStencilMask = true;
+            glStencilMask( 0xFF);
+        }
     }
 
     bool restoreDepthMask = false;
@@ -119,6 +125,11 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     // Restore scissor if needed
     if (doEnableScissor) {
         glDisable(GL_SCISSOR_TEST);
+    }
+
+    // Restore Stencil write mask
+    if (restoreStencilMask) {
+        glStencilMask(cacheStencilMask);
     }
 
     // Restore write mask meaning turn back off

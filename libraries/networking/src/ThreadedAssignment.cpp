@@ -10,6 +10,7 @@
 //
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>

@@ -16,20 +16,26 @@
 
 #include <glm/glm.hpp>
 
+#include <QUuid>
+
 #include <SettingHandle.h>
 #include <Rig.h>
 #include <Sound.h>
+#include <ScriptEngine.h>
 
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
+#include <AvatarConstants.h>
+#include <avatars-renderer/Avatar.h>
+#include <avatars-renderer/ScriptAvatar.h>
 
-#include "Avatar.h"
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include <ThreadSafeValueCache.h>
 
 class AvatarActionHold;
 class ModelItemID;
+class MyHead;
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -42,6 +48,7 @@ enum AudioListenerMode {
     FROM_CAMERA,
     CUSTOM
 };
+
 Q_DECLARE_METATYPE(AudioListenerMode);
 
 class MyAvatar : public Avatar {
@@ -55,6 +62,7 @@ class MyAvatar : public Avatar {
      *
      * @namespace MyAvatar
      * @augments Avatar
+     * @property qmlPosition {Vec3} Used as a stopgap for position access by QML, as glm::vec3 is unavailable outside of scripts
      * @property shouldRenderLocally {bool} Set it to true if you would like to see MyAvatar in your local interface,
      *   and false if you would not like to see MyAvatar in your local interface.
      * @property motorVelocity {Vec3} Can be used to move the avatar with this velocity.
@@ -95,10 +103,18 @@ class MyAvatar : public Avatar {
      * @property rightHandTipPose {Pose} READ-ONLY. Returns a pose offset 30 cm from MyAvatar.rightHandPose
      * @property hmdLeanRecenterEnabled {bool} This can be used disable the hmd lean recenter behavior.  This behavior is what causes your avatar
      *   to follow your HMD as you walk around the room, in room scale VR.  Disabling this is useful if you desire to pin the avatar to a fixed location.
-     * @property characterControllerEnabled {bool} This can be used to disable collisions between the avatar and the world.
+     * @property collisionsEnabled {bool} This can be used to disable collisions between the avatar and the world.
      * @property useAdvancedMovementControls {bool} Stores the user preference only, does not change user mappings, this is done in the defaultScript
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
+     * @property userHeight {number} The height of the user in sensor space. (meters).
+     * @property userEyeHeight {number} Estimated height of the users eyes in sensor space. (meters)
+     * @property SELF_ID {string} READ-ONLY. UUID representing "my avatar". Only use for local-only entities and overlays in situations where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain).
+     *   Note: Likely to be deprecated.
      */
+
+    // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
+    Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
+    QVector3D getQmlPosition() { auto p = getPosition(); return QVector3D(p.x, p.y, p.z); }
 
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
@@ -124,11 +140,27 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
 
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
-    Q_PROPERTY(float isAway READ getIsAway WRITE setAway)
+    Q_PROPERTY(bool isAway READ getIsAway WRITE setAway)
 
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
+    Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
+
+    Q_PROPERTY(float yawSpeed MEMBER _yawSpeed)
+    Q_PROPERTY(float pitchSpeed MEMBER _pitchSpeed)
+
+    Q_PROPERTY(bool hmdRollControlEnabled READ getHMDRollControlEnabled WRITE setHMDRollControlEnabled)
+    Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
+    Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
+
+    Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
+    Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
+
+    Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
+ 
+    const QString DOMINANT_LEFT_HAND = "left";
+    const QString DOMINANT_RIGHT_HAND = "right";
 
 public:
     enum DriveKeys {
@@ -146,10 +178,11 @@ public:
     };
     Q_ENUM(DriveKeys)
 
-    explicit MyAvatar(QThread* thread, RigPointer rig);
+    explicit MyAvatar(QThread* thread);
     ~MyAvatar();
 
-    void registerMetaTypes(QScriptEngine* engine);
+    void instantiableAvatar() override {};
+    void registerMetaTypes(ScriptEnginePointer engine);
 
     virtual void simulateAttachments(float deltaTime) override;
 
@@ -176,17 +209,18 @@ public:
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 
     void update(float deltaTime);
-    virtual void postUpdate(float deltaTime) override;
+    virtual void postUpdate(float deltaTime, const render::ScenePointer& scene) override;
     void preDisplaySide(RenderArgs* renderArgs);
 
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
-    const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
 
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
     Q_INVOKABLE QVariant getOrientationVar() const;
 
+    // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
+    glm::quat getOrientationOutbound() const override;
 
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD
@@ -317,14 +351,17 @@ public:
     // adding one of the other handlers. While any handler may change a value in animStateDictionaryIn (or supply different values in animStateDictionaryOut)
     // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
     // It is not specified in what order multiple handlers are called.
-    Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _rig->addAnimationStateHandler(handler, propertiesList); }
+    Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _skeletonModel->getRig().addAnimationStateHandler(handler, propertiesList); }
     // Removes a handler previously added by addAnimationStateHandler.
-    Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
+    Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _skeletonModel->getRig().removeAnimationStateHandler(handler); }
 
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
     Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
+
+    Q_INVOKABLE void setDominantHand(const QString& hand);
+    Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
 
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
@@ -332,6 +369,13 @@ public:
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
         { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
+
+    void setHMDRollControlEnabled(bool value) { _hmdRollControlEnabled = value; }
+    bool getHMDRollControlEnabled() const { return _hmdRollControlEnabled; }
+    void setHMDRollControlDeadZone(float value) { _hmdRollControlDeadZone = value; }
+    float getHMDRollControlDeadZone() const { return _hmdRollControlDeadZone; }
+    void setHMDRollControlRate(float value) { _hmdRollControlRate = value; }
+    float getHMDRollControlRate() const { return _hmdRollControlRate; }
 
     // get/set avatar data
     void saveData();
@@ -346,13 +390,14 @@ public:
     float getDriveKey(DriveKeys key) const;
     Q_INVOKABLE float getRawDriveKey(DriveKeys key) const;
     void relayDriveKeysToCharacterController();
-
+    
     Q_INVOKABLE void disableDriveKey(DriveKeys key);
     Q_INVOKABLE void enableDriveKey(DriveKeys key);
     Q_INVOKABLE bool isDriveKeyDisabled(DriveKeys key) const;
 
     eyeContactTarget getEyeContactTarget();
 
+    const MyHead* getMyHead() const;
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
@@ -362,6 +407,7 @@ public:
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
+    Q_INVOKABLE ScriptAvatarData* getTargetAvatar() const;
 
     Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
     Q_INVOKABLE glm::vec3 getRightHandPosition() const;
@@ -373,16 +419,32 @@ public:
     Q_INVOKABLE controller::Pose getLeftHandTipPose() const;
     Q_INVOKABLE controller::Pose getRightHandTipPose() const;
 
+    // world-space to avatar-space rigconversion functions
+    Q_INVOKABLE glm::vec3 worldToJointPoint(const glm::vec3& position, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::vec3 worldToJointDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::quat worldToJointRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+
+    Q_INVOKABLE glm::vec3 jointToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::vec3 jointToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
 
-    virtual void setJointRotations(QVector<glm::quat> jointRotations) override;
+    virtual void setJointRotations(const QVector<glm::quat>& jointRotations) override;
     virtual void setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) override;
     virtual void setJointRotation(int index, const glm::quat& rotation) override;
     virtual void setJointTranslation(int index, const glm::vec3& translation) override;
     virtual void clearJointData(int index) override;
+
+    virtual void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation)  override;
+    virtual void setJointRotation(const QString& name, const glm::quat& rotation)  override;
+    virtual void setJointTranslation(const QString& name, const glm::vec3& translation)  override;
+    virtual void clearJointData(const QString& name) override;
     virtual void clearJointsData() override;
+
+
 
     Q_INVOKABLE bool pinJoint(int index, const glm::vec3& position, const glm::quat& orientation);
     Q_INVOKABLE bool clearPinOnJoint(int index);
@@ -394,7 +456,6 @@ public:
     Q_INVOKABLE QString getFullAvatarModelName() const { return _fullAvatarModelName; }
     void resetFullAvatarURL();
 
-
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     MyCharacterController* getCharacterController() { return &_characterController; }
@@ -402,6 +463,7 @@ public:
 
     void updateMotors();
     void prepareForPhysicsSimulation();
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
@@ -436,39 +498,27 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
-    void setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftHandControllerPoseInSensorFrame() const;
-    controller::Pose getRightHandControllerPoseInSensorFrame() const;
-    controller::Pose getLeftHandControllerPoseInWorldFrame() const;
-    controller::Pose getRightHandControllerPoseInWorldFrame() const;
-    controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
-    controller::Pose getRightHandControllerPoseInAvatarFrame() const;
+    const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
 
-    void setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftFootControllerPoseInSensorFrame() const;
-    controller::Pose getRightFootControllerPoseInSensorFrame() const;
-    controller::Pose getLeftFootControllerPoseInWorldFrame() const;
-    controller::Pose getRightFootControllerPoseInWorldFrame() const;
-    controller::Pose getLeftFootControllerPoseInAvatarFrame() const;
-    controller::Pose getRightFootControllerPoseInAvatarFrame() const;
-
-    void setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2);
-    controller::Pose getHipsControllerPoseInSensorFrame() const;
-    controller::Pose getSpine2ControllerPoseInSensorFrame() const;
-    controller::Pose getHipsControllerPoseInWorldFrame() const;
-    controller::Pose getSpine2ControllerPoseInWorldFrame() const;
-    controller::Pose getHipsControllerPoseInAvatarFrame() const;
-    controller::Pose getSpine2ControllerPoseInAvatarFrame() const;
-
-    void setHeadControllerPoseInSensorFrame(const controller::Pose& head);
-    controller::Pose getHeadControllerPoseInSensorFrame() const;
-    controller::Pose getHeadControllerPoseInWorldFrame() const;
-    controller::Pose getHeadControllerPoseInAvatarFrame() const;
+    void setControllerPoseInSensorFrame(controller::Action action, const controller::Pose& pose);
+    controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
+    controller::Pose getControllerPoseInWorldFrame(controller::Action action) const;
+    controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
 
     bool hasDriveInput() const;
 
-    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled);
-    Q_INVOKABLE bool getCharacterControllerEnabled();
+    Q_INVOKABLE bool isFlying();
+    Q_INVOKABLE bool isInAir();
+    Q_INVOKABLE void setFlyingEnabled(bool enabled);
+    Q_INVOKABLE bool getFlyingEnabled();
+
+    Q_INVOKABLE float getAvatarScale();
+    Q_INVOKABLE void setAvatarScale(float scale);
+
+    Q_INVOKABLE void setCollisionsEnabled(bool enabled);
+    Q_INVOKABLE bool getCollisionsEnabled();
+    Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
+    Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
@@ -480,6 +530,10 @@ public:
     glm::mat4 getHipsCalibrationMat() const;
     glm::mat4 getLeftFootCalibrationMat() const;
     glm::mat4 getRightFootCalibrationMat() const;
+    glm::mat4 getRightArmCalibrationMat() const;
+    glm::mat4 getLeftArmCalibrationMat() const;
+    glm::mat4 getLeftHandCalibrationMat() const;
+    glm::mat4 getRightHandCalibrationMat() const;
 
     void addHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
@@ -489,15 +543,33 @@ public:
     // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
 
+    Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
+    Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
+
+    void setUserHeight(float value);
+    float getUserHeight() const;
+    float getUserEyeHeight() const;
+
+    virtual SpatialParentTree* getParentTree() const override;
+
+    const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
+
 public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    float getDomainMinScale();
+    float getDomainMaxScale();
+
+    void setGravity(float gravity);
+    float getGravity();
 
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
                       bool shouldFaceLocation = false);
     void goToLocation(const QVariant& properties);
+    void goToLocationAndEnableCollisions(const glm::vec3& newPosition);
+    bool safeLanding(const glm::vec3& position);
 
     void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
     void clearScaleRestriction();
@@ -515,6 +587,10 @@ public slots:
     void setEnableDebugDrawHandControllers(bool isEnabled);
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
     void setEnableDebugDrawIKTargets(bool isEnabled);
+    void setEnableDebugDrawIKConstraints(bool isEnabled);
+    void setEnableDebugDrawIKChains(bool isEnabled);
+    void setEnableDebugDrawDetailedCollision(bool isEnabled);
+
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
@@ -528,6 +604,8 @@ public slots:
     glm::vec3 getPositionForAudio();
     glm::quat getOrientationForAudio();
 
+    virtual void setModelScale(float scale) override;
+
 signals:
     void audioListenerModeChanged();
     void transformChanged();
@@ -538,14 +616,15 @@ signals:
     void onLoadComplete();
     void wentAway();
     void wentActive();
+    void skeletonChanged();
+    void dominantHandChanged(const QString& hand);
+    void sensorToWorldScaleChanged(float sensorToWorldScale);
 
 private:
 
-    glm::vec3 getWorldBodyPosition() const;
-    glm::quat getWorldBodyOrientation() const;
+    bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
-
-    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) override;
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
@@ -568,7 +647,7 @@ private:
                         float scale = 1.0f, bool isSoft = false,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
-    bool cameraInsideHead() const;
+    bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 
     void updateEyeContactTarget(float deltaTime);
 
@@ -576,8 +655,6 @@ private:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
-
-private:
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();
@@ -589,17 +666,18 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
-    bool _wasPushing;
-    bool _isPushing;
-    bool _isBeingPushed;
-    bool _isBraking;
-    bool _isAway;
+    bool _enableFlying { true };
+    bool _wasPushing { false };
+    bool _isPushing { false };
+    bool _isBeingPushed { false };
+    bool _isBraking { false };
+    bool _isAway { false };
 
-    float _boomLength;
+    float _boomLength { ZOOM_DEFAULT };
     float _yawSpeed; // degrees/sec
     float _pitchSpeed; // degrees/sec
 
-    glm::vec3 _thrust;  // impulse accumulator for outside sources
+    glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 
     glm::vec3 _actionMotorVelocity; // target local-frame velocity of avatar (default controller actions)
     glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (analog script)
@@ -611,11 +689,11 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
-    bool _wasCharacterControllerEnabled { true };
+    int16_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
-    bool _shouldRender;
+    bool _shouldRender { true };
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
@@ -625,6 +703,14 @@ private:
 
     Setting::Handle<float> _realWorldFieldOfView;
     Setting::Handle<bool> _useAdvancedMovementControls;
+
+    // Smoothing.
+    const float SMOOTH_TIME_ORIENTATION = 0.5f;
+
+    // Smoothing data for blending from one position/orientation to another on remote agents.
+    float _smoothOrientationTimer;
+    glm::quat _smoothOrientationInitial;
+    glm::quat _smoothOrientationTarget;
 
     // private methods
     void updateOrientation(float deltaTime);
@@ -642,17 +728,25 @@ private:
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
+    QString _dominantHand { DOMINANT_RIGHT_HAND };
 
-    // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
+    const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg
+    bool _hmdRollControlEnabled { true };
+    float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
+    float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
+    float _lastDrivenSpeed { 0.0f };
+
+    // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
 
-    // cache of the current HMD sensor position and orientation
-    // in sensor space.
+    // cache of the current HMD sensor position and orientation in sensor space.
     glm::mat4 _hmdSensorMatrix;
     glm::quat _hmdSensorOrientation;
     glm::vec3 _hmdSensorPosition;
-    glm::vec2 _hmdSensorFacing;  // facing vector in xz plane
-    glm::vec2 _hmdSensorFacingMovingAverage { 0, 0 };   // facing vector in xz plane
+    // cache head controller pose in sensor space
+    glm::vec2 _headControllerFacing;  // facing vector in xz plane
+    glm::vec2 _headControllerFacingMovingAverage { 0, 0 };   // facing vector in xz plane
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
@@ -667,7 +761,6 @@ private:
             Vertical,
             NumFollowTypes
         };
-        glm::mat4 _desiredBodyMatrix;
         float _timeRemaining[NumFollowTypes];
 
         void deactivate();
@@ -686,12 +779,12 @@ private:
     };
     FollowHelper _follow;
 
-    bool _goToPending;
+    bool _goToPending { false };
+    bool _physicsSafetyPending { false };
     glm::vec3 _goToPosition;
     glm::quat _goToOrientation;
 
     std::unordered_set<int> _headBoneSet;
-    RigPointer _rig;
     bool _prevShouldDrawHead;
     bool _rigEnabled { true };
 
@@ -700,6 +793,9 @@ private:
     bool _enableDebugDrawHandControllers { false };
     bool _enableDebugDrawSensorToWorldMatrix { false };
     bool _enableDebugDrawIKTargets { false };
+    bool _enableDebugDrawIKConstraints { false };
+    bool _enableDebugDrawIKChains { false };
+    bool _enableDebugDrawDetailedCollision { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
@@ -707,20 +803,12 @@ private:
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
-    bool _hoverReferenceCameraFacingIsCaptured { false };
-    glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
-    // These are stored in SENSOR frame
-    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache{ controller::Pose() };
+    // all poses are in sensor-frame
+    std::map<controller::Action, controller::Pose> _controllerPoseMap;
+    mutable std::mutex _controllerPoseMapMutex;
 
     bool _hmdLeanRecenterEnabled = true;
-
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
@@ -741,6 +829,9 @@ private:
     void setAway(bool value);
 
     std::vector<int> _pinnedJoints;
+
+    // height of user in sensor space, when standing erect.
+    ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

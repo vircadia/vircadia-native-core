@@ -20,7 +20,6 @@ Rectangle {
     // height: parent.height
     HifiConstants { id: hifi }
     color: hifi.colors.baseGray;
-    property var eventBridge;
     signal sendToScript(var message);
     property bool keyboardEnabled: false
     property bool punctuationMode: false
@@ -66,7 +65,8 @@ Rectangle {
                 onClicked: {
                     newModelDialog.keyboardEnabled = HMD.active
                     parent.focus = true;
-                    parent.forceActiveFocus()
+                    parent.forceActiveFocus();
+                    modelURL.cursorPosition = modelURL.positionAt(mouseX, mouseY, TextInput.CursorBetweenCharaters);
                 }
             }
         }
@@ -118,7 +118,7 @@ Rectangle {
                         id: text2
                         width: 160
                         color: "#ffffff"
-                        text: qsTr("Models with automatic collisions set to 'Exact' cannot be dynamic")
+                        text: qsTr("Models with automatic collisions set to 'Exact' cannot be dynamic, and should not be used as floors")
                         wrapMode: Text.WordWrap
                         font.pixelSize: 12
                     }
@@ -145,7 +145,9 @@ Rectangle {
                     model: ["No Collision",
                             "Basic - Whole model",
                             "Good - Sub-meshes",
-                            "Exact - All polygons"]
+                            "Exact - All polygons", 
+                            "Box", 
+                            "Sphere"]
                 }
 
                 Row {

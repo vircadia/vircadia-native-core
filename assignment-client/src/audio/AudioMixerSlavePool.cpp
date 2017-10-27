@@ -76,7 +76,7 @@ void AudioMixerSlavePool::processPackets(ConstIter begin, ConstIter end) {
 
 void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
     _function = &AudioMixerSlave::mix;
-    _configure = [&](AudioMixerSlave& slave) {
+    _configure = [=](AudioMixerSlave& slave) {
         slave.configureMix(_begin, _end, _frame, _throttlingRatio);
     };
     _frame = frame;
@@ -97,7 +97,11 @@ void AudioMixerSlavePool::run(ConstIter begin, ConstIter end) {
 #else
     // fill the queue
     std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
+#if defined(__clang__) && defined(Q_OS_LINUX)
+        _queue.push(node);
+#else
         _queue.emplace(node);
+#endif
     });
 
     {

@@ -144,6 +144,7 @@ void AnimDebugDraw::shutdown() {
     if (scene && _itemID) {
         render::Transaction transaction;
         transaction.removeItem(_itemID);
+        render::Item::clearID(_itemID);
         scene->enqueueTransaction(transaction);
     }
 }
@@ -260,7 +261,7 @@ static void addLink(const AnimPose& rootPose, const AnimPose& pose, const AnimPo
         // there is room, so lets draw a nice bone
 
         glm::vec3 uAxis, vAxis, wAxis;
-        generateBasisVectors(boneAxis0, glm::vec3(1, 0, 0), uAxis, vAxis, wAxis);
+        generateBasisVectors(boneAxis0, glm::vec3(1.0f, 0.0f, 0.0f), uAxis, vAxis, wAxis);
 
         glm::vec3 boneBaseCorners[NUM_BASE_CORNERS];
         boneBaseCorners[0] = pose0 * ((uAxis * radius) + (vAxis * radius) + (wAxis * radius));
@@ -316,7 +317,9 @@ void AnimDebugDraw::update() {
     if (!scene) {
         return;
     }
-
+    if (!render::Item::isValidID(_itemID)) {
+        return;
+    }
     render::Transaction transaction;
     transaction.updateItem<AnimDebugDrawData>(_itemID, [&](AnimDebugDrawData& data) {
 

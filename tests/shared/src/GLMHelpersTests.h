@@ -21,6 +21,7 @@ private slots:
     void testEulerDecomposition();
     void testSixByteOrientationCompression();
     void testSimd();
+    void testGenerateBasisVectors();
 };
 
 float getErrorDifference(const float& a, const float& b);

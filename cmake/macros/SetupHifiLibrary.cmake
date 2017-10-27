@@ -12,7 +12,7 @@ macro(SETUP_HIFI_LIBRARY)
   project(${TARGET_NAME})
 
   # grab the implementation and header files
-  file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp" "src/*.c")
+  file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp" "src/*.c" "src/*.qrc")
   list(APPEND ${TARGET_NAME}_SRCS ${LIB_SRCS})
 
   # add compiler flags to AVX source files
@@ -35,6 +35,23 @@ macro(SETUP_HIFI_LIBRARY)
     endif()
   endforeach()
 
+  # add compiler flags to AVX512 source files, if supported by compiler
+  include(CheckCXXCompilerFlag)
+  file(GLOB_RECURSE AVX512_SRCS "src/avx512/*.cpp" "src/avx512/*.c")
+  foreach(SRC ${AVX512_SRCS})
+    if (WIN32)
+      check_cxx_compiler_flag("/arch:AVX512" COMPILER_SUPPORTS_AVX512)
+      if (COMPILER_SUPPORTS_AVX512)
+        set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS /arch:AVX512)
+      endif()
+    elseif (APPLE OR UNIX)
+      check_cxx_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512)
+      if (COMPILER_SUPPORTS_AVX512)
+        set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS -mavx512f)
+      endif()
+    endif()
+  endforeach()
+
   setup_memory_debugger()
 
   # create a library and set the property so it can be referenced later
@@ -48,7 +65,7 @@ macro(SETUP_HIFI_LIBRARY)
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)
 
   # find these Qt modules and link them to our own target
-  find_package(Qt5 COMPONENTS ${${TARGET_NAME}_DEPENDENCY_QT_MODULES} REQUIRED)
+  find_package(Qt5 COMPONENTS ${${TARGET_NAME}_DEPENDENCY_QT_MODULES} REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
 
   foreach(QT_MODULE ${${TARGET_NAME}_DEPENDENCY_QT_MODULES})
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})

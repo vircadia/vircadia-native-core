@@ -14,9 +14,12 @@
 #include <avatar/AvatarActionHold.h>
 #include <avatar/AvatarActionFarGrab.h>
 #include <ObjectActionOffset.h>
-#include <ObjectActionSpring.h>
+#include <ObjectActionTractor.h>
 #include <ObjectActionTravelOriented.h>
 #include <ObjectConstraintHinge.h>
+#include <ObjectConstraintSlider.h>
+#include <ObjectConstraintBallSocket.h>
+#include <ObjectConstraintConeTwist.h>
 #include <LogHandler.h>
 
 #include "InterfaceDynamicFactory.h"
@@ -29,7 +32,9 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
         case DYNAMIC_TYPE_OFFSET:
             return std::make_shared<ObjectActionOffset>(id, ownerEntity);
         case DYNAMIC_TYPE_SPRING:
-            return std::make_shared<ObjectActionSpring>(id, ownerEntity);
+            qDebug() << "The 'spring' Action is deprecated.  Replacing with 'tractor' Action.";
+        case DYNAMIC_TYPE_TRACTOR:
+            return std::make_shared<ObjectActionTractor>(id, ownerEntity);
         case DYNAMIC_TYPE_HOLD:
             return std::make_shared<AvatarActionHold>(id, ownerEntity);
         case DYNAMIC_TYPE_TRAVEL_ORIENTED:
@@ -38,9 +43,15 @@ EntityDynamicPointer interfaceDynamicFactory(EntityDynamicType type, const QUuid
             return std::make_shared<ObjectConstraintHinge>(id, ownerEntity);
         case DYNAMIC_TYPE_FAR_GRAB:
             return std::make_shared<AvatarActionFarGrab>(id, ownerEntity);
+        case DYNAMIC_TYPE_SLIDER:
+            return std::make_shared<ObjectConstraintSlider>(id, ownerEntity);
+        case DYNAMIC_TYPE_BALL_SOCKET:
+            return std::make_shared<ObjectConstraintBallSocket>(id, ownerEntity);
+        case DYNAMIC_TYPE_CONE_TWIST:
+            return std::make_shared<ObjectConstraintConeTwist>(id, ownerEntity);
     }
 
-    Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown entity dynamic type");
+    qDebug() << "Unknown entity dynamic type";
     return EntityDynamicPointer();
 }
 

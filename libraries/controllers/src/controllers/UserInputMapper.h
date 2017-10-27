@@ -80,6 +80,7 @@ namespace controller {
 
         QVector<Action> getAllActions() const;
         QString getActionName(Action action) const;
+        QString getStandardPoseName(uint16_t pose);
         float getActionState(Action action) const { return _actionStates[toInt(action)]; }
         Pose getPoseState(Action action) const;
         int findAction(const QString& actionName) const;
@@ -113,6 +114,9 @@ namespace controller {
 
         void loadDefaultMapping(uint16 deviceID);
         void enableMapping(const QString& mappingName, bool enable = true);
+
+        void setInputCalibrationData(const InputCalibrationData& data) { inputCalibrationData = data; }
+        const InputCalibrationData& getInputCalibrationData() { return inputCalibrationData; }
 
         void unloadMappings(const QStringList& jsonFiles);
         void unloadMapping(const QString& jsonFile);
@@ -186,6 +190,8 @@ namespace controller {
         RouteList _standardRoutes;
 
         QSet<QString> _loadedRouteJsonFiles;
+
+        InputCalibrationData inputCalibrationData;
 
         mutable std::recursive_mutex _lock;
     };

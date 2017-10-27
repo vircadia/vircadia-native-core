@@ -9,21 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QCommandLineParser>
-#include <QThread>
+#include "AssignmentClientApp.h"
+
+#include <QtCore/QCommandLineParser>
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QThread>
 
 #include <LogHandler.h>
-#include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
+#include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 
 #include "Assignment.h"
 #include "AssignmentClient.h"
 #include "AssignmentClientMonitor.h"
-#include "AssignmentClientApp.h"
-#include <QtCore/QDir>
-#include <QtCore/QStandardPaths>
-
 
 AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -86,6 +86,9 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     const QCommandLineOption logDirectoryOption(ASSIGNMENT_LOG_DIRECTORY, "directory to store logs", "log-directory");
     parser.addOption(logDirectoryOption);
+
+    const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
+    parser.addOption(parentPIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -186,6 +189,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         listenPort = argumentVariantMap.value(ASSIGNMENT_CLIENT_LISTEN_PORT_OPTION).toUInt();
     }
 
+    if (parser.isSet(portOption)) {
+        listenPort = parser.value(portOption).toUInt();
+    }
+
     if (parser.isSet(numChildsOption)) {
         if (minForks && minForks > numForks) {
             qCritical() << "--min can't be more than -n";
@@ -196,6 +203,16 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
             qCritical() << "--max can't be less than -n";
             parser.showHelp();
             Q_UNREACHABLE();
+        }
+    }
+
+    if (parser.isSet(parentPIDOption)) {
+        bool ok = false;
+        int parentPID = parser.value(parentPIDOption).toInt(&ok);
+
+        if (ok) {
+            qDebug() << "Parent process PID is" << parentPID;
+            watchParentProcess(parentPID);
         }
     }
 

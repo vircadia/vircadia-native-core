@@ -1,0 +1,53 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  paintStroke_fade.slf
+//  fragment shader
+//
+//  Created by Olivier Prat on 19/07/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+<@include Fade.slh@>
+<$declareFadeFragment()$>
+
+// the albedo texture
+uniform sampler2D originalTexture;
+
+// the interpolated normal
+in vec3 interpolatedNormal;
+in vec2 varTexcoord;
+in vec4 varColor;
+in vec4 _worldPosition;
+
+struct PolyLineUniforms {
+    vec3 color;
+};
+
+uniform polyLineBuffer {
+    PolyLineUniforms polyline;
+};
+
+void main(void) {
+    vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
+
+    <$fetchFadeObjectParams(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+    
+    vec4 texel = texture(originalTexture, varTexcoord);
+    int frontCondition = 1 -int(gl_FrontFacing) * 2;
+    vec3 color = varColor.rgb;
+    packDeferredFragmentTranslucent(
+        interpolatedNormal * frontCondition,
+        texel.a * varColor.a,
+        polyline.color * texel.rgb + fadeEmissive,
+        vec3(0.01, 0.01, 0.01),
+        10.0);
+}

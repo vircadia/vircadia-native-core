@@ -30,7 +30,7 @@ public:
         TOUCH_AXIS_Y_NEG,
     };
 
-	enum TouchGestureAxisChannel {
+    enum TouchGestureAxisChannel {
         TOUCH_GESTURE_PINCH_POS = TOUCH_AXIS_Y_NEG + 1,
         TOUCH_GESTURE_PINCH_NEG,
     };
@@ -38,8 +38,6 @@ public:
     // Plugin functions
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
-
-    bool isHandController() const override { return false; }
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;

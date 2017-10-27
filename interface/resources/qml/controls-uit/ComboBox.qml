@@ -20,6 +20,7 @@ FocusScope {
     HifiConstants { id: hifi }
 
     property alias model: comboBox.model;
+    property alias editable: comboBox.editable
     property alias comboBox: comboBox
     readonly property alias currentText: comboBox.currentText;
     property alias currentIndex: comboBox.currentIndex;
@@ -216,7 +217,7 @@ FocusScope {
                         anchors.leftMargin: hifi.dimensions.textPadding
                         anchors.verticalCenter: parent.verticalCenter
                         id: popupText
-                        text: listView.model[index] ? listView.model[index] : (listView.model.get(index).text ? listView.model.get(index).text : "")
+                        text: listView.model[index] ? listView.model[index] : (listView.model.get && listView.model.get(index).text ? listView.model.get(index).text : "")
                         size: hifi.fontSizes.textFieldInput
                         color: hifi.colors.baseGray
                     }

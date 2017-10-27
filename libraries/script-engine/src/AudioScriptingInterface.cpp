@@ -11,6 +11,10 @@
 
 #include "AudioScriptingInterface.h"
 
+#include <QVector3D>
+
+#include <shared/QtHelpers.h>
+
 #include "ScriptAudioInjector.h"
 #include "ScriptEngineLogging.h"
 
@@ -19,17 +23,18 @@ void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, soundSharedPointerToScriptValue, soundSharedPointerFromScriptValue);
 }
 
-AudioScriptingInterface::AudioScriptingInterface() :
-    _localAudioInterface(NULL)
-{
-
+ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer sound, const QVector3D& position) {
+    AudioInjectorOptions options;
+    options.position = glm::vec3(position.x(), position.y(), position.z());
+    options.localOnly = true;
+    return playSound(sound, options);
 }
 
 ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) {
     if (QThread::currentThread() != thread()) {
         ScriptAudioInjector* injector = NULL;
 
-        QMetaObject::invokeMethod(this, "playSound", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "playSound",
                                   Q_RETURN_ARG(ScriptAudioInjector*, injector),
                                   Q_ARG(SharedSoundPointer, sound),
                                   Q_ARG(const AudioInjectorOptions&, injectorOptions));

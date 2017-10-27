@@ -19,6 +19,7 @@
 
 class Image3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
+    using Parent = Billboard3DOverlay;
 
 public:
     static QString const TYPE;
@@ -39,15 +40,21 @@ public:
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
+    bool isTransparent() override { return Base3DOverlay::isTransparent() || _alphaTexture; }
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
 
     virtual Image3DOverlay* createClone() const override;
 
+protected:
+    Transform evalRenderTransform() override;
+
 private:
     QString _url;
     NetworkTexturePointer _texture;
+    bool _textureIsLoaded { false };
+    bool _alphaTexture { false };
     bool _emissive { false };
 
     QRect _fromImage; // where from in the image to sample

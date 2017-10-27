@@ -1,0 +1,37 @@
+
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gateau on 5/17/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+<@func evalGlobeWidget()@>
+    const float SCOPE_RADIUS = 1.0;
+    const float SCOPE_RADIUS2 = SCOPE_RADIUS * SCOPE_RADIUS;
+    const float EDGE_HALFWIDTH = 0.025;
+    const float EDGE_HALFWIDTH2 = EDGE_HALFWIDTH * EDGE_HALFWIDTH;
+    const float OUT_RADIUS = SCOPE_RADIUS + EDGE_HALFWIDTH;
+    
+    vec2 sphereUV = (varTexCoord0.xy * 2.0 - vec2(1.0)) * OUT_RADIUS;
+    float sphereR2 = dot(sphereUV.xy, sphereUV.xy);
+    if (sphereR2 > OUT_RADIUS * OUT_RADIUS) {
+        discard;
+    }
+    float sphereR = sqrt(sphereR2);
+
+    float edgeFalloff = (SCOPE_RADIUS - sphereR) / (EDGE_HALFWIDTH);
+    float edgeFalloff2 = min(1.0, edgeFalloff * edgeFalloff);
+
+    vec4 base = vec4(0.0, 0.0, 0.0, 1.0 - edgeFalloff2);
+    if (sphereR2 > SCOPE_RADIUS2) {
+        _fragColor = base;
+        return;
+    }
+<@endfunc@>
+

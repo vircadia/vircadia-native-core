@@ -44,6 +44,9 @@ public:
     static Setting::Handle<QString> snapshotsLocation;
     static void uploadSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
+signals:
+    void snapshotLocationSet(const QString& value);
+
 public slots:
     Q_INVOKABLE QString getSnapshotsLocation();
     Q_INVOKABLE void setSnapshotsLocation(const QString& location);

@@ -23,24 +23,14 @@
 
 #include "AvatarData.h"
 
-/// The names of the blendshapes expected by Faceshift, terminated with an empty string.
-extern const char* FACESHIFT_BLENDSHAPES[];
-/// The size of FACESHIFT_BLENDSHAPES
-extern const int NUM_FACESHIFT_BLENDSHAPES;
-
 HeadData::HeadData(AvatarData* owningAvatar) :
     _baseYaw(0.0f),
     _basePitch(0.0f),
     _baseRoll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
-    _isFaceTrackerConnected(false),
-    _isEyeTrackerConnected(false),
-    _leftEyeBlink(0.0f),
-    _rightEyeBlink(0.0f),
-    _averageLoudness(0.0f),
-    _browAudioLift(0.0f),
-    _baseBlendshapeCoefficients(QVector<float>(0, 0.0f)),
-    _currBlendShapeCoefficients(QVector<float>(0, 0.0f)),
+    _blendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _transientBlendshapeCoefficients(QVector<float>(0, 0.0f)),
+    _summedBlendshapeCoefficients(QVector<float>(0, 0.0f)),
     _owningAvatar(owningAvatar)
 {
 
@@ -62,6 +52,13 @@ glm::quat HeadData::getOrientation() const {
     return _owningAvatar->getOrientation() * getRawOrientation();
 }
 
+void HeadData::setHeadOrientation(const glm::quat& orientation) {
+    glm::quat bodyOrientation = _owningAvatar->getOrientation();
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
+    _basePitch = eulers.x;
+    _baseYaw = eulers.y;
+    _baseRoll = eulers.z;
+}
 
 void HeadData::setOrientation(const glm::quat& orientation) {
     // rotate body about vertical axis
@@ -71,10 +68,7 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     _owningAvatar->setOrientation(bodyOrientation);
 
     // the rest goes to the head
-    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
-    _basePitch = eulers.x;
-    _baseYaw = eulers.y;
-    _baseRoll = eulers.z;
+    setHeadOrientation(orientation);
 }
 
 //Lazily construct a lookup map from the blendshapes
@@ -89,23 +83,28 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
     return blendshapeLookupMap;
 }
 
+int HeadData::getNumSummedBlendshapeCoefficients() const {
+    int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
+    return maxSize;
+}
+
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
-    int maxSize = std::max(_baseBlendshapeCoefficients.size(), _blendshapeCoefficients.size());
-    if (_currBlendShapeCoefficients.size() != maxSize) {
-        _currBlendShapeCoefficients.resize(maxSize);
+    int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
+    if (_summedBlendshapeCoefficients.size() != maxSize) {
+        _summedBlendshapeCoefficients.resize(maxSize);
     }
 
     for (int i = 0; i < maxSize; i++) {
-        if (i >= _baseBlendshapeCoefficients.size()) {
-            _currBlendShapeCoefficients[i] = _blendshapeCoefficients[i];
-        } else if (i >= _blendshapeCoefficients.size()) {
-            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i];
+        if (i >= _blendshapeCoefficients.size()) {
+            _summedBlendshapeCoefficients[i] = _transientBlendshapeCoefficients[i];
+        } else if (i >= _transientBlendshapeCoefficients.size()) {
+            _summedBlendshapeCoefficients[i] = _blendshapeCoefficients[i];
         } else {
-            _currBlendShapeCoefficients[i] = _baseBlendshapeCoefficients[i] + _blendshapeCoefficients[i];
+            _summedBlendshapeCoefficients[i] = _blendshapeCoefficients[i] + _transientBlendshapeCoefficients[i];
         }
     }
 
-    return _currBlendShapeCoefficients;
+    return _summedBlendshapeCoefficients;
 }
 
 void HeadData::setBlendshape(QString name, float val) {
@@ -117,10 +116,10 @@ void HeadData::setBlendshape(QString name, float val) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
         }
-        if (_baseBlendshapeCoefficients.size() <= it.value()) {
-            _baseBlendshapeCoefficients.resize(it.value() + 1);
+        if (_transientBlendshapeCoefficients.size() <= it.value()) {
+            _transientBlendshapeCoefficients.resize(it.value() + 1);
         }
-        _baseBlendshapeCoefficients[it.value()] = val;
+        _blendshapeCoefficients[it.value()] = val;
     }
 }
 
@@ -136,14 +135,16 @@ QJsonObject HeadData::toJson() const {
     QJsonObject blendshapesJson;
     for (auto name : blendshapeLookupMap.keys()) {
         auto index = blendshapeLookupMap[name];
-        if (index >= _blendshapeCoefficients.size()) {
-            continue;
+        float value = 0.0f;
+        if (index < _blendshapeCoefficients.size()) {
+            value += _blendshapeCoefficients[index];
         }
-        auto value = _blendshapeCoefficients[index];
-        if (value == 0.0f) {
-            continue;
+        if (index < _transientBlendshapeCoefficients.size()) {
+            value += _transientBlendshapeCoefficients[index];
         }
-        blendshapesJson[name] = value;
+        if (value != 0.0f) {
+            blendshapesJson[name] = value;
+        }
     }
     if (!blendshapesJson.isEmpty()) {
         headJson[JSON_AVATAR_HEAD_BLENDSHAPE_COEFFICIENTS] = blendshapesJson;
@@ -168,8 +169,8 @@ void HeadData::fromJson(const QJsonObject& json) {
             QJsonArray blendshapeCoefficientsJson = jsonValue.toArray();
             for (const auto& blendshapeCoefficient : blendshapeCoefficientsJson) {
                 blendshapeCoefficients.push_back((float)blendshapeCoefficient.toDouble());
-                setBlendshapeCoefficients(blendshapeCoefficients);
             }
+            setBlendshapeCoefficients(blendshapeCoefficients);
         } else if (jsonValue.isObject()) {
             QJsonObject blendshapeCoefficientsJson = jsonValue.toObject();
             for (const QString& name : blendshapeCoefficientsJson.keys()) {
@@ -181,14 +182,14 @@ void HeadData::fromJson(const QJsonObject& json) {
         }
     }
 
-    if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
-        setOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
-    }
-
     if (json.contains(JSON_AVATAR_HEAD_LOOKAT)) {
         auto relativeLookAt = vec3FromJsonValue(json[JSON_AVATAR_HEAD_LOOKAT]);
         if (glm::length2(relativeLookAt) > 0.01f) {
             setLookAtPosition((_owningAvatar->getOrientation() * relativeLookAt) + _owningAvatar->getPosition());
         }
+    }
+
+    if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
+        setHeadOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
     }
 }

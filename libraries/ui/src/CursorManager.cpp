@@ -24,24 +24,39 @@ namespace Cursor {
         return _icon;
     }
 
-
-    class MouseInstance : public Instance {
-        Source getType() const override {
-            return Source::MOUSE;
-        }
+    QMap<uint16_t, QString> Manager::ICON_NAMES {
+        { Icon::SYSTEM, "SYSTEM", },
+        { Icon::DEFAULT, "DEFAULT", },
+        { Icon::LINK, "LINK", },
+        { Icon::ARROW, "ARROW", },
+        { Icon::RETICLE, "RETICLE", },
     };
 
-    static QMap<uint16_t, QString> ICONS;
     static uint16_t _customIconId = Icon::USER_BASE;
 
     Manager::Manager() {
-        ICONS[Icon::DEFAULT] = PathUtils::resourcesPath() + "images/arrow.png";
-        ICONS[Icon::LINK] = PathUtils::resourcesPath() + "images/link.png";
+        ICONS[Icon::SYSTEM] = PathUtils::resourcesPath() + "images/cursor-none.png";
+        ICONS[Icon::DEFAULT] = PathUtils::resourcesPath() + "images/cursor-arrow.png";
+        ICONS[Icon::LINK] = PathUtils::resourcesPath() + "images/cursor-link.png";
+        ICONS[Icon::ARROW] = PathUtils::resourcesPath() + "images/cursor-arrow.png";
+        ICONS[Icon::RETICLE] = PathUtils::resourcesPath() + "images/cursor-reticle.png";
+    }
+
+    Icon Manager::lookupIcon(const QString& name) {
+        for (const auto& kv : ICON_NAMES.toStdMap()) {
+            if (kv.second == name) {
+                return static_cast<Icon>(kv.first);
+            }
+        }
+        return Icon::DEFAULT;
+    }
+    const QString& Manager::getIconName(const Icon& icon) {
+        return ICON_NAMES.count(icon) ? ICON_NAMES[icon] : ICON_NAMES[Icon::DEFAULT];
     }
 
     Manager& Manager::instance() {
-        static Manager instance;
-        return instance;
+        static QSharedPointer<Manager> instance = DependencyManager::get<Cursor::Manager>();
+        return *instance;
     }
 
     QList<uint16_t> Manager::registeredIcons() const {
@@ -54,7 +69,6 @@ namespace Cursor {
 
     Instance* Manager::getCursor(uint8_t index) {
         Q_ASSERT(index < getCount());
-        static MouseInstance mouseInstance;
         if (index == 0) {
             return &mouseInstance;
         }

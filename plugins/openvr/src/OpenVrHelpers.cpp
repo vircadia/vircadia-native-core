@@ -72,6 +72,21 @@ bool openVrSupported() {
     return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
 }
 
+QString getVrSettingString(const char* section, const char* setting) {
+    QString result;
+    static const uint32_t BUFFER_SIZE = 1024;
+    static char BUFFER[BUFFER_SIZE];
+    vr::IVRSettings * vrSettings = vr::VRSettings();
+    if (vrSettings) {
+        vr::EVRSettingsError error = vr::VRSettingsError_None;
+        vrSettings->GetString(vr::k_pch_audio_Section, vr::k_pch_audio_OnPlaybackDevice_String, BUFFER, BUFFER_SIZE, &error);
+        if (error == vr::VRSettingsError_None) {
+            result = BUFFER;
+        }
+    }
+    return result;
+}
+
 vr::IVRSystem* acquireOpenVrSystem() {
     bool hmdPresent = vr::VR_IsHmdPresent();
     if (hmdPresent) {
@@ -82,6 +97,7 @@ vr::IVRSystem* acquireOpenVrSystem() {
             #endif
             vr::EVRInitError eError = vr::VRInitError_None;
             activeHmd = vr::VR_Init(&eError, vr::VRApplication_Scene);
+
             #if DEV_BUILD
                 qCDebug(displayplugins) << "OpenVR display: HMD is " << activeHmd << " error is " << eError;
             #endif
@@ -113,7 +129,7 @@ void releaseOpenVrSystem() {
             #endif
 
             // HACK: workaround openvr crash, call submit with an invalid texture, right before VR_Shutdown.
-            const GLuint INVALID_GL_TEXTURE_HANDLE = -1;
+            const void* INVALID_GL_TEXTURE_HANDLE = (void*)(uintptr_t)-1;
             vr::Texture_t vrTexture{ (void*)INVALID_GL_TEXTURE_HANDLE, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
             static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_LEFT{ 0, 0, 0.5f, 1 };
             static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_RIGHT{ 0.5f, 0, 1, 1 };

@@ -19,8 +19,8 @@
 #include <DependencyManager.h>
 
 #ifdef Q_OS_WIN
-#include <comdef.h>
-#include <Wbemidl.h>
+#include <Windows.h>
+#include <winreg.h>
 #endif //Q_OS_WIN
 
 #ifdef Q_OS_MAC
@@ -30,6 +30,9 @@
 #endif //Q_OS_MAC
 
 static const QString FALLBACK_FINGERPRINT_KEY = "fallbackFingerprint";
+
+QUuid FingerprintUtils::_machineFingerprint { QUuid() };
+
 QString FingerprintUtils::getMachineFingerprintString() {
     QString uuidString;
 #ifdef Q_OS_LINUX
@@ -47,122 +50,32 @@ QString FingerprintUtils::getMachineFingerprintString() {
 #endif //Q_OS_MAC
 
 #ifdef Q_OS_WIN
-    HRESULT hres;
-    IWbemLocator *pLoc = NULL;
-
-    // initialize com.  Interface already does, but other
-    // users of this lib don't necessarily do so.
-    hres = CoInitializeEx(0, COINIT_MULTITHREADED);
-    if (FAILED(hres)) {
-        qCDebug(networking) << "Failed to initialize COM library!";
-        return uuidString;
-    }
+    HKEY cryptoKey;
     
-    // initialize WbemLocator
-    hres = CoCreateInstance(
-            CLSID_WbemLocator,             
-            0, 
-            CLSCTX_INPROC_SERVER, 
-            IID_IWbemLocator, (LPVOID *) &pLoc);
+    // try and open the key that contains the machine GUID
+    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", 0, KEY_READ, &cryptoKey) == ERROR_SUCCESS) {
+        DWORD type;
+        DWORD guidSize;
 
-    if (FAILED(hres)) {
-        qCDebug(networking) << "Failed to initialize WbemLocator";
-        return uuidString;
-    }
-    
-    // Connect to WMI through the IWbemLocator::ConnectServer method
-    IWbemServices *pSvc = NULL;
+        const char* MACHINE_GUID_KEY = "MachineGuid";
 
-    // Connect to the root\cimv2 namespace with
-    // the current user and obtain pointer pSvc
-    // to make IWbemServices calls.
-    hres = pLoc->ConnectServer(
-         _bstr_t(L"ROOT\\CIMV2"), // Object path of WMI namespace
-         NULL,                    // User name. NULL = current user
-         NULL,                    // User password. NULL = current
-         0,                       // Locale. NULL indicates current
-         NULL,                    // Security flags.
-         0,                       // Authority (for example, Kerberos)
-         0,                       // Context object 
-         &pSvc                    // pointer to IWbemServices proxy
-         );
+        // try and retrieve the size of the GUID value
+        if (RegQueryValueEx(cryptoKey, MACHINE_GUID_KEY, NULL, &type, NULL, &guidSize) == ERROR_SUCCESS) {
+            // make sure that the value is a string
+            if (type == REG_SZ) {
+                // retrieve the machine GUID and return that as our UUID string
+                std::string machineGUID(guidSize / sizeof(char), '\0');
 
-    if (FAILED(hres)) {
-        pLoc->Release();
-        qCDebug(networking) << "Failed to connect to WMI";
-        return uuidString;
-    }
-    
-    // Set security levels on the proxy
-    hres = CoSetProxyBlanket(
-       pSvc,                        // Indicates the proxy to set
-       RPC_C_AUTHN_WINNT,           // RPC_C_AUTHN_xxx
-       RPC_C_AUTHZ_NONE,            // RPC_C_AUTHZ_xxx
-       NULL,                        // Server principal name 
-       RPC_C_AUTHN_LEVEL_CALL,      // RPC_C_AUTHN_LEVEL_xxx 
-       RPC_C_IMP_LEVEL_IMPERSONATE, // RPC_C_IMP_LEVEL_xxx
-       NULL,                        // client identity
-       EOAC_NONE                    // proxy capabilities 
-    );
-
-    if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();     
-        qCDebug(networking) << "Failed to set security on proxy blanket";
-        return uuidString;
-    }
-    
-    // Use the IWbemServices pointer to grab the Win32_BIOS stuff
-    IEnumWbemClassObject* pEnumerator = NULL;
-    hres = pSvc->ExecQuery(
-        bstr_t("WQL"), 
-        bstr_t("SELECT * FROM Win32_ComputerSystemProduct"),
-        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, 
-        NULL,
-        &pEnumerator);
-
-    if (FAILED(hres)) {
-        pSvc->Release();
-        pLoc->Release();
-        qCDebug(networking) << "query to get Win32_ComputerSystemProduct info";
-        return uuidString;
-    }
-    
-    // Get the SerialNumber from the Win32_BIOS data 
-    IWbemClassObject *pclsObj;
-    ULONG uReturn = 0;
-
-    SHORT  sRetStatus = -100;
-
-    while (pEnumerator) {
-        HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-
-        if(0 == uReturn){
-            break;
-        }
-
-        VARIANT vtProp;
-
-        // Get the value of the Name property
-        hr = pclsObj->Get(L"UUID", 0, &vtProp, 0, 0);
-        if (!FAILED(hres)) {
-            switch (vtProp.vt) {
-                case VT_BSTR:
-                    uuidString = QString::fromWCharArray(vtProp.bstrVal);
-                    break;
+                if (RegQueryValueEx(cryptoKey, MACHINE_GUID_KEY, NULL, NULL,
+                                    reinterpret_cast<LPBYTE>(&machineGUID[0]), &guidSize) == ERROR_SUCCESS) {
+                    uuidString = QString::fromStdString(machineGUID);
+                }
             }
         }
-        VariantClear(&vtProp);
 
-        pclsObj->Release();
+        RegCloseKey(cryptoKey);
     }
-    pEnumerator->Release();
 
-    // Cleanup
-    pSvc->Release();
-    pLoc->Release();
-    
-    qCDebug(networking) << "Windows BIOS UUID: " << uuidString;
 #endif //Q_OS_WIN
 
     return uuidString;
@@ -171,29 +84,36 @@ QString FingerprintUtils::getMachineFingerprintString() {
 
 QUuid FingerprintUtils::getMachineFingerprint() {
 
-    QString uuidString = getMachineFingerprintString();
+    if (_machineFingerprint.isNull()) {
+        QString uuidString = getMachineFingerprintString();
 
-    // now, turn into uuid.  A malformed string will
-    // return QUuid() ("{00000...}"), which handles 
-    // any errors in getting the string
-    QUuid uuid(uuidString);
-    if (uuid == QUuid()) {
-        // if you cannot read a fallback key cuz we aren't saving them, just generate one for
-        // this session and move on
-        if (DependencyManager::get<Setting::Manager>().isNull()) {
-            return QUuid::createUuid();
-        }
-        // read fallback key (if any)
-        Settings settings;
-        uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());
-        qCDebug(networking) << "read fallback maching fingerprint: " << uuid.toString();
+        // now, turn into uuid.  A malformed string will
+        // return QUuid() ("{00000...}"), which handles
+        // any errors in getting the string
+        QUuid uuid(uuidString);
+
         if (uuid == QUuid()) {
-            // no fallback yet, set one
-            uuid = QUuid::createUuid();
-            settings.setValue(FALLBACK_FINGERPRINT_KEY, uuid.toString());
-            qCDebug(networking) << "no fallback machine fingerprint, setting it to: " << uuid.toString();
+            // if you cannot read a fallback key cuz we aren't saving them, just generate one for
+            // this session and move on
+            if (DependencyManager::get<Setting::Manager>().isNull()) {
+                return QUuid::createUuid();
+            }
+            // read fallback key (if any)
+            Settings settings;
+            uuid = QUuid(settings.value(FALLBACK_FINGERPRINT_KEY).toString());
+            qCDebug(networking) << "read fallback maching fingerprint: " << uuid.toString();
+
+            if (uuid == QUuid()) {
+                // no fallback yet, set one
+                uuid = QUuid::createUuid();
+                settings.setValue(FALLBACK_FINGERPRINT_KEY, uuid.toString());
+                qCDebug(networking) << "no fallback machine fingerprint, setting it to: " << uuid.toString();
+            }
         }
+
+        _machineFingerprint = uuid;
     }
-    return uuid;
+
+    return _machineFingerprint;
 }
 

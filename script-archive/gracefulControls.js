@@ -12,16 +12,16 @@
 var DEFAULT_PARAMETERS = {
     // Coefficient to use for linear drag.  Higher numbers will cause motion to
     // slow down more quickly.
-    DRAG_COEFFICIENT: 0.9,
-    MAX_SPEED: 40.0,
-    ACCELERATION: 1.0,
+    DRAG_COEFFICIENT: 60.0,
+    MAX_SPEED: 10.0,
+    ACCELERATION: 10.0,
 
     MOUSE_YAW_SCALE: -0.125,
     MOUSE_PITCH_SCALE: -0.125,
     MOUSE_SENSITIVITY: 0.5,
 
     // Damping frequency, adjust to change mouse look behavior
-    W: 4.2,
+    W: 2.2,
 }
 
 var BRAKE_PARAMETERS = {
@@ -35,18 +35,29 @@ var BRAKE_PARAMETERS = {
     MOUSE_SENSITIVITY: 0.5,
 }
 
+var DRIVE_AVATAR_ENABLED = true;
+var UPDATE_RATE = 90;
+var USE_INTERVAL = true;
+
 var movementParameters = DEFAULT_PARAMETERS;
 
+
 // Movement keys
-var KEY_BRAKE = "q";
-var KEY_FORWARD = "w";
-var KEY_BACKWARD = "s";
-var KEY_LEFT = "a";
-var KEY_RIGHT = "d";
-var KEY_UP = "e";
-var KEY_DOWN = "c";
-var KEY_ENABLE = "SPACE";
-var CAPTURED_KEYS = [KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_ENABLE];
+var KEY_BRAKE = "Q";
+var KEY_FORWARD = "W";
+var KEY_BACKWARD = "S";
+var KEY_LEFT = "A";
+var KEY_RIGHT = "D";
+var KEY_UP = "E";
+var KEY_DOWN = "C";
+var KEY_TOGGLE= "Space";
+
+var KEYS;
+if (DRIVE_AVATAR_ENABLED) {
+    KEYS = [KEY_BRAKE, KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN];
+} else {
+    KEYS = [];
+}
 
 // Global Variables
 var keys = {};
@@ -54,66 +65,27 @@ var velocity = { x: 0, y: 0, z: 0 };
 var velocityVertical = 0;
 var enabled = false;
 
-var lastX = Reticle.getPosition().x;
-var lastY = Reticle.getPosition().y;
+var pos = Reticle.getPosition();
+var lastX = pos.x;
+var lastY = pos.y;
 var yawFromMouse = 0;
 var pitchFromMouse = 0;
 
 var yawSpeed = 0;
 var pitchSpeed = 0;
 
-function keyPressEvent(event) {
-    if (event.text == "ESC") {
-        disable();
-    } else if (event.text == KEY_ENABLE) {
-        if (Window.hasFocus()) {
-            enable();
-        }
-    } else if (event.text == KEY_BRAKE) {
-        movementParameters = BRAKE_PARAMETERS;
-    }
-    keys[event.text] = true;
-}
-
-function keyReleaseEvent(event) {
-    if (event.text == KEY_BRAKE) {
-        movementParameters = DEFAULT_PARAMETERS;
-    }
-
-    delete keys[event.text];
-}
 
 function update(dt) {
-    var maxMove = 3.0 * dt;
-    var targetVelocity = { x: 0, y: 0, z: 0 };
-    var targetVelocityVertical = 0;
-    var acceleration = movementParameters.ACCELERATION;
-
-    if (keys[KEY_FORWARD]) {
-        targetVelocity.z -= acceleration * dt;
-    }
-    if (keys[KEY_LEFT]) {
-        targetVelocity.x -= acceleration * dt;
-    }
-    if (keys[KEY_BACKWARD]) {
-        targetVelocity.z += acceleration * dt;
-    }
-    if (keys[KEY_RIGHT]) {
-        targetVelocity.x += acceleration * dt;
-    }
-    if (keys[KEY_UP]) {
-        targetVelocityVertical += acceleration * dt;
-    }
-    if (keys[KEY_DOWN]) {
-        targetVelocityVertical -= acceleration * dt;
-    }
-
     if (enabled && Window.hasFocus()) {
-        var x = Reticle.getPosition().x;
-        var y = Reticle.getPosition().y;
+        var pos = Reticle.getPosition();
+        var x = pos.x;
+        var y = pos.y;
 
-        yawFromMouse += ((x - lastX) * movementParameters.MOUSE_YAW_SCALE * movementParameters.MOUSE_SENSITIVITY);
-        pitchFromMouse += ((y - lastY) * movementParameters.MOUSE_PITCH_SCALE * movementParameters.MOUSE_SENSITIVITY);
+        var dx = x - lastX;
+        var dy = y - lastY;
+
+        yawFromMouse += (dx * movementParameters.MOUSE_YAW_SCALE * movementParameters.MOUSE_SENSITIVITY);
+        pitchFromMouse += (dy * movementParameters.MOUSE_PITCH_SCALE * movementParameters.MOUSE_SENSITIVITY);
         pitchFromMouse = Math.max(-180, Math.min(180, pitchFromMouse));
 
         resetCursorPosition();
@@ -138,48 +110,82 @@ function update(dt) {
     MyAvatar.headPitch = newPitch;
     pitchFromMouse -= pitchMove;
 
-    // If force isn't being applied in a direction, add drag;
-    if (targetVelocity.x == 0) {
-        targetVelocity.x -= (velocity.x * movementParameters.DRAG_COEFFICIENT * dt);
-    }
-    if (targetVelocity.z == 0) {
-        targetVelocity.z -= (velocity.z * movementParameters.DRAG_COEFFICIENT * dt);
-    }
-    velocity = Vec3.sum(velocity, targetVelocity);
 
-    var maxSpeed = movementParameters.MAX_SPEED;
-    velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.x));
-    velocity.z = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.z));
-    var v = Vec3.multiplyQbyV(MyAvatar.headOrientation, velocity);
+    if (DRIVE_AVATAR_ENABLED) {
+        var targetVelocity = { x: 0, y: 0, z: 0 };
+        var targetVelocityVertical = 0;
+        var acceleration = movementParameters.ACCELERATION;
 
-    if (targetVelocityVertical == 0) {
-        targetVelocityVertical -= (velocityVertical * movementParameters.DRAG_COEFFICIENT * dt);
+        if (keys[KEY_FORWARD]) {
+            targetVelocity.z -= acceleration * dt;
+        }
+        if (keys[KEY_LEFT]) {
+            targetVelocity.x -= acceleration * dt;
+        }
+        if (keys[KEY_BACKWARD]) {
+            targetVelocity.z += acceleration * dt;
+        }
+        if (keys[KEY_RIGHT]) {
+            targetVelocity.x += acceleration * dt;
+        }
+        if (keys[KEY_UP]) {
+            targetVelocityVertical += acceleration * dt;
+        }
+        if (keys[KEY_DOWN]) {
+            targetVelocityVertical -= acceleration * dt;
+        }
+
+        // If force isn't being applied in a direction, add drag;
+        var drag = Math.max(movementParameters.DRAG_COEFFICIENT * dt, 1.0);
+        if (targetVelocity.x == 0) {
+            targetVelocity.x = -velocity.x * drag;
+        }
+        if (targetVelocity.z == 0) {
+            targetVelocity.z = -velocity.z * drag;
+        }
+        velocity = Vec3.sum(velocity, targetVelocity);
+
+        var maxSpeed = movementParameters.MAX_SPEED;
+        velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.x));
+        velocity.z = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.z));
+        var v = Vec3.multiplyQbyV(MyAvatar.headOrientation, velocity);
+
+        if (targetVelocityVertical == 0) {
+            targetVelocityVertical -= (velocityVertical * movementParameters.DRAG_COEFFICIENT * dt);
+        }
+        velocityVertical += targetVelocityVertical;
+        velocityVertical = Math.max(-maxSpeed, Math.min(maxSpeed, velocityVertical));
+        v.y += velocityVertical;
+
+        MyAvatar.motorVelocity = v;
     }
-    velocityVertical += targetVelocityVertical;
-    velocityVertical = Math.max(-maxSpeed, Math.min(maxSpeed, velocityVertical));
-    v.y += velocityVertical;
-
-    MyAvatar.setVelocity(v);
 }
 
 function vecToString(vec) {
     return vec.x + ", " + vec.y + ", " + vec.z;
 }
 
-function scriptEnding() {
-    disable();
-}
-
 function resetCursorPosition() {
-    var newX = Window.x + Window.innerWidth / 2;
-    var newY = Window.y + Window.innerHeight / 2;
-    Reticle.setPosition({ x: newX, y: newY});
+    var newX = Math.floor(Window.innerWidth / 2);
+    var newY = Math.floor(Window.innerHeight / 2);
+    Reticle.setPosition({ x: newX, y: newY });
     lastX = newX;
     lastY = newY;
 }
 
+
+function toggleEnabled() {
+    if (enabled) {
+        disable();
+    } else {
+        enable();
+    }
+}
+
+
+var timerID = null;
 function enable() {
-    if (!enabled) {
+    if (!enabled && Window.hasFocus()) {
         enabled = true;
 
         resetCursorPosition();
@@ -190,27 +196,94 @@ function enable() {
         yawSpeed = 0;
         pitchSpeed = 0;
         velocityVertical = 0;
+        velocity = { x: 0, y: 0, z: 0 };
 
-        for (var i = 0; i < CAPTURED_KEYS.length; i++) {
-            Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
-        }
+        MyAvatar.motorReferenceFrame = 'world';
+        MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
+        MyAvatar.motorTimescale = 1;
+
+        Controller.enableMapping(MAPPING_KEYS_NAME);
+
         Reticle.setVisible(false);
-        Script.update.connect(update);
+        if (USE_INTERVAL) {
+            var lastTime = Date.now();
+            timerID = Script.setInterval(function() {
+                var now = Date.now();
+                var dt = now - lastTime;
+                lastTime = now;
+                update(dt / 1000);
+            }, (1.0 / UPDATE_RATE) * 1000);
+        } else {
+            Script.update.connect(update);
+        }
     }
 }
 
 function disable() {
     if (enabled) {
         enabled = false;
-        for (var i = 0; i < CAPTURED_KEYS.length; i++) {
-            Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
-        }
         Reticle.setVisible(true);
-        Script.update.disconnect(update);
+
+        MyAvatar.motorVelocity = { x: 0, y: 0, z: 0 };
+
+        Controller.disableMapping(MAPPING_KEYS_NAME);
+
+        if (USE_INTERVAL) {
+            Script.clearInterval(timerID);
+            timerID = null;
+        } else {
+            Script.update.disconnect(update);
+        }
     }
 }
 
-Controller.keyPressEvent.connect(keyPressEvent);
-Controller.keyReleaseEvent.connect(keyReleaseEvent);
+function scriptEnding() {
+    disable();
+    Controller.disableMapping(MAPPING_ENABLE_NAME);
+    Controller.disableMapping(MAPPING_KEYS_NAME);
+}
+
+
+var MAPPING_ENABLE_NAME = 'io.highfidelity.gracefulControls.toggle';
+var MAPPING_KEYS_NAME = 'io.highfidelity.gracefulControls.keys';
+var keyControllerMapping = Controller.newMapping(MAPPING_KEYS_NAME);
+var enableControllerMapping = Controller.newMapping(MAPPING_ENABLE_NAME);
+
+function onKeyPress(key, value) {
+    print(key, value);
+    keys[key] = value > 0;
+
+    if (value > 0) {
+        if (key == KEY_TOGGLE) {
+            toggleEnabled();
+        } else if (key == KEY_BRAKE) {
+            movementParameters = BRAKE_PARAMETERS;
+        }
+    } else {
+        if (key == KEY_BRAKE) {
+            movementParameters = DEFAULT_PARAMETERS;
+        }
+    }
+}
+
+for (var i = 0; i < KEYS.length; ++i) {
+    var key = KEYS[i];
+    var hw = Controller.Hardware.Keyboard[key];
+    if (hw) {
+        keyControllerMapping.from(hw).to(function(key) {
+            return function(value) {
+                onKeyPress(key, value);
+            };
+        }(key));
+    } else {
+        print("Unknown key: ", key);
+    }
+}
+
+enableControllerMapping.from(Controller.Hardware.Keyboard[KEY_TOGGLE]).to(function(value) {
+    onKeyPress(KEY_TOGGLE, value);
+});
+
+Controller.enableMapping(MAPPING_ENABLE_NAME);
 
 Script.scriptEnding.connect(scriptEnding);

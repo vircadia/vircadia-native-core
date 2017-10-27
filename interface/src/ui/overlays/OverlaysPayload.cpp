@@ -21,7 +21,6 @@
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
-#include "LocalModelsOverlay.h"
 #include "ModelOverlay.h"
 #include "Overlays.h"
 #include "Rectangle3DOverlay.h"
@@ -35,13 +34,11 @@ namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
         auto builder = ItemKey::Builder().withTypeShape();
         if (overlay->is3D()) {
-            if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
+            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
+            if (overlay3D->getDrawInFront() || overlay3D->getDrawHUDLayer()) {
                 builder.withLayered();
             }
-            if (!std::static_pointer_cast<Base3DOverlay>(overlay)->isAA()) {
-                builder.withLayered();
-            }
-            if (overlay->getAlphaPulse() != 0.0f || overlay->getAlpha() != 1.0f) {
+            if (overlay->isTransparent()) {
                 builder.withTransparent();
             }
         } else {
@@ -53,24 +50,17 @@ namespace render {
         return overlay->getBounds();
     }
     template <> int payloadGetLayer(const Overlay::Pointer& overlay) {
-        // Magic number while we are defining the layering mechanism:
-        const int LAYER_NO_AA = 3;
-        const int LAYER_2D = 2;
-        const int LAYER_3D_FRONT = 1;
-        const int LAYER_3D = 0;
-
         if (overlay->is3D()) {
             auto overlay3D = std::dynamic_pointer_cast<Base3DOverlay>(overlay);
-            if (overlay3D->isAA())
-                if (overlay3D->getDrawInFront()) {
-                    return LAYER_3D_FRONT;
-                } else {
-                    return LAYER_3D;
-                }
-            else
-                return LAYER_NO_AA;
+            if (overlay3D->getDrawInFront()) {
+                return Item::LAYER_3D_FRONT;
+            } else if (overlay3D->getDrawHUDLayer()) {
+                return Item::LAYER_3D_HUD;
+            } else {
+                return Item::LAYER_3D;
+            }
         } else {
-            return LAYER_2D;
+            return Item::LAYER_2D;
         }
     }
     template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args) {
@@ -82,7 +72,7 @@ namespace render {
                 glm::vec3 myAvatarPosition = avatar->getPosition();
                 float angle = glm::degrees(glm::angle(myAvatarRotation));
                 glm::vec3 axis = glm::axis(myAvatarRotation);
-                float myAvatarScale = avatar->getUniformScale();
+                float myAvatarScale = avatar->getModelScale();
                 Transform transform = Transform();
                 transform.setTranslation(myAvatarPosition);
                 transform.setRotation(glm::angleAxis(angle, axis));

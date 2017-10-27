@@ -23,6 +23,7 @@
 #include <QUrlQuery>
 #include <QXmlStreamReader>
 
+#include <ThreadHelpers.h>
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
 
@@ -84,12 +85,7 @@ ModelsBrowser::ModelsBrowser(FSTReader::ModelType modelsType, QWidget* parent) :
     _handler->connect(this, SIGNAL(destroyed()), SLOT(exit()));
     
     // Setup and launch update thread
-    QThread* thread = new QThread();
-    thread->setObjectName("Models Browser");
-    thread->connect(_handler, SIGNAL(destroyed()), SLOT(quit()));
-    thread->connect(thread, SIGNAL(finished()), SLOT(deleteLater()));
-    _handler->moveToThread(thread);
-    thread->start();
+    moveToNewNamedThread(_handler, "Models Browser");
     emit startDownloading();
     
     // Initialize the view

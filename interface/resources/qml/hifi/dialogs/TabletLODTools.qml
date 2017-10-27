@@ -20,7 +20,6 @@ Rectangle {
     id: root
     objectName: "LODTools"
 
-    property var eventBridge;
     signal sendToScript(var message);
     property bool isHMD: false
 

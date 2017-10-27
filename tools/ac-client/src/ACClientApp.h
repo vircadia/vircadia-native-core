@@ -47,6 +47,9 @@ private:
     bool _sawAvatarMixer { false };
     bool _sawAssetServer { false };
     bool _sawMessagesMixer { false };
+
+    QString _username;
+    QString _password;
 };
 
 #endif //hifi_ACClientApp_h

@@ -12,9 +12,10 @@
 #ifndef hifi_render_DrawSceneOctree_h
 #define hifi_render_DrawSceneOctree_h
 
-#include "DrawTask.h"
-#include "gpu/Batch.h"
 #include <ViewFrustum.h>
+#include <gpu/Batch.h>
+
+#include "DrawTask.h"
 
 namespace render {
     class DrawSceneOctreeConfig : public Job::Config {

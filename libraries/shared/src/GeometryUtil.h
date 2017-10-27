@@ -13,6 +13,7 @@
 #define hifi_GeometryUtil_h
 
 #include <glm/glm.hpp>
+#include <vector>
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end);
 
@@ -83,7 +84,7 @@ bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& dire
         const glm::vec3& position, const glm::vec2& dimensions, float& distance);
 
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance);
+                                    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface = false);
 
 /// \brief decomposes rotation into its components such that: rotation = swing * twist
 /// \param rotation[in] rotation to decompose
@@ -104,8 +105,8 @@ public:
 };
 
 inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    const Triangle& triangle, float& distance) {
-    return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance);
+                                    const Triangle& triangle, float& distance, bool allowBackface = false) {
+    return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance, allowBackface);
 }
 
 
@@ -163,5 +164,13 @@ private:
     static void copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& lengthB, glm::vec2* vertexArrayB);
 };
 
+// given a set of points, compute a best fit plane that passes as close as possible through all the points.
+bool findPlaneFromPoints(const glm::vec3* points, size_t numPoints, glm::vec3& planeNormalOut, glm::vec3& pointOnPlaneOut);
+
+// plane equation is specified by ax + by + cz + d = 0.
+// the coefficents are passed in as a vec4. (a, b, c, d)
+bool findIntersectionOfThreePlanes(const glm::vec4& planeA, const glm::vec4& planeB, const glm::vec4& planeC, glm::vec3& intersectionPointOut);
+
+void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec3& center, std::vector<glm::vec3>& linesOut);
 
 #endif // hifi_GeometryUtil_h

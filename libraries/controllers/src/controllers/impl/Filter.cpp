@@ -22,12 +22,14 @@
 #include "filters/DeadZoneFilter.h"
 #include "filters/HysteresisFilter.h"
 #include "filters/InvertFilter.h"
+#include "filters/NotFilter.h"
 #include "filters/PulseFilter.h"
 #include "filters/ScaleFilter.h"
 #include "filters/TranslateFilter.h"
 #include "filters/TransformFilter.h"
 #include "filters/PostTransformFilter.h"
 #include "filters/RotateFilter.h"
+#include "filters/LowVelocityFilter.h"
 
 using namespace controller;
 
@@ -39,12 +41,14 @@ REGISTER_FILTER_CLASS_INSTANCE(ConstrainToPositiveIntegerFilter, "constrainToPos
 REGISTER_FILTER_CLASS_INSTANCE(DeadZoneFilter, "deadZone")
 REGISTER_FILTER_CLASS_INSTANCE(HysteresisFilter, "hysteresis")
 REGISTER_FILTER_CLASS_INSTANCE(InvertFilter, "invert")
+REGISTER_FILTER_CLASS_INSTANCE(NotFilter, "logicalNot")
 REGISTER_FILTER_CLASS_INSTANCE(ScaleFilter, "scale")
 REGISTER_FILTER_CLASS_INSTANCE(PulseFilter, "pulse")
 REGISTER_FILTER_CLASS_INSTANCE(TranslateFilter, "translate")
 REGISTER_FILTER_CLASS_INSTANCE(TransformFilter, "transform")
 REGISTER_FILTER_CLASS_INSTANCE(PostTransformFilter, "postTransform")
 REGISTER_FILTER_CLASS_INSTANCE(RotateFilter, "rotate")
+REGISTER_FILTER_CLASS_INSTANCE(LowVelocityFilter, "lowVelocity")
 
 const QString JSON_FILTER_TYPE = QStringLiteral("type");
 const QString JSON_FILTER_PARAMS = QStringLiteral("params");

@@ -42,6 +42,7 @@ public:
     
     static std::unique_ptr<NLPacket> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size,
                                                         const HifiSockAddr& senderSockAddr);
+
     static std::unique_ptr<NLPacket> fromBase(std::unique_ptr<Packet> packet);
     
     // Provided for convenience, try to limit use

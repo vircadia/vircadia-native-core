@@ -19,7 +19,7 @@
 class AudioInjectorLocalBuffer : public QIODevice {
     Q_OBJECT
 public:
-    AudioInjectorLocalBuffer(const QByteArray& rawAudioArray, QObject* parent);
+    AudioInjectorLocalBuffer(const QByteArray& rawAudioArray);
 
     void stop();
 

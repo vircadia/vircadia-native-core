@@ -40,7 +40,8 @@
     }
 
     function onScreenChanged(type, url) {
-        onHelpScreen = false;
+        onHelpScreen = type === "Web" && url.startsWith("../../../html/tabletHelp.html");
+        button.editProperties({ isActive: onHelpScreen });
     }
 
     button.clicked.connect(onClicked);
@@ -60,6 +61,7 @@
             tablet.gotoHomeScreen();
         }
         button.clicked.disconnect(onClicked);
+        tablet.screenChanged.disconnect(onScreenChanged);
         Script.clearInterval(interval);
         if (tablet) {
             tablet.removeButton(button);

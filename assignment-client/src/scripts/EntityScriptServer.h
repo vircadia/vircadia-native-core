@@ -19,13 +19,10 @@
 #include <QtCore/QUuid>
 
 #include <EntityEditPacketSender.h>
-#include <EntityTreeHeadlessViewer.h>
 #include <plugins/CodecPlugin.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
-
-static const int DEFAULT_MAX_ENTITY_PPS = 9000;
-static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
+#include "../entities/EntityTreeHeadlessViewer.h"
 
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT
@@ -57,6 +54,9 @@ private slots:
 
     void pushLogs();
 
+    void handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
+
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -75,7 +75,7 @@ private:
     bool _shuttingDown { false };
 
     static int _entitiesScriptEngineCount;
-    QSharedPointer<ScriptEngine> _entitiesScriptEngine;
+    ScriptEnginePointer _entitiesScriptEngine;
     EntityEditPacketSender _entityEditSender;
     EntityTreeHeadlessViewer _entityViewer;
 

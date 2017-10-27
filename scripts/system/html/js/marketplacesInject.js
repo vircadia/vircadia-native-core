@@ -26,7 +26,9 @@
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
 
-    var lastPage = "https://metaverse.highfidelity.com/marketplace?";
+    var commerceMode = false;
+    var userIsLoggedIn = false;
+    var walletNeedsSetup = false;
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -35,8 +37,8 @@
         $("head").append(
             '<style>' +
                 '#marketplace-navigation { font-family: Arial, Helvetica, sans-serif; width: 100%; height: 50px; background: #00b4ef; position: fixed; bottom: 0; z-index: 1000; }' +
-                '#marketplace-navigation .glyph { margin-left: 20px; margin-right: 3px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
-                '#marketplace-navigation .text { color: #fff; font-size: 18px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
+                '#marketplace-navigation .glyph { margin-left: 10px; margin-right: 3px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
+                '#marketplace-navigation .text { color: #fff; font-size: 16px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
                 '#marketplace-navigation input#back-button { position: absolute; left: 20px; margin-top: 12px; padding-left: 0; padding-right: 5px; }' +
                 '#marketplace-navigation input#all-markets { position: absolute; right: 20px; margin-top: 12px; padding-left: 15px; padding-right: 15px; }' +
                 '#marketplace-navigation .right { position: absolute; right: 20px; }' +
@@ -59,7 +61,7 @@
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
-                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">See also other marketplaces.</span>' : '') +
+                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Get items from Clara.io!</span>' : '') +
                 (!isDirectoryPage ? '<input id="all-markets" type="button" class="white" value="See All Markets" />' : '') +
                 (isDirectoryPage ? '<span class="right"><span class="glyph">&#x1f6c8;</span> <span class="text">Select a marketplace to explore.</span><span>' : '') +
             '</div>'
@@ -67,7 +69,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            window.location = lastPage;
+            (document.referrer !== "") ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -81,6 +83,7 @@
         letUsKnow.replaceWith(letUsKnow.html());
 
         // Add button links.
+
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -89,8 +92,293 @@
         });
     }
 
+    emitWalletSetupEvent = function() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "WALLET_SETUP"
+        }));
+    }
+
+    function maybeAddSetupWalletButton() {
+        if (!$('body').hasClass("walletsetup-injected") && userIsLoggedIn && walletNeedsSetup) {
+            $('body').addClass("walletsetup-injected");
+
+            var resultsElement = document.getElementById('results');
+            var setupWalletElement = document.createElement('div');
+            setupWalletElement.classList.add("row");
+            setupWalletElement.id = "setupWalletDiv";
+            setupWalletElement.style = "height:60px;margin:20px 10px 10px 10px;padding:12px 5px;" +
+                "background-color:#D6F4D8;border-color:#aee9b2;border-width:2px;border-style:solid;border-radius:5px;";
+
+            var span = document.createElement('span');
+            span.style = "margin:10px 5px;color:#1b6420;font-size:15px;";
+            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Setup your Wallet</a> to get money and shop in Marketplace.";
+
+            var xButton = document.createElement('a');
+            xButton.id = "xButton";
+            xButton.setAttribute('href', "#");
+            xButton.style = "width:50px;height:100%;margin:0;color:#ccc;font-size:20px;";
+            xButton.innerHTML = "X";
+            xButton.onclick = function () {
+                setupWalletElement.remove();
+                dummyRow.remove();
+            };
+
+            setupWalletElement.appendChild(span);
+            setupWalletElement.appendChild(xButton);
+
+            resultsElement.insertBefore(setupWalletElement, resultsElement.firstChild);
+
+            // Dummy row for padding
+            var dummyRow = document.createElement('div');
+            dummyRow.classList.add("row");
+            dummyRow.style = "height:15px;";
+            resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
+        }
+    }
+
+    function maybeAddLogInButton() {
+        if (!$('body').hasClass("login-injected") && !userIsLoggedIn) {
+            $('body').addClass("login-injected");
+            var resultsElement = document.getElementById('results');
+            if (!resultsElement) { // If we're on the main page, this will evaluate to `true`
+                resultsElement = document.getElementById('item-show');
+                resultsElement.style = 'margin-top:0;';
+            }
+            var logInElement = document.createElement('div');
+            logInElement.classList.add("row");
+            logInElement.id = "logInDiv";
+            logInElement.style = "height:60px;margin:20px 10px 10px 10px;padding:5px;" +
+                "background-color:#D6F4D8;border-color:#aee9b2;border-width:2px;border-style:solid;border-radius:5px;";
+
+            var button = document.createElement('a');
+            button.classList.add("btn");
+            button.classList.add("btn-default");
+            button.id = "logInButton";
+            button.setAttribute('href', "#");
+            button.innerHTML = "LOG IN";
+            button.style = "width:80px;height:100%;margin-top:0;margin-left:10px;padding:13px;font-weight:bold;background:linear-gradient(white, #ccc);";
+            button.onclick = function () {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "LOGIN"
+                }));
+            };
+
+            var span = document.createElement('span');
+            span.style = "margin:10px;color:#1b6420;font-size:15px;";
+            span.innerHTML = "to purchase items from the Marketplace.";
+
+            var xButton = document.createElement('a');
+            xButton.id = "xButton";
+            xButton.setAttribute('href', "#");
+            xButton.style = "width:50px;height:100%;margin:0;color:#ccc;font-size:20px;";
+            xButton.innerHTML = "X";
+            xButton.onclick = function () {
+                logInElement.remove();
+                dummyRow.remove();
+            };
+
+            logInElement.appendChild(button);
+            logInElement.appendChild(span);
+            logInElement.appendChild(xButton);
+
+            resultsElement.insertBefore(logInElement, resultsElement.firstChild);
+
+            // Dummy row for padding
+            var dummyRow = document.createElement('div');
+            dummyRow.classList.add("row");
+            dummyRow.style = "height:15px;";
+            resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
+        }
+    }
+
+    function maybeAddPurchasesButton() {
+        if (userIsLoggedIn) {
+            // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
+            var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
+            var purchasesElement = document.createElement('a');
+            var dropDownElement = document.getElementById('user-dropdown');
+
+            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" + 
+                "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
+            $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
+
+            purchasesElement.id = "purchasesButton";
+            purchasesElement.setAttribute('href', "#");
+            purchasesElement.innerHTML = "My Purchases";
+            // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
+            //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
+            purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
+                "px;position:relative;z-index:999;";
+            navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
+            $('#purchasesButton').on('click', function () {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "PURCHASES",
+                    referrerURL: window.location.href
+                }));
+            });
+        }
+    }
+
+    function changeDropdownMenu() {
+        var logInOrOutButton = document.createElement('a');
+        logInOrOutButton.id = "logInOrOutButton";
+        logInOrOutButton.setAttribute('href', "#");
+        logInOrOutButton.innerHTML = userIsLoggedIn ? "Log Out" : "Log In";
+        logInOrOutButton.onclick = function () {
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "LOGIN"
+            }));
+        };
+
+        $($('.dropdown-menu').find('li')[0]).append(logInOrOutButton);
+
+        $('a[href="/marketplace?view=mine"]').each(function () {
+            $(this).attr('href', '#');
+            $(this).on('click', function () {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "MY_ITEMS"
+                }));
+            });
+        });
+    }
+
+    function buyButtonClicked(id, name, author, price, href) {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "CHECKOUT",
+            itemId: id,
+            itemName: name,
+            itemPrice: price ? parseInt(price, 10) : 0,
+            itemHref: href
+        }));
+    }
+
+    function injectBuyButtonOnMainPage() {
+        var cost;
+
+        // Unbind original mouseenter and mouseleave behavior
+        $('body').off('mouseenter', '#price-or-edit .price');
+        $('body').off('mouseleave', '#price-or-edit .price');
+
+        $('.grid-item').find('#price-or-edit').each(function () {
+            $(this).css({ "margin-top": "0" });
+        });
+
+        $('.grid-item').find('#price-or-edit').find('a').each(function() {
+            $(this).attr('data-href', $(this).attr('href'));
+            $(this).attr('href', '#');
+            cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+
+            $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
+            $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
+
+            var priceElement = $(this).find('.price')
+            priceElement.css({
+                "padding": "3px 5px",
+                "height": "40px",
+                "background": "linear-gradient(#00b4ef, #0093C5)",
+                "color": "#FFF",
+                "font-weight": "600",
+                "line-height": "34px"
+            });
+
+            if (parseInt(cost) > 0) {
+                priceElement.css({ "width": "auto" });
+                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                priceElement.css({ "min-width": priceElement.width() + 30 });
+            }
+        });
+
+        // change pricing to GET on button hover
+        $('body').on('mouseenter', '#price-or-edit .price', function () {
+            var $this = $(this);
+            $this.data('initialHtml', $this.html());
+            $this.text('GET');
+        });
+
+        $('body').on('mouseleave', '#price-or-edit .price', function () {
+            var $this = $(this);
+            $this.html($this.data('initialHtml'));
+        });
+
+
+        $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+            buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
+                $(this).closest('.grid-item').find('.item-title').text(),
+                $(this).closest('.grid-item').find('.creator').find('.value').text(),
+                $(this).closest('.grid-item').find('.item-cost').text(),
+                $(this).attr('data-href'));
+        });
+    }
+
     function injectHiFiCode() {
-        // Nothing to do.
+        if (commerceMode) {
+            maybeAddLogInButton();
+            maybeAddSetupWalletButton();
+
+            if (!$('body').hasClass("code-injected")) {
+
+                $('body').addClass("code-injected");
+                changeDropdownMenu();
+
+                var target = document.getElementById('templated-items');
+                // MutationObserver is necessary because the DOM is populated after the page is loaded.
+                // We're searching for changes to the element whose ID is '#templated-items' - this is
+                //     the element that gets filled in by the AJAX.
+                var observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
+                        injectBuyButtonOnMainPage();
+                    });
+                    //observer.disconnect();
+                });
+                var config = { attributes: true, childList: true, characterData: true };
+                observer.observe(target, config);
+
+                // Try this here in case it works (it will if the user just pressed the "back" button,
+                //     since that doesn't trigger another AJAX request.
+                injectBuyButtonOnMainPage();
+                maybeAddPurchasesButton();
+            }
+        }
+    }
+
+    function injectHiFiItemPageCode() {
+        if (commerceMode) {
+            maybeAddLogInButton();
+
+            if (!$('body').hasClass("code-injected")) {
+
+                $('body').addClass("code-injected");
+                changeDropdownMenu();
+
+                var purchaseButton = $('#side-info').find('.btn').first();
+
+                var href = purchaseButton.attr('href');
+                purchaseButton.attr('href', '#');
+                purchaseButton.css({
+                    "background": "linear-gradient(#00b4ef, #0093C5)",
+                    "color": "#FFF",
+                    "font-weight": "600",
+                    "padding-bottom": "10px"
+                });
+
+                var cost = $('.item-cost').text();
+
+                if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
+                    purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                        'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                }
+
+                purchaseButton.on('click', function () {
+                    buyButtonClicked(window.location.pathname.split("/")[3],
+                        $('#top-center').find('h1').text(),
+                        $('#creator').find('.value').text(),
+                        cost,
+                        href);
+                });
+                maybeAddPurchasesButton();
+            }
+        }
     }
 
     function updateClaraCode() {
@@ -142,7 +430,7 @@
 
                 // One file request at a time.
                 if (isPreparing) {
-                    console.log("WARNIKNG: Clara.io FBX: Prepare only one download at a time");
+                    console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
                     return;
                 }
 
@@ -164,7 +452,7 @@
                 // Reference: https://clara.io/learn/sdk/api/export
 
                 //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
-                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to 
+                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to
                 // be successful in generating zip files.
                 var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
 
@@ -310,25 +598,16 @@
         }
     }
 
-    function onLoad() {
-
-        EventBridge.scriptEventReceived.connect(function (message) {
-            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
-                canWriteAssets = message.slice(-4) === "true";
-            }
-
-            if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
-                cancelClaraDownload();
-            }
-        });
-
+    function injectCode() {
         var DIRECTORY = 0;
         var HIFI = 1;
         var CLARA = 2;
+        var HIFI_ITEM_PAGE = 3;
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
+        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
@@ -341,15 +620,41 @@
             case CLARA:
                 injectClaraCode();
                 break;
+            case HIFI_ITEM_PAGE:
+                injectHiFiItemPageCode();
+                break;
+
         }
     }
 
-    function locationChanged() {
-        lastPage = location.href;
+    function onLoad() {
+        EventBridge.scriptEventReceived.connect(function (message) {
+            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
+                canWriteAssets = message.slice(-4) === "true";
+            } else if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
+                cancelClaraDownload();
+            } else {
+                var parsedJsonMessage = JSON.parse(message);
+
+                if (parsedJsonMessage.type === "marketplaces") {
+                    if (parsedJsonMessage.action === "commerceSetting") {
+                        commerceMode = !!parsedJsonMessage.data.commerceMode;
+                        userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
+                        walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
+                        injectCode();
+                    }
+                }
+            }
+        });
+
+        // Request commerce setting
+        // Code is injected into the webpage after the setting comes back.
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "REQUEST_SETTING"
+        }));
     }
 
     // Load / unload.
     window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
-    window.addEventListener("hashchange", locationChanged);
-
+    window.addEventListener("page:change", onLoad);  // Triggered after Marketplace HTML is changed
 }());

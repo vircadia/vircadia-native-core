@@ -10,7 +10,7 @@
     <link href="/css/sweetalert.css" rel="stylesheet" media="screen">
     <link href="/css/bootstrap-switch.min.css" rel="stylesheet" media="screen">
 
-
+    <script src='/js/sweetalert.min.js'></script>
   </head>
   <body>
     <nav class="navbar navbar-default" role="navigation">
@@ -39,7 +39,24 @@
             <li><a href="/content/">Content</a></li>
             <li><a href="/settings/">Settings</a></li>
           </ul>
+          <ul class="nav navbar-right navbar-nav">
+            <li><a href="#" id="restart-server"><span class="glyphicon glyphicon-refresh"></span> Restart</a></li>
+          </ul>
         </div>
       </div><!-- /.container-fluid -->
     </nav>
+
+    <div class="modal fade" id="restart-modal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">domain-server is restarting</h4>
+          </div>
+          <div class="modal-body">
+            <h5>This page will automatically refresh in <span id="refresh-time">3 seconds</span>.</h5>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
     <div class="container-fluid">

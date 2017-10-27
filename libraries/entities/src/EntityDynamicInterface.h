@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 class EntityItem;
+class EntityItemID;
 class EntitySimulation;
 using EntityItemPointer = std::shared_ptr<EntityItem>;
 using EntityItemWeakPointer = std::weak_ptr<EntityItem>;
@@ -28,10 +29,14 @@ enum EntityDynamicType {
     DYNAMIC_TYPE_NONE = 0,
     DYNAMIC_TYPE_OFFSET = 1000,
     DYNAMIC_TYPE_SPRING = 2000,
+    DYNAMIC_TYPE_TRACTOR = 2100,
     DYNAMIC_TYPE_HOLD = 3000,
     DYNAMIC_TYPE_TRAVEL_ORIENTED = 4000,
     DYNAMIC_TYPE_HINGE = 5000,
-    DYNAMIC_TYPE_FAR_GRAB = 6000
+    DYNAMIC_TYPE_FAR_GRAB = 6000,
+    DYNAMIC_TYPE_SLIDER = 7000,
+    DYNAMIC_TYPE_BALL_SOCKET = 8000,
+    DYNAMIC_TYPE_CONE_TWIST = 9000
 };
 
 
@@ -41,6 +46,9 @@ public:
     virtual ~EntityDynamicInterface() { }
     const QUuid& getID() const { return _id; }
     EntityDynamicType getType() const { return _type; }
+
+    virtual void remapIDs(QHash<EntityItemID, EntityItemID>& map) = 0;
+
     virtual bool isAction() const { return false; }
     virtual bool isConstraint() const { return false; }
     virtual bool isReadyForAdd() const { return true; }
@@ -86,15 +94,6 @@ public:
                                        QString argumentName, bool& ok, bool required = true);
 
 protected:
-    virtual glm::vec3 getPosition() = 0;
-    // virtual void setPosition(glm::vec3 position) = 0;
-    virtual glm::quat getRotation() = 0;
-    // virtual void setRotation(glm::quat rotation) = 0;
-    virtual glm::vec3 getLinearVelocity() = 0;
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) = 0;
-    virtual glm::vec3 getAngularVelocity() = 0;
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) = 0;
-
     QUuid _id;
     EntityDynamicType _type;
     bool _active { false };

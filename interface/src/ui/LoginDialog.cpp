@@ -19,13 +19,13 @@
 #include <NetworkingConstants.h>
 #include <plugins/PluginManager.h>
 #include <plugins/SteamClientPlugin.h>
+#include <ui/TabletScriptingInterface.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
 #include "Menu.h"
 
 #include "Application.h"
-#include "TabletScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 
 HIFI_QML_DEF(LoginDialog)
@@ -169,12 +169,14 @@ void LoginDialog::openUrl(const QString& url) const {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     if (tablet->getToolbarMode()) {
-        auto browser = offscreenUi->load("Browser.qml");
-        browser->setProperty("url", url);
+        offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+            newObject->setProperty("url", url);
+        });
     } else {
         if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            auto browser = offscreenUi->load("Browser.qml");
-            browser->setProperty("url", url);
+            offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
+                newObject->setProperty("url", url);
+            });
         } else {
             tablet->gotoWebScreen(url);
         }

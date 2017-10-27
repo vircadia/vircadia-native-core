@@ -111,14 +111,14 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # shortcut names
     if (PRODUCTION_BUILD)
-      set(INTERFACE_SHORTCUT_NAME "Interface")
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface")
       set(CONSOLE_SHORTCUT_NAME "Sandbox")
     else ()
-      set(INTERFACE_SHORTCUT_NAME "Interface - ${BUILD_VERSION}")
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface - ${BUILD_VERSION}")
       set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION}")
     endif ()
 
-    set(INTERFACE_HF_SHORTCUT_NAME "High Fidelity ${INTERFACE_SHORTCUT_NAME}")
+    set(INTERFACE_HF_SHORTCUT_NAME "${INTERFACE_SHORTCUT_NAME}")
     set(CONSOLE_HF_SHORTCUT_NAME "High Fidelity ${CONSOLE_SHORTCUT_NAME}")
 
     set(PRE_SANDBOX_INTERFACE_SHORTCUT_NAME "High Fidelity")
@@ -126,7 +126,13 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # check if we need to find signtool
     if (PRODUCTION_BUILD OR PR_BUILD)
-      find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")
+      if (MSVC_VERSION GREATER_EQUAL 1910) # VS 2017
+        find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/10" PATH_SUFFIXES "bin/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/x64")
+      elseif (MSVC_VERSION GREATER_EQUAL 1800) # VS 2013
+        find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")
+      else()
+        message( FATAL_ERROR "Visual Studio 2013 or higher required." )
+      endif()
 
       if (NOT SIGNTOOL_EXECUTABLE)
         message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
@@ -141,6 +147,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CONSOLE_STARTUP_REG_KEY "ConsoleStartupShortcut")
     set(CLIENT_LAUNCH_NOW_REG_KEY "ClientLaunchAfterInstall")
     set(SERVER_LAUNCH_NOW_REG_KEY "ServerLaunchAfterInstall")
+    set(CUSTOM_INSTALL_REG_KEY "CustomInstall")
   endif ()
 
   # setup component categories for installer
@@ -155,5 +162,6 @@ macro(SET_PACKAGING_PARAMETERS)
   # create a header file our targets can use to find out the application version
   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/includes")
   configure_file("${HF_CMAKE_DIR}/templates/BuildInfo.h.in" "${CMAKE_BINARY_DIR}/includes/BuildInfo.h")
+  include_directories("${CMAKE_BINARY_DIR}/includes")
 
 endmacro(SET_PACKAGING_PARAMETERS)

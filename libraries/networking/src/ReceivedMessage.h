@@ -24,6 +24,8 @@ class ReceivedMessage : public QObject {
 public:
     ReceivedMessage(const NLPacketList& packetList);
     ReceivedMessage(NLPacket& packet);
+    ReceivedMessage(QByteArray byteArray, PacketType packetType, PacketVersion packetVersion,
+                    const HifiSockAddr& senderSockAddr, QUuid sourceID = QUuid());
 
     QByteArray getMessage() const { return _data; }
     const char* getRawMessage() const { return _data.constData(); }

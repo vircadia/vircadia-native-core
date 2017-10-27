@@ -5,6 +5,8 @@ set(TARGET_NAME controllers-test)
 setup_hifi_project(Script Qml)
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 
+setup_memory_debugger()
+
 # link in the shared libraries
 link_hifi_libraries(shared gl script-engine plugins render-utils ui-plugins input-plugins display-plugins controllers)
 

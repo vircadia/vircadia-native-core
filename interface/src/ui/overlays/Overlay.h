@@ -58,6 +58,7 @@ public:
     virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
+    virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
     xColor getColor();
     float getAlpha();
     Anchor getAnchor() const { return _anchor; }
@@ -71,7 +72,8 @@ public:
     float getAlphaPulse() const { return _alphaPulse; }
 
     // setters
-    void setVisible(bool visible) { _visible = visible; }
+    virtual void setVisible(bool visible) { _visible = visible; }
+    void setDrawHUDLayer(bool drawHUDLayer);
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
     void setAnchor(Anchor anchor) { _anchor = anchor; }
@@ -84,9 +86,9 @@ public:
     void setColorPulse(float value) { _colorPulse = value; }
     void setAlphaPulse(float value) { _alphaPulse = value; }
 
-    virtual void setProperties(const QVariantMap& properties);
-    virtual Overlay* createClone() const = 0;
-    virtual QVariant getProperty(const QString& property);
+    Q_INVOKABLE virtual void setProperties(const QVariantMap& properties);
+    Q_INVOKABLE virtual Overlay* createClone() const = 0;
+    Q_INVOKABLE virtual QVariant getProperty(const QString& property);
 
     render::ItemID getRenderItemID() const { return _renderItemID; }
     void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }

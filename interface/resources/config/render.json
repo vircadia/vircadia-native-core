@@ -1,13 +1,15 @@
 {
-    "RenderShadowTask": {
-        "Enabled": {
-            "enabled": true
-        }
-    },
-    "RenderDeferredTask": {
-        "AmbientOcclusion": {
+    "RenderMainView": {
+        "RenderShadowTask": {
             "Enabled": {
                 "enabled": true
+            }
+        },
+        "RenderDeferredTask": {
+            "AmbientOcclusion": {
+                "Enabled": {
+                    "enabled": true
+                }
             }
         }
     }

@@ -108,6 +108,7 @@ public:
 
 signals:
     void updateNodePermissions();
+    void settingsUpdated();
 
 public slots:
     void apiGetGroupIDJSONCallback(QNetworkReply& requestReply);

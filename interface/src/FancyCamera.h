@@ -11,7 +11,7 @@
 #ifndef hifi_FancyCamera_h
 #define hifi_FancyCamera_h
 
-#include "Camera.h"
+#include <shared/Camera.h>
 
 #include <EntityTypes.h>
 
@@ -30,6 +30,8 @@ public:
     FancyCamera() : Camera() {}
 
     EntityItemPointer getCameraEntityPointer() const { return _cameraEntity; }
+    PickRay computePickRay(float x, float y) const override;
+
 
 public slots:
     QUuid getCameraEntity() const;

@@ -1,6 +1,6 @@
 //  shopItemGrab.js
 //  
-//  Semplified and coarse version of handControllerGrab.js with the addition of the ownerID concept.
+//  Simplified and coarse version of handControllerGrab.js with the addition of the ownerID concept.
 //  This grab is the only one which should run in the vrShop. It allows only near grab and add the feature of checking the ownerID. (See shopGrapSwapperEntityScript.js)
 //  
 
@@ -63,8 +63,8 @@ var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-g
 // equip
 //
 
-var EQUIP_SPRING_SHUTOFF_DISTANCE = 0.05;
-var EQUIP_SPRING_TIMEFRAME = 0.4; // how quickly objects move to their new position
+var EQUIP_TRACTOR_SHUTOFF_DISTANCE = 0.05;
+var EQUIP_TRACTOR_TIMEFRAME = 0.4; // how quickly objects move to their new position
 
 //
 // other constants
@@ -121,7 +121,7 @@ var STATE_EQUIP_SEARCHING = 11;
 var STATE_EQUIP = 12
 var STATE_CONTINUE_EQUIP_BD = 13; // equip while bumper is still held down
 var STATE_CONTINUE_EQUIP = 14;
-var STATE_EQUIP_SPRING = 16;
+var STATE_EQUIP_TRACTOR = 16;
 
 
 function stateToName(state) {
@@ -152,8 +152,8 @@ function stateToName(state) {
             return "continue_equip_bd";
         case STATE_CONTINUE_EQUIP:
             return "continue_equip";
-        case STATE_EQUIP_SPRING:
-            return "state_equip_spring";
+        case STATE_EQUIP_TRACTOR:
+            return "state_equip_tractor";
     }
 
     return "unknown";
@@ -216,7 +216,7 @@ function MyController(hand) {
             case STATE_EQUIP:
                 this.nearGrabbing();
                 break;
-            case STATE_EQUIP_SPRING:
+            case STATE_EQUIP_TRACTOR:
                 this.pullTowardEquipPosition()
                 break;
             case STATE_CONTINUE_NEAR_GRABBING:
@@ -404,14 +404,14 @@ function MyController(hand) {
                         return;
                     } else if (!properties.locked) {
                         var ownerObj = getEntityCustomData('ownerKey', intersection.entityID, null);
-                        
+
                         if (ownerObj == null || ownerObj.ownerID === MyAvatar.sessionUUID) {    //I can only grab new or already mine items
                             this.grabbedEntity = intersection.entityID;
                             if (this.state == STATE_SEARCHING) {
                                 this.setState(STATE_NEAR_GRABBING);
                             } else { // equipping
                                 if (typeof grabbableData.spatialKey !== 'undefined') {
-                                    this.setState(STATE_EQUIP_SPRING);
+                                    this.setState(STATE_EQUIP_TRACTOR);
                                 } else {
                                     this.setState(STATE_EQUIP);
                                 }
@@ -558,7 +558,7 @@ function MyController(hand) {
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
-        // use a spring to pull the object to where it will be when equipped
+        // use a tractor to pull the object to where it will be when equipped
         var relativeRotation = {
             x: 0.0,
             y: 0.0,
@@ -582,34 +582,34 @@ function MyController(hand) {
         var offset = Vec3.multiplyQbyV(targetRotation, relativePosition);
         var targetPosition = Vec3.sum(handPosition, offset);
 
-        if (typeof this.equipSpringID === 'undefined' ||
-            this.equipSpringID === null ||
-            this.equipSpringID === NULL_ACTION_ID) {
-            this.equipSpringID = Entities.addAction("spring", this.grabbedEntity, {
+        if (typeof this.equipTractorID === 'undefined' ||
+            this.equipTractorID === null ||
+            this.equipTractorID === NULL_ACTION_ID) {
+            this.equipTractorID = Entities.addAction("tractor", this.grabbedEntity, {
                 targetPosition: targetPosition,
-                linearTimeScale: EQUIP_SPRING_TIMEFRAME,
+                linearTimeScale: EQUIP_TRACTOR_TIMEFRAME,
                 targetRotation: targetRotation,
-                angularTimeScale: EQUIP_SPRING_TIMEFRAME,
+                angularTimeScale: EQUIP_TRACTOR_TIMEFRAME,
                 ttl: ACTION_TTL
             });
-            if (this.equipSpringID === NULL_ACTION_ID) {
-                this.equipSpringID = null;
+            if (this.equipTractorID === NULL_ACTION_ID) {
+                this.equipTractorID = null;
                 this.setState(STATE_OFF);
                 return;
             }
         } else {
-            Entities.updateAction(this.grabbedEntity, this.equipSpringID, {
+            Entities.updateAction(this.grabbedEntity, this.equipTractorID, {
                 targetPosition: targetPosition,
-                linearTimeScale: EQUIP_SPRING_TIMEFRAME,
+                linearTimeScale: EQUIP_TRACTOR_TIMEFRAME,
                 targetRotation: targetRotation,
-                angularTimeScale: EQUIP_SPRING_TIMEFRAME,
+                angularTimeScale: EQUIP_TRACTOR_TIMEFRAME,
                 ttl: ACTION_TTL
             });
         }
 
-        if (Vec3.distance(grabbedProperties.position, targetPosition) < EQUIP_SPRING_SHUTOFF_DISTANCE) {
-            Entities.deleteAction(this.grabbedEntity, this.equipSpringID);
-            this.equipSpringID = null;
+        if (Vec3.distance(grabbedProperties.position, targetPosition) < EQUIP_TRACTOR_SHUTOFF_DISTANCE) {
+            Entities.deleteAction(this.grabbedEntity, this.equipTractorID);
+            this.equipTractorID = null;
             this.setState(STATE_EQUIP);
         }
     };

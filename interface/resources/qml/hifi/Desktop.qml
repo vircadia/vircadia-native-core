@@ -2,7 +2,6 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.1;
 import Qt.labs.settings 1.0
-import HFWebEngineProfile 1.0
 
 import "../desktop" as OriginalDesktop
 import ".."
@@ -26,11 +25,6 @@ OriginalDesktop.Desktop {
     // The tool window, one instance
     property alias toolWindow: toolWindow
     ToolWindow { id: toolWindow }
-
-    property var browserProfile: HFWebEngineProfile {
-        id: webviewProfile
-        storageName: "qmlWebEngine"
-    }
 
     Action {
         text: "Open Browser"

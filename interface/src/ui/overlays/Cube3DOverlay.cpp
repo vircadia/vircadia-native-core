@@ -53,30 +53,24 @@ void Cube3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glm::vec4 cubeColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    // TODO: handle registration point??
-    glm::vec3 position = getPosition();
-    glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
+
 
     auto batch = args->_batch;
-
     if (batch) {
-        Transform transform;
-        transform.setTranslation(position);
-        transform.setRotation(rotation);
+        Transform transform = getRenderTransform();
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto pipeline = args->_pipeline;
-        if (!pipeline) {
-            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+        auto shapePipeline = args->_shapePipeline;
+        if (!shapePipeline) {
+            shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
         }
 
         if (_isSolid) {
-            transform.setScale(dimensions);
             batch->setModelTransform(transform);
-            geometryCache->renderSolidCubeInstance(*batch, cubeColor, pipeline);
+            geometryCache->renderSolidCubeInstance(args, *batch, cubeColor, shapePipeline);
         } else {
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
+                auto dimensions = transform.getScale();
                 transform.setScale(1.0f);
                 batch->setModelTransform(transform);
 
@@ -107,9 +101,8 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor, _geometryIds[11]);
 
             } else {
-                transform.setScale(dimensions);
                 batch->setModelTransform(transform);
-                geometryCache->renderWireCubeInstance(*batch, cubeColor, pipeline);
+                geometryCache->renderWireCubeInstance(args, *batch, cubeColor, shapePipeline);
             }
         }
     }
@@ -117,7 +110,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
 
 const render::ShapeKey Cube3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder();
-    if (getAlpha() != 1.0f) {
+    if (isTransparent()) {
         builder.withTranslucent();
     }
     if (!getIsSolid()) {
@@ -147,4 +140,17 @@ QVariant Cube3DOverlay::getProperty(const QString& property) {
     }
 
     return Volume3DOverlay::getProperty(property);
+}
+
+Transform Cube3DOverlay::evalRenderTransform() {
+    // TODO: handle registration point??
+    glm::vec3 position = getPosition();
+    glm::vec3 dimensions = getDimensions();
+    glm::quat rotation = getRotation();
+
+    Transform transform;
+    transform.setScale(dimensions);
+    transform.setTranslation(position);
+    transform.setRotation(rotation);
+    return transform;
 }

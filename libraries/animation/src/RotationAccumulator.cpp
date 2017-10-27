@@ -1,5 +1,5 @@
 //
-//  RotationAccumulator.h
+//  RotationAccumulator.cpp
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -27,7 +27,7 @@ void RotationAccumulator::clear() {
     _numRotations = 0;
 }
 
-void RotationAccumulator::clearAndClean() { 
+void RotationAccumulator::clearAndClean() {
     clear();
     _isDirty = false;
 }

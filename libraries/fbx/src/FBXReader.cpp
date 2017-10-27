@@ -168,7 +168,8 @@ QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
 
-const char* HUMANIK_JOINTS[] = {
+/// The names of the joints in the Maya HumanIK rig
+static const std::array<const char*, 16> HUMANIK_JOINTS = {{
     "RightHand",
     "RightForeArm",
     "RightArm",
@@ -184,9 +185,8 @@ const char* HUMANIK_JOINTS[] = {
     "RightLeg",
     "LeftLeg",
     "RightFoot",
-    "LeftFoot",
-    ""
-};
+    "LeftFoot"
+}};
 
 class FBXModel {
 public:
@@ -210,9 +210,12 @@ public:
 };
 
 glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
-        const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack) {
+        const QHash<QString, FBXModel>& models, QString nodeID, bool mixamoHack, const QString& url) {
     glm::mat4 globalTransform;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
     while (!nodeID.isNull()) {
+        visitedNodes.append(nodeID); // Append each node we visit
+
         const FBXModel& model = models.value(nodeID);
         globalTransform = glm::translate(model.translation) * model.preTransform * glm::mat4_cast(model.preRotation *
             model.rotation * model.postRotation) * model.postTransform * globalTransform;
@@ -223,6 +226,11 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         QList<QString> parentIDs = _connectionParentMap.values(nodeID);
         nodeID = QString();
         foreach (const QString& parentID, parentIDs) {
+            if (visitedNodes.contains(parentID)) {
+                qCWarning(modelformat) << "Ignoring loop detected in FBX connection map for" << url;
+                continue;
+            }
+
             if (models.contains(parentID)) {
                 nodeID = parentID;
                 break;
@@ -347,10 +355,18 @@ void addBlendshapes(const ExtractedBlendshape& extracted, const QList<WeightedIn
 }
 
 QString getTopModelID(const QMultiMap<QString, QString>& connectionParentMap,
-        const QHash<QString, FBXModel>& models, const QString& modelID) {
+        const QHash<QString, FBXModel>& models, const QString& modelID, const QString& url) {
     QString topID = modelID;
+    QVector<QString> visitedNodes; // Used to prevent following a cycle
     forever {
+        visitedNodes.append(topID); // Append each node we visit
+
         foreach (const QString& parentID, connectionParentMap.values(topID)) {
+            if (visitedNodes.contains(parentID)) {
+                qCWarning(modelformat) << "Ignoring loop detected in FBX connection map for" << url;
+                continue;
+            }
+
             if (models.contains(parentID)) {
                 topID = parentID;
                 goto outerContinue;
@@ -444,21 +460,15 @@ FBXLight extractLight(const FBXNode& object) {
 }
 
 QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
-    QString path = QFileInfo(url).path();
-    QByteArray filename = filepath;
-    QFileInfo checkFile(path + "/" + filepath);
+    // in order to match the behaviour when loading models from remote URLs
+    // we assume that all external textures are right beside the loaded model
+    // ignoring any relative paths or absolute paths inside of models
 
-    // check if the file exists at the RelativeFilename
-    if (!(checkFile.exists() && checkFile.isFile())) {
-        // if not, assume it is in the fbx directory
-        filename = filename.mid(filename.lastIndexOf('/') + 1);
-    }
-
-    return filename;
+    return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {
-    const FBXNode& node = _fbxNode;
+    const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -502,11 +512,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
 
     QVector<QString> humanIKJointNames;
-    for (int i = 0;; i++) {
+    for (int i = 0; i <  (int) HUMANIK_JOINTS.size(); i++) {
         QByteArray jointName = HUMANIK_JOINTS[i];
-        if (jointName.isEmpty()) {
-            break;
-        }
         humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
     }
     QVector<QString> humanIKJointIDs(humanIKJointNames.size());
@@ -836,12 +843,14 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             QByteArray filepath = filename.replace('\\', '/');
                             filename = fileOnUrl(filepath, url);
+                            qDebug() << "Filename" << filepath << filename;
                             _textureFilepaths.insert(getID(object.properties), filepath);
                             _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName" && subobject.properties.length() >= TEXTURE_NAME_MIN_SIZE) {
                             // trim the name from the timestamp
                             QString name = QString(subobject.properties.at(0).toByteArray());
                             name = name.left(name.indexOf('['));
+                            qDebug() << "Filename" << name;
                             _textureNames.insert(getID(object.properties), name);
                         } else if (subobject.name == "Texture_Alpha_Source" && subobject.properties.length() >= TEXTURE_ALPHA_SOURCE_MIN_SIZE) {
                             tex.assign<uint8_t>(tex.alphaSource, subobject.properties.at(0).value<int>());
@@ -930,7 +939,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     QByteArray content;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            filepath= subobject.properties.at(0).toByteArray();
+                            filepath = subobject.properties.at(0).toByteArray();
                             filepath = filepath.replace('\\', '/');
 
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
@@ -1307,7 +1316,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 if (!clusters.contains(clusterID)) {
                     continue;
                 }
-                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID));
+                QString topID = getTopModelID(_connectionParentMap, models, _connectionChildMap.value(clusterID), url);
                 _connectionChildMap.remove(_connectionParentMap.take(model.key()), model.key());
                 _connectionParentMap.insert(model.key(), topID);
                 goto outerBreak;
@@ -1329,7 +1338,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 first = id;
             }
         }
-        QString topID = getTopModelID(_connectionParentMap, models, first);
+        QString topID = getTopModelID(_connectionParentMap, models, first, url);
         appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, models, remainingModels, modelIDs);
     }
 
@@ -1511,7 +1520,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : _connectionParentMap.value(it.key());
-        glm::mat4 modelTransform = getGlobalTransform(_connectionParentMap, models, modelID, geometry.applicationName == "mixamo.com");
+        glm::mat4 modelTransform = getGlobalTransform(_connectionParentMap, models, modelID, geometry.applicationName == "mixamo.com", url);
 
         // compute the mesh extents from the transformed vertices
         foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
@@ -1672,8 +1681,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         int newIndex = it.value();
 
                         // remember vertices with at least 1/4 weight
-                        const float EXPANSION_WEIGHT_THRESHOLD = 0.99f;
-                        if (weight > EXPANSION_WEIGHT_THRESHOLD) {
+                        const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
+                        if (weight >= EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
                             const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(newIndex));
                             points.push_back(extractTranslation(vertexTransform) * clusterScale);
@@ -1778,6 +1787,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                 avgPoint += points[j];
             }
             avgPoint /= (float)points.size();
+            joint.shapeInfo.avgPoint = avgPoint;
 
             // compute a k-Dop bounding volume
             for (uint32_t j = 0; j < cardinalDirections.size(); ++j) {
@@ -1793,8 +1803,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     }
                 }
                 joint.shapeInfo.points.push_back(avgPoint + maxDot * cardinalDirections[j]);
+                joint.shapeInfo.dots.push_back(maxDot);
                 joint.shapeInfo.points.push_back(avgPoint + minDot * cardinalDirections[j]);
+                joint.shapeInfo.dots.push_back(-minDot);
             }
+            generateBoundryLinesForDop14(joint.shapeInfo.dots, joint.shapeInfo.avgPoint, joint.shapeInfo.debugLines);
         }
     }
     geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
@@ -1826,9 +1839,11 @@ FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const
 
 FBXGeometry* readFBX(QIODevice* device, const QVariantHash& mapping, const QString& url, bool loadLightmaps, float lightmapLevel) {
     FBXReader reader;
-    reader._fbxNode = FBXReader::parseFBX(device);
+    reader._rootNode = FBXReader::parseFBX(device);
     reader._loadLightmaps = loadLightmaps;
     reader._lightmapLevel = lightmapLevel;
+
+    qDebug() << "Reading FBX: " << url;
 
     return reader.extractFBXGeometry(mapping, url);
 }

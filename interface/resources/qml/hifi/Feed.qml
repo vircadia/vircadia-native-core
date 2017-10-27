@@ -35,7 +35,6 @@ Column {
     property string metaverseServerUrl: '';
     property string actions: 'snapshot';
     // sendToScript doesn't get wired until after everything gets created. So we have to queue fillDestinations on nextTick.
-    Component.onCompleted: delay.start();
     property string labelText: actions;
     property string filter: '';
     onFilterChanged: filterChoicesByText();
@@ -125,11 +124,9 @@ Column {
             cb();
         });
     }
-    property var delay: Timer { // No setTimeout or nextTick in QML.
-        interval: 0;
-        onTriggered: fillDestinations();
-    }
     function fillDestinations() { // Public
+        console.debug('Feed::fillDestinations()')
+
         function report(label, error) {
             console.log(label, actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
         }
@@ -156,10 +153,8 @@ Column {
     function makeFilteredStoryProcessor() { // answer a function(storyData) that adds it to suggestions if it matches
         var words = filter.toUpperCase().split(/\s+/).filter(identity);
         function suggestable(story) {
-            if (story.action === 'snapshot') {
-                return true;
-            }
-            return story.place_name !== AddressManager.placename; // Not our entry, but do show other entry points to current domain.
+            // We could filter out places we don't want to suggest, such as those where (story.place_name === AddressManager.placename) or (story.username === Account.username).
+            return true;
         }
         function matches(story) {
             if (!words.length) {
@@ -208,9 +203,9 @@ Column {
         id: scroll;
         model: suggestions;
         orientation: ListView.Horizontal;
+        highlightFollowsCurrentItem: false
         highlightMoveDuration: -1;
         highlightMoveVelocity: -1;
-        highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight; z: 1; }
         currentIndex: -1;
 
         spacing: 12;
@@ -239,9 +234,25 @@ Column {
             textSizeSmall: root.textSizeSmall;
             stackShadowNarrowing: root.stackShadowNarrowing;
             shadowHeight: root.stackedCardShadowHeight;
-
-            hoverThunk: function () { scroll.currentIndex = index; }
-            unhoverThunk: function () { scroll.currentIndex = -1; }
+            hoverThunk: function () { hovered = true }
+            unhoverThunk: function () { hovered = false }
         }
+    }
+    NumberAnimation {
+        id: anim;
+        target: scroll;
+        property: "contentX";
+        duration: 250;
+    }
+    function scrollToIndex(index) {
+        anim.running = false;
+        var pos = scroll.contentX;
+        var destPos;
+        scroll.positionViewAtIndex(index, ListView.Contain);
+        destPos = scroll.contentX;
+        anim.from = pos;
+        anim.to = destPos;
+        scroll.currentIndex = index;
+        anim.running = true;
     }
 }

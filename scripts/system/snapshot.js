@@ -10,7 +10,8 @@
 /* globals Tablet, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar, Snapshot */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
+Script.include("/~/system/libraries/accountUtils.js");
 
 var SNAPSHOT_DELAY = 500; // 500ms
 var FINISH_SOUND_DELAY = 350;
@@ -29,72 +30,38 @@ var button = tablet.addButton({
     sortOrder: 5
 });
 
-var snapshotOptions;
+var snapshotOptions = {};
 var imageData = [];
 var storyIDsToMaybeDelete = [];
 var shareAfterLogin = false;
-var snapshotToShareAfterLogin;
+var snapshotToShareAfterLogin = [];
 var METAVERSE_BASE = location.metaverseServerUrl;
+var isLoggedIn;
+var numGifSnapshotUploadsPending = 0;
+var numStillSnapshotUploadsPending = 0;
 
 // It's totally unnecessary to return to C++ to perform many of these requests, such as DELETEing an old story,
 // POSTING a new one, PUTTING a new audience, or GETTING story data. It's far more efficient to do all of that within JS
-function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
-    var httpRequest = new XMLHttpRequest(), key;
-    // QT bug: apparently doesn't handle onload. Workaround using readyState.
-    httpRequest.onreadystatechange = function () {
-        var READY_STATE_DONE = 4;
-        var HTTP_OK = 200;
-        if (httpRequest.readyState >= READY_STATE_DONE) {
-            var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
-                response = !error && httpRequest.responseText,
-                contentType = !error && httpRequest.getResponseHeader('content-type');
-            if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
-                try {
-                    response = JSON.parse(response);
-                } catch (e) {
-                    error = e;
-                }
-            }
-            callback(error, response);
-        }
-    };
-    if (typeof options === 'string') {
-        options = { uri: options };
-    }
-    if (options.url) {
-        options.uri = options.url;
-    }
-    if (!options.method) {
-        options.method = 'GET';
-    }
-    if (options.body && (options.method === 'GET')) { // add query parameters
-        var params = [], appender = (-1 === options.uri.search('?')) ? '?' : '&';
-        for (key in options.body) {
-            params.push(key + '=' + options.body[key]);
-        }
-        options.uri += appender + params.join('&');
-        delete options.body;
-    }
-    if (options.json) {
-        options.headers = options.headers || {};
-        options.headers["Content-type"] = "application/json";
-        options.body = JSON.stringify(options.body);
-    }
-    for (key in options.headers || {}) {
-        httpRequest.setRequestHeader(key, options.headers[key]);
-    }
-    httpRequest.open(options.method, options.uri, true);
-    httpRequest.send(options.body);
+var request;
+
+try {
+    // Due to an issue where if the user spams 'script reload', this call could cause an exception
+    // preventing our scriptEnding to not properly be initialized resulting in the tablet button
+    // duplicating itself where you end up with a bunch of SNAP buttons on your toolbar
+    request = Script.require('request').request;
+} catch(err) {
+    print('Failed to resolve request api, error: ' + err);
 }
 
-function openLoginWindow() {
-    if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
-        || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
-        Menu.triggerOption("Login / Sign Up");
-    } else {
-        tablet.loadQMLOnTop("../../dialogs/TabletLoginDialog.qml");
-        HMD.openTablet();
-    }
+
+
+function removeFromStoryIDsToMaybeDelete(story_id) {
+    storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(story_id), 1);
+    print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
+}
+
+function fileExtensionMatches(filePath, extension) {
+    return filePath.split('.').pop().toLowerCase() === extension;
 }
 
 function onMessage(message) {
@@ -108,7 +75,6 @@ function onMessage(message) {
         return;
     }
 
-    var isLoggedIn;
     switch (message.action) {
         case 'ready': // DOM is ready and page has loaded
             tablet.emitScriptEvent(JSON.stringify({
@@ -117,13 +83,15 @@ function onMessage(message) {
                 setting: Settings.getValue("alsoTakeAnimatedSnapshot", true)
             }));
             if (Snapshot.getSnapshotsLocation() !== "") {
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: "snapshot",
-                    action: "showPreviousImages",
-                    options: snapshotOptions,
-                    image_data: imageData,
-                    canShare: !isDomainOpen(Settings.getValue("previousSnapshotDomainID"))
-                }));
+                isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                    tablet.emitScriptEvent(JSON.stringify({
+                        type: "snapshot",
+                        action: "showPreviousImages",
+                        options: snapshotOptions,
+                        image_data: imageData,
+                        canShare: canShare
+                    }));
+                });                
             } else {
                 tablet.emitScriptEvent(JSON.stringify({
                     type: "snapshot",
@@ -131,27 +99,27 @@ function onMessage(message) {
                 }));
                 Settings.setValue("previousStillSnapPath", "");
                 Settings.setValue("previousStillSnapStoryID", "");
-                Settings.setValue("previousStillSnapSharingDisabled", false);
+                Settings.setValue("previousStillSnapBlastingDisabled", false);
+                Settings.setValue("previousStillSnapHifiSharingDisabled", false);
+                Settings.setValue("previousStillSnapUrl", "");
                 Settings.setValue("previousAnimatedSnapPath", "");
                 Settings.setValue("previousAnimatedSnapStoryID", "");
-                Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                Settings.setValue("previousAnimatedSnapBlastingDisabled", false);
+                Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
             }
+            updatePrintPermissions();
+            break;
+        case 'login':
+            openLoginWindow();
             break;
         case 'chooseSnapshotLocation':
-            var snapshotPath = Window.browseDir("Choose Snapshots Directory", "", "");
-
-            if (snapshotPath) { // not cancelled
-                Snapshot.setSnapshotsLocation(snapshotPath);
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: "snapshot",
-                    action: "snapshotLocationChosen"
-                }));
-            }
+            Window.browseDirChanged.connect(snapshotDirChanged);
+            Window.browseDirAsync("Choose Snapshots Directory", "", "");
             break;
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
                 || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
-                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "General Preferences");
+                Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
             } else {
                 tablet.loadQMLOnTop("TabletGeneralPreferences.qml");
             }
@@ -168,24 +136,38 @@ function onMessage(message) {
             takeSnapshot();
             break;
         case 'shareSnapshotForUrl':
-            isLoggedIn = Account.isLoggedIn();
-            if (isLoggedIn) {
-                print('Sharing snapshot with audience "for_url":', message.data);
-                Window.shareSnapshot(message.data, message.href || href);
-            } else {
-                // TODO
-            }
+            isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                var isGif = fileExtensionMatches(message.data, "gif");      
+                isLoggedIn = Account.isLoggedIn();                        
+                if (!isGif) {
+                    isUploadingPrintableStill = canShare && Account.isLoggedIn();
+                }
+                if (canShare) {                  
+                    if (isLoggedIn) {
+                        print('Sharing snapshot with audience "for_url":', message.data);
+                        Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));                      
+                        if (isGif) {
+                            numGifSnapshotUploadsPending++;
+                        } else {
+                            numStillSnapshotUploadsPending++;
+                        }
+                    } else {
+                        shareAfterLogin = true;
+                        snapshotToShareAfterLogin.push({ path: message.data, href: Settings.getValue("previousSnapshotHref") });
+                    }
+                }
+                updatePrintPermissions();
+            });
             break;
         case 'blastToConnections':
             isLoggedIn = Account.isLoggedIn();
-            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
-            if (message.isGif) {
-                Settings.setValue("previousAnimatedSnapSharingDisabled", true);
-            } else {
-                Settings.setValue("previousStillSnapSharingDisabled", true);
-            }
-
             if (isLoggedIn) {
+                if (message.isGif) {
+                    Settings.setValue("previousAnimatedSnapBlastingDisabled", true);
+                } else {
+                    Settings.setValue("previousStillSnapBlastingDisabled", true);
+                }
+
                 print('Uploading new story for announcement!');
 
                 request({
@@ -220,32 +202,40 @@ function onMessage(message) {
                             if (error || (response.status !== 'success')) {
                                 print("ERROR uploading announcement story: ", error || response.status);
                                 if (message.isGif) {
-                                    Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                                    Settings.setValue("previousAnimatedSnapBlastingDisabled", false);
                                 } else {
-                                    Settings.setValue("previousStillSnapSharingDisabled", false);
+                                    Settings.setValue("previousStillSnapBlastingDisabled", false);
                                 }
                                 return;
                             } else {
                                 print("SUCCESS uploading announcement story! Story ID:", response.user_story.id);
+                                removeFromStoryIDsToMaybeDelete(message.story_id); // Don't delete original "for_url" story
                             }
                         });
                     }
                 });
-
-            } else {
-                openLoginWindow();
             }
+            break;
+        case 'requestPrintButtonUpdate':
+            updatePrintPermissions();
+            break;
+        case 'printToPolaroid':
+            if (Entities.canRez() || Entities.canRezTmp()) {
+               printToPolaroid(Settings.getValue("previousStillSnapUrl"));
+               removeFromStoryIDsToMaybeDelete(Settings.getValue("previousStillSnapStoryID"));
+            }
+            break;
+        case 'alertSnapshotLoadFailed':
+            snapshotFailedToLoad = true;
             break;
         case 'shareSnapshotWithEveryone':
             isLoggedIn = Account.isLoggedIn();
-            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
-            if (message.isGif) {
-                Settings.setValue("previousAnimatedSnapSharingDisabled", true);
-            } else {
-                Settings.setValue("previousStillSnapSharingDisabled", true);
-            }
-
             if (isLoggedIn) {
+                if (message.isGif) {
+                    Settings.setValue("previousAnimatedSnapHifiSharingDisabled", true);
+                } else {
+                    Settings.setValue("previousStillSnapHifiSharingDisabled", true);
+                }
                 print('Modifying audience of story ID', message.story_id, "to 'for_feed'");
                 var requestBody = {
                     audience: "for_feed"
@@ -264,25 +254,20 @@ function onMessage(message) {
                     if (error || (response.status !== 'success')) {
                         print("ERROR changing audience: ", error || response.status);
                         if (message.isGif) {
-                            Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+                            Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
                         } else {
-                            Settings.setValue("previousStillSnapSharingDisabled", false);
+                            Settings.setValue("previousStillSnapHifiSharingDisabled", false);
                         }
                         return;
                     } else {
                         print("SUCCESS changing audience" + (message.isAnnouncement ? " and posting announcement!" : "!"));
+                        removeFromStoryIDsToMaybeDelete(message.story_id);
                     }
                 });
-            } else {
-                openLoginWindow();
-                shareAfterLogin = true;
-                snapshotToShareAfterLogin = { path: message.data, href: message.href || href };
             }
             break;
-        case 'shareButtonClicked':
-            print('Twitter or FB "Share" button clicked! Removing ID', message.story_id, 'from storyIDsToMaybeDelete[].');
-            storyIDsToMaybeDelete.splice(storyIDsToMaybeDelete.indexOf(message.story_id), 1);
-            print('storyIDsToMaybeDelete[] now:', JSON.stringify(storyIDsToMaybeDelete));
+        case 'removeFromStoryIDsToMaybeDelete':
+            removeFromStoryIDsToMaybeDelete(message.story_id);
             break;
         default:
             print('Unknown message action received by snapshot.js!');
@@ -290,62 +275,146 @@ function onMessage(message) {
     }
 }
 
+var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/sound-print-photo.wav"));
+var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+
+function printToPolaroid(image_url) {
+    var polaroid_url = image_url;                  
+
+    var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));
+    
+    var model_q1 = MyAvatar.orientation;
+    var model_q2 = Quat.angleAxis(90, Quat.getRight(model_q1));
+    var model_rot = Quat.multiply(model_q2, model_q1);
+    
+    var properties = {                                
+        "type": 'Model',
+        "shapeType": 'box',
+
+        "name": "New Snapshot",
+        "description": "Printed from Snaps",                               
+        "modelURL": POLAROID_MODEL_URL,
+
+        "position": model_pos,
+        "rotation": model_rot,
+
+        "textures": JSON.stringify( { "tex.picture": polaroid_url } ),
+
+        "density": 200,
+        "restitution": 0.15,                            
+        "gravity": { "x": 0, "y": -4.5, "z": 0 },
+        
+        "velocity": { "x": 0, "y": 3.5, "z": 0 },
+        "angularVelocity": { "x": -1.0, "y": 0, "z": -1.3 },
+
+        "dynamic": true, 
+        "collisionsWillMove": true,
+
+        "userData": {
+            "grabbableKey": { "grabbable" : true }
+        }
+    };
+    
+    var polaroid = Entities.addEntity(properties);
+    Audio.playSound(POLAROID_PRINT_SOUND, {
+        position: model_pos,
+        localOnly: false,
+        volume: 0.2
+    });
+}
+
+function fillImageDataFromPrevious() {
+    isLoggedIn = Account.isLoggedIn();
+    var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
+    var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
+    var previousStillSnapBlastingDisabled = Settings.getValue("previousStillSnapBlastingDisabled");
+    var previousStillSnapHifiSharingDisabled = Settings.getValue("previousStillSnapHifiSharingDisabled");
+    var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
+    var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
+    var previousAnimatedSnapBlastingDisabled = Settings.getValue("previousAnimatedSnapBlastingDisabled");
+    var previousAnimatedSnapHifiSharingDisabled = Settings.getValue("previousAnimatedSnapHifiSharingDisabled");
+    snapshotOptions = {
+        containsGif: previousAnimatedSnapPath !== "",
+        processingGif: false,
+        shouldUpload: false,
+        canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
+        isLoggedIn: isLoggedIn
+    };
+    imageData = [];
+    if (previousStillSnapPath !== "") {
+        imageData.push({
+            localPath: previousStillSnapPath,
+            story_id: previousStillSnapStoryID,
+            blastButtonDisabled: previousStillSnapBlastingDisabled,
+            hifiButtonDisabled: previousStillSnapHifiSharingDisabled,
+            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+        });
+    }
+    if (previousAnimatedSnapPath !== "") {
+        imageData.push({
+            localPath: previousAnimatedSnapPath,
+            story_id: previousAnimatedSnapStoryID,
+            blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
+            hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled,
+            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+        });
+    }
+}
+
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
-var shouldActivateButton = false;
 function onButtonClicked() {
     if (isInSnapshotReview){
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
     } else {
-        shouldActivateButton = true;
-        var previousStillSnapPath = Settings.getValue("previousStillSnapPath");
-        var previousStillSnapStoryID = Settings.getValue("previousStillSnapStoryID");
-        var previousStillSnapSharingDisabled = Settings.getValue("previousStillSnapSharingDisabled");
-        var previousAnimatedSnapPath = Settings.getValue("previousAnimatedSnapPath");
-        var previousAnimatedSnapStoryID = Settings.getValue("previousAnimatedSnapStoryID");
-        var previousAnimatedSnapSharingDisabled = Settings.getValue("previousAnimatedSnapSharingDisabled");
-        snapshotOptions = {
-            containsGif: previousAnimatedSnapPath !== "",
-            processingGif: false,
-            shouldUpload: false
-        }
-        imageData = [];
-        if (previousAnimatedSnapPath !== "") {
-            imageData.push({ localPath: previousAnimatedSnapPath, story_id: previousAnimatedSnapStoryID, buttonDisabled: previousAnimatedSnapSharingDisabled });
-        }
-        if (previousStillSnapPath !== "") {
-            imageData.push({ localPath: previousStillSnapPath, story_id: previousStillSnapStoryID, buttonDisabled: previousStillSnapSharingDisabled });
-        }
+        fillImageDataFromPrevious();
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
-        tablet.webEventReceived.connect(onMessage);
         HMD.openTablet();
-        isInSnapshotReview = true;
     }
 }
 
 function snapshotUploaded(isError, reply) {
     if (!isError) {
-        var replyJson = JSON.parse(reply);
-        var storyID = replyJson.user_story.id;
+        var replyJson = JSON.parse(reply),
+            storyID = replyJson.user_story.id,
+            imageURL = replyJson.user_story.details.image_url,
+            isGif = fileExtensionMatches(imageURL, "gif"),
+            ignoreGifSnapshotData = false,
+            ignoreStillSnapshotData = false;
         storyIDsToMaybeDelete.push(storyID);
-        var imageURL = replyJson.user_story.details.image_url;
-        var isGif = imageURL.split('.').pop().toLowerCase() === "gif";
-        print('SUCCESS: Snapshot uploaded! Story with audience:for_url created! ID:', storyID);
-        tablet.emitScriptEvent(JSON.stringify({
-            type: "snapshot",
-            action: "snapshotUploadComplete",
-            story_id: storyID,
-            image_url: imageURL,
-        }));
         if (isGif) {
-            Settings.setValue("previousAnimatedSnapStoryID", storyID);
+            numGifSnapshotUploadsPending--;
+            if (numGifSnapshotUploadsPending !== 0) {
+                ignoreGifSnapshotData = true;
+            }
         } else {
-            Settings.setValue("previousStillSnapStoryID", storyID);
+            numStillSnapshotUploadsPending--;
+            if (numStillSnapshotUploadsPending !== 0) {
+                ignoreStillSnapshotData = true;
+            }
+        }
+        if ((isGif && !ignoreGifSnapshotData) || (!isGif && !ignoreStillSnapshotData)) {
+            print('SUCCESS: Snapshot uploaded! Story with audience:for_url created! ID:', storyID);
+            tablet.emitScriptEvent(JSON.stringify({
+                type: "snapshot",
+                action: "snapshotUploadComplete",
+                story_id: storyID,
+                image_url: imageURL,
+            }));
+            if (isGif) {
+                Settings.setValue("previousAnimatedSnapStoryID", storyID);
+            } else {
+                Settings.setValue("previousStillSnapStoryID", storyID);
+                Settings.setValue("previousStillSnapUrl", imageURL);
+            }
+        } else {
+            print('Ignoring snapshotUploaded() callback for stale ' + (isGif ? 'GIF' : 'Still' ) + ' snapshot. Stale story ID:', storyID);
         }
     } else {
         print(reply);
     }
+    isUploadingPrintableStill = false;
 }
 var href, domainId;
 function takeSnapshot() {
@@ -355,10 +424,18 @@ function takeSnapshot() {
     }));
     Settings.setValue("previousStillSnapPath", "");
     Settings.setValue("previousStillSnapStoryID", "");
-    Settings.setValue("previousStillSnapSharingDisabled", false);
+    Settings.setValue("previousStillSnapBlastingDisabled", false);
+    Settings.setValue("previousStillSnapHifiSharingDisabled", false);
+    Settings.setValue("previousStillSnapUrl", "");
     Settings.setValue("previousAnimatedSnapPath", "");
     Settings.setValue("previousAnimatedSnapStoryID", "");
-    Settings.setValue("previousAnimatedSnapSharingDisabled", false);
+    Settings.setValue("previousAnimatedSnapBlastingDisabled", false);
+    Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
+    
+    // Since we are taking a snapshot, we should make the print button appear to be loading/processing
+    snapshotFailedToLoad = false;
+    isUploadingPrintableStill = true;
+    updatePrintPermissions();
 
     // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
     // Turn it off now, before we start futzing with things (and possibly moving).
@@ -368,6 +445,7 @@ function takeSnapshot() {
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
     // Even the domainId could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
+    Settings.setValue("previousSnapshotHref", href);
     domainId = location.domainId;
     Settings.setValue("previousSnapshotDomainID", domainId);
 
@@ -377,6 +455,9 @@ function takeSnapshot() {
     resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
+    if (!HMD.active) {
+        Reticle.allowMouseCapture = false;
+    }
     
     var includeAnimated = Settings.getValue("alsoTakeAnimatedSnapshot", true);
     if (includeAnimated) {
@@ -394,46 +475,58 @@ function takeSnapshot() {
         Menu.setIsOptionChecked("Overlays", false);
     }
 
+    var snapActivateSound = SoundCache.getSound(Script.resolvePath("../../resources/sounds/snap.wav"));
+
     // take snapshot (with no notification)
     Script.setTimeout(function () {
+        Audio.playSound(snapActivateSound, {
+            position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+            localOnly: true,
+            volume: 1.0
+        });
         HMD.closeTablet();
         Script.setTimeout(function () {
             Window.takeSnapshot(false, includeAnimated, 1.91);
         }, SNAPSHOT_DELAY);
     }, FINISH_SOUND_DELAY);
+    UserActivityLogger.logAction("snaphshot_taken", { location: location.href });
 }
-
-function isDomainOpen(id) {
+    
+function isDomainOpen(id, callback) {
     print("Checking open status of domain with ID:", id);
-    if (!id) {
-        return false;
+    var status = false;
+    if (id) {
+        var options = [
+            'now=' + new Date().toISOString(),
+            'include_actions=concurrency',
+            'domain_id=' + id.slice(1, -1),
+            'restriction=open,hifi' // If we're sharing, we're logged in
+            // If we're here, protocol matches, and it is online
+        ];
+        var url = METAVERSE_BASE + "/api/v1/user_stories?" + options.join('&');
+
+        request({
+            uri: url,
+            method: 'GET'
+        }, function (error, response) {
+            if (error || (response.status !== 'success')) {
+                print("ERROR getting open status of domain: ", error || response.status);
+            } else {
+                status = response.total_entries ? true : false;
+            }
+            print("Domain open status:", status);
+            callback(status);
+        });
+    } else {
+        callback(status);
     }
-
-    var options = [
-        'now=' + new Date().toISOString(),
-        'include_actions=concurrency',
-        'domain_id=' + id.slice(1, -1),
-        'restriction=open,hifi' // If we're sharing, we're logged in
-        // If we're here, protocol matches, and it is online
-    ];
-    var url = METAVERSE_BASE + "/api/v1/user_stories?" + options.join('&');
-
-    return request({
-        uri: url,
-        method: 'GET'
-    }, function (error, response) {
-        if (error || (response.status !== 'success')) {
-            print("ERROR getting open status of domain: ", error || response.status);
-            return false;
-        } else {
-            return response.total_entries;
-        }
-    });
 }
 
 function stillSnapshotTaken(pathStillSnapshot, notify) {
+    isLoggedIn = Account.isLoggedIn();
     // show hud
     Reticle.visible = reticleVisible;
+    Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
@@ -448,80 +541,103 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     // during which time the user may have moved. So stash that info in the dialog so that
     // it records the correct href. (We can also stash in .jpegs, but not .gifs.)
     // last element in data array tells dialog whether we can share or not
-    snapshotOptions = {
-        containsGif: false,
-        processingGif: false,
-        canShare: !isDomainOpen(domainId)
-    };
-    imageData = [{ localPath: pathStillSnapshot, href: href }];
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
-
-    tablet.emitScriptEvent(JSON.stringify({
-        type: "snapshot",
-        action: "addImages",
-        options: snapshotOptions,
-        image_data: imageData
-    }));
 
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
     HMD.openTablet();
+
+    isDomainOpen(domainId, function (canShare) {
+        snapshotOptions = {
+            containsGif: false,
+            processingGif: false,
+            canShare: canShare,
+            isLoggedIn: isLoggedIn
+        };
+        imageData = [{ localPath: pathStillSnapshot, href: href }];
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "addImages",
+            options: snapshotOptions,
+            image_data: imageData
+        }));
+    });
+}
+
+function snapshotDirChanged(snapshotPath) {
+    Window.browseDirChanged.disconnect(snapshotDirChanged);
+    if (snapshotPath !== "") { // not cancelled
+        Snapshot.setSnapshotsLocation(snapshotPath);
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "snapshotLocationChosen"
+        }));
+    }
 }
 
 function processingGifStarted(pathStillSnapshot) {
     Window.processingGifStarted.disconnect(processingGifStarted);
     Window.processingGifCompleted.connect(processingGifCompleted);
+    isLoggedIn = Account.isLoggedIn();
     // show hud
     Reticle.visible = reticleVisible;
+    Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
         Menu.setIsOptionChecked("Overlays", true);
     }
-
-    snapshotOptions = {
-        containsGif: true,
-        processingGif: true,
-        loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
-        canShare: !isDomainOpen(domainId)
-    };
-    imageData = [{ localPath: pathStillSnapshot, href: href }];
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
-
-    tablet.emitScriptEvent(JSON.stringify({
-        type: "snapshot",
-        action: "addImages",
-        options: snapshotOptions,
-        image_data: imageData
-    }));
 
     if (clearOverlayWhenMoving) {
         MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
     }
     HMD.openTablet();
+    
+    isDomainOpen(domainId, function (canShare) {
+        snapshotOptions = {
+            containsGif: true,
+            processingGif: true,
+            loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
+            canShare: canShare,
+            isLoggedIn: isLoggedIn
+        };
+        imageData = [{ localPath: pathStillSnapshot, href: href }];
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "addImages",
+            options: snapshotOptions,
+            image_data: imageData
+        }));
+    });
 }
 
 function processingGifCompleted(pathAnimatedSnapshot) {
+    isLoggedIn = Account.isLoggedIn();
     Window.processingGifCompleted.disconnect(processingGifCompleted);
     if (!buttonConnected) {
         button.clicked.connect(onButtonClicked);
         buttonConnected = true;
     }
 
-    snapshotOptions = {
-        containsGif: true,
-        processingGif: false,
-        canShare: !isDomainOpen(domainId)
-    }
-    imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
     Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
 
-    tablet.emitScriptEvent(JSON.stringify({
-        type: "snapshot",
-        action: "addImages",
-        options: snapshotOptions,
-        image_data: imageData
-    }));
+    isDomainOpen(domainId, function (canShare) {
+        snapshotOptions = {
+            containsGif: true,
+            processingGif: false,
+            canShare: canShare,
+            isLoggedIn: isLoggedIn,
+            canBlast: location.domainId === Settings.getValue("previousSnapshotDomainID"),
+        };
+        imageData = [{ localPath: pathAnimatedSnapshot, href: href }];
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "addImages",
+            options: snapshotOptions,
+            image_data: imageData
+        }));
+    });
 }
 function maybeDeleteSnapshotStories() {
     storyIDsToMaybeDelete.forEach(function (element, idx, array) {
@@ -540,26 +656,100 @@ function maybeDeleteSnapshotStories() {
     storyIDsToMaybeDelete = [];
 }
 function onTabletScreenChanged(type, url) {
-    button.editProperties({ isActive: shouldActivateButton });
-    shouldActivateButton = false;
-    if (isInSnapshotReview) {
-        tablet.webEventReceived.disconnect(onMessage);
-        isInSnapshotReview = false;
+    var wasInSnapshotReview = isInSnapshotReview; 
+    isInSnapshotReview = (type === "Web" && url === SNAPSHOT_REVIEW_URL);
+    button.editProperties({ isActive: isInSnapshotReview });
+    if (isInSnapshotReview !== wasInSnapshotReview) {
+        if (isInSnapshotReview) {
+            tablet.webEventReceived.connect(onMessage);
+        } else {
+            tablet.webEventReceived.disconnect(onMessage);
+        }
     }
 }
 function onUsernameChanged() {
-    if (shareAfterLogin && Account.isLoggedIn()) {
-        print('Sharing snapshot after login:', snapshotToShareAfterLogin.path);
-        Window.shareSnapshot(snapshotToShareAfterLogin.path, snapshotToShareAfterLogin.href);
-        shareAfterLogin = false;
+    fillImageDataFromPrevious();
+    isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "showPreviousImages",
+            options: snapshotOptions,
+            image_data: imageData,
+            canShare: canShare
+        }));
+    });
+    if (isLoggedIn) {
+        if (shareAfterLogin) {
+            isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
+                if (canShare) {
+                    snapshotToShareAfterLogin.forEach(function (element) {
+                        print('Uploading snapshot after login:', element.path);
+                        Window.shareSnapshot(element.path, element.href);
+                        var isGif = fileExtensionMatches(element.path, "gif");
+                        if (isGif) {
+                            numGifSnapshotUploadsPending++;
+                        } else {
+                            numStillSnapshotUploadsPending++;
+                        }
+                    });
+                }
+                isUploadingPrintableStill = canShare;
+                updatePrintPermissions();
+            });
+
+            shareAfterLogin = false;
+            snapshotToShareAfterLogin = [];
+        }
     }
+}
+
+function snapshotLocationSet(location) {
+    if (location !== "") {
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "snapshotLocationChosen"
+        }));
+    }
+}
+
+function updatePrintPermissions() {
+    processRezPermissionChange(Entities.canRez() || Entities.canRezTmp());
+}
+
+var snapshotFailedToLoad = false;
+var isUploadingPrintableStill = false;
+function processRezPermissionChange(canRez) {
+    var action = "";
+    
+    if (canRez && !snapshotFailedToLoad) {  
+        if (Settings.getValue("previousStillSnapUrl")) {
+            action = 'setPrintButtonEnabled';
+        } else if (isUploadingPrintableStill) {
+            action = 'setPrintButtonLoading';
+        } else {
+            action = 'setPrintButtonDisabled';
+        }
+    } else {
+        action = 'setPrintButtonDisabled';
+    }
+    
+    tablet.emitScriptEvent(JSON.stringify({
+        type: "snapshot",
+        action : action
+    }));
 }
 
 button.clicked.connect(onButtonClicked);
 buttonConnected = true;
+
 Window.snapshotShared.connect(snapshotUploaded);
 tablet.screenChanged.connect(onTabletScreenChanged);
-Account.usernameChanged.connect(onUsernameChanged);
+GlobalServices.myUsernameChanged.connect(onUsernameChanged);
+Snapshot.snapshotLocationSet.connect(snapshotLocationSet);
+
+Entities.canRezChanged.connect(updatePrintPermissions);
+Entities.canRezTmpChanged.connect(updatePrintPermissions);
+
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
         button.clicked.disconnect(onButtonClicked);
@@ -567,9 +757,12 @@ Script.scriptEnding.connect(function () {
     }
     if (tablet) {
         tablet.removeButton(button);
+        tablet.screenChanged.disconnect(onTabletScreenChanged);
     }
     Window.snapshotShared.disconnect(snapshotUploaded);
-    tablet.screenChanged.disconnect(onTabletScreenChanged);
+    Snapshot.snapshotLocationSet.disconnect(snapshotLocationSet);
+    Entities.canRezChanged.disconnect(updatePrintPermissions);
+    Entities.canRezTmpChanged.disconnect(updatePrintPermissions);
 });
 
 }()); // END LOCAL_SCOPE

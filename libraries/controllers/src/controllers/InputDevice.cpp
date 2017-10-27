@@ -15,22 +15,6 @@
 
 namespace controller {
 
-    bool InputDevice::_lowVelocityFilter = false;
-
-    const float DEFAULT_HAND_RETICLE_MOVE_SPEED = 37.5f;
-    float InputDevice::_reticleMoveSpeed = DEFAULT_HAND_RETICLE_MOVE_SPEED;
-
-    //Constants for getCursorPixelRangeMultiplier()
-    const float MIN_PIXEL_RANGE_MULT = 0.4f;
-    const float MAX_PIXEL_RANGE_MULT = 2.0f;
-    const float RANGE_MULT = (MAX_PIXEL_RANGE_MULT - MIN_PIXEL_RANGE_MULT) * 0.01f;
-
-    //Returns a multiplier to be applied to the cursor range for the controllers
-    float InputDevice::getCursorPixelRangeMult() {
-        //scales (0,100) to (MINIMUM_PIXEL_RANGE_MULT, MAXIMUM_PIXEL_RANGE_MULT)
-        return InputDevice::_reticleMoveSpeed * RANGE_MULT + MIN_PIXEL_RANGE_MULT;
-    }
-
     float InputDevice::getButton(int channel) const {
         if (!_buttonPressedMap.empty()) {
             if (_buttonPressedMap.find(channel) != _buttonPressedMap.end()) {

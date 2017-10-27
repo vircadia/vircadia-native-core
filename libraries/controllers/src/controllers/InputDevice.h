@@ -73,21 +73,13 @@ public:
     int getDeviceID() { return _deviceID; }
     void setDeviceID(int deviceID) { _deviceID = deviceID; }
 
-    static float getCursorPixelRangeMult();
-    static float getReticleMoveSpeed() { return _reticleMoveSpeed; }
-    static void setReticleMoveSpeed(float reticleMoveSpeed) { _reticleMoveSpeed = reticleMoveSpeed; }
-
-    static bool getLowVelocityFilter() { return _lowVelocityFilter; };
-
     Input makeInput(StandardButtonChannel button) const;
     Input makeInput(StandardAxisChannel axis) const;
     Input makeInput(StandardPoseChannel pose) const;
     Input::NamedPair makePair(StandardButtonChannel button, const QString& name) const;
     Input::NamedPair makePair(StandardAxisChannel button, const QString& name) const;
     Input::NamedPair makePair(StandardPoseChannel button, const QString& name) const;
-public slots:
-    static void setLowVelocityFilter(bool newLowVelocityFilter) { _lowVelocityFilter = newLowVelocityFilter; };
-
+    
 protected:
     friend class UserInputMapper;
 
@@ -103,11 +95,6 @@ protected:
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
     PoseStateMap _poseStateMap;
-
-    static bool _lowVelocityFilter;
-
-private:
-    static float _reticleMoveSpeed;
 };
 
 }

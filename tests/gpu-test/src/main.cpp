@@ -45,8 +45,6 @@
 #include <TextureCache.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
-#include <OctreeRenderer.h>
-#include <RenderArgs.h>
 #include <ViewFrustum.h>
 
 #include <gpu/Pipeline.h>

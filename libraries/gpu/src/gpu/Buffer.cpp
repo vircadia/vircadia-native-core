@@ -11,47 +11,20 @@
 
 using namespace gpu;
 
-std::atomic<uint32_t> Buffer::_bufferCPUCount{ 0 };
-std::atomic<Buffer::Size> Buffer::_bufferCPUMemoryUsage{ 0 };
-
-void Buffer::updateBufferCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
-    if (prevObjectSize == newObjectSize) {
-        return;
-    }
-    if (prevObjectSize > newObjectSize) {
-        _bufferCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
-    } else {
-        _bufferCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
-    }
-}
-
-void Buffer::incrementBufferCPUCount() {
-    _bufferCPUCount++;
-}
-
-void Buffer::decrementBufferCPUCount() {
-    _bufferCPUCount--;
-}
+ContextMetricCount Buffer::_bufferCPUCount;
+ContextMetricSize Buffer::_bufferCPUMemSize;
 
 uint32_t Buffer::getBufferCPUCount() {
-    return _bufferCPUCount.load();
+    return _bufferCPUCount.getValue();
 }
 
-Buffer::Size Buffer::getBufferCPUMemoryUsage() {
-    return _bufferCPUMemoryUsage.load();
-}
-
-uint32_t Buffer::getBufferGPUCount() {
-    return Context::getBufferGPUCount();
-}
-
-Buffer::Size Buffer::getBufferGPUMemoryUsage() {
-    return Context::getBufferGPUMemoryUsage();
+Buffer::Size Buffer::getBufferCPUMemSize() {
+    return _bufferCPUMemSize.getValue();
 }
 
 Buffer::Buffer(Size pageSize) :
     _renderPages(pageSize), _pages(pageSize) {
-    Buffer::incrementBufferCPUCount();
+    _bufferCPUCount.increment();
 }
 
 Buffer::Buffer(Size size, const Byte* bytes, Size pageSize) : Buffer(pageSize) {
@@ -69,8 +42,8 @@ Buffer& Buffer::operator=(const Buffer& buf) {
 }
 
 Buffer::~Buffer() {
-    Buffer::decrementBufferCPUCount();
-    Buffer::updateBufferCPUMemoryUsage(_sysmem.getSize(), 0);
+    _bufferCPUCount.decrement();
+    _bufferCPUMemSize.update(_sysmem.getSize(), 0);
 }
 
 Buffer::Size Buffer::resize(Size size) {
@@ -78,7 +51,7 @@ Buffer::Size Buffer::resize(Size size) {
     auto prevSize = _sysmem.getSize();
     if (prevSize < size) {
         _sysmem.resize(_pages.accommodate(_end));
-        Buffer::updateBufferCPUMemoryUsage(prevSize, _sysmem.getSize());
+        _bufferCPUMemSize.update(prevSize, _sysmem.getSize());
     }
     return _end;
 }

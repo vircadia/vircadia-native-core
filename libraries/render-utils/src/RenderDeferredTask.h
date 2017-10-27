@@ -44,12 +44,11 @@ public:
 protected:
 };
 
-
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
-
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+
 public:
 
     int getNumDrawn() { return _numDrawn; }
@@ -120,35 +119,6 @@ protected:
     bool _stateSort;
 };
 
-class DeferredFramebuffer;
-class DrawStencilDeferred {
-public:
-    using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
-
-    void run(const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
-
-protected:
-    gpu::PipelinePointer _opaquePipeline;
-
-    gpu::PipelinePointer getOpaquePipeline();
-};
-
-using DrawBackgroundDeferredConfig = render::GPUJobConfig;
-
-class DrawBackgroundDeferred {
-public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
-
-    using Config = DrawBackgroundDeferredConfig;
-    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, Inputs, Config>;
-
-    void configure(const Config& config) {}
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
-
-protected:
-    gpu::RangeTimerPointer _gpuTimer;
-};
-
 class DrawOverlay3DConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
@@ -182,7 +152,15 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
-    bool _opaquePass{ true };
+    bool _opaquePass { true };
+};
+
+class CompositeHUD {
+public:
+    using JobModel = render::Job::Model<CompositeHUD>;
+
+    CompositeHUD() {}
+    void run(const render::RenderContextPointer& renderContext);
 };
 
 class Blit {
@@ -192,14 +170,34 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class RenderDeferredTaskConfig : public render::Task::Config {
+    Q_OBJECT
+        Q_PROPERTY(float fadeScale MEMBER fadeScale NOTIFY dirty)
+        Q_PROPERTY(float fadeDuration MEMBER fadeDuration NOTIFY dirty)
+        Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
+        Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
+public:
+    float fadeScale{ 0.5f };
+    float fadeDuration{ 3.0f };
+    float debugFadePercent{ 0.f };
+    bool debugFade{ false };
+
+signals:
+    void dirty();
+
+};
+
 class RenderDeferredTask {
 public:
     using Input = RenderFetchCullSortTask::Output;
-    using JobModel = render::Task::ModelI<RenderDeferredTask, Input>;
+    using Config = RenderDeferredTaskConfig;
+    using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 
-    RenderDeferredTask() {}
+    RenderDeferredTask();
 
+    void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+
 };
 
 #endif // hifi_RenderDeferredTask_h

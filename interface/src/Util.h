@@ -16,11 +16,12 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <gpu/Batch.h>
+#include <render/Forward.h>
 
-float randFloat();
-const glm::vec3 randVector();
+class ShapeEntityItem;
+class ShapeInfo;
 
-void renderWorldBox(gpu::Batch& batch);
+void renderWorldBox(RenderArgs* args, gpu::Batch& batch);
 
 void runTimingTests();
 void runUnitTests();
@@ -29,5 +30,7 @@ bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNorma
     const glm::vec3& sphereCenter, float sphereRadius, float& distance);
 
 bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius);
+
+void shapeInfoCalculator(const ShapeEntityItem * const shapeEntity, ShapeInfo &shapeInfo);
 
 #endif // hifi_Util_h

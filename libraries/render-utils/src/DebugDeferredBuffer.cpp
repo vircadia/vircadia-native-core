@@ -19,7 +19,6 @@
 #include <ViewFrustum.h>
 
 #include "GeometryCache.h"
-#include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "DeferredLightingEffect.h"
 
@@ -410,7 +409,6 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         batch.setViewportTransform(args->_viewport);
 
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
-        const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
 
         glm::mat4 projMat;
@@ -434,9 +432,10 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
             batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
         }
 
-        auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-        assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
-        auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+        auto lightStage = renderContext->_scene->getStage<LightStage>();
+        assert(lightStage);
+        assert(lightStage->getNumLights() > 0);
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             batch.setResourceTexture(Shadow, globalShadow->map);

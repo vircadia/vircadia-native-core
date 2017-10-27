@@ -344,7 +344,7 @@ class Resource : public QObject {
 public:
     
     Resource(const QUrl& url);
-    ~Resource();
+    virtual ~Resource();
 
     virtual QString getType() const { return "Resource"; }
     
@@ -385,7 +385,7 @@ public:
     float getProgress() const { return (_bytesTotal <= 0) ? 0.0f : (float)_bytesReceived / _bytesTotal; }
     
     /// Refreshes the resource.
-    void refresh();
+    virtual void refresh();
 
     void setSelf(const QWeakPointer<Resource>& self) { _self = self; }
 
@@ -425,7 +425,7 @@ protected slots:
     void attemptRequest();
 
 protected:
-    virtual void init();
+    virtual void init(bool resetLoaded = true);
 
     /// Called by ResourceCache to begin loading this Resource.
     /// This method can be overriden to provide custom request functionality. If this is done,
@@ -449,14 +449,21 @@ protected:
     Q_INVOKABLE void allReferencesCleared();
 
     /// Return true if the resource will be retried
-    bool handleFailedRequest(ResourceRequest::Result result);
+    virtual bool handleFailedRequest(ResourceRequest::Result result);
 
     QUrl _url;
+    QUrl _effectiveBaseURL{ _url };
     QUrl _activeUrl;
     ByteRange _requestByteRange;
+    bool _shouldFailOnRedirect { false };
+
+    // _loaded == true means we are in a loaded and usable state. It is possible that there may still be
+    // active requests/loading while in this state. Example: Progressive KTX downloads, where higher resolution
+    // mips are being download.
     bool _startedLoading = false;
     bool _failedToLoad = false;
     bool _loaded = false;
+
     QHash<QPointer<QObject>, float> _loadPriorities;
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;

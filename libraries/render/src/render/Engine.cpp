@@ -18,6 +18,8 @@
 #include <gpu/Context.h>
 
 #include "EngineStats.h"
+#include "SceneTask.h"
+
 #include "Logging.h"
 
 using namespace render;

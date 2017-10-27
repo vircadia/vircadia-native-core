@@ -37,20 +37,12 @@ RenderingClient::RenderingClient(QObject *parent, const QString& launchURLString
     DependencyManager::set<AvatarHashMap>();
     
     // get our audio client setup on its own thread
-    QThread* audioThread = new QThread();
     auto audioClient = DependencyManager::set<AudioClient>();
-    
     audioClient->setPositionGetter(getPositionForAudio);
     audioClient->setOrientationGetter(getOrientationForAudio);
+    audioClient->startThread();
     
-    audioClient->moveToThread(audioThread);
-    connect(audioThread, &QThread::started, audioClient.data(), &AudioClient::start);
-    connect(audioClient.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
-    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
-
-    audioThread->start();
-    
-    
+   
     connect(&_avatarTimer, &QTimer::timeout, this, &RenderingClient::sendAvatarPacket);
     _avatarTimer.setInterval(16); // 60 FPS
     _avatarTimer.start();
@@ -71,10 +63,7 @@ void RenderingClient::sendAvatarPacket() {
 }
 
 void RenderingClient::cleanupBeforeQuit() {
-    
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-                              "stop", Qt::BlockingQueuedConnection);
-    
+    DependencyManager::get<AudioClient>()->cleanupBeforeQuit();
     // destroy the AudioClient so it and its thread will safely go down
     DependencyManager::destroy<AudioClient>();
 }

@@ -108,8 +108,24 @@ EntityListTool = function(opts) {
         webView.emitScriptEvent(JSON.stringify(data));
     };
 
+    function onFileSaveChanged(filename) {
+        Window.saveFileChanged.disconnect(onFileSaveChanged);
+        if (filename !== "") {
+            var success = Clipboard.exportEntities(filename, selectionManager.selections);
+            if (!success) {
+                Window.notifyEditError("Export failed.");
+            }
+        }
+    }
+
     webView.webEventReceived.connect(function(data) {
-        data = JSON.parse(data);
+        try {
+            data = JSON.parse(data);
+        } catch(e) {
+            print("entityList.js: Error parsing JSON: " + e.name + " data " + data)
+            return;
+        }
+
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;
             var entityIDs = [];
@@ -133,13 +149,8 @@ EntityListTool = function(opts) {
             if (!selectionManager.hasSelection()) {
                 Window.notifyEditError("No entities have been selected.");
             } else {
-                var filename = Window.save("Select Where to Save", "", "*.json");
-                if (filename) {
-                    var success = Clipboard.exportEntities(filename, selectionManager.selections);
-                    if (!success) {
-                        Window.notifyEditError("Export failed.");
-                    }
-                }
+                Window.saveFileChanged.connect(onFileSaveChanged);
+                Window.saveAsync("Select Where to Save", "", "*.json");
             }
         } else if (data.type == "pal") {
             var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.

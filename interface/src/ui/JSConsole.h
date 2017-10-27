@@ -17,6 +17,7 @@
 #include <QFutureWatcher>
 #include <QObject>
 #include <QWidget>
+#include <QSharedPointer>
 
 #include "ui_console.h"
 #include "ScriptEngine.h"
@@ -29,10 +30,10 @@ const int CONSOLE_HEIGHT = 200;
 class JSConsole : public QWidget {
     Q_OBJECT
 public:
-    JSConsole(QWidget* parent, ScriptEngine* scriptEngine = NULL);
+    JSConsole(QWidget* parent, const ScriptEnginePointer& scriptEngine = ScriptEnginePointer());
     ~JSConsole();
 
-    void setScriptEngine(ScriptEngine* scriptEngine = NULL);
+    void setScriptEngine(const ScriptEnginePointer& scriptEngine = ScriptEnginePointer());
     void clear();
 
 public slots:
@@ -47,8 +48,10 @@ protected:
 protected slots:
     void scrollToBottom();
     void resizeTextInput();
-    void handlePrint(const QString& scriptName, const QString& message);
-    void handleError(const QString& scriptName, const QString& message);
+    void handlePrint(const QString& message, const QString& scriptName);
+    void handleInfo(const QString& message, const QString& scriptName);
+    void handleWarning(const QString& message, const QString& scriptName);
+    void handleError(const QString& message, const QString& scriptName);
     void commandFinished();
 
 private:
@@ -56,16 +59,15 @@ private:
     void setToNextCommandInHistory();
     void setToPreviousCommandInHistory();
     void resetCurrentCommandHistory();
-    QScriptValue executeCommandInWatcher(const QString& command);
 
     QFutureWatcher<QScriptValue> _executeWatcher;
     Ui::Console* _ui;
     int _currentCommandInHistory;
+    QString _savedHistoryFilename;
     QList<QString> _commandHistory;
-    // Keeps track if the script engine is created inside the JSConsole
-    bool _ownScriptEngine;
     QString _rootCommand;
-    ScriptEngine* _scriptEngine;
+    ScriptEnginePointer _scriptEngine;
+    static const QString _consoleFileName;
 };
 
 

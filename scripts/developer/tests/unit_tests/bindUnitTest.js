@@ -1,3 +1,5 @@
+/* eslint-env jasmine */
+
 Script.include('../../../system/libraries/utils.js');
 
 describe('Bind', function() {

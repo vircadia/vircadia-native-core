@@ -11,6 +11,9 @@
 
 #include "ResourceRequest.h"
 
+#include <DependencyManager.h>
+#include <StatTracker.h>
+
 #include <QtCore/QThread>
 
 ResourceRequest::ResourceRequest(const QUrl& url) : _url(url) { }
@@ -36,6 +39,15 @@ QString ResourceRequest::getResultString() const {
         case AccessDenied: return "Access Denied";
         case InvalidURL: return "Invalid URL";
         case NotFound: return "Not Found";
+        case RedirectFail: return "Redirect Fail";
         default: return "Unspecified Error";
+    }
+}
+
+void ResourceRequest::recordBytesDownloadedInStats(const QString& statName, int64_t bytesReceived) {
+    auto dBytes = bytesReceived - _lastRecordedBytesDownloaded;
+    if (dBytes > 0) {
+        _lastRecordedBytesDownloaded = bytesReceived;
+        DependencyManager::get<StatTracker>()->updateStat(statName, dBytes);
     }
 }

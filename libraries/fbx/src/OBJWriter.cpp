@@ -40,8 +40,6 @@ static QString formatFloat(double n) {
 }
 
 bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
-    int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
-
     // each mesh's vertices are numbered from zero.  We're combining all their vertices into one list here,
     // so keep track of the start index for each mesh.
     QList<int> meshVertexStartOffset;
@@ -49,10 +47,15 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
     int currentVertexStartOffset = 0;
     int currentNormalStartOffset = 0;
 
-    // write out vertices
+    // write out vertices (and maybe colors)
     foreach (const MeshPointer& mesh, meshes) {
         meshVertexStartOffset.append(currentVertexStartOffset);
         const gpu::BufferView& vertexBuffer = mesh->getVertexBuffer();
+
+        const gpu::BufferView& colorsBufferView = mesh->getAttributeBuffer(gpu::Stream::COLOR);
+        gpu::BufferView::Index numColors = (gpu::BufferView::Index)colorsBufferView.getNumElements();
+        gpu::BufferView::Index colorIndex = 0;
+
         int vertexCount = 0;
         gpu::BufferView::Iterator<const glm::vec3> vertexItr = vertexBuffer.cbegin<const glm::vec3>();
         while (vertexItr != vertexBuffer.cend<const glm::vec3>()) {
@@ -60,7 +63,15 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
             out << "v ";
             out << formatFloat(v[0]) << " ";
             out << formatFloat(v[1]) << " ";
-            out << formatFloat(v[2]) << "\n";
+            out << formatFloat(v[2]);
+            if (colorIndex < numColors) {
+                glm::vec3 color = colorsBufferView.get<glm::vec3>(colorIndex);
+                out << " " << formatFloat(color[0]);
+                out << " " << formatFloat(color[1]);
+                out << " " << formatFloat(color[2]);
+                colorIndex++;
+            }
+            out << "\n";
             vertexItr++;
             vertexCount++;
         }
@@ -72,7 +83,7 @@ bool writeOBJToTextStream(QTextStream& out, QList<MeshPointer> meshes) {
     bool haveNormals = true;
     foreach (const MeshPointer& mesh, meshes) {
         meshNormalStartOffset.append(currentNormalStartOffset);
-        const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(attributeTypeNormal);
+        const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(gpu::Stream::InputSlot::NORMAL);
         gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
         for (gpu::BufferView::Index i = 0; i < numNormals; i++) {
             glm::vec3 normal = normalsBufferView.get<glm::vec3>(i);

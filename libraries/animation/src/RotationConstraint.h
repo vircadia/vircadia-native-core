@@ -38,6 +38,9 @@ public:
     /// \brief reset any remembered joint limit history
     virtual void clearHistory() {};
 
+    /// \brief return the rotation that lies at the "center" of all the joint limits.
+    virtual glm::quat computeCenterRotation() const = 0;
+
 protected:
     glm::quat _referenceRotation = glm::quat();
 };

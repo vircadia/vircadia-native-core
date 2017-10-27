@@ -14,6 +14,8 @@
 import Hifi 1.0
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+import TabletScriptingInterface 1.0
+
 import "toolbars"
 import "../styles-uit"
 
@@ -46,6 +48,8 @@ Item {
     property int stackShadowNarrowing: 5;
     property string defaultThumbnail: Qt.resolvedUrl("../../images/default-domain.gif");
     property int shadowHeight: 10;
+    property bool hovered: false
+
     HifiConstants { id: hifi }
 
     function pastTime(timestamp) { // Answer a descriptive string
@@ -167,11 +171,9 @@ Item {
     Rectangle {
         id: lozenge;
         visible: isAnnouncement;
-        color: hifi.colors.redHighlight;
+        color: lozengeHot.containsMouse ? hifi.colors.redAccent : hifi.colors.redHighlight;
         anchors.fill: infoRow;
         radius: lozenge.height / 2.0;
-        border.width: lozengeHot.containsMouse ? 4 : 0;
-        border.color: "white";
     }
     Row {
         id: infoRow;
@@ -233,12 +235,25 @@ Item {
     // to that which is being hovered over.
     property var hoverThunk: function () { };
     property var unhoverThunk: function () { };
+    Rectangle {
+        anchors.fill: parent;
+        visible: root.hovered
+        color: "transparent";
+        border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight;
+        z: 1;
+    }
     MouseArea {
         anchors.fill: parent;
         acceptedButtons: Qt.LeftButton;
-        onClicked: goFunction("hifi://" + hifiUrl);
+        onClicked: {
+            tabletInterface.playSound(TabletEnums.ButtonClick);
+            goFunction("hifi://" + hifiUrl);
+        }
         hoverEnabled: true;
-        onEntered: hoverThunk();
+        onEntered:  {
+            tabletInterface.playSound(TabletEnums.ButtonHover);
+            hoverThunk();
+        }
         onExited: unhoverThunk();
     }
     StateImage {
@@ -254,6 +269,7 @@ Item {
         }
     }
     function go() {
+        tabletInterface.playSound(TabletEnums.ButtonClick);
         goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
     }
     MouseArea {

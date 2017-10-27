@@ -36,7 +36,7 @@ const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
-    AvatarMixerClientData(const QUuid& nodeID = QUuid()) : NodeData(nodeID) { _currentViewFrustum.invalidate(); }
+    AvatarMixerClientData(const QUuid& nodeID = QUuid());
     virtual ~AvatarMixerClientData() {}
     using HRCTime = p_high_resolution_clock::time_point;
 
@@ -65,6 +65,8 @@ public:
     void flagIdentityChange() { _identityChangeTimestamp = usecTimestampNow(); }
     bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
     void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
+    bool getAvatarSkeletonModelUrlMustChange() const { return _avatarSkeletonModelUrlMustChange; }
+    void setAvatarSkeletonModelUrlMustChange(bool set = true) { _avatarSkeletonModelUrlMustChange = set; }
 
     void resetNumAvatarsSentLastFrame() { _numAvatarsSentLastFrame = 0; }
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
@@ -145,7 +147,8 @@ private:
     std::unordered_map<QUuid, QVector<JointData>> _lastOtherAvatarSentJoints;
 
     uint64_t _identityChangeTimestamp;
-    bool _avatarSessionDisplayNameMustChange{ false };
+    bool _avatarSessionDisplayNameMustChange{ true };
+    bool _avatarSkeletonModelUrlMustChange{ false };
 
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;

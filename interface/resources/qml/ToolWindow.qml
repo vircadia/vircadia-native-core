@@ -79,15 +79,11 @@ ScrollingWindow {
                         id: webView
                         anchors.fill: parent
                         enabled: false
-                        property alias eventBridgeWrapper: eventBridgeWrapper
-
-                        QtObject {
-                            id: eventBridgeWrapper
-                            WebChannel.id: "eventBridgeWrapper"
-                            property var eventBridge
+                        Component.onCompleted: {
+                            webChannel.registerObject("eventBridge", eventBridge);
+                            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
                         }
 
-                        webChannel.registeredObjects: [eventBridgeWrapper]
                         onEnabledChanged: toolWindow.updateVisiblity()
                     }
                 }
@@ -251,12 +247,9 @@ ScrollingWindow {
         tab.enabled = true;
         tab.originalUrl = properties.source;
 
-        var eventBridge = properties.eventBridge;
-
         var result = tab.item;
         result.enabled = true;
         tabView.tabCount++;
-        result.eventBridgeWrapper.eventBridge = eventBridge;
         result.url = properties.source;
         return result;
     }

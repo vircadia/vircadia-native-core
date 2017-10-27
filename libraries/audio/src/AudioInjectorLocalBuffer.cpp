@@ -11,8 +11,7 @@
 
 #include "AudioInjectorLocalBuffer.h"
 
-AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArray, QObject* parent) :
-    QIODevice(parent),
+AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArray) :
     _rawAudioArray(rawAudioArray),
     _shouldLoop(false),
     _isStopped(false),

@@ -39,7 +39,7 @@
     Script.scriptEnding.connect(cleanup);
 
     function update(dt) {
-        if (!AudioDevice.getMuted()) {
+        if (!Audio.muted) {
             if (hasOverlay()) {
                 deleteOverlay();
             }
@@ -47,7 +47,7 @@
             createOverlay();
         } else {
             updateOverlay();
-        }    
+        }
     }
 
     function getOffsetPosition() {
@@ -98,7 +98,7 @@
 
     function cleanup() {
         deleteOverlay();
-        AudioDevice.muteToggled.disconnect(onMuteToggled);
+        Audio.muted.disconnect(onMuteToggled);
         Script.update.disconnect(update);
     }
 }()); // END LOCAL_SCOPE

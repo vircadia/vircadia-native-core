@@ -11,127 +11,149 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <gpu/Batch.h>
-
 #include <DependencyManager.h>
+#include <StencilMaskPass.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>
 
+//#define SHAPE_ENTITY_USE_FADE_EFFECT
+#ifdef SHAPE_ENTITY_USE_FADE_EFFECT
+#include <FadeEffect.h>
+#endif
+using namespace render;
+using namespace render::entities;
+
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1 
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
-static std::array<GeometryCache::Shape, entity::NUM_SHAPES> MAPPING { {
-    GeometryCache::Triangle,
-    GeometryCache::Quad,
-    GeometryCache::Hexagon,
-    GeometryCache::Octagon,
-    GeometryCache::Circle,
-    GeometryCache::Cube,
-    GeometryCache::Sphere,
-    GeometryCache::Tetrahedron,
-    GeometryCache::Octahedron,
-    GeometryCache::Dodecahedron,
-    GeometryCache::Icosahedron,
-    GeometryCache::Torus,
-    GeometryCache::Cone,
-    GeometryCache::Cylinder,
-} };
 
-RenderableShapeEntityItem::Pointer RenderableShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    Pointer entity = std::make_shared<RenderableShapeEntityItem>(entityID);
-    entity->setProperties(properties);
-    return entity;
+ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
+    _procedural._vertexSource = simple_vert;
+    _procedural._fragmentSource = simple_frag;
+    _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
+    _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
+    PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
+    _procedural._opaqueState->setBlendFunction(false,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 }
 
-EntityItemPointer RenderableShapeEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return baseFactory(entityID, properties);
+bool ShapeEntityRenderer::needsRenderUpdate() const {
+    if (_procedural.isEnabled() && _procedural.isFading()) {
+        return true;
+    }
+
+    return Parent::needsRenderUpdate();
 }
 
-EntityItemPointer RenderableShapeEntityItem::boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    auto result = baseFactory(entityID, properties);
-    result->setShape(entity::Cube);
-    return result;
+bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+    if (_lastUserData != entity->getUserData()) {
+        return true;
+    }
+    glm::vec4 newColor(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
+    if (newColor != _color) {
+        return true;
+    }
+
+    if (_shape != entity->getShape()) {
+        return true;
+    }
+
+    if (_dimensions != entity->getDimensions()) {
+        return true;
+    }
+
+    return false;
 }
 
-EntityItemPointer RenderableShapeEntityItem::sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    auto result = baseFactory(entityID, properties);
-    result->setShape(entity::Sphere);
-    return result;
-}
-
-void RenderableShapeEntityItem::setUserData(const QString& value) {
-    if (value != getUserData()) {
-        ShapeEntityItem::setUserData(value);
-        if (_procedural) {
-            _procedural->parse(value);
+void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    withWriteLock([&] {
+        auto userData = entity->getUserData();
+        if (_lastUserData != userData) {
+            _lastUserData = userData;
+            _procedural.setProceduralData(ProceduralData::parse(_lastUserData));
         }
-    }
+
+        _color = vec4(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
+
+        _shape = entity->getShape();
+        _position = entity->getPosition();
+        _dimensions = entity->getDimensions();
+        _orientation = entity->getOrientation();
+        _renderTransform = getModelTransform();
+
+        if (_shape == entity::Sphere) {
+            _renderTransform.postScale(SPHERE_ENTITY_SCALE);
+        }
+
+        _renderTransform.postScale(_dimensions);
+    });
 }
 
-bool RenderableShapeEntityItem::isTransparent() {
-    if (_procedural && _procedural->isFading()) {
-        float isFading = Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
-        _procedural->setIsFading(isFading);
-        return isFading;
-    } else {
-        return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
-    }
+void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    withReadLock([&] {
+        if (_procedural.isEnabled() && _procedural.isFading()) {
+            float isFading = Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) < 1.0f;
+            _procedural.setIsFading(isFading);
+        }
+    });
 }
 
-void RenderableShapeEntityItem::render(RenderArgs* args) {
+bool ShapeEntityRenderer::isTransparent() const {
+    if (_procedural.isEnabled() && _procedural.isFading()) {
+        return Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) < 1.0f;
+    }
+    
+    //        return _entity->getLocalRenderAlpha() < 1.0f || Parent::isTransparent();
+    return Parent::isTransparent();
+}
+
+
+
+void ShapeEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
-    //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
-    checkFading();
-
-    if (!_procedural) {
-        _procedural.reset(new Procedural(getUserData()));
-        _procedural->_vertexSource = simple_vert;
-        _procedural->_fragmentSource = simple_frag;
-        _procedural->_opaqueState->setCullMode(gpu::State::CULL_NONE);
-        _procedural->_opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
-        _procedural->_opaqueState->setBlendFunction(false,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    }
 
     gpu::Batch& batch = *args->_batch;
-    glm::vec4 color(toGlm(getXColor()), getLocalRenderAlpha());
-    bool success;
-    Transform modelTransform = getTransformToCenter(success);
-    if (!success) {
-        return;
-    }
-    if (_shape == entity::Sphere) {
-        modelTransform.postScale(SPHERE_ENTITY_SCALE);
-    }
-    batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation
-    if (_procedural->ready()) {
-        _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
-        auto outColor = _procedural->getColor(color);
-        outColor.a *= _procedural->isFading() ? Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) : 1.0f;
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    GeometryCache::Shape geometryShape;
+    bool proceduralRender = false;
+    glm::vec4 outColor;
+    withReadLock([&] {
+        geometryShape = geometryCache->getShapeForEntityShape(_shape);
+        batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
+        outColor = _color;
+        if (_procedural.isReady()) {
+            _procedural.prepare(batch, _position, _dimensions, _orientation);
+            outColor = _procedural.getColor(_color);
+            outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
+            proceduralRender = true;
+        }
+    });
+
+    if (proceduralRender) {
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            DependencyManager::get<GeometryCache>()->renderWireShape(batch, MAPPING[_shape]);
+            geometryCache->renderWireShape(batch, geometryShape);
         } else {
-            DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
+            geometryCache->renderShape(batch, geometryShape);
         }
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
-        color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
-        
+        outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+        auto pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShapeInstance(batch, MAPPING[_shape], color, pipeline);
+            geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {
-            geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);
+            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
     }
 
-    static const auto triCount = DependencyManager::get<GeometryCache>()->getShapeTriangleCount(MAPPING[_shape]);
+    const auto triCount = geometryCache->getShapeTriangleCount(geometryShape);
     args->_details._trianglesRendered += (int)triCount;
 }

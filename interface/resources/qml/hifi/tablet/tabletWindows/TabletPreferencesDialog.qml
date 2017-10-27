@@ -136,8 +136,8 @@ Item {
                 for (var i = 0; i < sections.length; i++) {
                     totalHeight += sections[i].height + sections[i].getPreferencesHeight();
                 }
-                console.log(totalHeight);
-                return totalHeight;
+                var bottomPadding = 170;
+                return (totalHeight + bottomPadding);
             }
         }
     }

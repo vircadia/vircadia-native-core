@@ -21,7 +21,6 @@ var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-
         sortOrder: 3
     });
 
-    var shouldActivateButton = false;
     var onMenuScreen = false;
 
     function onClicked() {
@@ -31,17 +30,13 @@ var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-
         } else {
             var entity = HMD.tabletID;
             Entities.editEntity(entity, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
-            shouldActivateButton = true;
             tablet.gotoMenuScreen();
-            onMenuScreen = true;
         }
     }
 
     function onScreenChanged(type, url) {
-        // for toolbar mode: change button to active when window is first openend, false otherwise.
-        button.editProperties({isActive: shouldActivateButton});
-        shouldActivateButton = false;
-        onMenuScreen = false;
+        onMenuScreen = type === "Menu";
+        button.editProperties({isActive: onMenuScreen});
     }
 
     button.clicked.connect(onClicked);

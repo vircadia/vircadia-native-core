@@ -14,6 +14,8 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
+    var request = Script.require('request').request;
+
 var populateNearbyUserList, color, textures, removeOverlays,
     controllerComputePickRay, onTabletButtonClicked, onTabletScreenChanged,
     receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL,
@@ -38,7 +40,7 @@ var HOVER_TEXTURES = {
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
-
+var PAL_QML_SOURCE = "../Pal.qml";
 var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
@@ -266,7 +268,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'refreshConnections':
         print('Refreshing Connections...');
-        getConnectionData();
+        getConnectionData(false);
         UserActivityLogger.palAction("refresh_connections", "");
         break;
     case 'removeConnection':
@@ -279,25 +281,27 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                 print("Error: unable to remove connection", connectionUserName, error || response.status);
                 return;
             }
-            getConnectionData();
+            getConnectionData(false);
         });
         break
 
     case 'removeFriend':
         friendUserName = message.params;
+        print("Removing " + friendUserName + " from friends.");
         request({
             uri: METAVERSE_BASE + '/api/v1/user/friends/' + friendUserName,
             method: 'DELETE'
         }, function (error, response) {
             if (error || (response.status !== 'success')) {
-                print("Error: unable to unfriend", friendUserName, error || response.status);
+                print("Error: unable to unfriend " + friendUserName, error || response.status);
                 return;
             }
-            getConnectionData();
+            getConnectionData(friendUserName);
         });
         break
     case 'addFriend':
         friendUserName = message.params;
+        print("Adding " + friendUserName + " to friends.");
         request({
             uri: METAVERSE_BASE + '/api/v1/user/friends',
             method: 'POST',
@@ -310,7 +314,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                     print("Error: unable to friend " + friendUserName, error || response.status);
                     return;
                 }
-                getConnectionData(); // For now, just refresh all connection data. Later, just refresh the one friended row.
+                getConnectionData(friendUserName);
             }
         );
         break;
@@ -331,55 +335,6 @@ function updateUser(data) {
 //
 // These are prototype versions that will be changed when the back end changes.
 var METAVERSE_BASE = location.metaverseServerUrl;
-function request(options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
-    var httpRequest = new XMLHttpRequest(), key;
-    // QT bug: apparently doesn't handle onload. Workaround using readyState.
-    httpRequest.onreadystatechange = function () {
-        var READY_STATE_DONE = 4;
-        var HTTP_OK = 200;
-        if (httpRequest.readyState >= READY_STATE_DONE) {
-            var error = (httpRequest.status !== HTTP_OK) && httpRequest.status.toString() + ':' + httpRequest.statusText,
-                response = !error && httpRequest.responseText,
-                contentType = !error && httpRequest.getResponseHeader('content-type');
-            if (!error && contentType.indexOf('application/json') === 0) { // ignoring charset, etc.
-                try {
-                    response = JSON.parse(response);
-                } catch (e) {
-                    error = e;
-                }
-            }
-            callback(error, response);
-        }
-    };
-    if (typeof options === 'string') {
-        options = {uri: options};
-    }
-    if (options.url) {
-        options.uri = options.url;
-    }
-    if (!options.method) {
-        options.method = 'GET';
-    }
-    if (options.body && (options.method === 'GET')) { // add query parameters
-        var params = [], appender = (-1 === options.uri.search('?')) ? '?' : '&';
-        for (key in options.body) {
-            params.push(key + '=' + options.body[key]);
-        }
-        options.uri += appender + params.join('&');
-        delete options.body;
-    }
-    if (options.json) {
-        options.headers = options.headers || {};
-        options.headers["Content-type"] = "application/json";
-        options.body = JSON.stringify(options.body);
-    }
-    for (key in options.headers || {}) {
-        httpRequest.setRequestHeader(key, options.headers[key]);
-    }
-    httpRequest.open(options.method, options.uri, true);
-    httpRequest.send(options.body);
-}
-
 
 function requestJSON(url, callback) { // callback(data) if successfull. Logs otherwise.
     request({
@@ -407,8 +362,6 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
     });
 }
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    // The back end doesn't do user connections yet. Fake it by getting all users that have made themselves accessible to us,
-    // and pretending that they are all connections.
     url = METAVERSE_BASE + '/api/v1/users?'
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
@@ -416,25 +369,22 @@ function getAvailableConnections(domain, callback) { // callback([{usename, loca
         url += 'filter=connections'; // regardless of whether online
     }
     requestJSON(url, function (connectionsData) {
-        // The back end doesn't include the profile picture data, but we can add that here.
-        // For our current purposes, there's no need to be fancy and try to reduce latency by doing some number of requests in parallel,
-        // so these requests are all sequential.
-        var users = connectionsData.users;
-        function addPicture(index) {
-            if (index >= users.length) {
-                return callback(users);
-            }
-            var user = users[index];
-            getProfilePicture(user.username, function (url) {
-                user.profileUrl = url;
-                addPicture(index + 1);
-            });
-        }
-        addPicture(0);
+        callback(connectionsData.users);
     });
 }
-
-function getConnectionData(domain) { // Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
+function getInfoAboutUser(specificUsername, callback) {
+    url = METAVERSE_BASE + '/api/v1/users?filter=connections'
+    requestJSON(url, function (connectionsData) {
+        for (user in connectionsData.users) {
+            if (connectionsData.users[user].username === specificUsername) {
+                callback(connectionsData.users[user]);
+                return;
+            }
+        }
+        callback(false);
+    });
+}
+function getConnectionData(specificUsername, domain) { // Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
     function frob(user) { // get into the right format
         var formattedSessionId = user.location.node_id || '';
         if (formattedSessionId !== '' && formattedSessionId.indexOf("{") != 0) {
@@ -444,19 +394,29 @@ function getConnectionData(domain) { // Update all the usernames that I am entit
             sessionId: formattedSessionId,
             userName: user.username,
             connection: user.connection,
-            profileUrl: user.profileUrl,
+            profileUrl: user.images.thumbnail,
             placeName: (user.location.root || user.location.domain || {}).name || ''
         };
     }
-    getAvailableConnections(domain, function (users) {
-        if (domain) {
-            users.forEach(function (user) {
+    if (specificUsername) {
+        getInfoAboutUser(specificUsername, function (user) {
+            if (user) {
                 updateUser(frob(user));
-            });
-        } else {
-            sendToQml({ method: 'connections', params: users.map(frob) });
-        }
-    });
+            } else {
+                print('Error: Unable to find information about ' + specificUsername + ' in connectionsData!');
+            }
+        });
+    } else {
+        getAvailableConnections(domain, function (users) {
+            if (domain) {
+                users.forEach(function (user) {
+                    updateUser(frob(user));
+                });
+            } else {
+                sendToQml({ method: 'connections', params: users.map(frob) });
+            }
+        });
+    }
 }
 
 //
@@ -519,12 +479,13 @@ function populateNearbyUserList(selectData, oldAudioData) {
             admin: false,
             personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
             ignore: !!id && Users.getIgnoreStatus(id), // ditto
-            isPresent: true
+            isPresent: true,
+            isReplicated: avatar.isReplicated
         };
+        // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
+        Users.requestUsernameFromID(id);
         if (id) {
             addAvatarNode(id); // No overlay for ourselves
-            // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
-            Users.requestUsernameFromID(id);
             avatarsOfInterest[id] = true;
         } else {
             // Return our username from the Account API
@@ -533,7 +494,7 @@ function populateNearbyUserList(selectData, oldAudioData) {
         data.push(avatarPalDatum);
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
-    getConnectionData(location.domainId); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
+    getConnectionData(false, location.domainId); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
     conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'nearbyUsers', params: data });
     if (selectData) {
@@ -749,6 +710,7 @@ function off() {
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         isWired = false;
+        ContextOverlay.enabled = true
     }
     if (audioTimer) {
         Script.clearInterval(audioTimer);
@@ -761,22 +723,22 @@ function off() {
 
 function tabletVisibilityChanged() {
     if (!tablet.tabletShown) {
+        ContextOverlay.enabled = true;
         tablet.gotoHomeScreen();
     }
 }
 
 var onPalScreen = false;
-var shouldActivateButton = false;
 
 function onTabletButtonClicked() {
     if (onPalScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
+        ContextOverlay.enabled = true;
     } else {
-        shouldActivateButton = true;
-        tablet.loadQMLSource("../Pal.qml");
+        ContextOverlay.enabled = false;
+        tablet.loadQMLSource(PAL_QML_SOURCE);
         tablet.tabletShownChanged.connect(tabletVisibilityChanged);
-        onPalScreen = true;
         Users.requestsDomainListData = true;
         populateNearbyUserList();
         isWired = true;
@@ -804,14 +766,13 @@ function wireEventBridge(on) {
 }
 
 function onTabletScreenChanged(type, url) {
-    wireEventBridge(shouldActivateButton);
+    onPalScreen = (type === "QML" && url === PAL_QML_SOURCE);
+    wireEventBridge(onPalScreen);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
-    button.editProperties({isActive: shouldActivateButton});
-    shouldActivateButton = false;
-    onPalScreen = false;
+    button.editProperties({isActive: onPalScreen});
 
     // disable sphere overlays when not on pal screen.
-    if (type !== "QML" || url !== "../Pal.qml") {
+    if (!onPalScreen) {
         off();
     }
 }
@@ -905,6 +866,10 @@ function avatarDisconnected(nodeID) {
 
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
+    if (onPalScreen) {
+        ContextOverlay.enabled = true;
+        tablet.gotoHomeScreen();
+    }
 }
 
 function avatarAdded(avatarID) {

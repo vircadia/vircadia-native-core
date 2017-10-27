@@ -9,15 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+#ifdef __AVX2__
 
 #include <stdint.h>
 #include <assert.h>
-#include <immintrin.h>  // AVX2
-
-#ifndef __AVX2__
-#error Must be compiled with /arch:AVX2 or -mavx2 -mfma.
-#endif
+#include <immintrin.h>
 
 #define _mm256_permute4x64_ps(ymm, imm)     _mm256_castpd_ps(_mm256_permute4x64_pd(_mm256_castps_pd(ymm), imm));
 
