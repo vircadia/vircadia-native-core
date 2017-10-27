@@ -290,7 +290,7 @@ void Avatar::updateAvatarEntities() {
             if (!isMyAvatar() && !specifiedHref.isEmpty()) {
                 qCDebug(avatars_renderer) << "removing entity href from avatar attached entity:" << entityID << "old href:" << specifiedHref;
                 QString noHref;
-                properties.setScript(noHref);
+                properties.setHref(noHref);
             }
 
             // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
