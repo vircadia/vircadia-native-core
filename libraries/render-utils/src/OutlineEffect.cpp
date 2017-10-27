@@ -367,7 +367,7 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
     const auto outlineRessources = input.get0();
     const auto outlineRect = input.get1();
 
-    if (_isDisplayEnabled && outlineRessources) {
+    if (_isDisplayEnabled && outlineRessources && outlineRect.z>0 && outlineRect.w>0) {
         assert(renderContext->args);
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
