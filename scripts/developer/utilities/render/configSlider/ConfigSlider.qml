@@ -17,7 +17,7 @@ import "qrc:///qml/controls-uit" as HifiControls
 
 
 Item {
-    HifiConstants { id: luci }
+    HifiConstants { id: hifi }
     id: root
 
     anchors.left: parent.left
@@ -43,7 +43,6 @@ Item {
         anchors.left: root.left
         anchors.right: root.horizontalCenter
         anchors.verticalCenter: root.verticalCenter
-        //anchors.topMargin: 7
     }
 
     HifiControls.Label {
@@ -65,7 +64,6 @@ Item {
     HifiControls.Slider {
         id: sliderControl
         stepSize: root.integral ? 1.0 : 0.0
-        //height: 20
         anchors.left: root.horizontalCenter
         anchors.right: root.right
         anchors.rightMargin: 0
