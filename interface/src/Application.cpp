@@ -1018,6 +1018,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
     const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
@@ -5737,6 +5738,11 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 }
 
 void Application::packetSent(quint64 length) {
+}
+
+void Application::addingEntityWithCertificate(const QString& certificateID, const QString& placeName) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->updateLocation(certificateID, placeName);
 }
 
 void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
