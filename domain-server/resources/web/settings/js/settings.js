@@ -117,7 +117,7 @@ $(document).ready(function(){
   */
 
   $.ajaxSetup({
-      timeout: 20000,
+    timeout: 20000,
   });
 
   $('[data-clampedwidth]').each(function () {
@@ -437,21 +437,21 @@ function accessTokenIsSet() {
 function setupHFAccountButton() {
 
   var hasAccessToken = accessTokenIsSet();
-    var el;
+  var el;
 
   if (hasAccessToken) {
-      el = "<p>";
-      el += "<span class='account-connected-header'>High Fidelity Account Connected</span>";
-      el += "<button id='" + Settings.DISCONNECT_ACCOUNT_BTN_ID + "' class='btn'>Disconnect</button>";
-      el += "</p>";
-      el = $(el);
+    el = "<p>";
+    el += "<span class='account-connected-header'>High Fidelity Account Connected</span>";
+    el += "<button id='" + Settings.DISCONNECT_ACCOUNT_BTN_ID + "' class='btn'>Disconnect</button>";
+    el += "</p>";
+    el = $(el);
   } else {
-      // setup an object for the settings we want our button to have
-      var buttonSetting = {
-          type: 'button',
-          name: 'connected_account',
-          label: 'Connected Account',
-      }
+    // setup an object for the settings we want our button to have
+    var buttonSetting = {
+      type: 'button',
+      name: 'connected_account',
+      label: 'Connected Account',
+    }
     buttonSetting.help = "";
     buttonSetting.classes = "btn-primary";
     buttonSetting.button_label = "Connect High Fidelity Account";
@@ -467,9 +467,8 @@ function setupHFAccountButton() {
     el = viewHelpers.getFormGroup('', buttonSetting, Settings.data.values);
   }
 
-    // add the button group to the top of the metaverse panel
-    $('#metaverse .panel-body').prepend(el);
-
+  // add the button group to the top of the metaverse panel
+  $('#metaverse .panel-body').prepend(el);
 }
 
 function disonnectHighFidelityAccount() {
@@ -832,9 +831,9 @@ function setupDomainNetworkingSettings() {
 
   var errorMessage = ''
   if (includePort) {
-    errorMessage = "We were unable to load the Network address and port.";
+    errorMessage = "We were unable to load the network address and port.";
   } else {
-    errorMessage = "We were unable to load the Network address."
+    errorMessage = "We were unable to load the network address."
   }
   var errorEl = createDomainLoadingError(errorMessage);
 
@@ -1041,14 +1040,6 @@ function appendDomainIDButtons() {
   domainIDInput.after(createButton);
 }
 
-function showDomainSettingsModal(clickedButton) {
-  bootbox.dialog({
-    title: "Choose matching place",
-    message: modal_body,
-    buttons: modal_buttons
-  })
-}
-
 function editHighFidelityPlace(placeID, name, path) {
   var dialog;
 
@@ -1091,8 +1082,6 @@ function editHighFidelityPlace(placeID, name, path) {
             $('.edit-place-cancel-button').removeAttr('disabled');
             $('.edit-place-save-button').removeAttr('disabled');
             $('.edit-place-save-button').html(Strings.EDIT_PLACE_CONFIRM_BUTTON);
-
-            //bootbox.alert(Strings.EDIT_PLACE_ERROR);
           }
         );
 
@@ -1818,12 +1807,12 @@ function badgeSidebarForDifferences(changedElement) {
   var hasChanges = badgeValue > 0;
 
   if (!hasChanges) {
-      for (var key in numChangesBySection) {
-          if (numChangesBySection[key] > 0) {
-              hasChanges = true;
-              break;
-          }
+    for (var key in numChangesBySection) {
+      if (numChangesBySection[key] > 0) {
+        hasChanges = true;
+        break;
       }
+    }
   }
 
   $(".save-button").prop("disabled", !hasChanges);

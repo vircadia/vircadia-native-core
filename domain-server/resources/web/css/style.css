@@ -254,8 +254,8 @@ table .headers + .headers td {
 }
 
 .centered-hack {
-    text-align: left;
-    display: inline-block;
+  text-align: left;
+  display: inline-block;
 }
 
 @-webkit-keyframes bouncedelay {
@@ -282,18 +282,18 @@ table .headers + .headers td {
 }
 
 @keyframes spin {
-    from { transform: scale(1) rotate(0deg);}
-    to { transform: scale(1) rotate(360deg);}
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
 }
 
 @-webkit-keyframes spinw {
-    from { -webkit-transform: rotate(0deg);}
-    to { -webkit-transform: rotate(360deg);}
+    from { -webkit-transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); }
 }
 
 @-moz-keyframes spinm {
-    from { -moz-transform: rotate(0deg);}
-    to { -moz-transform: rotate(360deg);}
+  from { -moz-transform: rotate(0deg); }
+  to { -moz-transform: rotate(360deg); }
 }
 
 .warning-text {
@@ -302,9 +302,9 @@ table .headers + .headers td {
 }
 
 .account-connected-header {
-    color: #6FCF97;
-    font-size: 30px;
-    margin-right: 20px;
+  color: #6FCF97;
+  font-size: 30px;
+  margin-right: 20px;
 }
 
 #visit-domain-link,

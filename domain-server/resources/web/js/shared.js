@@ -1,4 +1,4 @@
-Settings = {
+var Settings = {
   showAdvanced: false,
   ADVANCED_CLASS: 'advanced-setting',
   DEPRECATED_CLASS: 'deprecated-setting',
@@ -48,7 +48,7 @@ var URLs = {
   PLACE_URL: 'https://hifi.place',
 };
 
-Strings = {
+var Strings = {
   LOADING_SETTINGS_ERROR: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
 
   CHOOSE_DOMAIN_BUTTON: "Choose from my domains",
@@ -206,7 +206,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
               label: Strings.ADD_PLACE_CONFIRM_BUTTON,
               className: 'add-place-confirm-button btn btn-primary',
               callback: function() {
-                var placeID = $('#place-name-select').val()
+                var placeID = $('#place-name-select').val();
                 // set the place ID on the form
                 $(Settings.place_ID_SELECTOR).val(placeID).change();
 
@@ -233,7 +233,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
                     type: 'POST'
                   }).done(function(data) {
                     if (data.status == "success") {
-                      waitForDomainServerBackUp(function() {
+                      waitForDomainServerRestart(function() {
                         dialog.modal('hide');
                         if (onSuccessfullyAdded) {
                           onSuccessfullyAdded(places_by_id[placeID].name, domainID);
@@ -334,26 +334,20 @@ function sendCreateDomainRequest(onSuccess, onError) {
     type: 'POST',
     data: { label: "" },
     success: function(data) {
-      //if (data.status === 'success') {
-        onSuccess(data.domain_id);
-      //} else {
-        //onError();
-      //}
+      onSuccess(data.domain_id);
     },
     error: onError
   });
 }
 
-function waitForDomainServerBackUp(callback) {
+function waitForDomainServerRestart(callback) {
   function checkForDomainUp() {
     $.ajax('', {
       success: function() {
-        console.log("Domain is back up");
         callback();
       },
       error: function() {
         setTimeout(checkForDomainUp, 50);
-        console.log("Fail");
       }
     });
   }
@@ -372,7 +366,9 @@ function prepareAccessTokenPrompt(callback) {
     closeOnConfirm: false,
     html: true
   }, function(inputValue){
-    if (inputValue === false) return false;
+    if (inputValue === false) {
+    	return false;
+    }
 
     if (inputValue === "") {
       swal.showInputError("Please paste your access token in the input field.")
