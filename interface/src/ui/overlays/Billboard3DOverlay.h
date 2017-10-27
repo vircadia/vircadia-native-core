@@ -26,8 +26,6 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
-    void update(float deltatime) override;
-
 protected:
     virtual bool applyTransformTo(Transform& transform, bool force = false) override;
 

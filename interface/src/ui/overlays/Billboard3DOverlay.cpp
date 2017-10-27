@@ -37,14 +37,6 @@ QVariant Billboard3DOverlay::getProperty(const QString &property) {
     return Planar3DOverlay::getProperty(property);
 }
 
-void Billboard3DOverlay::update(float duration) {
-    // Billboard's transform needs to constantly be adjusted if it faces the avatar
-   // if (isFacingAvatar()) {
-        notifyRenderTransformChange();
-  //  }
-    Base3DOverlay::update(duration);
-}
-
 bool Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     bool transformChanged = false;
     if (force || usecTimestampNow() > _transformExpiry) {
