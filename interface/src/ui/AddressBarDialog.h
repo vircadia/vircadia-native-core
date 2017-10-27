@@ -22,7 +22,7 @@ class AddressBarDialog : public OffscreenQmlDialog {
     Q_PROPERTY(bool backEnabled READ backEnabled NOTIFY backEnabledChanged)
     Q_PROPERTY(bool forwardEnabled READ forwardEnabled NOTIFY forwardEnabledChanged)
     Q_PROPERTY(bool useFeed READ useFeed WRITE setUseFeed NOTIFY useFeedChanged)
-    Q_PROPERTY(QString metaverseServerUrl READ metaverseServerUrl NOTIFY metaverseServerUrlChanged)
+    Q_PROPERTY(QString metaverseServerUrl READ metaverseServerUrl)
 
 public:
     AddressBarDialog(QQuickItem* parent = nullptr);
@@ -37,7 +37,7 @@ signals:
     void forwardEnabledChanged();
     void useFeedChanged();
     void receivedHifiSchemeURL(const QString& url);
-    void metaverseServerUrlChanged();
+    void hostChanged();
 
 protected:
     void displayAddressOfflineMessage();

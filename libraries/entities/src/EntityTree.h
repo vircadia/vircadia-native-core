@@ -93,6 +93,7 @@ public:
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& senderNode) override;
+    virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
@@ -179,6 +180,11 @@ public:
     QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const { 
         QReadLocker locker(&_recentlyDeletedEntitiesLock);
         return _recentlyDeletedEntityItemIDs;
+    }
+
+    QHash<QString, EntityItemID> getEntityCertificateIDMap() const {
+        QReadLocker locker(&_entityCertificateIDMapLock);
+        return _entityCertificateIDMap;
     }
 
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
@@ -276,6 +282,7 @@ signals:
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
+    void killChallengeOwnershipTimeoutTimer(const QString& certID);
 
 protected:
 
@@ -315,6 +322,12 @@ protected:
 
     mutable QReadWriteLock _entityMapLock;
     QHash<EntityItemID, EntityItemPointer> _entityMap;
+
+    mutable QReadWriteLock _entityCertificateIDMapLock;
+    QHash<QString, EntityItemID> _entityCertificateIDMap;
+
+    mutable QReadWriteLock _certNonceMapLock;
+    QHash<QString, QUuid> _certNonceMap;
 
     EntitySimulationPointer _simulation;
 
@@ -357,6 +370,14 @@ protected:
 
     MovingEntitiesOperator _entityMover;
     QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
+
+    Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
+    Q_INVOKABLE void startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
+
+private:
+    QByteArray computeEncryptedNonce(const QString& certID, const QString ownerKey);
+    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce);
+    void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 };
 
 #endif // hifi_EntityTree_h

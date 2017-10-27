@@ -195,7 +195,8 @@ uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
 enum class EntityVersion : PacketVersion {
-    StrokeColorProperty = 77
+    StrokeColorProperty = 77,
+    HasDynamicOwnershipTests
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

@@ -16,7 +16,6 @@
 #include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkReply>
 
-#include <NetworkingConstants.h>
 #include <plugins/PluginManager.h>
 #include <plugins/SteamClientPlugin.h>
 #include <ui/TabletScriptingInterface.h>

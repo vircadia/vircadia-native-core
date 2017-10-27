@@ -222,6 +222,8 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
         _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
 
@@ -248,6 +250,20 @@ void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
 void Web3DOverlay::onResizeWebSurface() {
     _mayNeedResize = false;
     _webSurface->resize(QSize(_resolution.x, _resolution.y));
+}
+
+const int INVALID_DEVICE_ID = -1;
+
+Q_INVOKABLE int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
+    auto mapped = _webSurface->getRootItem()->mapFromGlobal(QPoint(x, y));
+
+    for (auto pair : _activeTouchPoints) {
+        if (mapped.x() == (int)pair.second.pos().x() && mapped.y() == (int)pair.second.pos().y()) {
+            return pair.first;
+        }
+    }
+
+    return INVALID_DEVICE_ID;
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
