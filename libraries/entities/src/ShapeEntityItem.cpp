@@ -51,12 +51,12 @@ namespace entity {
     }
 }
 
-// shapeCalculator is a hook for external code that knows how to configure a ShapeInfo
+// hullShapeCalculator is a hook for external code that knows how to configure a ShapeInfo
 // for given entity::Shape and dimensions
-ShapeEntityItem::ShapeInfoCalculator shapeCalculator = nullptr;
+ShapeEntityItem::ShapeInfoCalculator hullShapeCalculator = nullptr;
 
 void ShapeEntityItem::setShapeInfoCalulator(ShapeEntityItem::ShapeInfoCalculator callback) {
-    shapeCalculator = callback;
+    hullShapeCalculator = callback;
 }
 
 ShapeEntityItem::Pointer ShapeEntityItem::baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -276,7 +276,6 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
         break;
         case entity::Shape::Sphere: {
-
             float diameter = entityDimensions.x;
             const float MIN_DIAMETER = 0.001f;
             const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
@@ -293,13 +292,25 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
         case entity::Shape::Circle:
             // Circles collide like flat Cylinders
         case entity::Shape::Cylinder: {
-            _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
+            float diameter = entityDimensions.x;
+            const float MIN_DIAMETER = 0.001f;
+            const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
+            if (diameter > MIN_DIAMETER
+                && fabsf(diameter - entityDimensions.z) / diameter < MIN_RELATIVE_SPHERICAL_ERROR) {
+                _collisionShapeType = SHAPE_TYPE_SPHERE;
+            } else if (hullShapeCalculator) {
+                hullShapeCalculator(this, info);
+                _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+            } else {
+                // woops, someone forgot to hook up the hullShapeCalculator()!
+                // final fallback is ellipsoid
+                _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+            }
         }
         break;
         case entity::Shape::Cone: {
-            if (shapeCalculator) {
-                shapeCalculator(this, info);
-                // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
+            if (hullShapeCalculator) {
+                hullShapeCalculator(this, info);
                 _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
             } else {
                 _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
@@ -310,9 +321,8 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
         case entity::Shape::Triangle:
         case entity::Shape::Hexagon:
         case entity::Shape::Octagon: {
-            if (shapeCalculator) {
-                shapeCalculator(this, info);
-                // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
+            if (hullShapeCalculator) {
+                hullShapeCalculator(this, info);
                 _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
             } else {
                 _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
@@ -324,9 +334,8 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
         case entity::Shape::Octahedron:
         case entity::Shape::Dodecahedron:
         case entity::Shape::Icosahedron: {
-            if ( shapeCalculator ) {
-                shapeCalculator(this, info);
-                // shapeCalculator only supports convex shapes (e.g. SHAPE_TYPE_HULL)
+            if ( hullShapeCalculator ) {
+                hullShapeCalculator(this, info);
                 _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
             } else {
                 _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
