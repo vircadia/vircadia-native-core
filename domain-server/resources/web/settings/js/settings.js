@@ -711,7 +711,6 @@ function setupDomainLabelSetting() {
   html.append(spinner);
   html.append(errorEl);
 
-  $('div#label .panel-body').append(errorEl);
   $('div#label .panel-body').append(html);
 }
 
@@ -975,7 +974,7 @@ function getDomainFromAPI(callback) {
       callback(data);
     },
     error: function() {
-      callback(data);
+      callback({ status: 'fail' });
     }
   });
 }

@@ -79,6 +79,8 @@ public:
     /// Parses the request content as form data, returning a list of header/content pairs.
     QList<FormData> parseFormData () const;
 
+    /// Parses the request content as a url encoded form, returning a hash of key/value pairs.
+    /// Duplicate keys are not supported.
     QHash<QString, QString> parseUrlEncodedForm();
 
     /// Sends a response and closes the connection.

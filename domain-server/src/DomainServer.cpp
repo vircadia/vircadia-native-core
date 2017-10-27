@@ -46,7 +46,7 @@
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
 
-static const QString BASE_METAVERSE_URL = "https://staging.highfidelity.com";
+const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -56,10 +56,77 @@ const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
 #endif
 
-bool forwardMetaverseAPIRequest(HTTPConnection* connection, const QString metaversePath,
-                                std::vector<std::pair<QString, QString>> dataWhitelist) {
-    
-    return false;
+bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
+                                              const QString& metaversePath,
+                                              const QString& requestSubobjectKey,
+                                              std::initializer_list<QString> requiredData,
+                                              std::initializer_list<QString> optionalData) {
+
+    auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
+    if (accessTokenVariant == nullptr) {
+        connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
+        return true;
+    }
+
+    QJsonObject subobject;
+
+    auto params = connection->parseUrlEncodedForm();
+
+    for (auto& key : requiredData) {
+        auto it = params.find(key);
+        if (it == params.end()) {
+            auto error = "Bad request, expected param '" + key + "'";
+            connection->respond(HTTPConnection::StatusCode400, error.toLatin1());
+            return true;
+        }
+        subobject.insert(key, it.value());
+    }
+
+    for (auto& key : optionalData) {
+        auto it = params.find(key);
+        if (it != params.end()) {
+            subobject.insert(key, it.value());
+        }
+    }
+
+    QJsonObject root;
+    root.insert(requestSubobjectKey, subobject);
+    QJsonDocument doc { root };
+
+    QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + metaversePath };
+
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    auto accessTokenHeader = QString("Bearer ") + accessTokenVariant->toString();
+    req.setRawHeader("Authorization", accessTokenHeader.toLatin1());
+
+    QNetworkReply* reply;
+    auto method = connection->requestOperation();
+    if (method == QNetworkAccessManager::GetOperation) {
+        reply = NetworkAccessManager::getInstance().get(req);
+    } else if (method == QNetworkAccessManager::PostOperation) {
+        reply = NetworkAccessManager::getInstance().post(req, doc.toJson());
+    } else if (method == QNetworkAccessManager::PutOperation) {
+        reply = NetworkAccessManager::getInstance().put(req, doc.toJson());
+    } else {
+        connection->respond(HTTPConnection::StatusCode400, "Error forwarding request, unsupported method");
+        return true;
+    }
+
+    connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
+        if (reply->error() != QNetworkReply::NoError) {
+            auto data = reply->readAll();
+            qDebug() << "Got error response from metaverse server: " << data << reply->errorString();
+            connection->respond(HTTPConnection::StatusCode400, data);
+            return;
+        }
+
+        static const char* CONTENT_TYPE_JSON { "application/json" };
+        connection->respond(HTTPConnection::StatusCode200, reply->readAll());
+    });
+
+    return true;
 }
 
 DomainServer::DomainServer(int argc, char* argv[]) :
@@ -622,8 +689,6 @@ void DomainServer::setupNodeListAndAssignments() {
     // set a custom packetVersionMatch as the verify packet operator for the udt::Socket
     nodeList->setPacketFilterOperator(&DomainServer::isPacketVerified);
 }
-
-const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 
 bool DomainServer::resetAccountManagerAccessToken() {
     if (!_oauthProviderURL.isEmpty()) {
@@ -1744,7 +1809,6 @@ QString DomainServer::pathForRedirect(QString path) const {
 
 const QString URI_OAUTH = "/oauth";
 bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
-    qDebug() << "HTTP request received at" << connection->requestOperation() << url.toString();
     const QString JSON_MIME_TYPE = "application/json";
 
     const QString URI_ASSIGNMENT = "/assignment";
@@ -1759,6 +1823,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
+
+    auto getSetting = [this](QString keyPath, QVariant& value) -> bool {
+        QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+        QVariant* var = valueForKeyPath(settingsMap, keyPath);
+        if (var == nullptr) {
+            return false;
+        }
+        value = *var;
+        return true;
+    };
 
     // check if this is a request for a scripted assignment (with a temp unique UUID)
     const QString ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
@@ -1935,82 +2009,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             restart();
             return true;
         } else if (url.path() == URI_API_DOMAINS) {
-            QUrl url { BASE_METAVERSE_URL + "/api/v1/domains" };
-
-            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-            if (!accessTokenVariant->isValid()) {
-                connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
-            }
-
-            url.setQuery("access_token=" + accessTokenVariant->toString());
-
-            qDebug() << "Sending request to " << url;
-
-            QNetworkRequest req(url);
-            req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = NetworkAccessManager::getInstance().get(req);
-
-            connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
-                if (reply->error() != QNetworkReply::NoError) {
-                    qDebug() << reply << reply->errorString() << reply->readAll();
-                    connection->respond(HTTPConnection::StatusCode500, reply->readAll());
-                    return;
-                }
-
-                connection->respond(HTTPConnection::StatusCode200, reply->readAll());
-            });
-            return true;
-
+            return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "");
         } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
             auto id = url.path().mid(URI_API_DOMAINS_ID.length());
-            QUrl url { BASE_METAVERSE_URL + "/api/v1/domains/" + id };
-
-            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-            if (accessTokenVariant && accessTokenVariant->isValid()) {
-                url.setQuery("access_token=" + accessTokenVariant->toString());
-            }
-
-            qDebug() << "Sending request to " << url;
-
-            QNetworkRequest req(url);
-            req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = NetworkAccessManager::getInstance().get(req);
-
-            connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
-                if (reply->error() != QNetworkReply::NoError) {
-                    qDebug() << reply << reply->errorString() << reply->readAll();
-                    connection->respond(HTTPConnection::StatusCode500, reply->readAll());
-                    return;
-                }
-
-                connection->respond(HTTPConnection::StatusCode200, reply->readAll());
-            });
-            return true;
-
+            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + id, "");
         } else if (url.path() == URI_API_PLACES) {
-            QUrl url { BASE_METAVERSE_URL + "/api/v1/user/places" };
-
-            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-            if (!accessTokenVariant->isValid()) {
-                connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
-            }
-
-            url.setQuery("access_token=" + accessTokenVariant->toString());
-
-            QNetworkRequest req(url);
-            req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            QNetworkReply* reply = NetworkAccessManager::getInstance().get(req);
-
-            connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
-                if (reply->error() != QNetworkReply::NoError) {
-                    connection->respond(HTTPConnection::StatusCode500);
-                    return;
-                }
-
-                connection->respond(HTTPConnection::StatusCode200, reply->readAll());
-            });
-            return true;
-
+            return forwardMetaverseAPIRequest(connection, "/api/v1/user/places", "");
         } else {
             // check if this is for json stats for a node
             const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
@@ -2112,131 +2116,19 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
 
         } else if (url.path() == URI_API_DOMAINS) {
-            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-            if (!accessTokenVariant) {
-                connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
-                return true;
-            }
 
-            auto params = connection->parseUrlEncodedForm();
-
-            auto it = params.find("label");
-            if (it == params.end()) {
-                connection->respond(HTTPConnection::StatusCode400, "Missing label");
-                return true;
-            }
-
-            QJsonObject root {
-                {"access_token", accessTokenVariant->toString()},
-                {"domain",
-                    QJsonObject({ { "label", it.value() } })
-                }
-            };
-            QJsonDocument doc { root };
-
-            QUrl url { BASE_METAVERSE_URL + "/api/v1/domains" };
-            QNetworkRequest req(url);
-            req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-            QNetworkReply* reply = NetworkAccessManager::getInstance().post(req, doc.toJson());
-            connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
-                auto responseData = reply->readAll();
-                if (reply->error() != QNetworkReply::NoError) {
-                    connection->respond(HTTPConnection::StatusCode500,
-                                        responseData);
-
-                                        //"Error communicating with Metaverse");
-                    return;
-                }
-
-                QJsonParseError error;
-                QJsonDocument response { QJsonDocument::fromJson(responseData, &error) };
-                if (error.error != QJsonParseError::NoError) {
-                    connection->respond(HTTPConnection::StatusCode500,
-                                        "Error communicating with Metaverse, bad response");
-                    return;
-                }
-
-                if (!response.isObject()) {
-                    connection->respond(HTTPConnection::StatusCode500,
-                                        "Error communicating with Metaverse, unexpected response");
-                    return;
-                }
-
-                QJsonObject root {
-                    { "domain_id", response.object()["domain"].toObject()["id"] },
-                };
-
-                static const char* CONTENT_TYPE_JSON { "application/json" };
-                connection->respond(HTTPConnection::StatusCode200, QJsonDocument(root).toJson(), CONTENT_TYPE_JSON);
-            });
-
-            return true;
+            return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "domain", { "label" });
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
         if (url.path() == URI_API_DOMAINS) {
-            QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-            auto domainSetting = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
-            if (domainSetting == nullptr) {
+            QVariant domainSetting;
+            if (!getSetting(METAVERSE_DOMAIN_ID_KEY_PATH, domainSetting)) {
                 connection->respond(HTTPConnection::StatusCode400, "Domain id has not been set");
                 return true;
             }
-
-            auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-            if (!accessTokenVariant->isValid()) {
-                connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
-                return true;
-            }
-
-            auto domainID = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH)->toString();
-
-            auto params = connection->parseUrlEncodedForm();
-
-            QJsonObject domainObj;
-
-            auto it = params.find("network_address");
-            if (it != params.end()) {
-                QString address = it.value();
-                domainObj["network_address"] = address.isEmpty() ? QJsonValue::Null : QJsonValue(address);
-            }
-
-            it = params.find("network_port");
-            if (it != params.end()) {
-                QString port = it.value();
-                domainObj["network_port"] = port.isEmpty() ? QJsonValue::Null : QJsonValue(port);
-            }
-
-            it = params.find("label");
-            if (it != params.end()) {
-                domainObj["label"] = it.value();
-            }
-
-
-            QJsonObject root { { "domain", domainObj } };
-            QJsonDocument doc(root);
-            qDebug() << "Sending " << doc.toJson() << connection->requestContent();
-
-            QUrl url { BASE_METAVERSE_URL + "/api/v1/domains/" + domainID };
-
-            url.setQuery("access_token=" + accessTokenVariant->toString());
-
-            QNetworkRequest req(url);
-            req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-            req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-            QNetworkReply* reply = NetworkAccessManager::getInstance().put(req, doc.toJson());
-
-            connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
-                if (reply->error() != QNetworkReply::NoError) {
-                    auto data = reply->readAll();
-                    qDebug() << "Got error response from metaverse server: " << data;
-                    connection->respond(HTTPConnection::StatusCode400, data);
-                    return;
-                }
-
-                connection->respond(HTTPConnection::StatusCode200, reply->readAll());
-            });
-            return true;
+            auto domainID = domainSetting.toString();
+            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + domainID, "domain",
+                                              { }, { "network_address", "network_port", "label" });
         }  else if (url.path() == URI_API_PLACES) {
             auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
             if (!accessTokenVariant->isValid()) {
@@ -2261,19 +2153,23 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QString path = it.value();
 
             it = params.find("domain_id");
-            QString domain_id;
+            QString domainID;
             if (it == params.end()) {
-                QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-                domain_id = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH)->toString();
+                QVariant domainSetting;
+                if (!getSetting(METAVERSE_DOMAIN_ID_KEY_PATH, domainSetting)) {
+                    connection->respond(HTTPConnection::StatusCode400);
+                    return true;
+                }
+                domainID = domainSetting.toString();
             } else {
-                domain_id = it.value();
+                domainID = it.value();
             }
 
             QJsonObject root {
                 {
                     "place",
                     QJsonObject({
-                        { "pointee_query", domain_id },
+                        { "pointee_query", domainID },
                         { "path", path }
                      })
                 }
@@ -2281,7 +2177,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonDocument doc(root);
 
 
-            QUrl url { BASE_METAVERSE_URL + "/api/v1/places/" + place_id };
+            QUrl url { NetworkingConstants::METAVERSE_SERVER_URL.toString() + "/api/v1/places/" + place_id };
 
             url.setQuery("access_token=" + accessTokenVariant->toString());
 
@@ -2346,7 +2242,6 @@ static const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
 static const QString STATE_QUERY_KEY = "state";
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url, bool skipSubHandler) {
-    qDebug() << "HTTPS request received at" << url.toString();
     if (url.path() == URI_OAUTH) {
 
         QUrlQuery codeURLQuery(url);

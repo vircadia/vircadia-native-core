@@ -195,7 +195,6 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
             place_select.change(function(ev) {
               var warning = modal_body.find("#place-name-warning");
               var place = places_by_id[$(this).val()];
-              console.log(warning, place, $(this).val());
               if (place === undefined || place.pointee === null) {
                 warning.hide();
               } else {
@@ -332,10 +331,11 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
 function sendCreateDomainRequest(onSuccess, onError) {
   $.ajax({
     url: '/api/domains',
+    dataType: 'json',
     type: 'POST',
     data: { label: "" },
     success: function(data) {
-      onSuccess(data.domain_id);
+      onSuccess(data.domain.id);
     },
     error: onError
   });
@@ -368,7 +368,7 @@ function prepareAccessTokenPrompt(callback) {
     html: true
   }, function(inputValue){
     if (inputValue === false) {
-    	return false;
+      return false;
     }
 
     if (inputValue === "") {
