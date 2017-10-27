@@ -15,7 +15,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Tests/manual-tests/")
 link_hifi_libraries(shared networking model fbx ktx image octree gl gpu gpu-gl render model-networking networking render-utils entities entities-renderer animation audio avatars script-engine physics procedural midi ui)
 
 if (WIN32)
-	target_link_libraries(${TARGET_NAME} Winmm.lib)
+    target_link_libraries(${TARGET_NAME} Winmm.lib)
 endif()
 
 package_libraries_for_deployment()

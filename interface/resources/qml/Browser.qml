@@ -233,13 +233,13 @@ ScrollingWindow {
             anchors.right: parent.right
 
             onFeaturePermissionRequested: {
-				if (feature == 2) { // QWebEnginePage::MediaAudioCapture
-					grantFeaturePermission(securityOrigin, feature, true);
-				} else {
-					permissionsBar.securityOrigin = securityOrigin;
-					permissionsBar.feature = feature;
-					root.showPermissionsBar();
-				}
+                if (feature == 2) { // QWebEnginePage::MediaAudioCapture
+                    grantFeaturePermission(securityOrigin, feature, true);
+                } else {
+                    permissionsBar.securityOrigin = securityOrigin;
+                    permissionsBar.feature = feature;
+                    root.showPermissionsBar();
+                }
             }
 
             onLoadingChanged: {

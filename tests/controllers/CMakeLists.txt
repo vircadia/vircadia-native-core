@@ -18,7 +18,7 @@ if (WIN32)
     target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
 endif()
 if (WIN32)
-	target_link_libraries(${TARGET_NAME} Winmm.lib)
+    target_link_libraries(${TARGET_NAME} Winmm.lib)
 endif()
 
 package_libraries_for_deployment()
