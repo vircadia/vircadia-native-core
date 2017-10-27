@@ -1717,8 +1717,7 @@ void EntityItem::setParentID(const QUuid& value) {
 }
 
 void EntityItem::setDimensions(const glm::vec3& value) {
-    const float MIN_ENTITY_DIMENSION = 0.00001f;
-    glm::vec3 newDimensions = glm::max(value, glm::vec3(MIN_ENTITY_DIMENSION));
+    glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
     if (getDimensions() != newDimensions) {
         _dimensions = newDimensions;
         markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
