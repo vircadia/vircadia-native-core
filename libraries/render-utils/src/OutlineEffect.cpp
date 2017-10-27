@@ -113,8 +113,9 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
 
         RenderArgs* args = renderContext->args;
         ShapeKey::Builder defaultKeyBuilder;
-        auto framebufferSize = ressources->getSourceFrameSize();
 
+#if OUTLINE_USE_SCISSOR
+        auto framebufferSize = ressources->getSourceFrameSize();
         // First thing we do is determine the projected bounding rect of all the outlined items
         auto outlinedRect = computeOutlineRect(inShapes, args->getViewFrustum(), framebufferSize);
         auto blurPixelWidth = _sharedParameters->_blurPixelWidths[_outlineIndex];
@@ -123,6 +124,10 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
         // Add 1 pixel of extra margin to be on the safe side
         outputs = expandRect(outlinedRect, blurPixelWidth+1, framebufferSize);
         outlinedRect = expandRect(outputs, blurPixelWidth+1, framebufferSize);
+#else
+        // Render full screen
+        outputs = args->_viewport;
+#endif
 
         // Clear the framebuffer without stereo
         // Needs to be distinct from the other batch because using the clear call 
