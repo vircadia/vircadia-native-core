@@ -86,24 +86,7 @@ Item {
             worldId: WebEngineScript.MainWorld
         }
 
-        WebEngineScript {
-            id: userCSSScript
-            property string css: "\nhtml > ::-webkit-scrollbar { width: 0px; height: 0px; }"
-            sourceCode: "(function() {
-            var css = document.createElement('style');
-            css.setAttribute('type', 'text/css');
-            css.appendChild(document.createTextNode('%1'));
-            document.getElementsByTagName('head')[0].appendChild(" + css + ");})()"
-            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-            worldId: WebEngineScript.MainWorld
-        }
-
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript, userCSSScript ]
-
-        property string newUrl: ""
-        onJavaScriptConsoleMessage: {
-            console.log("Web Entity JS message: " + sourceID + " at line: " + lineNumber + " " +  message);
-        }
+        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
         Component.onCompleted: {
             webChannel.registerObject("eventBridge", eventBridge);

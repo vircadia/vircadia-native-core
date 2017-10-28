@@ -355,8 +355,7 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     }
 }
 
-static inline QRectF touchRectForPosition(QPointF centerPoint)
-{
+static inline QRectF touchRectForPosition(QPointF centerPoint) {
     QRectF touchRect(0, 0, 40, 40);
     touchRect.moveCenter(centerPoint);
     return touchRect;
