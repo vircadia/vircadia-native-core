@@ -725,11 +725,12 @@ function setupDomainNetworkingSettings() {
     return;
   }
 
-  var includePort = autoNetworkingSetting === 'disabled';
+  var includeAddress = autoNetworkingSetting === 'disabled';
 
-  var label = "Network Address";
-  if (includePort) {
-    label += " and Port";
+  if (includeAddress) {
+    var label = "Network Address and Port";
+  } else {
+    var label = "Network Port";
   }
 
   var lowerName = name.toLowerCase();
@@ -748,14 +749,14 @@ function setupDomainNetworkingSettings() {
     var address = DomainInfo.network_address === null ? '' : DomainInfo.network_address;
     var port = DomainInfo.network_port === null ? '' : DomainInfo.network_port;
     var modal_body = "<div class='form-group'>";
-    modal_body += "<label class='control-label'>Address</label>";
-    modal_body += "<input type='text' id='network-address-input' class='form-control' value='" + address + "'>";
-    modal_body += "<div id='network-address-error' class='error-message' data-property='network_address'></div>";
-    if (includePort) {
-      modal_body += "<label class='control-label'>Port</label>";
-      modal_body += "<input type='text' id='network-port-input' class='form-control' value='" + port + "'>";
-      modal_body += "<div id='network-port-error' class='error-message' data-property='network_port'></div>";
+    if (includeAddress) {
+      modal_body += "<label class='control-label'>Address</label>";
+      modal_body += "<input type='text' id='network-address-input' class='form-control' value='" + address + "'>";
+      modal_body += "<div id='network-address-error' class='error-message' data-property='network_address'></div>";
     }
+    modal_body += "<label class='control-label'>Port</label>";
+    modal_body += "<input type='text' id='network-port-input' class='form-control' value='" + port + "'>";
+    modal_body += "<div id='network-port-error' class='error-message' data-property='network_port'></div>";
     modal_body += "</div>";
 
     var dialog = bootbox.dialog({
@@ -775,10 +776,10 @@ function setupDomainNetworkingSettings() {
           className: 'edit-network-save-btn btn btn-primary',
           callback: function() {
             var data = {
-              network_address: $('#network-address-input').val()
+              network_port: $('#network-port-input').val()
             };
-            if (includePort) {
-              data.network_port = $('#network-port-input').val();
+            if (includeAddress) {
+              data.network_address = $('#network-address-input').val();
             }
 
             $('.edit-network-cancel-btn').attr('disabled', 'disabled');
@@ -829,10 +830,10 @@ function setupDomainNetworkingSettings() {
   var spinner = createDomainSpinner();
 
   var errorMessage = ''
-  if (includePort) {
+  if (includeAddress) {
     errorMessage = "We were unable to load the network address and port.";
   } else {
-    errorMessage = "We were unable to load the network address."
+    errorMessage = "We were unable to load the network port."
   }
   var errorEl = createDomainLoadingError(errorMessage);
 
@@ -1015,7 +1016,7 @@ function reloadDomainInfo() {
       if (autoNetworkingSetting === 'disabled') {
         $('#network-address-port input').val(address + ":" + port);
       } else if (autoNetworkingSetting === 'ip') {
-        $('#network-address-port input').val(address);
+        $('#network-address-port input').val(port);
       }
 
       appendAddButtonToPlacesTable();
