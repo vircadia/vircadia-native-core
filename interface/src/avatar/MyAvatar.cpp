@@ -1452,6 +1452,7 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         return;
     }
     Avatar::setAttachmentData(attachmentData);
+    emit attachmentsChanged();
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
