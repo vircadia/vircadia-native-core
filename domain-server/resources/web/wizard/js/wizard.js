@@ -383,7 +383,9 @@ function savePermissions() {
           "id_can_kick": localhostPermissions,
           "id_can_replace_content": localhostPermissions,
           "id_can_rez": localhostPermissions,
+          "id_can_rez_certified": localhostPermissions,
           "id_can_rez_tmp": localhostPermissions,
+          "id_can_rez_tmp_certified": localhostPermissions,
           "id_can_write_to_asset_server": localhostPermissions,
           "permissions_id": "localhost"
         }
