@@ -163,7 +163,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             }
             _contextOverlay->setWorldPosition(contextOverlayPosition);
             _contextOverlay->setDimensions(contextOverlayDimensions);
-            _contextOverlay->setRotation(entityProperties.getRotation());
+            _contextOverlay->setWorldOrientation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
 
             return true;

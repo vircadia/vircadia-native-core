@@ -420,13 +420,13 @@ void SpatiallyNestable::setWorldPosition(const glm::vec3& position) {
     #endif
 }
 
-glm::quat SpatiallyNestable::getOrientation(bool& success) const {
+glm::quat SpatiallyNestable::getWorldOrientation(bool& success) const {
     return getTransform(success).getRotation();
 }
 
-glm::quat SpatiallyNestable::getOrientation() const {
+glm::quat SpatiallyNestable::getWorldOrientation() const {
     bool success;
-    auto result = getOrientation(success);
+    auto result = getWorldOrientation(success);
     #ifdef WANT_DEBUG
     if (!success) {
         qCDebug(shared) << "Warning -- getOrientation failed" << getID();
@@ -435,11 +435,11 @@ glm::quat SpatiallyNestable::getOrientation() const {
     return result;
 }
 
-glm::quat SpatiallyNestable::getOrientation(int jointIndex, bool& success) const {
+glm::quat SpatiallyNestable::getWorldOrientation(int jointIndex, bool& success) const {
     return getTransform(jointIndex, success).getRotation();
 }
 
-void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics) {
+void SpatiallyNestable::setWorldOrientation(const glm::quat& orientation, bool& success, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(orientation)) {
         success = false;
@@ -463,9 +463,9 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& succe
     }
 }
 
-void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
+void SpatiallyNestable::setWorldOrientation(const glm::quat& orientation) {
     bool success;
-    setOrientation(orientation, success);
+    setWorldOrientation(orientation, success);
     #ifdef WANT_DEBUG
     if (!success) {
         qCDebug(shared) << "Warning -- setOrientation failed" << getID();

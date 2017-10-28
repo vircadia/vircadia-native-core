@@ -146,7 +146,7 @@ Transform Cube3DOverlay::evalRenderTransform() {
     // TODO: handle registration point??
     glm::vec3 position = getWorldPosition();
     glm::vec3 dimensions = getDimensions();
-    glm::quat rotation = getRotation();
+    glm::quat rotation = getWorldOrientation();
 
     Transform transform;
     transform.setScale(dimensions);

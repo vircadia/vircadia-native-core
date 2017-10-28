@@ -111,7 +111,7 @@ glm::vec3 AvatarMotionState::getObjectPosition() const {
 
 // virtual
 glm::quat AvatarMotionState::getObjectRotation() const {
-    return _avatar->getOrientation();
+    return _avatar->getWorldOrientation();
 }
 
 // virtual

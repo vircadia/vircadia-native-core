@@ -967,7 +967,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldPosition(); });
-    addressManager->setOrientationGetter([this]{ return getMyAvatar()->getOrientation(); });
+    addressManager->setOrientationGetter([this]{ return getMyAvatar()->getWorldOrientation(); });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
@@ -2400,7 +2400,7 @@ void Application::updateCamera(RenderArgs& renderArgs) {
             auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
             _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
             _myCamera.setPosition(extractTranslation(hmdWorldMat) +
-                myAvatar->getOrientation() * boomOffset);
+                myAvatar->getWorldOrientation() * boomOffset);
         }
         else {
             _myCamera.setOrientation(myAvatar->getHead()->getOrientation());
@@ -2410,13 +2410,13 @@ void Application::updateCamera(RenderArgs& renderArgs) {
             }
             else {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                    + myAvatar->getOrientation() * boomOffset);
+                    + myAvatar->getWorldOrientation() * boomOffset);
             }
         }
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         if (isHMDMode()) {
-            auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+            auto mirrorBodyOrientation = myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
             glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
             // Mirror HMD yaw and roll
@@ -2439,11 +2439,11 @@ void Application::updateCamera(RenderArgs& renderArgs) {
                 + mirrorBodyOrientation * hmdOffset);
         }
         else {
-            _myCamera.setOrientation(myAvatar->getOrientation()
+            _myCamera.setOrientation(myAvatar->getWorldOrientation()
                 * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
             _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                 + glm::vec3(0, _raiseMirror * myAvatar->getModelScale(), 0)
-                + (myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                + (myAvatar->getWorldOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
                 glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         }
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
@@ -2453,12 +2453,12 @@ void Application::updateCamera(RenderArgs& renderArgs) {
         if (cameraEntity != nullptr) {
             if (isHMDMode()) {
                 glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
+                _myCamera.setOrientation(cameraEntity->getWorldOrientation() * hmdRotation);
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
                 _myCamera.setPosition(cameraEntity->getWorldPosition() + (hmdRotation * hmdOffset));
             }
             else {
-                _myCamera.setOrientation(cameraEntity->getRotation());
+                _myCamera.setOrientation(cameraEntity->getWorldOrientation());
                 _myCamera.setPosition(cameraEntity->getWorldPosition());
             }
         }
@@ -3870,7 +3870,7 @@ void Application::idle() {
                 if (!_keyboardFocusedEntity.get().isInvalidID()) {
                     auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
                     if (entity && _keyboardFocusHighlight) {
-                        _keyboardFocusHighlight->setRotation(entity->getRotation());
+                        _keyboardFocusHighlight->setWorldOrientation(entity->getWorldOrientation());
                         _keyboardFocusHighlight->setWorldPosition(entity->getWorldPosition());
                     }
                 } else {
@@ -3878,7 +3878,7 @@ void Application::idle() {
                     auto overlay =
                         std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
                     if (overlay && _keyboardFocusHighlight) {
-                        _keyboardFocusHighlight->setRotation(overlay->getRotation());
+                        _keyboardFocusHighlight->setWorldOrientation(overlay->getWorldOrientation());
                         _keyboardFocusHighlight->setWorldPosition(overlay->getWorldPosition());
                     }
                 }
@@ -4293,7 +4293,7 @@ void Application::updateMyAvatarLookAtPosition() {
             // TODO -- this code is probably wrong, getHeadPose() returns something in sensor frame, not avatar
             glm::mat4 headPose = getActiveDisplayPlugin()->getHeadPose();
             glm::quat hmdRotation = glm::quat_cast(headPose);
-            lookAtSpot = _myCamera.getPosition() + myAvatar->getOrientation() * (hmdRotation * lookAtPosition);
+            lookAtSpot = _myCamera.getPosition() + myAvatar->getWorldOrientation() * (hmdRotation * lookAtPosition);
         } else {
             lookAtSpot = myAvatar->getHead()->getEyePosition()
                 + (myAvatar->getHead()->getFinalOrientationInWorldFrame() * lookAtPosition);
@@ -4519,7 +4519,7 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
     }
 
     // Position focus
-    _keyboardFocusHighlight->setRotation(rotation);
+    _keyboardFocusHighlight->setWorldOrientation(rotation);
     _keyboardFocusHighlight->setWorldPosition(position);
     _keyboardFocusHighlight->setDimensions(dimensions);
     _keyboardFocusHighlight->setVisible(true);
@@ -4557,7 +4557,7 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
                 }
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getRotation(),
+                setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
                     entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
@@ -4594,7 +4594,7 @@ void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
             if (overlay->getProperty("showKeyboardFocusHighlight").toBool()) {
                 auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
                 const float OVERLAY_DEPTH = 0.0105f;
-                setKeyboardFocusHighlight(overlay->getWorldPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
+                setKeyboardFocusHighlight(overlay->getWorldPosition(), overlay->getWorldOrientation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
             } else if (_keyboardFocusHighlight) {
                 _keyboardFocusHighlight->setVisible(false);
             }
@@ -4686,7 +4686,7 @@ void Application::update(float deltaTime) {
 
         controller::InputCalibrationData calibrationData = {
             myAvatar->getSensorToWorldMatrix(),
-            createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getWorldPosition()),
+            createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition()),
             myAvatar->getHMDSensorMatrix(),
             myAvatar->getCenterEyeCalibrationMat(),
             myAvatar->getHeadCalibrationMat(),
@@ -4796,7 +4796,7 @@ void Application::update(float deltaTime) {
         };
 
         // copy controller poses from userInputMapper to myAvatar.
-        glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getWorldPosition());
+        glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition());
         glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
         glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
         for (auto& action : avatarControllerActions) {
@@ -6437,9 +6437,9 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
-    glm::vec3 positionOffset = getMyAvatar()->getOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
+    glm::vec3 positionOffset = getMyAvatar()->getWorldOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
     properties.setPosition(getMyAvatar()->getWorldPosition() + positionOffset);
-    properties.setRotation(getMyAvatar()->getOrientation());
+    properties.setRotation(getMyAvatar()->getWorldOrientation());
     properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
     auto entityID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);
 

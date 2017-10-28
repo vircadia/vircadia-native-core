@@ -146,7 +146,7 @@ void Grid3DOverlay::updateGrid() {
 
 Transform Grid3DOverlay::evalRenderTransform() {
     Transform transform;
-    transform.setRotation(getRotation());
+    transform.setRotation(getWorldOrientation());
     transform.setScale(glm::vec3(getDimensions(), 1.0f));
     return transform;
 }

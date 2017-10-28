@@ -411,7 +411,7 @@ glm::mat4 PolyVoxEntityItem::localToVoxelMatrix() const {
 }
 
 glm::mat4 PolyVoxEntityItem::voxelToWorldMatrix() const {
-    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 rotation = glm::mat4_cast(getWorldOrientation());
     glm::mat4 translation = glm::translate(getWorldPosition());
     return translation * rotation * voxelToLocalMatrix();
 }

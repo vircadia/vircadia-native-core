@@ -828,7 +828,7 @@ PointerEvent Overlays::calculateOverlayPointerEvent(OverlayID overlayID, PickRay
         return PointerEvent();
     }
     glm::vec3 position = overlay->getWorldPosition();
-    glm::quat rotation = overlay->getRotation();
+    glm::quat rotation = overlay->getWorldOrientation();
     glm::vec2 dimensions = overlay->getSize();
 
 

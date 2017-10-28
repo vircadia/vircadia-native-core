@@ -662,7 +662,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         }
 
         // extents is the entity relative, scaled, centered extents of the entity
-        glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+        glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
         glm::mat4 translation = glm::translate(entity->getWorldPosition());
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
@@ -787,7 +787,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
-                glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+                glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
                 glm::mat4 translation = glm::translate(entity->getWorldPosition());
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);

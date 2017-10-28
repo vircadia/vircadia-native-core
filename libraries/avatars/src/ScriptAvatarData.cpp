@@ -66,7 +66,7 @@ float ScriptAvatarData::getBodyRoll() const {
 }
 glm::quat ScriptAvatarData::getOrientation() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getOrientation();
+        return sharedAvatarData->getWorldOrientation();
     } else {
         return glm::quat();
     }

@@ -109,7 +109,7 @@ void EntityMotionState::handleDeactivation() {
         // and also to RigidBody
         btTransform worldTrans;
         worldTrans.setOrigin(glmToBullet(_entity->getWorldPosition()));
-        worldTrans.setRotation(glmToBullet(_entity->getRotation()));
+        worldTrans.setRotation(glmToBullet(_entity->getWorldOrientation()));
         _body->setWorldTransform(worldTrans);
         // no need to update velocities... should already be zero
     }
@@ -246,7 +246,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         _accelerationNearlyGravityCount = (uint8_t)(-1);
     }
     worldTrans.setOrigin(glmToBullet(getObjectPosition()));
-    worldTrans.setRotation(glmToBullet(_entity->getRotation()));
+    worldTrans.setRotation(glmToBullet(_entity->getWorldOrientation()));
 }
 
 // This callback is invoked by the physics simulation at the end of each simulation step...
@@ -264,7 +264,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         qCDebug(physics) << "EntityMotionState::setWorldTransform setPosition failed" << _entity->getID();
     }
     bool orientationSuccess;
-    _entity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
+    _entity->setWorldOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
     if (!orientationSuccess) {
         static QString repeatedMessage =
             LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "

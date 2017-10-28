@@ -1169,7 +1169,7 @@ bool EntityItem::wantTerseEditLogging() const {
 
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
     glm::mat4 translation = glm::translate(getWorldPosition());
-    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 rotation = glm::mat4_cast(getWorldOrientation());
     glm::mat4 scale = glm::scale(getDimensions());
     glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
     return translation * rotation * scale * registration;
@@ -1464,7 +1464,7 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
             glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
             glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-            extents.rotate(getRotation());
+            extents.rotate(getWorldOrientation());
 
             // shift the extents to be relative to the position/registration point
             extents.shiftBy(position);
@@ -1494,7 +1494,7 @@ AABox EntityItem::getAABox(bool& success) const {
             glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * _registrationPoint);
             glm::vec3 unrotatedMaxRelativeToEntity = dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint);
             Extents extents = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
-            extents.rotate(getRotation());
+            extents.rotate(getWorldOrientation());
 
             // shift the extents to be relative to the position/registration point
             extents.shiftBy(position);
@@ -2384,7 +2384,7 @@ void EntityItem::globalizeProperties(EntityItemProperties& properties, const QSt
     auto globalPosition = getWorldPosition(success);
     if (success) {
         properties.setPosition(globalPosition + offset);
-        properties.setRotation(getRotation());
+        properties.setRotation(getWorldOrientation());
         properties.setDimensions(getDimensions());
         // Should we do velocities and accelerations, too? This could end up being quite involved, which is why the method exists.
     } else {

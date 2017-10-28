@@ -510,7 +510,7 @@ static glm::vec2 projectOntoEntityXYPlane(EntityItemPointer entity, const PickRa
     if (entity) {
 
         glm::vec3 entityPosition = entity->getWorldPosition();
-        glm::quat entityRotation = entity->getRotation();
+        glm::quat entityRotation = entity->getWorldOrientation();
         glm::vec3 entityDimensions = entity->getDimensions();
         glm::vec3 entityRegistrationPoint = entity->getRegistrationPoint();
 

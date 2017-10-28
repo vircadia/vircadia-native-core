@@ -83,7 +83,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         _shape = entity->getShape();
         _position = entity->getWorldPosition();
         _dimensions = entity->getDimensions();
-        _orientation = entity->getOrientation();
+        _orientation = entity->getWorldOrientation();
         _renderTransform = getModelTransform();
 
         if (_shape == entity::Sphere) {

@@ -456,11 +456,11 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     setVelocity(velocity);
 
     // angular
-    glm::quat orientation = getOrientation();
+    glm::quat orientation = getWorldOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
     glm::vec3 angularVelocity = glm::axis(delta) * glm::angle(delta) * invDeltaTime;
     setAngularVelocity(angularVelocity);
-    _lastOrientation = getOrientation();
+    _lastOrientation = getWorldOrientation();
 }
 
 enum TextRendererType {
@@ -722,7 +722,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         if (attachment.isSoft) {
             // soft attachments do not have transform offsets
             model->setTranslation(getWorldPosition());
-            model->setRotation(getOrientation() * Quaternions::Y_180);
+            model->setRotation(getWorldOrientation() * Quaternions::Y_180);
             model->simulate(deltaTime);
         } else {
             if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPosition) &&
@@ -902,7 +902,7 @@ glm::vec3 Avatar::getSkeletonPosition() const {
     // The avatar is rotated PI about the yAxis, so we have to correct for it
     // to get the skeleton offset contribution in the world-frame.
     const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    return getWorldPosition() + getOrientation() * FLIP * _skeletonOffset;
+    return getWorldPosition() + getWorldOrientation() * FLIP * _skeletonOffset;
 }
 
 QVector<glm::quat> Avatar::getJointRotations() const {
@@ -1473,11 +1473,11 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 
 void Avatar::setPositionViaScript(const glm::vec3& position) {
     setWorldPosition(position);
-    updateAttitude(getOrientation());
+    updateAttitude(getWorldOrientation());
 }
 
 void Avatar::setOrientationViaScript(const glm::quat& orientation) {
-    setOrientation(orientation);
+    setWorldOrientation(orientation);
     updateAttitude(orientation);
 }
 

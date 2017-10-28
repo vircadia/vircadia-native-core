@@ -118,12 +118,12 @@ void AvatarData::setTargetScale(float targetScale) {
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
-    return getOrientation() * _handPosition + getWorldPosition();
+    return getWorldOrientation() * _handPosition + getWorldPosition();
 }
 
 void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     // store relative to position/orientation
-    _handPosition = glm::inverse(getOrientation()) * (handPosition - getWorldPosition());
+    _handPosition = glm::inverse(getWorldOrientation()) * (handPosition - getWorldPosition());
 }
 
 void AvatarData::lazyInitHeadData() const {
@@ -1900,7 +1900,7 @@ void registerAvatarTypes(QScriptEngine* engine) {
 void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
     if (!recordingBasis) {
         recordingBasis = std::make_shared<Transform>();
-        recordingBasis->setRotation(getOrientation());
+        recordingBasis->setRotation(getWorldOrientation());
         recordingBasis->setTranslation(getWorldPosition());
         // TODO: find a  different way to record/playback the Scale of the avatar
         //recordingBasis->setScale(getTargetScale());
@@ -2066,7 +2066,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setWorldPosition(currentBasis->getTranslation());
         orientation = currentBasis->getRotation();
     }
-    setOrientation(orientation);
+    setWorldOrientation(orientation);
     updateAttitude(orientation);
 
     // Do after avatar orientation because head look-at needs avatar orientation.
@@ -2153,36 +2153,36 @@ void AvatarData::fromFrame(const QByteArray& frameData, AvatarData& result, bool
 }
 
 float AvatarData::getBodyYaw() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     return eulerAngles.y;
 }
 
 void AvatarData::setBodyYaw(float bodyYaw) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     eulerAngles.y = bodyYaw;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
+    setWorldOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
 float AvatarData::getBodyPitch() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     return eulerAngles.x;
 }
 
 void AvatarData::setBodyPitch(float bodyPitch) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     eulerAngles.x = bodyPitch;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
+    setWorldOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
 float AvatarData::getBodyRoll() const {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     return eulerAngles.z;
 }
 
 void AvatarData::setBodyRoll(float bodyRoll) {
-    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getOrientation()));
+    glm::vec3 eulerAngles = glm::degrees(safeEulerAngles(getWorldOrientation()));
     eulerAngles.z = bodyRoll;
-    setOrientation(glm::quat(glm::radians(eulerAngles)));
+    setWorldOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
 void AvatarData::setPositionViaScript(const glm::vec3& position) {
@@ -2190,7 +2190,7 @@ void AvatarData::setPositionViaScript(const glm::vec3& position) {
 }
 
 void AvatarData::setOrientationViaScript(const glm::quat& orientation) {
-    SpatiallyNestable::setOrientation(orientation);
+    SpatiallyNestable::setWorldOrientation(orientation);
 }
 
 glm::quat AvatarData::getAbsoluteJointRotationInObjectFrame(int index) const {

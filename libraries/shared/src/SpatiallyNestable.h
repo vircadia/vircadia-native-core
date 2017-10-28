@@ -83,15 +83,11 @@ public:
     virtual void setWorldPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);
     virtual void setWorldPosition(const glm::vec3& position);
 
-    virtual glm::quat getOrientation(bool& success) const;
-    virtual glm::quat getOrientation() const;
-    virtual glm::quat getOrientation(int jointIndex, bool& success) const;
-    virtual void setOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
-    virtual void setOrientation(const glm::quat& orientation);
-
-    // these are here because some older code uses rotation rather than orientation
-    virtual const glm::quat getRotation() const { return getOrientation(); }
-    virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
+    virtual glm::quat getWorldOrientation(bool& success) const;
+    virtual glm::quat getWorldOrientation() const;
+    virtual glm::quat getWorldOrientation(int jointIndex, bool& success) const;
+    virtual void setWorldOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
+    virtual void setWorldOrientation(const glm::quat& orientation);
 
     virtual glm::vec3 getVelocity(bool& success) const;
     virtual glm::vec3 getVelocity() const;

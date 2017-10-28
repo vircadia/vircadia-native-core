@@ -615,7 +615,7 @@ bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
 
     // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
-    return findRayRectangleIntersection(origin, direction, getRotation(), getWorldPosition(), getSize(), distance);
+    return findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), getSize(), distance);
 }
 
 Web3DOverlay* Web3DOverlay::createClone() const {

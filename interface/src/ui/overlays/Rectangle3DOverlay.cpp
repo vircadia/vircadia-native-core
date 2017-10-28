@@ -61,7 +61,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     glm::vec3 position = getWorldPosition();
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
-    glm::quat rotation = getRotation();
+    glm::quat rotation = getWorldOrientation();
 
     auto batch = args->_batch;
 

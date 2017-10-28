@@ -64,7 +64,7 @@ void MyCharacterController::updateShapeIfNecessary() {
 
             _rigidBody->setSleepingThresholds(0.0f, 0.0f);
             _rigidBody->setAngularFactor(0.0f);
-            _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatar->getOrientation()),
+            _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatar->getWorldOrientation()),
                                                       glmToBullet(_avatar->getWorldPosition())));
             _rigidBody->setDamping(0.0f, 0.0f);
             if (_state == State::Hover) {
