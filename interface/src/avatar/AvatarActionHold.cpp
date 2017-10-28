@@ -529,7 +529,7 @@ void AvatarActionHold::lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, cons
     rigidBody->setWorldTransform(worldTrans);
 
     bool positionSuccess;
-    ownerEntity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
+    ownerEntity->setWorldPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
     bool orientationSuccess;
     ownerEntity->setOrientation(bulletToGLM(worldTrans.getRotation()), orientationSuccess, false);
 }

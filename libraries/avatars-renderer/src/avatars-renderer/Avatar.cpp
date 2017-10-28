@@ -145,18 +145,18 @@ void Avatar::init() {
 glm::vec3 Avatar::getChestPosition() const {
     // for now, let's just assume that the "chest" is halfway between the root and the neck
     glm::vec3 neckPosition;
-    return _skeletonModel->getNeckPosition(neckPosition) ? (getPosition() + neckPosition) * 0.5f : getPosition();
+    return _skeletonModel->getNeckPosition(neckPosition) ? (getWorldPosition() + neckPosition) * 0.5f : getWorldPosition();
 }
 
 glm::vec3 Avatar::getNeckPosition() const {
     glm::vec3 neckPosition;
-    return _skeletonModel->getNeckPosition(neckPosition) ? neckPosition : getPosition();
+    return _skeletonModel->getNeckPosition(neckPosition) ? neckPosition : getWorldPosition();
 }
 
 AABox Avatar::getBounds() const {
     if (!_skeletonModel->isRenderable() || _skeletonModel->needsFixupInScene()) {
         // approximately 2m tall, scaled to user request.
-        return AABox(getPosition() - glm::vec3(getModelScale()), getModelScale() * 2.0f);
+        return AABox(getWorldPosition() - glm::vec3(getModelScale()), getModelScale() * 2.0f);
     }
     return _skeletonModel->getRenderableMeshBound();
 }
@@ -359,9 +359,9 @@ void Avatar::simulate(float deltaTime, bool inView) {
                 locationChanged(); // joints changed, so if there are any children, update them.
                 _hasNewJointData = false;
 
-                glm::vec3 headPosition = getPosition();
+                glm::vec3 headPosition = getWorldPosition();
                 if (!_skeletonModel->getHeadPosition(headPosition)) {
-                    headPosition = getPosition();
+                    headPosition = getWorldPosition();
                 }
                 head->setPosition(headPosition);
             }
@@ -427,7 +427,7 @@ bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
 }
 
 void Avatar::slamPosition(const glm::vec3& newPosition) {
-    setPosition(newPosition);
+    setWorldPosition(newPosition);
     _positionDeltaAccumulator = glm::vec3(0.0f);
     setVelocity(glm::vec3(0.0f));
     _lastVelocity = glm::vec3(0.0f);
@@ -439,7 +439,7 @@ void Avatar::updateAttitude(const glm::quat& orientation) {
 }
 
 void Avatar::applyPositionDelta(const glm::vec3& delta) {
-    setPosition(getPosition() + delta);
+    setWorldPosition(getWorldPosition() + delta);
     _positionDeltaAccumulator += delta;
 }
 
@@ -588,7 +588,7 @@ void Avatar::render(RenderArgs* renderArgs) {
 
     glm::vec3 viewPos = renderArgs->getViewFrustum().getPosition();
     const float MAX_DISTANCE_SQUARED_FOR_SHOWING_POINTING_LASERS = 100.0f; // 10^2
-    if (glm::distance2(viewPos, getPosition()) < MAX_DISTANCE_SQUARED_FOR_SHOWING_POINTING_LASERS) {
+    if (glm::distance2(viewPos, getWorldPosition()) < MAX_DISTANCE_SQUARED_FOR_SHOWING_POINTING_LASERS) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
         // render pointing lasers
@@ -647,7 +647,7 @@ void Avatar::render(RenderArgs* renderArgs) {
     }
 
     ViewFrustum frustum = renderArgs->getViewFrustum();
-    if (!frustum.sphereIntersectsFrustum(getPosition(), getBoundingRadius())) {
+    if (!frustum.sphereIntersectsFrustum(getWorldPosition(), getBoundingRadius())) {
         return;
     }
 
@@ -658,7 +658,7 @@ void Avatar::render(RenderArgs* renderArgs) {
     }
 
     if (showReceiveStats || showNamesAboveHeads) {
-        glm::vec3 toTarget = frustum.getPosition() - getPosition();
+        glm::vec3 toTarget = frustum.getPosition() - getWorldPosition();
         float distanceToTarget = glm::length(toTarget);
         const float DISPLAYNAME_DISTANCE = 20.0f;
         updateDisplayNameAlpha(distanceToTarget < DISPLAYNAME_DISTANCE);
@@ -721,7 +721,7 @@ void Avatar::simulateAttachments(float deltaTime) {
         glm::quat jointRotation;
         if (attachment.isSoft) {
             // soft attachments do not have transform offsets
-            model->setTranslation(getPosition());
+            model->setTranslation(getWorldPosition());
             model->setRotation(getOrientation() * Quaternions::Y_180);
             model->simulate(deltaTime);
         } else {
@@ -775,9 +775,9 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
         const float HEAD_PROPORTION = 0.75f;
         float size = getBoundingRadius();
 
-        DEBUG_VALUE("_position =", getPosition());
+        DEBUG_VALUE("_position =", getWorldPosition());
         DEBUG_VALUE("size =", size);
-        namePosition = getPosition() + bodyUpDirection * (size * HEAD_PROPORTION);
+        namePosition = getWorldPosition() + bodyUpDirection * (size * HEAD_PROPORTION);
     }
 
     if (glm::any(glm::isnan(namePosition)) || glm::any(glm::isinf(namePosition))) {
@@ -902,7 +902,7 @@ glm::vec3 Avatar::getSkeletonPosition() const {
     // The avatar is rotated PI about the yAxis, so we have to correct for it
     // to get the skeleton offset contribution in the world-frame.
     const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    return getPosition() + getOrientation() * FLIP * _skeletonOffset;
+    return getWorldPosition() + getOrientation() * FLIP * _skeletonOffset;
 }
 
 QVector<glm::quat> Avatar::getJointRotations() const {
@@ -1166,7 +1166,7 @@ glm::vec3 Avatar::getJointPosition(const QString& name) const {
 
 void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
     //Scale a world space vector as if it was relative to the position
-    positionToScale = getPosition() + getModelScale() * (positionToScale - getPosition());
+    positionToScale = getWorldPosition() + getModelScale() * (positionToScale - getWorldPosition());
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
@@ -1254,12 +1254,12 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     // change in position implies movement
-    glm::vec3 oldPosition = getPosition();
+    glm::vec3 oldPosition = getWorldPosition();
 
     int bytesRead = AvatarData::parseDataFromBuffer(buffer);
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
-    _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
+    _moving = glm::distance(oldPosition, getWorldPosition()) > MOVE_DISTANCE_THRESHOLD;
     if (_moving) {
         addPhysicsFlags(Simulation::DIRTY_POSITION);
     }
@@ -1333,7 +1333,7 @@ float Avatar::getHeadHeight() const {
     Extents extents = _skeletonModel->getMeshExtents();
     glm::vec3 neckPosition;
     if (!extents.isEmpty() && extents.isValid() && _skeletonModel->getNeckPosition(neckPosition)) {
-        return extents.maximum.y / 2.0f - neckPosition.y + getPosition().y;
+        return extents.maximum.y / 2.0f - neckPosition.y + getWorldPosition().y;
     }
 
     const float DEFAULT_HEAD_HEIGHT = 0.25f;
@@ -1378,8 +1378,8 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
     ShapeInfo shapeInfo;
     computeShapeInfo(shapeInfo);
     glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
-    start = getPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
-    end = getPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    start = getWorldPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
+    end = getWorldPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
     radius = halfExtents.x;
 }
 
@@ -1472,7 +1472,7 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 }
 
 void Avatar::setPositionViaScript(const glm::vec3& position) {
-    setPosition(position);
+    setWorldPosition(position);
     updateAttitude(getOrientation());
 }
 

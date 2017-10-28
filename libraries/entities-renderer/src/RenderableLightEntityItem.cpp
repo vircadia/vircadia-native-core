@@ -28,7 +28,7 @@ void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     lightPayload.setVisible(_visible);
 
     auto light = lightPayload.editLight();
-    light->setPosition(entity->getPosition());
+    light->setPosition(entity->getWorldPosition());
     light->setOrientation(entity->getRotation());
 
     bool success;

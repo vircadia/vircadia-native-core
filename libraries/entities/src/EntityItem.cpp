@@ -888,7 +888,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 }
 
 void EntityItem::debugDump() const {
-    auto position = getPosition();
+    auto position = getWorldPosition();
     qCDebug(entities) << "EntityItem id:" << getEntityItemID();
     qCDebug(entities, " edited ago:%f", (double)getEditedAgo());
     qCDebug(entities, " position:%f,%f,%f", (double)position.x, (double)position.y, (double)position.z);
@@ -1168,7 +1168,7 @@ bool EntityItem::wantTerseEditLogging() const {
 }
 
 glm::mat4 EntityItem::getEntityToWorldMatrix() const {
-    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 translation = glm::translate(getWorldPosition());
     glm::mat4 rotation = glm::mat4_cast(getRotation());
     glm::mat4 scale = glm::scale(getDimensions());
     glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
@@ -1429,7 +1429,7 @@ const Transform EntityItem::getTransformToCenter(bool& success) const {
 ///
 AACube EntityItem::getMaximumAACube(bool& success) const {
     if (_recalcMaxAACube) {
-        glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
+        glm::vec3 centerOfRotation = getWorldPosition(success); // also where _registration point is
         if (success) {
             _recalcMaxAACube = false;
             // we want to compute the furthestExtent that an entity can extend out from its "position"
@@ -1457,7 +1457,7 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
 AACube EntityItem::getMinimumAACube(bool& success) const {
     if (_recalcMinAACube) {
         // position represents the position of the registration point.
-        glm::vec3 position = getPosition(success);
+        glm::vec3 position = getWorldPosition(success);
         if (success) {
             _recalcMinAACube = false;
             glm::vec3 dimensions = getDimensions();
@@ -1487,7 +1487,7 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
 AABox EntityItem::getAABox(bool& success) const {
     if (_recalcAABox) {
         // position represents the position of the registration point.
-        glm::vec3 position = getPosition(success);
+        glm::vec3 position = getWorldPosition(success);
         if (success) {
             _recalcAABox = false;
             glm::vec3 dimensions = getDimensions();
@@ -2381,7 +2381,7 @@ void EntityItem::dimensionsChanged() {
 void EntityItem::globalizeProperties(EntityItemProperties& properties, const QString& messageTemplate, const glm::vec3& offset) const {
     // TODO -- combine this with convertLocationToScriptSemantics
     bool success;
-    auto globalPosition = getPosition(success);
+    auto globalPosition = getWorldPosition(success);
     if (success) {
         properties.setPosition(globalPosition + offset);
         properties.setRotation(getRotation());

@@ -351,7 +351,7 @@ public:
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
-    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPositionViaScript)
+    Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)

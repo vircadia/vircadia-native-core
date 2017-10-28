@@ -155,7 +155,7 @@ QJsonObject HeadData::toJson() const {
     auto lookat = getLookAtPosition();
     if (lookat != vec3()) {
         vec3 relativeLookAt = glm::inverse(_owningAvatar->getOrientation()) *
-            (getLookAtPosition() - _owningAvatar->getPosition());
+            (getLookAtPosition() - _owningAvatar->getWorldPosition());
         headJson[JSON_AVATAR_HEAD_LOOKAT] = toJsonValue(relativeLookAt);
     }
     return headJson;
@@ -185,7 +185,7 @@ void HeadData::fromJson(const QJsonObject& json) {
     if (json.contains(JSON_AVATAR_HEAD_LOOKAT)) {
         auto relativeLookAt = vec3FromJsonValue(json[JSON_AVATAR_HEAD_LOOKAT]);
         if (glm::length2(relativeLookAt) > 0.01f) {
-            setLookAtPosition((_owningAvatar->getOrientation() * relativeLookAt) + _owningAvatar->getPosition());
+            setLookAtPosition((_owningAvatar->getOrientation() * relativeLookAt) + _owningAvatar->getWorldPosition());
         }
     }
 

@@ -81,7 +81,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         _color = vec4(toGlm(entity->getXColor()), entity->getLocalRenderAlpha());
 
         _shape = entity->getShape();
-        _position = entity->getPosition();
+        _position = entity->getWorldPosition();
         _dimensions = entity->getDimensions();
         _orientation = entity->getOrientation();
         _renderTransform = getModelTransform();

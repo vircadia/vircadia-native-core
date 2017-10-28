@@ -65,7 +65,7 @@ void MyCharacterController::updateShapeIfNecessary() {
             _rigidBody->setSleepingThresholds(0.0f, 0.0f);
             _rigidBody->setAngularFactor(0.0f);
             _rigidBody->setWorldTransform(btTransform(glmToBullet(_avatar->getOrientation()),
-                                                      glmToBullet(_avatar->getPosition())));
+                                                      glmToBullet(_avatar->getWorldPosition())));
             _rigidBody->setDamping(0.0f, 0.0f);
             if (_state == State::Hover) {
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));

@@ -69,7 +69,7 @@ namespace render {
                 auto batch = args->_batch;
                 auto avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
                 glm::quat myAvatarRotation = avatar->getOrientation();
-                glm::vec3 myAvatarPosition = avatar->getPosition();
+                glm::vec3 myAvatarPosition = avatar->getWorldPosition();
                 float angle = glm::degrees(glm::angle(myAvatarRotation));
                 glm::vec3 axis = glm::axis(myAvatarRotation);
                 float myAvatarScale = avatar->getModelScale();

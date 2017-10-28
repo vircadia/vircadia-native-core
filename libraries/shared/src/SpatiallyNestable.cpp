@@ -367,26 +367,26 @@ glm::vec3 SpatiallyNestable::localToWorldAngularVelocity(const glm::vec3& angula
     return parentTransform.getRotation() * angularVelocity;
 }
 
-glm::vec3 SpatiallyNestable::getPosition(bool& success) const {
+glm::vec3 SpatiallyNestable::getWorldPosition(bool& success) const {
     return getTransform(success).getTranslation();
 }
 
-glm::vec3 SpatiallyNestable::getPosition() const {
+glm::vec3 SpatiallyNestable::getWorldPosition() const {
     bool success;
-    auto result = getPosition(success);
+    auto result = getWorldPosition(success);
     #ifdef WANT_DEBUG
     if (!success) {
-        qCDebug(shared) << "Warning -- getPosition failed" << getID();
+        qCDebug(shared) << "Warning -- getWorldPosition failed" << getID();
     }
     #endif
     return result;
 }
 
-glm::vec3 SpatiallyNestable::getPosition(int jointIndex, bool& success) const {
+glm::vec3 SpatiallyNestable::getWorldPosition(int jointIndex, bool& success) const {
     return getTransform(jointIndex, success).getTranslation();
 }
 
-void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success, bool tellPhysics) {
+void SpatiallyNestable::setWorldPosition(const glm::vec3& position, bool& success, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(position)) {
         success = false;
@@ -410,12 +410,12 @@ void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success, bo
     }
 }
 
-void SpatiallyNestable::setPosition(const glm::vec3& position) {
+void SpatiallyNestable::setWorldPosition(const glm::vec3& position) {
     bool success;
-    setPosition(position, success);
+    setWorldPosition(position, success);
     #ifdef WANT_DEBUG
     if (!success) {
-        qCDebug(shared) << "Warning -- setPosition failed" << getID();
+        qCDebug(shared) << "Warning -- setWorldPosition failed" << getID();
     }
     #endif
 }
@@ -624,7 +624,7 @@ const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, i
         bool setPositionSuccess;
         AACube aaCube = getQueryAACube(setPositionSuccess);
         if (setPositionSuccess) {
-            _this->setPosition(aaCube.calcCenter());
+            _this->setWorldPosition(aaCube.calcCenter());
         }
         return jointInWorldFrame;
     }
@@ -958,7 +958,7 @@ void SpatiallyNestable::locationChanged(bool tellPhysics) {
 }
 
 AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
-    return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
+    return AACube(getWorldPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
 const float PARENTED_EXPANSION_FACTOR = 3.0f;
@@ -1044,7 +1044,7 @@ AACube SpatiallyNestable::getQueryAACube(bool& success) const {
     }
     success = false;
     bool getPositionSuccess;
-    return AACube(getPosition(getPositionSuccess) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
+    return AACube(getWorldPosition(getPositionSuccess) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
 AACube SpatiallyNestable::getQueryAACube() const {

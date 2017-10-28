@@ -108,7 +108,7 @@ void EntityMotionState::handleDeactivation() {
         _entity->setLocalTransformAndVelocities(localTransform, ENTITY_ITEM_ZERO_VEC3, ENTITY_ITEM_ZERO_VEC3);
         // and also to RigidBody
         btTransform worldTrans;
-        worldTrans.setOrigin(glmToBullet(_entity->getPosition()));
+        worldTrans.setOrigin(glmToBullet(_entity->getWorldPosition()));
         worldTrans.setRotation(glmToBullet(_entity->getRotation()));
         _body->setWorldTransform(worldTrans);
         // no need to update velocities... should already be zero
@@ -256,7 +256,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     assert(entityTreeIsLocked());
     measureBodyAcceleration();
     bool positionSuccess;
-    _entity->setPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
+    _entity->setWorldPosition(bulletToGLM(worldTrans.getOrigin()) + ObjectMotionState::getWorldOffset(), positionSuccess, false);
     if (!positionSuccess) {
         static QString repeatedMessage =
             LogHandler::getInstance().addRepeatedMessageRegex("EntityMotionState::setWorldTransform "

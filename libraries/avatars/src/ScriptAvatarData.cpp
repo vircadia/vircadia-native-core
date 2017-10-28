@@ -24,7 +24,7 @@ ScriptAvatarData::ScriptAvatarData(AvatarSharedPointer avatarData) :
 //
 glm::vec3 ScriptAvatarData::getPosition() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getPosition();
+        return sharedAvatarData->getWorldPosition();
     } else {
         return glm::vec3();
     }

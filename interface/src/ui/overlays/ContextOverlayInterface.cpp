@@ -161,7 +161,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setIsFacingAvatar(true);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
-            _contextOverlay->setPosition(contextOverlayPosition);
+            _contextOverlay->setWorldPosition(contextOverlayPosition);
             _contextOverlay->setDimensions(contextOverlayDimensions);
             _contextOverlay->setRotation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);

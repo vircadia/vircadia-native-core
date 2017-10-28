@@ -144,7 +144,7 @@ QVariant Cube3DOverlay::getProperty(const QString& property) {
 
 Transform Cube3DOverlay::evalRenderTransform() {
     // TODO: handle registration point??
-    glm::vec3 position = getPosition();
+    glm::vec3 position = getWorldPosition();
     glm::vec3 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 

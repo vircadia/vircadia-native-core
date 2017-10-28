@@ -28,7 +28,7 @@ const PickRay JointRayPick::getPickRay(bool& valid) const {
     if (jointIndex != INVALID_JOINT || useAvatarHead) {
         glm::vec3 jointPos = useAvatarHead ? myAvatar->getHeadPosition() : myAvatar->getAbsoluteJointTranslationInObjectFrame(jointIndex);
         glm::quat jointRot = useAvatarHead ? myAvatar->getHeadOrientation() : myAvatar->getAbsoluteJointRotationInObjectFrame(jointIndex);
-        glm::vec3 avatarPos = myAvatar->getPosition();
+        glm::vec3 avatarPos = myAvatar->getWorldPosition();
         glm::quat avatarRot = myAvatar->getOrientation();
 
         glm::vec3 pos = useAvatarHead ? jointPos : avatarPos + (avatarRot * jointPos);

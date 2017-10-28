@@ -114,7 +114,7 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
             properties["parentJointIndex"] = getParentJointIndex();
         }
         if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
-            properties["position"] = vec3toVariant(getPosition());
+            properties["position"] = vec3toVariant(getWorldPosition());
         }
         if (!properties["orientation"].isValid() && !properties["localOrientation"].isValid()) {
             properties["orientation"] = quatToVariant(getOrientation());
@@ -214,7 +214,7 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
         return _name;
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
-        return vec3toVariant(getPosition());
+        return vec3toVariant(getWorldPosition());
     }
     if (property == "localPosition") {
         return vec3toVariant(getLocalPosition());

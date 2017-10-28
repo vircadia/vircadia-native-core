@@ -893,7 +893,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
         auto audioClient = DependencyManager::get<AudioClient>();
         auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
-        auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition();
+        auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition();
         float distance = glm::distance(myAvatarPosition, position);
         bool shouldMute = !audioClient->isMuted() && (distance < radius);
 
@@ -966,7 +966,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto addressManager = DependencyManager::get<AddressManager>();
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this]{ return getMyAvatar()->getPosition(); });
+    addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldPosition(); });
     addressManager->setOrientationGetter([this]{ return getMyAvatar()->getOrientation(); });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
@@ -1501,7 +1501,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     static const QString FAST_STATS_ARG = "--fast-heartbeat";
     static int SEND_STATS_INTERVAL_MS = arguments().indexOf(FAST_STATS_ARG) != -1 ? 1000 : 10000;
 
-    static glm::vec3 lastAvatarPosition = myAvatar->getPosition();
+    static glm::vec3 lastAvatarPosition = myAvatar->getWorldPosition();
     static glm::mat4 lastHMDHeadPose = getHMDSensorPose();
     static controller::Pose lastLeftHandPose = myAvatar->getLeftHandPose();
     static controller::Pose lastRightHandPose = myAvatar->getRightHandPose();
@@ -1629,7 +1629,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["bytes_downloaded"] = bytesDownloaded;
 
         auto myAvatar = getMyAvatar();
-        glm::vec3 avatarPosition = myAvatar->getPosition();
+        glm::vec3 avatarPosition = myAvatar->getWorldPosition();
         properties["avatar_has_moved"] = lastAvatarPosition != avatarPosition;
         lastAvatarPosition = avatarPosition;
 
@@ -1711,7 +1711,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     checkNearbyAvatarsTimer->setInterval(CHECK_NEARBY_AVATARS_INTERVAL_MS); // 10 seconds, Qt::CoarseTimer ok
     connect(checkNearbyAvatarsTimer, &QTimer::timeout, this, [this]() {
         auto avatarManager = DependencyManager::get<AvatarManager>();
-        int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getPosition(),
+        int nearbyAvatars = avatarManager->numberOfAvatarsInRange(avatarManager->getMyAvatar()->getWorldPosition(),
                                                                   NEARBY_AVATAR_RADIUS_METERS) - 1;
         if (nearbyAvatars != lastCountOfNearbyAvatars) {
             lastCountOfNearbyAvatars = nearbyAvatars;
@@ -2455,11 +2455,11 @@ void Application::updateCamera(RenderArgs& renderArgs) {
                 glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
                 _myCamera.setOrientation(cameraEntity->getRotation() * hmdRotation);
                 glm::vec3 hmdOffset = extractTranslation(myAvatar->getHMDSensorMatrix());
-                _myCamera.setPosition(cameraEntity->getPosition() + (hmdRotation * hmdOffset));
+                _myCamera.setPosition(cameraEntity->getWorldPosition() + (hmdRotation * hmdOffset));
             }
             else {
                 _myCamera.setOrientation(cameraEntity->getRotation());
-                _myCamera.setPosition(cameraEntity->getPosition());
+                _myCamera.setPosition(cameraEntity->getWorldPosition());
             }
         }
     }
@@ -3871,7 +3871,7 @@ void Application::idle() {
                     auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
                     if (entity && _keyboardFocusHighlight) {
                         _keyboardFocusHighlight->setRotation(entity->getRotation());
-                        _keyboardFocusHighlight->setPosition(entity->getPosition());
+                        _keyboardFocusHighlight->setWorldPosition(entity->getWorldPosition());
                     }
                 } else {
                     // Only Web overlays can have focus.
@@ -3879,7 +3879,7 @@ void Application::idle() {
                         std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
                     if (overlay && _keyboardFocusHighlight) {
                         _keyboardFocusHighlight->setRotation(overlay->getRotation());
-                        _keyboardFocusHighlight->setPosition(overlay->getPosition());
+                        _keyboardFocusHighlight->setWorldPosition(overlay->getWorldPosition());
                     }
                 }
             }
@@ -4013,7 +4013,7 @@ bool Application::exportEntities(const QString& filename,
                                         !entityIDs.contains(parentID) ||
                                         !entityTree->findEntityByEntityItemID(parentID))) {
                     // If parent wasn't selected, we want absolute position, which isn't in properties.
-                    auto position = entityItem->getPosition();
+                    auto position = entityItem->getWorldPosition();
                     root.x = glm::min(root.x, position.x);
                     root.y = glm::min(root.y, position.y);
                     root.z = glm::min(root.z, position.z);
@@ -4216,7 +4216,7 @@ void Application::init() {
             return 0.0f;
         }
 
-        auto distance = glm::distance(getMyAvatar()->getPosition(), item.getPosition());
+        auto distance = glm::distance(getMyAvatar()->getWorldPosition(), item.getWorldPosition());
         return atan2(maxSize, distance);
     });
 
@@ -4520,7 +4520,7 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
 
     // Position focus
     _keyboardFocusHighlight->setRotation(rotation);
-    _keyboardFocusHighlight->setPosition(position);
+    _keyboardFocusHighlight->setWorldPosition(position);
     _keyboardFocusHighlight->setDimensions(dimensions);
     _keyboardFocusHighlight->setVisible(true);
 }
@@ -4557,7 +4557,7 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
                 }
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                setKeyboardFocusHighlight(entity->getPosition(), entity->getRotation(),
+                setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getRotation(),
                     entity->getDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
             }
         }
@@ -4594,7 +4594,7 @@ void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
             if (overlay->getProperty("showKeyboardFocusHighlight").toBool()) {
                 auto size = overlay->getSize() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR;
                 const float OVERLAY_DEPTH = 0.0105f;
-                setKeyboardFocusHighlight(overlay->getPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
+                setKeyboardFocusHighlight(overlay->getWorldPosition(), overlay->getRotation(), glm::vec3(size.x, size.y, OVERLAY_DEPTH));
             } else if (_keyboardFocusHighlight) {
                 _keyboardFocusHighlight->setVisible(false);
             }
@@ -4686,7 +4686,7 @@ void Application::update(float deltaTime) {
 
         controller::InputCalibrationData calibrationData = {
             myAvatar->getSensorToWorldMatrix(),
-            createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
+            createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getWorldPosition()),
             myAvatar->getHMDSensorMatrix(),
             myAvatar->getCenterEyeCalibrationMat(),
             myAvatar->getHeadCalibrationMat(),
@@ -4796,7 +4796,7 @@ void Application::update(float deltaTime) {
         };
 
         // copy controller poses from userInputMapper to myAvatar.
-        glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+        glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getWorldPosition());
         glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
         glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
         for (auto& action : avatarControllerActions) {
@@ -5412,7 +5412,7 @@ std::shared_ptr<MyAvatar> Application::getMyAvatar() const {
 }
 
 glm::vec3 Application::getAvatarPosition() const {
-    return getMyAvatar()->getPosition();
+    return getMyAvatar()->getWorldPosition();
 }
 
 void Application::copyViewFrustum(ViewFrustum& viewOut) const {
@@ -5624,7 +5624,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     // whose bounding boxes cannot be computed (it is too loose for our purposes here).  Instead we manufacture
     // custom filters and use the general-purpose EntityTree::findEntities(filter, ...)
     QVector<EntityItemPointer> entities;
-    AABox avatarBox(getMyAvatar()->getPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
+    AABox avatarBox(getMyAvatar()->getWorldPosition() - glm::vec3(PHYSICS_READY_RANGE), glm::vec3(2 * PHYSICS_READY_RANGE));
     // create two functions that use avatarBox (entityScan and elementScan), the second calls the first
     std::function<bool (EntityItemPointer&)> entityScan = [=](EntityItemPointer& entity) {
             if (entity->shouldBePhysical()) {
@@ -6438,7 +6438,7 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
     glm::vec3 positionOffset = getMyAvatar()->getOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
-    properties.setPosition(getMyAvatar()->getPosition() + positionOffset);
+    properties.setPosition(getMyAvatar()->getWorldPosition() + positionOffset);
     properties.setRotation(getMyAvatar()->getOrientation());
     properties.setGravity(glm::vec3(0.0f, 0.0f, 0.0f));
     auto entityID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties);

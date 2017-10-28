@@ -106,7 +106,7 @@ float AvatarMotionState::getObjectAngularDamping() const {
 
 // virtual
 glm::vec3 AvatarMotionState::getObjectPosition() const {
-    return _avatar->getPosition();
+    return _avatar->getWorldPosition();
 }
 
 // virtual

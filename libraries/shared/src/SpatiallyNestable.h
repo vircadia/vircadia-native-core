@@ -78,10 +78,10 @@ public:
 
     virtual Transform getParentTransform(bool& success, int depth = 0) const;
 
-    virtual glm::vec3 getPosition(bool& success) const;
-    virtual glm::vec3 getPosition() const;
-    virtual void setPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);
-    virtual void setPosition(const glm::vec3& position);
+    virtual glm::vec3 getWorldPosition(bool& success) const;
+    virtual glm::vec3 getWorldPosition() const;
+    virtual void setWorldPosition(const glm::vec3& position, bool& success, bool tellPhysics = true);
+    virtual void setWorldPosition(const glm::vec3& position);
 
     virtual glm::quat getOrientation(bool& success) const;
     virtual glm::quat getOrientation() const;
@@ -122,7 +122,7 @@ public:
 
     // get world-frame values for a specific joint
     virtual const Transform getTransform(int jointIndex, bool& success, int depth = 0) const;
-    virtual glm::vec3 getPosition(int jointIndex, bool& success) const;
+    virtual glm::vec3 getWorldPosition(int jointIndex, bool& success) const;
     virtual glm::vec3 getSNScale(int jointIndex, bool& success) const;
 
     // object's parent's frame

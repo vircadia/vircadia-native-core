@@ -124,7 +124,7 @@ void RenderableModelEntityItem::doInitialModelSimulation() {
     model->setScaleToFit(true, getDimensions());
     model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
     model->setRotation(getRotation());
-    model->setTranslation(getPosition());
+    model->setTranslation(getWorldPosition());
 
     if (_needsInitialSimulation) {
         model->simulate(0.0f);

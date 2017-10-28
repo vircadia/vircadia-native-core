@@ -385,7 +385,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 properties.setParentJointIndex(entity->getParentJointIndex());
             }
             if (!scriptSideProperties.localPositionChanged() && !scriptSideProperties.positionChanged()) {
-                properties.setPosition(entity->getPosition());
+                properties.setPosition(entity->getWorldPosition());
             }
             if (!scriptSideProperties.localRotationChanged() && !scriptSideProperties.rotationChanged()) {
                 properties.setRotation(entity->getOrientation());
@@ -1797,7 +1797,7 @@ glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
         _entityTree->withReadLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
             if (entity) {
-                glm::mat4 translation = glm::translate(entity->getPosition());
+                glm::mat4 translation = glm::translate(entity->getWorldPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
                 result = translation * rotation;
             }

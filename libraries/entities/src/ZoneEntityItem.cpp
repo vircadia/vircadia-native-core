@@ -241,7 +241,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 void ZoneEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   ZoneEntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "                  position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "                  position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "                dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "             getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "               _backgroundMode:" << EntityItemProperties::getBackgroundModeString(_backgroundMode);

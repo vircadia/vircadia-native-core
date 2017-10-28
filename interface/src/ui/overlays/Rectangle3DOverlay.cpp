@@ -58,7 +58,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    glm::vec3 position = getPosition();
+    glm::vec3 position = getWorldPosition();
     glm::vec2 dimensions = getDimensions();
     glm::vec2 halfDimensions = dimensions * 0.5f;
     glm::quat rotation = getRotation();

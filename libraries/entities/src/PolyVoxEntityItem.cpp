@@ -228,7 +228,7 @@ void PolyVoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeB
 void PolyVoxEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   POLYVOX EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "            position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
@@ -396,7 +396,7 @@ glm::mat4 PolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
     bool success; // TODO -- Does this actually have to happen in world space?
     glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
-    glm::vec3 position = getPosition(success);
+    glm::vec3 position = getWorldPosition(success);
     glm::vec3 positionToCenter = center - position;
 
     positionToCenter -= dimensions * Vectors::HALF - getSurfacePositionAdjustment();
@@ -412,7 +412,7 @@ glm::mat4 PolyVoxEntityItem::localToVoxelMatrix() const {
 
 glm::mat4 PolyVoxEntityItem::voxelToWorldMatrix() const {
     glm::mat4 rotation = glm::mat4_cast(getRotation());
-    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 translation = glm::translate(getWorldPosition());
     return translation * rotation * voxelToLocalMatrix();
 }
 

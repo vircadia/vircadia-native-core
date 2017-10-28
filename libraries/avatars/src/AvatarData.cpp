@@ -118,12 +118,12 @@ void AvatarData::setTargetScale(float targetScale) {
 }
 
 glm::vec3 AvatarData::getHandPosition() const {
-    return getOrientation() * _handPosition + getPosition();
+    return getOrientation() * _handPosition + getWorldPosition();
 }
 
 void AvatarData::setHandPosition(const glm::vec3& handPosition) {
     // store relative to position/orientation
-    _handPosition = glm::inverse(getOrientation()) * (handPosition - getPosition());
+    _handPosition = glm::inverse(getOrientation()) * (handPosition - getWorldPosition());
 }
 
 void AvatarData::lazyInitHeadData() const {
@@ -1901,7 +1901,7 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
     if (!recordingBasis) {
         recordingBasis = std::make_shared<Transform>();
         recordingBasis->setRotation(getOrientation());
-        recordingBasis->setTranslation(getPosition());
+        recordingBasis->setTranslation(getWorldPosition());
         // TODO: find a  different way to record/playback the Scale of the avatar
         //recordingBasis->setScale(getTargetScale());
     }
@@ -2059,11 +2059,11 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
 
         auto relativeTransform = Transform::fromJson(json[JSON_AVATAR_RELATIVE]);
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
-        setPosition(worldTransform.getTranslation());
+        setWorldPosition(worldTransform.getTranslation());
         orientation = worldTransform.getRotation();
     } else {
         // We still set the position in the case that there is no movement.
-        setPosition(currentBasis->getTranslation());
+        setWorldPosition(currentBasis->getTranslation());
         orientation = currentBasis->getRotation();
     }
     setOrientation(orientation);
@@ -2186,7 +2186,7 @@ void AvatarData::setBodyRoll(float bodyRoll) {
 }
 
 void AvatarData::setPositionViaScript(const glm::vec3& position) {
-    SpatiallyNestable::setPosition(position);
+    SpatiallyNestable::setWorldPosition(position);
 }
 
 void AvatarData::setOrientationViaScript(const glm::quat& orientation) {
@@ -2413,7 +2413,7 @@ void AvatarData::sortAvatars(
         //   (a) apparentSize
         //   (b) proximity to center of view
         //   (c) time since last update
-        glm::vec3 avatarPosition = avatar->getPosition();
+        glm::vec3 avatarPosition = avatar->getWorldPosition();
         glm::vec3 offset = avatarPosition - frustumCenter;
         float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
 

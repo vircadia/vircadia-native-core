@@ -232,7 +232,7 @@ glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = dimensions / voxelVolumeSize; // meters / voxel-units
     bool success; // TODO -- Does this actually have to happen in world space?
     glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
-    glm::vec3 position = getPosition(success);
+    glm::vec3 position = getWorldPosition(success);
     glm::vec3 positionToCenter = center - position;
 
     positionToCenter -= dimensions * Vectors::HALF - getSurfacePositionAdjustment();
@@ -248,7 +248,7 @@ glm::mat4 RenderablePolyVoxEntityItem::localToVoxelMatrix() const {
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToWorldMatrix() const {
     glm::mat4 rotation = glm::mat4_cast(getRotation());
-    glm::mat4 translation = glm::translate(getPosition());
+    glm::mat4 translation = glm::translate(getWorldPosition());
     return translation * rotation * voxelToLocalMatrix();
 }
 
@@ -579,7 +579,7 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 
     // the PolyVox ray intersection code requires a near and far point.
     // set ray cast length to long enough to cover all of the voxel space
-    float distanceToEntity = glm::distance(origin, getPosition());
+    float distanceToEntity = glm::distance(origin, getWorldPosition());
     glm::vec3 dimensions = getDimensions();
     float largestDimension = glm::compMax(dimensions) * 2.0f;
     glm::vec3 farPoint = origin + normDirection * (distanceToEntity + largestDimension);

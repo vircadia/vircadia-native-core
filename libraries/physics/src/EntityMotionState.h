@@ -57,7 +57,7 @@ public:
     virtual float getObjectLinearDamping() const override { return _entity->getDamping(); }
     virtual float getObjectAngularDamping() const override { return _entity->getAngularDamping(); }
 
-    virtual glm::vec3 getObjectPosition() const override { return _entity->getPosition() - ObjectMotionState::getWorldOffset(); }
+    virtual glm::vec3 getObjectPosition() const override { return _entity->getWorldPosition() - ObjectMotionState::getWorldOffset(); }
     virtual glm::quat getObjectRotation() const override { return _entity->getRotation(); }
     virtual glm::vec3 getObjectLinearVelocity() const override { return _entity->getVelocity(); }
     virtual glm::vec3 getObjectAngularVelocity() const override { return _entity->getAngularVelocity(); }

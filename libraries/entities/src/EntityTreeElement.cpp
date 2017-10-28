@@ -663,7 +663,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
         // extents is the entity relative, scaled, centered extents of the entity
         glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-        glm::mat4 translation = glm::translate(entity->getPosition());
+        glm::mat4 translation = glm::translate(entity->getWorldPosition());
         glm::mat4 entityToWorldMatrix = translation * rotation;
         glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
@@ -718,7 +718,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
     bool result = false;
     withReadLock([&] {
         foreach(EntityItemPointer entity, _entityItems) {
-            glm::vec3 entityCenter = entity->getPosition();
+            glm::vec3 entityCenter = entity->getWorldPosition();
             float entityRadius = entity->getRadius();
 
             // don't penetrate yourself
@@ -743,7 +743,7 @@ EntityItemPointer EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     float closestEntityDistance = FLT_MAX;
     withReadLock([&] {
         foreach(EntityItemPointer entity, _entityItems) {
-            float distanceToEntity = glm::distance2(position, entity->getPosition());
+            float distanceToEntity = glm::distance2(position, entity->getWorldPosition());
             if (distanceToEntity < closestEntityDistance) {
                 closestEntity = entity;
             }
@@ -788,7 +788,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
                 // determine the worldToEntityMatrix that doesn't include scale because
                 // we're going to use the registration aware aa box in the entity frame
                 glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-                glm::mat4 translation = glm::translate(entity->getPosition());
+                glm::mat4 translation = glm::translate(entity->getWorldPosition());
                 glm::mat4 entityToWorldMatrix = translation * rotation;
                 glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 

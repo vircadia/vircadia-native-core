@@ -235,7 +235,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << "              shape:" << stringFromShape(_shape) << " (EnumId: " << _shape << " )";
     qCDebug(entities) << " collisionShapeType:" << ShapeInfo::getNameForShapeType(getShapeType());
     qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
-    qCDebug(entities) << "           position:" << debugTreeVector(getPosition());
+    qCDebug(entities) << "           position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
     qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
