@@ -15,7 +15,8 @@
 
     Script.include("../libraries/WebTablet.js");
 
-    var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+    var METAVERSE_SERVER_URL = Account.metaverseServerURL;
+    var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
@@ -135,7 +136,7 @@
 
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
-        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID + "\n");
+        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
             certificateId: certificateId
@@ -155,7 +156,8 @@
             data: {
                 commerceMode: Settings.getValue("commerce", false),
                 userIsLoggedIn: Account.loggedIn,
-                walletNeedsSetup: Wallet.walletStatus === 1
+                walletNeedsSetup: Wallet.walletStatus === 1,
+                metaverseServerURL: Account.metaverseServerURL
             }
         }));
     }

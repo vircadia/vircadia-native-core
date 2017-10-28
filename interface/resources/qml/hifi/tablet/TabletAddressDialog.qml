@@ -134,7 +134,7 @@ StackView {
             bottom: parent.bottom
         }
 
-        onMetaverseServerUrlChanged: updateLocationTextTimer.start();
+        onHostChanged: updateLocationTextTimer.start();
         Rectangle {
             id: navBar
             width: parent.width

@@ -24,7 +24,6 @@
 
 #include "AddressManager.h"
 #include "NodeList.h"
-#include "NetworkingConstants.h"
 #include "NetworkLogging.h"
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
@@ -768,10 +767,6 @@ void AddressManager::copyPath() {
 
 QString AddressManager::getDomainId() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
-}
-
-const QUrl AddressManager::getMetaverseServerUrl() const {
-    return NetworkingConstants::METAVERSE_SERVER_URL;
 }
 
 void AddressManager::handleShareableNameAPIResponse(QNetworkReply& requestReply) {

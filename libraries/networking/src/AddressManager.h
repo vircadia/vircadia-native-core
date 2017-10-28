@@ -41,7 +41,6 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
     Q_PROPERTY(QString domainId READ getDomainId)
-    Q_PROPERTY(QUrl metaverseServerUrl READ getMetaverseServerUrl NOTIFY metaverseServerUrlChanged)
 public:
     Q_INVOKABLE QString protocolVersion();
     using PositionGetter = std::function<glm::vec3()>;
@@ -71,7 +70,6 @@ public:
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
     const QString& getPlaceName() const { return _shareablePlaceName.isEmpty() ? _placeName : _shareablePlaceName; }
     QString getDomainId() const;
-    const QUrl getMetaverseServerUrl() const;
 
     const QString& getHost() const { return _host; }
 
@@ -122,8 +120,6 @@ signals:
 
     void goBackPossible(bool isPossible);
     void goForwardPossible(bool isPossible);
-
-    void metaverseServerUrlChanged();
 
 protected:
     AddressManager();
