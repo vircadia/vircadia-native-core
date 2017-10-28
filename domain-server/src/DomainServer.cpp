@@ -414,7 +414,6 @@ bool DomainServer::optionallySetupOAuth() {
 
     const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
     _oauthProviderURL = QUrl(settingsMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
-    qDebug() << "OAUTH: " << _oauthProviderURL;
 
     // if we don't have an oauth provider URL then we default to the default node auth url
     if (_oauthProviderURL.isEmpty()) {
@@ -2302,8 +2301,6 @@ HTTPSConnection* DomainServer::connectionFromReplyWithState(QNetworkReply* reply
 void DomainServer::tokenGrantFinished() {
     auto tokenReply = qobject_cast<QNetworkReply*>(sender());
 
-    qDebug() << "Token grant finsihed";
-
     if (tokenReply) {
         if (tokenReply->error() == QNetworkReply::NoError) {
             // now that we have a token for this profile, send off a profile request
@@ -2335,7 +2332,6 @@ void DomainServer::profileRequestFinished() {
 
         if (connection) {
             if (profileReply->error() == QNetworkReply::NoError) {
-                qDebug() << "Reply: " << profileReply->readAll();
                 // call helper method to get cookieHeaders
                 Headers cookieHeaders = setupCookieHeadersFromProfileReply(profileReply);
 
