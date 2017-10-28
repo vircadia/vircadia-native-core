@@ -122,7 +122,6 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
             return;
         }
 
-        static const char* CONTENT_TYPE_JSON { "application/json" };
         connection->respond(HTTPConnection::StatusCode200, reply->readAll());
     });
 
