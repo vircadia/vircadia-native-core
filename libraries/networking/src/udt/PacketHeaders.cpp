@@ -30,7 +30,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_HAS_CERTIFICATE_PROPERTIES;
+            return static_cast<PacketVersion>(EntityVersion::HasDynamicOwnershipTests);
+
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
@@ -60,6 +61,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
+
+        case PacketType::EntityScriptCallMethod:
+            return static_cast<PacketVersion>(EntityScriptCallMethodVersion::ClientCallable);
 
         case PacketType::MixedAudio:
         case PacketType::SilentAudioFrame:

@@ -208,12 +208,11 @@ public:
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const { return false; }
     virtual PacketType expectedDataPacketType() const { return PacketType::Unknown; }
-    virtual bool canProcessVersion(PacketVersion thisVersion) const {
-                    return thisVersion == versionForPacketType(expectedDataPacketType()); }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& sourceNode) { return 0; }
+    virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) { return; }
 
     virtual bool recurseChildrenWithData() const { return true; }
     virtual bool rootElementHasData() const { return false; }
@@ -221,11 +220,6 @@ public:
     virtual bool suppressEmptySubtrees() const { return true; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
     virtual bool mustIncludeAllChildData() const { return true; }
-
-    /// some versions of the SVO file will include breaks with buffer lengths between each buffer chunk in the SVO
-    /// file. If the Octree subclass expects this for this particular version of the file, it should override this
-    /// method and return true.
-    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const { return false; }
 
     virtual void update() { } // nothing to do by default
 

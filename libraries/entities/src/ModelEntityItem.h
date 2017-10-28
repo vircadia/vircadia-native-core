@@ -90,7 +90,6 @@ public:
     bool getAnimationAllowTranslation() const { return _animationProperties.getAllowTranslation(); };
 
     void setAnimationLoop(bool loop);
-    bool getAnimationLoop() const;
 
     void setAnimationHold(bool hold);
     bool getAnimationHold() const;
@@ -101,10 +100,9 @@ public:
     void setAnimationLastFrame(float lastFrame);
     float getAnimationLastFrame() const;
 
-
     bool getAnimationIsPlaying() const;
     float getAnimationCurrentFrame() const;
-    float getAnimationFPS() const;
+    bool isAnimatingSomething() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString getTextures() const;
@@ -123,7 +121,6 @@ public:
     QVector<bool> getJointRotationsSet() const;
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
-    bool isAnimatingSomething() const;
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format

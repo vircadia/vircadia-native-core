@@ -39,6 +39,10 @@ Rectangle {
     property bool shiftMode: false
     property bool numericShiftMode: false
 
+    onRaisedChanged: {
+        mirroredText = "";
+    }
+
     function resetShiftMode(mode) {
         shiftMode = mode;
         shiftKey.resetToggledMode(mode);

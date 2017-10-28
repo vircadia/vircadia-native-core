@@ -108,4 +108,14 @@ inline void metadata(const QString& metadataType, const QVariantMap& args) {
 #define SAMPLE_PROFILE_COUNTER(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_COUNTER(category, name, ##__VA_ARGS__); }
 #define SAMPLE_PROFILE_INSTANT(chance, category, name, ...) if (randFloat() <= chance) { PROFILE_INSTANT(category, name, ##__VA_ARGS__); }
 
+// uncomment WANT_DETAILED_PROFILING definition to enable profiling in high-frequency contexts
+//#define WANT_DETAILED_PROFILING
+#ifdef WANT_DETAILED_PROFILING
+#define DETAILED_PROFILE_RANGE(category, name) Duration profileRangeThis(trace_##category(), name);
+#define DETAILED_PROFILE_RANGE_EX(category, name, argbColor, payload, ...) Duration profileRangeThis(trace_##category(), name, argbColor, (uint64_t)payload, ##__VA_ARGS__);
+#else // WANT_DETAILED_PROFILING
+#define DETAILED_PROFILE_RANGE(category, name) ; // no-op
+#define DETAILED_PROFILE_RANGE_EX(category, name, argbColor, payload, ...) ; // no-op
+#endif // WANT_DETAILED_PROFILING
+
 #endif

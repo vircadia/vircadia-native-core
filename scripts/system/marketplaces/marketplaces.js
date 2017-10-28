@@ -15,7 +15,8 @@
 
     Script.include("../libraries/WebTablet.js");
 
-    var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+    var METAVERSE_SERVER_URL = Account.metaverseServerURL;
+    var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
@@ -74,8 +75,8 @@
                     itemName: 'Test Flaregun',
                     itemPrice: (debugError ? 10 : 17),
                     itemHref: 'http://mpassets.highfidelity.com/0d90d21c-ce7a-4990-ad18-e9d2cf991027-v1/flaregun.json',
-                },
-                canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
+                    categories: ["Wearables", "Miscellaneous"]
+                }
             });
         }
     }
@@ -115,7 +116,6 @@
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
             tablet.sendToQml({
                 method: 'updatePurchases',
-                canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified,
                 referrerURL: referrerURL,
                 filterText: filterText
             });
@@ -136,9 +136,10 @@
 
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
+        var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
         tablet.sendToQml({
             method: 'inspectionCertificate_setCertificateId',
-            certificateId: itemCertificateId || Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID
+            certificateId: certificateId
         });
     }
 
@@ -155,7 +156,8 @@
             data: {
                 commerceMode: Settings.getValue("commerce", false),
                 userIsLoggedIn: Account.loggedIn,
-                walletNeedsSetup: Wallet.walletStatus === 1
+                walletNeedsSetup: Wallet.walletStatus === 1,
+                metaverseServerURL: Account.metaverseServerURL
             }
         }));
     }
@@ -203,8 +205,7 @@
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
                 tablet.sendToQml({
                     method: 'updateCheckoutQML',
-                    params: parsedJsonMessage,
-                    canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified
+                    params: parsedJsonMessage
                 });
             } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
                 sendCommerceSettings();

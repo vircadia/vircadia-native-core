@@ -14,39 +14,38 @@
 #include <memory>
 #include <glm/glm.hpp>
 
+#include <shared/ReadWriteLockable.h>
+
 #include "LaserPointer.h"
 
 class RayPickResult;
 
-class LaserPointerManager {
+
+class LaserPointerManager : protected ReadWriteLockable {
 
 public:
     QUuid createLaserPointer(const QVariant& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
-    void removeLaserPointer(const QUuid uid);
-    void enableLaserPointer(const QUuid uid);
-    void disableLaserPointer(const QUuid uid);
-    void setRenderState(QUuid uid, const std::string& renderState);
-    void editRenderState(QUuid uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
-    const RayPickResult getPrevRayPickResult(const QUuid uid);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
 
-    void setPrecisionPicking(QUuid uid, const bool precisionPicking);
-    void setLaserLength(QUuid uid, const float laserLength);
-    void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
-    void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
-    void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);
-    void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays);
-    void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars);
-    void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars);
+    void removeLaserPointer(const QUuid& uid);
+    void enableLaserPointer(const QUuid& uid) const;
+    void disableLaserPointer(const QUuid& uid) const;
+    void setRenderState(const QUuid& uid, const std::string& renderState) const;
+    void editRenderState(const QUuid& uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
+    const RayPickResult getPrevRayPickResult(const QUuid& uid) const;
 
-    void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay);
+    void setPrecisionPicking(const QUuid& uid, const bool precisionPicking) const;
+    void setLaserLength(const QUuid& uid, const float laserLength) const;
+    void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const;
+    void setIncludeItems(const QUuid& uid, const QVector<QUuid>& includeEntities) const;
+
+    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay) const;
 
     void update();
 
 private:
+    LaserPointer::Pointer find(const QUuid& uid) const;
     QHash<QUuid, std::shared_ptr<LaserPointer>> _laserPointers;
-    QReadWriteLock _containsLock;
-
 };
 
 #endif // hifi_LaserPointerManager_h

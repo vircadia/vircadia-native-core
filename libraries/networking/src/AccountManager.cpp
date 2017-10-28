@@ -28,7 +28,6 @@
 
 #include <SettingHandle.h>
 
-#include "NetworkingConstants.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "udt/PacketHeaders.h"
@@ -240,7 +239,7 @@ void AccountManager::sendRequest(const QString& path,
     QUrl requestURL = _authURL;
     
     if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
-        requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+        requestURL = getMetaverseServerURL();
     }
 
     if (path.startsWith("/")) {

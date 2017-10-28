@@ -39,7 +39,8 @@ Rectangle {
     property bool itemIsJson: true;
     property bool shouldBuyWithControlledFailure: false;
     property bool debugCheckoutSuccess: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
+    property bool isWearable;
     // Style
     color: hifi.colors.white;
     Hifi.QmlCommerce {
@@ -80,6 +81,7 @@ Rectangle {
                 root.activeView = "checkoutFailure";
             } else {
                 root.itemHref = result.data.download_url;
+                root.isWearable = result.data.categories.indexOf("Wearables") > -1;
                 root.activeView = "checkoutSuccess";
             }
         }
@@ -236,6 +238,25 @@ Rectangle {
                     authSuccessStep();
                 } else {
                     sendToScript(msg);
+                }
+            }
+        }
+    }    
+
+    HifiCommerceCommon.FirstUseTutorial {
+        id: firstUseTutorial;
+        z: 999;
+        visible: root.activeView === "firstUseTutorial";
+        anchors.fill: parent;
+
+        Connections {
+            onSendSignalToParent: {
+                switch (message.method) {
+                    case 'tutorial_skipClicked':
+                    case 'tutorial_finished':
+                        Settings.setValue("isFirstUseOfPurchases", false);
+                        root.activeView = "checkoutSuccess";
+                    break;
                 }
             }
         }
@@ -564,7 +585,7 @@ Rectangle {
         // "Rez" button
         HifiControlsUit.Button {
             id: rezNowButton;
-            enabled: root.canRezCertifiedItems;
+            enabled: root.canRezCertifiedItems || root.isWearable;
             buttonGlyph: hifi.glyphs.lightning;
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -573,7 +594,7 @@ Rectangle {
             height: 50;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            text: "Rez It"
+            text: root.isWearable ? "Wear It" : "Rez It"
             onClicked: {
                 if (urlHandler.canHandleUrl(root.itemHref)) {
                     urlHandler.handleUrl(root.itemHref);
@@ -584,7 +605,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: noPermissionText;
-            visible: !root.canRezCertifiedItems;
+            visible: !root.canRezCertifiedItems && !root.isWearable;
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">You do not have Certified Rez permissions in this domain.</a></font>'
             // Text size
             size: 16;
@@ -611,6 +632,28 @@ Rectangle {
                 lightboxPopup.visible = true;
             }
         }
+        RalewaySemiBold {
+            id: explainRezText;
+            visible: !root.isWearable;
+            text: '<font color="' + hifi.colors.redAccent + '"><a href="#">What does "Rez" mean?</a></font>'
+            // Text size
+            size: 16;
+            // Anchors
+            anchors.top: noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom;
+            anchors.topMargin: 6;
+            height: paintedHeight;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            // Style
+            color: hifi.colors.redAccent;
+            wrapMode: Text.WordWrap;
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;
+            onLinkActivated: {
+                root.activeView = "firstUseTutorial";
+            }
+        }
 
         RalewaySemiBold {
             id: myPurchasesLink;
@@ -618,7 +661,7 @@ Rectangle {
             // Text size
             size: 20;
             // Anchors
-            anchors.top: noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom;
+            anchors.top: explainRezText.visible ? explainRezText.bottom : (noPermissionText.visible ? noPermissionText.bottom : rezNowButton.bottom);
             anchors.topMargin: 40;
             height: paintedHeight;
             anchors.left: parent.left;
