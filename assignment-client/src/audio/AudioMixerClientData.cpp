@@ -189,8 +189,14 @@ void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const
     uint8_t packedGain;
     message.readPrimitive(&packedGain);
     float gain = unpackFloatGainFromByte(packedGain);
-    hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
-    qDebug() << "Setting gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+
+    if (avatarUuid.isNull()) {
+        // FIXME: change master gain, and reset hrtf gains for all active streams
+        qDebug() << "Setting MASTER avatar gain for [" << uuid << "] to " << gain;
+    } else {
+        hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
+        qDebug() << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+    }
 }
 
 void AudioMixerClientData::parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
