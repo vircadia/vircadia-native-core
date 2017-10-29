@@ -85,6 +85,7 @@ Rectangle {
 
         addressBar.model = []
         webStack.currentItem.webEngineView.url = url
+        addressBar.editText = webStack.currentItem.webEngineView.url
         suggestionRequestTimer.stop();
         addressBar.popup.close();
     }
@@ -134,6 +135,12 @@ Rectangle {
                 background: Item {}
                 onActivated: {
                     goTo(textAt(index));
+                }
+
+                onHighlightedIndexChanged: {
+                    if (highlightedIndex >= 0) {
+                        addressBar.editText = textAt(highlightedIndex)
+                    }
                 }
 
                 popup.height: webStack.height
@@ -191,7 +198,7 @@ Rectangle {
                             if (webStack.currentItem.webEngineView.loading) {
                                 webStack.currentItem.webEngineView.stop();
                             } else {
-                                webStack.currentItem.webEngineView.reloadTimer.start();
+                                webStack.currentItem.reloadTimer.start();
                             }
                         }
                     }
@@ -228,7 +235,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter;
                 width: hifi.dimensions.controlLineHeight
                 onClicked: {
-                    webStack.currentItem.webEngineView.triggerWebAction(WebEngineView.ToggleMediaMute);
+                    webStack.currentItem.webEngineView.audioMuted = !webStack.currentItem.webEngineView.audioMuted
                 }
             }
         }
@@ -261,6 +268,8 @@ Rectangle {
             id: webViewComponent
             Rectangle {
                 property alias webEngineView: webEngineView
+                property alias reloadTimer: reloadTimer
+
                 property WebEngineNewViewRequest request: null
 
                 property bool isDialog: QQControls.StackView.index > 0
@@ -314,7 +323,7 @@ Rectangle {
                     WebEngineScript {
                         id: createGlobalEventBridge
                         sourceCode: eventBridgeJavaScriptToInject
-                        injectionPoint: WebEngineScript.DocumentCreation
+                        injectionPoint: WebEngineScript.Deferred
                         worldId: WebEngineScript.MainWorld
                     }
 
@@ -399,14 +408,13 @@ Rectangle {
                     onWindowCloseRequested: {
                         webStack.pop();
                     }
-
-                    Timer {
-                        id: reloadTimer
-                        interval: 0
-                        running: false
-                        repeat: false
-                        onTriggered: webEngineView.reload()
-                    }
+                }
+                Timer {
+                    id: reloadTimer
+                    interval: 0
+                    running: false
+                    repeat: false
+                    onTriggered: webEngineView.reload()
                 }
             }
         }
