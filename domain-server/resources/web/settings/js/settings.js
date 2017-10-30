@@ -618,13 +618,18 @@ function parseJSONResponse(xhr) {
   return null;
 }
 
-function domainIDIsSet() {
-  return Settings.data.values.metaverse.id.length > 0;
+function showOrHideLabel() {
+  var type = getCurrentDomainIDType();
+  if (!accessTokenIsSet() || (type !== DOMAIN_ID_TYPE_FULL && type !== DOMAIN_ID_TYPE_UNKNOWN)) {
+    $(".panel#label").hide();
+    return false;
+  }
+  $(".panel#label").show();
+  return true;
 }
 
 function setupDomainLabelSetting() {
-  if (!domainIDIsSet() || !accessTokenIsSet()) {
-    $(".panel#label").hide();
+  if (!showOrHideLabel()) {
     return;
   }
 
@@ -714,9 +719,18 @@ function setupDomainLabelSetting() {
   $('div#label .panel-body').append(html);
 }
 
-function setupDomainNetworkingSettings() {
-  if (!accessTokenIsSet() || !domainIDIsSet()) {
+function showOrHideAutomaticNetworking() {
+  var type = getCurrentDomainIDType();
+  if (!accessTokenIsSet() || (type !== DOMAIN_ID_TYPE_FULL && type !== DOMAIN_ID_TYPE_UNKNOWN)) {
     $("[data-keypath='metaverse.automatic_networking']").hide();
+    return false;
+  }
+  $("[data-keypath='metaverse.automatic_networking']").show();
+  return true;
+}
+
+function setupDomainNetworkingSettings() {
+  if (!showOrHideAutomaticNetworking()) {
     return;
   }
 
@@ -1007,16 +1021,23 @@ function reloadDomainInfo() {
         $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name, '/', true));
       }
 
-      var label = data.domain.label;
-      label = label === null ? '' : label;
-      $('#network-label').val(label);
-      var autoNetworkingSetting = Settings.data.values.metaverse.automatic_networking;
-      var address = data.domain.network_address === null ? "" : data.domain.network_address;
-      var port = data.domain.network_port === null ? "" : data.domain.network_port;
-      if (autoNetworkingSetting === 'disabled') {
-        $('#network-address-port input').val(address + ":" + port);
-      } else if (autoNetworkingSetting === 'ip') {
-        $('#network-address-port input').val(port);
+      // Update label
+      if (showOrHideLabel()) {
+        var label = data.domain.label;
+        label = label === null ? '' : label;
+        $('#network-label').val(label);
+      }
+
+      // Update automatic networking
+      if (showOrHideAutomaticNetworking()) {
+        var autoNetworkingSetting = Settings.data.values.metaverse.automatic_networking;
+        var address = data.domain.network_address === null ? "" : data.domain.network_address;
+        var port = data.domain.network_port === null ? "" : data.domain.network_port;
+        if (autoNetworkingSetting === 'disabled') {
+          $('#network-address-port input').val(address + ":" + port);
+        } else if (autoNetworkingSetting === 'ip') {
+          $('#network-address-port input').val(port);
+        }
       }
 
       appendAddButtonToPlacesTable();

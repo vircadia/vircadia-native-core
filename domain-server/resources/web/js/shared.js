@@ -90,13 +90,21 @@ var Strings = {
   ADD_PLACE_NOT_CONNECTED_MESSAGE: "You must have an access token to query your High Fidelity places.<br><br>Please follow the instructions on the settings page to add an access token.",
 };
 
-var DOMAIN_ID_TYPE_NONE_OR_UNKNOWN = 0;
+var DOMAIN_ID_TYPE_NONE = 0;
 var DOMAIN_ID_TYPE_TEMP = 1;
 var DOMAIN_ID_TYPE_FULL = 2;
+var DOMAIN_ID_TYPE_UNKNOWN = 3;
+
+function domainIDIsSet() {
+  return Settings.data.values.metaverse.id.length > 0;
+}
 
 function getCurrentDomainIDType() {
+  if (!domainIDIsSet()) {
+    return DOMAIN_ID_TYPE_NONE;
+  }
   if (typeof DomainInfo === 'undefined') {
-    return DOMAIN_ID_TYPE_NONE_OR_UNKNOWN;
+    return DOMAIN_ID_TYPE_UNKNOWN;
   }
   if (DomainInfo !== null) {
     if (DomainInfo.name !== undefined) {
@@ -104,7 +112,7 @@ function getCurrentDomainIDType() {
     }
     return DOMAIN_ID_TYPE_FULL;
   }
-  return DOMAIN_ID_TYPE_NONE_OR_UNKNOWN;
+  return DOMAIN_ID_TYPE_UNKNOWN;
 }
 
 function showLoadingDialog(msg) {
