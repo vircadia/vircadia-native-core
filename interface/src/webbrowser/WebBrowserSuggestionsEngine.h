@@ -21,8 +21,7 @@
 
 class QNetworkReply;
 
-class WebBrowserSuggestionsEngine : public QObject
-{
+class WebBrowserSuggestionsEngine : public QObject {
     Q_OBJECT
 
 public:
