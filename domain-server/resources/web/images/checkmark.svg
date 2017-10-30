@@ -1,0 +1,25 @@
+<svg width="676" height="676" viewBox="0 0 676 676" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<title>CongratulationImage</title>
+<desc>Created using Figma</desc>
+<g id="Canvas" transform="matrix(4 0 0 4 -21208 -17980)">
+<g id="CongratulationImage">
+<g id="Ellipse">
+<use xlink:href="#path0_fill" transform="translate(5302 4495)" fill="#FFFFFF"/>
+<mask id="mask0_outline_ins">
+<use xlink:href="#path0_fill" fill="white" transform="translate(5302 4495)"/>
+</mask>
+<g mask="url(#mask0_outline_ins)">
+<use xlink:href="#path1_stroke_2x" transform="translate(5302 4495)" fill="#219653"/>
+</g>
+</g>
+<g id="Vector 2">
+<use xlink:href="#path2_stroke" transform="translate(5355 4559)" fill="#219653"/>
+</g>
+</g>
+</g>
+<defs>
+<path id="path0_fill" d="M 169 84.5C 169 131.168 131.168 169 84.5 169C 37.8319 169 0 131.168 0 84.5C 0 37.8319 37.8319 0 84.5 0C 131.168 0 169 37.8319 169 84.5Z"/>
+<path id="path1_stroke_2x" d="M 154 84.5C 154 122.884 122.884 154 84.5 154L 84.5 184C 139.452 184 184 139.452 184 84.5L 154 84.5ZM 84.5 154C 46.1162 154 15 122.884 15 84.5L -15 84.5C -15 139.452 29.5477 184 84.5 184L 84.5 154ZM 15 84.5C 15 46.1162 46.1162 15 84.5 15L 84.5 -15C 29.5477 -15 -15 29.5477 -15 84.5L 15 84.5ZM 84.5 15C 122.884 15 154 46.1162 154 84.5L 184 84.5C 184 29.5477 139.452 -15 84.5 -15L 84.5 15Z"/>
+<path id="path2_stroke" d="M 5.18747 19.8031C 2.19593 16.9382 -2.5517 17.0408 -5.41666 20.0323C -8.28162 23.0238 -8.17901 27.7715 -5.18747 30.6364L 5.18747 19.8031ZM 20.6541 45L 15.4667 50.4167C 18.3816 53.2083 22.9831 53.1924 25.8787 50.3809L 20.6541 45ZM 72.2246 5.38085C 75.1964 2.49539 75.2663 -2.25283 72.3809 -5.2246C 69.4954 -8.19636 64.7472 -8.26632 61.7754 -5.38085L 72.2246 5.38085ZM -5.18747 30.6364L 15.4667 50.4167L 25.8416 39.5833L 5.18747 19.8031L -5.18747 30.6364ZM 25.8787 50.3809L 72.2246 5.38085L 61.7754 -5.38085L 15.4295 39.6191L 25.8787 50.3809Z"/>
+</defs>
+</svg>
