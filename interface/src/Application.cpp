@@ -203,7 +203,7 @@
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
 
-#include "webbrowser/webbrowsersuggestionsengine.h"
+#include "webbrowser/WebBrowserSuggestionsEngine.h"
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.

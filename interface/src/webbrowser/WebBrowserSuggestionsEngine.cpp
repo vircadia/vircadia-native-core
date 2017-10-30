@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "webbrowsersuggestionsengine.h"
+#include "WebBrowserSuggestionsEngine.h"
 #include "qregexp.h"
 
 #include <qbuffer.h>
@@ -26,6 +26,7 @@
 #include <NetworkAccessManager.h>
 
 const QString GoogleSuggestionsUrl = "https://suggestqueries.google.com/complete/search?output=firefox&q=%1";
+const int SUGGESTIONS_LIST_INDEX = 2;
 
 WebBrowserSuggestionsEngine::WebBrowserSuggestionsEngine(QObject* parent)
     : QObject(parent)
@@ -72,12 +73,12 @@ void WebBrowserSuggestionsEngine::suggestionsFinished(QNetworkReply *reply) {
 
     const QVariantList list = res.toList();
 
-    if (list.size() < 2) {
+    if (list.size() <= SUGGESTIONS_LIST_INDEX) {
         return;
     }
 
     QStringList out;
-    const QVariantList& suggList = list.at(1).toList();
+    const QVariantList& suggList = list.at(SUGGESTIONS_LIST_INDEX).toList();
 
     foreach (const QVariant &v, suggList) {
         out.append(v.toString());
