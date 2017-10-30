@@ -310,6 +310,16 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canRezTemporaryCertifiedEntities);
             packPermissions();
         }
+        if (oldVersion < 2.0) {
+            const QString WIZARD_COMPLETED_ONCE = "wizard.completed_once";
+
+            QVariant* wizardCompletedOnce = _configMap.valueForKeyPath(WIZARD_COMPLETED_ONCE, true);
+
+            *wizardCompletedOnce = QVariant(true);
+
+            // write the new settings to the json file
+            persistToFile();
+        }
     }
 
     unpackPermissions();
@@ -960,29 +970,6 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
     return QVariant();
 }
 
-bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH_JSON) {
-        // this is a GET operation for our settings
-
-        // check if there is a query parameter for settings affecting a particular type of assignment
-        const QString SETTINGS_TYPE_QUERY_KEY = "type";
-        QUrlQuery settingsQuery(url);
-        QString typeValue = settingsQuery.queryItemValue(SETTINGS_TYPE_QUERY_KEY);
-
-        if (!typeValue.isEmpty()) {
-            QJsonObject responseObject = responseObjectForType(typeValue);
-
-            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(responseObject).toJson(), "application/json");
-
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    return false;
-}
-
 bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
     if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == SETTINGS_PATH_JSON) {
         // this is a POST operation to change one or more settings
@@ -1214,6 +1201,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
     static const QString BROADCASTING_KEY = "broadcasting";
+    static const QString WIZARD_KEY = "wizard";
     static const QString DESCRIPTION_ROOT_KEY = "descriptors";
 
     auto& settingsVariant = _configMap.getConfig();
@@ -1266,7 +1254,8 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY && rootKey != SETTINGS_PATHS_KEY ) {
+                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY &&
+                    rootKey != SETTINGS_PATHS_KEY && rootKey != WIZARD_KEY) {
                     needRestart = true;
                 }
             } else {
@@ -1282,8 +1271,9 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     const QJsonValue& settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
-                    if ((rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY && rootKey != DESCRIPTION_ROOT_KEY)
-                        || settingKey == AC_SUBNET_WHITELIST_KEY) {
+                    if ((rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY &&
+                         rootKey != DESCRIPTION_ROOT_KEY && rootKey != WIZARD_KEY) ||
+                        settingKey == AC_SUBNET_WHITELIST_KEY) {
                         needRestart = true;
                     }
                 } else {

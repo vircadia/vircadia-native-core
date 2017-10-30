@@ -286,6 +286,13 @@ void Avatar::updateAvatarEntities() {
                 properties.setScript(noScript);
             }
 
+            auto specifiedHref = properties.getHref();
+            if (!isMyAvatar() && !specifiedHref.isEmpty()) {
+                qCDebug(avatars_renderer) << "removing entity href from avatar attached entity:" << entityID << "old href:" << specifiedHref;
+                QString noHref;
+                properties.setHref(noHref);
+            }
+
             // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
             // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
             // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
