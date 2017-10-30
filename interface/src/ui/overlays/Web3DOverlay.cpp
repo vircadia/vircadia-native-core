@@ -66,7 +66,7 @@ const QString Web3DOverlay::QML = "Web3DOverlay.qml";
 Web3DOverlay::Web3DOverlay() : _dpi(DPI) {
     _touchDevice.setCapabilities(QTouchDevice::Position);
     _touchDevice.setType(QTouchDevice::TouchScreen);
-    _touchDevice.setName("RenderableWebEntityItemTouchDevice");
+    _touchDevice.setName("Web3DOverlayTouchDevice");
     _touchDevice.setMaximumTouchPoints(4);
 
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
@@ -332,6 +332,12 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
 }
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
+    if (event.getType() == PointerEvent::Press) {
+        _pressed = true;
+    } else if (event.getType() == PointerEvent::Release) {
+        _pressed = false;
+    }
+
     if (_inputMode == Touch) {
         handlePointerEventAsTouch(event);
     } else {
@@ -344,19 +350,8 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         return;
     }
 
-    //do not send secondary button events to tablet
-    if (event.getButton() == PointerEvent::SecondaryButton ||
-        //do not block composed events
-        event.getButtons() == PointerEvent::SecondaryButton) {
-        return;
-    }
-
-
-    QPointF windowPoint;
-    {
-        glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
-        windowPoint = QPointF(windowPos.x, windowPos.y);
-    }
+    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
+    QPointF windowPoint(windowPos.x, windowPos.y);
 
     Qt::TouchPointState state = Qt::TouchPointStationary;
     if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
@@ -395,14 +390,13 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
         }
 
         touchEvent.setWindow(_webSurface->getWindow());
+        touchEvent.setDevice(&_touchDevice);
         touchEvent.setTarget(_webSurface->getRootItem());
         touchEvent.setTouchPoints(touchPoints);
         touchEvent.setTouchPointStates(touchPointStates);
     }
 
     // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
-    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times).
-    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
     //
     // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
     // receive mouse events
@@ -448,12 +442,6 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
 
     glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
     QPointF windowPoint(windowPos.x, windowPos.y);
-
-    if (event.getType() == PointerEvent::Press) {
-        this->_pressed = true;
-    } else if (event.getType() == PointerEvent::Release) {
-        this->_pressed = false;
-    }
 
     Qt::MouseButtons buttons = Qt::NoButton;
     if (event.getButtons() & PointerEvent::PrimaryButton) {

@@ -12,6 +12,8 @@
 #include <WebEntityItem.h>
 #include "RenderableEntityItem.h"
 
+#include <QTouchEvent>
+
 class OffscreenQmlSurface;
 class PointerEvent;
 
@@ -58,13 +60,16 @@ private:
     QSharedPointer<OffscreenQmlSurface> _webSurface;
     glm::vec3 _contextPosition;
     gpu::TexturePointer _texture;
-    bool _pressed{ false };
     QString _lastSourceUrl;
     uint16_t _lastDPI;
     bool _lastLocked;
     QTimer _timer;
     uint64_t _lastRenderTime { 0 };
     Transform _renderTransform;
+
+    bool _pressed{ false };
+    bool _touchBeginAccepted{ false };
+    std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
 };
 
 } } // namespace 

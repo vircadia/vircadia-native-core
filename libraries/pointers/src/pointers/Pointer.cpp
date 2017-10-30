@@ -23,10 +23,11 @@ void Pointer::enable() {
 }
 
 void Pointer::disable() {
-    DependencyManager::get<PickManager>()->disablePick(_pickUID);
+    // Disable the pointer first, then the pick, so someone can't try to use it while it's in a bad state
     withWriteLock([&] {
         _enabled = false;
     });
+    DependencyManager::get<PickManager>()->disablePick(_pickUID);
 }
 
 const QVariantMap Pointer::getPrevPickResult() {
