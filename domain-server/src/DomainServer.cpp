@@ -60,10 +60,11 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               const QString& metaversePath,
                                               const QString& requestSubobjectKey,
                                               std::initializer_list<QString> requiredData,
-                                              std::initializer_list<QString> optionalData) {
+                                              std::initializer_list<QString> optionalData,
+                                              bool requireAccessToken) {
 
     auto accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
-    if (accessTokenVariant == nullptr) {
+    if (accessTokenVariant == nullptr && requireAccessToken) {
         connection->respond(HTTPConnection::StatusCode400, "User access token has not been set");
         return true;
     }
@@ -98,8 +99,11 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     QNetworkRequest req(url);
     req.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    auto accessTokenHeader = QString("Bearer ") + accessTokenVariant->toString();
-    req.setRawHeader("Authorization", accessTokenHeader.toLatin1());
+
+    if (accessTokenVariant != nullptr) {
+        auto accessTokenHeader = QString("Bearer ") + accessTokenVariant->toString();
+        req.setRawHeader("Authorization", accessTokenHeader.toLatin1());
+    }
 
     QNetworkReply* reply;
     auto method = connection->requestOperation();
@@ -117,7 +121,7 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
     connect(reply, &QNetworkReply::finished, this, [reply, connection]() {
         if (reply->error() != QNetworkReply::NoError) {
             auto data = reply->readAll();
-            qDebug() << "Got error response from metaverse server: " << data << reply->errorString();
+            qDebug() << "Got error response from metaverse server (" << reply->url() << "): " << data << reply->errorString();
             connection->respond(HTTPConnection::StatusCode400, data);
             return;
         }
@@ -2010,7 +2014,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "");
         } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
             auto id = url.path().mid(URI_API_DOMAINS_ID.length());
-            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + id, "");
+            return forwardMetaverseAPIRequest(connection, "/api/v1/domains/" + id, "", {}, {}, false);
         } else if (url.path() == URI_API_PLACES) {
             return forwardMetaverseAPIRequest(connection, "/api/v1/user/places", "");
         } else {
