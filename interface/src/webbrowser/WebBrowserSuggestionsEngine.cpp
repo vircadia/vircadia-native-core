@@ -25,8 +25,8 @@
 
 #include <NetworkAccessManager.h>
 
-const QString GoogleSuggestionsUrl = "https://suggestqueries.google.com/complete/search?output=firefox&q=%1";
-const int SUGGESTIONS_LIST_INDEX = 2;
+static const QString GoogleSuggestionsUrl = "https://suggestqueries.google.com/complete/search?output=firefox&q=%1";
+static const int SUGGESTIONS_LIST_INDEX = 1;
 
 WebBrowserSuggestionsEngine::WebBrowserSuggestionsEngine(QObject* parent)
     : QObject(parent)
