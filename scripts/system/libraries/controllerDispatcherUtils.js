@@ -37,6 +37,7 @@
    projectOntoXYPlane:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
+   makeLaserLockInfo:true,
    entityHasActions:true,
    ensureDynamic:true,
    findGroupParent:true,
@@ -107,20 +108,30 @@ DISPATCHER_PROPERTIES = [
 // activitySlots -- indicates which "slots" must not yet be in use for this module to start
 // requiredDataForReady -- which "situation" parts this module looks at to decide if it will start
 // sleepMSBetweenRuns -- how long to wait between calls to this module's "run" method
-makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns) {
+makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns, enableLaserForHand) {
     return {
         priority: priority,
         activitySlots: activitySlots,
         requiredDataForReady: requiredDataForReady,
-        sleepMSBetweenRuns: sleepMSBetweenRuns
+        sleepMSBetweenRuns: sleepMSBetweenRuns,
+        handLaser: enableLaserForHand
     };
 };
 
-makeRunningValues = function (active, targets, requiredDataForRun) {
+makeLaserLockInfo = function(targetID, isOverlay, hand) {
+    return {
+        targetID: targetID,
+        isOverlay: isOverlay,
+        hand: hand
+    };
+};
+
+makeRunningValues = function (active, targets, requiredDataForRun, laserLockInfo) {
     return {
         active: active,
         targets: targets,
-        requiredDataForRun: requiredDataForRun
+        requiredDataForRun: requiredDataForRun,
+        laserLockInfo: laserLockInfo
     };
 };
 

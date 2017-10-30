@@ -33,6 +33,77 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         PROFILE = true;
     }
 
+    var SEARCH_SPHERE_SIZE = 0.0132;
+    var dim = {x: SEARCH_SPHERE_SIZE, y: SEARCH_SPHERE_SIZE, z: SEARCH_SPHERE_SIZE};
+    var halfPath = {
+        type: "line3d",
+        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
+        visible: true,
+        alpha: 1,
+        solid: true,
+        glow: 1.0,
+        lineWidth: 5,
+        ignoreRayIntersection: true, // always ignore this
+        drawInFront: true, // Even when burried inside of something, show it.
+        parentID: MyAvatar.SELF_ID
+    };
+    var halfEnd = {
+        type: "sphere",
+        dimensions: dim,
+        solid: true,
+        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
+        alpha: 0.9,
+        ignoreRayIntersection: true,
+        drawInFront: true, // Even when burried inside of something, show it.
+        visible: true
+    };
+    var fullPath = {
+        type: "line3d",
+        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
+        visible: true,
+        alpha: 1,
+        solid: true,
+        glow: 1.0,
+        lineWidth: 5,
+        ignoreRayIntersection: true, // always ignore this
+        drawInFront: true, // Even when burried inside of something, show it.
+        parentID: MyAvatar.SELF_ID
+    };
+    var fullEnd = {
+        type: "sphere",
+        dimensions: dim,
+        solid: true,
+        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
+        alpha: 0.9,
+        ignoreRayIntersection: true,
+        drawInFront: true, // Even when burried inside of something, show it.
+        visible: true
+    };
+    var holdPath = {
+        type: "line3d",
+        color: COLORS_GRAB_DISTANCE_HOLD,
+        visible: true,
+        alpha: 1,
+        solid: true,
+        glow: 1.0,
+        lineWidth: 5,
+        ignoreRayIntersection: true, // always ignore this
+        drawInFront: true, // Even when burried inside of something, show it.
+        parentID: MyAvatar.SELF_ID
+    };
+
+    var renderStates = [
+        {name: "half", path: halfPath, end: halfEnd},
+        {name: "full", path: fullPath, end: fullEnd},
+        {name: "hold", path: holdPath}
+    ];
+
+    var defaultRenderStates = [
+        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
+        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
+        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
+    ];
+
     function ControllerDispatcher() {
         var _this = this;
         this.lastInterval = Date.now();
@@ -57,6 +128,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             mouse: false
         };
 
+        this.laserVisibleStatus = [false, false];
+        this.laserLockStatus = [false, false];
+
         this.slotsAreAvailableForPlugin = function (plugin) {
             for (var i = 0; i < plugin.parameters.activitySlots.length; i++) {
                 if (_this.activitySlots[plugin.parameters.activitySlots[i]]) {
@@ -69,6 +143,39 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.markSlots = function (plugin, pluginName) {
             for (var i = 0; i < plugin.parameters.activitySlots.length; i++) {
                 _this.activitySlots[plugin.parameters.activitySlots[i]] = pluginName;
+            }
+        };
+
+        this.enableLaserForPlugin = function(plugin) {
+            var handLaser = plugin.parameters.handLaser;
+            if (handLaser !== undefined) {
+                _this.laserVisibleStatus[handLaser] = true;
+            }
+        };
+
+        this.disableLaserForPlugin = function(plugin) {
+            var handLaser = plugin.parameters.handLaser;
+            if (handLaser !== undefined) {
+                _this.laserVisibleStatus[handLaser] = false;
+                _this.laserLockStatus[handLaser]  = false;
+            }
+        };
+
+        this.lockLaserToTarget = function(laserLockInfo, plugin) {
+            if (laserLockInfo !== undefined) {
+                var hand = laserLockInfo.hand;
+                if (_this.laserVisibleStatus[laserLockInfo.hand]) {
+                    var pointer = (hand === RIGHT_HAND) ? _this.rightControllerPointer : _this.leftControllerPointer;
+                    var targetID = laserLockInfo.targetID;
+                    var targetIsOverlay = laserLockInfo.isOverlay;
+                    Pointers.setLockEndUUID(pointer, targetID, targetIsOverlay);
+                    _this.laserLockStatus[hand] = targetID;
+                }
+            } else {
+                var handLaser = plugin.parameters.handLaser;
+                if (handLaser !== undefined) {
+                    _this.laserLockStatus[handLaser] = false;
+                }
             }
         };
 
@@ -108,7 +215,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             _this.rightSecondaryValue = value;
         };
 
-
         this.dataGatherers = {};
         this.dataGatherers.leftControllerLocation = function () {
             return getControllerWorldLocation(Controller.Standard.LeftHand, true);
@@ -146,6 +252,37 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 RayPick.setIgnoreItems(_this.leftControllerRayPick, _this.blacklist.concat([HMD.tabletID]));
                 RayPick.setIgnoreItems(_this.rightControllerRayPick, _this.blacklist.concat([HMD.tabletID]));
             }
+        };
+
+        this.updateRenderStateForVisibleLasers = function() {
+            // update left hand laser
+            if (_this.laserVisibleStatus[LEFT_HAND]) {
+                var laserLocked = _this.laserLockStatus[LEFT_HAND];
+                _this.updateLaserRenderState(_this.leftControllerPointer,_this.leftTriggerClicked, laserLocked);
+            } else {
+                Pointers.setRenderState(_this.leftControllerPointer, "");
+            }
+
+            //update right hand laser
+            if (_this.laserVisibleStatus[RIGHT_HAND]) {
+                var laserLocked = _this.laserLockStatus[RIGHT_HAND];
+                _this.updateLaserRenderState(_this.rightControllerPointer, _this.rightTriggerClicked, laserLocked);
+            } else {
+                Pointers.setRenderState(_this.rightControllerPointer, "");
+            }
+        };
+
+        this.updateLaserRenderState = function(laser, triggerClicked, laserLocked) {
+            var mode = "hold";
+            if (!laserLocked) {
+                if (triggerClicked) {
+                    mode = "full";
+                } else {
+                    mode = "half";
+                }
+            }
+
+            Pointers.setRenderState(laser, mode);
         };
 
         this.update = function () {
@@ -234,8 +371,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
             // raypick for each controller
             var rayPicks = [
-                RayPick.getPrevRayPickResult(_this.leftControllerRayPick),
-                RayPick.getPrevRayPickResult(_this.rightControllerRayPick)
+                Pointers.getPrevPickResult(_this.leftControllerPointer),
+                Pointers.getPrevPickResult(_this.rightControllerPointer)
             ];
             var hudRayPicks = [
                 RayPick.getPrevRayPickResult(_this.leftControllerHudRayPick),
@@ -319,6 +456,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         // activity-slots which this plugin consumes as "in use"
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
+                        _this.enableLaserForPlugin(candidatePlugin);
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
@@ -354,16 +492,19 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
+                            _this.disableLaserForPlugin(plugin);
                             if (DEBUG) {
                                 print("controllerDispatcher stopping " + runningPluginName);
                             }
                         }
+                        _this.lockLaserToTarget(runningness.laserLockInfo, plugin);
                         if (PROFILE) {
                             Script.endProfileRange("dispatch.run." + runningPluginName);
                         }
                     }
                 }
             }
+            _this.updateRenderStateForVisibleLasers();
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
@@ -388,12 +529,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         Controller.enableMapping(MAPPING_NAME);
 
-        this.leftControllerRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_LEFTHAND",
-            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
-            enabled: true,
-            maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
+        this.leftControllerPointer = Pointers.createPointer(PickType.Ray, {
+            joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES,
+            renderStates: renderStates,
+            defaultRenderStates: defaultRenderStates,
+            triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
+            hover: true
         });
         this.leftControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_LEFTHAND",
@@ -402,12 +544,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
         });
-        this.rightControllerRayPick = RayPick.createRayPick({
-            joint: "_CONTROLLER_RIGHTHAND",
-            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
-            enabled: true,
-            maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
+        this.rightControllerPointer = Pointers.createPointer(PickType.Ray, {
+            joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
+            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES,
+            renderStates: renderStates,
+            defaultRenderStates: defaultRenderStates,
+            triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
+            hover: true
         });
         this.rightControllerHudRayPick = RayPick.createRayPick({
             joint: "_CONTROLLER_RIGHTHAND",
@@ -421,6 +564,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
             enabled: true
         });
+
+        Pointers.setRenderState(this.leftControllerPointer, "");
+        Pointers.setRenderState(this.rightControllerPointer, "");
+        Pointers.enablePointer(this.leftControllerPointer);
+        Pointers.enablePointer(this.rightControllerPointer);
 
         this.handleHandMessage = function(channel, message, sender) {
             var data;
