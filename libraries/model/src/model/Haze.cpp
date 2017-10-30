@@ -9,11 +9,34 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include <memory>
-#include <gpu/Resource.h>
 
 #include "Haze.h"
 
 using namespace model;
+
+const float Haze::initialHazeRange_m{ 1000.0f };
+const float Haze::initialHazeHeight_m{ 200.0f };
+
+const float Haze::initialHazeKeyLightRange_m{ 1000.0f };
+const float Haze::initialHazeKeyLightAltitude_m{ 200.0f };
+
+const float Haze::initialHazeBackgroundBlend{ 0.0f };
+
+const glm::vec3 Haze::initialColorModulationFactor{
+    convertHazeRangeToHazeRangeFactor(initialHazeRange_m),
+    convertHazeRangeToHazeRangeFactor(initialHazeRange_m),
+    convertHazeRangeToHazeRangeFactor(initialHazeRange_m)
+};
+
+const glm::vec3 Haze::initialHazeColor{ 0.5f, 0.6f, 0.7f }; // Bluish
+const xColor Haze::initialHazeColorXcolor{ 128, 154, 179 };
+
+const float Haze::initialGlareAngle_degs{ 20.0f };
+
+const glm::vec3 Haze::initialHazeGlareColor{ 1.0f, 0.9f, 0.7f };
+const xColor Haze::initialHazeGlareColorXcolor{ 255, 229, 179 };
+
+const float Haze::initialHazeBaseReference_m{ 0.0f };
 
 Haze::Haze() {
     Parameters parameters;

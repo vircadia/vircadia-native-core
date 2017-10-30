@@ -12,17 +12,68 @@
 #define hifi_model_Haze_h
 
 #include <glm/glm.hpp>
+#include <gpu/Resource.h>
+
 #include "Transform.h"
 #include "NumericalConstants.h"
 
-#include "HazeInit.h"
-
 namespace model {
+    const float LOG_P_005 = logf(0.05f);
+    const float LOG_P_05 = logf(0.5f);
+
+    // Derivation (d is distance, b is haze coefficient, f is attenuation, solve for f = 0.05
+    //  f = exp(-d * b)
+    //  ln(f) = -d * b
+    //  b = -ln(f)/d
+    inline glm::vec3 convertHazeRangeToHazeRangeFactor(const glm::vec3 hazeRange_m) {
+        return glm::vec3(
+            -LOG_P_005 / hazeRange_m.x,
+            -LOG_P_005 / hazeRange_m.y,
+            -LOG_P_005 / hazeRange_m.z);
+    }
+
+    // limit range and altitude to no less than 1.0 metres
+    inline float convertHazeRangeToHazeRangeFactor(const float hazeRange_m) { return -LOG_P_005 / glm::max(hazeRange_m, 1.0f); }
+
+    inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeHeight_m) { return -LOG_P_005 / glm::max(hazeHeight_m, 1.0f); }
+
+    // Derivation (s is the proportion of sun blend, a is the angle at which the blend is 50%, solve for m = 0.5
+    //  s = dot(lookAngle, sunAngle) = cos(a)
+    //  m = pow(s, p)
+    //  log(m) = p * log(s)
+    //  p = log(m) / log(s)
+    // limit to 0.1 degrees
+    inline float convertGlareAngleToPower(const float hazeGlareAngle) {
+        const float GLARE_ANGLE_LIMIT = 0.1f;
+        return LOG_P_05 / logf(cosf(RADIANS_PER_DEGREE * glm::max(GLARE_ANGLE_LIMIT, hazeGlareAngle)));
+    }
+
     // Haze range is defined here as the range the visibility is reduced by 95%
     // Haze altitude is defined here as the altitude (above 0) that the haze is reduced by 95%
 
     class Haze {
     public:
+        // Initial values
+        static const float initialHazeRange_m;
+        static const float initialHazeHeight_m;
+
+        static const float initialHazeKeyLightRange_m;
+        static const float initialHazeKeyLightAltitude_m;
+
+        static const float initialHazeBackgroundBlend;
+
+        static const glm::vec3 initialColorModulationFactor;
+
+        static const glm::vec3 initialHazeColor;
+        static const xColor initialHazeColorXcolor;
+
+        static const float initialGlareAngle_degs;
+
+        static const glm::vec3 initialHazeGlareColor;
+        static const xColor initialHazeGlareColorXcolor;
+
+        static const float initialHazeBaseReference_m;
+
         using UniformBufferView = gpu::BufferView;
 
         Haze();

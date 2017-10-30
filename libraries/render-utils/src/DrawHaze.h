@@ -56,15 +56,15 @@ class MakeHazeConfig : public render::Job::Config {
 public:
     MakeHazeConfig() : render::Job::Config() {}
 
-    float hazeColorR{ model::initialHazeColor.r };
-    float hazeColorG{ model::initialHazeColor.g };
-    float hazeColorB{ model::initialHazeColor.b };
-    float hazeGlareAngle_degs{ model::initialGlareAngle_degs };
+    float hazeColorR{ model::Haze::initialHazeColor.r };
+    float hazeColorG{ model::Haze::initialHazeColor.g };
+    float hazeColorB{ model::Haze::initialHazeColor.b };
+    float hazeGlareAngle_degs{ model::Haze::initialGlareAngle_degs };
 
-    float hazeGlareColorR{ model::initialHazeGlareColor.r };
-    float hazeGlareColorG{ model::initialHazeGlareColor.g };
-    float hazeGlareColorB{ model::initialHazeGlareColor.b };
-    float hazeBaseReference_m{ model::initialHazeBaseReference_m };
+    float hazeGlareColorR{ model::Haze::initialHazeGlareColor.r };
+    float hazeGlareColorG{ model::Haze::initialHazeGlareColor.g };
+    float hazeGlareColorB{ model::Haze::initialHazeGlareColor.b };
+    float hazeBaseReference_m{ model::Haze::initialHazeBaseReference_m };
 
     bool isHazeActive{ false };
     bool isAltitudeBased{ false };
@@ -72,13 +72,13 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange_m{ model::initialHazeRange_m };
-    float hazeHeight_m{ model::initialHazeHeight_m };
+    float hazeRange_m{ model::Haze::initialHazeRange_m };
+    float hazeHeight_m{ model::Haze::initialHazeHeight_m };
 
-    float hazeKeyLightRange_m{ model::initialHazeKeyLightRange_m };
-    float hazeKeyLightAltitude_m{ model::initialHazeKeyLightAltitude_m };
+    float hazeKeyLightRange_m{ model::Haze::initialHazeKeyLightRange_m };
+    float hazeKeyLightAltitude_m{ model::Haze::initialHazeKeyLightAltitude_m };
 
-    float hazeBackgroundBlend{ model::initialHazeBackgroundBlend };
+    float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
 
 public slots:
     void setHazeColorR(const float value) { hazeColorR = value; emit dirty(); }
@@ -128,15 +128,15 @@ public:
     HazeConfig() : render::Job::Config(true) {}
 
     // attributes
-    float hazeColorR{ model::initialHazeColor.r };
-    float hazeColorG{ model::initialHazeColor.g };
-    float hazeColorB{ model::initialHazeColor.b };
-    float hazeGlareAngle_degs{ model::initialGlareAngle_degs };
+    float hazeColorR{ model::Haze::initialHazeColor.r };
+    float hazeColorG{ model::Haze::initialHazeColor.g };
+    float hazeColorB{ model::Haze::initialHazeColor.b };
+    float hazeGlareAngle_degs{ model::Haze::initialGlareAngle_degs };
 
-    float hazeGlareColorR{ model::initialHazeGlareColor.r };
-    float hazeGlareColorG{ model::initialHazeGlareColor.g };
-    float hazeGlareColorB{ model::initialHazeGlareColor.b };
-    float hazeBaseReference_m{ model::initialHazeBaseReference_m };
+    float hazeGlareColorR{ model::Haze::initialHazeGlareColor.r };
+    float hazeGlareColorG{ model::Haze::initialHazeGlareColor.g };
+    float hazeGlareColorB{ model::Haze::initialHazeGlareColor.b };
+    float hazeBaseReference_m{ model::Haze::initialHazeBaseReference_m };
 
     bool isHazeActive{ false };   // Setting this to true will set haze to on
     bool isAltitudeBased{ false };
@@ -144,13 +144,13 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange_m{ model::initialHazeRange_m };
-    float hazeHeight_m{ model::initialHazeHeight_m };
+    float hazeRange_m{ model::Haze::initialHazeRange_m };
+    float hazeHeight_m{ model::Haze::initialHazeHeight_m };
 
-    float hazeKeyLightRange_m{ model::initialHazeKeyLightRange_m };
-    float hazeKeyLightAltitude_m{ model::initialHazeKeyLightAltitude_m };
+    float hazeKeyLightRange_m{ model::Haze::initialHazeKeyLightRange_m };
+    float hazeKeyLightAltitude_m{ model::Haze::initialHazeKeyLightAltitude_m };
 
-    float hazeBackgroundBlend{ model::initialHazeBackgroundBlend };
+    float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
 
     // methods
     void setHazeColorR(const float value);
