@@ -1,19 +1,20 @@
+//
+//  WebBrowserSuggestionsEngine.h
+//  interface/src/webbrowser
+//
+//  Created by Vlad Stelmahovsky on 30/10/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #ifndef WEBBROWSERSUGGESTIONSENGINE_H
 #define WEBBROWSERSUGGESTIONSENGINE_H
 
 #include <qpair.h>
 #include <qimage.h>
 #include <qmap.h>
-//
-//  webbrowsersuggestionsengine.h
-//  interface/src/webbrowser
-//
-//  Created by Vlad Stelmahovsky Kapolka on 30/10/17.
-//  Copyright 2017 High Fidelity, Inc.
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
 
 #include <qnetworkaccessmanager.h>
 #include <qstring.h>

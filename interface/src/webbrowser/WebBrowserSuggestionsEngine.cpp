@@ -1,8 +1,8 @@
 //
-//  webbrowsersuggestionsengine.cpp
+//  WebBrowserSuggestionsEngine.cpp
 //  interface/src/webbrowser
 //
-//  Created by Vlad Stelmahovsky Kapolka on 30/10/17.
+//  Created by Vlad Stelmahovsky on 30/10/17.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
