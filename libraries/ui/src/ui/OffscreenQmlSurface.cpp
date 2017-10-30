@@ -24,9 +24,9 @@
 #include <QtCore/QThread>
 #include <QtCore/QMutex>
 #include <QtCore/QWaitCondition>
-#include <QtMultimedia/qmediaservice.h>
-#include <QtMultimedia/qaudiooutputselectorcontrol.h>
-#include <QtMultimedia/qmediaplayer.h>
+#include <QtMultimedia/QMediaService>
+#include <QtMultimedia/QAudioOutputSelectorControl>
+#include <QtMultimedia/QMediaPlayer>
 
 #include <AudioClient.h>
 #include <shared/NsightHelpers.h>
@@ -634,10 +634,11 @@ void OffscreenQmlSurface::forceHtmlAudioOutputDeviceUpdate() {
 void OffscreenQmlSurface::forceQmlAudioOutputDeviceUpdate() {
     if (QThread::currentThread() != qApp->thread()) {
         QMetaObject::invokeMethod(this, "forceQmlAudioOutputDeviceUpdate", Qt::QueuedConnection);
-    }
-    else {
+    } else {
         int waitForAudioQmlMs = 500;
-        QTimer::singleShot(waitForAudioQmlMs, this, SLOT(updateQmlAudio()));
+        QTimer::singleShot(waitForAudioQmlMs, this, [this] {
+            updateQmlAudio();
+        });
     }
 }
 
