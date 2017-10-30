@@ -20,10 +20,10 @@ FetchHazeStage::FetchHazeStage() {
 }
 
 void FetchHazeStage::configure(const Config& config) {
-    _haze->setHazeColor(glm::vec3(config.hazeColorR, config.hazeColorG, config.hazeColorB));
+    _haze->setHazeColor(config.hazeColor);
     _haze->setHazeGlareBlend(model::convertGlareAngleToPower(config.hazeGlareAngle_degs));
 
-    _haze->setHazeGlareColor(glm::vec3(config.hazeGlareColorR, config.hazeGlareColorG, config.hazeGlareColorB));
+    _haze->setHazeGlareColor(config.hazeGlareColor);
     _haze->setHazeBaseReference(config.hazeBaseReference_m);
 
     _haze->setHazeActive(config.isHazeActive);

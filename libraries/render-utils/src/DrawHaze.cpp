@@ -21,32 +21,16 @@
 
 #include "Haze_frag.h"
 
-void HazeConfig::setHazeColorR(const float value) { 
-    hazeColorR = value; 
-}
-
-void HazeConfig::setHazeColorG(const float value) { 
-    hazeColorG = value; 
-}
-
-void HazeConfig::setHazeColorB(const float value) { 
-    hazeColorB = value; 
+void HazeConfig::setHazeColor(const glm::vec3 value) { 
+    hazeColor = value; 
 }
 
 void HazeConfig::setHazeGlareAngle_degs(const float value) {
     hazeGlareAngle_degs = value; 
 }
 
-void HazeConfig::setHazeGlareColorR(const float value) { 
-    hazeGlareColorR = value; 
-}
-
-void HazeConfig::setHazeGlareColorG(const float value) { 
-    hazeGlareColorG = value; 
-}
-
-void HazeConfig::setHazeGlareColorB(const float value) {
-    hazeGlareColorB = value; 
+void HazeConfig::setHazeGlareColor(const glm::vec3 value) {
+    hazeGlareColor = value; 
 }
 
 void HazeConfig::setHazeBaseReference(const float value) { 
@@ -98,10 +82,10 @@ MakeHaze::MakeHaze() {
 }
 
 void MakeHaze::configure(const Config& config) {
-    _haze->setHazeColor(glm::vec3(config.hazeColorR, config.hazeColorG, config.hazeColorB));
+    _haze->setHazeColor(config.hazeColor);
     _haze->setHazeGlareBlend(model::convertGlareAngleToPower(config.hazeGlareAngle_degs));
 
-    _haze->setHazeGlareColor(glm::vec3(config.hazeGlareColorR, config.hazeGlareColorG, config.hazeGlareColorB));
+    _haze->setHazeGlareColor(config.hazeGlareColor);
     _haze->setHazeBaseReference(config.hazeBaseReference_m);
 
     _haze->setHazeActive(config.isHazeActive);

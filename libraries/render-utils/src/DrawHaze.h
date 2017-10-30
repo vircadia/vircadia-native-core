@@ -29,14 +29,10 @@ using LinearDepthFramebufferPointer = std::shared_ptr<LinearDepthFramebuffer>;
 class MakeHazeConfig : public render::Job::Config {
     Q_OBJECT
 
-    Q_PROPERTY(float hazeColorR MEMBER hazeColorR WRITE setHazeColorR NOTIFY dirty);
-    Q_PROPERTY(float hazeColorG MEMBER hazeColorG WRITE setHazeColorG NOTIFY dirty);
-    Q_PROPERTY(float hazeColorB MEMBER hazeColorB WRITE setHazeColorB NOTIFY dirty);
+    Q_PROPERTY(glm::vec3 hazeColor MEMBER hazeColor WRITE setHazeColor NOTIFY dirty);
     Q_PROPERTY(float hazeGlareAngle_degs MEMBER hazeGlareAngle_degs WRITE setHazeGlareAngle_degs NOTIFY dirty);
 
-    Q_PROPERTY(float hazeGlareColorR MEMBER hazeGlareColorR WRITE setHazeGlareColorR NOTIFY dirty);
-    Q_PROPERTY(float hazeGlareColorG MEMBER hazeGlareColorG WRITE setHazeGlareColorG NOTIFY dirty);
-    Q_PROPERTY(float hazeGlareColorB MEMBER hazeGlareColorB WRITE setHazeGlareColorB NOTIFY dirty);
+    Q_PROPERTY(glm::vec3 hazeGlareColor MEMBER hazeGlareColor WRITE setHazeGlareColor NOTIFY dirty);
     Q_PROPERTY(float hazeBaseReference_m MEMBER hazeBaseReference_m WRITE setHazeBaseReference NOTIFY dirty);
 
     Q_PROPERTY(bool isHazeActive MEMBER isHazeActive WRITE setHazeActive NOTIFY dirty);
@@ -56,14 +52,10 @@ class MakeHazeConfig : public render::Job::Config {
 public:
     MakeHazeConfig() : render::Job::Config() {}
 
-    float hazeColorR{ model::Haze::initialHazeColor.r };
-    float hazeColorG{ model::Haze::initialHazeColor.g };
-    float hazeColorB{ model::Haze::initialHazeColor.b };
+    glm::vec3 hazeColor{ model::Haze::initialHazeColor };
     float hazeGlareAngle_degs{ model::Haze::initialGlareAngle_degs };
 
-    float hazeGlareColorR{ model::Haze::initialHazeGlareColor.r };
-    float hazeGlareColorG{ model::Haze::initialHazeGlareColor.g };
-    float hazeGlareColorB{ model::Haze::initialHazeGlareColor.b };
+    glm::vec3 hazeGlareColor{ model::Haze::initialHazeGlareColor };
     float hazeBaseReference_m{ model::Haze::initialHazeBaseReference_m };
 
     bool isHazeActive{ false };
@@ -81,14 +73,10 @@ public:
     float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
 
 public slots:
-    void setHazeColorR(const float value) { hazeColorR = value; emit dirty(); }
-    void setHazeColorG(const float value) { hazeColorG = value; emit dirty(); }
-    void setHazeColorB(const float value) { hazeColorB = value; emit dirty(); }
+    void setHazeColor(const glm::vec3 value) { hazeColor = value; emit dirty(); }
     void setHazeGlareAngle_degs(const float value) { hazeGlareAngle_degs = value; emit dirty(); }
 
-    void setHazeGlareColorR(const float value) { hazeGlareColorR = value; emit dirty(); }
-    void setHazeGlareColorG(const float value) { hazeGlareColorG = value; emit dirty(); }
-    void setHazeGlareColorB(const float value) { hazeGlareColorB = value; emit dirty(); }
+    void setHazeGlareColor(const glm::vec3 value) { hazeGlareColor = value; emit dirty(); }
     void setHazeBaseReference(const float value) { hazeBaseReference_m = value; ; emit dirty(); }
 
     void setHazeActive(const bool active) { isHazeActive = active; emit dirty(); }
@@ -128,14 +116,10 @@ public:
     HazeConfig() : render::Job::Config(true) {}
 
     // attributes
-    float hazeColorR{ model::Haze::initialHazeColor.r };
-    float hazeColorG{ model::Haze::initialHazeColor.g };
-    float hazeColorB{ model::Haze::initialHazeColor.b };
+    glm::vec3 hazeColor{ model::Haze::initialHazeColor };
     float hazeGlareAngle_degs{ model::Haze::initialGlareAngle_degs };
 
-    float hazeGlareColorR{ model::Haze::initialHazeGlareColor.r };
-    float hazeGlareColorG{ model::Haze::initialHazeGlareColor.g };
-    float hazeGlareColorB{ model::Haze::initialHazeGlareColor.b };
+    glm::vec3 hazeGlareColor{ model::Haze::initialHazeGlareColor };
     float hazeBaseReference_m{ model::Haze::initialHazeBaseReference_m };
 
     bool isHazeActive{ false };   // Setting this to true will set haze to on
@@ -153,14 +137,10 @@ public:
     float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
 
     // methods
-    void setHazeColorR(const float value);
-    void setHazeColorG(const float value);
-    void setHazeColorB(const float value);
+    void setHazeColor(const glm::vec3 value);
     void setHazeGlareAngle_degs(const float value);
 
-    void setHazeGlareColorR(const float value);
-    void setHazeGlareColorG(const float value);
-    void setHazeGlareColorB(const float value);
+    void setHazeGlareColor(const glm::vec3 value);
     void setHazeBaseReference(const float value);
 
     void setHazeActive(const bool active);
