@@ -1,6 +1,12 @@
 {
-  "version": 1.9,
+  "version": 2.0,
   "settings": [
+    {
+      "name": "label",
+      "label": "Label",
+      "settings": [
+      ]
+    },
     {
       "name": "metaverse",
       "label": "Metaverse / Networking",
@@ -14,7 +20,8 @@
         {
           "name": "id",
           "label": "Domain ID",
-          "help": "This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank."
+          "help": "This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank.",
+          "advanced": true
         },
         {
           "name": "automatic_networking",
@@ -82,11 +89,13 @@
         {
           "name": "description",
           "label": "Description",
+          "advanced": true,
           "help": "A description of your domain (256 character limit)."
         },
         {
           "name": "maturity",
           "label": "Maturity",
+          "advanced": true,
           "help": "A maturity rating, available as a guideline for content on your domain.",
           "default": "unrated",
           "type": "select",
@@ -116,6 +125,7 @@
         {
           "name": "hosts",
           "label": "Hosts",
+          "advanced": true,
           "type": "table",
           "can_add_new_rows": true,
           "help": "Usernames of hosts who can reliably show your domain to new visitors.",
@@ -131,6 +141,7 @@
         {
           "name": "tags",
           "label": "Tags",
+          "advanced": true,
           "type": "table",
           "can_add_new_rows": true,
           "help": "Common categories under which your domain falls.",
@@ -1623,6 +1634,29 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "wizard",
+      "label": "Setup Wizard",
+      "restart": false,
+      "hidden": true,
+      "settings": [
+        {
+          "name": "cloud_domain",
+          "type": "checkbox",
+          "default": false
+        },
+        {
+          "name": "steps_completed",
+          "type": "int",
+          "default": 0
+        },
+        {
+          "name": "completed_once",
+          "type": "checkbox",
+          "default": false
         }
       ]
     }
