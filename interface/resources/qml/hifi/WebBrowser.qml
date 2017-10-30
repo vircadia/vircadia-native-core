@@ -36,13 +36,11 @@ Rectangle {
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property var suggestionsList: []
+    readonly property string searchUrlTemplate: "https://www.google.com/search?client=hifibrowser&q=";
 
-    OpenSearchEngine {
+
+    WebBrowserSuggestionsEngine {
         id: searchEngine
-        name: "Google";
-        searchUrlTemplate: "https://www.google.com/search?client=hifibrowser&q={searchTerms}";
-        suggestionsUrlTemplate: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
-        suggestionsUrl: "https://suggestqueries.google.com/complete/search?output=firefox&q=%s";
 
         onSuggestions: {
             if (suggestions.length > 0) {
@@ -65,7 +63,7 @@ Rectangle {
         repeat: false
         onTriggered: {
             if (addressBar.editText !== "") {
-                searchEngine.requestSuggestions(addressBarInput.text);
+                searchEngine.querySuggestions(addressBarInput.text);
             }
         }
     }
@@ -74,18 +72,19 @@ Rectangle {
 
     function goTo(url) {
         //must be valid attempt to open an site with dot
-
+        var urlNew = url
         if (url.indexOf(".") > 0) {
             if (url.indexOf("http") < 0) {
-                url = "http://" + url;
+                urlNew = "http://" + url;
             }
         } else {
-            url = searchEngine.searchUrl(url)
+            urlNew = searchUrlTemplate + url
         }
 
         addressBar.model = []
-        webStack.currentItem.webEngineView.url = url
-        addressBar.editText = webStack.currentItem.webEngineView.url
+        //need to rebind if binfing was broken by selecting from suggestions
+        addressBar.editText = Qt.binding( function() { return webStack.currentItem.webEngineView.url; });
+        webStack.currentItem.webEngineView.url = urlNew
         suggestionRequestTimer.stop();
         addressBar.popup.close();
     }
@@ -305,11 +304,13 @@ Rectangle {
                     objectName: "tabletWebEngineView"
 
                     //profile: HFWebEngineProfile;
+                    profile.httpUserAgent: "Mozilla/5.0 (Android; Mobile; rv:13.0) Gecko/13.0 Firefox/13.0"
 
                     property string userScriptUrl: ""
 
                     onLoadingChanged: {
                         if (!loading) {
+                            addressBarInput.cursorPosition = 0 //set input field cursot to beginning
                             suggestionRequestTimer.stop();
                             addressBar.popup.close();
                         }
@@ -360,7 +361,6 @@ Rectangle {
                     Component.onCompleted: {
                         webChannel.registerObject("eventBridge", eventBridge);
                         webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-                        //webEngineView.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
                     }
 
                     onFeaturePermissionRequested: {
