@@ -1238,13 +1238,13 @@ void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message
 
     message.readPrimitive(&certIDByteArraySize);
     message.readPrimitive(&ownerKeyByteArraySize);
-    message.readPrimitive(&encryptedTextByteArraySize);
     message.readPrimitive(&nodeToChallengeByteArraySize);
+    message.readPrimitive(&encryptedTextByteArraySize);
 
     QString certID(message.read(certIDByteArraySize));
     QString ownerKey(message.read(ownerKeyByteArraySize));
-    QString encryptedText(message.read(encryptedTextByteArraySize));
     QUuid nodeToChallenge = QUuid::fromRfc4122(message.read(nodeToChallengeByteArraySize));
+    QString encryptedText(message.read(encryptedTextByteArraySize));
 
     sendChallengeOwnershipRequestPacket(certID, ownerKey, encryptedText, sourceNode, nodeToChallenge);
 }

@@ -734,7 +734,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
     QByteArray senderNodeUUID;
     if (challengeOriginatedFromClient) {
-        packet->readPrimitive(&senderNodeUUID);
+        senderNodeUUID = packet->read(senderNodeUUIDByteArraySize);
     }
 
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());

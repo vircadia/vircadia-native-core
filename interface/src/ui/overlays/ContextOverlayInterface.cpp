@@ -337,7 +337,8 @@ void ContextOverlayInterface::openInspectionCertificate() {
                             //}
                         }
                     } else {
-                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error();
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
+                            "More info:" << networkReply->readAll();
                     }
 
                     networkReply->deleteLater();
