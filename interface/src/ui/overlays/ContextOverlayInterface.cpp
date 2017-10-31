@@ -42,6 +42,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
     _entityPropertyFlags += PROP_CERTIFICATE_ID;
+    _entityPropertyFlags += PROP_CLIENT_ONLY;
+    _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &ContextOverlayInterface::createOrDestroyContextOverlay);
@@ -260,6 +262,41 @@ void ContextOverlayInterface::openInspectionCertificate() {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
         _hmdScriptingInterface->openTablet();
+
+        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_currentEntityWithContextOverlay, _entityPropertyFlags);
+
+        QUuid nodeToChallenge = entityProperties.getOwningAvatarID();
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        qDebug() << "ZRF FIXME" << entityProperties.getClientOnly() << nodeToChallenge << nodeList->getSessionUUID();
+
+        // Don't challenge ownership of avatar entities that I own
+        if (entityProperties.getClientOnly() && nodeToChallenge != nodeList->getSessionUUID()) {
+            SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
+
+            if (entityServer) {
+                QByteArray certID = entityProperties.getCertificateID().toUtf8();
+                QByteArray ownerKey; // ZRF FIXME!
+                QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
+
+                int certIDByteArraySize = certID.length();
+                int ownerKeyByteArraySize = ownerKey.length();
+                int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
+
+                auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
+                    certIDByteArraySize + ownerKeyByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
+                    true);
+                challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+                challengeOwnershipPacket->writePrimitive(ownerKeyByteArraySize);
+                challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
+                challengeOwnershipPacket->write(certID);
+                challengeOwnershipPacket->write(ownerKey);
+                challengeOwnershipPacket->write(nodeToChallengeByteArray);
+                nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
+            } else {
+                qCWarning(context_overlay) << "Couldn't get Entity Server!";
+            }
+        }
     }
 }
 

@@ -1153,8 +1153,8 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
             _challengeOwnershipTimeoutTimer->deleteLater();
         }
     });
-    _challengeOwnershipTimeoutTimer->setSingleShot(true);
-    _challengeOwnershipTimeoutTimer->start(5000);
+_challengeOwnershipTimeoutTimer->setSingleShot(true);
+_challengeOwnershipTimeoutTimer->start(5000);
 }
 
 void EntityTree::startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
@@ -1225,13 +1225,78 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
         if (!id.isNull()) {
             qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed; deleting entity" << id
                 << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
-                deleteEntity(id, true);
+            deleteEntity(id, true);
         }
     } else {
         qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded; keeping entity" << id;
     }
 
     return verificationSuccess;
+}
+
+void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    int certIDByteArraySize;
+    int ownerKeyByteArraySize;
+    int nodeToChallengeByteArraySize;
+
+    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&ownerKeyByteArraySize);
+    message.readPrimitive(&nodeToChallengeByteArraySize);
+
+    QString certID(message.read(certIDByteArraySize));
+    QString ownerKey(message.read(ownerKeyByteArraySize));
+    QUuid nodeToChallenge = QUuid::fromRfc4122(message.read(nodeToChallengeByteArraySize));
+
+    sendChallengeOwnershipPacket(certID, ownerKey, EntityItemID(), sourceNode, nodeToChallenge);
+}
+
+void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, const QUuid& nodeToChallenge) {
+    // 1. Encrypt a nonce with the owner's public key
+    auto nodeList = DependencyManager::get<NodeList>();
+    QByteArray encryptedText = computeEncryptedNonce(certID, ownerKey);
+
+    if (encryptedText == "") {
+        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce.";
+    } else {
+        // In this case, the server is challenging a client. That client has just rezzed a new certified entity.
+        if (nodeToChallenge.isNull()) {
+            // 2. Send the encrypted text to the rezzing avatar's node
+            QByteArray certIDByteArray = certID.toUtf8();
+            int certIDByteArraySize = certIDByteArray.size();
+            auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
+                certIDByteArraySize + encryptedText.length() + 2 * sizeof(int),
+                true);
+            challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+            challengeOwnershipPacket->writePrimitive(encryptedText.length());
+            challengeOwnershipPacket->write(certIDByteArray);
+            challengeOwnershipPacket->write(encryptedText);
+            nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
+
+            // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
+            if (thread() != QThread::currentThread()) {
+                QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
+                return;
+            } else {
+                startChallengeOwnershipTimer(entityItemID);
+            }
+        // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
+        //     to make sure belongs to Avatar B.
+        } else {
+            QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
+            QByteArray certIDByteArray = certID.toUtf8();
+            int certIDByteArraySize = certIDByteArray.size();
+            auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
+                certIDByteArraySize + encryptedText.length() + senderNodeUUID.length() + 3 * sizeof(int),
+                true);
+            challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+            challengeOwnershipPacket->writePrimitive(encryptedText.length());
+            challengeOwnershipPacket->writePrimitive(senderNodeUUID.length());
+            challengeOwnershipPacket->write(certIDByteArray);
+            challengeOwnershipPacket->write(encryptedText);
+            challengeOwnershipPacket->write(senderNodeUUID);
+            nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(nodeToChallenge)));
+        }
+    }
 }
 
 void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {
@@ -1279,33 +1344,11 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
                 }
             } else {
                 // Second, challenge ownership of the PoP cert
-                // 1. Encrypt a nonce with the owner's public key
-                QByteArray encryptedText = computeEncryptedNonce(certID, jsonObject["transfer_recipient_key"].toString());
+                sendChallengeOwnershipPacket(certID,
+                    jsonObject["transfer_recipient_key"].toString(),
+                    entityItemID,
+                    senderNode);
 
-                if (encryptedText == "") {
-                    qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce. Deleting entity...";
-                    deleteEntity(entityItemID, true);
-                } else {
-                    // 2. Send the encrypted text to the rezzing avatar's node
-                    QByteArray certIDByteArray = certID.toUtf8();
-                    int certIDByteArraySize = certIDByteArray.size();
-                    auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-                        certIDByteArraySize + encryptedText.length() + 2 * sizeof(int),
-                        true);
-                    challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-                    challengeOwnershipPacket->writePrimitive(encryptedText.length());
-                    challengeOwnershipPacket->write(certIDByteArray);
-                    challengeOwnershipPacket->write(encryptedText);
-                    nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
-
-                    // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
-                    if (thread() != QThread::currentThread()) {
-                        QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
-                        return;
-                    } else {
-                        startChallengeOwnershipTimer(entityItemID);
-                    }
-                }
             }
         } else {
             qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityItemID

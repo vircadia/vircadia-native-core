@@ -73,7 +73,7 @@ public slots:
 private:
     bool _verboseLogging { true };
     bool _enabled { true };
-    QUuid _currentEntityWithContextOverlay{};
+    EntityItemID _currentEntityWithContextOverlay{};
     QString _entityMarketplaceID;
     bool _contextOverlayJustClicked { false };
 
