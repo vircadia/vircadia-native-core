@@ -34,9 +34,12 @@ public:
     void setIncludeItems(const QUuid& uid, const QVector<QUuid>& include) const;
 
     void setShouldPickHUDOperator(std::function<bool()> shouldPickHUDOperator) { _shouldPickHUDOperator = shouldPickHUDOperator; }
+    void setCalculatePos2DFromHUDOperator(std::function<glm::vec2(const glm::vec3&)> calculatePos2DFromHUDOperator) { _calculatePos2DFromHUDOperator = calculatePos2DFromHUDOperator; }
+    glm::vec2 calculatePos2DFromHUD(const glm::vec3& intersection) { return _calculatePos2DFromHUDOperator(intersection); }
 
 protected:
     std::function<bool()> _shouldPickHUDOperator;
+    std::function<glm::vec2(const glm::vec3&)> _calculatePos2DFromHUDOperator;
 
     std::shared_ptr<PickQuery> findPick(const QUuid& uid) const;
     QHash<PickQuery::PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> _picks;

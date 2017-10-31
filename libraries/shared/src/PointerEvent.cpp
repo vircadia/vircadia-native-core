@@ -41,6 +41,11 @@ PointerEvent::PointerEvent(EventType type, uint32_t id,
     ;
 }
 
+void PointerEvent::setButton(Button button) {
+    _button = button;
+    _buttons |= button;
+}
+
 QScriptValue PointerEvent::toScriptValue(QScriptEngine* engine, const PointerEvent& event) {
     QScriptValue obj = engine->newObject();
 

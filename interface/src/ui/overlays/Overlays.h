@@ -308,6 +308,7 @@ public slots:
     void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
     void mouseMovePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
     void mouseReleasePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverOverPointerEvent(const OverlayID& overlayID, const PointerEvent& event);
     void hoverLeavePointerEvent(const OverlayID& overlayID, const PointerEvent& event);
 
 signals:

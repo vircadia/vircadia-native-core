@@ -9,6 +9,7 @@
 
 PickManager::PickManager() {
     setShouldPickHUDOperator([]() { return false; });
+    setCalculatePos2DFromHUDOperator([](const glm::vec3& intersection) { return glm::vec2(NAN); });
 }
 
 QUuid PickManager::addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick) {

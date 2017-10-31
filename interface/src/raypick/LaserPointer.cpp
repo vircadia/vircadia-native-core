@@ -301,6 +301,8 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const Q
         pos2D = projectOntoEntityXYPlane(target.objectID, intersection);
     } else if (target.type == OVERLAY) {
         pos2D = projectOntoOverlayXYPlane(target.objectID, intersection);
+    } else if (target.type == HUD) {
+        pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(intersection);
     }
     return PointerEvent(PointerEvent::Move, id, pos2D, intersection, surfaceNormal, direction, PointerEvent::NoButtons);
 }
