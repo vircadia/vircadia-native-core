@@ -14,21 +14,24 @@
 
 using namespace model;
 
-const float HazeInit::initialHazeRange{ 1000.0f };
-const float HazeInit::initialHazeHeight{ 200.0f };
+const float Haze::INITIAL_HAZE_RANGE{ 1000.0f };
+const float Haze::INITIAL_HAZE_HEIGHT{ 200.0f };
 
-const float HazeInit::initialHazeKeyLightRange{ 1000.0f };
-const float HazeInit::initialHazeKeyLightAltitude{ 200.0f };
+const float Haze::INITIAL_KEY_LIGHT_RANGE{ 1000.0f };
+const float Haze::INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
 
-const float HazeInit::initialHazeBackgroundBlend{ 0.0f };
+const float Haze::INITIAL_HAZE_BACKGROUND_BLEND{ 0.0f };
 
-const glm::vec3 HazeInit::initialHazeColor{ 0.5f, 0.6f, 0.7f }; // Bluish
+const glm::vec3 Haze::INITIAL_HAZE_COLOR{ 0.5f, 0.6f, 0.7f }; // Bluish
 
-const float HazeInit::initialGlareAngle{ 20.0f };
+const float Haze::INITIAL_HAZE_GLARE_ANGLE{ 20.0f };
 
-const glm::vec3 HazeInit::initialHazeGlareColor{ 1.0f, 0.9f, 0.7f };
+const glm::vec3 Haze::INITIAL_HAZE_GLARE_COLOR{ 1.0f, 0.9f, 0.7f };
 
-const float HazeInit::initialHazeBaseReference{ 0.0f };
+const float Haze::INITIAL_HAZE_BASE_REFERENCE{ 0.0f };
+
+const float Haze::LOG_P_005{ logf(0.05f)};
+const float Haze::LOG_P_05{ logf(0.5f) };
 
 Haze::Haze() {
     Parameters parameters;

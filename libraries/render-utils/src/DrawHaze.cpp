@@ -83,7 +83,7 @@ MakeHaze::MakeHaze() {
 
 void MakeHaze::configure(const Config& config) {
     _haze->setHazeColor(config.hazeColor);
-    _haze->setHazeGlareBlend(model::convertGlareAngleToPower(config.hazeGlareAngle));
+    _haze->setHazeGlareBlend(model::Haze::convertGlareAngleToPower(config.hazeGlareAngle));
 
     _haze->setHazeGlareColor(config.hazeGlareColor);
     _haze->setHazeBaseReference(config.hazeBaseReference);
@@ -94,11 +94,11 @@ void MakeHaze::configure(const Config& config) {
     _haze->setModulateColorActive(config.isModulateColorActive);
     _haze->setHazeEnableGlare(config.isHazeEnableGlare);
 
-    _haze->setHazeRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeRange));
-    _haze->setHazeAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(config.hazeHeight));
+    _haze->setHazeRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(config.hazeRange));
+    _haze->setHazeAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeHeight));
 
-    _haze->setHazeKeyLightRangeFactor(model::convertHazeRangeToHazeRangeFactor(config.hazeKeyLightRange));
-    _haze->setHazeKeyLightAltitudeFactor(model::convertHazeAltitudeToHazeAltitudeFactor(config.hazeKeyLightAltitude));
+    _haze->setHazeKeyLightRangeFactor(model::Haze::convertHazeRangeToHazeRangeFactor(config.hazeKeyLightRange));
+    _haze->setHazeKeyLightAltitudeFactor(model::Haze::convertHazeAltitudeToHazeAltitudeFactor(config.hazeKeyLightAltitude));
 
     _haze->setHazeBackgroundBlend(config.hazeBackgroundBlend);
 }

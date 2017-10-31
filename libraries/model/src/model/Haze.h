@@ -17,63 +17,58 @@
 #include "Transform.h"
 #include "NumericalConstants.h"
 
-class HazeInit {
-public:
-    // Initial values
-    static const float initialHazeRange;
-    static const float initialHazeHeight;
-
-    static const float initialHazeKeyLightRange;
-    static const float initialHazeKeyLightAltitude;
-
-    static const float initialHazeBackgroundBlend;
-
-    static const glm::vec3 initialHazeColor;
-
-    static const float initialGlareAngle;
-
-    static const glm::vec3 initialHazeGlareColor;
-
-    static const float initialHazeBaseReference;
-};
-
 namespace model {
-    const float LOG_P_005 = logf(0.05f);
-    const float LOG_P_05 = logf(0.5f);
-
-    // Derivation (d is distance, b is haze coefficient, f is attenuation, solve for f = 0.05
-    //  f = exp(-d * b)
-    //  ln(f) = -d * b
-    //  b = -ln(f)/d
-    inline glm::vec3 convertHazeRangeToHazeRangeFactor(const glm::vec3 hazeRange) {
-        return glm::vec3(
-            -LOG_P_005 / hazeRange.x,
-            -LOG_P_005 / hazeRange.y,
-            -LOG_P_005 / hazeRange.z);
-    }
-
-    // limit range and altitude to no less than 1.0 metres
-    inline float convertHazeRangeToHazeRangeFactor(const float hazeRange) { return -LOG_P_005 / glm::max(hazeRange, 1.0f); }
-
-    inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeHeight) { return -LOG_P_005 / glm::max(hazeHeight, 1.0f); }
-
-    // Derivation (s is the proportion of sun blend, a is the angle at which the blend is 50%, solve for m = 0.5
-    //  s = dot(lookAngle, sunAngle) = cos(a)
-    //  m = pow(s, p)
-    //  log(m) = p * log(s)
-    //  p = log(m) / log(s)
-    // limit to 0.1 degrees
-    inline float convertGlareAngleToPower(const float hazeGlareAngle) {
-        const float GLARE_ANGLE_LIMIT = 0.1f;
-        return LOG_P_05 / logf(cosf(RADIANS_PER_DEGREE * glm::max(GLARE_ANGLE_LIMIT, hazeGlareAngle)));
-    }
-
     // Haze range is defined here as the range the visibility is reduced by 95%
     // Haze altitude is defined here as the altitude (above 0) that the haze is reduced by 95%
 
     class Haze {
     public:
-        using UniformBufferView = gpu::BufferView;
+        // Initial values
+        static const float INITIAL_HAZE_RANGE;
+        static const float INITIAL_HAZE_HEIGHT;
+
+        static const float INITIAL_KEY_LIGHT_RANGE;
+        static const float INITIAL_KEY_LIGHT_ALTITUDE;
+
+        static const float INITIAL_HAZE_BACKGROUND_BLEND;
+
+        static const glm::vec3 INITIAL_HAZE_COLOR;
+
+        static const float INITIAL_HAZE_GLARE_ANGLE;
+
+        static const glm::vec3 INITIAL_HAZE_GLARE_COLOR;
+
+        static const float INITIAL_HAZE_BASE_REFERENCE;
+
+        static const float LOG_P_005;
+        static const float LOG_P_05;
+
+        // Derivation (d is distance, b is haze coefficient, f is attenuation, solve for f = 0.05
+        //  f = exp(-d * b)
+        //  ln(f) = -d * b
+        //  b = -ln(f)/d
+        static inline glm::vec3 convertHazeRangeToHazeRangeFactor(const glm::vec3 hazeRange) {
+            return glm::vec3(
+                -LOG_P_005 / hazeRange.x,
+                -LOG_P_005 / hazeRange.y,
+                -LOG_P_005 / hazeRange.z);
+        }
+
+        // limit range and altitude to no less than 1.0 metres
+        static inline float convertHazeRangeToHazeRangeFactor(const float hazeRange) { return -LOG_P_005 / glm::max(hazeRange, 1.0f); }
+
+        static inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeHeight) { return -LOG_P_005 / glm::max(hazeHeight, 1.0f); }
+
+        // Derivation (s is the proportion of sun blend, a is the angle at which the blend is 50%, solve for m = 0.5
+        //  s = dot(lookAngle, sunAngle) = cos(a)
+        //  m = pow(s, p)
+        //  log(m) = p * log(s)
+        //  p = log(m) / log(s)
+        // limit to 0.1 degrees
+        static inline float convertGlareAngleToPower(const float hazeGlareAngle) {
+            const float GLARE_ANGLE_LIMIT = 0.1f;
+            return LOG_P_05 / logf(cosf(RADIANS_PER_DEGREE * glm::max(GLARE_ANGLE_LIMIT, hazeGlareAngle)));
+        }
 
         Haze();
 
@@ -99,17 +94,18 @@ namespace model {
 
         void setZoneTransform(const glm::mat4& zoneTransform);
 
+        using UniformBufferView = gpu::BufferView;
         UniformBufferView getHazeParametersBuffer() const { return _hazeParametersBuffer; }
 
     protected:
         class Parameters {
         public:
             // DO NOT CHANGE ORDER HERE WITHOUT UNDERSTANDING THE std140 LAYOUT
-            glm::vec3 hazeColor{ HazeInit::initialHazeColor };
-            float hazeGlareBlend{ convertGlareAngleToPower(HazeInit::initialGlareAngle) };
+            glm::vec3 hazeColor{ INITIAL_HAZE_COLOR };
+            float hazeGlareBlend{ convertGlareAngleToPower(INITIAL_HAZE_GLARE_ANGLE) };
 
-            glm::vec3 hazeGlareColor{ HazeInit::initialHazeGlareColor };
-            float hazeBaseReference{ HazeInit::initialHazeBaseReference };
+            glm::vec3 hazeGlareColor{ INITIAL_HAZE_GLARE_COLOR };
+            float hazeBaseReference{ INITIAL_HAZE_BASE_REFERENCE };
 
             glm::vec3 colorModulationFactor;
             int hazeMode{ 0 };    // bit 0 - set to activate haze attenuation of fragment color
@@ -120,14 +116,14 @@ namespace model {
             glm::mat4 zoneTransform;
 
             // Amount of background (skybox) to display, overriding the haze effect for the background
-            float hazeBackgroundBlend{ HazeInit::initialHazeBackgroundBlend };
+            float hazeBackgroundBlend{ INITIAL_HAZE_BACKGROUND_BLEND };
 
             // The haze attenuation exponents used by both fragment and directional light attenuation
-            float hazeRangeFactor{ convertHazeRangeToHazeRangeFactor(HazeInit::initialHazeRange) };
-            float hazeHeightFactor{ convertHazeAltitudeToHazeAltitudeFactor(HazeInit::initialHazeHeight) };
+            float hazeRangeFactor{ convertHazeRangeToHazeRangeFactor(INITIAL_HAZE_RANGE) };
+            float hazeHeightFactor{ convertHazeAltitudeToHazeAltitudeFactor(INITIAL_HAZE_HEIGHT) };
 
-            float hazeKeyLightRangeFactor{ convertHazeRangeToHazeRangeFactor(HazeInit::initialHazeKeyLightRange) };
-            float hazeKeyLightAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(HazeInit::initialHazeKeyLightAltitude) };
+            float hazeKeyLightRangeFactor{ convertHazeRangeToHazeRangeFactor(INITIAL_KEY_LIGHT_RANGE) };
+            float hazeKeyLightAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(INITIAL_KEY_LIGHT_ALTITUDE) };
 
             Parameters() {}
         };
