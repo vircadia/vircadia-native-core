@@ -128,8 +128,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             mouse: false
         };
 
-        this.laserVisibleStatus = [false, false];
-        this.laserLockStatus = [false, false];
+        this.laserVisibleStatus = [false, false, false, false];
+        this.laserLockStatus = [false, false, false, false];
 
         this.slotsAreAvailableForPlugin = function (plugin) {
             for (var i = 0; i < plugin.parameters.activitySlots.length; i++) {
@@ -256,6 +256,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.updateRenderStateForVisibleLasers = function() {
             // update left hand laser
+
+            var HUD_LASER_OFFSET = 2;
             if (_this.laserVisibleStatus[LEFT_HAND]) {
                 var laserLocked = _this.laserLockStatus[LEFT_HAND];
                 _this.updateLaserRenderState(_this.leftControllerPointer,_this.leftTriggerClicked, laserLocked);
@@ -269,6 +271,18 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 _this.updateLaserRenderState(_this.rightControllerPointer, _this.rightTriggerClicked, laserLocked);
             } else {
                 Pointers.setRenderState(_this.rightControllerPointer, "");
+            }
+
+            if (_this.laserVisibleStatus[LEFT_HAND + HUD_LASER_OFFSET]) {
+                _this.updateLaserRenderState(_this.leftControllerHudRayPick, _this.leftTriggerClicked, false);
+            } else {
+                Pointers.setRenderState(_this.leftControllerHudRayPick, "");
+            }
+
+            if (_this.laserVisibleStatus[RIGHT_HAND + HUD_LASER_OFFSET]) {
+                _this.updateLaserRenderState(_this.rightControllerHudRayPick, _this.rightTriggerClicked, false);
+            } else {
+                Pointers.setRenderState(_this.rightControllerHudRayPick, "");
             }
         };
 
@@ -375,8 +389,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 Pointers.getPrevPickResult(_this.rightControllerPointer)
             ];
             var hudRayPicks = [
-                RayPick.getPrevRayPickResult(_this.leftControllerHudRayPick),
-                RayPick.getPrevRayPickResult(_this.rightControllerHudRayPick)
+                Pointers.getPrevPickResult(_this.leftControllerHudRayPick),
+                Pointers.getPrevPickResult(_this.rightControllerHudRayPick)
             ];
             var mouseRayPick = RayPick.getPrevRayPickResult(_this.mouseRayPick);
             // if the pickray hit something very nearby, put it into the nearby entities list
@@ -538,12 +552,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             hover: true
         });
-        this.leftControllerHudRayPick = RayPick.createRayPick({
+        this.leftControllerHudRayPick = Pointers.createPointer(PickType.Ray, {
             joint: "_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_HUD,
-            enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true)
+            renderStates: renderStates,
+            defaultRenderStates: defaultRenderStates,
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
+            triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
+            hover: true
         });
         this.rightControllerPointer = Pointers.createPointer(PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
@@ -554,12 +571,15 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             hover: true
         });
-        this.rightControllerHudRayPick = RayPick.createRayPick({
+        this.rightControllerHudRayPick = Pointers.createPointer(PickType.Ray, {
             joint: "_CONTROLLER_RIGHTHAND",
             filter: Picks.PICK_HUD,
-            enabled: true,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
-            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true)
+            renderStates: renderStates,
+            defaultRenderStates: defaultRenderStates,
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
+            triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
+            hover: true
         });
         this.mouseRayPick = RayPick.createRayPick({
             joint: "Mouse",
@@ -568,9 +588,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         });
 
         Pointers.setRenderState(this.leftControllerPointer, "");
+        Pointers.setRenderState(this.leftControllerHudRayPick, "");
         Pointers.setRenderState(this.rightControllerPointer, "");
+        Pointers.setRenderState(this.rightControllerHudRayPick, "");
         Pointers.enablePointer(this.leftControllerPointer);
+        Pointers.enablePointer(this.leftControllerHudRayPick);
         Pointers.enablePointer(this.rightControllerPointer);
+        Pointers.enablePointer(this.rightControllerHudRayPick);
 
         this.handleHandMessage = function(channel, message, sender) {
             var data;
@@ -604,10 +628,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.cleanup = function () {
             Script.update.disconnect(_this.update);
             Controller.disableMapping(MAPPING_NAME);
-            RayPick.removeRayPick(_this.leftControllerRayPick);
-            RayPick.removeRayPick(_this.rightControllerRayPick);
-            RayPick.removeRayPick(_this.rightControllerHudRayPick);
-            RayPick.removeRayPick(_this.leftControllerHudRayPick);
+            Pointers.removePointer(_this.leftControllerPointer);
+            Pointers.removePointer(_this.rightControllerPointer);
+            Pointers.removePointer(_this.rightControllerHudRayPick);
+            Pointers.removePointer(_this.leftControllerHudRayPick);
         };
     }
 

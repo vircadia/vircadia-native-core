@@ -37,8 +37,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function(controllerData) {
-            var otherModule = this.getOtherModule();
-            if (this.isPointingAtWebEntity(controllerData) && !otherModule.active) {
+            if (this.isPointingAtWebEntity(controllerData)) {
                 return makeRunningValues(true, [], []);
             }
             return makeRunningValues(false, [], []);
