@@ -29,6 +29,7 @@
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
+#include <SettingHelpers.h>
 #include <AvatarData.h> //for KillAvatarReason
 #include <FingerprintUtils.h>
 #include "DomainServerNodeData.h"
@@ -43,12 +44,7 @@ const QString DESCRIPTION_COLUMNS_KEY = "columns";
 
 const QString SETTINGS_VIEWPOINT_KEY = "viewpoint";
 
-static Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
-
-DomainServerSettingsManager::DomainServerSettingsManager() :
-    _descriptionArray(),
-    _configMap()
-{
+DomainServerSettingsManager::DomainServerSettingsManager() {
     // load the description object from the settings description
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
     descriptionFile.open(QIODevice::ReadOnly);
@@ -102,9 +98,32 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
     _configMap.loadConfig(_argumentList);
 
+    static const auto VERSION_SETTINGS_KEYPATH = "version";
+    QVariant* versionVariant = _configMap.valueForKeyPath(VERSION_SETTINGS_KEYPATH);
+
+    if (!versionVariant) {
+        versionVariant = _configMap.valueForKeyPath(VERSION_SETTINGS_KEYPATH, true);
+        *versionVariant = _descriptionVersion;
+        persistToFile();
+        qDebug() << "No version in config file, setting to current version" << _descriptionVersion;
+    }
+
+    {
+        // Backward compatibility migration code
+        // The config version used to be stored in a different file
+        // This moves it to the actual config file.
+        Setting::Handle<double> JSON_SETTING_VERSION("json-settings/version", 0.0);
+        if (JSON_SETTING_VERSION.isSet()) {
+            auto version = JSON_SETTING_VERSION.get();
+            *versionVariant = version;
+            persistToFile();
+            QFile::remove(settingsFilename());
+        }
+    }
+
     // What settings version were we before and what are we using now?
     // Do we need to do any re-mapping?
-    double oldVersion = JSON_SETTING_VERSION.get();
+    double oldVersion = versionVariant->toDouble();
 
     if (oldVersion != _descriptionVersion) {
         const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
@@ -136,9 +155,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 QVariant* restrictedAccess = _configMap.valueForKeyPath(RESTRICTED_ACCESS_SETTINGS_KEYPATH, true);
 
                 *restrictedAccess = QVariant(true);
-
-                // write the new settings to the json file
-                persistToFile();
             }
         }
 
@@ -168,9 +184,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                     *entityServerVariant = entityServerMap;
                 }
-
-                // write the new settings to the json file
-                persistToFile();
             }
 
         }
@@ -188,9 +201,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 qDebug() << "Migrating plaintext password to SHA256 hash in domain-server settings.";
 
                 *passwordVariant = QCryptographicHash::hash(plaintextPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
-
-                // write the new settings to file
-                persistToFile();
             }
         }
 
@@ -293,16 +303,16 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             QVariant* wizardCompletedOnce = _configMap.valueForKeyPath(WIZARD_COMPLETED_ONCE, true);
 
             *wizardCompletedOnce = QVariant(true);
-
-            // write the new settings to the json file
-            persistToFile();
         }
+
+        // write the current description version to our settings
+        *versionVariant = _descriptionVersion;
+
+        // write the new settings to the json file
+        persistToFile();
     }
 
     unpackPermissions();
-
-    // write the current description version to our settings
-    JSON_SETTING_VERSION.set(_descriptionVersion);
 }
 
 QVariantMap& DomainServerSettingsManager::getDescriptorsMap() {

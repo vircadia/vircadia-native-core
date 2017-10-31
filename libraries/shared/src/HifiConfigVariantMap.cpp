@@ -91,12 +91,6 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
     return mergedMap;
 }
 
-HifiConfigVariantMap::HifiConfigVariantMap() :
-    _userConfigFilename()
-{
-
-}
-
 void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
     // load the user config
     const QString USER_CONFIG_FILE_OPTION = "--user-config";

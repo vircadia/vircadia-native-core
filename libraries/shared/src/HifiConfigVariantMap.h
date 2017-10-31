@@ -21,7 +21,6 @@ class HifiConfigVariantMap {
 public:
     static QVariantMap mergeCLParametersWithJSONConfig(const QStringList& argumentList);
 
-    HifiConfigVariantMap();
     void loadConfig(const QStringList& argumentList);
 
     const QVariant value(const QString& key) const { return _userConfig.value(key); }
