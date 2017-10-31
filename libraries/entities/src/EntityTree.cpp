@@ -1237,66 +1237,102 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
 void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     int certIDByteArraySize;
     int ownerKeyByteArraySize;
+    int encryptedTextByteArraySize;
     int nodeToChallengeByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
     message.readPrimitive(&ownerKeyByteArraySize);
+    message.readPrimitive(&encryptedTextByteArraySize);
     message.readPrimitive(&nodeToChallengeByteArraySize);
 
     QString certID(message.read(certIDByteArraySize));
     QString ownerKey(message.read(ownerKeyByteArraySize));
+    QString encryptedText(message.read(encryptedTextByteArraySize));
     QUuid nodeToChallenge = QUuid::fromRfc4122(message.read(nodeToChallengeByteArraySize));
 
-    sendChallengeOwnershipPacket(certID, ownerKey, EntityItemID(), sourceNode, nodeToChallenge);
+    sendChallengeOwnershipRequestPacket(certID, ownerKey, encryptedText, sourceNode, nodeToChallenge);
 }
 
-void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, const QUuid& nodeToChallenge) {
+void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    int certIDByteArraySize;
+    int decryptedTextByteArraySize;
+    int senderNodeUUIDByteArraySize;
+
+    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&decryptedTextByteArraySize);
+    message.readPrimitive(&senderNodeUUIDByteArraySize);
+
+    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray decryptedText(message.read(decryptedTextByteArraySize));
+    QUuid challengingNode = QUuid::fromRfc4122(message.read(senderNodeUUIDByteArraySize));
+
+
+
+    auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+        certIDByteArraySize + decryptedText.length() + 2 * sizeof(int),
+        true);
+    challengeOwnershipReplyPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipReplyPacket->writePrimitive(decryptedText.length());
+    challengeOwnershipReplyPacket->write(certID);
+    challengeOwnershipReplyPacket->write(decryptedText);
+
+    nodeList->sendPacket(std::move(challengeOwnershipReplyPacket), *(nodeList->nodeWithUUID(challengingNode)));
+}
+
+void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode) {
     // 1. Encrypt a nonce with the owner's public key
     auto nodeList = DependencyManager::get<NodeList>();
+
     QByteArray encryptedText = computeEncryptedNonce(certID, ownerKey);
 
     if (encryptedText == "") {
-        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce.";
+        qCDebug(entities) << "CRITICAL ERROR: Couldn't compute encrypted nonce. Deleting entity...";
+        deleteEntity(entityItemID, true);
     } else {
-        // In this case, the server is challenging a client. That client has just rezzed a new certified entity.
-        if (nodeToChallenge.isNull()) {
-            // 2. Send the encrypted text to the rezzing avatar's node
-            QByteArray certIDByteArray = certID.toUtf8();
-            int certIDByteArraySize = certIDByteArray.size();
-            auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-                certIDByteArraySize + encryptedText.length() + 2 * sizeof(int),
-                true);
-            challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-            challengeOwnershipPacket->writePrimitive(encryptedText.length());
-            challengeOwnershipPacket->write(certIDByteArray);
-            challengeOwnershipPacket->write(encryptedText);
-            nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
+        // 2. Send the encrypted text to the rezzing avatar's node
+        QByteArray certIDByteArray = certID.toUtf8();
+        int certIDByteArraySize = certIDByteArray.size();
+        auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
+            certIDByteArraySize + encryptedText.length() + 2 * sizeof(int),
+            true);
+        challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+        challengeOwnershipPacket->writePrimitive(encryptedText.length());
+        challengeOwnershipPacket->write(certIDByteArray);
+        challengeOwnershipPacket->write(encryptedText);
+        nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
 
-            // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
-            if (thread() != QThread::currentThread()) {
-                QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
-                return;
-            } else {
-                startChallengeOwnershipTimer(entityItemID);
-            }
-        // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
-        //     to make sure belongs to Avatar B.
+        // 3. Kickoff a 10-second timeout timer that deletes the entity if we don't get an ownership response in time
+        if (thread() != QThread::currentThread()) {
+            QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
+            return;
         } else {
-            QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
-            QByteArray certIDByteArray = certID.toUtf8();
-            int certIDByteArraySize = certIDByteArray.size();
-            auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-                certIDByteArraySize + encryptedText.length() + senderNodeUUID.length() + 3 * sizeof(int),
-                true);
-            challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-            challengeOwnershipPacket->writePrimitive(encryptedText.length());
-            challengeOwnershipPacket->writePrimitive(senderNodeUUID.length());
-            challengeOwnershipPacket->write(certIDByteArray);
-            challengeOwnershipPacket->write(encryptedText);
-            challengeOwnershipPacket->write(senderNodeUUID);
-            nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(nodeToChallenge)));
+            startChallengeOwnershipTimer(entityItemID);
         }
     }
+}
+
+void EntityTree::sendChallengeOwnershipRequestPacket(const QString& certID, const QString& ownerKey, const QString& encryptedText, const SharedNodePointer& senderNode, const QUuid& nodeToChallenge) {
+    // 1. Encrypt a nonce with the owner's public key
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
+    //     to make sure belongs to Avatar B.
+    QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
+    QByteArray encryptedTextByteArray = encryptedText.toUtf8();
+    QByteArray certIDByteArray = certID.toUtf8();
+    int certIDByteArraySize = certIDByteArray.size();
+    auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
+        certIDByteArraySize + encryptedTextByteArray.length() + senderNodeUUID.length() + 3 * sizeof(int),
+        true);
+    challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipPacket->writePrimitive(encryptedTextByteArray.length());
+    challengeOwnershipPacket->writePrimitive(senderNodeUUID.length());
+    challengeOwnershipPacket->write(certIDByteArray);
+    challengeOwnershipPacket->write(encryptedTextByteArray);
+    challengeOwnershipPacket->write(senderNodeUUID);
+    nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(nodeToChallenge)));
 }
 
 void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {

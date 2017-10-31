@@ -98,7 +98,11 @@ void OctreeInboundPacketProcessor::processPacket(QSharedPointer<ReceivedMessage>
         });
     } else if (packetType == PacketType::ChallengeOwnershipRequest) {
         _myServer->getOctree()->withWriteLock([&] {
-            _myServer->getOctree()->processChallengeOwnershipPacket(*message, sendingNode);
+            _myServer->getOctree()->processChallengeOwnershipRequestPacket(*message, sendingNode);
+        });
+    } else if (packetType == PacketType::ChallengeOwnershipReply) {
+        _myServer->getOctree()->withWriteLock([&] {
+            _myServer->getOctree()->processChallengeOwnershipReplyPacket(*message, sendingNode);
         });
     } else if (_myServer->getOctree()->handlesEditPacketType(packetType)) {
         PerformanceWarning warn(debugProcessPacket, "processPacket KNOWN TYPE", debugProcessPacket);

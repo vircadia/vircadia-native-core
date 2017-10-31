@@ -67,6 +67,7 @@ signals:
 
 private slots:
     void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void handleChallengeOwnershipRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
 private:
     QStringList _publicKeys{};

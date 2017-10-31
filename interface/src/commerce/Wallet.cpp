@@ -319,6 +319,7 @@ Wallet::Wallet() {
     auto& packetReceiver = nodeList->getPacketReceiver();
 
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
+    packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
     connect(ledger.data(), &Ledger::accountResult, this, [&]() {
         auto wallet = DependencyManager::get<Wallet>();
@@ -717,15 +718,24 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 }
 
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
     unsigned char decryptedText[64];
     int certIDByteArraySize;
     int encryptedTextByteArraySize;
+    int senderNodeUUIDByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
     packet->readPrimitive(&encryptedTextByteArraySize);
+    if (challengeOriginatedFromClient) {
+        packet->readPrimitive(&senderNodeUUIDByteArraySize);
+    }
 
     QByteArray certID = packet->read(certIDByteArraySize);
     QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
+    QByteArray senderNodeUUID;
+    if (challengeOriginatedFromClient) {
+        packet->readPrimitive(&senderNodeUUID);
+    }
 
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
 
@@ -745,16 +755,33 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
             int decryptedTextByteArraySize = decryptedTextByteArray.size();
             int certIDSize = certID.size();
             // setup the packet
-            auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
+            if (challengeOriginatedFromClient) {
+                auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+                    certIDSize + decryptedTextByteArraySize + senderNodeUUIDByteArraySize + 3 * sizeof(int),
+                    true);
 
-            decryptedTextPacket->writePrimitive(certIDSize);
-            decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-            decryptedTextPacket->write(certID);
-            decryptedTextPacket->write(decryptedTextByteArray);
+                decryptedTextPacket->writePrimitive(certIDSize);
+                decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+                decryptedTextPacket->writePrimitive(senderNodeUUIDByteArraySize);
+                decryptedTextPacket->write(certID);
+                decryptedTextPacket->write(decryptedTextByteArray);
+                decryptedTextPacket->write(senderNodeUUID);
 
-            qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
+                qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
 
-            nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+                nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+            } else {
+                auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
+
+                decryptedTextPacket->writePrimitive(certIDSize);
+                decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+                decryptedTextPacket->write(certID);
+                decryptedTextPacket->write(decryptedTextByteArray);
+
+                qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
+
+                nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+            }
         } else {
             qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
         }
