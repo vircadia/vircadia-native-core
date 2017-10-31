@@ -18,81 +18,9 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/utils.js");
 
 (function () {
-    var END_RADIUS = 0.005;
-    var dim = { x: END_RADIUS, y: END_RADIUS, z: END_RADIUS };
-    var halfPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        lineWidth: 5,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-    var halfEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
-        visible: true
-    };
-    var fullPath = {
-        type: "line3d",
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        lineWidth: 5,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-    var fullEnd = {
-        type: "sphere",
-        dimensions: dim,
-        solid: true,
-        color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-        alpha: 0.9,
-        ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
-        visible: true
-    };
-    var holdPath = {
-        type: "line3d",
-        color: COLORS_GRAB_DISTANCE_HOLD,
-        visible: true,
-        alpha: 1,
-        solid: true,
-        glow: 1.0,
-        lineWidth: 5,
-        ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
-        parentID: MyAvatar.SELF_ID
-    };
-
-    var renderStates = [
-        {name: "half", path: halfPath, end: halfEnd},
-        {name: "full", path: fullPath, end: fullEnd},
-        {name: "hold", path: holdPath}
-    ];
-
-    var defaultRenderStates = [
-        {name: "half", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: halfPath},
-        {name: "full", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: fullPath},
-        {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
-    ];
-
     function InEditMode(hand) {
         this.hand = hand;
         this.triggerClicked = false;
-        this.mode = "none";
 
         this.parameters = makeDispatcherModuleParameters(
             160,
@@ -111,29 +39,6 @@ Script.include("/~/system/libraries/utils.js");
 
         this.handToController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-        };
-
-
-        this.processControllerTriggers = function(controllerData) {
-            if (controllerData.triggerClicks[this.hand]) {
-                this.mode = "full";
-            } else if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                this.mode = "half";
-            } else {
-                this.mode = "none";
-            }
-        };
-
-        this.updateLaserPointer = function(controllerData) {
-            LaserPointers.enableLaserPointer(this.laserPointer);
-            LaserPointers.setRenderState(this.laserPointer, this.mode);
-
-            if (HMD.tabletID !== this.tabletID || HMD.tabletButtonID !== this.tabletButtonID || HMD.tabletScreenID !== this.tabletScreenID) {
-                this.tabletID = HMD.tabletID;
-                this.tabletButtonID = HMD.tabletButtonID;
-                this.tabletScreenID = HMD.tabletScreenID;
-                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
-            }
         };
 
         this.pointingAtTablet = function(objectID) {
@@ -164,21 +69,12 @@ Script.include("/~/system/libraries/utils.js");
             }
         };
 
-        this.exitModule = function() {
-            this.disableLasers();
-            return makeRunningValues(false, [], []);
-        };
-
-        this.disableLasers = function() {
-            LaserPointers.disableLaserPointer(this.laserPointer);
-        };
-
         this.isReady = function(controllerData) {
             if (isInEditMode()) {
                 this.triggerClicked = false;
                 return makeRunningValues(true, [], []);
             }
-            return this.exitModule();
+            return makeRunningValues(false, [], []);
         };
 
         this.run = function(controllerData) {
@@ -216,31 +112,9 @@ Script.include("/~/system/libraries/utils.js");
                     return this.exitModule();
                 }
             }
-
-            this.processControllerTriggers(controllerData);
-            this.updateLaserPointer(controllerData);
             this.sendPickData(controllerData);
-
-
             return this.isReady(controllerData);
         };
-
-        this.cleanup = function() {
-            LaserPointers.disableLaserPointer(this.laserPointer);
-            LaserPointers.removeLaserPointer(this.laserPointer);
-        };
-
-        this.laserPointer = LaserPointers.createLaserPointer({
-            joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
-            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
-            maxDistance: PICK_MAX_DISTANCE,
-            posOffset: getGrabPointSphereOffset(this.handToController(), true),
-            renderStates: renderStates,
-            faceAvatar: true,
-            defaultRenderStates: defaultRenderStates
-        });
-
-        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
     }
 
     var leftHandInEditMode = new InEditMode(LEFT_HAND);
@@ -249,12 +123,12 @@ Script.include("/~/system/libraries/utils.js");
     enableDispatcherModule("LeftHandInEditMode", leftHandInEditMode);
     enableDispatcherModule("RightHandInEditMode", rightHandInEditMode);
 
-    this.cleanup = function() {
+    function cleanup() {
         leftHandInEditMode.cleanup();
         rightHandInEditMode.cleanup();
         disableDispatcherModule("LeftHandInEditMode");
         disableDispatcherModule("RightHandInEditMode");
     };
 
-    Script.scriptEnding.connect(this.cleanup);
+    Script.scriptEnding.connect(cleanup);
 }());

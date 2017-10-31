@@ -249,8 +249,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.setIgnoreTablet = function() {
             if (HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
-                RayPick.setIgnoreItems(_this.leftControllerRayPick, _this.blacklist.concat([HMD.tabletID]));
-                RayPick.setIgnoreItems(_this.rightControllerRayPick, _this.blacklist.concat([HMD.tabletID]));
+                Pointers.setIgnoreItems(_this.leftControllerPointer, _this.blacklist.concat([HMD.tabletID]));
+                Pointers.setIgnoreItems(_this.rightControllerPointer, _this.blacklist.concat([HMD.tabletID]));
             }
         };
 
@@ -534,7 +534,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES,
             renderStates: renderStates,
             defaultRenderStates: defaultRenderStates,
-            triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
+            triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
+            posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             hover: true
         });
         this.leftControllerHudRayPick = RayPick.createRayPick({
@@ -550,6 +551,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             renderStates: renderStates,
             defaultRenderStates: defaultRenderStates,
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
+            posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             hover: true
         });
         this.rightControllerHudRayPick = RayPick.createRayPick({

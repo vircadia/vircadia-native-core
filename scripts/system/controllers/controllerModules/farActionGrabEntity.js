@@ -380,7 +380,6 @@ Script.include("/~/system/libraries/controllers.js");
                 // where it could near-grab something, stop searching.
                 for (var j = 0; j < nearGrabReadiness.length; j++) {
                     if (nearGrabReadiness[j].active) {
-                        this.laserPointerOff();
                         this.endNearGrabAction();
                         return makeRunningValues(false, [], []);
                     }
