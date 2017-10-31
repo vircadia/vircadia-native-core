@@ -285,14 +285,12 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const Q
     uint32_t id = 0;
     glm::vec3 intersection = vec3FromVariant(pickResult["intersection"]);
     glm::vec3 surfaceNormal = vec3FromVariant(pickResult["surfaceNormal"]);
-    glm::vec3 direction = -surfaceNormal;
-    IntersectionType type = IntersectionType(pickResult["type"].toUInt());
+    QVariantMap searchRay = pickResult["searchRay"].toMap();
+    glm::vec3 direction = vec3FromVariant(searchRay["direction"]);
     QUuid pickedID = pickResult["objectID"].toUuid();
     glm::vec2 pos2D;
     if (pickedID != target.objectID) {
-        QVariantMap searchRay = pickResult["searchRay"].toMap();
         glm::vec3 origin = vec3FromVariant(searchRay["origin"]);
-        glm::vec3 direction = vec3FromVariant(searchRay["direction"]);
         if (target.type == ENTITY) {
             intersection = intersectRayWithEntityXYPlane(target.objectID, origin, direction);
         } else if (target.type == OVERLAY) {
