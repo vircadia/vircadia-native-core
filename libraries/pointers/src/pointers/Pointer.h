@@ -71,9 +71,6 @@ public:
 
     using Buttons = std::unordered_set<std::string>;
 
-    virtual PickedObject getHoveredObject(const QVariantMap& pickResult) = 0;
-    virtual Buttons getPressedButtons() = 0;
-
     QUuid getRayUID() { return _pickUID; }
 
 protected:
@@ -82,6 +79,12 @@ protected:
     bool _hover;
 
     virtual PointerEvent buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const = 0;
+
+    virtual PickedObject getHoveredObject(const QVariantMap& pickResult) = 0;
+    virtual Buttons getPressedButtons() = 0;
+
+    virtual bool shouldHover() = 0;
+    virtual bool shouldTrigger() = 0;
 
 private:
     PickedObject _prevHoveredObject;

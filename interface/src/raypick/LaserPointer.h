@@ -75,6 +75,9 @@ public:
 protected:
     PointerEvent buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const override;
 
+    bool shouldHover() override { return _currentRenderState != ""; }
+    bool shouldTrigger() override { return _currentRenderState != ""; }
+
 private:
     PointerTriggers _triggers;
     float _laserLength { 0.0f };

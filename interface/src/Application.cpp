@@ -1811,6 +1811,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
+    DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([&](const glm::vec3& intersection) {
+        const glm::vec2 MARGIN(25.0f);
+        glm::vec2 maxPos = _controllerScriptingInterface->getViewportDimensions() - MARGIN;
+        glm::vec2 pos2D = DependencyManager::get<HMDScriptingInterface>()->overlayFromWorldPoint(intersection);
+        return glm::max(MARGIN, glm::min(pos2D, maxPos));
+    });
 
     // Setup the mouse ray pick and related operators
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(

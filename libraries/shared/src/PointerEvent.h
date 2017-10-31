@@ -58,7 +58,7 @@ public:
     bool shouldFocus() const { return _shouldFocus; }
 
     void setType(EventType type) { _type = type; }
-    void setButton(Button button) { _button = button; }
+    void setButton(Button button);
     void setShouldFocus(bool focus) { _shouldFocus = focus; }
 
 private:
