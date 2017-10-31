@@ -68,7 +68,7 @@ Item {
             label: "Haze Color R"
             integral: false
             config: root.hazeModel
-            property: "hazeColorR"
+            property: "hazeColor.r"
             max: 1.0
             min: 0.0
             width: 280
@@ -78,7 +78,7 @@ Item {
             label: "Haze Color G"
             integral: false
             config: root.hazeModel
-            property: "hazeColorG"
+            property: "hazeColor.g"
             max: 1.0
             min: 0.0
             width: 280
@@ -88,7 +88,7 @@ Item {
             label: "Haze Color B"
             integral: false
             config: root.hazeModel
-            property: "hazeColorB"
+            property: "hazeColor.b"
             max: 1.0
             min: 0.0
             width: 280
@@ -98,7 +98,7 @@ Item {
             label: "Sun R"
             integral: false
             config: root.hazeModel
-            property: "hazeDirectionalLightColorR"
+            property: "hazeGlareColor.r"
             max: 1.0
             min: 0.0
             width: 280
@@ -108,7 +108,7 @@ Item {
             label: "Sun G"
             integral: false
             config: root.hazeModel
-            property: "hazeDirectionalLightColorG"
+            property: "hazeGlareColor.g"
             max: 1.0
             min: 0.0
             width: 280
@@ -118,7 +118,7 @@ Item {
             label: "Sun B"
             integral: false
             config: root.hazeModel
-            property: "hazeDirectionalLightColorB"
+            property: "hazeGlareColor.b"
             max: 1.0
             min: 0.0
             width: 280
@@ -128,7 +128,7 @@ Item {
             label: "Sun glare angle"
             integral: false
             config: root.hazeModel
-            property: "hazeDirectionalLightAngle_degs"
+            property: "hazeGlareAngle_degs"
             max: 70.0
             min: 0.0
             width: 280
@@ -148,7 +148,7 @@ Item {
             label: "BG Blend"
             integral: false
             config: root.hazeModel
-            property: "hazeBackgroundBlendValue"
+            property: "hazeBackgroundBlend"
             max: 1.0
             min: 0.0
             width: 280
@@ -156,9 +156,9 @@ Item {
 
         CheckBox {
             text: "Keylight Attenuation"
-            checked: root.hazeModel["isDirectionaLightAttenuationActive"]
+            checked: root.hazeModel["isKeyLightAttenuationActive"]
             onCheckedChanged: {
-                root.hazeModel["isDirectionaLightAttenuationActive"] = checked;
+                root.hazeModel["isKeyLightAttenuationActive"] = checked;
             }
         }
         
