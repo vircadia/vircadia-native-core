@@ -77,24 +77,24 @@ public:
                                                 bool& somethingChanged) override;
 
     // Range only parameters
-    DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, model::Haze::initialHazeRange_m);
+    DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, model::Haze::initialHazeRange);
     DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, xColor, model::Haze::initialHazeColorXcolor);
     DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, xColor, model::Haze::initialHazeGlareColorXcolor);
     DEFINE_PROPERTY(PROP_HAZE_ENABLE_GLARE, HazeEnableGlare, hazeEnableGlare, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, model::Haze::initialGlareAngle_degs);
+    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, model::Haze::initialGlareAngle);
 
     // Altitude parameters
     DEFINE_PROPERTY(PROP_HAZE_ALTITUDE_EFFECT, HazeAltitudeEffect, hazeAltitudeEffect, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_CEILING, HazeCeiling, hazeCeiling, float, model::Haze::initialHazeBaseReference_m + model::Haze::initialHazeHeight_m);
-    DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, model::Haze::initialHazeBaseReference_m);
+    DEFINE_PROPERTY_REF(PROP_HAZE_CEILING, HazeCeiling, hazeCeiling, float, model::Haze::initialHazeBaseReference + model::Haze::initialHazeHeight);
+    DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, model::Haze::initialHazeBaseReference);
 
     // Background (skybox) blend value
     DEFINE_PROPERTY_REF(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, model::Haze::initialHazeBackgroundBlend);
 
     // hazeDirectional light attenuation
     DEFINE_PROPERTY(PROP_HAZE_ATTENUATE_KEYLIGHT, HazeAttenuateKeyLight, hazeAttenuateKeyLight, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, model::Haze::initialHazeKeyLightRange_m);
-    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, model::Haze::initialHazeKeyLightAltitude_m);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, model::Haze::initialHazeKeyLightRange);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, model::Haze::initialHazeKeyLightAltitude);
 };
 
 #endif // hifi_HazePropertyGroup_h

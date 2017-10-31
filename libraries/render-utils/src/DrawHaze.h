@@ -30,10 +30,10 @@ class MakeHazeConfig : public render::Job::Config {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 hazeColor MEMBER hazeColor WRITE setHazeColor NOTIFY dirty);
-    Q_PROPERTY(float hazeGlareAngle_degs MEMBER hazeGlareAngle_degs WRITE setHazeGlareAngle_degs NOTIFY dirty);
+    Q_PROPERTY(float hazeGlareAngle MEMBER hazeGlareAngle WRITE setHazeGlareAngle NOTIFY dirty);
 
     Q_PROPERTY(glm::vec3 hazeGlareColor MEMBER hazeGlareColor WRITE setHazeGlareColor NOTIFY dirty);
-    Q_PROPERTY(float hazeBaseReference_m MEMBER hazeBaseReference_m WRITE setHazeBaseReference NOTIFY dirty);
+    Q_PROPERTY(float hazeBaseReference MEMBER hazeBaseReference WRITE setHazeBaseReference NOTIFY dirty);
 
     Q_PROPERTY(bool isHazeActive MEMBER isHazeActive WRITE setHazeActive NOTIFY dirty);
     Q_PROPERTY(bool isAltitudeBased MEMBER isAltitudeBased WRITE setAltitudeBased NOTIFY dirty);
@@ -41,11 +41,11 @@ class MakeHazeConfig : public render::Job::Config {
     Q_PROPERTY(bool isModulateColorActive MEMBER isModulateColorActive WRITE setModulateColorActive NOTIFY dirty);
     Q_PROPERTY(bool isHazeEnableGlare MEMBER isHazeEnableGlare WRITE setHazeEnableGlare NOTIFY dirty);
 
-    Q_PROPERTY(float hazeRange_m MEMBER hazeRange_m WRITE setHazeRange_m NOTIFY dirty);
-    Q_PROPERTY(float hazeHeight_m MEMBER hazeHeight_m WRITE setHazeAltitude_m NOTIFY dirty);
+    Q_PROPERTY(float hazeRange MEMBER hazeRange WRITE setHazeRange NOTIFY dirty);
+    Q_PROPERTY(float hazeHeight MEMBER hazeHeight WRITE setHazeAltitude NOTIFY dirty);
 
-    Q_PROPERTY(float hazeKeyLightRange_m MEMBER hazeKeyLightRange_m WRITE setHazeKeyLightRange_m NOTIFY dirty);
-    Q_PROPERTY(float hazeKeyLightAltitude_m MEMBER hazeKeyLightAltitude_m WRITE setHazeKeyLightAltitude_m NOTIFY dirty);
+    Q_PROPERTY(float hazeKeyLightRange MEMBER hazeKeyLightRange WRITE setHazeKeyLightRange NOTIFY dirty);
+    Q_PROPERTY(float hazeKeyLightAltitude MEMBER hazeKeyLightAltitude WRITE setHazeKeyLightAltitude NOTIFY dirty);
 
     Q_PROPERTY(float hazeBackgroundBlend MEMBER hazeBackgroundBlend WRITE setHazeBackgroundBlend NOTIFY dirty);
 
@@ -53,10 +53,10 @@ public:
     MakeHazeConfig() : render::Job::Config() {}
 
     glm::vec3 hazeColor{ model::Haze::initialHazeColor };
-    float hazeGlareAngle_degs{ model::Haze::initialGlareAngle_degs };
+    float hazeGlareAngle{ model::Haze::initialGlareAngle };
 
     glm::vec3 hazeGlareColor{ model::Haze::initialHazeGlareColor };
-    float hazeBaseReference_m{ model::Haze::initialHazeBaseReference_m };
+    float hazeBaseReference{ model::Haze::initialHazeBaseReference };
 
     bool isHazeActive{ false };
     bool isAltitudeBased{ false };
@@ -64,20 +64,20 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange_m{ model::Haze::initialHazeRange_m };
-    float hazeHeight_m{ model::Haze::initialHazeHeight_m };
+    float hazeRange{ model::Haze::initialHazeRange };
+    float hazeHeight{ model::Haze::initialHazeHeight };
 
-    float hazeKeyLightRange_m{ model::Haze::initialHazeKeyLightRange_m };
-    float hazeKeyLightAltitude_m{ model::Haze::initialHazeKeyLightAltitude_m };
+    float hazeKeyLightRange{ model::Haze::initialHazeKeyLightRange };
+    float hazeKeyLightAltitude{ model::Haze::initialHazeKeyLightAltitude };
 
     float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
 
 public slots:
     void setHazeColor(const glm::vec3 value) { hazeColor = value; emit dirty(); }
-    void setHazeGlareAngle_degs(const float value) { hazeGlareAngle_degs = value; emit dirty(); }
+    void setHazeGlareAngle(const float value) { hazeGlareAngle = value; emit dirty(); }
 
     void setHazeGlareColor(const glm::vec3 value) { hazeGlareColor = value; emit dirty(); }
-    void setHazeBaseReference(const float value) { hazeBaseReference_m = value; ; emit dirty(); }
+    void setHazeBaseReference(const float value) { hazeBaseReference = value; ; emit dirty(); }
 
     void setHazeActive(const bool active) { isHazeActive = active; emit dirty(); }
     void setAltitudeBased(const bool active) { isAltitudeBased = active; emit dirty(); }
@@ -85,11 +85,11 @@ public slots:
     void setModulateColorActive(const bool active) { isModulateColorActive = active; emit dirty(); }
     void setHazeEnableGlare(const bool active) { isHazeEnableGlare = active; emit dirty(); }
 
-    void setHazeRange_m(const float value) { hazeRange_m = value; emit dirty(); }
-    void setHazeAltitude_m(const float value) { hazeHeight_m = value; emit dirty(); }
+    void setHazeRange(const float value) { hazeRange = value; emit dirty(); }
+    void setHazeAltitude(const float value) { hazeHeight = value; emit dirty(); }
 
-    void setHazeKeyLightRange_m(const float value) { hazeKeyLightRange_m = value; emit dirty(); }
-    void setHazeKeyLightAltitude_m(const float value) { hazeKeyLightAltitude_m = value; emit dirty(); }
+    void setHazeKeyLightRange(const float value) { hazeKeyLightRange = value; emit dirty(); }
+    void setHazeKeyLightAltitude(const float value) { hazeKeyLightAltitude = value; emit dirty(); }
 
     void setHazeBackgroundBlend(const float value) { hazeBackgroundBlend = value; ; emit dirty(); }
 
@@ -117,10 +117,10 @@ public:
 
     // attributes
     glm::vec3 hazeColor{ model::Haze::initialHazeColor };
-    float hazeGlareAngle_degs{ model::Haze::initialGlareAngle_degs };
+    float hazeGlareAngle{ model::Haze::initialGlareAngle };
 
     glm::vec3 hazeGlareColor{ model::Haze::initialHazeGlareColor };
-    float hazeBaseReference_m{ model::Haze::initialHazeBaseReference_m };
+    float hazeBaseReference{ model::Haze::initialHazeBaseReference };
 
     bool isHazeActive{ false };   // Setting this to true will set haze to on
     bool isAltitudeBased{ false };
@@ -128,17 +128,17 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange_m{ model::Haze::initialHazeRange_m };
-    float hazeHeight_m{ model::Haze::initialHazeHeight_m };
+    float hazeRange{ model::Haze::initialHazeRange };
+    float hazeHeight{ model::Haze::initialHazeHeight };
 
-    float hazeKeyLightRange_m{ model::Haze::initialHazeKeyLightRange_m };
-    float hazeKeyLightAltitude_m{ model::Haze::initialHazeKeyLightAltitude_m };
+    float hazeKeyLightRange{ model::Haze::initialHazeKeyLightRange };
+    float hazeKeyLightAltitude{ model::Haze::initialHazeKeyLightAltitude };
 
     float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
 
     // methods
     void setHazeColor(const glm::vec3 value);
-    void setHazeGlareAngle_degs(const float value);
+    void setHazeGlareAngle(const float value);
 
     void setHazeGlareColor(const glm::vec3 value);
     void setHazeBaseReference(const float value);
@@ -149,11 +149,11 @@ public:
     void setModulateColorActive(const bool active);
     void setHazeEnableGlare(const bool active);
 
-    void setHazeRange_m(const float value);
-    void setHazeAltitude_m(const float value);
+    void setHazeRange(const float value);
+    void setHazeAltitude(const float value);
 
-    void setHazeKeyLightRange_m(const float value);
-    void setHazeKeyLightAltitude_m(const float value);
+    void setHazeKeyLightRange(const float value);
+    void setHazeKeyLightAltitude(const float value);
 
     void setHazeBackgroundBlend(const float value);
 };
