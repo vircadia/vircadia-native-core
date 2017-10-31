@@ -990,10 +990,10 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
             setAvatarGainPacket->write(nodeID.toRfc4122());
 
             // We need to convert the gain in dB (from the script) to an amplitude before packing it.
-            setAvatarGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.0206f)));
+            setAvatarGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.02059991f)));
 
             if (nodeID.isNull()) {
-                qCDebug(networking) << "Sending Set Avatar MASTER Gain packet with Gain:" << gain;
+                qCDebug(networking) << "Sending Set MASTER Avatar Gain packet with Gain:" << gain;
             } else {
                 qCDebug(networking) << "Sending Set Avatar Gain packet with UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
             }

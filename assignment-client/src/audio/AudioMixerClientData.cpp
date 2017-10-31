@@ -191,9 +191,11 @@ void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const
     float gain = unpackFloatGainFromByte(packedGain);
 
     if (avatarUuid.isNull()) {
-        // FIXME: change master gain, and reset hrtf gains for all active streams
-        qDebug() << "Setting MASTER avatar gain for [" << uuid << "] to " << gain;
+        // set the MASTER avatar gain
+        setMasterAvatarGain(gain);
+        qDebug() << "Setting MASTER avatar gain for " << uuid << " to " << gain;
     } else {
+        // set the per-source avatar gain
         hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
         qDebug() << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
     }

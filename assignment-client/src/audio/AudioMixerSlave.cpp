@@ -48,8 +48,8 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
 // mix helpers
 inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
-inline float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
-        const glm::vec3& relativePosition, bool isEcho);
+inline float computeGain(AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
+        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, bool isEcho);
 inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 
@@ -266,7 +266,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-    float gain = computeGain(listeningNodeStream, streamToAdd, relativePosition, isEcho);
+    float gain = computeGain(listenerNodeData, listeningNodeStream, streamToAdd, relativePosition, isEcho);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
     const int HRTF_DATASET_INDEX = 1;
 
@@ -484,10 +484,12 @@ float approximateGain(const AvatarAudioStream& listeningNodeStream, const Positi
     // when throttling, as close streams are expected to be heard by a user
     float distance = glm::length(relativePosition);
     return gain / distance;
+
+    // avatar: skip master gain - it is constant for all streams
 }
 
-float computeGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
-        const glm::vec3& relativePosition, bool isEcho) {
+float computeGain(AudioMixerClientData& listenerNodeData, const AvatarAudioStream& listeningNodeStream,
+        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, bool isEcho) {
     float gain = 1.0f;
 
     // injector: apply attenuation
@@ -507,6 +509,9 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
         float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION + (angleOfDelivery * (OFF_AXIS_ATTENUATION_STEP / PI_OVER_TWO));
 
         gain *= offAxisCoefficient;
+
+        // apply master gain, only to avatars
+        gain *= listenerNodeData.getMasterAvatarGain();
     }
 
     auto& audioZones = AudioMixer::getAudioZones();
