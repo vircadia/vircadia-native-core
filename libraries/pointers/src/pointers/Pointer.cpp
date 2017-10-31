@@ -56,7 +56,7 @@ void Pointer::update() {
 }
 
 void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
-    // TODO: avatars/HUD?
+    // TODO: avatars?
     auto pointerManager = DependencyManager::get<PointerManager>();
 
     // Hover events
@@ -79,6 +79,8 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
                 emit pointerManager->hoverBeginOverlay(hoveredObject.objectID, hoveredEvent);
                 if (_prevHoveredObject.type == ENTITY) {
                     emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
+                } else if (_prevHoveredObject.type == HUD) {
+                    emit pointerManager->hoverEndHUD(_prevHoveredObject.objectID, hoveredEvent);
                 }
             }
         }
@@ -96,6 +98,22 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
             } else {
                 emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
                 if (_prevHoveredObject.type == OVERLAY) {
+                    emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
+                } else if (_prevHoveredObject.type == HUD) {
+                    emit pointerManager->hoverEndHUD(_prevHoveredObject.objectID, hoveredEvent);
+                }
+            }
+        }
+
+        if (hoveredObject.type == HUD) {
+            if (_prevHoveredObject.type == HUD) {
+                // There's only one HUD
+                emit pointerManager->hoverContinueHUD(hoveredObject.objectID, hoveredEvent);
+            } else {
+                emit pointerManager->hoverBeginHUD(hoveredObject.objectID, hoveredEvent);
+                if (_prevHoveredObject.type == ENTITY) {
+                    emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
+                } else if (_prevHoveredObject.type == OVERLAY) {
                     emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
                 }
             }
@@ -130,6 +148,8 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
             emit pointerManager->triggerBeginEntity(hoveredObject.objectID, hoveredEvent);
         } else if (hoveredObject.type == OVERLAY) {
             emit pointerManager->triggerBeginOverlay(hoveredObject.objectID, hoveredEvent);
+        } else if (hoveredObject.type == HUD) {
+            emit pointerManager->triggerBeginHUD(hoveredObject.objectID, hoveredEvent);
         }
         _triggeredObjects[button] = hoveredObject;
     }
@@ -143,6 +163,8 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
             emit pointerManager->triggerContinueEntity(_triggeredObjects[button].objectID, triggeredEvent);
         } else if (_triggeredObjects[button].type == OVERLAY) {
             emit pointerManager->triggerContinueOverlay(_triggeredObjects[button].objectID, triggeredEvent);
+        } else if (_triggeredObjects[button].type == HUD) {
+            emit pointerManager->triggerContinueHUD(_triggeredObjects[button].objectID, triggeredEvent);
         }
     }
 
@@ -155,6 +177,8 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
             emit pointerManager->triggerEndEntity(_triggeredObjects[button].objectID, triggeredEvent);
         } else if (_triggeredObjects[button].type == OVERLAY) {
             emit pointerManager->triggerEndOverlay(_triggeredObjects[button].objectID, triggeredEvent);
+        } else if (_triggeredObjects[button].type == HUD) {
+            emit pointerManager->triggerEndHUD(_triggeredObjects[button].objectID, triggeredEvent);
         }
         _triggeredObjects.erase(button);
     }
