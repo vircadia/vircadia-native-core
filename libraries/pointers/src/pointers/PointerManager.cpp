@@ -79,7 +79,7 @@ void PointerManager::update() {
     }
 }
 
-void PointerManager::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) const {
+void PointerManager::setPrecisionPicking(const QUuid& uid, bool precisionPicking) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setPrecisionPicking(precisionPicking);
@@ -100,14 +100,14 @@ void PointerManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& inc
     }
 }
 
-void PointerManager::setLength(const QUuid& uid, const float length) const {
+void PointerManager::setLength(const QUuid& uid, float length) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setLength(length);
     }
 }
 
-void PointerManager::setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay) const {
+void PointerManager::setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setLockEndUUID(objectID, isOverlay);

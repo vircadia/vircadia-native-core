@@ -39,7 +39,7 @@ public:
     PointerEvent(EventType type, uint32_t id,
                  const glm::vec2& pos2D, const glm::vec3& pos3D,
                  const glm::vec3& normal, const glm::vec3& direction,
-                 Button button, uint32_t buttons, Qt::KeyboardModifiers keyboardModifiers);
+                 Button button, uint32_t buttons = NoButtons, Qt::KeyboardModifiers keyboardModifiers = Qt::KeyboardModifier::NoModifier);
 
     static QScriptValue toScriptValue(QScriptEngine* engine, const PointerEvent& event);
     static void fromScriptValue(const QScriptValue& object, PointerEvent& event);
@@ -55,6 +55,11 @@ public:
     Button getButton() const { return _button; }
     uint32_t getButtons() const { return _buttons; }
     Qt::KeyboardModifiers getKeyboardModifiers() const { return _keyboardModifiers; }
+    bool shouldFocus() const { return _shouldFocus; }
+
+    void setType(EventType type) { _type = type; }
+    void setButton(Button button) { _button = button; }
+    void setShouldFocus(bool focus) { _shouldFocus = focus; }
 
 private:
     EventType _type;
@@ -67,6 +72,8 @@ private:
     Button _button { NoButtons };  // button associated with this event, (if type is Press, this will be the button that is pressed)
     uint32_t _buttons { NoButtons }; // the current state of all the buttons.
     Qt::KeyboardModifiers _keyboardModifiers; // set of keys held when event was generated
+
+    bool _shouldFocus { true };
 };
 
 QDebug& operator<<(QDebug& dbg, const PointerEvent& p);

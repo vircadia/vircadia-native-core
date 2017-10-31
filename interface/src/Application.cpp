@@ -623,6 +623,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::registerInheritance<SpatialParentFinder, InterfaceParentFinder>();
 
     // Set dependencies
+    DependencyManager::set<PickManager>();
+    DependencyManager::set<PointerManager>();
+    DependencyManager::set<LaserPointerScriptingInterface>();
+    DependencyManager::set<RayPickScriptingInterface>();
+    DependencyManager::set<PointerScriptingInterface>();
+    DependencyManager::set<PickScriptingInterface>();
     DependencyManager::set<Cursor::Manager>();
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
     DependencyManager::set<StatTracker>();
@@ -702,13 +708,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<WalletScriptingInterface>();
 
     DependencyManager::set<FadeEffect>();
-
-    DependencyManager::set<PickManager>();
-    DependencyManager::set<PointerManager>();
-    DependencyManager::set<LaserPointerScriptingInterface>();
-    DependencyManager::set<RayPickScriptingInterface>();
-    DependencyManager::set<PointerScriptingInterface>();
-    DependencyManager::set<PickScriptingInterface>();
 
     return previousSessionCrashed;
 }
@@ -1474,13 +1473,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity,
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
-        if (getEntities()->wantsKeyboardFocus(entityItemID)) {
-            setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
-            setKeyboardFocusEntity(entityItemID);
-        } else {
-            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+        if (event.shouldFocus()) {
+            if (getEntities()->wantsKeyboardFocus(entityItemID)) {
+                setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+                setKeyboardFocusEntity(entityItemID);
+            } else {
+                setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            }
         }
     });
 
@@ -5898,6 +5899,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Wallet", DependencyManager::get<WalletScriptingInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
+
+    DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine.data(), &ScriptEngine::printedMessage,
