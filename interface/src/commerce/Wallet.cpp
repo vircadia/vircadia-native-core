@@ -740,6 +740,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
 
     if (rsa) {
+        ERR_clear_error();
         const int decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
             reinterpret_cast<const unsigned char*>(encryptedText.constData()),
             decryptedText,
@@ -784,6 +785,11 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
             }
         } else {
             qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "RSA error:" << error_str;
+            }
         }
     } else {
         qCDebug(commerce) << "During entity ownership challenge, creating the RSA object failed.";
