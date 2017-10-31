@@ -14,29 +14,21 @@
 
 using namespace model;
 
-const float Haze::initialHazeRange{ 1000.0f };
-const float Haze::initialHazeHeight{ 200.0f };
+const float HazeInit::initialHazeRange{ 1000.0f };
+const float HazeInit::initialHazeHeight{ 200.0f };
 
-const float Haze::initialHazeKeyLightRange{ 1000.0f };
-const float Haze::initialHazeKeyLightAltitude{ 200.0f };
+const float HazeInit::initialHazeKeyLightRange{ 1000.0f };
+const float HazeInit::initialHazeKeyLightAltitude{ 200.0f };
 
-const float Haze::initialHazeBackgroundBlend{ 0.0f };
+const float HazeInit::initialHazeBackgroundBlend{ 0.0f };
 
-const glm::vec3 Haze::initialColorModulationFactor{
-    convertHazeRangeToHazeRangeFactor(initialHazeRange),
-    convertHazeRangeToHazeRangeFactor(initialHazeRange),
-    convertHazeRangeToHazeRangeFactor(initialHazeRange)
-};
+const glm::vec3 HazeInit::initialHazeColor{ 0.5f, 0.6f, 0.7f }; // Bluish
 
-const glm::vec3 Haze::initialHazeColor{ 0.5f, 0.6f, 0.7f }; // Bluish
-const xColor Haze::initialHazeColorXcolor{ 128, 154, 179 };
+const float HazeInit::initialGlareAngle{ 20.0f };
 
-const float Haze::initialGlareAngle{ 20.0f };
+const glm::vec3 HazeInit::initialHazeGlareColor{ 1.0f, 0.9f, 0.7f };
 
-const glm::vec3 Haze::initialHazeGlareColor{ 1.0f, 0.9f, 0.7f };
-const xColor Haze::initialHazeGlareColorXcolor{ 255, 229, 179 };
-
-const float Haze::initialHazeBaseReference{ 0.0f };
+const float HazeInit::initialHazeBaseReference{ 0.0f };
 
 Haze::Haze() {
     Parameters parameters;

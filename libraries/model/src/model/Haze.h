@@ -17,6 +17,26 @@
 #include "Transform.h"
 #include "NumericalConstants.h"
 
+class HazeInit {
+public:
+    // Initial values
+    static const float initialHazeRange;
+    static const float initialHazeHeight;
+
+    static const float initialHazeKeyLightRange;
+    static const float initialHazeKeyLightAltitude;
+
+    static const float initialHazeBackgroundBlend;
+
+    static const glm::vec3 initialHazeColor;
+
+    static const float initialGlareAngle;
+
+    static const glm::vec3 initialHazeGlareColor;
+
+    static const float initialHazeBaseReference;
+};
+
 namespace model {
     const float LOG_P_005 = logf(0.05f);
     const float LOG_P_05 = logf(0.5f);
@@ -53,27 +73,6 @@ namespace model {
 
     class Haze {
     public:
-        // Initial values
-        static const float initialHazeRange;
-        static const float initialHazeHeight;
-
-        static const float initialHazeKeyLightRange;
-        static const float initialHazeKeyLightAltitude;
-
-        static const float initialHazeBackgroundBlend;
-
-        static const glm::vec3 initialColorModulationFactor;
-
-        static const glm::vec3 initialHazeColor;
-        static const xColor initialHazeColorXcolor;
-
-        static const float initialGlareAngle;
-
-        static const glm::vec3 initialHazeGlareColor;
-        static const xColor initialHazeGlareColorXcolor;
-
-        static const float initialHazeBaseReference;
-
         using UniformBufferView = gpu::BufferView;
 
         Haze();
@@ -106,13 +105,13 @@ namespace model {
         class Parameters {
         public:
             // DO NOT CHANGE ORDER HERE WITHOUT UNDERSTANDING THE std140 LAYOUT
-            glm::vec3 hazeColor{ initialHazeColor };
-            float hazeGlareBlend{ convertGlareAngleToPower(initialGlareAngle) };
+            glm::vec3 hazeColor{ HazeInit::initialHazeColor };
+            float hazeGlareBlend{ convertGlareAngleToPower(HazeInit::initialGlareAngle) };
 
-            glm::vec3 hazeGlareColor{ initialHazeGlareColor };
-            float hazeBaseReference{ initialHazeBaseReference };
+            glm::vec3 hazeGlareColor{ HazeInit::initialHazeGlareColor };
+            float hazeBaseReference{ HazeInit::initialHazeBaseReference };
 
-            glm::vec3 colorModulationFactor{ initialColorModulationFactor };
+            glm::vec3 colorModulationFactor;
             int hazeMode{ 0 };    // bit 0 - set to activate haze attenuation of fragment color
                                   // bit 1 - set to add the effect of altitude to the haze attenuation
                                   // bit 2 - set to activate directional light attenuation mode
@@ -121,14 +120,14 @@ namespace model {
             glm::mat4 zoneTransform;
 
             // Amount of background (skybox) to display, overriding the haze effect for the background
-            float hazeBackgroundBlend{ initialHazeBackgroundBlend };
+            float hazeBackgroundBlend{ HazeInit::initialHazeBackgroundBlend };
 
             // The haze attenuation exponents used by both fragment and directional light attenuation
-            float hazeRangeFactor{ convertHazeRangeToHazeRangeFactor(initialHazeRange) };
-            float hazeHeightFactor{ convertHazeAltitudeToHazeAltitudeFactor(initialHazeHeight) };
+            float hazeRangeFactor{ convertHazeRangeToHazeRangeFactor(HazeInit::initialHazeRange) };
+            float hazeHeightFactor{ convertHazeAltitudeToHazeAltitudeFactor(HazeInit::initialHazeHeight) };
 
-            float hazeKeyLightRangeFactor{ convertHazeRangeToHazeRangeFactor(initialHazeKeyLightRange) };
-            float hazeKeyLightAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(initialHazeKeyLightAltitude) };
+            float hazeKeyLightRangeFactor{ convertHazeRangeToHazeRangeFactor(HazeInit::initialHazeKeyLightRange) };
+            float hazeKeyLightAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(HazeInit::initialHazeKeyLightAltitude) };
 
             Parameters() {}
         };

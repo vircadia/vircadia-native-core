@@ -19,10 +19,9 @@
 #include <gpu/Pipeline.h>
 #include <render/Forward.h>
 #include <render/DrawTask.h>
+#include <model/Haze.h>
 
 #include "SurfaceGeometryPass.h"
-
-#include <model/Haze.h>
 
 using LinearDepthFramebufferPointer = std::shared_ptr<LinearDepthFramebuffer>;
 
@@ -52,11 +51,11 @@ class MakeHazeConfig : public render::Job::Config {
 public:
     MakeHazeConfig() : render::Job::Config() {}
 
-    glm::vec3 hazeColor{ model::Haze::initialHazeColor };
-    float hazeGlareAngle{ model::Haze::initialGlareAngle };
+    glm::vec3 hazeColor{ HazeInit::initialHazeColor };
+    float hazeGlareAngle{ HazeInit::initialGlareAngle };
 
-    glm::vec3 hazeGlareColor{ model::Haze::initialHazeGlareColor };
-    float hazeBaseReference{ model::Haze::initialHazeBaseReference };
+    glm::vec3 hazeGlareColor{ HazeInit::initialHazeGlareColor };
+    float hazeBaseReference{ HazeInit::initialHazeBaseReference };
 
     bool isHazeActive{ false };
     bool isAltitudeBased{ false };
@@ -64,13 +63,13 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange{ model::Haze::initialHazeRange };
-    float hazeHeight{ model::Haze::initialHazeHeight };
+    float hazeRange{ HazeInit::initialHazeRange };
+    float hazeHeight{ HazeInit::initialHazeHeight };
 
-    float hazeKeyLightRange{ model::Haze::initialHazeKeyLightRange };
-    float hazeKeyLightAltitude{ model::Haze::initialHazeKeyLightAltitude };
+    float hazeKeyLightRange{ HazeInit::initialHazeKeyLightRange };
+    float hazeKeyLightAltitude{ HazeInit::initialHazeKeyLightAltitude };
 
-    float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
+    float hazeBackgroundBlend{ HazeInit::initialHazeBackgroundBlend };
 
 public slots:
     void setHazeColor(const glm::vec3 value) { hazeColor = value; emit dirty(); }
@@ -116,11 +115,11 @@ public:
     HazeConfig() : render::Job::Config(true) {}
 
     // attributes
-    glm::vec3 hazeColor{ model::Haze::initialHazeColor };
-    float hazeGlareAngle{ model::Haze::initialGlareAngle };
+    glm::vec3 hazeColor{ HazeInit::initialHazeColor };
+    float hazeGlareAngle{ HazeInit::initialGlareAngle };
 
-    glm::vec3 hazeGlareColor{ model::Haze::initialHazeGlareColor };
-    float hazeBaseReference{ model::Haze::initialHazeBaseReference };
+    glm::vec3 hazeGlareColor{ HazeInit::initialHazeGlareColor };
+    float hazeBaseReference{ HazeInit::initialHazeBaseReference };
 
     bool isHazeActive{ false };   // Setting this to true will set haze to on
     bool isAltitudeBased{ false };
@@ -128,13 +127,13 @@ public:
     bool isModulateColorActive{ false };
     bool isHazeEnableGlare{ false };
 
-    float hazeRange{ model::Haze::initialHazeRange };
-    float hazeHeight{ model::Haze::initialHazeHeight };
+    float hazeRange{ HazeInit::initialHazeRange };
+    float hazeHeight{ HazeInit::initialHazeHeight };
 
-    float hazeKeyLightRange{ model::Haze::initialHazeKeyLightRange };
-    float hazeKeyLightAltitude{ model::Haze::initialHazeKeyLightAltitude };
+    float hazeKeyLightRange{ HazeInit::initialHazeKeyLightRange };
+    float hazeKeyLightAltitude{ HazeInit::initialHazeKeyLightAltitude };
 
-    float hazeBackgroundBlend{ model::Haze::initialHazeBackgroundBlend };
+    float hazeBackgroundBlend{ HazeInit::initialHazeBackgroundBlend };
 
     // methods
     void setHazeColor(const glm::vec3 value);

@@ -19,7 +19,6 @@
 #include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
 #include <ComponentMode.h>
-#include <model/Haze.h>
 
 class ZoneEntityItem : public EntityItem {
 public:

@@ -21,13 +21,24 @@
 #include "PropertyGroup.h"
 #include "EntityItemPropertiesMacros.h"
 
-#include <model/Haze.h>
-
 class EntityItemProperties;
 class EncodeBitstreamParams;
 class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
+
+static const float initialHazeRange{ 1000.0f };
+static const xColor initialHazeGlareColorXcolor{ 255, 229, 179 };
+static const xColor initialHazeColorXcolor{ 128, 154, 179 };
+static const float initialGlareAngle{ 20.0f };
+
+static const float initialHazeBaseReference{ 0.0f };
+static const float initialHazeHeight{ 200.0f };
+
+static const float initialHazeBackgroundBlend{ 0.0f };
+
+static const float initialHazeKeyLightRange{ 1000.0f };
+static const float initialHazeKeyLightAltitude{ 200.0f };
 
 class HazePropertyGroup : public PropertyGroup {
 public:
@@ -77,24 +88,24 @@ public:
                                                 bool& somethingChanged) override;
 
     // Range only parameters
-    DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, model::Haze::initialHazeRange);
-    DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, xColor, model::Haze::initialHazeColorXcolor);
-    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, xColor, model::Haze::initialHazeGlareColorXcolor);
+    DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, initialHazeRange);
+    DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, xColor, initialHazeColorXcolor);
+    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, xColor, initialHazeGlareColorXcolor);
     DEFINE_PROPERTY(PROP_HAZE_ENABLE_GLARE, HazeEnableGlare, hazeEnableGlare, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, model::Haze::initialGlareAngle);
+    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, initialGlareAngle);
 
     // Altitude parameters
     DEFINE_PROPERTY(PROP_HAZE_ALTITUDE_EFFECT, HazeAltitudeEffect, hazeAltitudeEffect, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_CEILING, HazeCeiling, hazeCeiling, float, model::Haze::initialHazeBaseReference + model::Haze::initialHazeHeight);
-    DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, model::Haze::initialHazeBaseReference);
+    DEFINE_PROPERTY_REF(PROP_HAZE_CEILING, HazeCeiling, hazeCeiling, float, initialHazeBaseReference + initialHazeHeight);
+    DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, initialHazeBaseReference);
 
     // Background (skybox) blend value
-    DEFINE_PROPERTY_REF(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, model::Haze::initialHazeBackgroundBlend);
+    DEFINE_PROPERTY_REF(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, initialHazeBackgroundBlend);
 
     // hazeDirectional light attenuation
     DEFINE_PROPERTY(PROP_HAZE_ATTENUATE_KEYLIGHT, HazeAttenuateKeyLight, hazeAttenuateKeyLight, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, model::Haze::initialHazeKeyLightRange);
-    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, model::Haze::initialHazeKeyLightAltitude);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, initialHazeKeyLightRange);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, initialHazeKeyLightAltitude);
 };
 
 #endif // hifi_HazePropertyGroup_h
