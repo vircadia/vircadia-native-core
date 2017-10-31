@@ -100,8 +100,7 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<Re
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
     _argumentList = argumentList;
 
-    // after 1.7 we no longer use the master or merged configs - this is kept in place for migration
-    _configMap.loadMasterAndUserConfig(_argumentList);
+    _configMap.loadConfig(_argumentList);
 
     // What settings version were we before and what are we using now?
     // Do we need to do any re-mapping?
@@ -140,9 +139,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                 // write the new settings to the json file
                 persistToFile();
-
-                // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(_argumentList);
             }
         }
 
@@ -175,9 +171,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                 // write the new settings to the json file
                 persistToFile();
-
-                // reload the master and user config so that the merged config is right
-                _configMap.loadMasterAndUserConfig(_argumentList);
             }
 
         }
@@ -198,9 +191,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                 // write the new settings to file
                 persistToFile();
-
-                // reload the master and user config so the merged config is correct
-                _configMap.loadMasterAndUserConfig(_argumentList);
             }
         }
 
@@ -281,19 +271,6 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canKick);
 
             packPermissions();
-        }
-
-        if (oldVersion < 1.7) {
-            // This was prior to the removal of the master config file
-            // So we write the merged config to the user config file, and stop reading from the user config file
-
-            qDebug() << "Migrating merged config to user config file. The master config file is deprecated.";
-
-            // replace the user config by the merged config
-            _configMap.getConfig() = _configMap.getMergedConfig();
-
-            // persist the new config so the user config file has the correctly merged config
-            persistToFile();
         }
 
         if (oldVersion < 1.8) {
@@ -1288,9 +1265,6 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             settingsVariant.remove(rootKey);
         }
     }
-
-    // re-merge the user and master configs after a settings change
-    _configMap.mergeMasterAndUserConfigs();
 
     return needRestart;
 }
