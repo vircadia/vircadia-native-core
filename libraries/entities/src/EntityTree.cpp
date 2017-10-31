@@ -1206,9 +1206,7 @@ QByteArray EntityTree::computeEncryptedNonce(const QString& certID, const QStrin
     }
 }
 
-bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce) {
-
-    EntityItemID id;
+bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id) {
     {
         QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
         id = _entityCertificateIDMap.value(certID);
@@ -1221,14 +1219,12 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
     }
 
     bool verificationSuccess = (actualNonce == decryptedNonce);
-    if (!verificationSuccess) {
-        if (!id.isNull()) {
-            qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed; deleting entity" << id
-                << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
-            deleteEntity(id, true);
-        }
+
+    if (verificationSuccess) {
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded for entity" << id;
     } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded; keeping entity" << id;
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed for entity" << id
+            << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
     }
 
     return verificationSuccess;
@@ -1267,8 +1263,6 @@ void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, 
     QByteArray certID(message.read(certIDByteArraySize));
     QByteArray decryptedText(message.read(decryptedTextByteArraySize));
     QUuid challengingNode = QUuid::fromRfc4122(message.read(senderNodeUUIDByteArraySize));
-
-
 
     auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
         certIDByteArraySize + decryptedText.length() + 2 * sizeof(int),
@@ -1319,19 +1313,24 @@ void EntityTree::sendChallengeOwnershipRequestPacket(const QString& certID, cons
 
     // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
     //     to make sure belongs to Avatar B.
-    QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
-    QByteArray encryptedTextByteArray = encryptedText.toUtf8();
     QByteArray certIDByteArray = certID.toUtf8();
-    int certIDByteArraySize = certIDByteArray.size();
+    QByteArray encryptedTextByteArray = encryptedText.toUtf8();
+    QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
+
+    int certIDByteArraySize = certIDByteArray.length();
+    int encryptedTextByteArraySize = encryptedTextByteArray.length();
+    int senderNodeUUIDSize = senderNodeUUID.length();
+
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-        certIDByteArraySize + encryptedTextByteArray.length() + senderNodeUUID.length() + 3 * sizeof(int),
+        certIDByteArraySize + encryptedTextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
         true);
     challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
-    challengeOwnershipPacket->writePrimitive(encryptedTextByteArray.length());
-    challengeOwnershipPacket->writePrimitive(senderNodeUUID.length());
+    challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
+    challengeOwnershipPacket->writePrimitive(senderNodeUUIDSize);
     challengeOwnershipPacket->write(certIDByteArray);
     challengeOwnershipPacket->write(encryptedTextByteArray);
     challengeOwnershipPacket->write(senderNodeUUID);
+
     nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(nodeToChallenge)));
 }
 
@@ -1408,7 +1407,12 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
 
     emit killChallengeOwnershipTimeoutTimer(certID);
 
-    verifyDecryptedNonce(certID, decryptedText);
+    EntityItemID id;
+    if (!verifyDecryptedNonce(certID, decryptedText, id)) {
+        if (!id.isNull()) {
+            deleteEntity(id, true);
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,

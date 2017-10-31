@@ -70,6 +70,9 @@ public slots:
     void contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event);
     bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
 
+private slots:
+    void handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+
 private:
     bool _verboseLogging { true };
     bool _enabled { true };

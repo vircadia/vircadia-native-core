@@ -276,7 +276,7 @@ public:
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
     QByteArray computeEncryptedNonce(const QString& certID, const QString ownerKey);
-    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce);
+    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);

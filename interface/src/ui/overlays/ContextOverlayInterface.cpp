@@ -71,6 +71,10 @@ ContextOverlayInterface::ContextOverlayInterface() {
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
     connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
 }
 
 static const uint32_t MOUSE_HW_ID = 0;
@@ -374,4 +378,20 @@ void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
     if (_currentEntityWithContextOverlay == entityID) {
         destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
     }
+}
+
+void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    int certIDByteArraySize;
+    int decryptedTextByteArraySize;
+
+    packet->readPrimitive(&certIDByteArraySize);
+    packet->readPrimitive(&decryptedTextByteArraySize);
+
+    QString certID(packet->read(certIDByteArraySize));
+    QString decryptedText(packet->read(decryptedTextByteArraySize));
+
+    EntityItemID id;
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyDecryptedNonce(certID, decryptedText, id);
+
+    qDebug() << "ZRF VERIFICATION STATUS:" << verificationSuccess;
 }
