@@ -498,7 +498,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getLightAndShadow(0);
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
 
         // Bind the shadow buffer
@@ -509,7 +509,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto& program = deferredLightingEffect->_directionalSkyboxLight;
         LightLocationsPtr locations = deferredLightingEffect->_directionalSkyboxLightLocations;
 
-        auto keyLight = lightStage->getLight(0);
+        auto keyLight = lightAndShadow.first;
 
         model::LightPointer keyAmbientLight;
         if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
