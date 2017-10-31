@@ -732,6 +732,7 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
     QByteArray certID = packet->read(certIDByteArraySize);
     QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
+    qDebug() << "ZRF encryptedText Inbound:" << QString(encryptedText);
     QByteArray senderNodeUUID;
     if (challengeOriginatedFromClient) {
         senderNodeUUID = packet->read(senderNodeUUIDByteArraySize);
