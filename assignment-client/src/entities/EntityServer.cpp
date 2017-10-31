@@ -459,7 +459,7 @@ void EntityServer::startDynamicDomainVerification() {
         EntityItemPointer entity = tree->findEntityByEntityItemID(i.value());
 
         if (entity) {
-            if (!entity->verifyStaticCertificateProperties()) {
+            if (!entity->getProperties().verifyStaticCertificateProperties()) {
                 qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
                     << "static certificate verification.";
                 // Delete the entity if it doesn't pass static certificate verification

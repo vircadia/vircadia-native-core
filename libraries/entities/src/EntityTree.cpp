@@ -1528,7 +1528,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         _totalCreates++;
 
                         if (newEntity && isCertified && getIsServer()) {
-                            if (!newEntity->verifyStaticCertificateProperties()) {
+                            if (!properties.verifyStaticCertificateProperties()) {
                                 qCDebug(entities) << "User" << senderNode->getUUID()
                                     << "attempted to add a certified entity with ID" << entityItemID << "which failed"
                                     << "static certificate verification.";
