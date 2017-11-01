@@ -76,6 +76,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
+    _challengeOwnershipTimeoutTimer.setSingleShot(true);
 }
 
 static const uint32_t MOUSE_HW_ID = 0;
@@ -271,16 +272,16 @@ void ContextOverlayInterface::openInspectionCertificate() {
         tablet->loadQMLSource(INSPECTION_CERTIFICATE_QML_PATH);
         _hmdScriptingInterface->openTablet();
 
-        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_currentEntityWithContextOverlay, _entityPropertyFlags);
+        setLastInspectedEntity(_currentEntityWithContextOverlay);
+
+        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
 
         QUuid nodeToChallenge = entityProperties.getOwningAvatarID();
         auto nodeList = DependencyManager::get<NodeList>();
 
         // ZRF FIXME: Don't challenge ownership of avatar entities that I own
         if (entityProperties.getClientOnly()/* && nodeToChallenge != nodeList->getSessionUUID()*/) {
-            // ZRF FIXME!
-            //if (entityProperties.verifyStaticCertificateProperties()) {
-            if (true) {
+            if (entityProperties.verifyStaticCertificateProperties()) {
                 SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
 
                 if (entityServer) {
@@ -331,12 +332,12 @@ void ContextOverlayInterface::openInspectionCertificate() {
                                 nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
 
                                 // Kickoff a 10-second timeout timer that marks the cert if we don't get an ownership response in time
-                                //if (thread() != QThread::currentThread()) {
-                                //    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityItemID));
-                                //    return;
-                                //} else {
-                                //    startChallengeOwnershipTimer(entityItemID);
-                                //}
+                                if (thread() != QThread::currentThread()) {
+                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
+                                    return;
+                                } else {
+                                    startChallengeOwnershipTimer();
+                                }
                             }
                         } else {
                             qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
@@ -350,8 +351,9 @@ void ContextOverlayInterface::openInspectionCertificate() {
                 }
             } else {
                 auto ledger = DependencyManager::get<Ledger>();
+                _challengeOwnershipTimeoutTimer.stop();
                 emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
-                qCDebug(context_overlay) << "Entity" << _currentEntityWithContextOverlay << "failed static certificate verification!";
+                qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
             }
         }
     }
@@ -388,8 +390,22 @@ void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
     }
 }
 
+void ContextOverlayInterface::startChallengeOwnershipTimer() {
+    auto ledger = DependencyManager::get<Ledger>();
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+
+    connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
+        qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
+        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+    });
+
+    _challengeOwnershipTimeoutTimer.start(5000);
+}
+
 void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto ledger = DependencyManager::get<Ledger>();
+
+    _challengeOwnershipTimeoutTimer.stop();
 
     int certIDByteArraySize;
     int decryptedTextByteArraySize;
@@ -402,6 +418,8 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
 
     EntityItemID id;
     bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyDecryptedNonce(certID, decryptedText, id);
+
+    qDebug() << "ZRF" << verificationSuccess;
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));

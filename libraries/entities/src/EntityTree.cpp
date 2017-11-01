@@ -1220,9 +1220,9 @@ bool EntityTree::verifyDecryptedNonce(const QString& certID, const QString& decr
     bool verificationSuccess = (actualNonce == decryptedNonce);
 
     if (verificationSuccess) {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded for entity" << id;
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
     } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed for entity" << id
+        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed."
             << "\nActual nonce:" << actualNonce << "\nDecrypted nonce:" << decryptedNonce;
     }
 
