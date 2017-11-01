@@ -57,6 +57,7 @@ public:
     Qt::KeyboardModifiers getKeyboardModifiers() const { return _keyboardModifiers; }
     bool shouldFocus() const { return _shouldFocus; }
 
+    void setID(uint32_t id) { _id = id; }
     void setType(EventType type) { _type = type; }
     void setButton(Button button);
     void setShouldFocus(bool focus) { _shouldFocus = focus; }

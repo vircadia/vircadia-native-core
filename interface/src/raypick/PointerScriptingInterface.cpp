@@ -14,23 +14,23 @@
 #include "Application.h"
 #include "LaserPointer.h"
 
-void PointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const {
+void PointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
-void PointerScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) const {
+void PointerScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) const {
     DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
-QUuid PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) const {
+unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) const {
     switch (type) {
         case PickQuery::PickType::Ray:
             return createLaserPointer(properties);
         default:
-            return QUuid();
+            return 0;
     }
 }
 
-QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
+unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 
     bool faceAvatar = false;
@@ -114,7 +114,7 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
                                                                                                faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled));
 }
 
-void PointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
+void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
     QVariantMap propMap = properties.toMap();
 
     QVariant startProps;

@@ -959,7 +959,7 @@ void OffscreenQmlSurface::handlePointerEvent(const QUuid& id, const PointerEvent
         return;
     }
 
-    QEvent::Type type;
+    QEvent::Type type = QEvent::Type::MouseMove;
     switch (event.getType()) {
         case PointerEvent::Press:
             type = QEvent::Type::MouseButtonPress;
@@ -972,6 +972,8 @@ void OffscreenQmlSurface::handlePointerEvent(const QUuid& id, const PointerEvent
             break;
         case PointerEvent::Move:
             type = QEvent::Type::MouseMove;
+            break;
+        default:
             break;
     }
     QPointF screenPos(event.getPos2D().x, event.getPos2D().y);

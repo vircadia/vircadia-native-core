@@ -46,16 +46,16 @@ void Pointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
     DependencyManager::get<PickManager>()->setIncludeItems(_pickUID, includeItems);
 }
 
-void Pointer::update() {
+void Pointer::update(unsigned int pointerID) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
         QVariantMap pickResult = getPrevPickResult();
         updateVisuals(pickResult);
-        generatePointerEvents(pickResult);
+        generatePointerEvents(pointerID, pickResult);
     });
 }
 
-void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
+void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& pickResult) {
     // TODO: avatars?
     auto pointerManager = DependencyManager::get<PointerManager>();
 
@@ -63,6 +63,7 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
     Pointer::PickedObject hoveredObject = getHoveredObject(pickResult);
     PointerEvent hoveredEvent = buildPointerEvent(hoveredObject, pickResult);
     hoveredEvent.setType(PointerEvent::Move);
+    hoveredEvent.setID(pointerID);
     // TODO: set buttons on hover events
     hoveredEvent.setButton(PointerEvent::NoButtons);
     if (_enabled && _hover && shouldHover()) {
@@ -72,6 +73,7 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
                     emit pointerManager->hoverContinueOverlay(hoveredObject.objectID, hoveredEvent);
                 } else {
                     PointerEvent prevHoveredEvent = buildPointerEvent(_prevHoveredObject, pickResult);
+                    prevHoveredEvent.setID(pointerID);
                     emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, prevHoveredEvent);
                     emit pointerManager->hoverBeginOverlay(hoveredObject.objectID, hoveredEvent);
                 }
@@ -92,6 +94,7 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
                     emit pointerManager->hoverContinueEntity(hoveredObject.objectID, hoveredEvent);
                 } else {
                     PointerEvent prevHoveredEvent = buildPointerEvent(_prevHoveredObject, pickResult);
+                    prevHoveredEvent.setID(pointerID);
                     emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, prevHoveredEvent);
                     emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
                 }
@@ -153,10 +156,13 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
         }
         _triggeredObjects[button] = hoveredObject;
     }
+    // We still want other trigger events for Focus buttons, but they only set focus on triggerBegin
+    hoveredEvent.setShouldFocus(false);
 
     // Trigger continue
     for (const std::string& button : sameButtons) {
         PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult);
+        triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Move);
         hoveredEvent.setButton(chooseButton(button));
         if (_triggeredObjects[button].type == ENTITY) {
@@ -171,6 +177,7 @@ void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
     // Trigger end
     for (const std::string& button : _prevButtons) {
         PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult);
+        triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Release);
         hoveredEvent.setButton(chooseButton(button));
         if (_triggeredObjects[button].type == ENTITY) {

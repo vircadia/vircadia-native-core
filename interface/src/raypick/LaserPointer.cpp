@@ -282,7 +282,6 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
 }
 
 PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const {
-    uint32_t id = 0;
     glm::vec3 intersection = vec3FromVariant(pickResult["intersection"]);
     glm::vec3 surfaceNormal = vec3FromVariant(pickResult["surfaceNormal"]);
     QVariantMap searchRay = pickResult["searchRay"].toMap();
@@ -304,7 +303,7 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const Q
     } else if (target.type == HUD) {
         pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(intersection);
     }
-    return PointerEvent(PointerEvent::Move, id, pos2D, intersection, surfaceNormal, direction, PointerEvent::NoButtons);
+    return PointerEvent(PointerEvent::Move, 0, pos2D, intersection, surfaceNormal, direction, PointerEvent::NoButtons);
 }
 
 glm::vec3 LaserPointer::intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const {

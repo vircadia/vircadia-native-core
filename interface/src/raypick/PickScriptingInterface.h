@@ -33,20 +33,20 @@ class PickScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    QUuid createRayPick(const QVariant& properties);
+    unsigned int createRayPick(const QVariant& properties);
 
     void registerMetaTypes(QScriptEngine* engine);
 
 public slots:
-    Q_INVOKABLE QUuid createPick(const PickQuery::PickType type, const QVariant& properties);
-    Q_INVOKABLE void enablePick(const QUuid& uid);
-    Q_INVOKABLE void disablePick(const QUuid& uid);
-    Q_INVOKABLE void removePick(const QUuid& uid);
-    Q_INVOKABLE QVariantMap getPrevPickResult(const QUuid& uid);
+    Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
+    Q_INVOKABLE void enablePick(unsigned int uid);
+    Q_INVOKABLE void disablePick(unsigned int uid);
+    Q_INVOKABLE void removePick(unsigned int uid);
+    Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
-    Q_INVOKABLE void setPrecisionPicking(const QUuid& uid, const bool precisionPicking);
-    Q_INVOKABLE void setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreEntities);
-    Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities);
+    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, const bool precisionPicking);
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities);
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities);
 
     static constexpr unsigned int PICK_NOTHING() { return 0; }
     static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ENTITIES); }
