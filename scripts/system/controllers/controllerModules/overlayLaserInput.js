@@ -26,13 +26,6 @@ Script.include("/~/system/libraries/controllers.js");
             100,
             this.hand);
 
-        this.processLaser = function(controllerData) {
-            if (this.shouldExit(controllerData)) {
-                return false;
-            }
-            return true;
-        };
-
         this.grabModuleWantsNearbyOverlay = function(controllerData) {
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
                 var nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
@@ -51,15 +44,19 @@ Script.include("/~/system/libraries/controllers.js");
             return false;
         };
 
-        this.shouldExit = function(controllerData) {
+        this.isPointingAtWebEntity = function(controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
-            var offOverlay = (intersection.type !== Picks.INTERSECTED_OVERLAY);
-            var triggerOff = (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE);
-            if (triggerOff) {
-                this.deleteContextOverlay();
+            var entityProperty = Entities.getEntityProperties(intersection.objectID);
+            var entityType = entityProperty.type;
+            if ((intersection.type === Picks.INTERSECTED_ENTITY && entityType === "Web")) {
+                return true;
             }
-            var grabbingOverlay = this.grabModuleWantsNearbyOverlay(controllerData);
-            return offOverlay || grabbingOverlay || triggerOff;
+            return false;
+        };
+
+        this.isPointingAtOverlay = function(controllerData) {
+            var intersection = controllerData.rayPicks[this.hand];
+            return intersection.type === Picks.INTERSECTED_OVERLAY;
         };
 
         this.deleteContextOverlay = function() {
@@ -75,14 +72,21 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            if (this.processLaser(controllerData)) {
-                return makeRunningValues(true, [], []);
+            if (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)) {
+                if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE) {
+                    return makeRunningValues(true, [], []);
+                }
             }
             return makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData, deltaTime) {
-            return this.isReady(controllerData);
+            var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
+            if (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE && !grabModuleNeedsToRun) {
+                return makeRunningValues(true, [], []);
+            }
+            this.deleteContextOverlay();
+            return makeRunningValues(false, [], []);
         };
     }
 

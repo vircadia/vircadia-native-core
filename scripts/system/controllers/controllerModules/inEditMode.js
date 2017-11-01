@@ -26,7 +26,8 @@ Script.include("/~/system/libraries/utils.js");
             160,
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
-            100);
+            100,
+            this.hand);
 
         this.nearTablet = function(overlays) {
             for (var i = 0; i < overlays.length; i++) {
@@ -67,6 +68,10 @@ Script.include("/~/system/libraries/utils.js");
             } else {
                 this.triggerClicked = false;
             }
+        };
+
+        this.exitModule = function() {
+            return makeRunningValues(false, [], []);
         };
 
         this.isReady = function(controllerData) {

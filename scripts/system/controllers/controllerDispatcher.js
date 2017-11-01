@@ -11,7 +11,7 @@
    controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
    getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Pointers, PickType, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, Picks
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, Picks, TRIGGER_ON_VALUE
 */
 
 controllerDispatcherPlugins = {};
@@ -262,41 +262,40 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             var laserLocked;
             if (_this.laserVisibleStatus[LEFT_HAND]) {
                 laserLocked = _this.laserLockStatus[LEFT_HAND];
-                _this.updateLaserRenderState(_this.leftControllerPointer,_this.leftTriggerClicked, laserLocked);
+                _this.updateLaserRenderState(_this.leftControllerPointer,_this.leftTriggerClicked, _this.leftTriggerValue, laserLocked);
             } else {
                 Pointers.setRenderState(_this.leftControllerPointer, "");
             }
 
             if (_this.laserVisibleStatus[RIGHT_HAND]) {
                 laserLocked = _this.laserLockStatus[RIGHT_HAND];
-                _this.updateLaserRenderState(_this.rightControllerPointer, _this.rightTriggerClicked, laserLocked);
+                _this.updateLaserRenderState(_this.rightControllerPointer, _this.rightTriggerClicked, _this.rightTriggerValue, laserLocked);
             } else {
                 Pointers.setRenderState(_this.rightControllerPointer, "");
             }
 
             if (_this.laserVisibleStatus[LEFT_HAND + HUD_LASER_OFFSET]) {
-                _this.updateLaserRenderState(_this.leftControllerHudRayPick, _this.leftTriggerClicked, false);
+                _this.updateLaserRenderState(_this.leftControllerHudRayPick, _this.leftTriggerClicked, _this.leftTriggerValue, false);
             } else {
                 Pointers.setRenderState(_this.leftControllerHudRayPick, "");
             }
 
             if (_this.laserVisibleStatus[RIGHT_HAND + HUD_LASER_OFFSET]) {
-                _this.updateLaserRenderState(_this.rightControllerHudRayPick, _this.rightTriggerClicked, false);
+                _this.updateLaserRenderState(_this.rightControllerHudRayPick, _this.rightTriggerClicked, _this.rightTriggerValue, false);
             } else {
                 Pointers.setRenderState(_this.rightControllerHudRayPick, "");
             }
         };
 
-        this.updateLaserRenderState = function(laser, triggerClicked, laserLocked) {
-            var mode = "hold";
-            if (!laserLocked) {
-                if (triggerClicked) {
-                    mode = "full";
-                } else {
-                    mode = "half";
-                }
+        this.updateLaserRenderState = function(laser, triggerClicked, triggerValue, laserLocked) {
+            var mode = "";
+            if (laserLocked) {
+                mode = "hold";
+            } else if (triggerClicked) {
+                mode = "full";
+            } else if (triggerValue > TRIGGER_ON_VALUE) {
+                mode = "half";
             }
-
             Pointers.setRenderState(laser, mode);
         };
 
