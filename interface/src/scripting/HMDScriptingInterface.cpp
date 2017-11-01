@@ -100,10 +100,21 @@ void HMDScriptingInterface::deactivateHMDHandMouse() {
 
 void  HMDScriptingInterface::closeTablet() {
     _showTablet = false;
+    _tabletContextualMode = false;
 }
 
-void HMDScriptingInterface::openTablet() {
+void HMDScriptingInterface::openTablet(bool contextualMode) {
     _showTablet = true;
+    _tabletContextualMode = contextualMode;
+}
+
+void HMDScriptingInterface::toggleShouldShowTablet() {
+    setShouldShowTablet(!getShouldShowTablet());
+}
+
+void HMDScriptingInterface::setShouldShowTablet(bool value) {
+    _showTablet = value;
+    _tabletContextualMode = false;
 }
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {

@@ -107,6 +107,11 @@ public:
     bool mouseReleaseEvent(QMouseEvent* event);
     bool mouseMoveEvent(QMouseEvent* event);
 
+    void mousePressEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event);
+
     void cleanupAllOverlays();
 
 public slots:
@@ -298,12 +303,12 @@ public slots:
     void sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
     void sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
-    void sendHoverEnterOverlay(const OverlayID& id, const PointerEvent& event);
-    void sendHoverOverOverlay(const OverlayID& id, const PointerEvent& event);
-    void sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& event);
+    void sendHoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
     OverlayID getKeyboardFocusOverlay();
-    void setKeyboardFocusOverlay(OverlayID id);
+    void setKeyboardFocusOverlay(const OverlayID& id);
 
 signals:
     /**jsdoc

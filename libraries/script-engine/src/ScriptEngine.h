@@ -55,6 +55,8 @@ static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
 
 class ScriptEngines;
 
+Q_DECLARE_METATYPE(ScriptEnginePointer)
+
 class CallbackData {
 public:
     QScriptValue function;
