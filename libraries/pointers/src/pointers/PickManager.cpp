@@ -12,16 +12,20 @@ PickManager::PickManager() {
     setCalculatePos2DFromHUDOperator([](const glm::vec3& intersection) { return glm::vec2(NAN); });
 }
 
-QUuid PickManager::addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick) {
-    QUuid id = QUuid::createUuid();
+unsigned int PickManager::addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick) {
+    unsigned int id = 0;
     withWriteLock([&] {
-        _picks[type][id] = pick;
-        _typeMap[id] = type;
+        // Don't let the pick IDs overflow
+        if (_nextPickID < UINT32_MAX) {
+            id = _nextPickID++;
+            _picks[type][id] = pick;
+            _typeMap[id] = type;
+        }
     });
     return id;
 }
 
-std::shared_ptr<PickQuery> PickManager::findPick(const QUuid& uid) const {
+std::shared_ptr<PickQuery> PickManager::findPick(unsigned int uid) const {
     return resultWithReadLock<std::shared_ptr<PickQuery>>([&] {
         auto type = _typeMap.find(uid);
         if (type != _typeMap.end()) {
@@ -31,7 +35,7 @@ std::shared_ptr<PickQuery> PickManager::findPick(const QUuid& uid) const {
     });
 }
 
-void PickManager::removePick(const QUuid& uid) {
+void PickManager::removePick(unsigned int uid) {
     withWriteLock([&] {
         auto type = _typeMap.find(uid);
         if (type != _typeMap.end()) {
@@ -41,7 +45,7 @@ void PickManager::removePick(const QUuid& uid) {
     });
 }
 
-QVariantMap PickManager::getPrevPickResult(const QUuid& uid) const {
+QVariantMap PickManager::getPrevPickResult(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick && pick->getPrevPickResult()) {
         return pick->getPrevPickResult()->toVariantMap();
@@ -49,35 +53,35 @@ QVariantMap PickManager::getPrevPickResult(const QUuid& uid) const {
     return QVariantMap();
 }
 
-void PickManager::enablePick(const QUuid& uid) const {
+void PickManager::enablePick(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->enable();
     }
 }
 
-void PickManager::disablePick(const QUuid& uid) const {
+void PickManager::disablePick(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->disable();
     }
 }
 
-void PickManager::setPrecisionPicking(const QUuid& uid, bool precisionPicking) const {
+void PickManager::setPrecisionPicking(unsigned int uid, bool precisionPicking) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->setPrecisionPicking(precisionPicking);
     }
 }
 
-void PickManager::setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignore) const {
+void PickManager::setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignore) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->setIgnoreItems(ignore);
     }
 }
 
-void PickManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& include) const {
+void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& include) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->setIncludeItems(include);
@@ -85,7 +89,7 @@ void PickManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& includ
 }
 
 void PickManager::update() {
-    QHash<PickQuery::PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> cachedPicks;
+    QHash<PickQuery::PickType, QHash<unsigned int, std::shared_ptr<PickQuery>>> cachedPicks;
     withReadLock([&] {
         cachedPicks = _picks;
     });

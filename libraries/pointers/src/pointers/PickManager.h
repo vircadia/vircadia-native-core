@@ -22,16 +22,16 @@ public:
 
     void update();
 
-    QUuid addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick);
-    void removePick(const QUuid& uid);
-    void enablePick(const QUuid& uid) const;
-    void disablePick(const QUuid& uid) const;
+    unsigned int addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick);
+    void removePick(unsigned int uid);
+    void enablePick(unsigned int uid) const;
+    void disablePick(unsigned int uid) const;
 
-    QVariantMap getPrevPickResult(const QUuid& uid) const;
+    QVariantMap getPrevPickResult(unsigned int uid) const;
 
-    void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const;
-    void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignore) const;
-    void setIncludeItems(const QUuid& uid, const QVector<QUuid>& include) const;
+    void setPrecisionPicking(unsigned int uid, bool precisionPicking) const;
+    void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignore) const;
+    void setIncludeItems(unsigned int uid, const QVector<QUuid>& include) const;
 
     void setShouldPickHUDOperator(std::function<bool()> shouldPickHUDOperator) { _shouldPickHUDOperator = shouldPickHUDOperator; }
     void setCalculatePos2DFromHUDOperator(std::function<glm::vec2(const glm::vec3&)> calculatePos2DFromHUDOperator) { _calculatePos2DFromHUDOperator = calculatePos2DFromHUDOperator; }
@@ -41,9 +41,12 @@ protected:
     std::function<bool()> _shouldPickHUDOperator;
     std::function<glm::vec2(const glm::vec3&)> _calculatePos2DFromHUDOperator;
 
-    std::shared_ptr<PickQuery> findPick(const QUuid& uid) const;
-    QHash<PickQuery::PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> _picks;
-    QHash<QUuid, PickQuery::PickType> _typeMap;
+    std::shared_ptr<PickQuery> findPick(unsigned int uid) const;
+    QHash<PickQuery::PickType, QHash<unsigned int, std::shared_ptr<PickQuery>>> _picks;
+    QHash<unsigned int, PickQuery::PickType> _typeMap;
+    // 0 = invalid
+    const unsigned int FIRST_PICK_ID { 1 };
+    unsigned int _nextPickID { FIRST_PICK_ID };
 
     PickCacheOptimizer<PickRay> _rayPickCacheOptimizer;
 };

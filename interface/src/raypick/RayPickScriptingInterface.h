@@ -37,15 +37,15 @@ class RayPickScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public slots:
-    Q_INVOKABLE QUuid createRayPick(const QVariant& properties);
-    Q_INVOKABLE void enableRayPick(const QUuid& uid);
-    Q_INVOKABLE void disableRayPick(const QUuid& uid);
-    Q_INVOKABLE void removeRayPick(const QUuid& uid);
-    Q_INVOKABLE QVariantMap getPrevRayPickResult(const QUuid& uid);
+    Q_INVOKABLE unsigned int createRayPick(const QVariant& properties);
+    Q_INVOKABLE void enableRayPick(unsigned int uid);
+    Q_INVOKABLE void disableRayPick(unsigned int uid);
+    Q_INVOKABLE void removeRayPick(unsigned int uid);
+    Q_INVOKABLE QVariantMap getPrevRayPickResult(unsigned int uid);
 
-    Q_INVOKABLE void setPrecisionPicking(const QUuid& uid, const bool precisionPicking);
-    Q_INVOKABLE void setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreEntities);
-    Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities);
+    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, const bool precisionPicking);
+    Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities);
+    Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities);
 
     static unsigned int PICK_NOTHING() { return PickScriptingInterface::PICK_NOTHING(); }
     static unsigned int PICK_ENTITIES() { return PickScriptingInterface::PICK_ENTITIES(); }

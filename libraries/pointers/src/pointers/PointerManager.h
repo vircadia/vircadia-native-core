@@ -23,26 +23,28 @@ class PointerManager : public QObject, public Dependency, protected ReadWriteLoc
 public:
     PointerManager() {}
 
-    QUuid addPointer(std::shared_ptr<Pointer> pointer);
-    void removePointer(const QUuid& uid);
-    void enablePointer(const QUuid& uid) const;
-    void disablePointer(const QUuid& uid) const;
-    void setRenderState(const QUuid& uid, const std::string& renderState) const;
-    void editRenderState(const QUuid& uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
-    const QVariantMap getPrevPickResult(const QUuid& uid) const;
+    unsigned int addPointer(std::shared_ptr<Pointer> pointer);
+    void removePointer(unsigned int uid);
+    void enablePointer(unsigned int uid) const;
+    void disablePointer(unsigned int uid) const;
+    void setRenderState(unsigned int uid, const std::string& renderState) const;
+    void editRenderState(unsigned int uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
+    const QVariantMap getPrevPickResult(unsigned int uid) const;
 
-    void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const;
-    void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const;
-    void setIncludeItems(const QUuid& uid, const QVector<QUuid>& includeEntities) const;
+    void setPrecisionPicking(unsigned int uid, bool precisionPicking) const;
+    void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignoreEntities) const;
+    void setIncludeItems(unsigned int uid, const QVector<QUuid>& includeEntities) const;
 
-    void setLength(const QUuid& uid, float length) const;
-    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const;
+    void setLength(unsigned int uid, float length) const;
+    void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay) const;
 
     void update();
 
 private:
-    std::shared_ptr<Pointer> find(const QUuid& uid) const;
-    QHash<QUuid, std::shared_ptr<Pointer>> _pointers;
+    std::shared_ptr<Pointer> find(unsigned int uid) const;
+    QHash<unsigned int, std::shared_ptr<Pointer>> _pointers;
+    // 0 = invalid, 1 = reserved for system mouse
+    unsigned int _nextPointerID { 2 };
 
 signals:
     void triggerBeginOverlay(const QUuid& id, const PointerEvent& pointerEvent);

@@ -1026,6 +1026,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
     const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
@@ -1821,7 +1822,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Setup the mouse ray pick and related operators
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
         PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](QUuid rayPickID) {
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
         QVariantMap result = DependencyManager::get<PickManager>()->getPrevPickResult(rayPickID);
@@ -1837,7 +1838,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return entityResult;
     });
-    DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](QUuid rayPickID, bool value) {
+    DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
@@ -5757,6 +5758,11 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 }
 
 void Application::packetSent(quint64 length) {
+}
+
+void Application::addingEntityWithCertificate(const QString& certificateID, const QString& placeName) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->updateLocation(certificateID, placeName);
 }
 
 void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {

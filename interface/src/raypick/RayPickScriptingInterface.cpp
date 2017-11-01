@@ -20,34 +20,34 @@
 #include "JointRayPick.h"
 #include "MouseRayPick.h"
 
-QUuid RayPickScriptingInterface::createRayPick(const QVariant& properties) {
+uint32_t RayPickScriptingInterface::createRayPick(const QVariant& properties) {
     return DependencyManager::get<PickScriptingInterface>()->createRayPick(properties);
 }
 
-void RayPickScriptingInterface::enableRayPick(const QUuid& uid) {
+void RayPickScriptingInterface::enableRayPick(uint32_t uid) {
     DependencyManager::get<PickManager>()->enablePick(uid);
 }
 
-void RayPickScriptingInterface::disableRayPick(const QUuid& uid) {
+void RayPickScriptingInterface::disableRayPick(uint32_t uid) {
     DependencyManager::get<PickManager>()->disablePick(uid);
 }
 
-void RayPickScriptingInterface::removeRayPick(const QUuid& uid) {
+void RayPickScriptingInterface::removeRayPick(uint32_t uid) {
     DependencyManager::get<PickManager>()->removePick(uid);
 }
 
-QVariantMap RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
+QVariantMap RayPickScriptingInterface::getPrevRayPickResult(uint32_t uid) {
     return DependencyManager::get<PickManager>()->getPrevPickResult(uid);
 }
 
-void RayPickScriptingInterface::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) {
+void RayPickScriptingInterface::setPrecisionPicking(uint32_t uid, const bool precisionPicking) {
     DependencyManager::get<PickManager>()->setPrecisionPicking(uid, precisionPicking);
 }
 
-void RayPickScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) {
+void RayPickScriptingInterface::setIgnoreItems(uint32_t uid, const QScriptValue& ignoreItems) {
     DependencyManager::get<PickManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
-void RayPickScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) {
+void RayPickScriptingInterface::setIncludeItems(uint32_t uid, const QScriptValue& includeItems) {
     DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }

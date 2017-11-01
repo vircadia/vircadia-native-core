@@ -38,7 +38,7 @@ using PointerTriggers = std::vector<PointerTrigger>;
 
 class Pointer : protected ReadWriteLockable {
 public:
-    Pointer(const QUuid& uid, bool enabled, bool hover) : _pickUID(uid), _enabled(enabled), _hover(hover) {}
+    Pointer(unsigned int uid, bool enabled, bool hover) : _pickUID(uid), _enabled(enabled), _hover(hover) {}
 
     virtual ~Pointer();
 
@@ -57,9 +57,9 @@ public:
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay) {}
 
-    void update();
+    void update(unsigned int pointerID);
     virtual void updateVisuals(const QVariantMap& pickResult) = 0;
-    void generatePointerEvents(const QVariantMap& pickResult);
+    void generatePointerEvents(unsigned int pointerID, const QVariantMap& pickResult);
 
     struct PickedObject {
         PickedObject() {}
@@ -71,17 +71,20 @@ public:
 
     using Buttons = std::unordered_set<std::string>;
 
-    virtual PickedObject getHoveredObject(const QVariantMap& pickResult) = 0;
-    virtual Buttons getPressedButtons() = 0;
-
-    QUuid getRayUID() { return _pickUID; }
+    unsigned int getRayUID() { return _pickUID; }
 
 protected:
-    const QUuid _pickUID;
+    const unsigned int _pickUID;
     bool _enabled;
     bool _hover;
 
     virtual PointerEvent buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const = 0;
+
+    virtual PickedObject getHoveredObject(const QVariantMap& pickResult) = 0;
+    virtual Buttons getPressedButtons() = 0;
+
+    virtual bool shouldHover() = 0;
+    virtual bool shouldTrigger() = 0;
 
 private:
     PickedObject _prevHoveredObject;

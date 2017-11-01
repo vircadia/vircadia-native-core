@@ -959,10 +959,9 @@ void OffscreenQmlSurface::handlePointerEvent(const QUuid& id, const PointerEvent
         return;
     }
 
-    QEvent::Type type;
+    QEvent::Type type = QEvent::Type::MouseMove;
     switch (event.getType()) {
         case PointerEvent::Press:
-            qDebug() << event.getPos2D().x << event.getPos2D().y << event.getButton() << Qt::MouseButton(event.getButton()) << Qt::MouseButtons(event.getButtons());
             type = QEvent::Type::MouseButtonPress;
             break;
         case PointerEvent::DoublePress:
@@ -974,9 +973,12 @@ void OffscreenQmlSurface::handlePointerEvent(const QUuid& id, const PointerEvent
         case PointerEvent::Move:
             type = QEvent::Type::MouseMove;
             break;
+        default:
+            break;
     }
-    QMouseEvent mouseEvent(type, QPointF(event.getPos2D().x, event.getPos2D().y), Qt::MouseButton(event.getButton()), Qt::MouseButtons(event.getButtons()), event.getKeyboardModifiers());
-    qDebug() << sendMouseEvent(mouseEvent);
+    QPointF screenPos(event.getPos2D().x, event.getPos2D().y);
+    QMouseEvent mouseEvent(type, screenPos, Qt::MouseButton(event.getButton()), Qt::MouseButtons(event.getButtons()), event.getKeyboardModifiers());
+    sendMouseEvent(mouseEvent);
 }
 
 bool OffscreenQmlSurface::sendMouseEvent(QMouseEvent& mouseEvent) {
@@ -989,6 +991,7 @@ bool OffscreenQmlSurface::sendMouseEvent(QMouseEvent& mouseEvent) {
     if (QCoreApplication::sendEvent(_quickWindow, &mouseEvent)) {
         return mouseEvent.isAccepted();
     }
+    return false;
 }
 
 void OffscreenQmlSurface::pause() {

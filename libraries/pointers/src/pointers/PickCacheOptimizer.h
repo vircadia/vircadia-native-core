@@ -37,7 +37,7 @@ template<typename T>
 class PickCacheOptimizer {
 
 public:
-    void update(QHash<QUuid, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD);
+    void update(QHash<unsigned int, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD);
 
 protected:
     typedef std::unordered_map<T, std::unordered_map<PickCacheKey, PickResultPointer>> PickCache;
@@ -67,7 +67,7 @@ void PickCacheOptimizer<T>::cacheResult(const bool intersects, const PickResultP
 }
 
 template<typename T>
-void PickCacheOptimizer<T>::update(QHash<QUuid, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD) {
+void PickCacheOptimizer<T>::update(QHash<unsigned int, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD) {
     PickCache results;
     for (const auto& uid : picks.keys()) {
         std::shared_ptr<Pick<T>> pick = std::static_pointer_cast<Pick<T>>(picks[uid]);

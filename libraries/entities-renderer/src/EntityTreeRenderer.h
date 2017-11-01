@@ -74,9 +74,9 @@ public:
     static float getEntityLoadingPriority(const EntityItem& item) { return _calculateEntityLoadingPriorityFunc(item); }
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 
-    void setMouseRayPickID(QUuid rayPickID) { _mouseRayPickID = rayPickID; }
-    void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(QUuid)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
-    void setSetPrecisionPickingOperator(std::function<void(QUuid, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
+    void setMouseRayPickID(unsigned int rayPickID) { _mouseRayPickID = rayPickID; }
+    void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(unsigned int)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
+    void setSetPrecisionPickingOperator(std::function<void(unsigned int, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 
     void shutdown();
     void update(bool simulate);
@@ -182,9 +182,9 @@ private:
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    QUuid _mouseRayPickID;
-    std::function<RayToEntityIntersectionResult(QUuid)> _getPrevRayPickResultOperator;
-    std::function<void(QUuid, bool)> _setPrecisionPickingOperator;
+    unsigned int _mouseRayPickID;
+    std::function<RayToEntityIntersectionResult(unsigned int)> _getPrevRayPickResultOperator;
+    std::function<void(unsigned int, bool)> _setPrecisionPickingOperator;
 
     class LayeredZone {
     public:
