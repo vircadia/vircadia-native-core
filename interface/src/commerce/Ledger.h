@@ -65,6 +65,14 @@ public slots:
     void certificateInfoSuccess(QNetworkReply& reply);
     void certificateInfoFailure(QNetworkReply& reply);
 
+    void updateCertificateStatus(const QString& certID, uint certStatus);
+    enum CertificateStatus {
+        CERTIFICATE_STATUS_UNKNOWN = 0,
+        CERTIFICATE_STATUS_VERIFICATION_SUCCESS,
+        CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED,
+        CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED,
+    };
+
 private:
     QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
     QJsonObject failResponse(const QString& label, QNetworkReply& reply);

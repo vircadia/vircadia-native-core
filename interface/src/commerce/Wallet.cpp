@@ -722,20 +722,19 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
     unsigned char decryptedText[64];
     int certIDByteArraySize;
     int encryptedTextByteArraySize;
-    int senderNodeUUIDByteArraySize;
+    int challengingNodeUUIDByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
     packet->readPrimitive(&encryptedTextByteArraySize);
     if (challengeOriginatedFromClient) {
-        packet->readPrimitive(&senderNodeUUIDByteArraySize);
+        packet->readPrimitive(&challengingNodeUUIDByteArraySize);
     }
 
     QByteArray certID = packet->read(certIDByteArraySize);
     QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
-    qDebug() << "ZRF encryptedText Inbound:" << QString(encryptedText);
-    QByteArray senderNodeUUID;
+    QByteArray challengingNodeUUID;
     if (challengeOriginatedFromClient) {
-        senderNodeUUID = packet->read(senderNodeUUIDByteArraySize);
+        challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
     }
 
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
@@ -759,15 +758,15 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
             // setup the packet
             if (challengeOriginatedFromClient) {
                 auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-                    certIDSize + decryptedTextByteArraySize + senderNodeUUIDByteArraySize + 3 * sizeof(int),
+                    certIDSize + decryptedTextByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
                     true);
 
                 decryptedTextPacket->writePrimitive(certIDSize);
                 decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-                decryptedTextPacket->writePrimitive(senderNodeUUIDByteArraySize);
+                decryptedTextPacket->writePrimitive(challengingNodeUUIDByteArraySize);
                 decryptedTextPacket->write(certID);
                 decryptedTextPacket->write(decryptedTextByteArray);
-                decryptedTextPacket->write(senderNodeUUID);
+                decryptedTextPacket->write(challengingNodeUUID);
 
                 qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
 

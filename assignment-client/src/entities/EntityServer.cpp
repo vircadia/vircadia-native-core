@@ -46,7 +46,8 @@ EntityServer::EntityServer(ReceivedMessage& message) :
         PacketType::EntityErase,
         PacketType::EntityPhysics,
         PacketType::ChallengeOwnership,
-        PacketType::ChallengeOwnershipRequest },
+        PacketType::ChallengeOwnershipRequest,
+        PacketType::ChallengeOwnershipReply },
         this,
         "handleEntityPacket");
 

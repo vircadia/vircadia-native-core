@@ -1238,11 +1238,11 @@ void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message
     message.readPrimitive(&encryptedTextByteArraySize);
     message.readPrimitive(&nodeToChallengeByteArraySize);
 
-    QString certID(message.read(certIDByteArraySize));
-    QString encryptedText(message.read(encryptedTextByteArraySize));
-    QUuid nodeToChallenge = QUuid::fromRfc4122(message.read(nodeToChallengeByteArraySize));
+    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray encryptedText(message.read(encryptedTextByteArraySize));
+    QByteArray nodeToChallenge(message.read(nodeToChallengeByteArraySize));
 
-    sendChallengeOwnershipRequestPacket(certID, encryptedText, sourceNode, nodeToChallenge);
+    sendChallengeOwnershipRequestPacket(certID, encryptedText, nodeToChallenge, sourceNode);
 }
 
 void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
@@ -1250,15 +1250,15 @@ void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, 
 
     int certIDByteArraySize;
     int decryptedTextByteArraySize;
-    int senderNodeUUIDByteArraySize;
+    int challengingNodeUUIDByteArraySize;
 
     message.readPrimitive(&certIDByteArraySize);
     message.readPrimitive(&decryptedTextByteArraySize);
-    message.readPrimitive(&senderNodeUUIDByteArraySize);
+    message.readPrimitive(&challengingNodeUUIDByteArraySize);
 
     QByteArray certID(message.read(certIDByteArraySize));
     QByteArray decryptedText(message.read(decryptedTextByteArraySize));
-    QUuid challengingNode = QUuid::fromRfc4122(message.read(senderNodeUUIDByteArraySize));
+    QUuid challengingNode = QUuid::fromRfc4122(message.read(challengingNodeUUIDByteArraySize));
 
     auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
         certIDByteArraySize + decryptedText.length() + 2 * sizeof(int),
@@ -1304,17 +1304,15 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     }
 }
 
-void EntityTree::sendChallengeOwnershipRequestPacket(const QString& certID, const QString& encryptedText, const SharedNodePointer& senderNode, const QUuid& nodeToChallenge) {
+void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& encryptedText, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
     //     to make sure belongs to Avatar B.
-    QByteArray certIDByteArray = certID.toUtf8();
-    QByteArray encryptedTextByteArray = encryptedText.toUtf8();
     QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
 
-    int certIDByteArraySize = certIDByteArray.length();
-    int encryptedTextByteArraySize = encryptedTextByteArray.length();
+    int certIDByteArraySize = certID.length();
+    int encryptedTextByteArraySize = encryptedText.length();
     int senderNodeUUIDSize = senderNodeUUID.length();
 
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
@@ -1323,11 +1321,11 @@ void EntityTree::sendChallengeOwnershipRequestPacket(const QString& certID, cons
     challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
     challengeOwnershipPacket->writePrimitive(encryptedTextByteArraySize);
     challengeOwnershipPacket->writePrimitive(senderNodeUUIDSize);
-    challengeOwnershipPacket->write(certIDByteArray);
-    challengeOwnershipPacket->write(encryptedTextByteArray);
+    challengeOwnershipPacket->write(certID);
+    challengeOwnershipPacket->write(encryptedText);
     challengeOwnershipPacket->write(senderNodeUUID);
 
-    nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(nodeToChallenge)));
+    nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(QUuid::fromRfc4122(nodeToChallenge))));
 }
 
 void EntityTree::validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation) {

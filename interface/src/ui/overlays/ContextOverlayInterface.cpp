@@ -17,6 +17,7 @@
 #include <NetworkAccessManager.h>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
+#include <commerce/Ledger.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -348,6 +349,8 @@ void ContextOverlayInterface::openInspectionCertificate() {
                     qCWarning(context_overlay) << "Couldn't get Entity Server!";
                 }
             } else {
+                auto ledger = DependencyManager::get<Ledger>();
+                emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
                 qCDebug(context_overlay) << "Entity" << _currentEntityWithContextOverlay << "failed static certificate verification!";
             }
         }
@@ -386,6 +389,8 @@ void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
 }
 
 void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    auto ledger = DependencyManager::get<Ledger>();
+
     int certIDByteArraySize;
     int decryptedTextByteArraySize;
 
@@ -398,5 +403,9 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
     EntityItemID id;
     bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyDecryptedNonce(certID, decryptedText, id);
 
-    qDebug() << "ZRF VERIFICATION STATUS:" << verificationSuccess;
+    if (verificationSuccess) {
+        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+    } else {
+        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
+    }
 }
