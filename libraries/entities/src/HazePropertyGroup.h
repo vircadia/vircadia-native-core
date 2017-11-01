@@ -27,6 +27,19 @@ class OctreePacketData;
 class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
+static const float INITIAL_HAZE_RANGE{ 1000.0f };
+static const xColor initialHazeGlareColorXcolor{ 255, 229, 179 };
+static const xColor initialHazeColorXcolor{ 128, 154, 179 };
+static const float INITIAL_HAZE_GLARE_ANGLE{ 20.0f };
+
+static const float INITIAL_HAZE_BASE_REFERENCE{ 0.0f };
+static const float INITIAL_HAZE_HEIGHT{ 200.0f };
+
+static const float INITIAL_HAZE_BACKGROUND_BLEND{ 0.0f };
+
+static const float INITIAL_KEY_LIGHT_RANGE{ 1000.0f };
+static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
+
 class HazePropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers
@@ -74,38 +87,25 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    static const float DEFAULT_HAZE_RANGE;
-    static const xColor DEFAULT_HAZE_COLOR;
-    static const xColor DEFAULT_HAZE_GLARE_COLOR;
-    static const float DEFAULT_HAZE_GLARE_ANGLE;
-
-    static const float DEFAULT_HAZE_CEILING;
-    static const float DEFAULT_HAZE_BASE_REF;
-
-    static const float DEFAULT_HAZE_BACKGROUND_BLEND;
-
-    static const float DEFAULT_HAZE_KEYLIGHT_RANGE;
-    static const float DEFAULT_HAZE_KEYLIGHT_ALTITUDE;
-
     // Range only parameters
-    DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, DEFAULT_HAZE_RANGE);
-    DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, xColor, DEFAULT_HAZE_COLOR);
-    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, xColor, DEFAULT_HAZE_GLARE_COLOR);
+    DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, INITIAL_HAZE_RANGE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, xColor, initialHazeColorXcolor);
+    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, xColor, initialHazeGlareColorXcolor);
     DEFINE_PROPERTY(PROP_HAZE_ENABLE_GLARE, HazeEnableGlare, hazeEnableGlare, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, DEFAULT_HAZE_GLARE_ANGLE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, INITIAL_HAZE_GLARE_ANGLE);
 
     // Altitude parameters
     DEFINE_PROPERTY(PROP_HAZE_ALTITUDE_EFFECT, HazeAltitudeEffect, hazeAltitudeEffect, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_CEILING, HazeCeiling, hazeCeiling, float, DEFAULT_HAZE_CEILING);
-    DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, DEFAULT_HAZE_BASE_REF);
+    DEFINE_PROPERTY_REF(PROP_HAZE_CEILING, HazeCeiling, hazeCeiling, float, INITIAL_HAZE_BASE_REFERENCE + INITIAL_HAZE_HEIGHT);
+    DEFINE_PROPERTY_REF(PROP_HAZE_BASE_REF, HazeBaseRef, hazeBaseRef, float, INITIAL_HAZE_BASE_REFERENCE);
 
     // Background (skybox) blend value
-    DEFINE_PROPERTY_REF(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, DEFAULT_HAZE_BACKGROUND_BLEND);
+    DEFINE_PROPERTY_REF(PROP_HAZE_BACKGROUND_BLEND, HazeBackgroundBlend, hazeBackgroundBlend, float, INITIAL_HAZE_BACKGROUND_BLEND);
 
     // hazeDirectional light attenuation
     DEFINE_PROPERTY(PROP_HAZE_ATTENUATE_KEYLIGHT, HazeAttenuateKeyLight, hazeAttenuateKeyLight, bool, false);
-    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, DEFAULT_HAZE_KEYLIGHT_RANGE);
-    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, DEFAULT_HAZE_KEYLIGHT_ALTITUDE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_RANGE, HazeKeyLightRange, hazeKeyLightRange, float, INITIAL_KEY_LIGHT_RANGE);
+    DEFINE_PROPERTY_REF(PROP_HAZE_KEYLIGHT_ALTITUDE, HazeKeyLightAltitude, hazeKeyLightAltitude, float, INITIAL_KEY_LIGHT_ALTITUDE);
 };
 
 #endif // hifi_HazePropertyGroup_h

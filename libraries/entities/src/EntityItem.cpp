@@ -1655,7 +1655,6 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
         setDimensions(value);
         markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
         _queryAACubeSet = false;
-        dimensionsChanged();
     }
 }
 

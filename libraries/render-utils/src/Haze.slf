@@ -60,15 +60,15 @@ void main(void) {
     Light light = getLight();
     vec3 lightDirection = getLightDirection(light);
 
-    float directionalLightComponent = max(0.0, dot(eyeFragDir, -lightDirection));
-    float power = min(1.0, pow(directionalLightComponent, hazeParams.directionalLightBlend));
+    float glareComponent = max(0.0, dot(eyeFragDir, -lightDirection));
+    float power = min(1.0, pow(glareComponent, hazeParams.hazeGlareBlend));
 
-    vec4 directionalLightColor = vec4(hazeParams.directionalLightColor, 1.0);
+    vec4 glareColor = vec4(hazeParams.hazeGlareColor, 1.0);
 
-    // Use the haze colour for the belnd-out colour, if blend is not enabled
+    // Use the haze colour for the glare colour, if blend is not enabled
     vec4 blendedHazeColor;
     if ((hazeParams.hazeMode & HAZE_MODE_IS_ENABLE_LIGHT_BLEND) == HAZE_MODE_IS_ENABLE_LIGHT_BLEND) {
-        blendedHazeColor = mix(hazeColor, directionalLightColor, power);
+        blendedHazeColor = mix(hazeColor, glareColor, power);
     } else {
         blendedHazeColor = hazeColor;
     }
@@ -86,14 +86,14 @@ void main(void) {
         // Note that the haze base reference affects only the haze density as function of altitude
         vec3 hazeDensityDistribution =  
             hazeParams.colorModulationFactor * 
-            exp(-hazeParams.hazeAltitudeFactor * (worldEyePos.y - hazeParams.hazeBaseReference));
+            exp(-hazeParams.hazeHeightFactor * (worldEyePos.y - hazeParams.hazeBaseReference));
 
         vec3 hazeIntegral =  hazeDensityDistribution * distance;
 
         const float slopeThreshold = 0.01;
         float deltaHeight = worldFragPos.y - worldEyePos.y;
         if (abs(deltaHeight) > slopeThreshold) {
-            float t = hazeParams.hazeAltitudeFactor * deltaHeight;
+            float t = hazeParams.hazeHeightFactor * deltaHeight;
             hazeIntegral *= (1.0 - exp (-t)) / t;
         }
 
@@ -117,14 +117,14 @@ void main(void) {
         // Note that the haze base reference affects only the haze density as function of altitude
         float hazeDensityDistribution =  
             hazeParams.hazeRangeFactor * 
-            exp(-hazeParams.hazeAltitudeFactor * (worldEyePos.y - hazeParams.hazeBaseReference));
+            exp(-hazeParams.hazeHeightFactor * (worldEyePos.y - hazeParams.hazeBaseReference));
 
         float hazeIntegral =  hazeDensityDistribution * distance;
 
         const float slopeThreshold = 0.01;
         float deltaHeight = worldFragPos.y - worldEyePos.y;
         if (abs(deltaHeight) > slopeThreshold) {
-            float t = hazeParams.hazeAltitudeFactor * deltaHeight;
+            float t = hazeParams.hazeHeightFactor * deltaHeight;
             // Protect from wild values
             if (abs(t) > 0.0000001) {
                 hazeIntegral *= (1.0 - exp (-t)) / t;
@@ -140,7 +140,7 @@ void main(void) {
     // Mix with background at far range
     const float BLEND_DISTANCE = 27000.0;
     if (distance > BLEND_DISTANCE) {
-        outFragColor = mix(potentialFragColor, fragColor, hazeParams.backgroundBlendValue);
+        outFragColor = mix(potentialFragColor, fragColor, hazeParams.backgroundBlend);
     } else {
         outFragColor = potentialFragColor;
     }
