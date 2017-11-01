@@ -54,6 +54,7 @@ public:
     void setMirrorFlag(bool mirrorFlag) { _mirrorFlag = mirrorFlag; }
 
     void loadURL(const QString& url);
+    const QString& getURL() { return _url; }
 protected:
 
     virtual void setCurrentFrameInternal(float frame) override;

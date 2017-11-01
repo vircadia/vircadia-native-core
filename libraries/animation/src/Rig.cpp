@@ -144,6 +144,27 @@ QStringList Rig::getAnimationRoles() const {
     }
 }
 
+QVector<std::shared_ptr<AnimClip>> Rig::getAnimationClips() const {
+    QVector<std::shared_ptr<AnimClip>> list;
+    if (_animNode) {
+        _animNode->traverse([&](AnimNode::Pointer node) {
+            // only report clip nodes as valid roles.
+            auto clipNode = std::dynamic_pointer_cast<AnimClip>(node);
+            if (clipNode) {
+                // filter out the userAnims, they are for internal use only.
+                if (!clipNode->getID().startsWith("userAnim")) {
+                    list.append(clipNode);
+                }
+            }
+            return true;
+        });
+        return list;
+    }
+    else {
+        return list;
+    }
+}
+
 void Rig::overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (_animNode) {
         AnimNode::Pointer node = _animNode->findByName(role);

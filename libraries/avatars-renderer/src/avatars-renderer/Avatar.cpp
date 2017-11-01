@@ -139,6 +139,7 @@ Avatar::~Avatar() {
 void Avatar::init() {
     getHead()->init();
     _skeletonModel->init();
+    connect(&_skeletonModel->getRig(), &Rig::onLoadComplete, this, &Avatar::restoreAnimations);
     _initialized = true;
 }
 
@@ -195,6 +196,16 @@ void Avatar::setTargetScale(float targetScale) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
         _isAnimatingScale = true;
+    }
+}
+
+void Avatar::restoreAnimations() {
+    for (int i = 0; i < _animationCache.size(); i++) {
+        auto clip = _animationCache[i];
+        const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+        float fps = REFERENCE_FRAMES_PER_SECOND / clip->getTimeScale();
+        qDebug() << clip->getID() << "   " << clip->getURL() << "   " << fps << "   " << clip->getLoopFlag() << "   " << clip->getStartFrame() << "   " << clip->getEndFrame();
+        _skeletonModel->getRig().overrideRoleAnimation(clip->getID(), clip->getURL(), fps, clip->getLoopFlag(), clip->getStartFrame(), clip->getEndFrame());
     }
 }
 
@@ -1177,6 +1188,7 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    _animationCache = _skeletonModel->getRig().getAnimationClips();
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     if (QThread::currentThread() == thread()) {
         _skeletonModel->setURL(_skeletonModelURL);
