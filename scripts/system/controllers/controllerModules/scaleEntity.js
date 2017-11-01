@@ -98,9 +98,9 @@
     dispatcherUtils.enableDispatcherModule("LeftScaleEntity", leftScaleEntity);
     dispatcherUtils.enableDispatcherModule("RightScaleEntity", rightScaleEntity);
 
-    this.cleanup = function() {
+    function cleanup() {
         dispatcherUtils.disableDispatcherModule("LeftScaleEntity");
         dispatcherUtils.disableDispatcherModule("RightScaleEntity");
     };
-    Script.scriptEnding.connect(this.cleanup);
+    Script.scriptEnding.connect(cleanup);
 })();

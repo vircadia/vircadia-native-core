@@ -53,7 +53,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
     enableDispatcherModule("LeftDisableModules", leftDisableModules);
     enableDispatcherModule("RightDisableModules", rightDisableModules);
-    this.handleMessage = function(channel, message, sender) {
+    function handleMessage(channel, message, sender) {
         if (sender === MyAvatar.sessionUUID) {
             if (channel === 'Hifi-Hand-Disabler') {
                 if (message === 'left') {
@@ -76,10 +76,10 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     };
 
     Messages.subscribe('Hifi-Hand-Disabler');
-    this.cleanup = function() {
+    function cleanup() {
         disableDispatcherModule("LeftDisableModules");
         disableDispatcherModule("RightDisableModules");
     };
-    Messages.messageReceived.connect(this.handleMessage);
-    Script.scriptEnding.connect(this.cleanup);
+    Messages.messageReceived.connect(handleMessage);
+    Script.scriptEnding.connect(cleanup);
 }());

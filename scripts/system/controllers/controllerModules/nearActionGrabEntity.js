@@ -256,11 +256,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
     enableDispatcherModule("LeftNearActionGrabEntity", leftNearActionGrabEntity);
     enableDispatcherModule("RightNearActionGrabEntity", rightNearActionGrabEntity);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftNearActionGrabEntity.cleanup();
         rightNearActionGrabEntity.cleanup();
         disableDispatcherModule("LeftNearActionGrabEntity");
         disableDispatcherModule("RightNearActionGrabEntity");
     };
-    Script.scriptEnding.connect(this.cleanup);
+    Script.scriptEnding.connect(cleanup);
 }());

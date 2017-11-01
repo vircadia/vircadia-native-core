@@ -168,7 +168,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     var pointer = (hand === RIGHT_HAND) ? _this.rightControllerPointer : _this.leftControllerPointer;
                     var targetID = laserLockInfo.targetID;
                     var targetIsOverlay = laserLockInfo.isOverlay;
-                    Pointers.setLockEndUUID(pointer, targetID, targetIsOverlay);
+                    Pointers.setLockEndUid(pointer, targetID, targetIsOverlay);
                     _this.laserLockStatus[hand] = targetID;
                 }
             } else {
@@ -634,7 +634,14 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Pointers.removePointer(_this.leftControllerHudRayPick);
         };
     }
-
+    function mouseReleaseOnOverlay(overlayID, event) {
+        if (overlayID === HMD.homeButtonID) {
+            print(JSON.stringify(event));
+            print("---------> go home <--------");
+            Messages.sendLocalMessage("home", overlayID);
+        }
+    }
+    Overlays.mouseReleaseOnOverlay.connect(mouseReleaseOnOverlay);
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);

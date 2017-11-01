@@ -475,11 +475,11 @@ Script.include("/~/system/libraries/controllers.js");
     enableDispatcherModule("LeftFarActionGrabEntity", leftFarActionGrabEntity);
     enableDispatcherModule("RightFarActionGrabEntity", rightFarActionGrabEntity);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftFarActionGrabEntity.cleanup();
         rightFarActionGrabEntity.cleanup();
         disableDispatcherModule("LeftFarActionGrabEntity");
         disableDispatcherModule("RightFarActionGrabEntity");
     };
-    Script.scriptEnding.connect(this.cleanup);
+    Script.scriptEnding.connect(cleanup);
 }());
