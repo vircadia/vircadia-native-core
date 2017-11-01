@@ -261,6 +261,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         rightNearActionGrabEntity.cleanup();
         disableDispatcherModule("LeftNearActionGrabEntity");
         disableDispatcherModule("RightNearActionGrabEntity");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());

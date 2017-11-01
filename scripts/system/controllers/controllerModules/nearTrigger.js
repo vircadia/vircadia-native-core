@@ -115,6 +115,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         rightNearTriggerEntity.cleanup();
         disableDispatcherModule("LeftNearTriggerEntity");
         disableDispatcherModule("RightNearTriggerEntity");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());

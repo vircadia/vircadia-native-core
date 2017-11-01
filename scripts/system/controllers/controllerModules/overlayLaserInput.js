@@ -95,6 +95,6 @@ Script.include("/~/system/libraries/controllers.js");
     function cleanup() {
         disableDispatcherModule("LeftOverlayLaserInput");
         disableDispatcherModule("RightOverlayLaserInput");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());

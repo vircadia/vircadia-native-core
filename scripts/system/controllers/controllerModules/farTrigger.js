@@ -99,6 +99,6 @@ Script.include("/~/system/libraries/controllers.js");
     function cleanup() {
         disableDispatcherModule("LeftFarTriggerEntity");
         disableDispatcherModule("RightFarTriggerEntity");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());

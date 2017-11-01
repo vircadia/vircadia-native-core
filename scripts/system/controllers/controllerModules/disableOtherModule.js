@@ -73,13 +73,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
         }
-    };
+    }
 
     Messages.subscribe('Hifi-Hand-Disabler');
     function cleanup() {
         disableDispatcherModule("LeftDisableModules");
         disableDispatcherModule("RightDisableModules");
-    };
+    }
     Messages.messageReceived.connect(handleMessage);
     Script.scriptEnding.connect(cleanup);
 }());

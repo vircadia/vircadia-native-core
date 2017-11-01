@@ -343,6 +343,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         rightNearParentingGrabEntity.cleanup();
         disableDispatcherModule("LeftNearParentingGrabEntity");
         disableDispatcherModule("RightNearParentingGrabEntity");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());

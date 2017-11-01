@@ -229,6 +229,6 @@ Script.include("/~/system/libraries/utils.js");
         rightNearParentingGrabOverlay.cleanup();
         disableDispatcherModule("LeftNearParentingGrabOverlay");
         disableDispatcherModule("RightNearParentingGrabOverlay");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());

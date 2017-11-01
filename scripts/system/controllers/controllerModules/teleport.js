@@ -12,7 +12,7 @@
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, makeDispatcherModuleParameters, makeRunningValues, Vec3,
-   LaserPointers, RayPick, HMD, Uuid, AvatarList
+   LaserPointers, RayPick, HMD, Uuid, AvatarList, Picks
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -109,8 +109,8 @@ Script.include("/~/system/libraries/controllers.js");
 
 
     var teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-                                {name: "teleport", path: teleportPath, end: teleportEnd},
-                                {name: "seat", path: seatPath, end: seatEnd}];
+        {name: "teleport", path: teleportPath, end: teleportEnd},
+        {name: "seat", path: seatPath, end: seatEnd}];
 
     var DEFAULT_DISTANCE = 50;
     var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
@@ -127,18 +127,18 @@ Script.include("/~/system/libraries/controllers.js");
     };
 
     var TARGET = {
-        NONE: 'none',            // Not currently targetting anything
-        INVISIBLE: 'invisible',  // The current target is an invvsible surface
-        INVALID: 'invalid',      // The current target is invalid (wall, ceiling, etc.)
-        SURFACE: 'surface',      // The current target is a valid surface
-        SEAT: 'seat'             // The current target is a seat
+        NONE: 'none', // Not currently targetting anything
+        INVISIBLE: 'invisible', // The current target is an invvsible surface
+        INVALID: 'invalid', // The current target is invalid (wall, ceiling, etc.)
+        SURFACE: 'surface', // The current target is a valid surface
+        SEAT: 'seat' // The current target is a seat
     };
 
     function Teleporter(hand) {
         var _this = this;
         this.hand = hand;
         this.buttonValue = 0;
-        this.disabled = false;  // used by the 'Hifi-Teleport-Disabler' message handler
+        this.disabled = false; // used by the 'Hifi-Teleport-Disabler' message handler
         this.active = false;
         this.state = TELEPORTER_STATES.IDLE;
         this.currentTarget = TARGET.INVALID;
@@ -218,8 +218,8 @@ Script.include("/~/system/libraries/controllers.js");
                 seatEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
 
                 teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-                                        {name: "teleport", path: teleportPath, end: teleportEnd},
-                                        {name: "seat", path: seatPath, end: seatEnd}];
+                    {name: "teleport", path: teleportPath, end: teleportEnd},
+                    {name: "seat", path: seatPath, end: seatEnd}];
 
                 LaserPointers.editRenderState(this.teleportRayHandVisible, "cancel", teleportRenderStates[0]);
                 LaserPointers.editRenderState(this.teleportRayHandInvisible, "cancel", teleportRenderStates[0]);

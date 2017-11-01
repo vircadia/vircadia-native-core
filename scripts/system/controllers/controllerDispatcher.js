@@ -10,7 +10,8 @@
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
    controllerDispatcherPlugins:true, controllerDispatcherPluginsNeedSort:true,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
-   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities
+   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Pointers, PickType, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, Picks
 */
 
 controllerDispatcherPlugins = {};
@@ -157,7 +158,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             var handLaser = plugin.parameters.handLaser;
             if (handLaser !== undefined) {
                 _this.laserVisibleStatus[handLaser] = false;
-                _this.laserLockStatus[handLaser]  = false;
+                _this.laserLockStatus[handLaser] = false;
             }
         };
 
@@ -258,16 +259,16 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             // update left hand laser
 
             var HUD_LASER_OFFSET = 2;
+            var laserLocked;
             if (_this.laserVisibleStatus[LEFT_HAND]) {
-                var laserLocked = _this.laserLockStatus[LEFT_HAND];
+                laserLocked = _this.laserLockStatus[LEFT_HAND];
                 _this.updateLaserRenderState(_this.leftControllerPointer,_this.leftTriggerClicked, laserLocked);
             } else {
                 Pointers.setRenderState(_this.leftControllerPointer, "");
             }
 
-            //update right hand laser
             if (_this.laserVisibleStatus[RIGHT_HAND]) {
-                var laserLocked = _this.laserLockStatus[RIGHT_HAND];
+                laserLocked = _this.laserLockStatus[RIGHT_HAND];
                 _this.updateLaserRenderState(_this.rightControllerPointer, _this.rightTriggerClicked, laserLocked);
             } else {
                 Pointers.setRenderState(_this.rightControllerPointer, "");
@@ -636,8 +637,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     }
     function mouseReleaseOnOverlay(overlayID, event) {
         if (overlayID === HMD.homeButtonID) {
-            print(JSON.stringify(event));
-            print("---------> go home <--------");
             Messages.sendLocalMessage("home", overlayID);
         }
     }

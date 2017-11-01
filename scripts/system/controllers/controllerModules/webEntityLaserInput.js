@@ -60,7 +60,7 @@ Script.include("/~/system/libraries/controllers.js");
     function cleanup() {
         disableDispatcherModule("LeftWebEntityLaserInput");
         disableDispatcherModule("RightWebEntityLaserInput");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 
 }());

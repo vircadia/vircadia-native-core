@@ -14,14 +14,13 @@
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
    getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
-
+   Picks, makeLaserLockInfo
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
-    var PICK_WITH_HAND_RAY = true;
     var GRABBABLE_PROPERTIES = [
         "position",
         "registrationPoint",
@@ -249,7 +248,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbedThingID = null;
         };
 
-         this.updateRecommendedArea = function() {
+        this.updateRecommendedArea = function() {
             var dims = Controller.getViewportDimensions();
             this.reticleMaxX = dims.x - MARGIN;
             this.reticleMaxY = dims.y - MARGIN;
@@ -480,6 +479,6 @@ Script.include("/~/system/libraries/controllers.js");
         rightFarActionGrabEntity.cleanup();
         disableDispatcherModule("LeftFarActionGrabEntity");
         disableDispatcherModule("RightFarActionGrabEntity");
-    };
+    }
     Script.scriptEnding.connect(cleanup);
 }());
