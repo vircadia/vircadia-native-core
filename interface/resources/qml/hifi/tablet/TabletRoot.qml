@@ -219,7 +219,7 @@ Item {
 
     function setShown(value) {
         if (value === true) {
-            HMD.openTablet()
+            HMD.openTablet(HMD.tabletContextualMode) // pass in current contextual mode flag to maintain flag (otherwise uses default false argument)
         } else {
             HMD.closeTablet()
         }
