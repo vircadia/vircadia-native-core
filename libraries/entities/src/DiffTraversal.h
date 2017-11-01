@@ -57,7 +57,8 @@ public:
 
     DiffTraversal();
 
-    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum);
+    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, 
+        bool usesViewFrustum, bool isFullScene);
 
     const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
     const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }

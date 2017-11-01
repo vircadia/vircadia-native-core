@@ -96,7 +96,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         nodeData->copyCurrentViewFrustum(viewFrustum);
         EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
         int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
-        startNewTraversal(viewFrustum, root, lodLevelOffset, nodeData->getUsesFrustum());
+        startNewTraversal(viewFrustum, root, lodLevelOffset, nodeData->getUsesFrustum(), isFullScene);
 
         // When the viewFrustum changed the sort order may be incorrect, so we re-sort
         // and also use the opportunity to cull anything no longer in view
@@ -175,7 +175,7 @@ bool EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filte
         return parentWasNew || ancestorsWereNew;
     }
 
-    // since we didn't have a parent niether of our parents or ancestors could be new additions
+    // since we didn't have a parent, neither of our parents or ancestors could be new additions
     return false;
 }
 
@@ -204,8 +204,10 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
     return hasNewChild || hasNewDescendants;
 }
 
-void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum) {
-    DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root, lodLevelOffset, usesViewFrustum);
+void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset, 
+        bool usesViewFrustum, bool isFullScene) {
+
+    DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root, lodLevelOffset, usesViewFrustum, isFullScene);
     // there are three types of traversal:
     //
     //      (1) FirstTime = at login --> find everything in view
@@ -423,12 +425,14 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
     uint64_t sendTime = usecTimestampNow();
     auto nodeData = static_cast<OctreeQueryNode*>(params.nodeData);
     nodeData->stats.encodeStarted();
+    auto entityNodeData = static_cast<EntityNodeData*>(_node.toStrongRef()->getLinkedData());
     while(!_sendQueue.empty()) {
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
         if (entity) {
             // Only send entities that match the jsonFilters, but keep track of everything we've tried to send so we don't try to send it again
-            if (entity->matchesJSONFilters(jsonFilters)) {
+            if (entity->matchesJSONFilters(jsonFilters) || entityNodeData->isEntityFlaggedAsExtra(entity->getID())) {
+                entityNodeData->insertSentFilteredEntity(entity->getID());
                 OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
 
                 if (appendEntityState != OctreeElement::COMPLETED) {
