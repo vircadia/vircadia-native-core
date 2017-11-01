@@ -80,6 +80,8 @@ public:
     const rgbColor& getColor() const { return _color; }
     void setColor(const rgbColor& value);
 
+	void setDimensions(const glm::vec3& value) override;
+
     xColor getXColor() const;
     void setColor(const xColor& value);
 

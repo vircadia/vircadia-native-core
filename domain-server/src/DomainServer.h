@@ -187,6 +187,13 @@ private:
 
     HTTPSConnection* connectionFromReplyWithState(QNetworkReply* reply);
 
+    bool forwardMetaverseAPIRequest(HTTPConnection* connection,
+                                    const QString& metaversePath,
+                                    const QString& requestSubobject,
+                                    std::initializer_list<QString> requiredData = { },
+                                    std::initializer_list<QString> optionalData = { },
+                                    bool requireAccessToken = true);
+
     SubnetList _acSubnetWhitelist;
 
     std::vector<QString> _replicatedUsernames;

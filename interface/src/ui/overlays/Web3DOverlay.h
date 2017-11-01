@@ -67,6 +67,8 @@ public:
     void destroyWebSurface();
     void onResizeWebSurface();
 
+    Q_INVOKABLE int deviceIdByTouchPoint(qreal x, qreal y);
+
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
 

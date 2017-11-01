@@ -225,26 +225,39 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     }
 
     function getAttachPointForHotspotFromSettings(hotspot, hand) {
+        var skeletonModelURL = MyAvatar.skeletonModelURL;
         var attachPointSettings = getAttachPointSettings();
-        var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
-        var joints = attachPointSettings[hotspot.key];
-        if (joints) {
-            return joints[jointName];
-        } else {
-            return undefined;
+        var avatarSettingsData = attachPointSettings[skeletonModelURL];
+        if (avatarSettingsData) {
+            var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
+            var joints = avatarSettingsData[hotspot.key];
+            if (joints) {
+                return joints[jointName];
+            }
         }
+        return undefined;
     }
 
     function storeAttachPointForHotspotInSettings(hotspot, hand, offsetPosition, offsetRotation) {
         var attachPointSettings = getAttachPointSettings();
+        var skeletonModelURL = MyAvatar.skeletonModelURL;
+        var avatarSettingsData = attachPointSettings[skeletonModelURL];
+        if (!avatarSettingsData) {
+            avatarSettingsData = {};
+            attachPointSettings[skeletonModelURL] = avatarSettingsData;
+        }
         var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
-        var joints = attachPointSettings[hotspot.key];
+        var joints = avatarSettingsData[hotspot.key];
         if (!joints) {
             joints = {};
-            attachPointSettings[hotspot.key] = joints;
+            avatarSettingsData[hotspot.key] = joints;
         }
         joints[jointName] = [offsetPosition, offsetRotation];
         setAttachPointSettings(attachPointSettings);
+    }
+
+    function clearAttachPoints() {
+        setAttachPointSettings({});
     }
 
     function EquipEntity(hand) {
@@ -538,6 +551,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.endEquipEntity = function () {
+            this.storeAttachPointInSettings();
             Entities.editEntity(this.targetEntityID, {
                 parentID: Uuid.NULL,
                 parentJointIndex: -1
@@ -684,14 +698,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
                 this.waitForTriggerRelease = true;
                 // store the offset attach points into preferences.
-                if (this.grabbedHotspot && this.targetEntityID) {
-                    var prefprops = Entities.getEntityProperties(this.targetEntityID, ["localPosition", "localRotation"]);
-                    if (prefprops && prefprops.localPosition && prefprops.localRotation) {
-                        storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand,
-                            prefprops.localPosition, prefprops.localRotation);
-                    }
-                }
-
                 this.endEquipEntity();
                 return makeRunningValues(false, [], []);
             }
@@ -705,6 +711,16 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             return makeRunningValues(true, [this.targetEntityID], []);
+        };
+
+        this.storeAttachPointInSettings = function() {
+            if (this.grabbedHotspot && this.targetEntityID) {
+                var prefProps = Entities.getEntityProperties(this.targetEntityID, ["localPosition", "localRotation"]);
+                if (prefProps && prefProps.localPosition && prefProps.localRotation) {
+                    storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand,
+                        prefProps.localPosition, prefProps.localRotation);
+                }
+            }
         };
 
         this.cleanup = function () {
@@ -751,11 +767,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     enableDispatcherModule("LeftEquipEntity", leftEquipEntity);
     enableDispatcherModule("RightEquipEntity", rightEquipEntity);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftEquipEntity.cleanup();
         rightEquipEntity.cleanup();
         disableDispatcherModule("LeftEquipEntity");
         disableDispatcherModule("RightEquipEntity");
+        clearAttachPoints();
     };
-    Script.scriptEnding.connect(this.cleanup);
+    Script.scriptEnding.connect(cleanup);
 }());
