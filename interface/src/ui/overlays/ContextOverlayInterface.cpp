@@ -418,8 +418,6 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
     EntityItemID id;
     bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyDecryptedNonce(certID, decryptedText, id);
 
-    qDebug() << "ZRF" << verificationSuccess;
-
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
     } else {
