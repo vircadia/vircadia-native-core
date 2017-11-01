@@ -67,27 +67,25 @@ Rectangle {
         }
 
         onUpdateCertificateStatus: {
-            if (root.certificateId === certID) {
-                if (certStatus === 1) { // CERTIFICATE_STATUS_VERIFICATION_SUCCESS
-                
-                } else if (certStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
-                    errorText.text = "Verification of this certificate timed out.";
-                    errorText.color = hifi.colors.redHighlight;
-                } else if (certStatus === 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
-                    titleBarText.text = "Invalid Certificate";
-                    titleBarText.color = hifi.colors.redHighlight;
-                    root.itemEdition = "Uncertified Copy";
-                    errorText.text = "The certificate associated with this entity is invalid.";
-                    errorText.color = hifi.colors.redHighlight;
-                } else if (certStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
-                    titleBarText.text = "Invalid Certificate";
-                    titleBarText.color = hifi.colors.redHighlight;
-                    root.itemEdition = "Uncertified Copy";
-                    errorText.text = "The certificate associated with this entity is invalid.";
-                    errorText.color = hifi.colors.redHighlight;
-                } else {
-                    console.log("Unknown certificate status received from ledger signal!");
-                }
+            if (certStatus === 1) { // CERTIFICATE_STATUS_VERIFICATION_SUCCESS
+                // NOP
+            } else if (certStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
+                errorText.text = "Verification of this certificate timed out.";
+                errorText.color = hifi.colors.redHighlight;
+            } else if (certStatus === 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
+                titleBarText.text = "Invalid Certificate";
+                titleBarText.color = hifi.colors.redHighlight;
+                root.itemEdition = "Uncertified Copy";
+                errorText.text = "The certificate associated with this entity is invalid.";
+                errorText.color = hifi.colors.redHighlight;
+            } else if (certStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
+                titleBarText.text = "Invalid Certificate";
+                titleBarText.color = hifi.colors.redHighlight;
+                root.itemEdition = "Uncertified Copy";
+                errorText.text = "The certificate associated with this entity is invalid.";
+                errorText.color = hifi.colors.redHighlight;
+            } else {
+                console.log("Unknown certificate status received from ledger signal!");
             }
         }
     }

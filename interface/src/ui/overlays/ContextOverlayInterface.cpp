@@ -279,8 +279,7 @@ void ContextOverlayInterface::openInspectionCertificate() {
         QUuid nodeToChallenge = entityProperties.getOwningAvatarID();
         auto nodeList = DependencyManager::get<NodeList>();
 
-        // ZRF FIXME: Don't challenge ownership of avatar entities that I own
-        if (entityProperties.getClientOnly()/* && nodeToChallenge != nodeList->getSessionUUID()*/) {
+        if (entityProperties.getClientOnly()) {
             if (entityProperties.verifyStaticCertificateProperties()) {
                 SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
 
