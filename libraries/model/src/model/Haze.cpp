@@ -9,11 +9,29 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include <memory>
-#include <gpu/Resource.h>
 
 #include "Haze.h"
 
 using namespace model;
+
+const float Haze::INITIAL_HAZE_RANGE{ 1000.0f };
+const float Haze::INITIAL_HAZE_HEIGHT{ 200.0f };
+
+const float Haze::INITIAL_KEY_LIGHT_RANGE{ 1000.0f };
+const float Haze::INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
+
+const float Haze::INITIAL_HAZE_BACKGROUND_BLEND{ 0.0f };
+
+const glm::vec3 Haze::INITIAL_HAZE_COLOR{ 0.5f, 0.6f, 0.7f }; // Bluish
+
+const float Haze::INITIAL_HAZE_GLARE_ANGLE{ 20.0f };
+
+const glm::vec3 Haze::INITIAL_HAZE_GLARE_COLOR{ 1.0f, 0.9f, 0.7f };
+
+const float Haze::INITIAL_HAZE_BASE_REFERENCE{ 0.0f };
+
+const float Haze::LOG_P_005{ logf(0.05f)};
+const float Haze::LOG_P_05{ logf(0.5f) };
 
 Haze::Haze() {
     Parameters parameters;
@@ -23,7 +41,7 @@ Haze::Haze() {
 enum HazeModes {
     HAZE_MODE_IS_ACTIVE                        = 1 << 0,
     HAZE_MODE_IS_ALTITUDE_BASED                = 1 << 1,
-    HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED  = 1 << 2,
+    HAZE_MODE_IS_KEYLIGHT_ATTENUATED           = 1 << 2,
     HAZE_MODE_IS_MODULATE_COLOR                = 1 << 3,
     HAZE_MODE_IS_ENABLE_LIGHT_BLEND            = 1 << 4
 };
@@ -55,25 +73,25 @@ void Haze::setHazeEnableGlare(const bool isHazeEnableGlare) {
     }
 }
 
-void Haze::setDirectionalLightBlend(const float hazeDirectionalLightBlend) {
+void Haze::setHazeGlareBlend(const float hazeGlareBlend) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (params.directionalLightBlend != hazeDirectionalLightBlend) {
-        _hazeParametersBuffer.edit<Parameters>().directionalLightBlend = hazeDirectionalLightBlend;
+    if (params.hazeGlareBlend != hazeGlareBlend) {
+        _hazeParametersBuffer.edit<Parameters>().hazeGlareBlend = hazeGlareBlend;
     }
 }
 
-void Haze::setDirectionalLightColor(const glm::vec3 hazeDirectionalLightColor) {
+void Haze::setHazeGlareColor(const glm::vec3 hazeGlareColor) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (params.directionalLightColor.r != hazeDirectionalLightColor.r) {
-        _hazeParametersBuffer.edit<Parameters>().directionalLightColor.r = hazeDirectionalLightColor.r;
+    if (params.hazeGlareColor.r != hazeGlareColor.r) {
+        _hazeParametersBuffer.edit<Parameters>().hazeGlareColor.r = hazeGlareColor.r;
     }
-    if (params.directionalLightColor.g != hazeDirectionalLightColor.g) {
-        _hazeParametersBuffer.edit<Parameters>().directionalLightColor.g = hazeDirectionalLightColor.g;
+    if (params.hazeGlareColor.g != hazeGlareColor.g) {
+        _hazeParametersBuffer.edit<Parameters>().hazeGlareColor.g = hazeGlareColor.g;
     }
-    if (params.directionalLightColor.b != hazeDirectionalLightColor.b) {
-        _hazeParametersBuffer.edit<Parameters>().directionalLightColor.b = hazeDirectionalLightColor.b;
+    if (params.hazeGlareColor.b != hazeGlareColor.b) {
+        _hazeParametersBuffer.edit<Parameters>().hazeGlareColor.b = hazeGlareColor.b;
     }
 }
 void Haze::setHazeActive(const bool isHazeActive) {
@@ -99,10 +117,10 @@ void Haze::setAltitudeBased(const bool isAltitudeBased) {
 void Haze::setHazeAttenuateKeyLight(const bool isHazeAttenuateKeyLight) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) == HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED ) && !isHazeAttenuateKeyLight) {
-        _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED;
-    } else if (((params.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) != HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) && isHazeAttenuateKeyLight) {
-        _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED;
+    if (((params.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) && !isHazeAttenuateKeyLight) {
+        _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_KEYLIGHT_ATTENUATED;
+    } else if (((params.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) != HAZE_MODE_IS_KEYLIGHT_ATTENUATED) && isHazeAttenuateKeyLight) {
+        _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_KEYLIGHT_ATTENUATED;
     }
 }
 
@@ -124,11 +142,11 @@ void Haze::setHazeRangeFactor(const float hazeRangeFactor) {
     }
 }
 
-void Haze::setHazeAltitudeFactor(const float hazeAltitudeFactor) {
+void Haze::setHazeAltitudeFactor(const float hazeHeightFactor) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (params.hazeAltitudeFactor != hazeAltitudeFactor) {
-        _hazeParametersBuffer.edit<Parameters>().hazeAltitudeFactor = hazeAltitudeFactor;
+    if (params.hazeHeightFactor != hazeHeightFactor) {
+        _hazeParametersBuffer.edit<Parameters>().hazeHeightFactor = hazeHeightFactor;
     }
 }
 
@@ -156,11 +174,11 @@ void Haze::setHazeBaseReference(const float hazeBaseReference) {
     }
 }
 
-void Haze::setHazeBackgroundBlendValue(const float hazeBackgroundBlendValue) {
+void Haze::setHazeBackgroundBlend(const float hazeBackgroundBlend) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (params.hazeBackgroundBlendValue != hazeBackgroundBlendValue) {
-        _hazeParametersBuffer.edit<Parameters>().hazeBackgroundBlendValue = hazeBackgroundBlendValue;
+    if (params.hazeBackgroundBlend != hazeBackgroundBlend) {
+        _hazeParametersBuffer.edit<Parameters>().hazeBackgroundBlend = hazeBackgroundBlend;
     }
 }
 
