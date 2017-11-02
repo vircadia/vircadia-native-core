@@ -59,6 +59,7 @@
                         <option value="Cylinder">Cylinder</option>
                         <option value="Cone">Cone</option>
                         <option value="Circle">Circle</option>
+                        <option value="Quad">Quad</option>
                     </select>
             </div>
             <div class="property text">
@@ -570,14 +571,14 @@
                     </fieldset>
                 </fieldset>
                 <fieldset class="zone-group zone-section haze-section property rgb fstuple">
-                    <div class="color-picker" id="property-zone-haze-blend-in-color"></div>
+                    <div class="color-picker" id="property-zone-haze-color"></div>
                     <legend>Haze Color</legend>
                     <div class="tuple">
-                        <div><input type="number" class="red" id="property-zone-haze-blend-in-color-red" min="0" max="255" step="1">
+                        <div><input type="number" class="red" id="property-zone-haze-color-red" min="0" max="255" step="1">
                           <label for="property-zone-haze-blend-in-color-red">Red:</label></div>
-                        <div><input type="number" class="green" id="property-zone-haze-blend-in-color-green" min="0" max="255" step="1">
+                        <div><input type="number" class="green" id="property-zone-haze-color-green" min="0" max="255" step="1">
                           <label for="property-zone-haze-blend-in-color-green">Green:</label></div>
-                        <div><input type="number" class="blue" id="property-zone-haze-blend-in-color-blue" min="0" max="255" step="1">
+                        <div><input type="number" class="blue" id="property-zone-haze-color-blue" min="0" max="255" step="1">
                           <label for="property-zone-haze-blend-in-color-blue">Blue:</label></div>
                     </div>
                 </fieldset>
@@ -586,14 +587,14 @@
                     <label for="property-zone-haze-enable-light-blend">Enable Glare</label>
                 </div>
                 <fieldset class="zone-group zone-section haze-section property rgb fstuple">
-                    <div class="color-picker" id="property-zone-haze-blend-out-color"></div>
+                    <div class="color-picker" id="property-zone-haze-glare-color"></div>
                     <legend>Glare Color</legend>
                     <div class="tuple">
-                        <div><input type="number" class="red" id="property-zone-haze-blend-out-color-red" min="0" max="255" step="1">
+                        <div><input type="number" class="red" id="property-zone-haze-glare-color-red" min="0" max="255" step="1">
                           <label for="property-zone-haze-blend-out-color-red">Red:</label></div>
-                        <div><input type="number" class="green" id="property-zone-haze-blend-out-color-green" min="0" max="255" step="1">
+                        <div><input type="number" class="green" id="property-zone-haze-glare-color-green" min="0" max="255" step="1">
                           <label for="property-zone-haze-blend-out-color-green">Green:</label></div>
-                        <div><input type="number" class="blue" id="property-zone-haze-blend-out-color-blue" min="0" max="255" step="1">
+                        <div><input type="number" class="blue" id="property-zone-haze-glare-color-blue" min="0" max="255" step="1">
                           <label for="property-zone-haze-blend-out-color-blue">Blue:</label></div>
                     </div>
                 </fieldset>
@@ -602,6 +603,12 @@
                         <div><label>Glare Angle<span class="unit">deg</span></label><input type="number" id="property-zone-haze-blend-angle" min="0" max="180" step="1"></div>
                     </div>
                  </fieldset>
+                <fieldset class="zone-group zone-section haze-section property gen fstuple">
+                    <div>
+                        <label>Background Blend</label>
+                        <input type="number" id="property-zone-haze-background-blend" min="0.0" max="1.0" step="0.01">
+                    </div>
+                </fieldset>
                 <fieldset class="zone-group zone-section haze-section property gen fstuple">
                     <div class="zone-group zone-section haze-section property checkbox">
                         <input type="checkbox" id="property-zone-haze-attenuate-keylight">
@@ -612,12 +619,6 @@
                         min="5" max="1000000" step="5"></div>
                         <div><label>Altitude<span class="unit">m</span></label><input type="number" id="property-zone-haze-keylight-altitude" 
                         min="-1000" max="50000" step="10"></div>
-                    </div>
-                </fieldset>
-                <fieldset class="zone-group zone-section haze-section property gen fstuple">
-                    <div>
-                        <label>Background Blend</label>
-                        <input type="number" id="property-zone-haze-background-blend" min="0.0" max="1.0" step="0.01">
                     </div>
                 </fieldset>
            </fieldset>

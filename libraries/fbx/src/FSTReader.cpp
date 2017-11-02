@@ -15,7 +15,6 @@
 #include <QNetworkRequest>
 
 #include <NetworkAccessManager.h>
-#include <NetworkingConstants.h>
 #include <SharedUtil.h>
 
 #include "FSTReader.h"

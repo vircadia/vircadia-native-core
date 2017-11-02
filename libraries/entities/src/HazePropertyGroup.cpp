@@ -15,19 +15,6 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-const float HazePropertyGroup::DEFAULT_HAZE_RANGE{ 1000.0f };
-const xColor HazePropertyGroup::DEFAULT_HAZE_COLOR{ 128, 154, 179 };    // Bluish
-const xColor HazePropertyGroup::DEFAULT_HAZE_GLARE_COLOR{ 255, 229, 179 };   // Yellowish
-const float HazePropertyGroup::DEFAULT_HAZE_GLARE_ANGLE{ 20.0 };
-
-const float HazePropertyGroup::DEFAULT_HAZE_CEILING{ 200.0f };
-const float HazePropertyGroup::DEFAULT_HAZE_BASE_REF{ 0.0f };
-
-const float HazePropertyGroup::DEFAULT_HAZE_BACKGROUND_BLEND{ 0.0f };
-
-const float HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_RANGE{ 1000.0 };
-const float HazePropertyGroup::DEFAULT_HAZE_KEYLIGHT_ALTITUDE{ 200.0f };
-
 void HazePropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor);
@@ -306,6 +293,7 @@ EntityPropertyFlags HazePropertyGroup::getEntityProperties(EncodeBitstreamParams
     requestedProperties += PROP_HAZE_ENABLE_GLARE;
     requestedProperties += PROP_HAZE_GLARE_ANGLE;
 
+    requestedProperties += PROP_HAZE_ALTITUDE_EFFECT;
     requestedProperties += PROP_HAZE_CEILING;
     requestedProperties += PROP_HAZE_BASE_REF;
 

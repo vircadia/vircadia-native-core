@@ -619,6 +619,7 @@ signals:
     void skeletonChanged();
     void dominantHandChanged(const QString& hand);
     void sensorToWorldScaleChanged(float sensorToWorldScale);
+    void attachmentsChanged();
 
 private:
 

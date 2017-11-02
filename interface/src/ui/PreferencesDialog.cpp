@@ -11,7 +11,6 @@
 #include <AudioClient.h>
 #include <avatar/AvatarManager.h>
 #include <devices/DdeFaceTracker.h>
-#include <NetworkingConstants.h>
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>

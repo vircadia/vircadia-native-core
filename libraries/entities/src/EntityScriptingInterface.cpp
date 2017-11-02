@@ -1833,18 +1833,3 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
     }
     return result;
 }
-
-#ifdef DEBUG_CERT
-QString EntityScriptingInterface::computeCertificateID(const QUuid& entityID) {
-    QString result { "" };
-    if (_entityTree) {
-        _entityTree->withReadLock([&] {
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
-            if (entity) {
-                result = entity->computeCertificateID();
-            }
-        });
-    }
-    return result;
-}
-#endif
