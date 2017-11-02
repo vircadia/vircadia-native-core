@@ -108,7 +108,6 @@ public slots:
     void changeAudioOutputDevice(const QString& deviceName, bool isHtmlUpdate = false);
     void forceHtmlAudioOutputDeviceUpdate();
     void forceQmlAudioOutputDeviceUpdate();
-    void updateQmlAudio();
 signals:
     void audioOutputDeviceChanged(const QString& deviceName);
 
