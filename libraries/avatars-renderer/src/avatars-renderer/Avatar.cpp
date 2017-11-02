@@ -728,8 +728,9 @@ void Avatar::simulateAttachments(float deltaTime) {
         glm::quat jointRotation;
         if (attachment.isSoft) {
             // soft attachments do not have transform offsets
-            model->setTranslation(getPosition());
-            model->setRotation(getOrientation() * Quaternions::Y_180);
+        //    model->setTranslation(getPosition());
+        //    model->setRotation(getOrientation() * Quaternions::Y_180);
+            model->setTransformNoUpdateRenderItems(Transform(getOrientation() * Quaternions::Y_180, glm::vec3(1.0), getPosition());
             model->simulate(deltaTime);
         } else {
             if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPosition) &&
