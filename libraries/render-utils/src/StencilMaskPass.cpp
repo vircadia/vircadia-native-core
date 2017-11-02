@@ -128,6 +128,11 @@ void PrepareStencil::testNoAA(gpu::State& state) {
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
+void PrepareStencil::testMaskNoAA(gpu::State& state) {
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(0, STENCIL_MASK | STENCIL_NO_AA, gpu::EQUAL,
+        gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+}
+
 // Pass if this area WAS marked as BACKGROUND
 // (see: model/src/Skybox.cpp, procedural/src/ProceduralSkybox.cpp)
 void PrepareStencil::testBackground(gpu::State& state) {
