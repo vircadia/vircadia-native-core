@@ -107,7 +107,6 @@ public:
     QStringList getAnimationRoles() const;
     void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreRoleAnimation(const QString& role);
-    //QVector<std::shared_ptr<AnimClip>> getAnimationClips() const;
 
     void initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset);
     void reset(const FBXGeometry& geometry);
