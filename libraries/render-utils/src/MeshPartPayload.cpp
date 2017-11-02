@@ -367,12 +367,27 @@ void ModelMeshPartPayload::notifyLocationChanged() {
 
 }
 
+
+void ModelMeshPartPayload::updateClusterBuffer(const QVector<glm::mat4>& clusterMatrices) {
+    // Once computed the cluster matrices, update the buffer(s)
+    if (clusterMatrices.size() > 1) {
+        if (!_clusterBuffer) {
+            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterMatrices.constData());
+        }
+        else {
+            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) clusterMatrices.constData());
+        }
+    }
+}
+
 void ModelMeshPartPayload::updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform,
         const gpu::BufferPointer& buffer) {
     _transform = renderTransform;
     _worldBound = _adjustedLocalBound;
     _worldBound.transform(boundTransform);
-    _clusterBuffer = buffer;
+ //   _clusterBuffer = buffer;
 }
 
 ItemKey ModelMeshPartPayload::getKey() const {

@@ -240,22 +240,37 @@ void Model::updateRenderItems() {
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::Transaction transaction;
+        int meshIndex{ 0 };
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform](ModelMeshPartPayload& data) {
-                ModelPointer model = data._model.lock();
-                if (model && model->isLoaded()) {
-                    // Ensure the model geometry was not reset between frames
-                    if (deleteGeometryCounter == model->_deleteGeometryCounter) {
+            const Model::MeshState& state = self->getMeshState(meshIndex);
+            auto clusterMatrices(state.clusterMatrices);
 
-                        const Model::MeshState& state = model->getMeshState(data._meshIndex);
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
+              //  ModelPointer model = data._model.lock();
+             //   if (model && model->isLoaded()) {
+                    // Ensure the model geometry was not reset between frames
+               //     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
+
+                        /*const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
                         if (state.clusterMatrices.size() == 1) {
                             renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
                         }
                         data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
-                    }
-                }
+                        */
+                        
+                        data.updateClusterBuffer(clusterMatrices);
+
+                        Transform renderTransform = modelTransform;
+                        if (clusterMatrices.size() == 1) {
+                            renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                        }
+                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
+
+                  //  }
+               // }
             });
+            meshIndex++;
         }
 
         Transform collisionMeshOffset;
@@ -1136,7 +1151,7 @@ void Model::updateClusterMatrices() {
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
 
-        // Once computed the cluster matrices, update the buffer(s)
+      /*  // Once computed the cluster matrices, update the buffer(s)
         if (mesh.clusters.size() > 1) {
             if (!state.clusterBuffer) {
                 state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
@@ -1145,7 +1160,7 @@ void Model::updateClusterMatrices() {
                 state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
                                                 (const gpu::Byte*) state.clusterMatrices.constData());
             }
-        }
+        }*/
     }
 
     // post the blender if we're not currently waiting for one to finish

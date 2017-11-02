@@ -111,6 +111,7 @@ void CauterizedModel::updateClusterMatrices() {
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
 
+        /*
         // Once computed the cluster matrices, update the buffer(s)
         if (mesh.clusters.size() > 1) {
             if (!state.clusterBuffer) {
@@ -121,6 +122,7 @@ void CauterizedModel::updateClusterMatrices() {
                                                 (const gpu::Byte*) state.clusterMatrices.constData());
             }
         }
+        */
     }
 
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -143,7 +145,7 @@ void CauterizedModel::updateClusterMatrices() {
                 }
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
             }
-
+/*
             if (!_cauterizeBoneSet.empty() && (state.clusterMatrices.size() > 1)) {
                 if (!state.clusterBuffer) {
                     state.clusterBuffer =
@@ -153,7 +155,7 @@ void CauterizedModel::updateClusterMatrices() {
                     state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
                                                               (const gpu::Byte*) state.clusterMatrices.constData());
                 }
-            }
+            }*/
         }
     }
 
@@ -181,7 +183,7 @@ void CauterizedModel::updateRenderItems() {
         // queue up this work for later processing, at the end of update and just before rendering.
         // the application will ensure only the last lambda is actually invoked.
         void* key = (void*)this;
-        std::weak_ptr<Model> weakSelf = shared_from_this();
+        std::weak_ptr<CauterizedModel> weakSelf = std::dynamic_pointer_cast<CauterizedModel>(shared_from_this());
         AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf, scale]() {
             // do nothing, if the model has already been destroyed.
             auto self = weakSelf.lock();
@@ -203,33 +205,58 @@ void CauterizedModel::updateRenderItems() {
 
             uint32_t deleteGeometryCounter = self->getGeometryCounter();
 
+            if (!self->isLoaded()) {
+                return;
+            }
             render::Transaction transaction;
             QList<render::ItemID> keys = self->getRenderItems().keys();
+            int meshIndex{ 0 };
             foreach (auto itemID, keys) {
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter](CauterizedMeshPartPayload& data) {
-                    ModelPointer model = data._model.lock();
-                    if (model && model->isLoaded()) {
+                const Model::MeshState& state = self->getMeshState(meshIndex);
+                auto clusterMatrices(state.clusterMatrices);
+                const Model::MeshState& cState = self->getCauterizeMeshState(meshIndex);
+                auto clusterMatricesCauterized(cState.clusterMatrices);
+
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
+                 //   ModelPointer model = data._model.lock();
+                 //   if (model && model->isLoaded()) {
                         // Ensure the model geometry was not reset between frames
-                        if (deleteGeometryCounter == model->getGeometryCounter()) {
+                  //      if (deleteGeometryCounter == model->getGeometryCounter()) {
+                            data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
+
                             // this stuff identical to what happens in regular Model
-                            const Model::MeshState& state = model->getMeshState(data._meshIndex);
+                            /*const Model::MeshState& state = model->getMeshState(data._meshIndex);
                             Transform renderTransform = modelTransform;
                             if (state.clusterMatrices.size() == 1) {
                                 renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
                             }
                             data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
+                            */
+                            Transform renderTransform = modelTransform;
+                            if (clusterMatrices.size() == 1) {
+                                renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                            }
+                            data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
+
 
                             // this stuff for cauterized mesh
-                            CauterizedModel* cModel = static_cast<CauterizedModel*>(model.get());
+                            /*CauterizedModel* cModel = static_cast<CauterizedModel*>(model.get());
                             const Model::MeshState& cState = cModel->getCauterizeMeshState(data._meshIndex);
                             renderTransform = modelTransform;
                             if (cState.clusterMatrices.size() == 1) {
                                 renderTransform = modelTransform.worldTransform(Transform(cState.clusterMatrices[0]));
                             }
                             data.updateTransformForCauterizedMesh(renderTransform, cState.clusterBuffer);
-                        }
-                    }
+                            */
+                            renderTransform = modelTransform;
+                            if (clusterMatricesCauterized.size() == 1) {
+                                renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
+                            }
+                            data.updateTransformForCauterizedMesh(renderTransform, nullptr);
+                   //     }
+                   // }
                 });
+                meshIndex++;
             }
 
             scene->enqueueTransaction(transaction);

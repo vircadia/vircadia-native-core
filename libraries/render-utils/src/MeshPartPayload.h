@@ -87,6 +87,7 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
+    void updateClusterBuffer(const QVector<glm::mat4>& clusterMatrices);
     void updateTransformForSkinnedMesh(const Transform& renderTransform,
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);

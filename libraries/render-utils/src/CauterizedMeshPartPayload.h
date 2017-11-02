@@ -15,6 +15,8 @@ class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
     CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
 
+    void updateClusterBuffer(const QVector<glm::mat4>& clusterMatrices, const QVector<glm::mat4>& cauterizedClusterMatrices);
+
     void updateTransformForCauterizedMesh(const Transform& renderTransform, const gpu::BufferPointer& buffer);
 
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
