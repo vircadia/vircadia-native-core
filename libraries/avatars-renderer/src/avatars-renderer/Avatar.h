@@ -274,7 +274,7 @@ public slots:
     glm::vec3 getRightPalmPosition() const;
     glm::quat getRightPalmRotation() const;
 
-    void restoreAnimations();
+    //void restoreAnimations();
     void setModelURLFinished(bool success);
 
 protected:
@@ -378,8 +378,6 @@ private:
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
-
-    QVector<std::shared_ptr<AnimClip>> _animationCache;
 };
 
 #endif // hifi_Avatar_h

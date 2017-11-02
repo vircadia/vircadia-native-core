@@ -21,7 +21,6 @@
 #include <JointData.h>
 #include <QReadWriteLock>
 
-#include "AnimClip.h"
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
 #include "SimpleMovingAverage.h"
@@ -108,7 +107,7 @@ public:
     QStringList getAnimationRoles() const;
     void overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreRoleAnimation(const QString& role);
-    QVector<std::shared_ptr<AnimClip>> getAnimationClips() const;
+    //QVector<std::shared_ptr<AnimClip>> getAnimationClips() const;
 
     void initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset);
     void reset(const FBXGeometry& geometry);
@@ -337,8 +336,22 @@ protected:
         float firstFrame;
         float lastFrame;
     };
+    
+    struct RoleAnimState {
+       RoleAnimState() {}
+       RoleAnimState(const QString& roleId, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            role(roleId), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        QString role;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
+    };
 
     UserAnimState _userAnimState;
+    std::map<QString, RoleAnimState> _roleAnimState;
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };

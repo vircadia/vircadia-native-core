@@ -144,27 +144,6 @@ QStringList Rig::getAnimationRoles() const {
     }
 }
 
-QVector<std::shared_ptr<AnimClip>> Rig::getAnimationClips() const {
-    QVector<std::shared_ptr<AnimClip>> list;
-    if (_animNode) {
-        _animNode->traverse([&](AnimNode::Pointer node) {
-            // only report clip nodes as valid roles.
-            auto clipNode = std::dynamic_pointer_cast<AnimClip>(node);
-            if (clipNode) {
-                // filter out the userAnims, they are for internal use only.
-                if (!clipNode->getID().startsWith("userAnim")) {
-                    list.append(clipNode);
-                }
-            }
-            return true;
-        });
-        return list;
-    }
-    else {
-        return list;
-    }
-}
-
 void Rig::overrideRoleAnimation(const QString& role, const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
     if (_animNode) {
         AnimNode::Pointer node = _animNode->findByName(role);
@@ -173,6 +152,7 @@ void Rig::overrideRoleAnimation(const QString& role, const QString& url, float f
             const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
             float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
             auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop, false);
+            _roleAnimState[role] = { role, url, fps, loop, firstFrame, lastFrame };
             AnimNode::Pointer parent = node->getParent();
             parent->replaceChild(node, clipNode);
         } else {
@@ -1659,8 +1639,14 @@ void Rig::initAnimGraph(const QUrl& url) {
                 _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
                 overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
             }
+            // restore the role animations we had before reset.
+            for (auto ite = _roleAnimState.begin(); ite != _roleAnimState.end(); ite++) {
+                auto role = ite->first;
+                auto roleState = _roleAnimState[role];
+                overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
+            }
             _animLoading = false;
-
+            
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
