@@ -19,12 +19,9 @@ macro(PACKAGE_CRASHPAD_FOR_DEPLOYMENT)
             COMMAND ${CMAKE_COMMAND} -E copy ${CRASHPAD_HANDLER_EXE_PATH} "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
         )
         install(
-            PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/crashpad_handler.exe"
+            PROGRAMS ${CRASHPAD_HANDLER_EXE_PATH}
             DESTINATION ${CLIENT_COMPONENT}
             COMPONENT ${INTERFACE_INSTALL_DIR}
         )
-
-        message(STATUS "CRASHPAD_HANDLER_EXE_PATH: ${CRASHPAD_HANDLER_EXE_PATH}")
-        message(STATUS "Target: $<TARGET_FILE_DIR:${TARGET_NAME}>")
     endif ()
 endmacro()

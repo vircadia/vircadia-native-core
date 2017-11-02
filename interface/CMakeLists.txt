@@ -349,6 +349,8 @@ endif()
 
 package_crashpad_for_deployment()
 
+package_crashpad_for_deployment()
+
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  \"${PROJECT_SOURCE_DIR}/resources/qml\"")
 
