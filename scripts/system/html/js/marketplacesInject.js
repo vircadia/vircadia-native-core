@@ -290,11 +290,17 @@
             }
         });
 
-        // change pricing to GET on button hover
+        // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
             var $this = $(this);
             $this.data('initialHtml', $this.html());
-            $this.text('GET');
+
+            var cost = $(this).parent().siblings().text();
+            if (parseInt(cost) > 0) {
+                $this.text('BUY');
+            } else {
+                $this.text('GET');
+            }
         });
 
         $('body').on('mouseleave', '#price-or-edit .price', function () {
