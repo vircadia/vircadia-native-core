@@ -276,7 +276,6 @@ void ContextOverlayInterface::openInspectionCertificate() {
 
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
 
-        QUuid nodeToChallenge = entityProperties.getOwningAvatarID();
         auto nodeList = DependencyManager::get<NodeList>();
 
         if (entityProperties.getClientOnly()) {
