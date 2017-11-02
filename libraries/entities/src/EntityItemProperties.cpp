@@ -14,6 +14,15 @@
 #include <QObject>
 #include <QtCore/QJsonDocument>
 
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <NetworkingConstants.h>
+#include <NetworkAccessManager.h>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -2470,4 +2479,111 @@ bool EntityItemProperties::parentRelatedPropertyChanged() const {
 
 bool EntityItemProperties::queryAACubeRelatedPropertyChanged() const {
     return parentRelatedPropertyChanged() || dimensionsChanged();
+}
+
+// Checking Certifiable Properties
+#define ADD_STRING_PROPERTY(n, N) if (!get##N().isEmpty()) json[#n] = get##N()
+#define ADD_ENUM_PROPERTY(n, N) json[#n] = get##N##AsString()
+#define ADD_INT_PROPERTY(n, N) if (get##N() != 0) json[#n] = (get##N() == (quint32) -1) ? -1.0 : ((double) get##N())
+QByteArray EntityItemProperties::getStaticCertificateJSON() const {
+    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
+    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
+    // of the entity as reviewed during the certification submission.
+
+    QJsonObject json;
+    if (!getAnimation().getURL().isEmpty()) {
+        json["animationURL"] = getAnimation().getURL();
+    }
+    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
+    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
+    ADD_INT_PROPERTY(editionNumber, EditionNumber);
+    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
+    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
+    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
+    ADD_STRING_PROPERTY(itemLicenseUrl, ItemLicense);
+    ADD_STRING_PROPERTY(itemName, ItemName);
+    ADD_INT_PROPERTY(limitedRun, LimitedRun);
+    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
+    ADD_STRING_PROPERTY(modelURL, ModelURL);
+    ADD_STRING_PROPERTY(script, Script);
+    ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    json["type"] = EntityTypes::getEntityTypeName(getType());
+
+    return QJsonDocument(json).toJson(QJsonDocument::Compact);
+}
+QByteArray EntityItemProperties::getStaticCertificateHash() const {
+    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
+}
+
+bool EntityItemProperties::verifyStaticCertificateProperties() {
+    // True IIF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+
+    if (getCertificateID().isEmpty()) {
+        return false;
+    }
+
+    const QByteArray marketplacePublicKeyByteArray = EntityItem::_marketplacePublicKey.toUtf8();
+    const unsigned char* marketplacePublicKey = reinterpret_cast<const unsigned char*>(marketplacePublicKeyByteArray.constData());
+    int marketplacePublicKeyLength = marketplacePublicKeyByteArray.length();
+
+    BIO *bio = BIO_new_mem_buf((void*)marketplacePublicKey, marketplacePublicKeyLength);
+    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    if (evp_key) {
+        RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
+        if (rsa) {
+            const QByteArray digestByteArray = getStaticCertificateHash();
+            const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
+            int digestLength = digestByteArray.length();
+
+            const QByteArray signatureByteArray = QByteArray::fromBase64(getCertificateID().toUtf8());
+            const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
+            int signatureLength = signatureByteArray.length();
+
+            ERR_clear_error();
+            bool answer = RSA_verify(NID_sha256,
+                digest,
+                digestLength,
+                signature,
+                signatureLength,
+                rsa);
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "ERROR while verifying static certificate properties! RSA error:" << error_str
+                    << "\nStatic Cert JSON:" << getStaticCertificateJSON()
+                    << "\nKey:" << EntityItem::_marketplacePublicKey << "\nKey Length:" << marketplacePublicKeyLength
+                    << "\nDigest:" << digest << "\nDigest Length:" << digestLength
+                    << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+            }
+            RSA_free(rsa);
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            return answer;
+        } else {
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+            return false;
+        }
+    } else {
+        if (bio) {
+            BIO_free(bio);
+        }
+        long error = ERR_get_error();
+        const char* error_str = ERR_error_string(error, NULL);
+        qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+        return false;
+    }
 }
