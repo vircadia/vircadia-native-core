@@ -215,6 +215,7 @@ void RenderableModelEntityItem::updateModelBounds() {
         model->setScaleToFit(true, getDimensions());
         model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
         updateRenderItems = true;
+        model->scaleToFit();
     }
 
     bool success;
