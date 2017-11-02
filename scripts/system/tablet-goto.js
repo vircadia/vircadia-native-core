@@ -115,7 +115,7 @@
     var stories = {}, pingPong = false;
     function expire(id) {
         var options = {
-            uri: location.metaverseServerUrl + '/api/v1/user_stories/' + id,
+            uri: Account.metaverseServerURL + '/api/v1/user_stories/' + id,
             method: 'PUT',
             json: true,
             body: {expire: "true"}
@@ -139,7 +139,7 @@
             'protocol=' + encodeURIComponent(location.protocolVersion()),
             'per_page=' + count
         ];
-        var url = location.metaverseServerUrl + '/api/v1/user_stories?' + options.join('&');
+        var url = Account.metaverseServerURL + '/api/v1/user_stories?' + options.join('&');
         request({
             uri: url
         }, function (error, data) {

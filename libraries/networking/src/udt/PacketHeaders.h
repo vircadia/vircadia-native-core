@@ -195,7 +195,9 @@ uint qHash(const PacketType& key, uint seed);
 QDebug operator<<(QDebug debug, const PacketType& type);
 
 enum class EntityVersion : PacketVersion {
-    StrokeColorProperty = 77
+    StrokeColorProperty = 77,
+    HasDynamicOwnershipTests,
+    HazeEffect
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -275,6 +277,10 @@ enum class AudioVersion : PacketVersion {
 
 enum class MessageDataVersion : PacketVersion {
     TextOrBinaryData = 18
+};
+
+enum class IcePingVersion : PacketVersion {
+    SendICEPeerID = 18
 };
 
 #endif // hifi_PacketHeaders_h

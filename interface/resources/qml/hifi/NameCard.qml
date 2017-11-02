@@ -17,7 +17,7 @@ import "../styles-uit"
 import "../controls-uit" as HifiControls
 import "toolbars"
 
-// references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager from root context
+// references Users, UserActivityLogger, MyAvatar, Vec3, Quat, AddressManager, Account from root context
 
 Item {
     id: thisNameCard
@@ -30,7 +30,6 @@ Item {
 
     // Properties
     property string profileUrl: "";
-    property string defaultBaseUrl: AddressManager.metaverseServerUrl;
     property string connectionStatus : ""
     property string uuid: ""
     property string displayName: ""
@@ -59,7 +58,7 @@ Item {
         clip: true
         Image {
             id: userImage
-            source: profileUrl !== "" ? ((0 === profileUrl.indexOf("http")) ? profileUrl : (defaultBaseUrl + profileUrl)) : "";
+            source: profileUrl !== "" ? ((0 === profileUrl.indexOf("http")) ? profileUrl : (Account.metaverseServerURL + profileUrl)) : "";
             mipmap: true;
             // Anchors
             anchors.fill: parent
@@ -95,7 +94,7 @@ Item {
             enabled: (selected && activeTab == "nearbyTab") || isMyCard;
             hoverEnabled: enabled
             onClicked: {
-                userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
+                userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
                 userInfoViewer.visible = true;
             }
             onEntered: infoHoverImage.visible = true;
@@ -366,7 +365,7 @@ Item {
         enabled: selected
         hoverEnabled: true
         onClicked: {
-            userInfoViewer.url = defaultBaseUrl + "/users/" + userName;
+            userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
             userInfoViewer.visible = true;
         }
         onEntered: {
