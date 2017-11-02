@@ -274,7 +274,6 @@ public slots:
     glm::vec3 getRightPalmPosition() const;
     glm::quat getRightPalmRotation() const;
 
-    //void restoreAnimations();
     void setModelURLFinished(bool success);
 
 protected:

@@ -1646,7 +1646,7 @@ void Rig::initAnimGraph(const QUrl& url) {
                 overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
             }
             _animLoading = false;
-            
+
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
