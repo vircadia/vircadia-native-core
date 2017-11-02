@@ -350,7 +350,7 @@ protected:
     };
 
     UserAnimState _userAnimState;
-    std::map<QString, RoleAnimState> _roleAnimState;
+    std::map<QString, RoleAnimState> _roleAnimStates;
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };

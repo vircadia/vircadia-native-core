@@ -152,7 +152,7 @@ void Rig::overrideRoleAnimation(const QString& role, const QString& url, float f
             const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
             float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
             auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop, false);
-            _roleAnimState[role] = { role, url, fps, loop, firstFrame, lastFrame };
+            _roleAnimStates[role] = { role, url, fps, loop, firstFrame, lastFrame };
             AnimNode::Pointer parent = node->getParent();
             parent->replaceChild(node, clipNode);
         } else {
@@ -1640,9 +1640,8 @@ void Rig::initAnimGraph(const QUrl& url) {
                 overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
             }
             // restore the role animations we had before reset.
-            for (auto ite = _roleAnimState.begin(); ite != _roleAnimState.end(); ite++) {
-                auto role = ite->first;
-                auto roleState = _roleAnimState[role];
+            for (auto& roleAnimState : _roleAnimStates) {
+                auto roleState = roleAnimState.second;
                 overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
             }
             _animLoading = false;
