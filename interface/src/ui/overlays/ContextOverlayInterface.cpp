@@ -304,9 +304,9 @@ void ContextOverlayInterface::openInspectionCertificate() {
                             if (!jsonObject["invalid_reason"].toString().isEmpty()) {
                                 qCDebug(entities) << "invalid_reason not empty";
                             } else if (jsonObject["transfer_status"].toArray().first().toString() == "failed") {
-                                qCDebug(entities) << "'transfer_status' is 'failed'";;
+                                qCDebug(entities) << "'transfer_status' is 'failed'";
                             } else if (jsonObject["transfer_status"].toArray().first().toString() == "pending") {
-                                qCDebug(entities) << "'transfer_status' is 'pending'";;
+                                qCDebug(entities) << "'transfer_status' is 'pending'";
                             } else {
                                 QString ownerKey = jsonObject["transfer_recipient_key"].toString();
 
