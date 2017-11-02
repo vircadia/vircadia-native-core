@@ -735,7 +735,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // reasons and the contract is that the client handles them in an idempotent manner.
         auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
             if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
-                updatePosition(value);
+                setPosition(value);
                 _lastUpdatedPositionTimestamp = lastEdited;
                 _lastUpdatedPositionValue = value;
             }
@@ -1316,7 +1316,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 
     // these affect TerseUpdate properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePosition);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, setAngularVelocity);
@@ -1691,7 +1691,7 @@ void EntityItem::setRegistrationPoint(const glm::vec3& value) {
     }
 }
 
-void EntityItem::updatePosition(const glm::vec3& value) {
+void EntityItem::setPosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
 

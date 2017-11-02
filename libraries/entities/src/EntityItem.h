@@ -347,8 +347,7 @@ public:
 
     virtual void setCollisionShape(const btCollisionShape* shape) {}
 
-    // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
-    void updatePosition(const glm::vec3& value);
+    void setPosition(const glm::vec3& value);
     virtual void setParentID(const QUuid& parentID);
     virtual void setRotation(glm::quat orientation);
     virtual void setVelocity(const glm::vec3& velocity);
