@@ -43,7 +43,7 @@ void SoftAttachmentModel::updateClusterMatrices() {
 
     const FBXGeometry& geometry = getFBXGeometry();
 
-    for (int i = 0; i < _meshStates.size(); i++) {
+    for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
 

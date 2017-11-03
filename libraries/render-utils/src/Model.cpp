@@ -238,7 +238,7 @@ void Model::updateRenderItems() {
         modelTransform.setScale(glm::vec3(1.0f));
 
         render::Transaction transaction;
-        for (int i = 0; i < self->_modelMeshRenderItemIDs.size(); i++) {
+        for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
 
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
@@ -1124,7 +1124,7 @@ void Model::updateClusterMatrices() {
     }
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
-    for (int i = 0; i < _meshStates.size(); i++) {
+    for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
@@ -1241,7 +1241,7 @@ void Model::createVisibleRenderItemSet() {
     const auto& meshes = _renderGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    if ((int)meshes.size() != _meshStates.size()) {
+    if (meshes.size() != _meshStates.size()) {
         qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }

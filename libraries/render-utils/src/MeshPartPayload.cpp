@@ -598,7 +598,7 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4
     _adjustedLocalBound = _localBound;
     if (clusterMatrices.size() > 0) {
         _adjustedLocalBound.transform(clusterMatrices[0]);
-        for (int i = 1; i < clusterMatrices.size(); ++i) {
+        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
             AABox clusterBound = _localBound;
             clusterBound.transform(clusterMatrices[i]);
             _adjustedLocalBound += clusterBound;
