@@ -165,7 +165,7 @@ void CauterizedModel::updateRenderItems() {
         AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
             // do nothing, if the model has already been destroyed.
             auto self = weakSelf.lock();
-            if (!self) {
+            if (!self || !self->isLoaded()) {
                 return;
             }
 
@@ -179,32 +179,27 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setRotation(self->getRotation());
 
             render::Transaction transaction;
-            QList<render::ItemID> keys = self->getRenderItems().keys();
-            int meshIndex{ 0 };
             for (int i = 0; i < self->_modelMeshRenderItemIDs.size(); i++) {
+
                 auto itemID = self->_modelMeshRenderItemIDs[i];
                 auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
+                auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
+                auto clusterMatricesCauterized(self->getCauterizeMeshState(meshIndex).clusterMatrices);
 
-                const Model::MeshState& state = self->getMeshState(meshIndex);
-                auto clusterMatrices(state.clusterMatrices);
-                const Model::MeshState& cState = self->getCauterizeMeshState(meshIndex);
-                auto clusterMatricesCauterized(cState.clusterMatrices);
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
+                    data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
 
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, 
-                    [modelTransform, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
-                        data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
+                    Transform renderTransform = modelTransform;
+                    if (clusterMatrices.size() == 1) {
+                        renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                    }
+                    data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
-                        Transform renderTransform = modelTransform;
-                        if (clusterMatrices.size() == 1) {
-                            renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
-                        }
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
-
-                        renderTransform = modelTransform;
-                        if (clusterMatricesCauterized.size() == 1) {
-                            renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
-                        }
-                        data.updateTransformForCauterizedMesh(renderTransform);
+                    renderTransform = modelTransform;
+                    if (clusterMatricesCauterized.size() == 1) {
+                        renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
+                    }
+                    data.updateTransformForCauterizedMesh(renderTransform);
                 });
             }
 

@@ -218,7 +218,6 @@ void Model::updateRenderItems() {
     _needsUpdateClusterMatrices = true;
     _renderItemsNeedUpdate = false;
 
-
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
@@ -227,7 +226,7 @@ void Model::updateRenderItems() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();
-        if (!self) {
+        if (!self || !self->isLoaded()) {
             return;
         }
 
@@ -238,26 +237,21 @@ void Model::updateRenderItems() {
         Transform modelTransform = self->getTransform();
         modelTransform.setScale(glm::vec3(1.0f));
 
-        uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
-
         render::Transaction transaction;
         for (int i = 0; i < self->_modelMeshRenderItemIDs.size(); i++) {
+
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
-            if (self && self->isLoaded()) {
-                const Model::MeshState& state = self->getMeshState(meshIndex);
-                auto clusterMatrices(state.clusterMatrices);
+            auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
 
-                transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
-                    data.updateClusterBuffer(clusterMatrices);
-
-                    Transform renderTransform = modelTransform;
-                    if (clusterMatrices.size() == 1) {
-                        renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
-                    }
-                    data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
-                });
-            }
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
+                data.updateClusterBuffer(clusterMatrices);
+                Transform renderTransform = modelTransform;
+                if (clusterMatrices.size() == 1) {
+                    renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                }
+                data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
+            });
         }
 
         Transform collisionMeshOffset;
