@@ -433,7 +433,7 @@ Item {
         anchors.verticalCenter: nameCardRemoveConnectionImage.verticalCenter
         x: 240
         onClicked: {
-        console.log("Vist user button clicked."); // Remove after debugging.
+            console.log("Vist user button clicked."); // Remove after debugging.
             AddressManager.goToUser(thisNameCard.userName, false);
             UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
         }
