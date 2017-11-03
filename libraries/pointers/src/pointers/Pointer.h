@@ -89,6 +89,8 @@ protected:
 private:
     PickedObject _prevHoveredObject;
     Buttons _prevButtons;
+    bool _prevEnabled { false };
+    bool _prevDoHover { false };
     std::unordered_map<std::string, PickedObject> _triggeredObjects;
 
     PointerEvent::Button chooseButton(const std::string& button);

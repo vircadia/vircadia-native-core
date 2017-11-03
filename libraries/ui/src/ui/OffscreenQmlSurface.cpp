@@ -49,8 +49,6 @@
 
 #include "Logging.h"
 
-#include <pointers/PointerManager.h>
-
 Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
 Q_LOGGING_CATEGORY(trace_render_qml_gl, "trace.render.qml.gl")
 Q_LOGGING_CATEGORY(offscreenFocus, "hifi.offscreen.focus")
@@ -531,13 +529,6 @@ bool OffscreenQmlSurface::allowNewFrame(uint8_t fps) {
 }
 
 OffscreenQmlSurface::OffscreenQmlSurface() {
-    auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginHUD, this, &OffscreenQmlSurface::handlePointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverContinueHUD, this, &OffscreenQmlSurface::handlePointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverEndHUD, this, &OffscreenQmlSurface::handlePointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerBeginHUD, this, &OffscreenQmlSurface::handlePointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerContinueHUD, this, &OffscreenQmlSurface::handlePointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerEndHUD, this, &OffscreenQmlSurface::handlePointerEvent);
 }
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
@@ -941,8 +932,14 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                     transformedPos,
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
-            if (sendMouseEvent(mappedEvent)) {
-                return true;
+            if (event->type() == QEvent::MouseMove) {
+                // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
+                // need to investigate into why this crash is happening.
+                //_qmlContext->setContextProperty("lastMousePosition", mouseEvent.localPos());
+            }
+            mappedEvent.ignore();
+            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
+                return mappedEvent.isAccepted();
             }
             break;
         }
@@ -951,46 +948,6 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
             break;
     }
 
-    return false;
-}
-
-void OffscreenQmlSurface::handlePointerEvent(const QUuid& id, const PointerEvent& event) {
-    if (_paused) {
-        return;
-    }
-
-    QEvent::Type type = QEvent::Type::MouseMove;
-    switch (event.getType()) {
-        case PointerEvent::Press:
-            type = QEvent::Type::MouseButtonPress;
-            break;
-        case PointerEvent::DoublePress:
-            type = QEvent::Type::MouseButtonDblClick;
-            break;
-        case PointerEvent::Release:
-            type = QEvent::Type::MouseButtonRelease;
-            break;
-        case PointerEvent::Move:
-            type = QEvent::Type::MouseMove;
-            break;
-        default:
-            break;
-    }
-    QPointF screenPos(event.getPos2D().x, event.getPos2D().y);
-    QMouseEvent mouseEvent(type, screenPos, Qt::MouseButton(event.getButton()), Qt::MouseButtons(event.getButtons()), event.getKeyboardModifiers());
-    sendMouseEvent(mouseEvent);
-}
-
-bool OffscreenQmlSurface::sendMouseEvent(QMouseEvent& mouseEvent) {
-    if (mouseEvent.type() == QEvent::MouseMove) {
-        // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
-        // need to investigate into why this crash is happening.
-        //_qmlContext->setContextProperty("lastMousePosition", mouseEvent.localPos());
-    }
-    mouseEvent.ignore();
-    if (QCoreApplication::sendEvent(_quickWindow, &mouseEvent)) {
-        return mouseEvent.isAccepted();
-    }
     return false;
 }
 

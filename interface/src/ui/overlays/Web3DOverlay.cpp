@@ -160,14 +160,6 @@ void Web3DOverlay::buildWebSurface() {
     QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
 }
 
-void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
-    if ((_pressed || (!_activeTouchPoints.empty() && _touchBeginAccepted))) {
-        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
-            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
-        handlePointerEvent(endEvent);
-    }
-}
-
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
@@ -348,6 +340,17 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
     _webSurface->setProxyWindow(proxyWindow);
 }
 
+void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
+    if ((_pressed || (!_activeTouchPoints.empty() && _touchBeginAccepted)) && event.sendReleaseOnHoverLeave()) {
+        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
+            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
+        handlePointerEvent(endEvent);
+        // QML onReleased is only triggered if a click has happened first.  We need to send this "fake" mouse move event to properly trigger an onExited.
+        PointerEvent endMoveEvent(PointerEvent::Move, event.getID());
+        handlePointerEvent(endMoveEvent);
+    }
+}
+
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     if (event.getType() == PointerEvent::Press) {
         _pressed = true;
@@ -386,7 +389,7 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     } if (state == Qt::TouchPointReleased && _activeTouchPoints.size() == 1 && _activeTouchPoints.count(event.getID())) {
         // If the last active touch point is being released, send an end
         touchType = QEvent::TouchEnd;
-    } 
+    }
 
     {
         QTouchEvent::TouchPoint point;
@@ -428,7 +431,7 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
         QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
     }
 #endif
@@ -446,7 +449,7 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
     if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
         QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
     }
 #endif
@@ -485,7 +488,7 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
             return;
     }
 
-    QMouseEvent mouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QMouseEvent mouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
     QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
 }
 

@@ -37,9 +37,9 @@ public:
 
     PointerEvent();
     PointerEvent(EventType type, uint32_t id,
-                 const glm::vec2& pos2D, const glm::vec3& pos3D,
-                 const glm::vec3& normal, const glm::vec3& direction,
-                 Button button, uint32_t buttons = NoButtons, Qt::KeyboardModifiers keyboardModifiers = Qt::KeyboardModifier::NoModifier);
+                 const glm::vec2& pos2D = glm::vec2(NAN), const glm::vec3& pos3D = glm::vec3(NAN),
+                 const glm::vec3& normal = glm::vec3(NAN), const glm::vec3& direction = glm::vec3(NAN),
+                 Button button = NoButtons, uint32_t buttons = NoButtons, Qt::KeyboardModifiers keyboardModifiers = Qt::KeyboardModifier::NoModifier);
 
     static QScriptValue toScriptValue(QScriptEngine* engine, const PointerEvent& event);
     static void fromScriptValue(const QScriptValue& object, PointerEvent& event);
@@ -56,11 +56,13 @@ public:
     uint32_t getButtons() const { return _buttons; }
     Qt::KeyboardModifiers getKeyboardModifiers() const { return _keyboardModifiers; }
     bool shouldFocus() const { return _shouldFocus; }
+    bool sendReleaseOnHoverLeave() const { return _releaseOnHoverLeave; }
 
     void setID(uint32_t id) { _id = id; }
     void setType(EventType type) { _type = type; }
     void setButton(Button button);
     void setShouldFocus(bool focus) { _shouldFocus = focus; }
+    void setReleaseOnHoverLeave(bool releaseOnHoverLeave) { _releaseOnHoverLeave = releaseOnHoverLeave; }
 
 private:
     EventType _type;
@@ -75,6 +77,7 @@ private:
     Qt::KeyboardModifiers _keyboardModifiers; // set of keys held when event was generated
 
     bool _shouldFocus { true };
+    bool _releaseOnHoverLeave { true };
 };
 
 QDebug& operator<<(QDebug& dbg, const PointerEvent& p);

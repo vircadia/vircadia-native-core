@@ -71,17 +71,14 @@ void PickCacheOptimizer<T>::update(QHash<unsigned int, std::shared_ptr<PickQuery
     PickCache results;
     for (const auto& uid : picks.keys()) {
         std::shared_ptr<Pick<T>> pick = std::static_pointer_cast<Pick<T>>(picks[uid]);
-        if (!pick->isEnabled() || pick->getFilter().doesPickNothing() || pick->getMaxDistance() < 0.0f) {
-            continue;
-        }
 
         T mathematicalPick = pick->getMathematicalPick();
+        PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
-        if (!mathematicalPick) {
+        if (!pick->isEnabled() || pick->getFilter().doesPickNothing() || pick->getMaxDistance() < 0.0f || !mathematicalPick) {
+            pick->setPickResult(res);
             continue;
         }
-
-        PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
         if (pick->getFilter().doesPickEntities()) {
             PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };

@@ -30,8 +30,6 @@ class QQmlContext;
 class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
-class QMouseEvent;
-class PointerEvent;
 
 // GPU resources are typically buffered for one copy being used by the renderer, 
 // one copy in flight, and one copy being used by the receiver
@@ -137,7 +135,6 @@ private:
 private slots:
     void updateQuick();
     void onFocusObjectChanged(QObject* newFocus);
-    void handlePointerEvent(const QUuid& id, const PointerEvent& event);
 
 private:
     QQuickWindow* _quickWindow { nullptr };
@@ -164,8 +161,6 @@ private:
     QWindow* _proxyWindow { nullptr };
 
     QQuickItem* _currentFocusItem { nullptr };
-
-    bool sendMouseEvent(QMouseEvent& mouseEvent);
 };
 
 #endif

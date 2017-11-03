@@ -315,11 +315,13 @@ void WebEntityRenderer::loadSourceURL() {
 }
 
 void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
-    if (!_lastLocked && _webSurface && _pressed) {
-        // If the user mouses off the entity while the button is down, simulate a touch end.
+    if (!_lastLocked && _webSurface && _pressed && event.sendReleaseOnHoverLeave()) {
         PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
             event.getButton(), event.getButtons(), event.getKeyboardModifiers());
         handlePointerEvent(endEvent);
+        // QML onReleased is only triggered if a click has happened first.  We need to send this "fake" mouse move event to properly trigger an onExited.
+        PointerEvent endMoveEvent(PointerEvent::Move, event.getID());
+        handlePointerEvent(endMoveEvent);
     }
 }
 
@@ -396,7 +398,7 @@ void WebEntityRenderer::handlePointerEvent(const PointerEvent& event) {
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
         QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
     }
 #endif
@@ -414,7 +416,7 @@ void WebEntityRenderer::handlePointerEvent(const PointerEvent& event) {
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
     if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
         QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
     }
 #endif

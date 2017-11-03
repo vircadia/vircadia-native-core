@@ -35,7 +35,7 @@ public slots:
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities) const;
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
 
-    Q_INVOKABLE void setLockEndUid(unsigned int uid, const QUuid& objectID, bool isOverlay) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay); }
+    Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay); }
 
 signals:
     void triggerBegin(const QUuid& id, const PointerEvent& pointerEvent);

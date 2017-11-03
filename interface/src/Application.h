@@ -434,6 +434,8 @@ private slots:
 
     void handleSandboxStatus(QNetworkReply* reply);
     void switchDisplayMode();
+
+    void handleHUDPointerEvent(const QUuid& id, const PointerEvent& event);
 private:
     static void initDisplay();
     void init();
