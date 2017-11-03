@@ -30,6 +30,12 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(ledger.data(), &Ledger::accountResult, this, &QmlCommerce::accountResult);
     connect(wallet.data(), &Wallet::walletStatusResult, this, &QmlCommerce::walletStatusResult);
     connect(ledger.data(), &Ledger::certificateInfoResult, this, &QmlCommerce::certificateInfoResult);
+    connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
+    
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::usernameChanged, [&]() {
+        setPassphrase("");
+    });
 }
 
 void QmlCommerce::getWalletStatus() {
