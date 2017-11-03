@@ -13,6 +13,9 @@ Item {
     property int columnIndex: 0
     property int count: 0
 
+    //timeout for press delay before swipe occurs
+    readonly property int pressDelayTime: 50
+
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
         if (!uuid) {
@@ -209,6 +212,11 @@ Item {
                 rightMargin: 30
                 bottomMargin: 0
             }
+            Component.onCompleted: {
+                if (contentItem !== null) {
+                    contentItem.pressDelay = tablet.pressDelayTime
+                }
+            }
         }
 
         PageIndicator {
@@ -234,6 +242,7 @@ Item {
                 }
                 MouseArea {
                     anchors.fill: parent
+                    enabled: false //disabled by default
                     onClicked: {
                         if (index !== swipeView.currentIndex) {
                             swipeView.currentIndex = index
