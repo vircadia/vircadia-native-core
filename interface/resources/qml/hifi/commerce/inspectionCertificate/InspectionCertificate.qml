@@ -33,6 +33,7 @@ Rectangle {
     property string dateOfPurchase: "--";
     property bool isLightbox: false;
     property bool isMyCert: false;
+    property bool isCertificateInvalid: false;
     // Style
     color: hifi.colors.faintGray;
     Hifi.QmlCommerce {
@@ -44,10 +45,11 @@ Rectangle {
             } else {
                 root.marketplaceUrl = result.data.marketplace_item_url;
                 root.isMyCert = result.isMyCert ? result.isMyCert : false;
-                root.itemOwner = root.isMyCert ? Account.username :
-                "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-                root.itemEdition = result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run);
-                root.dateOfPurchase = getFormattedDate(result.data.transfer_created_at * 1000);
+                root.itemOwner = root.isCertificateInvalid ? "--" : (root.isMyCert ? Account.username :
+                "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022");
+                root.itemEdition = root.isCertificateInvalid ? "Uncertified Copy" :
+                (result.data.edition_number + "/" + (result.data.limited_run === -1 ? "\u221e" : result.data.limited_run));
+                root.dateOfPurchase = root.isCertificateInvalid ? "" : getFormattedDate(result.data.transfer_created_at * 1000);
                 root.itemName = result.data.marketplace_item_name;
 
                 if (result.data.invalid_reason || result.data.transfer_status[0] === "failed") {
@@ -63,6 +65,44 @@ Rectangle {
                     "this entity will be cleaned up by the domain.";
                     errorText.color = hifi.colors.baseGray;
                 }
+            }
+        }
+
+        onUpdateCertificateStatus: {
+            if (certStatus === 1) { // CERTIFICATE_STATUS_VERIFICATION_SUCCESS
+                // NOP
+            } else if (certStatus === 2) { // CERTIFICATE_STATUS_VERIFICATION_TIMEOUT
+                root.isCertificateInvalid = true;
+                errorText.text = "Verification of this certificate timed out.";
+                errorText.color = hifi.colors.redHighlight;
+            } else if (certStatus === 3) { // CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED
+                root.isCertificateInvalid = true;
+                titleBarText.text = "Invalid Certificate";
+                titleBarText.color = hifi.colors.redHighlight;
+
+                popText.text = "";
+                root.itemOwner = "";
+                dateOfPurchaseHeader.text = "";
+                root.dateOfPurchase = "";
+                root.itemEdition = "Uncertified Copy";
+
+                errorText.text = "The information associated with this item has been modified and it no longer matches the original certified item.";
+                errorText.color = hifi.colors.baseGray;
+            } else if (certStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
+                root.isCertificateInvalid = true;
+                titleBarText.text = "Invalid Certificate";
+                titleBarText.color = hifi.colors.redHighlight;
+
+                popText.text = "";
+                root.itemOwner = "";
+                dateOfPurchaseHeader.text = "";
+                root.dateOfPurchase = "";
+                root.itemEdition = "Uncertified Copy";
+
+                errorText.text = "The avatar who rezzed this item doesn't own it.";
+                errorText.color = hifi.colors.baseGray;
+            } else {
+                console.log("Unknown certificate status received from ledger signal!");
             }
         }
     }
@@ -216,7 +256,7 @@ Rectangle {
         }
         AnonymousProRegular {
             id: isMyCertText;
-            visible: root.isMyCert;
+            visible: root.isMyCert && !root.isCertificateInvalid;
             text: "(Private)";
             size: 18;
             // Anchors

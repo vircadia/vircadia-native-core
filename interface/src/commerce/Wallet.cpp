@@ -319,6 +319,7 @@ Wallet::Wallet() {
     auto& packetReceiver = nodeList->getPacketReceiver();
 
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
+    packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
     connect(ledger.data(), &Ledger::accountResult, this, [&]() {
         auto wallet = DependencyManager::get<Wallet>();
@@ -717,49 +718,85 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 }
 
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
     unsigned char decryptedText[64];
     int certIDByteArraySize;
     int encryptedTextByteArraySize;
+    int challengingNodeUUIDByteArraySize;
 
     packet->readPrimitive(&certIDByteArraySize);
     packet->readPrimitive(&encryptedTextByteArraySize);
+    if (challengeOriginatedFromClient) {
+        packet->readPrimitive(&challengingNodeUUIDByteArraySize);
+    }
 
     QByteArray certID = packet->read(certIDByteArraySize);
     QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
+    QByteArray challengingNodeUUID;
+    if (challengeOriginatedFromClient) {
+        challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
+    }
 
     RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
+    int decryptionStatus = -1;
 
     if (rsa) {
-        const int decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
+        ERR_clear_error();
+        decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
             reinterpret_cast<const unsigned char*>(encryptedText.constData()),
             decryptedText,
             rsa,
             RSA_PKCS1_OAEP_PADDING);
 
         RSA_free(rsa);
-
-        if (decryptionStatus != -1) {
-            auto nodeList = DependencyManager::get<NodeList>();
-
-            QByteArray decryptedTextByteArray = QByteArray(reinterpret_cast<const char*>(decryptedText), decryptionStatus);
-            int decryptedTextByteArraySize = decryptedTextByteArray.size();
-            int certIDSize = certID.size();
-            // setup the packet
-            auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
-
-            decryptedTextPacket->writePrimitive(certIDSize);
-            decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
-            decryptedTextPacket->write(certID);
-            decryptedTextPacket->write(decryptedTextByteArray);
-
-            qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
-
-            nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
-        } else {
-            qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
-        }
     } else {
         qCDebug(commerce) << "During entity ownership challenge, creating the RSA object failed.";
+    }
+
+    QByteArray decryptedTextByteArray;
+    if (decryptionStatus > -1) {
+        decryptedTextByteArray = QByteArray(reinterpret_cast<const char*>(decryptedText), decryptionStatus);
+    }
+    int decryptedTextByteArraySize = decryptedTextByteArray.size();
+    int certIDSize = certID.size();
+    // setup the packet
+    if (challengeOriginatedFromClient) {
+        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+            certIDSize + decryptedTextByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+            true);
+
+        decryptedTextPacket->writePrimitive(certIDSize);
+        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+        decryptedTextPacket->writePrimitive(challengingNodeUUIDByteArraySize);
+        decryptedTextPacket->write(certID);
+        decryptedTextPacket->write(decryptedTextByteArray);
+        decryptedTextPacket->write(challengingNodeUUID);
+
+        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
+
+        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+    } else {
+        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
+
+        decryptedTextPacket->writePrimitive(certIDSize);
+        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+        decryptedTextPacket->write(certID);
+        decryptedTextPacket->write(decryptedTextByteArray);
+
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
+
+        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+    }
+
+    if (decryptionStatus == -1) {
+        qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
+        long error = ERR_get_error();
+        if (error != 0) {
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "RSA error:" << error_str;
+        }
     }
 }
 
