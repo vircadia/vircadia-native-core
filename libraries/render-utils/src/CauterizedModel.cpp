@@ -112,19 +112,6 @@ void CauterizedModel::updateClusterMatrices() {
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
-
-        /*
-        // Once computed the cluster matrices, update the buffer(s)
-        if (mesh.clusters.size() > 1) {
-            if (!state.clusterBuffer) {
-                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                                    (const gpu::Byte*) state.clusterMatrices.constData());
-            } else {
-                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                (const gpu::Byte*) state.clusterMatrices.constData());
-            }
-        }
-        */
     }
 
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
@@ -147,17 +134,6 @@ void CauterizedModel::updateClusterMatrices() {
                 }
                 glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
             }
-/*
-            if (!_cauterizeBoneSet.empty() && (state.clusterMatrices.size() > 1)) {
-                if (!state.clusterBuffer) {
-                    state.clusterBuffer =
-                        std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                      (const gpu::Byte*) state.clusterMatrices.constData());
-                } else {
-                    state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                              (const gpu::Byte*) state.clusterMatrices.constData());
-                }
-            }*/
         }
     }
 
@@ -202,9 +178,6 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setTranslation(self->getTranslation());
             modelTransform.setRotation(self->getRotation());
 
-       /*     if (!self->isLoaded()) {
-                return;
-            }*/
             render::Transaction transaction;
             QList<render::ItemID> keys = self->getRenderItems().keys();
             int meshIndex{ 0 };
@@ -225,13 +198,13 @@ void CauterizedModel::updateRenderItems() {
                         if (clusterMatrices.size() == 1) {
                             renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
                         }
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
+                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                         renderTransform = modelTransform;
                         if (clusterMatricesCauterized.size() == 1) {
                             renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
                         }
-                        data.updateTransformForCauterizedMesh(renderTransform, nullptr);
+                        data.updateTransformForCauterizedMesh(renderTransform);
                 });
             }
 

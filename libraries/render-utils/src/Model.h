@@ -246,8 +246,7 @@ public:
 
     class MeshState {
     public:
-        QVector<glm::mat4> clusterMatrices;
-        gpu::BufferPointer clusterBuffer;
+        std::vector<glm::mat4> clusterMatrices;
     };
 
     const MeshState& getMeshState(int index) { return _meshStates.at(index); }
@@ -317,7 +316,7 @@ protected:
     bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
     glm::vec3 _registrationPoint = glm::vec3(0.5f); /// the point in model space our center is snapped to
 
-    QVector<MeshState> _meshStates;
+    std::vector<MeshState> _meshStates;
 
     virtual void initJointStates();
 

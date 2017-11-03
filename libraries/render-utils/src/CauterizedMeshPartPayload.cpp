@@ -20,36 +20,33 @@ using namespace render;
 CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform)
     : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform) {}
 
-void CauterizedMeshPartPayload::updateClusterBuffer(const QVector<glm::mat4>& clusterMatrices, const QVector<glm::mat4>& cauterizedClusterMatrices) {
+void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices, const std::vector<glm::mat4>& cauterizedClusterMatrices) {
 
     // Once computed the cluster matrices, update the buffer(s)
     if (clusterMatrices.size() > 1) {
         if (!_clusterBuffer) {
             _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
-            (const gpu::Byte*) clusterMatrices.constData());
+            (const gpu::Byte*) clusterMatrices.data());
         } else {
             _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-            (const gpu::Byte*) clusterMatrices.constData());
+            (const gpu::Byte*) clusterMatrices.data());
         }
     }
 
     if (cauterizedClusterMatrices.size() > 1) {
         if (!_cauterizedClusterBuffer) {
             _cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(cauterizedClusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) cauterizedClusterMatrices.constData());
+                (const gpu::Byte*) cauterizedClusterMatrices.data());
         }
         else {
             _cauterizedClusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.constData());
+                (const gpu::Byte*) clusterMatrices.data());
         }
     }
 }
 
-void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(
-        const Transform& renderTransform,
-        const gpu::BufferPointer& buffer) {
+void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(const Transform& renderTransform) {
     _cauterizedTransform = renderTransform;
-  //  _cauterizedClusterBuffer = buffer;
 }
 
 void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {

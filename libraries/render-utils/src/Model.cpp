@@ -255,7 +255,7 @@ void Model::updateRenderItems() {
                     if (clusterMatrices.size() == 1) {
                         renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
                     }
-                    data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
+                    data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
                 });
             }
         }
@@ -313,7 +313,7 @@ bool Model::updateGeometry() {
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
-            _meshStates.append(state);
+            _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
             // later in ModelMeshPayload, however the vast majority of meshes will not have them.
@@ -1138,17 +1138,6 @@ void Model::updateClusterMatrices() {
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
         }
-
-      /*  // Once computed the cluster matrices, update the buffer(s)
-        if (mesh.clusters.size() > 1) {
-            if (!state.clusterBuffer) {
-                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                                    (const gpu::Byte*) state.clusterMatrices.constData());
-            } else {
-                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                (const gpu::Byte*) state.clusterMatrices.constData());
-            }
-        }*/
     }
 
     // post the blender if we're not currently waiting for one to finish
@@ -1332,7 +1321,7 @@ void Model::createCollisionRenderItemSet() {
 }
 
 bool Model::isRenderable() const {
-    return !_meshStates.isEmpty() || (isLoaded() && _renderGeometry->getMeshes().empty());
+    return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
 class CollisionRenderGeometry : public Geometry {
