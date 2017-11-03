@@ -241,31 +241,14 @@ void Model::updateRenderItems() {
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::Transaction transaction;
-      //  foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-      //  for (auto itemID : self->_modelMeshRenderItemIDs) {
         for (int i = 0; i < self->_modelMeshRenderItemIDs.size(); i++) {
             auto itemID = self->_modelMeshRenderItemIDs[i];
             auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
             if (self && self->isLoaded()) {
-                //int meshIndex = std::dynamic_pointer_cast<ModelMeshPartPayload>(self->_modelMeshRenderItemsMap[itemID])->_meshIndex;
-             //   int meshIndex = std::dynamic_pointer_cast<ModelMeshPartPayload>(self->_modelMeshRenderItemsMap[itemID])->_meshIndex;
                 const Model::MeshState& state = self->getMeshState(meshIndex);
                 auto clusterMatrices(state.clusterMatrices);
 
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
-                    //  ModelPointer model = data._model.lock();
-                   //   if (model && model->isLoaded()) {
-                          // Ensure the model geometry was not reset between frames
-                     //     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
-
-                              /*const Model::MeshState& state = model->getMeshState(data._meshIndex);
-                              Transform renderTransform = modelTransform;
-                              if (state.clusterMatrices.size() == 1) {
-                                  renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                              }
-                              data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
-                              */
-
                     data.updateClusterBuffer(clusterMatrices);
 
                     Transform renderTransform = modelTransform;
@@ -273,9 +256,6 @@ void Model::updateRenderItems() {
                         renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
                     }
                     data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
-
-                    //  }
-                 // }
                 });
             }
         }

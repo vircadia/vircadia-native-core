@@ -186,7 +186,7 @@ void CauterizedModel::updateRenderItems() {
         // the application will ensure only the last lambda is actually invoked.
         void* key = (void*)this;
         std::weak_ptr<CauterizedModel> weakSelf = std::dynamic_pointer_cast<CauterizedModel>(shared_from_this());
-        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf, scale]() {
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
             // do nothing, if the model has already been destroyed.
             auto self = weakSelf.lock();
             if (!self) {
@@ -202,19 +202,12 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setTranslation(self->getTranslation());
             modelTransform.setRotation(self->getRotation());
 
-            Transform scaledModelTransform(modelTransform);
-            scaledModelTransform.setScale(scale);
-
-            uint32_t deleteGeometryCounter = self->getGeometryCounter();
-
-            if (!self->isLoaded()) {
+       /*     if (!self->isLoaded()) {
                 return;
-            }
+            }*/
             render::Transaction transaction;
             QList<render::ItemID> keys = self->getRenderItems().keys();
             int meshIndex{ 0 };
-            //foreach (auto itemID, keys) {
-          //  for (auto itemID : self->_modelMeshRenderItemIDs) {
             for (int i = 0; i < self->_modelMeshRenderItemIDs.size(); i++) {
                 auto itemID = self->_modelMeshRenderItemIDs[i];
                 auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
@@ -224,46 +217,22 @@ void CauterizedModel::updateRenderItems() {
                 const Model::MeshState& cState = self->getCauterizeMeshState(meshIndex);
                 auto clusterMatricesCauterized(cState.clusterMatrices);
 
-                transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, deleteGeometryCounter, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
-                 //   ModelPointer model = data._model.lock();
-                 //   if (model && model->isLoaded()) {
-                        // Ensure the model geometry was not reset between frames
-                  //      if (deleteGeometryCounter == model->getGeometryCounter()) {
-                            data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
+                transaction.updateItem<CauterizedMeshPartPayload>(itemID, 
+                    [modelTransform, clusterMatrices, clusterMatricesCauterized](CauterizedMeshPartPayload& data) {
+                        data.updateClusterBuffer(clusterMatrices, clusterMatricesCauterized);
 
-                            // this stuff identical to what happens in regular Model
-                            /*const Model::MeshState& state = model->getMeshState(data._meshIndex);
-                            Transform renderTransform = modelTransform;
-                            if (state.clusterMatrices.size() == 1) {
-                                renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                            }
-                            data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
-                            */
-                            Transform renderTransform = modelTransform;
-                            if (clusterMatrices.size() == 1) {
-                                renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
-                            }
-                            data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
+                        Transform renderTransform = modelTransform;
+                        if (clusterMatrices.size() == 1) {
+                            renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                        }
+                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
 
-
-                            // this stuff for cauterized mesh
-                            /*CauterizedModel* cModel = static_cast<CauterizedModel*>(model.get());
-                            const Model::MeshState& cState = cModel->getCauterizeMeshState(data._meshIndex);
-                            renderTransform = modelTransform;
-                            if (cState.clusterMatrices.size() == 1) {
-                                renderTransform = modelTransform.worldTransform(Transform(cState.clusterMatrices[0]));
-                            }
-                            data.updateTransformForCauterizedMesh(renderTransform, cState.clusterBuffer);
-                            */
-                            renderTransform = modelTransform;
-                            if (clusterMatricesCauterized.size() == 1) {
-                                renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
-                            }
-                            data.updateTransformForCauterizedMesh(renderTransform, nullptr);
-                   //     }
-                   // }
+                        renderTransform = modelTransform;
+                        if (clusterMatricesCauterized.size() == 1) {
+                            renderTransform = modelTransform.worldTransform(Transform(clusterMatricesCauterized[0]));
+                        }
+                        data.updateTransformForCauterizedMesh(renderTransform, nullptr);
                 });
-                meshIndex++;
             }
 
             scene->enqueueTransaction(transaction);
