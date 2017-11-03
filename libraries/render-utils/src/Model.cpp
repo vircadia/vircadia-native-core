@@ -218,9 +218,6 @@ void Model::updateRenderItems() {
     _needsUpdateClusterMatrices = true;
     _renderItemsNeedUpdate = false;
 
-    if (_modelMeshRenderItemIDs.size() != _meshStates.size()) {
-        return;
-    }
 
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
