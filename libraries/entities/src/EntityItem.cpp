@@ -1913,7 +1913,7 @@ void EntityItem::setLifetime(float value) {
     });
 }
 
-void EntityItem::setCreated(uint64_t value) {
+void EntityItem::setCreated(quint64 value) {
     withWriteLock([&] {
         if (_created != value) {
             _created = value;

@@ -348,7 +348,7 @@ public:
     virtual void setCollisionShape(const btCollisionShape* shape) {}
 
     void setPosition(const glm::vec3& value);
-    virtual void setParentID(const QUuid& parentID);
+    virtual void setParentID(const QUuid& parentID) override;
     virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     void setRotation(glm::quat orientation);
