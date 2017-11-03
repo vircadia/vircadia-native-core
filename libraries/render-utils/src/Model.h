@@ -387,7 +387,6 @@ protected:
 
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
-
     render::ItemIDs _modelMeshRenderItemIDs;
 
     bool _addedToScene { false }; // has been added to scene

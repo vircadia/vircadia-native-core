@@ -211,7 +211,8 @@ void CauterizedModel::updateRenderItems() {
             render::Transaction transaction;
             QList<render::ItemID> keys = self->getRenderItems().keys();
             int meshIndex{ 0 };
-            foreach (auto itemID, keys) {
+            //foreach (auto itemID, keys) {
+            for (auto itemID : self->_modelMeshRenderItemIDs) {
                 const Model::MeshState& state = self->getMeshState(meshIndex);
                 auto clusterMatrices(state.clusterMatrices);
                 const Model::MeshState& cState = self->getCauterizeMeshState(meshIndex);

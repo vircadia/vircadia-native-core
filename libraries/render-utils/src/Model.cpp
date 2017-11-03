@@ -218,6 +218,10 @@ void Model::updateRenderItems() {
     _needsUpdateClusterMatrices = true;
     _renderItemsNeedUpdate = false;
 
+    if (_modelMeshRenderItemIDs.size() != _meshStates.size()) {
+        return;
+    }
+
     // queue up this work for later processing, at the end of update and just before rendering.
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
@@ -240,37 +244,39 @@ void Model::updateRenderItems() {
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::Transaction transaction;
-        int meshIndex{ 0 };
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            const Model::MeshState& state = self->getMeshState(meshIndex);
-            auto clusterMatrices(state.clusterMatrices);
+      //  for (auto itemID : self->_modelMeshRenderItemIDs) {
+            if (self && self->isLoaded()) {
+                int meshIndex = std::dynamic_pointer_cast<ModelMeshPartPayload>(self->_modelMeshRenderItemsMap[itemID])->_meshIndex;
+                const Model::MeshState& state = self->getMeshState(meshIndex);
+                auto clusterMatrices(state.clusterMatrices);
 
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
-              //  ModelPointer model = data._model.lock();
-             //   if (model && model->isLoaded()) {
-                    // Ensure the model geometry was not reset between frames
-               //     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
+                transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
+                    //  ModelPointer model = data._model.lock();
+                   //   if (model && model->isLoaded()) {
+                          // Ensure the model geometry was not reset between frames
+                     //     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
 
-                        /*const Model::MeshState& state = model->getMeshState(data._meshIndex);
-                        Transform renderTransform = modelTransform;
-                        if (state.clusterMatrices.size() == 1) {
-                            renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                        }
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
-                        */
-                        
-                        data.updateClusterBuffer(clusterMatrices);
+                              /*const Model::MeshState& state = model->getMeshState(data._meshIndex);
+                              Transform renderTransform = modelTransform;
+                              if (state.clusterMatrices.size() == 1) {
+                                  renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
+                              }
+                              data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
+                              */
 
-                        Transform renderTransform = modelTransform;
-                        if (clusterMatrices.size() == 1) {
-                            renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
-                        }
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
+                    data.updateClusterBuffer(clusterMatrices);
 
-                  //  }
-               // }
-            });
-            meshIndex++;
+                    Transform renderTransform = modelTransform;
+                    if (clusterMatrices.size() == 1) {
+                        renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
+                    }
+                    data.updateTransformForSkinnedMesh(renderTransform, modelTransform, nullptr);
+
+                    //  }
+                 // }
+                });
+            }
         }
 
         Transform collisionMeshOffset;
