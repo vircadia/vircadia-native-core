@@ -86,7 +86,7 @@ Rectangle {
                 root.dateOfPurchase = "";
                 root.itemEdition = "Uncertified Copy";
 
-                errorText.text = "The certificate associated with this entity is invalid.";
+                errorText.text = "The information associated with this item has been modified and it no longer matches the original certified item.";
                 errorText.color = hifi.colors.baseGray;
             } else if (certStatus === 4) { // CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED
                 root.isCertificateInvalid = true;
@@ -99,7 +99,7 @@ Rectangle {
                 root.dateOfPurchase = "";
                 root.itemEdition = "Uncertified Copy";
 
-                errorText.text = "The certificate associated with this entity is invalid.";
+                errorText.text = "The avatar who rezzed this item doesn't own it.";
                 errorText.color = hifi.colors.baseGray;
             } else {
                 console.log("Unknown certificate status received from ledger signal!");
