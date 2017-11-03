@@ -241,10 +241,14 @@ void Model::updateRenderItems() {
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::Transaction transaction;
-        foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
+      //  foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
       //  for (auto itemID : self->_modelMeshRenderItemIDs) {
+        for (int i = 0; i < self->_modelMeshRenderItemIDs.size(); i++) {
+            auto itemID = self->_modelMeshRenderItemIDs[i];
+            auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
             if (self && self->isLoaded()) {
-                int meshIndex = std::dynamic_pointer_cast<ModelMeshPartPayload>(self->_modelMeshRenderItemsMap[itemID])->_meshIndex;
+                //int meshIndex = std::dynamic_pointer_cast<ModelMeshPartPayload>(self->_modelMeshRenderItemsMap[itemID])->_meshIndex;
+             //   int meshIndex = std::dynamic_pointer_cast<ModelMeshPartPayload>(self->_modelMeshRenderItemsMap[itemID])->_meshIndex;
                 const Model::MeshState& state = self->getMeshState(meshIndex);
                 auto clusterMatrices(state.clusterMatrices);
 
@@ -704,6 +708,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItemIDs.clear();
     _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
+    _modelMeshRenderItemShapes.clear();
 
     foreach(auto item, _collisionRenderItemsMap.keys()) {
         transaction.removeItem(item);
@@ -1282,6 +1287,7 @@ void Model::createVisibleRenderItemSet() {
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
     _modelMeshRenderItems.clear();
+    _modelMeshRenderItemShapes.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1304,6 +1310,7 @@ void Model::createVisibleRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
+            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }
     }

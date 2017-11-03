@@ -57,6 +57,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
         Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
         _modelMeshRenderItems.clear();
+        _modelMeshRenderItemShapes.clear();
 
         Transform transform;
         transform.setTranslation(_translation);
@@ -80,6 +81,7 @@ void CauterizedModel::createVisibleRenderItemSet() {
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
+                _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
                 shapeID++;
             }
         }
@@ -212,7 +214,11 @@ void CauterizedModel::updateRenderItems() {
             QList<render::ItemID> keys = self->getRenderItems().keys();
             int meshIndex{ 0 };
             //foreach (auto itemID, keys) {
-            for (auto itemID : self->_modelMeshRenderItemIDs) {
+          //  for (auto itemID : self->_modelMeshRenderItemIDs) {
+            for (int i = 0; i < self->_modelMeshRenderItemIDs.size(); i++) {
+                auto itemID = self->_modelMeshRenderItemIDs[i];
+                auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
+
                 const Model::MeshState& state = self->getMeshState(meshIndex);
                 auto clusterMatrices(state.clusterMatrices);
                 const Model::MeshState& cState = self->getCauterizeMeshState(meshIndex);
