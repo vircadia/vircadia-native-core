@@ -262,6 +262,8 @@ public:
 
     Q_INVOKABLE MeshProxyList getMeshes() const;
 
+    void scaleToFit();
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -320,7 +322,6 @@ protected:
     virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
-    void scaleToFit();
     void snapToRegistrationPoint();
 
     void computeMeshPartLocalBounds();
