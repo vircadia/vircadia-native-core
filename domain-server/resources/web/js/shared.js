@@ -299,6 +299,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
                     });
                   }
 
+                  // If domainID is not specified, the current domain id will be used.
                   function finishSettingUpPlace(domainID) {
                     sendUpdatePlaceRequest(
                       placeID,
@@ -306,9 +307,9 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
                       domainID,
                       false,
                       function(data) {
-                        $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
                         dialog.modal('hide')
                         if (domainID) {
+                          $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
                           finalizeSaveDomainID(domainID);
                         } else {
                           if (onSuccessfullyAdded) {
