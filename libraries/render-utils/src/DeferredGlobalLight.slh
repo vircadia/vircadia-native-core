@@ -134,7 +134,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     color += directionalSpecular;
 
     // Attenuate the light if haze effect selected
-    if ((hazeParams.hazeMode & HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) == HAZE_MODE_IS_DIRECTIONAL_LIGHT_ATTENUATED) {
+    if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
         // Directional light attenuation is simulated by assuming the light source is at a fixed height above the
         // fragment.  This height is where the haze density is reduced by 95% from the haze at the fragment's height
         //
@@ -147,8 +147,8 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
         // Height at which haze density is reduced by 95% (default set to 2000.0 for safety ,this should never happen)
         float height_95p = 2000.0;
-        if (hazeParams.hazeAltitudeFactorKeyLight > 0.0f) {
-            height_95p = -log(0.05) / hazeParams.hazeAltitudeFactorKeyLight;
+        if (hazeParams.hazeKeyLightAltitudeFactor > 0.0f) {
+            height_95p = -log(0.05) / hazeParams.hazeKeyLightAltitudeFactor;
         }
 
         // Note that the sine will always be positive
@@ -168,8 +168,8 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
         // Integration is from the fragment towards the light source
         // Note that the haze base reference affects only the haze density as function of altitude
         float hazeDensityDistribution =  
-            hazeParams.hazeRangeFactorKeyLight * 
-            exp(-hazeParams.hazeAltitudeFactorKeyLight * (worldFragPos.y - hazeParams.hazeBaseReference));
+            hazeParams.hazeKeyLightRangeFactor * 
+            exp(-hazeParams.hazeKeyLightAltitudeFactor * (worldFragPos.y - hazeParams.hazeBaseReference));
 
         float hazeIntegral =  hazeDensityDistribution * distance;
 

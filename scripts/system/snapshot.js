@@ -35,7 +35,7 @@ var imageData = [];
 var storyIDsToMaybeDelete = [];
 var shareAfterLogin = false;
 var snapshotToShareAfterLogin = [];
-var METAVERSE_BASE = location.metaverseServerUrl;
+var METAVERSE_BASE = Account.metaverseServerURL;
 var isLoggedIn;
 var numGifSnapshotUploadsPending = 0;
 var numStillSnapshotUploadsPending = 0;

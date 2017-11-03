@@ -14,7 +14,7 @@
     var USERS_URL = "https://hifi-content.s3.amazonaws.com/faye/tablet-dev/users.html";
     var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
-    var FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
+    var FRIENDS_WINDOW_URL = Account.metaverseServerURL + "/user/friends";
     var FRIENDS_WINDOW_WIDTH = 290;
     var FRIENDS_WINDOW_HEIGHT = 500;
     var FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
