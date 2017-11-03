@@ -25,13 +25,13 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string keyFilePath: "";
+    property string keyFilePath;
 
     Hifi.QmlCommerce {
         id: commerce;
 
         onKeyFilePathIfExistsResult: {
-            keyFilePath = path;
+            root.keyFilePath = path;
         }
     }
 
@@ -232,6 +232,12 @@ Item {
             anchors.rightMargin: 55;
             anchors.bottom: parent.bottom;
 
+            onVisibleChanged: {
+                if (visible) {
+                    commerce.getKeyFilePathIfExists();
+                }
+            }
+
             HiFiGlyphs {
                 id: yourPrivateKeysImage;
                 text: hifi.glyphs.walletKey;
@@ -284,7 +290,17 @@ Item {
                 id: removeHmdContainer;
                 z: 998;
                 visible: false;
-                color: hifi.colors.blueHighlight;
+
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0.2;
+                        color: hifi.colors.baseGrayHighlight;
+                    }
+                    GradientStop {
+                        position: 1.0;
+                        color: hifi.colors.baseGrayShadow;
+                    }
+                }
                 anchors.fill: backupInstructionsButton;
                 radius: 5;
                 MouseArea {
@@ -320,8 +336,9 @@ Item {
                 height: 40;
 
                 onClicked: {
-                    Qt.openUrlExternally("https://www.highfidelity.com/");
-                    Qt.openUrlExternally("file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/')));
+                    var keyPath = "file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/'));
+                    Qt.openUrlExternally(keyPath + "/backup_instructions.html");
+                    Qt.openUrlExternally(keyPath);
                     removeHmdContainer.visible = true;
                     removeHmdContainerTimer.start();
                 }

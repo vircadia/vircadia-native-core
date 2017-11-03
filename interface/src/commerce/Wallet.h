@@ -17,6 +17,7 @@
 #include <DependencyManager.h>
 #include <Node.h>
 #include <ReceivedMessage.h>
+#include "scripting/WalletScriptingInterface.h"
 
 #include <QPixmap>
 
@@ -50,9 +51,19 @@ public:
 
     void reset();
 
+    void getWalletStatus();
+    enum WalletStatus {
+        WALLET_STATUS_NOT_LOGGED_IN = 0,
+        WALLET_STATUS_NOT_SET_UP,
+        WALLET_STATUS_NOT_AUTHENTICATED,
+        WALLET_STATUS_READY
+    };
+
 signals:
     void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
+
+    void walletStatusResult(uint walletStatus);
 
 private slots:
     void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
@@ -69,8 +80,9 @@ private:
     void updateImageProvider();
     bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
     bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
+    bool writeBackupInstructions();
 
-    bool verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText);
+    void account();
 };
 
 #endif // hifi_Wallet_h

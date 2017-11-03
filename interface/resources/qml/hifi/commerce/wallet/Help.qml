@@ -25,17 +25,20 @@ Item {
 
     id: root;
     property string keyFilePath;
+    property bool showDebugButtons: true;
 
     Hifi.QmlCommerce {
         id: commerce;
 
         onKeyFilePathIfExistsResult: {
-            keyFilePath = path;
+            root.keyFilePath = path;
         }
     }
 
-    Component.onCompleted: {
-        commerce.getKeyFilePathIfExists();
+    onVisibleChanged: {
+        if (visible) {
+            commerce.getKeyFilePathIfExists();
+        }
     }
 
     RalewaySemiBold {
@@ -54,6 +57,7 @@ Item {
     }
     HifiControlsUit.Button {
         id: clearCachedPassphraseButton;
+        visible: root.showDebugButtons;
         color: hifi.buttons.black;
         colorScheme: hifi.colorSchemes.dark;
         anchors.top: parent.top;
@@ -69,6 +73,7 @@ Item {
     }
     HifiControlsUit.Button {
         id: resetButton;
+        visible: root.showDebugButtons;
         color: hifi.buttons.red;
         colorScheme: hifi.colorSchemes.dark;
         anchors.top: clearCachedPassphraseButton.top;
@@ -88,22 +93,27 @@ Item {
         ListElement {
             isExpanded: false;
             question: "What are private keys?"
-            answer: qsTr("A private key is a secret piece of text that is used to decrypt code.<br><br>In High Fidelity, <b>your private keys are used to decrypt the contents of your Wallet and Purchases.</b>");
+            answer: qsTr("A private key is a secret piece of text that is used to prove ownership, unlock confidential information, and sign transactions.<br><br>In High Fidelity, <b>your private keys are used to securely access the contents of your Wallet and Purchases.</b>");
         }
         ListElement {
             isExpanded: false;
             question: "Where are my private keys stored?"
-            answer: qsTr('Your private keys are <b>only stored on your hard drive</b> in High Fidelity Interface\'s AppData directory.<br><br><b><font color="#0093C5"><a href="#privateKeyPath">Tap here to open the file path of your hifikey in your file explorer.</a></font></b><br><br> You may backup this file by copying it to a USB flash drive, or to a service like Dropbox or Google Drive. Restore your backup by replacing the file in Interface\'s AppData directory with your backed-up copy.');
+            answer: qsTr('By default, your private keys are <b>only stored on your hard drive</b> in High Fidelity Interface\'s AppData directory.<br><br><b><font color="#0093C5"><a href="#privateKeyPath">Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>');
+        }
+        ListElement {
+            isExpanded: false;
+            question: "How can I backup my private keys?"
+            answer: qsTr('You may backup the file containing your private keys by copying it to a USB flash drive, or to a service like Dropbox or Google Drive.<br><br>Restore your backup by replacing the file in Interface\'s AppData directory with your backed-up copy.<br><br><b><font color="#0093C5"><a href="#privateKeyPath">Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>');
         }
         ListElement {
             isExpanded: false;
             question: "What happens if I lose my passphrase?"
-            answer: qsTr("If you lose your passphrase, you will no longer have access to the contents of your Wallet or My Purchases.<br><br><b>Nobody can help you recover your passphrase, including High Fidelity.</b> Please write it down and store it securely.");
+            answer: qsTr("Your passphrase is used to encrypt your private keys. If you lose your passphrase, you will no longer be able to decrypt your private key file. You will also no longer have access to the contents of your Wallet or My Purchases.<br><br><b>Nobody can help you recover your passphrase, including High Fidelity.</b> Please write it down and store it securely.");
         }
         ListElement {
             isExpanded: false;
             question: "What is a 'Security Pic'?"
-            answer: qsTr("Your Security Pic is an encrypted image that you selected during Wallet Setup. <b>It acts as an extra layer of Wallet security.</b><br><br>When you see your Security Pic, you know that your actions and data are securely making use of your private keys.<br><br><b>If you don't see your Security Pic on a page that is asking you for your Wallet passphrase, someone untrustworthy may be trying to gain access to your Wallet.</b><br><br>The Pic is stored on your hard drive inside the same file as your private keys.");
+            answer: qsTr("Your Security Pic is an encrypted image that you selected during Wallet Setup. <b>It acts as an extra layer of Wallet security.</b><br><br>When you see your Security Pic, you know that your actions and data are securely making use of your private keys.<br><br><b>If you don't see your Security Pic on a page that is asking you for your Wallet passphrase, someone untrustworthy may be trying to gain access to your Wallet.</b><br><br>The encrypted Pic is stored on your hard drive inside the same file as your private keys.");
         }
         ListElement {
             isExpanded: false;

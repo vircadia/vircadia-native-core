@@ -23,9 +23,6 @@ import "../controls" as HifiControls
 
 Rectangle {
     id: pal;
-    // Size
-    width: parent.width;
-    height: parent.height;
     // Style
     color: "#E3E3E3";
     // Properties

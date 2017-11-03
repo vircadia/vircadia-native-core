@@ -18,6 +18,11 @@ CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(q
 WalletScriptingInterface::WalletScriptingInterface() {
 }
 
+void WalletScriptingInterface::refreshWalletStatus() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->getWalletStatus();
+}
+
 static const QString CHECKOUT_QML_PATH = qApp->applicationDirPath() + "../../../qml/hifi/commerce/checkout/Checkout.qml";
 void WalletScriptingInterface::buy(const QString& name, const QString& id, const int& price, const QString& href) {
     if (QThread::currentThread() != thread()) {

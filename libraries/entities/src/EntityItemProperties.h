@@ -40,6 +40,7 @@
 #include "PolyVoxEntityItem.h"
 #include "SimulationOwner.h"
 #include "SkyboxPropertyGroup.h"
+#include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
@@ -177,7 +178,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
+
+    DEFINE_PROPERTY_REF_ENUM(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t, (uint32_t)COMPONENT_MODE_INHERIT);
+
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
+    DEFINE_PROPERTY_GROUP(Haze, haze, HazePropertyGroup);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
@@ -186,8 +191,10 @@ public:
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool, TextEntityItem::DEFAULT_FACE_CAMERA);
     DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
-    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, QVector<glm::vec3>());
+    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
+	DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString, "");
@@ -239,6 +246,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
     static QString getBackgroundModeString(BackgroundMode mode);
+    static QString getHazeModeString(uint32_t mode);
 
 
 public:
@@ -316,6 +324,21 @@ public:
     bool getRenderInfoHasTransparent() const { return _renderInfoHasTransparent; }
     void setRenderInfoHasTransparent(bool value) { _renderInfoHasTransparent = value; }
 
+    void setPackedNormals(const QByteArray& value);
+    QVector<glm::vec3> unpackNormals(const QByteArray& normals);
+
+    void setPackedStrokeColors(const QByteArray& value);
+    QVector<glm::vec3> unpackStrokeColors(const QByteArray& strokeColors);
+
+    QByteArray getPackedNormals() const;
+    QByteArray packNormals(const QVector<glm::vec3>& normals) const;
+
+    QByteArray getPackedStrokeColors() const;
+    QByteArray packStrokeColors(const QVector<glm::vec3>& strokeColors) const;
+
+    QByteArray getStaticCertificateJSON() const;
+    QByteArray getStaticCertificateHash() const;
+    bool verifyStaticCertificateProperties();
 
 protected:
     QString getCollisionMaskAsString() const;
@@ -451,6 +474,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CertificateID, certificateID, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, BackgroundMode, backgroundMode, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, HazeMode, hazeMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelSurfaceStyle, voxelSurfaceStyle, "");

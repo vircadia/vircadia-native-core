@@ -5,8 +5,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, Controller, RIGHT_HAND, LEFT_HAND, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   makeRunningValues, Messages, Quat, Vec3, makeDispatcherModuleParameters, Overlays, ZERO_VEC, AVATAR_SELF_ID, HMD,
+/* global Script, Entities, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
+   makeRunningValues, Messages, Quat, Vec3, makeDispatcherModuleParameters, Overlays, ZERO_VEC, HMD,
    INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
    TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE, LaserPointers, RayPick, ContextOverlay
@@ -17,6 +17,8 @@ Script.include("/~/system/libraries/controllers.js");
 
 (function() {
     var TouchEventUtils = Script.require("/~/system/libraries/touchEventUtils.js");
+    var END_RADIUS = 0.005;
+    var dim = { x: END_RADIUS, y: END_RADIUS, z: END_RADIUS };
     var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
@@ -27,10 +29,11 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
@@ -48,10 +51,11 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
@@ -69,7 +73,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [
@@ -171,19 +175,13 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.updateLaserPointer = function(controllerData) {
-            var RADIUS = 0.005;
-            var dim = { x: RADIUS, y: RADIUS, z: RADIUS };
-
-            if (this.mode === "full") {
-                this.fullEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: fullPath, end: this.fullEnd});
-            } else if (this.mode === "half") {
-                this.halfEnd.dimensions = dim;
-                LaserPointers.editRenderState(this.laserPointer, this.mode, {path: halfPath, end: this.halfEnd});
-            }
-
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
+
+            if (HMD.tabletID !== this.tabletID) {
+                this.tabletID = HMD.tabletID;
+                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID]);
+            }
         };
 
         this.processControllerTriggers = function(controllerData) {
@@ -235,7 +233,7 @@ Script.include("/~/system/libraries/controllers.js");
                     var POINTER_PRESS_TO_MOVE_DELAY = 0.33; // seconds
                     if (this.deadspotExpired || this.touchingEnterTimer > POINTER_PRESS_TO_MOVE_DELAY ||
                         distance2D(this.laserTarget.position2D,
-                                   this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
+                            this.pressEnterLaserTarget.position2D) > this.deadspotRadius) {
                         TouchEventUtils.sendTouchMoveEventToTouchTarget(this.hand, this.laserTarget);
                         this.deadspotExpired = true;
                     }
@@ -366,8 +364,6 @@ Script.include("/~/system/libraries/controllers.js");
             LaserPointers.removeLaserPointer(this.laserPointer);
         };
 
-        this.halfEnd = halfEnd;
-        this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_OVERLAYS,
@@ -378,7 +374,7 @@ Script.include("/~/system/libraries/controllers.js");
             defaultRenderStates: defaultRenderStates
         });
 
-        LaserPointers.setIgnoreOverlays(this.laserPointer, [HMD.tabletID]);
+        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID]);
     }
 
     var leftOverlayLaserInput = new OverlayLaserInput(LEFT_HAND);

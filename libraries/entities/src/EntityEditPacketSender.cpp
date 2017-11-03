@@ -18,6 +18,7 @@
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
+#include <AddressManager.h>
 
 EntityEditPacketSender::EntityEditPacketSender() {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -45,7 +46,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     }
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
     if (!entity) {
-        qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage can't find entity.";
+        qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage can't find entity: " << entityItemID;
         return;
     }
 
@@ -93,9 +94,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
     bool success;
+    auto nodeList = DependencyManager::get<NodeList>();
     if (properties.parentIDChanged() && properties.getParentID() == AVATAR_SELF_ID) {
         EntityItemProperties propertiesCopy = properties;
-        auto nodeList = DependencyManager::get<NodeList>();
         const QUuid myNodeID = nodeList->getSessionUUID();
         propertiesCopy.setParentID(myNodeID);
         success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut);
@@ -110,6 +111,9 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
             qCDebug(entities) << "    properties:" << properties;
         #endif
         queueOctreeEditMessage(type, bufferOut);
+        if (type == PacketType::EntityAdd && !properties.getCertificateID().isEmpty()) {
+            emit addingEntityWithCertificate(properties.getCertificateID(), DependencyManager::get<AddressManager>()->getPlaceName());
+        }
     }
 }
 

@@ -51,13 +51,11 @@ void Image3DOverlay::update(float deltatime) {
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
         _textureIsLoaded = false;
     }
-#if OVERLAY_PANELS
     if (usecTimestampNow() > _transformExpiry) {
         Transform transform = getTransform();
         applyTransformTo(transform);
         setTransform(transform);
     }
-#endif
     Parent::update(deltatime);
 }
 
@@ -132,7 +130,7 @@ void Image3DOverlay::render(RenderArgs* args) {
 
 const render::ShapeKey Image3DOverlay::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
-    if (_emissive || shouldDrawHUDLayer()) {
+    if (_emissive) {
         builder.withUnlit();
     }
     if (isTransparent()) {

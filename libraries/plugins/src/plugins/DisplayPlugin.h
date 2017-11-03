@@ -156,8 +156,8 @@ public:
         return aspect(getRecommendedRenderSize());
     }
 
-    // The recommended bounds for primary overlay placement
-    virtual QRect getRecommendedOverlayRect() const {
+    // The recommended bounds for primary HUD placement
+    virtual QRect getRecommendedHUDRect() const {
         const int DESKTOP_SCREEN_PADDING = 50;
         auto recommendedSize = getRecommendedUiSize() - glm::uvec2(DESKTOP_SCREEN_PADDING);
         return QRect(0, 0, recommendedSize.x, recommendedSize.y);
@@ -204,8 +204,9 @@ public:
 
     void waitForPresent();
 
-    static const QString& MENU_PATH();
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
 
+    static const QString& MENU_PATH();
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);
@@ -216,6 +217,8 @@ protected:
     void incrementPresentCount();
 
     gpu::ContextPointer _gpuContext;
+
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator { std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)>() };
 
 private:
     QMutex _presentMutex;

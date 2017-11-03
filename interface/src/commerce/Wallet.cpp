@@ -41,6 +41,7 @@
 #endif
 
 static const char* KEY_FILE = "hifikey";
+static const char* INSTRUCTIONS_FILE = "backup_instructions.html";
 static const char* IMAGE_HEADER = "-----BEGIN SECURITY IMAGE-----\n";
 static const char* IMAGE_FOOTER = "-----END SECURITY IMAGE-----\n";
 
@@ -102,6 +103,38 @@ RSA* readKeys(const char* filename) {
         qCDebug(commerce) << "failed to open key file" << filename;
     }
     return key;
+}
+
+bool Wallet::writeBackupInstructions() {
+    QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
+    QString outputFilename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
+    QFile outputFile(outputFilename);
+    bool retval = false;
+
+    if (QFile::exists(outputFilename) || getKeyFilePath() == "")
+    {
+        return false;
+    }
+    QFile::copy(inputFilename, outputFilename);
+
+    if (QFile::exists(outputFilename) && outputFile.open(QIODevice::ReadWrite)) {
+
+        QByteArray fileData = outputFile.readAll();
+        QString text(fileData);
+
+        text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
+
+        outputFile.seek(0); // go to the beginning of the file
+        outputFile.write(text.toUtf8()); // write the new text back to the file
+
+        outputFile.close(); // close the file handle.
+
+        retval = true;
+        qCDebug(commerce) << "wrote html file successfully";
+    } else {
+        qCDebug(commerce) << "failed to open output html file" << outputFilename;
+    }
+    return retval;
 }
 
 bool writeKeys(const char* filename, RSA* keys) {
@@ -282,9 +315,33 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
 
 Wallet::Wallet() {
     auto nodeList = DependencyManager::get<NodeList>();
+    auto ledger = DependencyManager::get<Ledger>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
+    packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
+
+    connect(ledger.data(), &Ledger::accountResult, this, [&]() {
+        auto wallet = DependencyManager::get<Wallet>();
+        auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+        uint status;
+
+        if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
+            status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
+        } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
+            status = (uint)WalletStatus::WALLET_STATUS_NOT_AUTHENTICATED;
+        } else {
+            status = (uint)WalletStatus::WALLET_STATUS_READY;
+        }
+
+        walletScriptingInterface->setWalletStatus(status);
+        emit walletStatusResult(status);
+    });
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
+        getWalletStatus();
+    });
 }
 
 Wallet::~Wallet() {
@@ -300,6 +357,8 @@ bool Wallet::setPassphrase(const QString& passphrase) {
     _passphrase = new QString(passphrase);
 
     _publicKeys.clear();
+
+    writeBackupInstructions();
 
     return true;
 }
@@ -468,9 +527,10 @@ bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateRSAKeypair();
 
+    writeBackupInstructions();
+
     // TODO: redo this soon -- need error checking and so on
     writeSecurityImage(_securityImage, keyFilePath());
-    emit keyFilePathIfExistsResult(getKeyFilePath());
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
     QString key = keyPair.first->toBase64();
     _publicKeys.push_back(key);
@@ -628,6 +688,7 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
                 QFile(QString(keyFilePath())).remove();
                 QFile(tempFileName).rename(QString(keyFilePath()));
                 qCDebug(commerce) << "wallet written successfully";
+                emit keyFilePathIfExistsResult(getKeyFilePath());
                 return true;
             } else {
                 qCDebug(commerce) << "couldn't write security image to temp wallet";
@@ -657,28 +718,104 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 }
 
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
-    QString decryptedText;
-    quint64 encryptedTextSize;
-    quint64 publicKeySize;
+    auto nodeList = DependencyManager::get<NodeList>();
 
-    if (verifyOwnerChallenge(packet->read(packet->readPrimitive(&encryptedTextSize)), packet->read(packet->readPrimitive(&publicKeySize)), decryptedText)) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        // setup the packet
-        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, NUM_BYTES_RFC4122_UUID + decryptedText.size(), true);
+    bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
+    unsigned char decryptedText[64];
+    int certIDByteArraySize;
+    int encryptedTextByteArraySize;
+    int challengingNodeUUIDByteArraySize;
 
-        // write the decrypted text to the packet
-        decryptedTextPacket->write(decryptedText.toUtf8());
+    packet->readPrimitive(&certIDByteArraySize);
+    packet->readPrimitive(&encryptedTextByteArraySize);
+    if (challengeOriginatedFromClient) {
+        packet->readPrimitive(&challengingNodeUUIDByteArraySize);
+    }
 
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text";
+    QByteArray certID = packet->read(certIDByteArraySize);
+    QByteArray encryptedText = packet->read(encryptedTextByteArraySize);
+    QByteArray challengingNodeUUID;
+    if (challengeOriginatedFromClient) {
+        challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
+    }
+
+    RSA* rsa = readKeys(keyFilePath().toStdString().c_str());
+    int decryptionStatus = -1;
+
+    if (rsa) {
+        ERR_clear_error();
+        decryptionStatus = RSA_private_decrypt(encryptedTextByteArraySize,
+            reinterpret_cast<const unsigned char*>(encryptedText.constData()),
+            decryptedText,
+            rsa,
+            RSA_PKCS1_OAEP_PADDING);
+
+        RSA_free(rsa);
+    } else {
+        qCDebug(commerce) << "During entity ownership challenge, creating the RSA object failed.";
+    }
+
+    QByteArray decryptedTextByteArray;
+    if (decryptionStatus > -1) {
+        decryptedTextByteArray = QByteArray(reinterpret_cast<const char*>(decryptedText), decryptionStatus);
+    }
+    int decryptedTextByteArraySize = decryptedTextByteArray.size();
+    int certIDSize = certID.size();
+    // setup the packet
+    if (challengeOriginatedFromClient) {
+        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+            certIDSize + decryptedTextByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+            true);
+
+        decryptedTextPacket->writePrimitive(certIDSize);
+        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+        decryptedTextPacket->writePrimitive(challengingNodeUUIDByteArraySize);
+        decryptedTextPacket->write(certID);
+        decryptedTextPacket->write(decryptedTextByteArray);
+        decryptedTextPacket->write(challengingNodeUUID);
+
+        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
 
         nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
     } else {
-        qCDebug(commerce) << "verifyOwnerChallenge() returned false";
+        auto decryptedTextPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + decryptedTextByteArraySize + 2 * sizeof(int), true);
+
+        decryptedTextPacket->writePrimitive(certIDSize);
+        decryptedTextPacket->writePrimitive(decryptedTextByteArraySize);
+        decryptedTextPacket->write(certID);
+        decryptedTextPacket->write(decryptedTextByteArray);
+
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing decrypted text" << decryptedTextByteArray << "for CertID" << certID;
+
+        nodeList->sendPacket(std::move(decryptedTextPacket), *sendingNode);
+    }
+
+    if (decryptionStatus == -1) {
+        qCDebug(commerce) << "During entity ownership challenge, decrypting the encrypted text failed.";
+        long error = ERR_get_error();
+        if (error != 0) {
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "RSA error:" << error_str;
+        }
     }
 }
 
-bool Wallet::verifyOwnerChallenge(const QByteArray& encryptedText, const QString& publicKey, QString& decryptedText) {
-    // I have no idea how to do this yet, so here's some dummy code that may not even work.
-    decryptedText = QString("hello");
-    return true;
+void Wallet::account() {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->account();
+}
+
+void Wallet::getWalletStatus() {
+    auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+    uint status;
+
+    if (DependencyManager::get<AccountManager>()->isLoggedIn()) {
+        // This will set account info for the wallet, allowing us to decrypt and display the security image.
+        account();
+    } else {
+        status = (uint)WalletStatus::WALLET_STATUS_NOT_LOGGED_IN;
+        emit walletStatusResult(status);
+        walletScriptingInterface->setWalletStatus(status);
+        return;
+    }
 }

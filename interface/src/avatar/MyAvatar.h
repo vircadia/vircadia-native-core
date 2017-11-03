@@ -16,6 +16,8 @@
 
 #include <glm/glm.hpp>
 
+#include <QUuid>
+
 #include <SettingHandle.h>
 #include <Rig.h>
 #include <Sound.h>
@@ -106,6 +108,8 @@ class MyAvatar : public Avatar {
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
      * @property userHeight {number} The height of the user in sensor space. (meters).
      * @property userEyeHeight {number} Estimated height of the users eyes in sensor space. (meters)
+     * @property SELF_ID {string} READ-ONLY. UUID representing "my avatar". Only use for local-only entities and overlays in situations where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain).
+     *   Note: Likely to be deprecated.
      */
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
@@ -152,6 +156,8 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
     Q_PROPERTY(float userEyeHeight READ getUserEyeHeight)
+
+    Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
  
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -544,6 +550,10 @@ public:
     float getUserHeight() const;
     float getUserEyeHeight() const;
 
+    virtual SpatialParentTree* getParentTree() const override;
+
+    const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -609,6 +619,7 @@ signals:
     void skeletonChanged();
     void dominantHandChanged(const QString& hand);
     void sensorToWorldScaleChanged(float sensorToWorldScale);
+    void attachmentsChanged();
 
 private:
 
@@ -645,8 +656,6 @@ private:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     void setVisibleInSceneIfReady(Model* model, const render::ScenePointer& scene, bool visiblity);
-
-private:
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();

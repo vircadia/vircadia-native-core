@@ -14,15 +14,15 @@ StatTracker::StatTracker() {
 
 QVariant StatTracker::getStat(const QString& name) {
     std::lock_guard<std::mutex> lock(_statsLock);
-    return _stats[name];
+    return QVariant::fromValue<int64_t>(_stats[name]);
 }
 
-void StatTracker::setStat(const QString& name, int value) {
+void StatTracker::setStat(const QString& name, int64_t value) {
     Lock lock(_statsLock);
     _stats[name] = value;
 }
 
-void StatTracker::updateStat(const QString& name, int value) {
+void StatTracker::updateStat(const QString& name, int64_t value) {
     Lock lock(_statsLock);
     auto itr = _stats.find(name);
     if (_stats.end() == itr) {

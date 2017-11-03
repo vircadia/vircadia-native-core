@@ -41,6 +41,8 @@ private:
     AssetRequest* _assetRequest { nullptr };
 
     p_high_resolution_clock::time_point _lastProgressDebug;
+
+    int64_t _lastRecordedBytesDownloaded { 0 };
 };
 
 #endif

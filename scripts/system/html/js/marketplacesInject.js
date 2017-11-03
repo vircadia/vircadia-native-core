@@ -26,9 +26,10 @@
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
 
-    var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
+    var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
+    var metaverseServerURL = "https://metaverse.highfidelity.com";
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -57,7 +58,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === "https://metaverse.highfidelity.com/marketplace?";
+        var isInitialHiFiPage = location.href === metaverseServerURL + "/marketplace?";
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -69,7 +70,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
+            (document.referrer !== "") ? window.history.back() : window.location = (metaverseServerURL + "/marketplace?");
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -99,7 +100,9 @@
     }
 
     function maybeAddSetupWalletButton() {
-        if (userIsLoggedIn && walletNeedsSetup) {
+        if (!$('body').hasClass("walletsetup-injected") && userIsLoggedIn && walletNeedsSetup) {
+            $('body').addClass("walletsetup-injected");
+
             var resultsElement = document.getElementById('results');
             var setupWalletElement = document.createElement('div');
             setupWalletElement.classList.add("row");
@@ -135,8 +138,13 @@
     }
 
     function maybeAddLogInButton() {
-        if (!userIsLoggedIn) {
+        if (!$('body').hasClass("login-injected") && !userIsLoggedIn) {
+            $('body').addClass("login-injected");
             var resultsElement = document.getElementById('results');
+            if (!resultsElement) { // If we're on the main page, this will evaluate to `true`
+                resultsElement = document.getElementById('item-show');
+                resultsElement.style = 'margin-top:0;';
+            }
             var logInElement = document.createElement('div');
             logInElement.classList.add("row");
             logInElement.id = "logInDiv";
@@ -190,6 +198,11 @@
             var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
             var purchasesElement = document.createElement('a');
             var dropDownElement = document.getElementById('user-dropdown');
+
+            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" + 
+                "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
+            $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
+
             purchasesElement.id = "purchasesButton";
             purchasesElement.setAttribute('href', "#");
             purchasesElement.innerHTML = "My Purchases";
@@ -277,11 +290,17 @@
             }
         });
 
-        // change pricing to GET on button hover
+        // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
             var $this = $(this);
             $this.data('initialHtml', $this.html());
-            $this.text('GET');
+
+            var cost = $(this).parent().siblings().text();
+            if (parseInt(cost) > 0) {
+                $this.text('BUY');
+            } else {
+                $this.text('GET');
+            }
         });
 
         $('body').on('mouseleave', '#price-or-edit .price', function () {
@@ -300,69 +319,72 @@
     }
 
     function injectHiFiCode() {
-        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
-
-            $('body').addClass("code-injected");
-
+        if (commerceMode) {
             maybeAddLogInButton();
             maybeAddSetupWalletButton();
-            changeDropdownMenu();
 
-            var target = document.getElementById('templated-items');
-            // MutationObserver is necessary because the DOM is populated after the page is loaded.
-            // We're searching for changes to the element whose ID is '#templated-items' - this is
-            //     the element that gets filled in by the AJAX.
-            var observer = new MutationObserver(function (mutations) {
-                mutations.forEach(function (mutation) {
-                    injectBuyButtonOnMainPage();
+            if (!$('body').hasClass("code-injected")) {
+
+                $('body').addClass("code-injected");
+                changeDropdownMenu();
+
+                var target = document.getElementById('templated-items');
+                // MutationObserver is necessary because the DOM is populated after the page is loaded.
+                // We're searching for changes to the element whose ID is '#templated-items' - this is
+                //     the element that gets filled in by the AJAX.
+                var observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
+                        injectBuyButtonOnMainPage();
+                    });
+                    //observer.disconnect();
                 });
-                //observer.disconnect();
-            });
-            var config = { attributes: true, childList: true, characterData: true };
-            observer.observe(target, config);
+                var config = { attributes: true, childList: true, characterData: true };
+                observer.observe(target, config);
 
-            // Try this here in case it works (it will if the user just pressed the "back" button,
-            //     since that doesn't trigger another AJAX request.
-            injectBuyButtonOnMainPage();
-            maybeAddPurchasesButton();
+                // Try this here in case it works (it will if the user just pressed the "back" button,
+                //     since that doesn't trigger another AJAX request.
+                injectBuyButtonOnMainPage();
+                maybeAddPurchasesButton();
+            }
         }
     }
 
     function injectHiFiItemPageCode() {
-        if (!$('body').hasClass("code-injected") && confirmAllPurchases) {
-
-            $('body').addClass("code-injected");
-
+        if (commerceMode) {
             maybeAddLogInButton();
-            maybeAddSetupWalletButton();
-            changeDropdownMenu();
 
-            var purchaseButton = $('#side-info').find('.btn').first();
+            if (!$('body').hasClass("code-injected")) {
 
-            var href = purchaseButton.attr('href');
-            purchaseButton.attr('href', '#');
-            purchaseButton.css({
-                "background": "linear-gradient(#00b4ef, #0093C5)",
-                "color": "#FFF",
-                "font-weight": "600",
-                "padding-bottom": "10px"
-            });
+                $('body').addClass("code-injected");
+                changeDropdownMenu();
 
-            var cost = $('.item-cost').text();
+                var purchaseButton = $('#side-info').find('.btn').first();
 
-            if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
-                purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' + 
-                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                var href = purchaseButton.attr('href');
+                purchaseButton.attr('href', '#');
+                purchaseButton.css({
+                    "background": "linear-gradient(#00b4ef, #0093C5)",
+                    "color": "#FFF",
+                    "font-weight": "600",
+                    "padding-bottom": "10px"
+                });
+
+                var cost = $('.item-cost').text();
+
+                if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
+                    purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                        'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                }
+
+                purchaseButton.on('click', function () {
+                    buyButtonClicked(window.location.pathname.split("/")[3],
+                        $('#top-center').find('h1').text(),
+                        $('#creator').find('.value').text(),
+                        cost,
+                        href);
+                });
+                maybeAddPurchasesButton();
             }
-
-            purchaseButton.on('click', function () {
-                buyButtonClicked(window.location.pathname.split("/")[3],
-                    $('#top-center').find('h1').text(),
-                    $('#creator').find('.value').text(),
-                    cost,
-                    href);
-            });
-            maybeAddPurchasesButton();
         }
     }
 
@@ -623,9 +645,10 @@
 
                 if (parsedJsonMessage.type === "marketplaces") {
                     if (parsedJsonMessage.action === "commerceSetting") {
-                        confirmAllPurchases = !!parsedJsonMessage.data.commerceMode;
+                        commerceMode = !!parsedJsonMessage.data.commerceMode;
                         userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
                         walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
+                        metaverseServerURL = parsedJsonMessage.data.metaverseServerURL;
                         injectCode();
                     }
                 }

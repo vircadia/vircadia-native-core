@@ -84,6 +84,7 @@ public:
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
     void setLayeredInFront(bool layered, const render::ScenePointer& scene);
+    void setLayeredInHUD(bool layered, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -101,6 +102,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
+    bool isLayeredInHUD() const { return _isLayeredInHUD; }
 
     virtual void updateRenderItems();
     void setRenderItemsNeedUpdate();
@@ -204,6 +206,7 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
+    void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
@@ -258,6 +261,8 @@ public:
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
     Q_INVOKABLE MeshProxyList getMeshes() const;
+
+    void scaleToFit();
 
 public slots:
     void loadURLFinished(bool success);
@@ -317,7 +322,6 @@ protected:
     virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
-    void scaleToFit();
     void snapToRegistrationPoint();
 
     void computeMeshPartLocalBounds();
@@ -411,6 +415,7 @@ protected:
     int _renderInfoHasTransparent { false };
 
     bool _isLayeredInFront { false };
+    bool _isLayeredInHUD { false };
 
 private:
     float _loadingPriority { 0.0f };

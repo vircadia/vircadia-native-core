@@ -16,6 +16,8 @@
 (function () { // BEGIN LOCAL_SCOPE
     Script.include("/~/system/libraries/accountUtils.js");
 
+    var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
+
     // Function Name: onButtonClicked()
     //
     // Description:
@@ -87,6 +89,9 @@
                 break;
             case 'goToPurchases':
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                break;
+            case 'goToMarketplaceItemPage':
+                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));

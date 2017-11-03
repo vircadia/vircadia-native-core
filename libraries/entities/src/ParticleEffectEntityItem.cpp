@@ -147,7 +147,7 @@ uint64_t Properties::emitIntervalUsecs() const {
 
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new ParticleEffectEntityItem(entityID) };
+    EntityItemPointer entity(new ParticleEffectEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -464,76 +464,40 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
-    // Because we're using AnimationLoop which will reset the frame index if you change it's running state
-    // we want to read these values in the order they appear in the buffer, but call our setters in an
-    // order that allows AnimationLoop to preserve the correct frame rate.
-    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
-        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float);
-        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float);
-        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool);
-        SKIP_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString);
-    } else {
-        READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
-    }
-
+    READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
-    if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
-        // OLD PROP_EMIT_VELOCITY FAKEOUT
-        SKIP_ENTITY_PROPERTY(PROP_EMIT_SPEED, glm::vec3);
-    }
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_MODIFICATIONS) {
-        READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
-        READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
-        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-        READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
-        if (args.bitstreamVersion < VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
-            // OLD PROP_VELOCITY_SPREAD FAKEOUT
-            SKIP_ENTITY_PROPERTY(PROP_SPEED_SPREAD, glm::vec3);
-        }
-    } else {
-        // OLD PROP_EMIT_ACCELERATION FAKEOUT
-        SKIP_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float);
-        // OLD PROP_ACCELERATION_SPREAD FAKEOUT
-        SKIP_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float);
-        READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
-        READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
-    }
+    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
+    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
+    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+    READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_RADIUS_PROPERTIES) {
-        READ_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, float, setRadiusSpread);
-        READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
-        READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
-    }
+    READ_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, float, setRadiusSpread);
+    READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
+    READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_COLOR_PROPERTIES) {
-        READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, xColor, setColorSpread);
-        READ_ENTITY_PROPERTY(PROP_COLOR_START, xColor, setColorStart);
-        READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, xColor, setColorFinish);
-        READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
-        READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
-        READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
-        READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
-    }
+    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, xColor, setColorSpread);
+    READ_ENTITY_PROPERTY(PROP_COLOR_START, xColor, setColorStart);
+    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, xColor, setColorFinish);
+    READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
+    READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
+    READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLE_ELLIPSOID_EMITTER) {
-        READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
-        READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
-        READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
-        READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
-        READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
-        READ_ENTITY_PROPERTY(PROP_POLAR_START, float, setPolarStart);
-        READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
-        READ_ENTITY_PROPERTY(PROP_AZIMUTH_START, float, setAzimuthStart);
-        READ_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
-    }
+    READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
+    READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
+    READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
+    READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
+    READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
+    READ_ENTITY_PROPERTY(PROP_POLAR_START, float, setPolarStart);
+    READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
+    READ_ENTITY_PROPERTY(PROP_AZIMUTH_START, float, setAzimuthStart);
+    READ_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
 
-    if (args.bitstreamVersion >= VERSION_ENTITIES_PARTICLES_ADDITIVE_BLENDING) {
-        READ_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
-    }
+    READ_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
 
     return bytesRead;
 }

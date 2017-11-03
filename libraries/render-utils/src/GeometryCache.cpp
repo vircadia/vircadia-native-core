@@ -52,6 +52,46 @@
 
 //#define WANT_DEBUG
 
+// @note: Originally size entity::NUM_SHAPES
+//        As of Commit b93e91b9, render-utils no longer retains knowledge of
+//        entity lib, and thus doesn't know about entity::NUM_SHAPES.  Should
+//        the enumerations be altered, this will need to be updated.
+// @see ShapeEntityItem.h
+static std::array<GeometryCache::Shape, (GeometryCache::NUM_SHAPES - 1)> MAPPING{ {
+        GeometryCache::Triangle,
+        GeometryCache::Quad,
+        GeometryCache::Hexagon,
+        GeometryCache::Octagon,
+        GeometryCache::Circle,
+        GeometryCache::Cube,
+        GeometryCache::Sphere,
+        GeometryCache::Tetrahedron,
+        GeometryCache::Octahedron,
+        GeometryCache::Dodecahedron,
+        GeometryCache::Icosahedron,
+        GeometryCache::Torus,
+        GeometryCache::Cone,
+        GeometryCache::Cylinder,
+} };
+
+static const std::array<const char * const, GeometryCache::NUM_SHAPES> GEOCACHE_SHAPE_STRINGS{ {
+        "Line",
+        "Triangle",
+        "Quad",
+        "Hexagon",
+        "Octagon",
+        "Circle",
+        "Cube",
+        "Sphere",
+        "Tetrahedron",
+        "Octahedron",
+        "Dodecahedron",
+        "Icosahedron",
+        "Torus",
+        "Cone",
+        "Cylinder"
+    } };
+
 const int GeometryCache::UNKNOWN_ID = -1;
 
 
@@ -68,8 +108,51 @@ static gpu::Stream::FormatPointer INSTANCED_SOLID_FADE_STREAM_FORMAT;
 
 static const uint SHAPE_VERTEX_STRIDE = sizeof(glm::vec3) * 2; // vertices and normals
 static const uint SHAPE_NORMALS_OFFSET = sizeof(glm::vec3);
-static const gpu::Type SHAPE_INDEX_TYPE = gpu::UINT32;
-static const uint SHAPE_INDEX_SIZE = sizeof(gpu::uint32);
+
+void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList) {
+
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    const GeometryCache::Shape geometryShape = GeometryCache::getShapeForEntityShape( entityShape );
+    const GeometryCache::ShapeData * shapeData = geometryCache->getShapeData( geometryShape );
+    if (!shapeData){
+        //--EARLY EXIT--( data isn't ready for some reason... )
+        return;
+    }
+
+    const gpu::BufferView & shapeVerts = shapeData->_positionView;
+    const gpu::BufferView::Size numItems = shapeVerts.getNumElements();
+
+    outPointList.reserve((int)numItems);
+    QVector<glm::vec3> uniqueVerts;
+    uniqueVerts.reserve((int)numItems);
+
+    const float MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED = 1.0e-6f; //< 1mm^2
+    for (gpu::BufferView::Index i = 0; i < (gpu::BufferView::Index)numItems; ++i) {
+        const int numUniquePoints = (int)uniqueVerts.size();
+        const geometry::Vec &curVert = shapeVerts.get<geometry::Vec>(i);
+        bool isUniquePoint = true;
+
+        for (int uniqueIndex = 0; uniqueIndex < numUniquePoints; ++uniqueIndex) {
+            const geometry::Vec knownVert = uniqueVerts[uniqueIndex];
+            const float distToKnownPoint = glm::length2(knownVert - curVert);
+
+            if (distToKnownPoint <= MAX_INCLUSIVE_FILTER_DISTANCE_SQUARED) {
+                isUniquePoint = false;
+                break;
+            }
+        }
+
+        if (!isUniquePoint) {
+
+            //--EARLY ITERATION EXIT--
+            continue;
+        }
+
+
+        uniqueVerts.push_back(curVert);
+        outPointList.push_back(curVert * entityExtents);
+    }
+}
 
 template <size_t SIDES>
 std::vector<vec3> polygon() {
@@ -84,67 +167,83 @@ std::vector<vec3> polygon() {
 }
 
 void GeometryCache::ShapeData::setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices) {
+    gpu::Buffer::Size offset = vertexBuffer->getSize();
     vertexBuffer->append(vertices);
 
-    _positionView = gpu::BufferView(vertexBuffer, 0,
-        vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
-    _normalView = gpu::BufferView(vertexBuffer, SHAPE_NORMALS_OFFSET,
-        vertexBuffer->getSize(), SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
+    gpu::Buffer::Size viewSize = vertices.size() * sizeof(glm::vec3);
+
+    _positionView = gpu::BufferView(vertexBuffer, offset,
+        viewSize, SHAPE_VERTEX_STRIDE, POSITION_ELEMENT);
+    _normalView = gpu::BufferView(vertexBuffer, offset + SHAPE_NORMALS_OFFSET,
+        viewSize, SHAPE_VERTEX_STRIDE, NORMAL_ELEMENT);
 }
 
 void GeometryCache::ShapeData::setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices) {
-    _indices = indexBuffer;
+    gpu::Buffer::Size offset = indexBuffer->getSize();
     if (!indices.empty()) {
-        _indexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
-        _indexCount = indices.size();
-        indexBuffer->append(indices);
+        for (uint32_t i = 0; i < indices.size(); ++i) {
+            indexBuffer->append((uint16_t)indices[i]);
+        }
     }
+    gpu::Size viewSize = indices.size() * sizeof(uint16_t);
+    _indicesView = gpu::BufferView(indexBuffer, offset, viewSize, gpu::Element::INDEX_UINT16);
 
+    offset = indexBuffer->getSize();
     if (!wireIndices.empty()) {
-        _wireIndexOffset = indexBuffer->getSize() / SHAPE_INDEX_SIZE;
-        _wireIndexCount = wireIndices.size();
-        indexBuffer->append(wireIndices);
+        for (uint32_t i = 0; i < wireIndices.size(); ++i) {
+            indexBuffer->append((uint16_t)wireIndices[i]);
+        }
     }
+    viewSize = wireIndices.size() * sizeof(uint16_t);
+    _wireIndicesView = gpu::BufferView(indexBuffer, offset, viewSize, gpu::Element::INDEX_UINT16);
 }
 
 void GeometryCache::ShapeData::setupBatch(gpu::Batch& batch) const {
     batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
     batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
-    batch.setIndexBuffer(SHAPE_INDEX_TYPE, _indices, 0);
+    batch.setIndexBuffer(_indicesView);
 }
 
 void GeometryCache::ShapeData::draw(gpu::Batch& batch) const {
-    if (_indexCount) {
+    uint32_t numIndices = (uint32_t)_indicesView.getNumElements();
+    if (numIndices > 0) {
         setupBatch(batch);
-        batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)_indexCount, (gpu::uint32)_indexOffset);
+        batch.drawIndexed(gpu::TRIANGLES, numIndices, 0);
     }
 }
 
 void GeometryCache::ShapeData::drawWire(gpu::Batch& batch) const {
-    if (_wireIndexCount) {
-        setupBatch(batch);
-        batch.drawIndexed(gpu::LINES, (gpu::uint32)_wireIndexCount, (gpu::uint32)_wireIndexOffset);
+    uint32_t numIndices = (uint32_t)_wireIndicesView.getNumElements();
+    if (numIndices > 0) {
+        batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
+        batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+        batch.setIndexBuffer(_wireIndicesView);
+        batch.drawIndexed(gpu::LINES, numIndices, 0);
     }
 }
 
 void GeometryCache::ShapeData::drawInstances(gpu::Batch& batch, size_t count) const {
-    if (_indexCount) {
+    uint32_t numIndices = (uint32_t)_indicesView.getNumElements();
+    if (numIndices > 0) {
         setupBatch(batch);
-        batch.drawIndexedInstanced((gpu::uint32)count, gpu::TRIANGLES, (gpu::uint32)_indexCount, (gpu::uint32)_indexOffset);
+        batch.drawIndexedInstanced((gpu::uint32)count, gpu::TRIANGLES, numIndices, 0);
     }
 }
 
 void GeometryCache::ShapeData::drawWireInstances(gpu::Batch& batch, size_t count) const {
-    if (_wireIndexCount) {
-        setupBatch(batch);
-        batch.drawIndexedInstanced((gpu::uint32)count, gpu::LINES, (gpu::uint32)_wireIndexCount, (gpu::uint32)_wireIndexOffset);
+    uint32_t numIndices = (uint32_t)_wireIndicesView.getNumElements();
+    if (numIndices > 0) {
+        batch.setInputBuffer(gpu::Stream::POSITION, _positionView);
+        batch.setInputBuffer(gpu::Stream::NORMAL, _normalView);
+        batch.setIndexBuffer(_wireIndicesView);
+        batch.drawIndexedInstanced((gpu::uint32)count, gpu::LINES, numIndices, 0);
     }
 }
 
 static const size_t ICOSAHEDRON_TO_SPHERE_TESSELATION_COUNT = 3;
 
 size_t GeometryCache::getShapeTriangleCount(Shape shape) {
-    return _shapes[shape]._indexCount / VERTICES_PER_TRIANGLE;
+    return _shapes[shape]._indicesView.getNumElements() / VERTICES_PER_TRIANGLE;
 }
 
 size_t GeometryCache::getSphereTriangleCount() {
@@ -168,7 +267,6 @@ static IndexPair indexToken(geometry::Index a, geometry::Index b) {
 template <size_t N>
 void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
     using namespace geometry;
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
     IndexPairs wireSeenIndices;
@@ -179,6 +277,7 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
     vertices.reserve(N * faceCount * 2);
     solidIndices.reserve(faceIndexCount * faceCount);
 
+    Index baseVertex = 0;
     for (size_t f = 0; f < faceCount; f++) {
         const Face<N>& face = shape.faces[f];
         // Compute the face normal
@@ -219,7 +318,6 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
 template <size_t N>
 void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N>& shape, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
     using namespace geometry;
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
 
     VertexVector vertices;
     vertices.reserve(shape.vertices.size() * 2);
@@ -236,6 +334,7 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 
     solidIndices.reserve(faceIndexCount * faceCount);
 
+    Index baseVertex = 0;
     for (size_t f = 0; f < faceCount; f++) {
         const Face<N>& face = shape.faces[f];
         // Create the wire indices for unseen edges
@@ -265,7 +364,6 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 template <uint32_t N>
 void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool isConical = false) {
     using namespace geometry;
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
 
@@ -286,6 +384,7 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
         vertices.push_back(vec3(v.x, -0.5f, v.z));
         vertices.push_back(vec3(0.0f, -1.0f, 0.0f));
     }
+    Index baseVertex = 0;
     for (uint32_t i = 2; i < N; i++) {
         solidIndices.push_back(baseVertex + 0);
         solidIndices.push_back(baseVertex + i);
@@ -343,7 +442,6 @@ void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexB
     // Draw a circle with radius 1/4th the size of the bounding box
     using namespace geometry;
 
-    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
     const int NUM_CIRCLE_VERTICES = 64;
@@ -354,6 +452,7 @@ void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexB
         vertices.push_back(vec3(0.0f, 0.0f, 0.0f));
     }
 
+    Index baseVertex = 0;
     for (uint32_t i = 2; i < NUM_CIRCLE_VERTICES; i++) {
         solidIndices.push_back(baseVertex + 0);
         solidIndices.push_back(baseVertex + i);
@@ -383,8 +482,10 @@ void GeometryCache::buildShapes() {
     using namespace geometry;
     auto vertexBuffer = std::make_shared<gpu::Buffer>();
     auto indexBuffer = std::make_shared<gpu::Buffer>();
-    // Cube 
+    // Cube
     setupFlatShape(_shapes[Cube], geometry::cube(), _shapeVertices, _shapeIndices);
+    //Quad renders as flat Cube
+    setupFlatShape(_shapes[Quad], geometry::cube(), _shapeVertices, _shapeIndices);
     // Tetrahedron
     setupFlatShape(_shapes[Tetrahedron], geometry::tetrahedron(), _shapeVertices, _shapeIndices);
     // Icosahedron
@@ -403,7 +504,6 @@ void GeometryCache::buildShapes() {
 
     // Line
     {
-        Index baseVertex = (Index)(_shapeVertices->getSize() / SHAPE_VERTEX_STRIDE);
         ShapeData& shapeData = _shapes[Line];
         shapeData.setupVertices(_shapeVertices, VertexVector {
             vec3(-0.5f, 0.0f, 0.0f), vec3(-0.5f, 0.0f, 0.0f),
@@ -411,8 +511,8 @@ void GeometryCache::buildShapes() {
         });
         IndexVector wireIndices;
         // Only two indices
-        wireIndices.push_back(0 + baseVertex);
-        wireIndices.push_back(1 + baseVertex);
+        wireIndices.push_back(0);
+        wireIndices.push_back(1);
         shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
     }
 
@@ -426,12 +526,44 @@ void GeometryCache::buildShapes() {
     extrudePolygon<64>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
     //Cone,
     extrudePolygon<64>(_shapes[Cone], _shapeVertices, _shapeIndices, true);
-    //Circle
-    drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
-    // Not implememented yet:
-    //Quad,
-    //Torus, 
- 
+    // Circle renders as flat Cylinder
+    extrudePolygon<64>(_shapes[Circle], _shapeVertices, _shapeIndices);
+    // Not implemented yet:
+    //Torus,
+}
+
+const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) const {
+    if (((int)shape < 0) || ((int)shape >= (int)_shapes.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeData - Invalid shape " << shape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( No valid shape data for shape )
+        return nullptr;
+    }
+
+    return &_shapes[shape];
+}
+
+GeometryCache::Shape GeometryCache::getShapeForEntityShape(int entityShape) {
+    if ((entityShape < 0) || (entityShape >= (int)MAPPING.size())) {
+        qCWarning(renderutils) << "GeometryCache::getShapeForEntityShape - Invalid shape " << entityShape << " specified. Returning default fallback.";
+
+        //--EARLY EXIT--( fall back to default assumption )
+        return GeometryCache::Sphere;
+    }
+
+    return MAPPING[entityShape];
+}
+
+QString GeometryCache::stringFromShape(GeometryCache::Shape geoShape)
+{
+    if (((int)geoShape < 0) || ((int)geoShape >= (int)GeometryCache::NUM_SHAPES)) {
+        qCWarning(renderutils) << "GeometryCache::stringFromShape - Invalid shape " << geoShape << " specified.";
+
+        //--EARLY EXIT--
+        return "INVALID_GEOCACHE_SHAPE";
+    }
+
+    return GEOCACHE_SHAPE_STRINGS[geoShape];
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {

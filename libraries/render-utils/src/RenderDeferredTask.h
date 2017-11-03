@@ -155,6 +155,14 @@ protected:
     bool _opaquePass { true };
 };
 
+class CompositeHUD {
+public:
+    using JobModel = render::Job::Model<CompositeHUD>;
+
+    CompositeHUD() {}
+    void run(const render::RenderContextPointer& renderContext);
+};
+
 class Blit {
 public:
     using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;

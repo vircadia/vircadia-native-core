@@ -43,6 +43,7 @@ Item {
 
                 calculatePendingAndInvalidated();
             }
+            refreshTimer.start();
         }
     }
 
@@ -117,6 +118,8 @@ Item {
                     historyReceived = false;
                     commerce.balance();
                     commerce.history();
+                } else {
+                    refreshTimer.stop();
                 }
             }
         }
@@ -135,6 +138,17 @@ Item {
             height: paintedHeight;
             // Style
             color: hifi.colors.white;
+        }
+    }
+
+    Timer {
+        id: refreshTimer;
+        interval: 4000; // Remove this after demo?
+        onTriggered: {
+            console.log("Refreshing Wallet Home...");
+            historyReceived = false;
+            commerce.balance();
+            commerce.history();
         }
     }
 
@@ -164,7 +178,7 @@ Item {
             anchors.top: parent.top;
             anchors.topMargin: 26;
             anchors.left: parent.left;
-            anchors.leftMargin: 30;
+            anchors.leftMargin: 20;
             anchors.right: parent.right;
             anchors.rightMargin: 30;
             height: 30;
@@ -299,10 +313,14 @@ Item {
     //
 
     function getFormattedDate(timestamp) {
+        function addLeadingZero(n) {
+            return n < 10 ? '0' + n : '' + n;
+        }
+
         var a = new Date(timestamp);
         var year = a.getFullYear();
-        var month = a.getMonth();
-        var day = a.getDate();
+        var month = addLeadingZero(a.getMonth());
+        var day = addLeadingZero(a.getDate());
         var hour = a.getHours();
         var drawnHour = hour;
         if (hour === 0) {
@@ -310,14 +328,15 @@ Item {
         } else if (hour > 12) {
             drawnHour -= 12;
         }
+        drawnHour = addLeadingZero(drawnHour);
         
         var amOrPm = "AM";
         if (hour >= 12) {
             amOrPm = "PM";
         }
 
-        var min = a.getMinutes();
-        var sec = a.getSeconds();
+        var min = addLeadingZero(a.getMinutes());
+        var sec = addLeadingZero(a.getSeconds());
         return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
     }
 

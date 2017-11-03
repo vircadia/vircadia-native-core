@@ -15,12 +15,13 @@
 //
 
 /* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD */
+   isInEditMode, HMD entityIsGrabbable*/
 
 
 (function() { // BEGIN LOCAL_SCOPE
 
-Script.include("/~/system/libraries/utils.js");
+    Script.include("/~/system/libraries/utils.js");
+    Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
 
 var DELAY_FOR_30HZ = 33; // milliseconds
@@ -262,7 +263,7 @@ function Grabber() {
         filter: RayPick.PICK_OVERLAYS,
         enabled: true
     });
-    RayPick.setIncludeOverlays(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    RayPick.setIncludeItems(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
     var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = LaserPointers.createLaserPointer({
         joint: "Mouse",
@@ -330,9 +331,11 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    var isDynamic = Entities.getEntityProperties(pickResults.objectID, "dynamic").dynamic;
-    if (!isDynamic) {
-        // only grab dynamic objects
+    var props = Entities.getEntityProperties(pickResults.objectID, ["dynamic", "userData", "locked", "type"]);
+    var isDynamic = props.dynamic;
+    var isGrabbable = props.grabbable;
+    if (!entityIsGrabbable(props)) {
+        // only grab grabbable objects
         return;
     }
 
@@ -350,6 +353,7 @@ Grabber.prototype.pressEvent = function(event) {
     var entityProperties = Entities.getEntityProperties(clickedEntity);
     this.startPosition = entityProperties.position;
     this.lastRotation = entityProperties.rotation;
+    this.madeDynamic = false;
     var cameraPosition = Camera.getPosition();
 
     var objectBoundingDiameter = Vec3.length(entityProperties.dimensions);
@@ -361,6 +365,11 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
+    if (entityIsGrabbable(props) && !isDynamic) {
+        entityProperties.dynamic = true;
+        Entities.editEntity(clickedEntity, entityProperties);
+        this.madeDynamic = true;
+    }
     // this.activateEntity(clickedEntity, entityProperties);
     this.isGrabbing = true;
 
@@ -416,6 +425,14 @@ Grabber.prototype.releaseEvent = function(event) {
         if (this.actionID) {
             Entities.deleteAction(this.entityID, this.actionID);
         }
+
+        if (this.madeDynamic) {
+            var entityProps = {};
+            entityProps.dynamic = false;
+            entityProps.localVelocity = {x: 0, y: 0, z: 0};
+            Entities.editEntity(this.entityID, entityProps);
+        }
+
         this.actionID = null;
 
         LaserPointers.setRenderState(this.mouseRayEntities, "");

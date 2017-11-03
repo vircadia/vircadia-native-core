@@ -49,9 +49,10 @@ void LineEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableLineEntityItem::render");
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
+    const auto& modelTransform = getModelTransform();
     Transform transform = Transform();
-    transform.setTranslation(_modelTransform.getTranslation());
-    transform.setRotation(_modelTransform.getRotation());
+    transform.setTranslation(modelTransform.getTranslation());
+    transform.setRotation(modelTransform.getRotation());
     batch.setModelTransform(transform);
     if (_linePoints.size() > 1) {
         DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);

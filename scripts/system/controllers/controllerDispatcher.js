@@ -27,7 +27,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
 
     var PROFILE = false;
-    var DEBUG = true;
+    var DEBUG = false;
 
     if (typeof Test !== "undefined") {
         PROFILE = true;
@@ -141,8 +141,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setIgnoreTablet = function() {
-            RayPick.setIgnoreOverlays(_this.leftControllerRayPick, [HMD.tabletID]);
-            RayPick.setIgnoreOverlays(_this.rightControllerRayPick, [HMD.tabletID]);
+            if (HMD.tabletID !== this.tabletID) {
+                this.tabletID = HMD.tabletID;
+                RayPick.setIgnoreItems(_this.leftControllerRayPick, _this.blacklist.concat([HMD.tabletID]));
+                RayPick.setIgnoreItems(_this.rightControllerRayPick, _this.blacklist.concat([HMD.tabletID]));
+            }
         };
 
         this.update = function () {
@@ -367,9 +370,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.setBlacklist = function() {
-            RayPick.setIgnoreEntities(_this.leftControllerRayPick, this.blacklist);
-            RayPick.setIgnoreEntities(_this.rightControllerRayPick, this.blacklist);
-
+            RayPick.setIgnoreItems(_this.leftControllerRayPick, this.blacklist.concat(HMD.tabletID));
+            RayPick.setIgnoreItems(_this.rightControllerRayPick, this.blacklist.concat(HMD.tabletID));
         };
 
         var MAPPING_NAME = "com.highfidelity.controllerDispatcher";

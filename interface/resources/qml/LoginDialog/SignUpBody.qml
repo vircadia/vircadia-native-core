@@ -108,12 +108,17 @@ Item {
             id: emailField
             width: parent.width
             label: "Email"
+            activeFocusOnPress: true
+            onFocusChanged: {
+                root.text = "";
+            }
         }
 
         TextField {
             id: usernameField
             width: parent.width
             label: "Username"
+            activeFocusOnPress: true
 
             ShortcutText {
                 anchors {
@@ -128,6 +133,9 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
 
                 color: hifi.colors.blueAccent
+                onFocusChanged: {
+                    root.text = "";
+                }
             }
         }
 
@@ -136,6 +144,7 @@ Item {
             width: parent.width
             label: "Password"
             echoMode: TextInput.Password
+            activeFocusOnPress: true
 
             ShortcutText {
                 anchors {
@@ -150,6 +159,11 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
 
                 color: hifi.colors.blueAccent
+            }
+
+            onFocusChanged: {
+                root.text = "";
+                root.isPassword = focus
             }
         }
 
@@ -199,18 +213,6 @@ Item {
 
                 onClicked: root.tryDestroy()
             }
-        }
-    }
-
-    // Override ScrollingWindow's keyboard that would be at very bottom of dialog.
-    Keyboard {
-        raised: keyboardEnabled && keyboardRaised
-        numeric: punctuationMode
-        anchors {
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-            bottomMargin: keyboardRaised ? 2 * hifi.dimensions.contentSpacing.y : 0
         }
     }
 

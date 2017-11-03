@@ -121,8 +121,6 @@ bool Model::needsFixupInScene() const {
     return (_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded();
 }
 
-// TODO?: should we combine translation and rotation into single method to avoid double-work?
-// (figure out where we call these)
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
     updateRenderItems();
@@ -131,6 +129,14 @@ void Model::setTranslation(const glm::vec3& translation) {
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
     updateRenderItems();
+}
+
+// temporary HACK: set transform while avoiding implicit calls to updateRenderItems()
+// TODO: make setRotation() and friends set flag to be used later to decide to updateRenderItems()
+void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
+    _translation = transform.getTranslation();
+    _rotation = transform.getRotation();
+    // DO NOT call updateRenderItems() here!
 }
 
 Transform Model::getTransform() const {
@@ -229,7 +235,6 @@ void Model::updateRenderItems() {
         self->updateClusterMatrices();
 
         Transform modelTransform = self->getTransform();
-        Transform physicsTransform = modelTransform;
         modelTransform.setScale(glm::vec3(1.0f));
 
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
@@ -253,13 +258,12 @@ void Model::updateRenderItems() {
             });
         }
 
-        // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
         foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
-            transaction.updateItem<MeshPartPayload>(itemID, [physicsTransform, collisionMeshOffset](MeshPartPayload& data) {
+            transaction.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
-                data.updateTransform(physicsTransform, collisionMeshOffset);
+                data.updateTransform(modelTransform, collisionMeshOffset);
             });
         }
 
@@ -591,6 +595,21 @@ void Model::setVisibleInScene(bool newValue, const render::ScenePointer& scene) 
 void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
     if (_isLayeredInFront != layered) {
         _isLayeredInFront = layered;
+
+        render::Transaction transaction;
+        foreach(auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+        }
+        foreach(auto item, _collisionRenderItemsMap.keys()) {
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
+void Model::setLayeredInHUD(bool layered, const render::ScenePointer& scene) {
+    if (_isLayeredInHUD != layered) {
+        _isLayeredInHUD = layered;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
@@ -942,7 +961,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
-    PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
+    DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1063,8 +1082,7 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(simulation_detail, __FUNCTION__);
-    PerformanceTimer perfTimer("Model::simulate");
+    DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
@@ -1102,7 +1120,7 @@ void Model::computeMeshPartLocalBounds() {
 
 // virtual
 void Model::updateClusterMatrices() {
-    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+    DETAILED_PERFORMANCE_TIMER("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
