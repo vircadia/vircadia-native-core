@@ -8,19 +8,28 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
+import QtQuick.Layouts 1.3
 import "../configSlider"
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
 
-Item {
+Rectangle {
     id: root
     property var outlineIndex: 0
     property var drawConfig: Render.getConfig("RenderMainView.OutlineEffect"+outlineIndex)
 
-    Column {
-        spacing: 8
+    HifiConstants { id: hifi;}
+    anchors.margins: hifi.dimensions.contentMargin.x
 
-        CheckBox {
+    Column {
+        spacing: 5
+        anchors.left: parent.left
+        anchors.right: parent.right       
+        anchors.margins: hifi.dimensions.contentMargin.x  
+
+        HifiControls.CheckBox {
             id: glow
             text: "Glow"
             checked: root.drawConfig["glow"]
@@ -28,84 +37,78 @@ Item {
                 root.drawConfig["glow"] = checked;
             }
         }
-        ConfigSlider {
-            label: "Width"
-            integral: false
-            config: root.drawConfig
-            property: "width"
-            max: 5.0
-            min: 0.0
-            width: 280
-        }  
-        ConfigSlider {
-            label: "Intensity"
-            integral: false
-            config: root.drawConfig
-            property: "intensity"
-            max: 1.0
-            min: 0.0
-            width: 280
-        }  
+        Repeater {
+            model: ["Width:width:5.0:0.0",
+                    "Intensity:intensity:1.0:0.0"
+                            ]
+            ConfigSlider {
+                    label: qsTr(modelData.split(":")[0])
+                    integral: false
+                    config: root.drawConfig
+                    property: modelData.split(":")[1]
+                    max: modelData.split(":")[2]
+                    min: modelData.split(":")[3]
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right 
+            }
+        }
 
         GroupBox {
             title: "Color"
-            width: 280
+            anchors.left: parent.left
+            anchors.right: parent.right       
             Column {
-                spacing: 8
+                spacing: 10
+                anchors.left: parent.left
+                anchors.right: parent.right       
+                anchors.margins: hifi.dimensions.contentMargin.x  
 
-                ConfigSlider {
-                    label: "Red"
-                    integral: false
-                    config: root.drawConfig
-                    property: "colorR"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
-                }  
-                ConfigSlider {
-                    label: "Green"
-                    integral: false
-                    config: root.drawConfig
-                    property: "colorG"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
-                }  
-                ConfigSlider {
-                    label: "Blue"
-                    integral: false
-                    config: root.drawConfig
-                    property: "colorB"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
+                Repeater {
+                    model: ["Red:colorR:1.0:0.0",
+                            "Green:colorG:1.0:0.0",
+                            "Blue:colorB:1.0:0.0"
+                                    ]
+                    ConfigSlider {
+                            label: qsTr(modelData.split(":")[0])
+                            integral: false
+                            config: root.drawConfig
+                            property: modelData.split(":")[1]
+                            max: modelData.split(":")[2]
+                            min: modelData.split(":")[3]
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right 
+                    }
                 }
             }
         }
 
         GroupBox {
             title: "Fill Opacity"
-            width: 280
+            anchors.left: parent.left
+            anchors.right: parent.right       
             Column {
-                spacing: 8
+                spacing: 10
+                anchors.left: parent.left
+                anchors.right: parent.right       
+                anchors.margins: hifi.dimensions.contentMargin.x  
 
-                ConfigSlider {
-                    label: "Unoccluded"
-                    integral: false
-                    config: root.drawConfig
-                    property: "unoccludedFillOpacity"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
-                }  
-                ConfigSlider {
-                    label: "Occluded"
-                    integral: false
-                    config: root.drawConfig
-                    property: "occludedFillOpacity"
-                    max: 1.0
-                    min: 0.0
-                    width: 270
+                Repeater {
+                    model: ["Unoccluded:unoccludedFillOpacity:1.0:0.0",
+                            "Occluded:occludedFillOpacity:1.0:0.0"
+                                    ]
+                    ConfigSlider {
+                            label: qsTr(modelData.split(":")[0])
+                            integral: false
+                            config: root.drawConfig
+                            property: modelData.split(":")[1]
+                            max: modelData.split(":")[2]
+                            min: modelData.split(":")[3]
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right 
+                    }
                 }
             }
         }

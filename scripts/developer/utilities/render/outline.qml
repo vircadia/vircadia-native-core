@@ -8,22 +8,34 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
+import QtQuick.Layouts 1.3
 import "outlinePage"
+import "qrc:///qml/styles-uit"
+import "qrc:///qml/controls-uit" as HifiControls
 
-Item {
+Rectangle {
     id: root
+    HifiConstants { id: hifi;}
+    color: hifi.colors.baseGray;
+    anchors.margins: hifi.dimensions.contentMargin.x
+
     property var debugConfig: Render.getConfig("RenderMainView.OutlineDebug")
     signal sendToScript(var message);
 
     Column {
-        spacing: 8
-        anchors.fill: parent
+        spacing: 5
+        anchors.left: parent.left
+        anchors.right: parent.right       
+        anchors.margins: hifi.dimensions.contentMargin.x  
 
         Row {
-            spacing: 8
-            CheckBox {
+            spacing: 10
+            anchors.left: parent.left
+            anchors.right: parent.right 
+
+            HifiControls.CheckBox {
                 id: debug
                 text: "View Mask"
                 checked: root.debugConfig["viewMask"]
@@ -31,14 +43,14 @@ Item {
                     root.debugConfig["viewMask"] = checked;
                 }
             }
-            CheckBox {
+            HifiControls.CheckBox {
                 text: "Hover select"
                 checked: false
                 onCheckedChanged: {
                     sendToScript("pick "+checked.toString())
                 }
             }
-            CheckBox {
+            HifiControls.CheckBox {
                 text: "Add to selection"
                 checked: false
                 onCheckedChanged: {
@@ -56,28 +68,13 @@ Item {
                 sendToScript("outline "+currentIndex)
             }
 
-            Tab {
-                title: "Outl.0"
-                OutlinePage {
-                    outlineIndex: 0
-                }
-            }
-            Tab {
-                title: "Outl.1"
-                OutlinePage {
-                    outlineIndex: 1
-                }
-            }
-            Tab {
-                title: "Outl.2"
-                OutlinePage {
-                    outlineIndex: 2
-                }
-            }
-            Tab {
-                title: "Outl.3"
-                OutlinePage {
-                    outlineIndex: 3
+            Repeater {
+                model: [ 0, 1, 2, 3 ]
+                Tab {
+                    title: "Outl."+modelData
+                    OutlinePage {
+                        outlineIndex: modelData
+                    }
                 }
             }
         }

@@ -1,20 +1,20 @@
 // glsl / C++ compatible source as interface for Outline
 #ifdef __cplusplus
-#   define VEC2 glm::vec2
-#   define VEC3 glm::vec3
-#   define VEC4 glm::vec4
+#   define TVEC2 glm::vec2
+#   define TVEC3 glm::vec3
+#   define TVEC4 glm::vec4
 #else
-#   define VEC2 vec2
-#   define VEC3 vec3
-#   define VEC4 vec4
+#   define TVEC2 vec2
+#   define TVEC3 vec3
+#   define TVEC4 vec4
 #endif
 
 struct OutlineParameters
 {
-	VEC3 _color;
+	TVEC3 _color;
     float _intensity;
 
-    VEC2 _size;
+    TVEC2 _size;
     float _unoccludedFillOpacity;
     float _occludedFillOpacity;
 

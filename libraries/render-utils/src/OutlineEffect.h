@@ -33,6 +33,7 @@ protected:
 
     gpu::FramebufferPointer _depthFrameBuffer;
     gpu::FramebufferPointer _colorFrameBuffer;
+    gpu::TexturePointer _depthStencilTexture;
 
     glm::ivec2 _frameSize;
 
@@ -48,6 +49,7 @@ public:
     OutlineSharedParameters();
 
     std::array<int, render::Scene::MAX_OUTLINE_COUNT> _blurPixelWidths;
+    std::bitset<render::Scene::MAX_OUTLINE_COUNT> _isFilled;
 };
 
 using OutlineSharedParametersPointer = std::shared_ptr<OutlineSharedParameters>;
@@ -84,9 +86,10 @@ protected:
     unsigned int _outlineIndex;
     render::ShapePlumberPointer _shapePlumber;
     OutlineSharedParametersPointer _sharedParameters;
-
-    static glm::ivec4 computeOutlineRect(const render::ShapeBounds& shapes, const ViewFrustum& viewFrustum, glm::ivec2 frameSize);
-    static glm::ivec4 expandRect(glm::ivec4 rect, int amount, glm::ivec2 frameSize);
+    
+    static gpu::BufferPointer _boundsBuffer;
+    static gpu::PipelinePointer _stencilMaskPipeline;
+    static gpu::PipelinePointer _stencilMaskFillPipeline;
 };
 
 class DrawOutlineConfig : public render::Job::Config {
@@ -158,7 +161,6 @@ private:
     OutlineSharedParametersPointer _sharedParameters;
     OutlineConfigurationBuffer _configuration;
     glm::ivec2 _framebufferSize{ 0,0 };
-    bool _isFilled{ false };
     float _size;
 };
 

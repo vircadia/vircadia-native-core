@@ -35,6 +35,7 @@
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "RenderUtilsLogging.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
@@ -471,6 +472,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     auto blitFbo = renderArgs->_blitFramebuffer;
 
     if (!blitFbo) {
+        qCWarning(renderutils) << "Blit::run - no blit frame buffer.";
         return;
     }
 

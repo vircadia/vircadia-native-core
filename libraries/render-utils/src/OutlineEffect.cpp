@@ -11,7 +11,6 @@
 #include "OutlineEffect.h"
 
 #include "GeometryCache.h"
-#include "RenderUtilsLogging.h"
 
 #include "CubeProjectedPolygon.h"
 
@@ -28,10 +27,11 @@
 #include "debug_deferred_buffer_frag.h"
 #include "Outline_frag.h"
 #include "Outline_filled_frag.h"
+#include "Outline_aabox_vert.h"
 
 using namespace render;
 
-#define OUTLINE_USE_SCISSOR false
+#define OUTLINE_STENCIL_MASK    1
 
 OutlineRessources::OutlineRessources() {
 }
@@ -56,15 +56,16 @@ void OutlineRessources::update(const gpu::FramebufferPointer& primaryFrameBuffer
 }
 
 void OutlineRessources::allocateColorBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
-    _colorFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithoutDepth"));
+    _colorFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithStencil"));
     _colorFrameBuffer->setRenderBuffer(0, primaryFrameBuffer->getRenderBuffer(0));
+    _colorFrameBuffer->setDepthStencilBuffer(_depthStencilTexture, _depthStencilTexture->getTexelFormat());
 }
 
 void OutlineRessources::allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
-    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
-    auto depthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, _frameSize.x, _frameSize.y));
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);
+    _depthStencilTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, _frameSize.x, _frameSize.y));
     _depthFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("outlineDepth"));
-    _depthFrameBuffer->setDepthStencilBuffer(depthTexture, depthFormat);
+    _depthFrameBuffer->setDepthStencilBuffer(_depthStencilTexture, depthFormat);
 }
 
 gpu::FramebufferPointer OutlineRessources::getDepthFramebuffer() {
@@ -73,10 +74,10 @@ gpu::FramebufferPointer OutlineRessources::getDepthFramebuffer() {
 }
 
 gpu::TexturePointer OutlineRessources::getDepthTexture() {
-    return getDepthFramebuffer()->getDepthStencilBuffer();
+    return _depthStencilTexture;
 }
 
-gpu::FramebufferPointer OutlineRessources::getColorFramebuffer() { 
+gpu::FramebufferPointer OutlineRessources::getColorFramebuffer() {
     assert(_colorFrameBuffer);
     return _colorFrameBuffer;
 }
@@ -96,6 +97,10 @@ void PrepareDrawOutline::run(const render::RenderContextPointer& renderContext, 
     outputs = _ressources;
 }
 
+gpu::PipelinePointer DrawOutlineMask::_stencilMaskPipeline;
+gpu::PipelinePointer DrawOutlineMask::_stencilMaskFillPipeline;
+gpu::BufferPointer DrawOutlineMask::_boundsBuffer;
+
 DrawOutlineMask::DrawOutlineMask(unsigned int outlineIndex, 
                                  render::ShapePlumberPointer shapePlumber, OutlineSharedParametersPointer parameters) :
     _outlineIndex{ outlineIndex },
@@ -108,26 +113,42 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
     assert(renderContext->args->hasViewFrustum());
     auto& inShapes = inputs.get0();
 
+    if (!_stencilMaskPipeline || !_stencilMaskFillPipeline) {
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_ZERO, gpu::State::STENCIL_OP_REPLACE));
+        state->setColorWriteMask(false, false, false, false);
+        state->setCullMode(gpu::State::CULL_FRONT);
+
+        gpu::StatePointer fillState = gpu::StatePointer(new gpu::State());
+        fillState->setDepthTest(false, false, gpu::LESS_EQUAL);
+        fillState->setStencilTest(true, 0xFF, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
+        fillState->setColorWriteMask(false, false, false, false);
+        fillState->setCullMode(gpu::State::CULL_FRONT);
+
+        auto vs = gpu::Shader::createVertex(std::string(Outline_aabox_vert));
+        auto ps = gpu::StandardShaderLib::getDrawWhitePS();
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        _stencilMaskPipeline = gpu::Pipeline::create(program, state);
+        _stencilMaskFillPipeline = gpu::Pipeline::create(program, fillState);
+    }
+
+    if (!_boundsBuffer) {
+        _boundsBuffer = std::make_shared<gpu::Buffer>(sizeof(render::ItemBound));
+    }
+
     if (!inShapes.empty()) {
         auto ressources = inputs.get1();
 
         RenderArgs* args = renderContext->args;
         ShapeKey::Builder defaultKeyBuilder;
 
-#if OUTLINE_USE_SCISSOR
-        auto framebufferSize = ressources->getSourceFrameSize();
-        // First thing we do is determine the projected bounding rect of all the outlined items
-        auto outlinedRect = computeOutlineRect(inShapes, args->getViewFrustum(), framebufferSize);
-        auto blurPixelWidth = _sharedParameters->_blurPixelWidths[_outlineIndex];
-        //qCDebug(renderutils) << "Outline rect is " << outlinedRect.x << ' ' << outlinedRect.y << ' ' << outlinedRect.z << ' ' << outlinedRect.w;
-
-        // Add 1 pixel of extra margin to be on the safe side
-        outputs = expandRect(outlinedRect, blurPixelWidth+1, framebufferSize);
-        outlinedRect = expandRect(outputs, blurPixelWidth+1, framebufferSize);
-#else
         // Render full screen
         outputs = args->_viewport;
-#endif
 
         // Clear the framebuffer without stereo
         // Needs to be distinct from the other batch because using the clear call 
@@ -135,24 +156,21 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setFramebuffer(ressources->getDepthFramebuffer());
-            batch.clearDepthFramebuffer(1.0f);
+            batch.clearDepthStencilFramebuffer(1.0f, 0);
         });
+
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+
+        render::ItemBounds itemBounds;
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
 
             auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
             auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-
-            glm::mat4 projMat;
-            Transform viewMat;
-            args->getViewFrustum().evalProjectionMatrix(projMat);
-            args->getViewFrustum().evalViewTransform(viewMat);
-
-#if OUTLINE_USE_SCISSOR
-            batch.setStateScissorRect(outlinedRect);
-#endif
-            batch.setFramebuffer(ressources->getDepthFramebuffer());
 
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
@@ -164,7 +182,8 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
             // Iterate through all inShapes and render the unskinned
             args->_shapePipeline = maskPipeline;
             batch.setPipeline(maskPipeline->pipeline);
-            for (auto items : inShapes) {
+            for (const auto& items : inShapes) {
+                itemBounds.insert(itemBounds.end(), items.second.begin(), items.second.end());
                 if (items.first.isSkinned()) {
                     skinnedShapeKeys.push_back(items.first);
                 } else {
@@ -182,70 +201,32 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
             args->_shapePipeline = nullptr;
             args->_batch = nullptr;
         });
+
+        _boundsBuffer->setData(itemBounds.size() * sizeof(render::ItemBound), (const gpu::Byte*) itemBounds.data());
+
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            // Setup camera, projection and viewport for all items
+            batch.setViewportTransform(args->_viewport);
+            batch.setProjectionTransform(projMat);
+            batch.setViewTransform(viewMat);
+
+            // Draw stencil mask with object bounding boxes
+            const auto outlineWidthLoc = _stencilMaskPipeline->getProgram()->getUniforms().findLocation("outlineWidth");
+            const auto sqrt3 = 1.74f;
+            const float blurPixelWidth = 2.0f * sqrt3 *_sharedParameters->_blurPixelWidths[_outlineIndex];
+            const auto framebufferSize = ressources->getSourceFrameSize();
+
+            auto stencilPipeline = _sharedParameters->_isFilled.test(_outlineIndex) ? _stencilMaskFillPipeline : _stencilMaskPipeline;
+            batch.setPipeline(stencilPipeline);
+            batch.setResourceBuffer(0, _boundsBuffer);
+            batch._glUniform2f(outlineWidthLoc, blurPixelWidth / framebufferSize.x, blurPixelWidth / framebufferSize.y);
+            static const int NUM_VERTICES_PER_CUBE = 36;
+            batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_CUBE * (gpu::uint32) itemBounds.size(), 0);
+        });
     } else {
         // Outline rect should be null as there are no outlined shapes
         outputs = glm::ivec4(0, 0, 0, 0);
     }
-}
-
-glm::ivec4 DrawOutlineMask::computeOutlineRect(const render::ShapeBounds& shapes, 
-                                               const ViewFrustum& viewFrustum, glm::ivec2 frameSize) {
-    glm::vec4 minMaxBounds{
-        std::numeric_limits<float>::max(),
-        std::numeric_limits<float>::max(),
-        -std::numeric_limits<float>::max(),
-        -std::numeric_limits<float>::max(),
-    };
-
-    for (const auto& keyShapes : shapes) {
-        const auto& items = keyShapes.second;
-
-        for (const auto& item : items) {
-            const auto& aabb = item.bound;
-            glm::vec2 bottomLeft;
-            glm::vec2 topRight;
-
-            if (viewFrustum.getProjectedRect(aabb, bottomLeft, topRight)) {
-                minMaxBounds.x = std::min(minMaxBounds.x, bottomLeft.x);
-                minMaxBounds.y = std::min(minMaxBounds.y, bottomLeft.y);
-                minMaxBounds.z = std::max(minMaxBounds.z, topRight.x);
-                minMaxBounds.w = std::max(minMaxBounds.w, topRight.y);
-            }
-        }
-    }
-
-    if (minMaxBounds.x != std::numeric_limits<float>::max()) {
-        const glm::vec2 halfFrameSize{ frameSize.x*0.5f, frameSize.y*0.5f };
-        glm::ivec4  rect;
-
-        minMaxBounds += 1.0f;
-        rect.x = glm::clamp((int)floorf(minMaxBounds.x * halfFrameSize.x), 0, frameSize.x);
-        rect.y = glm::clamp((int)floorf(minMaxBounds.y * halfFrameSize.y), 0, frameSize.y);
-        rect.z = glm::clamp((int)ceilf(minMaxBounds.z * halfFrameSize.x), 0, frameSize.x);
-        rect.w = glm::clamp((int)ceilf(minMaxBounds.w * halfFrameSize.y), 0, frameSize.y);
-
-        rect.z -= rect.x;
-        rect.w -= rect.y;
-        return rect;
-    } else {
-        return glm::ivec4(0, 0, 0, 0);
-    }
-}
-
-glm::ivec4 DrawOutlineMask::expandRect(glm::ivec4 rect, int amount, glm::ivec2 frameSize) {
-    // Go bo back to min max values
-    rect.z += rect.x;
-    rect.w += rect.y;
-
-    rect.x = std::max(0, rect.x - amount);
-    rect.y = std::max(0, rect.y - amount);
-    rect.z = std::min(frameSize.x, rect.z + amount);
-    rect.w = std::min(frameSize.y, rect.w + amount);
-
-    // Back to width height
-    rect.z -= rect.x;
-    rect.w -= rect.y;
-    return rect;
 }
 
 gpu::PipelinePointer DrawOutline::_pipeline;
@@ -270,7 +251,7 @@ void DrawOutline::configure(const Config& config) {
     _parameters._size.x = (_size * _framebufferSize.y) / _framebufferSize.x;
     _parameters._size.y = _size;
     _sharedParameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
-    _isFilled = (config.unoccludedFillOpacity > OPACITY_EPSILON || config.occludedFillOpacity > OPACITY_EPSILON);
+    _sharedParameters->_isFilled.set(_outlineIndex, (config.unoccludedFillOpacity > OPACITY_EPSILON || config.occludedFillOpacity > OPACITY_EPSILON));
     _configuration.edit() = _parameters;
 }
 
@@ -278,9 +259,6 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
     auto outlineFrameBuffer = inputs.get1();
     auto outlineRect = inputs.get3();
 
-    // TODO : If scissor isn't possible in stereo, send the AABox in the shader
-    // and do a raycasting per pixel to determine if we need to do the outline
-    // This should improve performance.
     if (outlineFrameBuffer && outlineRect.z>0 && outlineRect.w>0) {
         auto sceneDepthBuffer = inputs.get2();
         const auto frameTransform = inputs.get0();
@@ -302,9 +280,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-#if !OUTLINE_USE_SCISSOR
                 batch.enableStereo(false);
-#endif
                 batch.setFramebuffer(destinationFrameBuffer);
 
                 batch.setViewportTransform(args->_viewport);
@@ -312,9 +288,6 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 batch.resetViewTransform();
                 batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
                 batch.setPipeline(pipeline);
-#if OUTLINE_USE_SCISSOR
-                batch.setStateScissorRect(outlineRect);
-#endif
 
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
                 batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
@@ -331,7 +304,7 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false, false));
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-        state->setScissorEnable(OUTLINE_USE_SCISSOR);
+        state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
         auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
         auto ps = gpu::Shader::createPixel(std::string(Outline_frag));
@@ -351,7 +324,7 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
     }
-    return _isFilled ? _pipelineFilled : _pipeline;
+    return _sharedParameters->_isFilled.test(_outlineIndex) ? _pipelineFilled : _pipeline;
 }
 
 DebugOutline::DebugOutline() {
@@ -380,9 +353,7 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.setViewportTransform(args->_viewport);
-#if OUTLINE_USE_SCISSOR
-            batch.setStateScissorRect(outlineRect);
-#endif
+            batch.setFramebuffer(outlineRessources->getColorFramebuffer());
 
             const auto geometryBuffer = DependencyManager::get<GeometryCache>();
 
@@ -416,8 +387,8 @@ void DebugOutline::initializePipelines() {
                "Could not find source placeholder");
 
     auto state = std::make_shared<gpu::State>();
-    state->setDepthTest(gpu::State::DepthTest(false));
-    state->setScissorEnable(OUTLINE_USE_SCISSOR);
+    state->setDepthTest(gpu::State::DepthTest(false, false));
+    state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
 
     const auto vs = gpu::Shader::createVertex(VERTEX_SHADER);
 
@@ -473,7 +444,7 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setColorWriteMask(false, false, false, false);
-        state->setScissorEnable(OUTLINE_USE_SCISSOR);
+
         initMaskPipelines(*shapePlumber, state);
     }
     auto sharedParameters = std::make_shared<OutlineSharedParameters>();
