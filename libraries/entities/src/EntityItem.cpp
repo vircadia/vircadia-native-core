@@ -1734,9 +1734,11 @@ void EntityItem::setParentID(const QUuid& value) {
 void EntityItem::setDimensions(const glm::vec3& value) {
     glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
     if (getDimensions() != newDimensions) {
-        _dimensions = newDimensions;
-        markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        _queryAACubeSet = false;
+        withWriteLock([&] {
+            _dimensions = newDimensions;
+            _dirtyFlags |= (Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+            _queryAACubeSet = false;
+        });
         locationChanged();
         dimensionsChanged();
     }
@@ -1783,29 +1785,33 @@ void EntityItem::setVelocity(const glm::vec3& value) {
 
 void EntityItem::setDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (_damping != clampedDamping) {
-        _damping = clampedDamping;
-        _dirtyFlags |= Simulation::DIRTY_MATERIAL;
-    }
+    withWriteLock([&] {
+        if (_damping != clampedDamping) {
+            _damping = clampedDamping;
+            _dirtyFlags |= Simulation::DIRTY_MATERIAL;
+        }
+    });
 }
 
 void EntityItem::setGravity(const glm::vec3& value) {
-    if (_gravity != value) {
-        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            _gravity = Vectors::ZERO;
-        } else {
-            float magnitude = glm::length(value);
-            if (!glm::isnan(magnitude)) {
-                const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
-                if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
-                    _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
-                } else {
-                    _gravity = value;
+    withWriteLock([&] {
+        if (_gravity != value) {
+            if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+                _gravity = Vectors::ZERO;
+            } else {
+                float magnitude = glm::length(value);
+                if (!glm::isnan(magnitude)) {
+                    const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
+                    if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
+                        _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
+                    } else {
+                        _gravity = value;
+                    }
+                    _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
                 }
-                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
         }
-    }
+    });
 }
 
 void EntityItem::setAngularVelocity(const glm::vec3& value) {
@@ -1834,47 +1840,58 @@ void EntityItem::setAngularVelocity(const glm::vec3& value) {
 
 void EntityItem::setAngularDamping(float value) {
     auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
-    if (_angularDamping != clampedDamping) {
-        _angularDamping = clampedDamping;
-        _dirtyFlags |= Simulation::DIRTY_MATERIAL;
-    }
+    withWriteLock([&] {
+        if (_angularDamping != clampedDamping) {
+            _angularDamping = clampedDamping;
+            _dirtyFlags |= Simulation::DIRTY_MATERIAL;
+        }
+    });
 }
 
 void EntityItem::setCollisionless(bool value) {
-    if (_collisionless != value) {
-        _collisionless = value;
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
-    }
+    withWriteLock([&] {
+        if (_collisionless != value) {
+            _collisionless = value;
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
+        }
+    });
 }
 
 void EntityItem::setCollisionMask(uint8_t value) {
-    if ((_collisionMask & ENTITY_COLLISION_MASK_DEFAULT) != (value & ENTITY_COLLISION_MASK_DEFAULT)) {
-        _collisionMask = (value & ENTITY_COLLISION_MASK_DEFAULT);
-        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
-    }
+    withWriteLock([&] {
+        if ((_collisionMask & ENTITY_COLLISION_MASK_DEFAULT) != (value & ENTITY_COLLISION_MASK_DEFAULT)) {
+            _collisionMask = (value & ENTITY_COLLISION_MASK_DEFAULT);
+            _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
+        }
+    });
 }
 
 void EntityItem::setDynamic(bool value) {
     if (getDynamic() != value) {
-        // dynamic and STATIC_MESH are incompatible so we check for that case
-        if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            if (_dynamic) {
-                _dynamic = false;
+        withWriteLock([&] {
+            // dynamic and STATIC_MESH are incompatible so we check for that case
+            if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+                if (_dynamic) {
+                    _dynamic = false;
+                    _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
+                }
+            } else {
+                _dynamic = value;
                 _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
             }
-        } else {
-            _dynamic = value;
-            _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
-        }
+        });
     }
 }
 
 void EntityItem::setRestitution(float value) {
     float clampedValue = glm::max(glm::min(ENTITY_ITEM_MAX_RESTITUTION, value), ENTITY_ITEM_MIN_RESTITUTION);
-    if (_restitution != clampedValue) {
-        _restitution = clampedValue;
-        _dirtyFlags |= Simulation::DIRTY_MATERIAL;
-    }
+    withWriteLock([&] {
+        if (_restitution != clampedValue) {
+            _restitution = clampedValue;
+            _dirtyFlags |= Simulation::DIRTY_MATERIAL;
+        }
+    });
+
 }
 
 void EntityItem::setFriction(float value) {
@@ -1888,17 +1905,21 @@ void EntityItem::setFriction(float value) {
 }
 
 void EntityItem::setLifetime(float value) {
-    if (_lifetime != value) {
-        _lifetime = value;
-        _dirtyFlags |= Simulation::DIRTY_LIFETIME;
-    }
+    withWriteLock([&] {
+        if (_lifetime != value) {
+            _lifetime = value;
+            _dirtyFlags |= Simulation::DIRTY_LIFETIME;
+        }
+    });
 }
 
 void EntityItem::setCreated(uint64_t value) {
-    if (_created != value) {
-        _created = value;
-        _dirtyFlags |= Simulation::DIRTY_LIFETIME;
-    }
+    withWriteLock([&] {
+        if (_created != value) {
+            _created = value;
+            _dirtyFlags |= Simulation::DIRTY_LIFETIME;
+        }
+    });
 }
 
 void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
@@ -1969,16 +1990,6 @@ void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
     }
     _simulationOwner.set(id, priority);
 }
-
-/*
-void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
-    if (wantTerseEditLogging() && _simulationOwner != owner) {
-        qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << owner;
-    }
-
-    _simulationOwner.set(owner);
-}
-*/
 
 void EntityItem::setSimulationOwner(const SimulationOwner& owner) {
     // NOTE: this method only used by EntityServer.  The Interface uses special code in readEntityDataFromBuffer().
