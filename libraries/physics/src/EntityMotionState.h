@@ -59,8 +59,8 @@ public:
 
     virtual glm::vec3 getObjectPosition() const override { return _entity->getWorldPosition() - ObjectMotionState::getWorldOffset(); }
     virtual glm::quat getObjectRotation() const override { return _entity->getWorldOrientation(); }
-    virtual glm::vec3 getObjectLinearVelocity() const override { return _entity->getVelocity(); }
-    virtual glm::vec3 getObjectAngularVelocity() const override { return _entity->getAngularVelocity(); }
+    virtual glm::vec3 getObjectLinearVelocity() const override { return _entity->getWorldVelocity(); }
+    virtual glm::vec3 getObjectAngularVelocity() const override { return _entity->getWorldAngularVelocity(); }
     virtual glm::vec3 getObjectGravity() const override { return _entity->getGravity(); }
     virtual glm::vec3 getObjectLinearVelocityChange() const override;
 

@@ -240,7 +240,7 @@ glm::vec3 SpatiallyNestable::worldToLocalVelocity(const glm::vec3& velocity, con
     if (!success) {
         return velocity;
     }
-    glm::vec3 parentVelocity = parent->getVelocity(success);
+    glm::vec3 parentVelocity = parent->getWorldVelocity(success);
     if (!success) {
         return velocity;
     }
@@ -345,7 +345,7 @@ glm::vec3 SpatiallyNestable::localToWorldVelocity(const glm::vec3& velocity, con
     if (!success) {
         return velocity;
     }
-    glm::vec3 parentVelocity = parent->getVelocity(success);
+    glm::vec3 parentVelocity = parent->getWorldVelocity(success);
     if (!success) {
         return velocity;
     }
@@ -473,7 +473,7 @@ void SpatiallyNestable::setWorldOrientation(const glm::quat& orientation) {
     #endif
 }
 
-glm::vec3 SpatiallyNestable::getVelocity(bool& success) const {
+glm::vec3 SpatiallyNestable::getWorldVelocity(bool& success) const {
     glm::vec3 result;
     Transform parentTransform = getParentTransform(success);
     if (!success) {
@@ -490,16 +490,16 @@ glm::vec3 SpatiallyNestable::getVelocity(bool& success) const {
     return result;
 }
 
-glm::vec3 SpatiallyNestable::getVelocity() const {
+glm::vec3 SpatiallyNestable::getWorldVelocity() const {
     bool success;
-    glm::vec3 result = getVelocity(success);
+    glm::vec3 result = getWorldVelocity(success);
     if (!success) {
-        qCDebug(shared) << "Warning -- getVelocity failed" << getID();
+        qCDebug(shared) << "Warning -- getWorldVelocity failed" << getID();
     }
     return result;
 }
 
-void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
+void SpatiallyNestable::setWorldVelocity(const glm::vec3& velocity, bool& success) {
     glm::vec3 parentVelocity = getParentVelocity(success);
     Transform parentTransform = getParentTransform(success);
     _velocityLock.withWriteLock([&] {
@@ -518,9 +518,9 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
     });
 }
 
-void SpatiallyNestable::setVelocity(const glm::vec3& velocity) {
+void SpatiallyNestable::setWorldVelocity(const glm::vec3& velocity) {
     bool success;
-    setVelocity(velocity, success);
+    setWorldVelocity(velocity, success);
     if (!success) {
         qCDebug(shared) << "Warning -- setVelocity failed" << getID();
     }
@@ -533,12 +533,12 @@ glm::vec3 SpatiallyNestable::getParentVelocity(bool& success) const {
         return result;
     }
     if (parent) {
-        result = parent->getVelocity(success);
+        result = parent->getWorldVelocity(success);
     }
     return result;
 }
 
-glm::vec3 SpatiallyNestable::getAngularVelocity(bool& success) const {
+glm::vec3 SpatiallyNestable::getWorldAngularVelocity(bool& success) const {
     glm::vec3 result;
     Transform parentTransform = getParentTransform(success);
     if (!success) {
@@ -554,16 +554,16 @@ glm::vec3 SpatiallyNestable::getAngularVelocity(bool& success) const {
     return result;
 }
 
-glm::vec3 SpatiallyNestable::getAngularVelocity() const {
+glm::vec3 SpatiallyNestable::getWorldAngularVelocity() const {
     bool success;
-    glm::vec3 result = getAngularVelocity(success);
+    glm::vec3 result = getWorldAngularVelocity(success);
     if (!success) {
         qCDebug(shared) << "Warning -- getAngularVelocity failed" << getID();
     }
     return result;
 }
 
-void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, bool& success) {
+void SpatiallyNestable::setWorldAngularVelocity(const glm::vec3& angularVelocity, bool& success) {
     glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
     Transform parentTransform = getParentTransform(success);
     _angularVelocityLock.withWriteLock([&] {
@@ -571,9 +571,9 @@ void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, boo
     });
 }
 
-void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity) {
+void SpatiallyNestable::setWorldAngularVelocity(const glm::vec3& angularVelocity) {
     bool success;
-    setAngularVelocity(angularVelocity, success);
+    setWorldAngularVelocity(angularVelocity, success);
     if (!success) {
         qCDebug(shared) << "Warning -- setAngularVelocity failed" << getID();
     }
@@ -586,7 +586,7 @@ glm::vec3 SpatiallyNestable::getParentAngularVelocity(bool& success) const {
         return result;
     }
     if (parent) {
-        result = parent->getAngularVelocity(success);
+        result = parent->getWorldAngularVelocity(success);
     }
     return result;
 }

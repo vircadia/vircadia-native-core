@@ -125,7 +125,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
     if (flags & Simulation::DIRTY_SIMULATOR_ID) {
         if (_entity->getSimulatorID().isNull()) {
             // simulation ownership has been removed by an external simulator
-            if (glm::length2(_entity->getVelocity()) == 0.0f) {
+            if (glm::length2(_entity->getWorldVelocity()) == 0.0f) {
                 // this object is coming to rest --> clear the ACTIVATION flag and _outgoingPriority
                 flags &= ~Simulation::DIRTY_PHYSICS_ACTIVATION;
                 _body->setActivationState(WANTS_DEACTIVATION);
@@ -542,8 +542,8 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
             const float DYNAMIC_ANGULAR_VELOCITY_THRESHOLD = 0.087266f;  // ~5 deg/sec
 
             bool movingSlowlyLinear =
-                glm::length2(_entity->getVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
-            bool movingSlowlyAngular = glm::length2(_entity->getAngularVelocity()) <
+                glm::length2(_entity->getWorldVelocity()) < (DYNAMIC_LINEAR_VELOCITY_THRESHOLD * DYNAMIC_LINEAR_VELOCITY_THRESHOLD);
+            bool movingSlowlyAngular = glm::length2(_entity->getWorldAngularVelocity()) <
                     (DYNAMIC_ANGULAR_VELOCITY_THRESHOLD * DYNAMIC_ANGULAR_VELOCITY_THRESHOLD);
             bool movingSlowly = movingSlowlyLinear && movingSlowlyAngular && _entity->getAcceleration() == Vectors::ZERO;
 

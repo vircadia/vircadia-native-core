@@ -89,16 +89,16 @@ public:
     virtual void setWorldOrientation(const glm::quat& orientation, bool& success, bool tellPhysics = true);
     virtual void setWorldOrientation(const glm::quat& orientation);
 
-    virtual glm::vec3 getVelocity(bool& success) const;
-    virtual glm::vec3 getVelocity() const;
-    virtual void setVelocity(const glm::vec3& velocity, bool& success);
-    virtual void setVelocity(const glm::vec3& velocity);
+    virtual glm::vec3 getWorldVelocity(bool& success) const;
+    virtual glm::vec3 getWorldVelocity() const;
+    virtual void setWorldVelocity(const glm::vec3& velocity, bool& success);
+    virtual void setWorldVelocity(const glm::vec3& velocity);
     virtual glm::vec3 getParentVelocity(bool& success) const;
 
-    virtual glm::vec3 getAngularVelocity(bool& success) const;
-    virtual glm::vec3 getAngularVelocity() const;
-    virtual void setAngularVelocity(const glm::vec3& angularVelocity, bool& success);
-    virtual void setAngularVelocity(const glm::vec3& angularVelocity);
+    virtual glm::vec3 getWorldAngularVelocity(bool& success) const;
+    virtual glm::vec3 getWorldAngularVelocity() const;
+    virtual void setWorldAngularVelocity(const glm::vec3& angularVelocity, bool& success);
+    virtual void setWorldAngularVelocity(const glm::vec3& angularVelocity);
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;

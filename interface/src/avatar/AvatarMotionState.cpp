@@ -116,12 +116,12 @@ glm::quat AvatarMotionState::getObjectRotation() const {
 
 // virtual
 glm::vec3 AvatarMotionState::getObjectLinearVelocity() const {
-    return _avatar->getVelocity();
+    return _avatar->getWorldVelocity();
 }
 
 // virtual
 glm::vec3 AvatarMotionState::getObjectAngularVelocity() const {
-    return _avatar->getAngularVelocity();
+    return _avatar->getWorldAngularVelocity();
 }
 
 // virtual

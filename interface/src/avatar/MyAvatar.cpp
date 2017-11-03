@@ -1617,13 +1617,13 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
     if (_characterController.isEnabledAndReady()) {
-        setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
+        setWorldVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
         if (_characterController.isStuck()) {
             _physicsSafetyPending = true;
             _goToPosition = getWorldPosition();
         }
     } else {
-        setVelocity(getVelocity() + _characterController.getFollowVelocity());
+        setWorldVelocity(getWorldVelocity() + _characterController.getFollowVelocity());
     }
 }
 
@@ -1962,7 +1962,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     if (qApp->isHMDMode() && getCharacterController()->getState() == CharacterController::State::Hover && _hmdRollControlEnabled && hasDriveInput()) {
         // Turn with head roll.
         const float MIN_CONTROL_SPEED = 0.01f;
-        float speed = glm::length(getVelocity());
+        float speed = glm::length(getWorldVelocity());
         if (speed >= MIN_CONTROL_SPEED) {
             // Feather turn when stopping moving.
             float speedFactor;
@@ -1973,7 +1973,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
                 speedFactor = glm::min(speed / _lastDrivenSpeed, 1.0f);
             }
 
-            float direction = glm::dot(getVelocity(), getWorldOrientation() * Vectors::UNIT_NEG_Z) > 0.0f ? 1.0f : -1.0f;
+            float direction = glm::dot(getWorldVelocity(), getWorldOrientation() * Vectors::UNIT_NEG_Z) > 0.0f ? 1.0f : -1.0f;
 
             float rollAngle = glm::degrees(asinf(glm::dot(IDENTITY_UP, _hmdSensorOrientation * IDENTITY_RIGHT)));
             float rollSign = rollAngle < 0.0f ? -1.0f : 1.0f;
@@ -2084,7 +2084,7 @@ void MyAvatar::updatePosition(float deltaTime) {
         updateActionMotor(deltaTime);
     }
 
-    vec3 velocity = getVelocity();
+    vec3 velocity = getWorldVelocity();
     float sensorToWorldScale = getSensorToWorldScale();
     float sensorToWorldScale2 = sensorToWorldScale * sensorToWorldScale;
     const float MOVING_SPEED_THRESHOLD_SQUARED = 0.0001f; // 0.01 m/s
@@ -2896,7 +2896,7 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
 }
 
 float MyAvatar::getAccelerationEnergy() {
-    glm::vec3 velocity = getVelocity();
+    glm::vec3 velocity = getWorldVelocity();
     int changeInVelocity = abs(velocity.length() - priorVelocity.length());
     float changeInEnergy = priorVelocity.length() * changeInVelocity * AVATAR_MOVEMENT_ENERGY_CONSTANT;
     priorVelocity = velocity;

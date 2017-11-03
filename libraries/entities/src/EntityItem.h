@@ -192,7 +192,7 @@ public:
 
     float getDensity() const;
 
-    bool hasVelocity() const { return getVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasVelocity() const { return getWorldVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalVelocity() const { return getLocalVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     glm::vec3 getGravity() const; /// get gravity in meters
@@ -254,9 +254,9 @@ public:
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
 
     /// registration point as ratio of entity
-    virtual void setRegistrationPoint(const glm::vec3& value);
+    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious! 
 
-    bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasAngularVelocity() const { return getWorldAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     virtual void setAngularVelocity(const glm::vec3& angularVelocity);
@@ -292,7 +292,7 @@ public:
     void setLocked(bool value);
 
     QString getUserData() const;
-    virtual void setUserData(const QString& value);
+    virtual void setUserData(const QString& value); // FIXME: This is suspicious
 
     // FIXME not thread safe?
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
@@ -349,9 +349,10 @@ public:
 
     void setPosition(const glm::vec3& value);
     virtual void setParentID(const QUuid& parentID);
-    virtual void setRotation(glm::quat orientation);
-    virtual void setVelocity(const glm::vec3& velocity);
     virtual void setShapeType(ShapeType type) { /* do nothing */ }
+
+    void setRotation(glm::quat orientation);
+    void setVelocity(const glm::vec3& velocity);
 
     uint32_t getDirtyFlags() const;
     void markDirtyFlags(uint32_t mask);

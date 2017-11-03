@@ -376,7 +376,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             // If any of these changed, pull any missing properties from the entity.
 
             //existing entity, retrieve old velocity for check down below
-            oldVelocity = entity->getVelocity().length();
+            oldVelocity = entity->getWorldVelocity().length();
 
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
@@ -532,7 +532,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 auto dimensions = entity->getDimensions();
                 float volume = dimensions.x * dimensions.y * dimensions.z;
                 auto density = entity->getDensity();
-                auto velocity = entity->getVelocity().length();
+                auto velocity = entity->getWorldVelocity().length();
                 float cost = calculateCost(density * volume, velocity, 0);
                 cost *= costMultiplier;
 

@@ -436,7 +436,7 @@ bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
 void Avatar::slamPosition(const glm::vec3& newPosition) {
     setWorldPosition(newPosition);
     _positionDeltaAccumulator = glm::vec3(0.0f);
-    setVelocity(glm::vec3(0.0f));
+    setWorldVelocity(glm::vec3(0.0f));
     _lastVelocity = glm::vec3(0.0f);
 }
 
@@ -460,13 +460,13 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     _positionDeltaAccumulator = glm::vec3(0.0f);
     _acceleration = (velocity - _lastVelocity) * invDeltaTime;
     _lastVelocity = velocity;
-    setVelocity(velocity);
+    setWorldVelocity(velocity);
 
     // angular
     glm::quat orientation = getWorldOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
     glm::vec3 angularVelocity = glm::axis(delta) * glm::angle(delta) * invDeltaTime;
-    setAngularVelocity(angularVelocity);
+    setWorldAngularVelocity(angularVelocity);
     _lastOrientation = getWorldOrientation();
 }
 

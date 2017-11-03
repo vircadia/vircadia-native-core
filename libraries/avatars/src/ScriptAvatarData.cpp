@@ -110,14 +110,14 @@ float ScriptAvatarData::getHeadRoll() const {
 //
 glm::vec3 ScriptAvatarData::getVelocity() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getVelocity();
+        return sharedAvatarData->getWorldVelocity();
     } else {
         return glm::vec3();
     }
 }
 glm::vec3 ScriptAvatarData::getAngularVelocity() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
-        return sharedAvatarData->getAngularVelocity();
+        return sharedAvatarData->getWorldAngularVelocity();
     } else {
         return glm::vec3();
     }
