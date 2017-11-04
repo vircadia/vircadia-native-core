@@ -12,8 +12,6 @@
 #include <WebEntityItem.h>
 #include "RenderableEntityItem.h"
 
-#include <QTouchEvent>
-
 class OffscreenQmlSurface;
 class PointerEvent;
 
@@ -28,7 +26,7 @@ public:
     WebEntityRenderer(const EntityItemPointer& entity);
 
     Q_INVOKABLE void hoverLeaveEntity(const PointerEvent& event);
-    Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
+    Q_INVOKABLE void handlePointerEvent(PointerEvent& event);
 
 protected:
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
@@ -66,10 +64,6 @@ private:
     QTimer _timer;
     uint64_t _lastRenderTime { 0 };
     Transform _renderTransform;
-
-    bool _pressed{ false };
-    bool _touchBeginAccepted{ false };
-    std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
 };
 
 } } // namespace 

@@ -25,7 +25,7 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
         case PickQuery::PickType::Ray:
             return createRayPick(properties);
         default:
-            return 0;
+            return PickManager::INVALID_PICK_ID;
     }
 }
 
@@ -78,7 +78,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
         return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
     }
 
-    return 0;
+    return PickManager::INVALID_PICK_ID;
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {

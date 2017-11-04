@@ -26,7 +26,7 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
         case PickQuery::PickType::Ray:
             return createLaserPointer(properties);
         default:
-            return 0;
+            return PointerEvent::INVALID_POINTER_ID;
     }
 }
 

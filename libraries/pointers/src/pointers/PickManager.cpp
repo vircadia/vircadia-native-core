@@ -13,7 +13,7 @@ PickManager::PickManager() {
 }
 
 unsigned int PickManager::addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick) {
-    unsigned int id = 0;
+    unsigned int id = INVALID_PICK_ID;
     withWriteLock([&] {
         // Don't let the pick IDs overflow
         if (_nextPickID < UINT32_MAX) {
@@ -29,7 +29,7 @@ std::shared_ptr<PickQuery> PickManager::findPick(unsigned int uid) const {
     return resultWithReadLock<std::shared_ptr<PickQuery>>([&] {
         auto type = _typeMap.find(uid);
         if (type != _typeMap.end()) {
-            return _picks[type.value()][uid];
+            return _picks.find(type->second)->second.find(uid)->second;
         }
         return std::shared_ptr<PickQuery>();
     });
@@ -39,8 +39,8 @@ void PickManager::removePick(unsigned int uid) {
     withWriteLock([&] {
         auto type = _typeMap.find(uid);
         if (type != _typeMap.end()) {
-            _picks[type.value()].remove(uid);
-            _typeMap.remove(uid);
+            _picks[type->second].erase(uid);
+            _typeMap.erase(uid);
         }
     });
 }
@@ -89,7 +89,7 @@ void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& includ
 }
 
 void PickManager::update() {
-    QHash<PickQuery::PickType, QHash<unsigned int, std::shared_ptr<PickQuery>>> cachedPicks;
+    std::unordered_map<PickQuery::PickType, std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>> cachedPicks;
     withReadLock([&] {
         cachedPicks = _picks;
     });

@@ -206,4 +206,13 @@ public:
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 };
 
+namespace std {
+    template <>
+    struct hash<PickQuery::PickType> {
+        size_t operator()(const PickQuery::PickType& a) const {
+            return a;
+        }
+    };
+}
+
 #endif // hifi_Pick_h

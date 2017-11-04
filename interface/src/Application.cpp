@@ -1504,14 +1504,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
-    auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginHUD, this, &Application::handleHUDPointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverContinueHUD, this, &Application::handleHUDPointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverEndHUD, this, &Application::handleHUDPointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerBeginHUD, this, &Application::handleHUDPointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerContinueHUD, this, &Application::handleHUDPointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerEndHUD, this, &Application::handleHUDPointerEvent);
-
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
     static int NEARBY_AVATAR_RADIUS_METERS = 10;
@@ -3304,7 +3296,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto eventPosition = compositor.getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     auto button = event->button();
     auto buttons = event->buttons();
     // Determine if the ReticleClick Action is 1 and if so, fake include the LeftMouseButton
@@ -3350,7 +3342,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
     offscreenUi->unfocusWindows();
 
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -3380,7 +3372,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
 void Application::mouseDoublePressEvent(QMouseEvent* event) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -3406,7 +3398,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -7487,32 +7479,4 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
 }
-
-void Application::handleHUDPointerEvent(const QUuid& id, const PointerEvent& event) {
-    QEvent::Type type = QEvent::Type::MouseMove;
-    switch (event.getType()) {
-    case PointerEvent::Press:
-        type = QEvent::Type::MouseButtonPress;
-        break;
-    case PointerEvent::DoublePress:
-        type = QEvent::Type::MouseButtonDblClick;
-        break;
-    case PointerEvent::Release:
-        type = QEvent::Type::MouseButtonRelease;
-        break;
-    case PointerEvent::Move:
-        type = QEvent::Type::MouseMove;
-        break;
-    default:
-        break;
-    }
-
-    QPointF screenPos(event.getPos2D().x, event.getPos2D().y);
-    //QMouseEvent mouseEvent(type, screenPos, Qt::MouseButton(event.getButton()), Qt::MouseButtons(event.getButtons()), event.getKeyboardModifiers());
-    QMouseEvent moveEvent(QEvent::Type::MouseMove, screenPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-    sendEvent(_glWidget, &moveEvent);
-    QMouseEvent mouseEvent(type, screenPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
-    sendEvent(_glWidget, &mouseEvent);
-}
-
 #include "Application.moc"

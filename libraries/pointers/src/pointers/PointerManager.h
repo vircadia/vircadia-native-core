@@ -40,11 +40,12 @@ public:
 
     void update();
 
+    static const unsigned int MOUSE_POINTER_ID { PointerEvent::INVALID_POINTER_ID + 1 };
+
 private:
     std::shared_ptr<Pointer> find(unsigned int uid) const;
-    QHash<unsigned int, std::shared_ptr<Pointer>> _pointers;
-    // 0 = invalid, 1 = reserved for system mouse
-    unsigned int _nextPointerID { 2 };
+    std::unordered_map<unsigned int, std::shared_ptr<Pointer>> _pointers;
+    unsigned int _nextPointerID { MOUSE_POINTER_ID + 1 };
 
 signals:
     void triggerBeginOverlay(const QUuid& id, const PointerEvent& pointerEvent);
@@ -61,12 +62,12 @@ signals:
     void hoverContinueEntity(const QUuid& id, const PointerEvent& pointerEvent);
     void hoverEndEntity(const QUuid& id, const PointerEvent& pointerEvent);
 
-    void triggerBeginHUD(const QUuid& id, const PointerEvent& pointerEvent);
-    void triggerContinueHUD(const QUuid& id, const PointerEvent& pointerEvent);
-    void triggerEndHUD(const QUuid& id, const PointerEvent& pointerEvent);
-    void hoverBeginHUD(const QUuid& id, const PointerEvent& pointerEvent);
-    void hoverContinueHUD(const QUuid& id, const PointerEvent& pointerEvent);
-    void hoverEndHUD(const QUuid& id, const PointerEvent& pointerEvent);
+    void triggerBeginHUD(const PointerEvent& pointerEvent);
+    void triggerContinueHUD(const PointerEvent& pointerEvent);
+    void triggerEndHUD(const PointerEvent& pointerEvent);
+    void hoverBeginHUD(const PointerEvent& pointerEvent);
+    void hoverContinueHUD(const PointerEvent& pointerEvent);
+    void hoverEndHUD(const PointerEvent& pointerEvent);
 };
 
 #endif // hifi_pointers_PointerManager_h

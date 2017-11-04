@@ -8,19 +8,21 @@
 
 #include "PointerManager.h"
 
+#include "PickManager.h"
+
 std::shared_ptr<Pointer> PointerManager::find(unsigned int uid) const {
     return resultWithReadLock<std::shared_ptr<Pointer>>([&] {
         auto itr = _pointers.find(uid);
         if (itr != _pointers.end()) {
-            return *itr;
+            return itr->second;
         }
         return std::shared_ptr<Pointer>();
     });
 }
 
 unsigned int PointerManager::addPointer(std::shared_ptr<Pointer> pointer) {
-    unsigned int result = 0;
-    if (pointer->getRayUID() > 0) {
+    unsigned int result = PointerEvent::INVALID_POINTER_ID;
+    if (pointer->getRayUID() != PickManager::INVALID_PICK_ID) {
         withWriteLock([&] {
             // Don't let the pointer IDs overflow
             if (_nextPointerID < UINT32_MAX) {
@@ -34,7 +36,7 @@ unsigned int PointerManager::addPointer(std::shared_ptr<Pointer> pointer) {
 
 void PointerManager::removePointer(unsigned int uid) {
     withWriteLock([&] {
-        _pointers.remove(uid);
+        _pointers.erase(uid);
     });
 }
 
@@ -75,12 +77,12 @@ const QVariantMap PointerManager::getPrevPickResult(unsigned int uid) const {
 }
 
 void PointerManager::update() {
-    auto cachedPointers = resultWithReadLock<QHash<unsigned int, std::shared_ptr<Pointer>>>([&] {
+    auto cachedPointers = resultWithReadLock<std::unordered_map<unsigned int, std::shared_ptr<Pointer>>>([&] {
         return _pointers;
     });
 
-    for (const auto& uid : cachedPointers.keys()) {
-        cachedPointers[uid]->update(uid);
+    for (const auto& pointerPair : cachedPointers) {
+        pointerPair.second->update(pointerPair.first);
     }
 }
 

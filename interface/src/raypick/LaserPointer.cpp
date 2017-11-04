@@ -303,7 +303,7 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const Q
     } else if (target.type == HUD) {
         pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(intersection);
     }
-    return PointerEvent(PointerEvent::Move, 0, pos2D, intersection, surfaceNormal, direction, PointerEvent::NoButtons);
+    return PointerEvent(pos2D, intersection, surfaceNormal, direction);
 }
 
 glm::vec3 LaserPointer::intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const {

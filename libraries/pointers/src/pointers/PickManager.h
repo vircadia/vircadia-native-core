@@ -37,16 +37,16 @@ public:
     void setCalculatePos2DFromHUDOperator(std::function<glm::vec2(const glm::vec3&)> calculatePos2DFromHUDOperator) { _calculatePos2DFromHUDOperator = calculatePos2DFromHUDOperator; }
     glm::vec2 calculatePos2DFromHUD(const glm::vec3& intersection) { return _calculatePos2DFromHUDOperator(intersection); }
 
+    static const unsigned int INVALID_PICK_ID { 0 };
+
 protected:
     std::function<bool()> _shouldPickHUDOperator;
     std::function<glm::vec2(const glm::vec3&)> _calculatePos2DFromHUDOperator;
 
     std::shared_ptr<PickQuery> findPick(unsigned int uid) const;
-    QHash<PickQuery::PickType, QHash<unsigned int, std::shared_ptr<PickQuery>>> _picks;
-    QHash<unsigned int, PickQuery::PickType> _typeMap;
-    // 0 = invalid
-    const unsigned int FIRST_PICK_ID { 1 };
-    unsigned int _nextPickID { FIRST_PICK_ID };
+    std::unordered_map<PickQuery::PickType, std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>> _picks;
+    std::unordered_map<unsigned int, PickQuery::PickType> _typeMap;
+    unsigned int _nextPickID { INVALID_PICK_ID + 1 };
 
     PickCacheOptimizer<PickRay> _rayPickCacheOptimizer;
 };
