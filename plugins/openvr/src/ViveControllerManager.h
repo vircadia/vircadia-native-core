@@ -113,7 +113,6 @@ private:
         void emitCalibrationStatus();
         void calibrateNextFrame();
 
-
         class FilteredStick {
         public:
             glm::vec2 process(float deltaTime, const glm::vec2& stick) {
@@ -195,6 +194,8 @@ private:
         bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
+        bool _hmdTrackingEnabled{ false };
+
         QString configToString(Config config);
         friend class ViveControllerManager;
     };
@@ -204,7 +205,10 @@ private:
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
     bool _resetMatCalculated { false };
+
     bool _desktopMode { false };
+    bool _hmdDesktopTracking{ false };
+    
     glm::mat4 _resetMat { glm::mat4() };
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;

@@ -36,7 +36,9 @@ Rectangle {
     readonly property bool hmdHead: headBox.checked
     readonly property bool headPuck: headPuckBox.checked
     readonly property bool handController: handBox.checked
+    
     readonly property bool handPuck: handPuckBox.checked
+    readonly property bool hmdDesktop: hmdInDesktop.checked
 
     property int state: buttonState.disabled
     property var lastConfiguration: null
@@ -789,12 +791,42 @@ Rectangle {
             verticalCenter: viveInDesktop.verticalCenter
         }
     }
+
     
     NumberAnimation {
         id: numberAnimation
         target: openVrConfiguration
         property: "countDown"
         to: 0
+    }
+
+    HifiControls.CheckBox {
+        id: hmdInDesktop
+        width: 15
+        height: 15
+        boxRadius: 7
+
+        anchors.top: viveInDesktop.bottom
+        anchors.topMargin: 5
+        anchors.left: openVrConfiguration.left
+        anchors.leftMargin: leftMargin + 10
+        
+        onClicked: {
+            sendConfigurationSettings();
+        }
+    }
+
+    RalewayBold {
+        id: hmdDesktopText
+        size: 10
+        text: "Use HMD in desktop mode"
+        color: hifi.colors.white
+        
+        anchors {
+            left: hmdInDesktop.right
+            leftMargin: 5
+            verticalCenter: hmdInDesktop.verticalCenter
+        }
     }
 
     function logAction(action, status) {
@@ -877,6 +909,7 @@ Rectangle {
         var HmdHead = settings["HMDHead"];
         var viveController = settings["handController"];
         var desktopMode = settings["desktopMode"];
+        var hmdDesktopPosition = settings["hmdDesktopTracking"];
 
         armCircumference.value = settings.armCircumference;
         shoulderWidth.value = settings.shoulderWidth;
@@ -898,6 +931,7 @@ Rectangle {
         }
 
         viveInDesktop.checked = desktopMode;
+        hmdInDesktop.checked = hmdDesktopPosition;
 
         initializeButtonState();
         updateCalibrationText();
@@ -1058,7 +1092,8 @@ Rectangle {
             "handConfiguration": handObject,
             "armCircumference": armCircumference.value,
             "shoulderWidth": shoulderWidth.value,
-            "desktopMode": viveInDesktop.checked
+            "desktopMode": viveInDesktop.checked,
+            "hmdDesktopTracking": hmdInDesktop.checked
         }
 
         return settingsObject;
