@@ -320,11 +320,12 @@ void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
     }
 }
 
-void WebEntityRenderer::handlePointerEvent(PointerEvent& event) {
-    event.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+void WebEntityRenderer::handlePointerEvent(const PointerEvent& event) {
     // Ignore mouse interaction if we're locked
     if (!_lastLocked && _webSurface) {
-        _webSurface->handlePointerEvent(event, _touchDevice);
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _lastDPI));
+        _webSurface->handlePointerEvent(webEvent, _touchDevice);
     }
 }
 

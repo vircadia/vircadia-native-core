@@ -26,7 +26,7 @@ public:
     WebEntityRenderer(const EntityItemPointer& entity);
 
     Q_INVOKABLE void hoverLeaveEntity(const PointerEvent& event);
-    Q_INVOKABLE void handlePointerEvent(PointerEvent& event);
+    Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
 
 protected:
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
