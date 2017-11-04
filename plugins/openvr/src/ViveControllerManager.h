@@ -194,7 +194,7 @@ private:
         bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
-        bool _hmdTrackingEnabled{ false };
+        bool _hmdTrackingEnabled { false };
 
         QString configToString(Config config);
         friend class ViveControllerManager;
@@ -207,7 +207,7 @@ private:
     bool _resetMatCalculated { false };
 
     bool _desktopMode { false };
-    bool _hmdDesktopTracking{ false };
+    bool _hmdDesktopTracking { false };
     
     glm::mat4 _resetMat { glm::mat4() };
     model::Geometry _modelGeometry;

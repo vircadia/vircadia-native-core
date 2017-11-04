@@ -459,8 +459,6 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
         }
 
         _hmdTrackingEnabled = !(hmdDesktopMode && !hmdDesktopTracking);
-
-        qDebug() << "HMD desktop tracking Enabled" << _hmdTrackingEnabled << "-" << hmdDesktopMode << "-" << hmdDesktopTracking << !(hmdDesktopMode && !hmdDesktopTracking);
     }
 }
 
