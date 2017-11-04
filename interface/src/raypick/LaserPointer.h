@@ -74,7 +74,7 @@ public:
 
     void setPrecisionPicking(const bool precisionPicking);
     void setLaserLength(const float laserLength);
-    void setLockEndUUID(QUuid objectID, const bool isOverlay);
+    void setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offset = glm::mat4());
 
     void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     void setIncludeItems(const QVector<QUuid>& includeItems) const;

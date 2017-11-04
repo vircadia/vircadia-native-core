@@ -19,6 +19,7 @@
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
+Script.include("/~/system/libraries/Xform.hs");
 
 (function() {
     var PICK_WITH_HAND_RAY = true;
@@ -113,10 +114,42 @@ Script.include("/~/system/libraries/controllers.js");
     ];
 
     var MARGIN = 25;
+
+    function TargetObject(entityID) {
+        this.entityID = entityID;
+        this.entityProps = null;
+        this.parentID = null;
+        this.parentProps = [];
+        this.childrenProps = [];
+        this.parentsCollisionStatus = [];
+        this.childrenCollisionStatus = [];
+        this.madeDynamic = null;
+        this.parentEntityProps = null;
+
+        this.makeDynamic = function() {
+        };
+
+        this.saveCollisionStatus = function() {
+        };
+
+        this.restoreEntitiesProperties = function() {
+        };
+
+        this.getTargetEntity = function() {
+            var parentPropsLength = this.parentProps.length;
+            if (parentPropsLength !== 0) {
+                return this.parentProps[parentPropsLength].id;
+            }
+            return this.entityID;
+        };
+    }
+
     function FarActionGrabEntity(hand) {
         this.hand = hand;
         this.grabbedThingID = null;
+        this.targetObject = null;
         this.actionID = null; // action this script created...
+        this.entityToLockOnto = null;
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
         this.previousCollisionStatus = false;
@@ -158,7 +191,8 @@ Script.include("/~/system/libraries/controllers.js");
             LaserPointers.enableLaserPointer(laserPointerID);
             LaserPointers.setRenderState(laserPointerID, mode);
             if (this.distanceHolding || this.distanceRotating) {
-                LaserPointers.setLockEndUUID(laserPointerID, this.grabbedThingID, this.grabbedIsOverlay);
+                // calculate offset
+                LaserPointers.setLockEndUUID(laserPointerID, this.entityToLockOnto, this.grabbedIsOverlay);
             } else {
                 LaserPointers.setLockEndUUID(laserPointerID, null, false);
             }
@@ -351,6 +385,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
             this.actionID = null;
             this.grabbedThingID = null;
+            this.entityToLockOnto = null;
         };
 
          this.updateRecommendedArea = function() {
@@ -497,17 +532,24 @@ Script.include("/~/system/libraries/controllers.js");
                 if (rayPickInfo.type === RayPick.INTERSECTED_ENTITY) {
                     if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
+                        this.entityToLockOnto = entityID;
                         var targetProps = Entities.getEntityProperties(entityID, [
                             "dynamic", "shapeType", "position",
                             "rotation", "dimensions", "density",
                             "userData", "locked", "type"
                         ]);
 
+                        this.targetObject = new TargetObject(entityID);
                         if (entityID !== this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
                         }
 
                         if (entityIsGrabbable(targetProps)) {
+                            var groupRootProps = findGroupParent(controllerData, targetProps);
+                            if (entityIsGrabbable(groupRootProps)) {
+                                targetProps = groupRootProps;
+                                entityID = targetProps.id;
+                            }
                             if (!entityIsDistanceGrabbable(targetProps)) {
                                 targetProps.dynamic = true;
                                 this.previousCollisionStatus = targetProps.collisionless;

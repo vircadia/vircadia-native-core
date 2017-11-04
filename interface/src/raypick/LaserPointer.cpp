@@ -233,7 +233,7 @@ void LaserPointer::setLaserLength(const float laserLength) {
     });
 }
 
-void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay) {
+void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offset) {
     withWriteLock([&] {
         _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay);
     });
