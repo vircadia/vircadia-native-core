@@ -336,6 +336,10 @@ public:
     QByteArray getPackedStrokeColors() const;
     QByteArray packStrokeColors(const QVector<glm::vec3>& strokeColors) const;
 
+    QByteArray getStaticCertificateJSON() const;
+    QByteArray getStaticCertificateHash() const;
+    bool verifyStaticCertificateProperties();
+
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
