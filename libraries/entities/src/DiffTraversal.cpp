@@ -143,7 +143,7 @@ DiffTraversal::DiffTraversal() {
 }
 
 DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, 
-        int32_t lodLevelOffset, bool usesViewFrustum, bool isFullScene) {
+        int32_t lodLevelOffset, bool usesViewFrustum) {
     assert(root);
     // there are three types of traversal:
     //
@@ -164,7 +164,7 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
 
     Type type;
     // If usesViewFrustum changes, treat it as a First traversal
-    if (_completedView.startTime == 0 || _currentView.usesViewFrustum != _completedView.usesViewFrustum || isFullScene) {
+    if (_completedView.startTime == 0 || _currentView.usesViewFrustum != _completedView.usesViewFrustum) {
         type = Type::First;
         _currentView.viewFrustum = viewFrustum;
         _currentView.lodScaleFactor = lodScaleFactor;
