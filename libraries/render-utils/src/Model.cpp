@@ -235,7 +235,6 @@ void Model::updateRenderItems() {
         self->updateClusterMatrices();
 
         Transform modelTransform = self->getTransform();
-        Transform physicsTransform = modelTransform;
         modelTransform.setScale(glm::vec3(1.0f));
 
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
@@ -259,13 +258,12 @@ void Model::updateRenderItems() {
             });
         }
 
-        // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
         foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
-            transaction.updateItem<MeshPartPayload>(itemID, [physicsTransform, collisionMeshOffset](MeshPartPayload& data) {
+            transaction.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
-                data.updateTransform(physicsTransform, collisionMeshOffset);
+                data.updateTransform(modelTransform, collisionMeshOffset);
             });
         }
 

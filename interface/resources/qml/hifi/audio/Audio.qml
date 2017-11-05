@@ -213,8 +213,8 @@ Rectangle {
                     anchors.right: parent.right
                     peak: model.peak;
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: (bar.currentIndex === 1 && selectedHMD && isVR) ||
-                             (bar.currentIndex === 0 && selectedDesktop && !isVR) &&
+                    visible: ((bar.currentIndex === 1 && isVR) ||
+                             (bar.currentIndex === 0 && !isVR)) &&
                              Audio.devices.input.peakValuesAvailable;
                 }
             }

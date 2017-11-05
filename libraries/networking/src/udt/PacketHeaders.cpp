@@ -29,9 +29,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_STROKE_COLOR_PROPERTY;
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_HAZE;
+            return static_cast<PacketVersion>(EntityVersion::HazeEffect);
+
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
@@ -62,6 +62,9 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
 
+        case PacketType::EntityScriptCallMethod:
+            return static_cast<PacketVersion>(EntityScriptCallMethodVersion::ClientCallable);
+
         case PacketType::MixedAudio:
         case PacketType::SilentAudioFrame:
         case PacketType::InjectAudio:
@@ -69,6 +72,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
             return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
+        case PacketType::ICEPing:
+            return static_cast<PacketVersion>(IcePingVersion::SendICEPeerID);
         default:
             return 17;
     }

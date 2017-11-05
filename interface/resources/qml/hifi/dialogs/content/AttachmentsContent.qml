@@ -14,12 +14,24 @@ Item {
     readonly property var originalAttachments: MyAvatar.getAttachmentsVariant();
     property var attachments: [];
 
-    Component.onCompleted: {
-        for (var i = 0; i < originalAttachments.length; ++i) {
-            var attachment = originalAttachments[i];
+    function reload(){
+        content.attachments = [];
+        var currentAttachments = MyAvatar.getAttachmentsVariant();
+        listView.model.clear();
+        for (var i = 0; i < currentAttachments.length; ++i) {
+            var attachment = currentAttachments[i];
             content.attachments.push(attachment);
             listView.model.append({});
         }
+    }
+    
+    Connections {
+        target: MyAvatar
+        onAttachmentsChanged: reload()
+    }
+
+    Component.onCompleted: {
+        reload()
     }
 
     Column {

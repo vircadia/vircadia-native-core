@@ -60,7 +60,7 @@ if (WIN32 AND NOT CYGWIN)
     select_library_configurations(LIB_EAY)
     select_library_configurations(SSL_EAY)
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
-    find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
+    find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} NO_DEFAULT_PATH)
   endif()
 else()
 
