@@ -425,7 +425,8 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
     uint64_t sendTime = usecTimestampNow();
     auto nodeData = static_cast<OctreeQueryNode*>(params.nodeData);
     nodeData->stats.encodeStarted();
-    auto entityNodeData = static_cast<EntityNodeData*>(_node.toStrongRef()->getLinkedData());
+    auto entityNode = _node.toStrongRef();
+    auto entityNodeData = static_cast<EntityNodeData*>(entityNode->getLinkedData());
     while(!_sendQueue.empty()) {
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
