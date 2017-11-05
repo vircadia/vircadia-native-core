@@ -39,6 +39,7 @@ void main(void) {
     vec2 texCoord0 = varTexCoord0+halfTexel;
 	float outlinedDepth = texture(outlinedDepthMap, texCoord0).x;
     float intensity = 0.0;
+    float isOccluded = 0.0;
 
     if (outlinedDepth < FAR_Z) {
         // We're not on the far plane so we are on the outlined object, thus no outline to do!
@@ -52,6 +53,7 @@ void main(void) {
         // Are we occluded?
         if (sceneDepth < (outlinedDepth-LINEAR_DEPTH_BIAS)) {
             intensity = params._fillOpacityOccluded;
+            isOccluded = 1.0;
         } else {
             intensity = params._fillOpacityUnoccluded;
         }
@@ -66,6 +68,8 @@ void main(void) {
         int x;
         int y;
 
+        float sumOutlineDepth = 0;
+
         for (y=0 ; y<params._blurKernelSize ; y++) {
             uv = lineStartUv;
             lineStartUv.y += deltaUv.y;
@@ -75,7 +79,10 @@ void main(void) {
                     if (uv.x>=0.0 && uv.x<=1.0)
                     {
                         outlinedDepth = texture(outlinedDepthMap, uv).x;
-                        intensity += (outlinedDepth < FAR_Z) ? 1.0 : 0.0;
+                        float touch = (outlinedDepth < FAR_Z) ? 1.0 : 0.0;
+                        //sumOutlineDepth = min(outlinedDepth, sumOutlineDepth);
+                        sumOutlineDepth += (outlinedDepth * touch);
+                        intensity += touch;
                         weight += 1.f;
                     }
                     uv.x += deltaUv.x;
@@ -83,15 +90,31 @@ void main(void) {
             }
         }
 
+        if (intensity > 0) {
+            sumOutlineDepth /= intensity;
+        } else {
+            sumOutlineDepth = FAR_Z;
+        }
+
         intensity /= weight;
         if (intensity < OPACITY_EPSILON) {
             discard;
         }
-
         intensity = min(1.0, intensity / params._threshold) * params._intensity;
+
+        // But we need to check the scene depth aginst the depth of the outline
+        float sceneDepth = texture(sceneDepthMap, texCoord0).x;
+
+        // Transform to linear depth for better precision
+        outlinedDepth = -evalZeyeFromZdb(sumOutlineDepth);
+        sceneDepth = -evalZeyeFromZdb(sceneDepth);
+        // Are we occluded?
+        if (sceneDepth < (outlinedDepth/*-LINEAR_DEPTH_BIAS*/)) {
+            isOccluded = 1.0;
+        }
     }
 
-	outFragColor = vec4(params._color.rgb, intensity);
+    outFragColor = vec4(mix(params._color.rgb, vec3(0.1,1,0.1), isOccluded), intensity);
 }
 
 <@endfunc@>
