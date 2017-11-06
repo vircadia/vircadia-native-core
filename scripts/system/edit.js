@@ -1533,7 +1533,7 @@ function handeMenuEvent(menuItem) {
             Window.openFileChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
