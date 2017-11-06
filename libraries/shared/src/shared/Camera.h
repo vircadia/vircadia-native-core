@@ -56,6 +56,7 @@ public:
     void update();
 
     CameraMode getMode() const { return _mode; }
+    CameraMode getLastMode() const { return _lastMode; }
     void setMode(CameraMode m);
 
     void loadViewFrustum(ViewFrustum& frustum) const;
@@ -123,6 +124,7 @@ private:
     void decompose();
 
     CameraMode _mode{ CAMERA_MODE_THIRD_PERSON };
+    CameraMode _lastMode{ _mode };
     glm::mat4 _transform;
     glm::mat4 _projection;
 
