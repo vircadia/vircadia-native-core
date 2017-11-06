@@ -592,8 +592,7 @@ function loaded() {
         var elJSONEditor = document.getElementById("userdata-editor");
         var elNewJSONEditor = document.getElementById('userdata-new-editor');
         var elColorSections = document.querySelectorAll(".color-section");
-        var elColorControl1 = document.getElementById("property-color-control1");
-        var elColorControl2 = document.getElementById("property-color-control2");
+        var elColorControlVariant2 = document.getElementById("property-color-control2");
         var elColorRed = document.getElementById("property-color-red");
         var elColorGreen = document.getElementById("property-color-green");
         var elColorBlue = document.getElementById("property-color-blue");
@@ -977,7 +976,7 @@ function loaded() {
                             elColorRed.value = properties.color.red;
                             elColorGreen.value = properties.color.green;
                             elColorBlue.value = properties.color.blue;
-                            elColorControl1.style.backgroundColor = elColorControl2.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
+                            elColorControlVariant2.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
                         }
 
                         if (properties.type == "Model") {
@@ -1303,24 +1302,6 @@ function loaded() {
         elColorRed.addEventListener('change', colorChangeFunction);
         elColorGreen.addEventListener('change', colorChangeFunction);
         elColorBlue.addEventListener('change', colorChangeFunction);
-        colorPickers.push($('#property-color-control1').colpick({
-            colorScheme: 'dark',
-            layout: 'hex',
-            color: '000000',
-            onShow: function(colpick) {
-                $('#property-color-control1').attr('active', 'true');
-            },
-            onHide: function(colpick) {
-                $('#property-color-control1').attr('active', 'false');
-            },
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
-                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
-                // Keep the companion control in sync
-                elColorControl2.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
-            }
-        }));
         colorPickers.push($('#property-color-control2').colpick({
             colorScheme: 'dark',
             layout: 'hex',
@@ -1335,9 +1316,6 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
-                // Keep the companion control in sync
-                elColorControl1.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
-
             }
         }));
 
