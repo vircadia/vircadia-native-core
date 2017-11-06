@@ -14,6 +14,7 @@
 #include <gpu/Batch.h>
 #include "Logging.h"
 #include "TransitionStage.h"
+#include "OutlineStyleStage.h"
 
 using namespace render;
 
@@ -54,6 +55,18 @@ void Transaction::resetSelection(const Selection& selection) {
     _resetSelections.emplace_back(selection);
 }
 
+void Transaction::resetSelectionOutline(const std::string& selectionName, const OutlineStyle& style) {
+    _outlineResets.emplace_back(OutlineReset{ selectionName, style });
+}
+
+void Transaction::removeOutlineFromSelection(const std::string& selectionName) {
+    _outlineRemoves.emplace_back(selectionName);
+}
+
+void Transaction::querySelectionOutline(const std::string& selectionName, SelectionOutlineQueryFunc func) {
+    _outlineQueries.emplace_back(OutlineQuery{ selectionName, func });
+}
+
 void Transaction::merge(const Transaction& transaction) {
     _resetItems.insert(_resetItems.end(), transaction._resetItems.begin(), transaction._resetItems.end());
     _removedItems.insert(_removedItems.end(), transaction._removedItems.begin(), transaction._removedItems.end());
@@ -62,6 +75,9 @@ void Transaction::merge(const Transaction& transaction) {
     _addedTransitions.insert(_addedTransitions.end(), transaction._addedTransitions.begin(), transaction._addedTransitions.end());
     _queriedTransitions.insert(_queriedTransitions.end(), transaction._queriedTransitions.begin(), transaction._queriedTransitions.end());
     _reAppliedTransitions.insert(_reAppliedTransitions.end(), transaction._reAppliedTransitions.begin(), transaction._reAppliedTransitions.end());
+    _outlineResets.insert(_outlineResets.end(), transaction._outlineResets.begin(), transaction._outlineResets.end());
+    _outlineRemoves.insert(_outlineRemoves.end(), transaction._outlineRemoves.begin(), transaction._outlineRemoves.end());
+    _outlineQueries.insert(_outlineQueries.end(), transaction._outlineQueries.begin(), transaction._outlineQueries.end());
 }
 
 
@@ -176,6 +192,10 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         // resets and potential NEW items
         resetSelections(transaction._resetSelections);
     }
+
+    resetOutlines(transaction._outlineResets);
+    removeOutlines(transaction._outlineRemoves);
+    queryOutlines(transaction._outlineQueries);
 }
 
 void Scene::resetItems(const Transaction::Resets& transactions) {
@@ -312,6 +332,50 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
             } else {
                 func(itemId, nullptr);
             }
+        }
+    }
+}
+
+void Scene::resetOutlines(const Transaction::OutlineResets& transactions) {
+    auto outlineStage = getStage<OutlineStyleStage>(OutlineStyleStage::getName());
+
+    for (auto& transaction : transactions) {
+        const auto& selectionName = std::get<0>(transaction);
+        const auto& newStyle = std::get<1>(transaction);
+        auto outlineId = outlineStage->getOutlineIdBySelection(selectionName);
+
+        if (OutlineStyleStage::isIndexInvalid(outlineId)) {
+            outlineStage->addOutline(selectionName, newStyle);
+        } else {
+            outlineStage->editOutline(outlineId)._style = newStyle;
+        }
+    }
+}
+
+void Scene::removeOutlines(const Transaction::OutlineRemoves& transactions) {
+    auto outlineStage = getStage<OutlineStyleStage>(OutlineStyleStage::getName());
+
+    for (auto& selectionName : transactions) {
+        auto outlineId = outlineStage->getOutlineIdBySelection(selectionName);
+
+        if (!OutlineStyleStage::isIndexInvalid(outlineId)) {
+            outlineStage->removeOutline(outlineId);
+        }
+    }
+}
+
+void Scene::queryOutlines(const Transaction::OutlineQueries& transactions) {
+    auto outlineStage = getStage<OutlineStyleStage>(OutlineStyleStage::getName());
+
+    for (auto& transaction : transactions) {
+        const auto& selectionName = std::get<0>(transaction);
+        const auto& func = std::get<1>(transaction);
+        auto outlineId = outlineStage->getOutlineIdBySelection(selectionName);
+
+        if (!OutlineStyleStage::isIndexInvalid(outlineId)) {
+            func(&outlineStage->editOutline(outlineId)._style);
+        } else {
+            func(nullptr);
         }
     }
 }

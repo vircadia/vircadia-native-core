@@ -83,7 +83,11 @@ gpu::FramebufferPointer OutlineRessources::getColorFramebuffer() {
 }
 
 OutlineSharedParameters::OutlineSharedParameters() {
-    std::fill(_blurPixelWidths.begin(), _blurPixelWidths.end(), 0);
+    _outlineIds.fill(render::OutlineStyleStage::INVALID_INDEX);
+}
+
+float OutlineSharedParameters::getBlurPixelWidth(const render::OutlineStyle& style, int frameBufferHeight) {
+    return ceilf(style.width * frameBufferHeight / 400.0f);
 }
 
 PrepareDrawOutline::PrepareDrawOutline() {
@@ -141,8 +145,12 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
         _boundsBuffer = std::make_shared<gpu::Buffer>(sizeof(render::ItemBound));
     }
 
-    if (!inShapes.empty()) {
+    auto outlineStage = renderContext->_scene->getStage<render::OutlineStyleStage>(render::OutlineStyleStage::getName());
+    auto outlineId = _sharedParameters->_outlineIds[_outlineIndex];
+
+    if (!inShapes.empty() && !render::OutlineStyleStage::isIndexInvalid(outlineId)) {
         auto ressources = inputs.get1();
+        auto& outline = outlineStage->getOutline(outlineId);
 
         RenderArgs* args = renderContext->args;
         ShapeKey::Builder defaultKeyBuilder;
@@ -213,10 +221,10 @@ void DrawOutlineMask::run(const render::RenderContextPointer& renderContext, con
             // Draw stencil mask with object bounding boxes
             const auto outlineWidthLoc = _stencilMaskPipeline->getProgram()->getUniforms().findLocation("outlineWidth");
             const auto sqrt3 = 1.74f;
-            const float blurPixelWidth = 2.0f * sqrt3 *_sharedParameters->_blurPixelWidths[_outlineIndex];
+            const float blurPixelWidth = 2.0f * sqrt3 * OutlineSharedParameters::getBlurPixelWidth(outline._style, args->_viewport.w);
             const auto framebufferSize = ressources->getSourceFrameSize();
 
-            auto stencilPipeline = _sharedParameters->_isFilled.test(_outlineIndex) ? _stencilMaskFillPipeline : _stencilMaskPipeline;
+            auto stencilPipeline = outline._style.isFilled() ? _stencilMaskFillPipeline : _stencilMaskPipeline;
             batch.setPipeline(stencilPipeline);
             batch.setResourceBuffer(0, _boundsBuffer);
             batch._glUniform2f(outlineWidthLoc, blurPixelWidth / framebufferSize.x, blurPixelWidth / framebufferSize.y);
@@ -237,24 +245,6 @@ DrawOutline::DrawOutline(unsigned int outlineIndex, OutlineSharedParametersPoint
     _sharedParameters{ parameters } {
 }
 
-void DrawOutline::configure(const Config& config) {
-    const auto OPACITY_EPSILON = 5e-3f;
-
-    _parameters._color = config.color;
-    _parameters._intensity = config.intensity * (config.glow ? 2.0f : 1.0f);
-    _parameters._unoccludedFillOpacity = config.unoccludedFillOpacity;
-    _parameters._occludedFillOpacity = config.occludedFillOpacity;
-    _parameters._threshold = config.glow ? 1.0f : 1e-3f;
-    _parameters._blurKernelSize = std::min(7, std::max(2, (int)floorf(config.width * 3 + 0.5f)));
-    // Size is in normalized screen height. We decide that for outline width = 1, this is equal to 1/400.
-    _size = config.width / 400.0f;
-    _parameters._size.x = (_size * _framebufferSize.y) / _framebufferSize.x;
-    _parameters._size.y = _size;
-    _sharedParameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
-    _sharedParameters->_isFilled.set(_outlineIndex, (config.unoccludedFillOpacity > OPACITY_EPSILON || config.occludedFillOpacity > OPACITY_EPSILON));
-    _configuration.edit() = _parameters;
-}
-
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     auto outlineFrameBuffer = inputs.get1();
     auto outlineRect = inputs.get3();
@@ -267,39 +257,50 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
         auto framebufferSize = glm::ivec2(outlinedDepthTexture->getDimensions());
 
         if (sceneDepthBuffer) {
-            auto pipeline = getPipeline();
             auto args = renderContext->args;
 
-            if (_framebufferSize != framebufferSize)
-            {
-                _parameters._size.x = (_size * framebufferSize.y) / framebufferSize.x;
-                _parameters._size.y = _size;
-                _framebufferSize = framebufferSize;
-                _sharedParameters->_blurPixelWidths[_outlineIndex] = (int)ceilf(_size * _framebufferSize.y);
-                _configuration.edit() = _parameters;
+            auto outlineStage = renderContext->_scene->getStage<render::OutlineStyleStage>(render::OutlineStyleStage::getName());
+            auto outlineId = _sharedParameters->_outlineIds[_outlineIndex];
+            if (!render::OutlineStyleStage::isIndexInvalid(outlineId)) {
+                auto& outline = outlineStage->getOutline(_sharedParameters->_outlineIds[_outlineIndex]);
+                auto pipeline = getPipeline(outline._style);
+                {
+                    auto& shaderParameters = _configuration.edit();
+
+                    shaderParameters._color = outline._style.color;
+                    shaderParameters._intensity = outline._style.intensity * (outline._style.glow ? 2.0f : 1.0f);
+                    shaderParameters._unoccludedFillOpacity = outline._style.unoccludedFillOpacity;
+                    shaderParameters._occludedFillOpacity = outline._style.occludedFillOpacity;
+                    shaderParameters._threshold = outline._style.glow ? 1.0f : 1e-3f;
+                    shaderParameters._blurKernelSize = std::min(7, std::max(2, (int)floorf(outline._style.width * 3 + 0.5f)));
+                    // Size is in normalized screen height. We decide that for outline width = 1, this is equal to 1/400.
+                    auto size = outline._style.width / 400.0f;
+                    shaderParameters._size.x = (size * framebufferSize.y) / framebufferSize.x;
+                    shaderParameters._size.y = size;
+                }
+
+                gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+                    batch.enableStereo(false);
+                    batch.setFramebuffer(destinationFrameBuffer);
+
+                    batch.setViewportTransform(args->_viewport);
+                    batch.setProjectionTransform(glm::mat4());
+                    batch.resetViewTransform();
+                    batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
+                    batch.setPipeline(pipeline);
+
+                    batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
+                    batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
+                    batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer->getPrimaryDepthTexture());
+                    batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthTexture);
+                    batch.draw(gpu::TRIANGLE_STRIP, 4);
+                });
             }
-
-            gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-                batch.enableStereo(false);
-                batch.setFramebuffer(destinationFrameBuffer);
-
-                batch.setViewportTransform(args->_viewport);
-                batch.setProjectionTransform(glm::mat4());
-                batch.resetViewTransform();
-                batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
-                batch.setPipeline(pipeline);
-
-                batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
-                batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
-                batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer->getPrimaryDepthTexture());
-                batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthTexture);
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-            });
         }
     }
 }
 
-const gpu::PipelinePointer& DrawOutline::getPipeline() {
+const gpu::PipelinePointer& DrawOutline::getPipeline(const render::OutlineStyle& style) {
     if (!_pipeline) {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(false, false));
@@ -324,7 +325,7 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         _pipelineFilled = gpu::Pipeline::create(program, state);
     }
-    return _sharedParameters->_isFilled.test(_outlineIndex) ? _pipelineFilled : _pipeline;
+    return style.isFilled() ? _pipelineFilled : _pipeline;
 }
 
 DebugOutline::DebugOutline() {
@@ -424,6 +425,35 @@ const gpu::PipelinePointer& DebugOutline::getDepthPipeline() {
     return _depthPipeline;
 }
 
+void SelectionToOutline::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
+    auto outlineStage = renderContext->_scene->getStage<render::OutlineStyleStage>(render::OutlineStyleStage::getName());
+
+    outputs.clear();
+    _sharedParameters->_outlineIds.fill(render::OutlineStyleStage::INVALID_INDEX);
+
+    for (auto i = 0; i < OutlineSharedParameters::MAX_OUTLINE_COUNT; i++) {
+        std::ostringstream stream;
+        stream << "contextOverlayHighlightList";
+        if (i > 0) {
+            stream << i;
+        }
+        auto selectionName = stream.str();
+        auto outlineId = outlineStage->getOutlineIdBySelection(selectionName);
+        if (!render::OutlineStyleStage::isIndexInvalid(outlineId)) {
+            _sharedParameters->_outlineIds[outputs.size()] = outlineId;
+            outputs.emplace_back(selectionName);
+        }
+    }
+}
+
+void ExtractSelectionName::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+    if (_outlineIndex < inputs.size()) {
+        outputs = inputs[_outlineIndex];
+    } else {
+        outputs.clear();
+    }
+}
+
 DrawOutlineTask::DrawOutlineTask() {
 
 }
@@ -433,7 +463,7 @@ void DrawOutlineTask::configure(const Config& config) {
 }
 
 void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
-    const auto groups = inputs.getN<Inputs>(0).get<Groups>();
+    const auto items = inputs.getN<Inputs>(0).get<RenderFetchCullSortTask::BucketList>();
     const auto sceneFrameBuffer = inputs.getN<Inputs>(1);
     const auto primaryFramebuffer = inputs.getN<Inputs>(2);
     const auto deferredFrameTransform = inputs.getN<Inputs>(3);
@@ -449,12 +479,15 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     }
     auto sharedParameters = std::make_shared<OutlineSharedParameters>();
 
+    const auto outlineSelectionNames = task.addJob<SelectionToOutline>("SelectionToOutline", sharedParameters);
+
     // Prepare for outline group rendering.
     const auto outlineRessources = task.addJob<PrepareDrawOutline>("PrepareOutline", primaryFramebuffer);
     render::Varying outline0Rect;
 
-    for (auto i = 0; i < render::Scene::MAX_OUTLINE_COUNT; i++) {
-        const auto groupItems = groups[i];
+    for (auto i = 0; i < OutlineSharedParameters::MAX_OUTLINE_COUNT; i++) {
+        const auto selectionName = task.addJob<ExtractSelectionName>("ExtractSelectionName", outlineSelectionNames, i);
+        const auto groupItems = addSelectItemJobs(task, selectionName, items);
         const auto outlinedItemIDs = task.addJob<render::MetaToSubItems>("OutlineMetaToSubItemIDs", groupItems);
         const auto outlinedItems = task.addJob<render::IDsToBounds>("OutlineMetaToSubItems", outlinedItemIDs);
 
@@ -488,6 +521,20 @@ void DrawOutlineTask::build(JobModel& task, const render::Varying& inputs, rende
     // Debug outline
     const auto debugInputs = DebugOutline::Inputs(outlineRessources, const_cast<const render::Varying&>(outline0Rect)).asVarying();
     task.addJob<DebugOutline>("OutlineDebug", debugInputs);
+}
+
+const render::Varying DrawOutlineTask::addSelectItemJobs(JobModel& task, const render::Varying& selectionName,
+                                                         const RenderFetchCullSortTask::BucketList& items) {
+    const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+    const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+    const auto& metas = items[RenderFetchCullSortTask::META];
+
+    const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), selectionName).asVarying();
+    const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput);
+    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas, selectionName).asVarying();
+    const auto selectedMetasAndOpaques = task.addJob<SelectItems>("OpaqueSelection", selectMetaAndOpaqueInput);
+    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, selectionName).asVarying();
+    return task.addJob<SelectItems>("TransparentSelection", selectItemInput);
 }
 
 #include "model_shadow_vert.h"

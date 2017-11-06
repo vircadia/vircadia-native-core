@@ -17,6 +17,7 @@
 #include "Stage.h"
 #include "Selection.h"
 #include "Transition.h"
+#include "OutlineStyle.h"
 
 namespace render {
 
@@ -37,6 +38,7 @@ class Transaction {
 public:
 
     typedef std::function<void(ItemID, const Transition*)> TransitionQueryFunc;
+    typedef std::function<void(OutlineStyle const*)> SelectionOutlineQueryFunc;
 
     Transaction() {}
     ~Transaction() {}
@@ -61,6 +63,10 @@ public:
     // Selection transactions
     void resetSelection(const Selection& selection);
 
+    void resetSelectionOutline(const std::string& selectionName, const OutlineStyle& style = OutlineStyle());
+    void removeOutlineFromSelection(const std::string& selectionName);
+    void querySelectionOutline(const std::string& selectionName, SelectionOutlineQueryFunc func);
+
     void merge(const Transaction& transaction);
 
     // Checkers if there is work to do when processing the transaction
@@ -75,6 +81,9 @@ protected:
     using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
     using TransitionReApply = ItemID;
     using SelectionReset = Selection;
+    using OutlineReset = std::tuple<std::string, OutlineStyle>;
+    using OutlineRemove = std::string;
+    using OutlineQuery = std::tuple<std::string, SelectionOutlineQueryFunc>;
 
     using Resets = std::vector<Reset>;
     using Removes = std::vector<Remove>;
@@ -83,6 +92,9 @@ protected:
     using TransitionQueries = std::vector<TransitionQuery>;
     using TransitionReApplies = std::vector<TransitionReApply>;
     using SelectionResets = std::vector<SelectionReset>;
+    using OutlineResets = std::vector<OutlineReset>;
+    using OutlineRemoves = std::vector<OutlineRemove>;
+    using OutlineQueries = std::vector<OutlineQuery>;
 
     Resets _resetItems;
     Removes _removedItems;
@@ -91,6 +103,9 @@ protected:
     TransitionQueries _queriedTransitions;
     TransitionReApplies _reAppliedTransitions;
     SelectionResets _resetSelections;
+    OutlineResets _outlineResets;
+    OutlineRemoves _outlineRemoves;
+    OutlineQueries _outlineQueries;
 };
 typedef std::queue<Transaction> TransactionQueue;
 
@@ -102,10 +117,6 @@ typedef std::queue<Transaction> TransactionQueue;
 // Items are notified accordingly on any update message happening
 class Scene {
 public:
-
-    enum {
-        MAX_OUTLINE_COUNT = 8
-    };
 
     Scene(glm::vec3 origin, float size);
     ~Scene();
@@ -192,6 +203,9 @@ protected:
     void transitionItems(const Transaction::TransitionAdds& transactions);
     void reApplyTransitions(const Transaction::TransitionReApplies& transactions);
     void queryTransitionItems(const Transaction::TransitionQueries& transactions);
+    void resetOutlines(const Transaction::OutlineResets& transactions);
+    void removeOutlines(const Transaction::OutlineRemoves& transactions);
+    void queryOutlines(const Transaction::OutlineQueries& transactions);
 
     void collectSubItems(ItemID parentId, ItemIDs& subItems) const;
 

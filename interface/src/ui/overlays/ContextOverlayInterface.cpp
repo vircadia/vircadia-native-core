@@ -68,17 +68,27 @@ ContextOverlayInterface::ContextOverlayInterface() {
     connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
-    _selectionToSceneHandlers[0].initialize("contextOverlayHighlightList");
-    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[0], &SelectionToSceneHandler::selectedItemsListChanged);
-    for (auto i = 1; i < render::Scene::MAX_OUTLINE_COUNT; i++) {
-        _selectionToSceneHandlers[i].initialize(QString("contextOverlayHighlightList") + QString::number(i));
-        connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandlers[i], &SelectionToSceneHandler::selectedItemsListChanged);
+    {
+        render::Transaction transaction;
+        initializeSelectionToSceneHandler(_selectionToSceneHandlers[0], "contextOverlayHighlightList", transaction);
+        for (auto i = 1; i < MAX_SELECTION_COUNT; i++) {
+            auto selectionName = QString("contextOverlayHighlightList") + QString::number(i);
+            initializeSelectionToSceneHandler(_selectionToSceneHandlers[i], selectionName, transaction);
+        }
+        const render::ScenePointer& scene = qApp->getMain3DScene();
+        scene->enqueueTransaction(transaction);
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::ChallengeOwnershipReply, this, "handleChallengeOwnershipReplyPacket");
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
+}
+
+void ContextOverlayInterface::initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction) {
+    handler.initialize(selectionName);
+    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &handler, &SelectionToSceneHandler::selectedItemsListChanged);
+    transaction.resetSelectionOutline(selectionName.toStdString());
 }
 
 static const uint32_t MOUSE_HW_ID = 0;

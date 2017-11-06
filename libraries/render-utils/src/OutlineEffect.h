@@ -13,6 +13,9 @@
 #define hifi_render_utils_OutlineEffect_h
 
 #include <render/Engine.h>
+#include <render/OutlineStyleStage.h>
+#include <render/RenderFetchCullSortTask.h>
+
 #include "DeferredFramebuffer.h"
 #include "DeferredFrameTransform.h"
 
@@ -46,10 +49,15 @@ using OutlineRessourcesPointer = std::shared_ptr<OutlineRessources>;
 class OutlineSharedParameters {
 public:
 
+    enum {
+        MAX_OUTLINE_COUNT = 8
+    };
+
     OutlineSharedParameters();
 
-    std::array<int, render::Scene::MAX_OUTLINE_COUNT> _blurPixelWidths;
-    std::bitset<render::Scene::MAX_OUTLINE_COUNT> _isFilled;
+    std::array<render::OutlineStyleStage::Index, MAX_OUTLINE_COUNT> _outlineIds;
+
+    static float getBlurPixelWidth(const render::OutlineStyle& style, int frameBufferHeight);
 };
 
 using OutlineSharedParametersPointer = std::shared_ptr<OutlineSharedParameters>;
@@ -67,6 +75,38 @@ public:
 private:
 
     OutlineRessourcesPointer _ressources;
+
+};
+
+class SelectionToOutline {
+public:
+
+    using Outputs = std::vector<std::string>;
+    using JobModel = render::Job::ModelO<SelectionToOutline, Outputs>;
+
+    SelectionToOutline(OutlineSharedParametersPointer parameters) : _sharedParameters{ parameters } {}
+
+    void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
+
+private:
+
+    OutlineSharedParametersPointer _sharedParameters;
+};
+
+class ExtractSelectionName {
+public:
+
+    using Inputs = SelectionToOutline::Outputs;
+    using Outputs = std::string;
+    using JobModel = render::Job::ModelIO<ExtractSelectionName, Inputs, Outputs>;
+
+    ExtractSelectionName(unsigned int outlineIndex) : _outlineIndex{ outlineIndex } {}
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
+
+private:
+
+    unsigned int _outlineIndex;
 
 };
 
@@ -92,49 +132,15 @@ protected:
     static gpu::PipelinePointer _stencilMaskFillPipeline;
 };
 
-class DrawOutlineConfig : public render::Job::Config {
-    Q_OBJECT
-        Q_PROPERTY(bool glow MEMBER glow NOTIFY dirty)
-        Q_PROPERTY(float width MEMBER width NOTIFY dirty)
-        Q_PROPERTY(float intensity MEMBER intensity NOTIFY dirty)
-        Q_PROPERTY(float colorR READ getColorR WRITE setColorR NOTIFY dirty)
-        Q_PROPERTY(float colorG READ getColorG WRITE setColorG NOTIFY dirty)
-        Q_PROPERTY(float colorB READ getColorB WRITE setColorB NOTIFY dirty)
-        Q_PROPERTY(float unoccludedFillOpacity MEMBER unoccludedFillOpacity NOTIFY dirty)
-        Q_PROPERTY(float occludedFillOpacity MEMBER occludedFillOpacity NOTIFY dirty)
-
-public:
-
-    void setColorR(float value) { color.r = value; emit dirty(); }
-    float getColorR() const { return color.r; }
-
-    void setColorG(float value) { color.g = value; emit dirty(); }
-    float getColorG() const { return color.g; }
-
-    void setColorB(float value) { color.b = value; emit dirty(); }
-    float getColorB() const { return color.b; }
-
-    glm::vec3 color{ 1.f, 0.7f, 0.2f };
-    float width{ 2.0f };
-    float intensity{ 0.9f };
-    float unoccludedFillOpacity{ 0.0f };
-    float occludedFillOpacity{ 0.0f };
-    bool glow{ false };
-
-signals:
-    void dirty();
-};
-
 class DrawOutline {
 public:
 
     using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, glm::ivec4>;
-    using Config = DrawOutlineConfig;
+    using Config = render::Job::Config;
     using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
 
     DrawOutline(unsigned int outlineIndex, OutlineSharedParametersPointer parameters);
 
-    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 private:
@@ -151,7 +157,7 @@ private:
 
     using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineParameters>;
 
-    const gpu::PipelinePointer& getPipeline();
+    static const gpu::PipelinePointer& getPipeline(const render::OutlineStyle& style);
 
     static gpu::PipelinePointer _pipeline;
     static gpu::PipelinePointer _pipelineFilled;
@@ -160,8 +166,6 @@ private:
     OutlineParameters _parameters;
     OutlineSharedParametersPointer _sharedParameters;
     OutlineConfigurationBuffer _configuration;
-    glm::ivec2 _framebufferSize{ 0,0 };
-    float _size;
 };
 
 class DebugOutlineConfig : public render::Job::Config {
@@ -201,8 +205,7 @@ private:
 class DrawOutlineTask {
 public:
 
-    using Groups = render::VaryingArray<render::ItemBounds, render::Scene::MAX_OUTLINE_COUNT>;
-    using Inputs = render::VaryingSet4<Groups, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+    using Inputs = render::VaryingSet4<RenderFetchCullSortTask::BucketList, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
     using Config = render::Task::Config;
     using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
 
@@ -214,6 +217,8 @@ public:
 private:
 
     static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
+    static const render::Varying addSelectItemJobs(JobModel& task, const render::Varying& selectionName, const RenderFetchCullSortTask::BucketList& items);
+
 };
 
 #endif // hifi_render_utils_OutlineEffect_h

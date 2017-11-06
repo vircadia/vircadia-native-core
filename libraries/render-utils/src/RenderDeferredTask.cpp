@@ -64,11 +64,11 @@ const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, cons
                                                             const render::Varying& metas, 
                                                             const render::Varying& opaques, 
                                                             const render::Varying& transparents) {
-    const auto selectMetaInput = SelectItems::Inputs(metas, Varying()).asVarying();
+    const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), std::string()).asVarying();
     const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput, selectionName);
-    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas).asVarying();
+    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas, std::string()).asVarying();
     const auto selectedMetasAndOpaques = task.addJob<SelectItems>("OpaqueSelection", selectMetaAndOpaqueInput, selectionName);
-    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques).asVarying();
+    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, std::string()).asVarying();
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput, selectionName);
 }
 
@@ -187,16 +187,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Select items that need to be outlined
     const auto selectionBaseName = "contextOverlayHighlightList";
     const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
-    DrawOutlineTask::Groups outlineGroups;
-    outlineGroups[0] = selectedItems;
-    for (auto i = 1; i < render::Scene::MAX_OUTLINE_COUNT; i++) {
-        std::ostringstream selectionName;
-        selectionName << selectionBaseName;
-        selectionName << i;
-        outlineGroups[i] = addSelectItemJobs(task, selectionName.str().c_str(), metas, opaques, transparents);
-    }
 
-    const auto outlineInputs = DrawOutlineTask::Inputs(outlineGroups, deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
+    const auto outlineInputs = DrawOutlineTask::Inputs(items.get0(), deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
     task.addJob<DrawOutlineTask>("DrawOutline", outlineInputs);
 
     task.addJob<EndGPURangeTimer>("OutlineRangeTimer", outlineRangeTimer);
