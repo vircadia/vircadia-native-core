@@ -90,7 +90,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QString& machine_fingerprint) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -99,7 +99,13 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
         return false; // We know right away that we will fail, so tell the caller.
     }
 
-    signedSend("public_key", hfc_key.toUtf8(), old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    QJsonObject transaction;
+    transaction["hfc_key"] = hfc_key;
+    transaction["machine_fingerprint"] = machine_fingerprint;
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+
+    signedSend("transaction", transactionString, old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
