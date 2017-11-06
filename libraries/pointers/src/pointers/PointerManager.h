@@ -29,7 +29,7 @@ public:
     void disablePointer(const QUuid& uid) const;
     void setRenderState(const QUuid& uid, const std::string& renderState) const;
     void editRenderState(const QUuid& uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
-    const QVariantMap getPrevPickResult(const QUuid& uid) const;
+    PickResultPointer getPrevPickResult(const QUuid& uid) const;
 
     void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const;
     void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const;
@@ -38,7 +38,7 @@ public:
     void setLength(const QUuid& uid, float length) const;
     void setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const;
 
-    void update();
+    void update(float deltaTime);
 
 private:
     std::shared_ptr<Pointer> find(const QUuid& uid) const;

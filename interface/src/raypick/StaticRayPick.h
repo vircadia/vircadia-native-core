@@ -15,7 +15,7 @@ class StaticRayPick : public RayPick {
 public:
     StaticRayPick(const glm::vec3& position, const glm::vec3& direction, const PickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
 
-    const PickRay getMathematicalPick() const override;
+    PickRay getMathematicalPick() const override;
 
 private:
     PickRay _pickRay;

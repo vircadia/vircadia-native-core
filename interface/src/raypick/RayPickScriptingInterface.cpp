@@ -37,7 +37,12 @@ void RayPickScriptingInterface::removeRayPick(const QUuid& uid) {
 }
 
 QVariantMap RayPickScriptingInterface::getPrevRayPickResult(const QUuid& uid) {
-    return DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    QVariantMap result;
+    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    if (pickResult) {
+        result = pickResult->toVariantMap();
+    }
+    return result;
 }
 
 void RayPickScriptingInterface::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) {

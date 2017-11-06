@@ -20,7 +20,7 @@ JointRayPick::JointRayPick(const std::string& jointName, const glm::vec3& posOff
 {
 }
 
-const PickRay JointRayPick::getMathematicalPick() const {
+PickRay JointRayPick::getMathematicalPick() const {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     int jointIndex = myAvatar->getJointIndex(QString::fromStdString(_jointName));
     bool useAvatarHead = _jointName == "Avatar";

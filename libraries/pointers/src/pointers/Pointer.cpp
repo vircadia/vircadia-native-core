@@ -30,7 +30,7 @@ void Pointer::disable() {
     DependencyManager::get<PickManager>()->disablePick(_pickUID);
 }
 
-const QVariantMap Pointer::getPrevPickResult() {
+PickResultPointer Pointer::getPrevPickResult() {
     return DependencyManager::get<PickManager>()->getPrevPickResult(_pickUID);
 }
 
@@ -46,16 +46,16 @@ void Pointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
     DependencyManager::get<PickManager>()->setIncludeItems(_pickUID, includeItems);
 }
 
-void Pointer::update() {
+void Pointer::update(float deltaTime) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
-        QVariantMap pickResult = getPrevPickResult();
+        auto pickResult = getPrevPickResult();
         updateVisuals(pickResult);
         generatePointerEvents(pickResult);
     });
 }
 
-void Pointer::generatePointerEvents(const QVariantMap& pickResult) {
+void Pointer::generatePointerEvents(const PickResultPointer& pickResult) {
     // TODO: avatars/HUD?
     auto pointerManager = DependencyManager::get<PointerManager>();
 

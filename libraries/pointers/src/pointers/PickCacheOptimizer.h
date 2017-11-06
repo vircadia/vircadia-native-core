@@ -87,7 +87,9 @@ void PickCacheOptimizer<T>::update(QHash<QUuid, std::shared_ptr<PickQuery>>& pic
             PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
                 PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
-                cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
+                if (entityRes) {
+                    cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 
@@ -95,7 +97,9 @@ void PickCacheOptimizer<T>::update(QHash<QUuid, std::shared_ptr<PickQuery>>& pic
             PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
                 PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
-                cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
+                if (overlayRes) {
+                    cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 
@@ -103,7 +107,9 @@ void PickCacheOptimizer<T>::update(QHash<QUuid, std::shared_ptr<PickQuery>>& pic
             PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
                 PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
-                cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
+                if (avatarRes) {
+                    cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 
@@ -112,7 +118,9 @@ void PickCacheOptimizer<T>::update(QHash<QUuid, std::shared_ptr<PickQuery>>& pic
             PickCacheKey hudKey = { pick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, hudKey)) {
                 PickResultPointer hudRes = pick->getHUDIntersection(mathematicalPick);
-                cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
+                if (hudRes) {
+                    cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 
