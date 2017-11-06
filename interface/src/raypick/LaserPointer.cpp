@@ -16,6 +16,7 @@
 #include <DependencyManager.h>
 #include <pointers/PickManager.h>
 #include "PickScriptingInterface.h"
+#include "RayPick.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
         const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool enabled) :
@@ -177,17 +178,20 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
     }
 }
 
-void LaserPointer::updateVisuals(const QVariantMap& prevRayPickResult) {
-    IntersectionType type = IntersectionType(prevRayPickResult["type"].toInt());
-    PickRay pickRay = PickRay(prevRayPickResult["searchRay"].toMap());
-    QUuid uid = prevRayPickResult["objectID"].toUuid();
+void LaserPointer::updateVisuals(const PickResultPointer& pickResult) {
+    auto rayPickResult = std::static_pointer_cast<const RayPickResult>(pickResult);
+
+    IntersectionType type = rayPickResult ? rayPickResult->type : IntersectionType::NONE;
     if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
         (type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
-        float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult["distance"].toFloat();
+        PickRay pickRay{ rayPickResult->pickVariant };
+        QUuid uid = rayPickResult->objectID;
+        float distance = _laserLength > 0.0f ? _laserLength : rayPickResult->distance;
         updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay, false);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
     } else if (_enabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
         disableRenderState(_renderStates[_currentRenderState]);
+        PickRay pickRay = rayPickResult ? PickRay(rayPickResult->pickVariant) : PickRay();
         updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), pickRay, true);
     } else if (!_currentRenderState.empty()) {
         disableRenderState(_renderStates[_currentRenderState]);
@@ -195,8 +199,12 @@ void LaserPointer::updateVisuals(const QVariantMap& prevRayPickResult) {
     }
 }
 
-Pointer::PickedObject LaserPointer::getHoveredObject(const QVariantMap& pickResult) {
-    return Pointer::PickedObject(pickResult["objectID"].toUuid(), IntersectionType(pickResult["type"].toUInt()));
+Pointer::PickedObject LaserPointer::getHoveredObject(const PickResultPointer& pickResult) {
+    auto rayPickResult = std::static_pointer_cast<const RayPickResult>(pickResult);
+    if (!rayPickResult) {
+        return PickedObject();
+    }
+    return PickedObject(rayPickResult->objectID, rayPickResult->type);
 }
 
 Pointer::Buttons LaserPointer::getPressedButtons() {
@@ -281,15 +289,21 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
     return RenderState(startID, pathID, endID);
 }
 
-PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const {
-    glm::vec3 intersection = vec3FromVariant(pickResult["intersection"]);
-    glm::vec3 surfaceNormal = vec3FromVariant(pickResult["surfaceNormal"]);
-    QVariantMap searchRay = pickResult["searchRay"].toMap();
-    glm::vec3 direction = vec3FromVariant(searchRay["direction"]);
-    QUuid pickedID = pickResult["objectID"].toUuid();
+PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const {
+    QUuid pickedID;
+    glm::vec3 intersection, surfaceNormal, direction, origin;
+    if (target.type != NONE) {
+        auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
+        intersection = rayPickResult->intersection;
+        surfaceNormal = rayPickResult->surfaceNormal;
+        const QVariantMap& searchRay = rayPickResult->pickVariant;
+        direction = vec3FromVariant(searchRay["direction"]);
+        origin = vec3FromVariant(searchRay["origin"]);
+        pickedID = rayPickResult->objectID;;
+    }
+
     glm::vec2 pos2D;
     if (pickedID != target.objectID) {
-        glm::vec3 origin = vec3FromVariant(searchRay["origin"]);
         if (target.type == ENTITY) {
             intersection = intersectRayWithEntityXYPlane(target.objectID, origin, direction);
         } else if (target.type == OVERLAY) {

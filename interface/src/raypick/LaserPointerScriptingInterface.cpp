@@ -17,6 +17,7 @@
 void LaserPointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
+
 void LaserPointerScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) const {
     DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
@@ -27,4 +28,8 @@ unsigned int LaserPointerScriptingInterface::createLaserPointer(const QVariant& 
 
 void LaserPointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
     DependencyManager::get<PointerScriptingInterface>()->editRenderState(uid, renderState, properties);
+}
+
+QVariantMap LaserPointerScriptingInterface::getPrevRayPickResult(unsigned int uid) const {
+    return DependencyManager::get<PointerScriptingInterface>()->getPrevPickResult(uid);
 }

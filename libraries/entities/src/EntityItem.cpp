@@ -83,7 +83,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ACCELERATION;
 
-    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
+    requestedProperties += PROP_DIMENSIONS;
     requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
@@ -241,7 +241,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
 
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions());
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());

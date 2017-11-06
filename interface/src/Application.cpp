@@ -1825,14 +1825,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
-        QVariantMap result = DependencyManager::get<PickManager>()->getPrevPickResult(rayPickID);
-        if (result["type"].isValid()) {
-            entityResult.intersects = result["type"] != PickScriptingInterface::INTERSECTED_NONE();
+        auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(rayPickID);
+        if (pickResult) {
+            entityResult.intersects = pickResult->type != IntersectionType::NONE;
             if (entityResult.intersects) {
-                entityResult.intersection = vec3FromVariant(result["intersection"]);
-                entityResult.distance = result["distance"].toFloat();
-                entityResult.surfaceNormal = vec3FromVariant(result["surfaceNormal"]);
-                entityResult.entityID = result["objectID"].toUuid();
+                entityResult.intersection = pickResult->intersection;
+                entityResult.distance = pickResult->distance;
+                entityResult.surfaceNormal = pickResult->surfaceNormal;
+                entityResult.entityID = pickResult->objectID;
                 entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
             }
         }
@@ -4963,7 +4963,7 @@ void Application::update(float deltaTime) {
 
     {
         PROFILE_RANGE(app, "PointerManager");
-        DependencyManager::get<PointerManager>()->update();
+        DependencyManager::get<PointerManager>()->update(deltaTime);
     }
 
     {

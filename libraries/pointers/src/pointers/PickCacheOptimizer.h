@@ -70,7 +70,6 @@ template<typename T>
 void PickCacheOptimizer<T>::update(std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD) {
     PickCache results;
     for (const auto& pickPair : picks) {
-        unsigned int uid = pickPair.first;
         std::shared_ptr<Pick<T>> pick = std::static_pointer_cast<Pick<T>>(pickPair.second);
 
         T mathematicalPick = pick->getMathematicalPick();
@@ -85,7 +84,9 @@ void PickCacheOptimizer<T>::update(std::unordered_map<unsigned int, std::shared_
             PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
                 PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
-                cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
+                if (entityRes) {
+                    cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 
@@ -93,7 +94,9 @@ void PickCacheOptimizer<T>::update(std::unordered_map<unsigned int, std::shared_
             PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
                 PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
-                cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
+                if (overlayRes) {
+                    cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 
@@ -101,7 +104,9 @@ void PickCacheOptimizer<T>::update(std::unordered_map<unsigned int, std::shared_
             PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
                 PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
-                cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
+                if (avatarRes) {
+                    cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 
@@ -110,7 +115,9 @@ void PickCacheOptimizer<T>::update(std::unordered_map<unsigned int, std::shared_
             PickCacheKey hudKey = { pick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
             if (!checkAndCompareCachedResults(mathematicalPick, results, res, hudKey)) {
                 PickResultPointer hudRes = pick->getHUDIntersection(mathematicalPick);
-                cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
+                if (hudRes) {
+                    cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
+                }
             }
         }
 

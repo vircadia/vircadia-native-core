@@ -42,7 +42,7 @@ public:
     PointerEvent(EventType type, uint32_t id,
                  const glm::vec2& pos2D, const glm::vec3& pos3D,
                  const glm::vec3& normal, const glm::vec3& direction,
-                 Button button, uint32_t buttons, Qt::KeyboardModifiers keyboardModifiers);
+                 Button button = NoButtons, uint32_t buttons = NoButtons, Qt::KeyboardModifiers keyboardModifiers = Qt::NoModifier);
 
     static QScriptValue toScriptValue(QScriptEngine* engine, const PointerEvent& event);
     static void fromScriptValue(const QScriptValue& object, PointerEvent& event);

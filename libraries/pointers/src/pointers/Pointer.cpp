@@ -30,7 +30,7 @@ void Pointer::disable() {
     DependencyManager::get<PickManager>()->disablePick(_pickUID);
 }
 
-const QVariantMap Pointer::getPrevPickResult() {
+PickResultPointer Pointer::getPrevPickResult() {
     return DependencyManager::get<PickManager>()->getPrevPickResult(_pickUID);
 }
 
@@ -58,17 +58,17 @@ bool Pointer::isMouse() const {
     return DependencyManager::get<PickManager>()->isMouse(_pickUID);
 }
 
-void Pointer::update(unsigned int pointerID) {
+void Pointer::update(unsigned int pointerID, float deltaTime) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
-        QVariantMap pickResult = getPrevPickResult();
+        auto pickResult = getPrevPickResult();
         updateVisuals(pickResult);
         generatePointerEvents(pointerID, pickResult);
     });
 }
 
-void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& pickResult) {
-    // TODO: avatars?
+void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPointer& pickResult) {
+    // TODO: avatars/HUD?
     auto pointerManager = DependencyManager::get<PointerManager>();
 
     // NOTE: After this loop: _prevButtons = buttons that were removed

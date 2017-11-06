@@ -18,7 +18,7 @@ class JointRayPick : public RayPick {
 public:
     JointRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const PickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
 
-    const PickRay getMathematicalPick() const override;
+    PickRay getMathematicalPick() const override;
 
     bool isLeftHand() const override { return (_jointName == "_CONTROLLER_LEFTHAND") || (_jointName == "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"); }
     bool isRightHand() const override { return (_jointName == "_CONTROLLER_RIGHTHAND") || (_jointName == "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"); }

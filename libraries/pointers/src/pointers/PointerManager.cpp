@@ -68,21 +68,22 @@ void PointerManager::editRenderState(unsigned int uid, const std::string& state,
     }
 }
 
-const QVariantMap PointerManager::getPrevPickResult(unsigned int uid) const {
+PickResultPointer PointerManager::getPrevPickResult(unsigned int uid) const {
+    PickResultPointer result;
     auto pointer = find(uid);
     if (pointer) {
-        return pointer->getPrevPickResult();
+        result = pointer->getPrevPickResult();
     }
-    return QVariantMap();
+    return result;
 }
 
-void PointerManager::update() {
+void PointerManager::update(float deltaTime) {
     auto cachedPointers = resultWithReadLock<std::unordered_map<unsigned int, std::shared_ptr<Pointer>>>([&] {
         return _pointers;
     });
 
     for (const auto& pointerPair : cachedPointers) {
-        pointerPair.second->update(pointerPair.first);
+        pointerPair.second->update(pointerPair.first, deltaTime);
     }
 }
 

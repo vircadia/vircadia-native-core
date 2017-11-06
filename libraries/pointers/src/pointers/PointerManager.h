@@ -29,7 +29,7 @@ public:
     void disablePointer(unsigned int uid) const;
     void setRenderState(unsigned int uid, const std::string& renderState) const;
     void editRenderState(unsigned int uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
-    const QVariantMap getPrevPickResult(unsigned int uid) const;
+    PickResultPointer getPrevPickResult(unsigned int uid) const;
 
     void setPrecisionPicking(unsigned int uid, bool precisionPicking) const;
     void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignoreEntities) const;
@@ -38,7 +38,7 @@ public:
     void setLength(unsigned int uid, float length) const;
     void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay) const;
 
-    void update();
+    void update(float deltaTime);
 
     bool isLeftHand(unsigned int uid);
     bool isRightHand(unsigned int uid);

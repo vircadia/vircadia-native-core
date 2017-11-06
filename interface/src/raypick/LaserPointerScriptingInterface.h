@@ -27,7 +27,7 @@ public:
     Q_INVOKABLE void removeLaserPointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
     Q_INVOKABLE void editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const;
     Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) const { DependencyManager::get<PointerManager>()->setRenderState(uid, renderState.toStdString()); }
-    Q_INVOKABLE QVariantMap getPrevRayPickResult(unsigned int uid) const { return DependencyManager::get<PointerManager>()->getPrevPickResult(uid); }
+    Q_INVOKABLE QVariantMap getPrevRayPickResult(unsigned int uid) const;
 
     Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking) const { DependencyManager::get<PointerManager>()->setPrecisionPicking(uid, precisionPicking); }
     Q_INVOKABLE void setLaserLength(unsigned int uid, float laserLength) const { DependencyManager::get<PointerManager>()->setLength(uid, laserLength); }

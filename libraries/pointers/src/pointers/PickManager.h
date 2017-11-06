@@ -27,7 +27,12 @@ public:
     void enablePick(unsigned int uid) const;
     void disablePick(unsigned int uid) const;
 
-    QVariantMap getPrevPickResult(unsigned int uid) const;
+    PickResultPointer getPrevPickResult(unsigned int uid) const;
+
+    template <typename T>
+    std::shared_ptr<T> getPrevPickResultTyped(unsigned int uid) const {
+        return std::static_pointer_cast<T>(getPrevPickResult(uid));
+    }
 
     void setPrecisionPicking(unsigned int uid, bool precisionPicking) const;
     void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignore) const;
@@ -53,6 +58,7 @@ protected:
     unsigned int _nextPickID { INVALID_PICK_ID + 1 };
 
     PickCacheOptimizer<PickRay> _rayPickCacheOptimizer;
+    PickCacheOptimizer<StylusTip> _stylusPickCacheOptimizer;
 };
 
 #endif // hifi_PickManager_h

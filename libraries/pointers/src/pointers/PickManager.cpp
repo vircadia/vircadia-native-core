@@ -45,12 +45,12 @@ void PickManager::removePick(unsigned int uid) {
     });
 }
 
-QVariantMap PickManager::getPrevPickResult(unsigned int uid) const {
+PickResultPointer PickManager::getPrevPickResult(unsigned int uid) const {
     auto pick = findPick(uid);
-    if (pick && pick->getPrevPickResult()) {
-        return pick->getPrevPickResult()->toVariantMap();
+    if (pick) {
+        return pick->getPrevPickResult();
     }
-    return QVariantMap();
+    return PickResultPointer();
 }
 
 void PickManager::enablePick(unsigned int uid) const {
@@ -96,6 +96,7 @@ void PickManager::update() {
 
     bool shouldPickHUD = _shouldPickHUDOperator();
     _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], shouldPickHUD);
+    _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], false);
 }
 
 bool PickManager::isLeftHand(unsigned int uid) {

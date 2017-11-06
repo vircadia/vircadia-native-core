@@ -94,10 +94,15 @@ void PickScriptingInterface::removePick(unsigned int uid) {
 }
 
 QVariantMap PickScriptingInterface::getPrevPickResult(unsigned int uid) {
-    return DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    QVariantMap result;
+    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    if (pickResult) {
+        result = pickResult->toVariantMap();
+    }
+    return result;
 }
 
-void PickScriptingInterface::setPrecisionPicking(unsigned int uid, const bool precisionPicking) {
+void PickScriptingInterface::setPrecisionPicking(unsigned int uid, bool precisionPicking) {
     DependencyManager::get<PickManager>()->setPrecisionPicking(uid, precisionPicking);
 }
 

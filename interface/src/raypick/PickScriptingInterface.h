@@ -43,7 +43,7 @@ public:
     Q_INVOKABLE void removePick(unsigned int uid);
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
-    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, const bool precisionPicking);
+    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking);
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities);
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities);
 

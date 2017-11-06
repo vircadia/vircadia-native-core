@@ -20,35 +20,40 @@
 #include "JointRayPick.h"
 #include "MouseRayPick.h"
 
-uint32_t RayPickScriptingInterface::createRayPick(const QVariant& properties) {
+unsigned int RayPickScriptingInterface::createRayPick(const QVariant& properties) {
     return DependencyManager::get<PickScriptingInterface>()->createRayPick(properties);
 }
 
-void RayPickScriptingInterface::enableRayPick(uint32_t uid) {
+void RayPickScriptingInterface::enableRayPick(unsigned int uid) {
     DependencyManager::get<PickManager>()->enablePick(uid);
 }
 
-void RayPickScriptingInterface::disableRayPick(uint32_t uid) {
+void RayPickScriptingInterface::disableRayPick(unsigned int uid) {
     DependencyManager::get<PickManager>()->disablePick(uid);
 }
 
-void RayPickScriptingInterface::removeRayPick(uint32_t uid) {
+void RayPickScriptingInterface::removeRayPick(unsigned int uid) {
     DependencyManager::get<PickManager>()->removePick(uid);
 }
 
-QVariantMap RayPickScriptingInterface::getPrevRayPickResult(uint32_t uid) {
-    return DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+QVariantMap RayPickScriptingInterface::getPrevRayPickResult(unsigned int uid) {
+    QVariantMap result;
+    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    if (pickResult) {
+        result = pickResult->toVariantMap();
+    }
+    return result;
 }
 
-void RayPickScriptingInterface::setPrecisionPicking(uint32_t uid, const bool precisionPicking) {
+void RayPickScriptingInterface::setPrecisionPicking(unsigned int uid, bool precisionPicking) {
     DependencyManager::get<PickManager>()->setPrecisionPicking(uid, precisionPicking);
 }
 
-void RayPickScriptingInterface::setIgnoreItems(uint32_t uid, const QScriptValue& ignoreItems) {
+void RayPickScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) {
     DependencyManager::get<PickManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
-void RayPickScriptingInterface::setIncludeItems(uint32_t uid, const QScriptValue& includeItems) {
+void RayPickScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) {
     DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
