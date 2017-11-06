@@ -58,7 +58,6 @@ void main(void) {
         metallic = 1.0;
     }
 
-
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
