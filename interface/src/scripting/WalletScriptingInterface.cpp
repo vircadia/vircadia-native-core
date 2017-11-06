@@ -1,4 +1,4 @@
-﻿﻿//
+//
 //  WalletScriptingInterface.cpp
 //  interface/src/scripting
 //
