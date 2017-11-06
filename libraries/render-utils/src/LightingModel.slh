@@ -135,7 +135,7 @@ float specularDistributionGloss(float gloss2, vec3 normal, vec3 halfDir) {
     float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
 //    float gloss2 = pow(0.001 + roughness, 4);  
     float denom = (ndoth * ndoth*(gloss2 - 1.0) + 1.0);
-    float power = gloss2 * gloss2 / (3.14159 * denom * denom);
+    float power = gloss2 / (3.14159 * denom * denom);
     return power;
 }
 <! //NOTE: ANother implementation for specularDistribution
