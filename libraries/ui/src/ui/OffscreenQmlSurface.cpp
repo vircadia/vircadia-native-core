@@ -47,6 +47,7 @@
 #include "types/HFWebEngineProfile.h"
 #include "types/SoundEffect.h"
 
+#include "TabletScriptingInterface.h"
 #include "Logging.h"
 
 Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
@@ -64,19 +65,11 @@ public:
             for (const auto& url : urls) {
                 _callbacks[url].push_back(callback);
             }
-            for (const auto& url : _callbacks.keys()) {
-                qDebug() << "URL found for " << url << " with " << _callbacks[url].size() << " items";
-            }
         });
     }
 
     QList<QmlContextCallback> getCallbacksForUrl(const QUrl& url) const {
-        qDebug() << "Looking for callbacks for " << url;
-       
         return resultWithReadLock<QList<QmlContextCallback>>([&] {
-            for (const auto& url : _callbacks.keys()) {
-                qDebug() << "URL found for " << url << " with " << _callbacks[url].size() << " items";
-            }
             QList<QmlContextCallback> result;
             auto itr = _callbacks.find(url);
             if (_callbacks.end() != itr) {
@@ -594,7 +587,7 @@ void OffscreenQmlSurface::create() {
     auto qmlEngine = acquireEngine(_quickWindow);
 
     _qmlContext = new QQmlContext(qmlEngine->rootContext());
-
+    _qmlContext->setBaseUrl(QUrl{ "qrc:///qml/" });
     _qmlContext->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlContext->setContextProperty("eventBridge", this);
     _qmlContext->setContextProperty("webEntity", this);
@@ -693,10 +686,6 @@ QQuickItem* OffscreenQmlSurface::getRootItem() {
     return _rootItem;
 }
 
-void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
-    _qmlContext->setBaseUrl(baseUrl);
-}
-
 QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, bool forceNewContext) {
     // Get any whitelist functionality
     QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(qmlSource);
@@ -715,48 +704,41 @@ QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, bool forc
     return targetContext;
 }
 
+void OffscreenQmlSurface::load(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) {
+    loadInternal(qmlSource, false, parent, [callback](QQmlContext* context, QQuickItem* newItem) {
+        QJSValue(callback).call(QJSValueList() << context->engine()->newQObject(newItem));
+    });
+}
+
 void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, const QmlContextObjectCallback& onQmlLoadedCallback) {
+    loadInternal(qmlSource, createNewContext, nullptr, onQmlLoadedCallback);
+}
+    
+void OffscreenQmlSurface::loadInternal(const QUrl& qmlSource, bool createNewContext, QQuickItem* parent, const QmlContextObjectCallback& onQmlLoadedCallback) {
+    qCDebug(uiLogging) << "QQQ" << __FUNCTION__ << qmlSource;
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
-    // FIXME eliminate loading of relative file paths for QML
     QUrl finalQmlSource = qmlSource;
     if ((qmlSource.isRelative() && !qmlSource.isEmpty()) || qmlSource.scheme() == QLatin1String("file")) {
         finalQmlSource = _qmlContext->resolvedUrl(qmlSource);
+        qCDebug(uiLogging) << "QQQ" << __FUNCTION__ << "resolved to " << finalQmlSource;
     }
 
-    auto targetContext = contextForUrl(finalQmlSource);
+    auto targetContext = contextForUrl(finalQmlSource, createNewContext);
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this, [=](QQmlComponent::Status) { 
-            finishQmlLoad(qmlComponent, targetContext, nullptr, onQmlLoadedCallback);
-        });
-        return;
-    }
-
-    finishQmlLoad(qmlComponent, targetContext, nullptr, onQmlLoadedCallback);
-}
-
-void OffscreenQmlSurface::createContentFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback) {
-    auto targetContext = contextForUrl(qmlSource);
-
-    auto onQmlLoadedCallback = [=](QQmlContext*, QObject* newItem) {
-        QJSValue(callback).call(QJSValueList() << _qmlContext->engine()->newQObject(newItem));
-    };
-
-    auto qmlComponent = new QQmlComponent(_qmlContext->engine(), qmlSource, QQmlComponent::PreferSynchronous);
-    if (qmlComponent->isLoading()) {
-        connect(qmlComponent, &QQmlComponent::statusChanged, this, [=](QQmlComponent::Status) {
             finishQmlLoad(qmlComponent, targetContext, parent, onQmlLoadedCallback);
         });
         return;
     }
+
     finishQmlLoad(qmlComponent, targetContext, parent, onQmlLoadedCallback);
 }
-
 
 void OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback) {
     load(qmlSource, true, onQmlLoadedCallback);
@@ -852,6 +834,14 @@ void OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext
     _rootItem = newItem;
     _rootItem->setParentItem(_quickWindow->contentItem());
     _rootItem->setSize(_quickWindow->renderTargetSize());
+
+    if (_rootItem->objectName() == "tabletRoot") {
+        _qmlContext->setContextProperty("tabletRoot", QVariant::fromValue(_rootItem));
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", this);
+        QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
+        _qmlContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+    }
 
     // Call this callback after rootitem is set, otherwise VrMenu wont work
     callback(qmlContext, newItem);

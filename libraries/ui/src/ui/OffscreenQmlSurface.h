@@ -58,12 +58,15 @@ public:
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
 
-    Q_INVOKABLE void createContentFromQml(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback);
+    // Usable from QML code as QmlSurface.load(url, parent, function(newItem){ ... })
+    Q_INVOKABLE void load(const QUrl& qmlSource, QQuickItem* parent, const QJSValue& callback);
 
+    // For C++ use 
     Q_INVOKABLE void load(const QUrl& qmlSource, bool createNewContext, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
     Q_INVOKABLE void loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
     Q_INVOKABLE void load(const QUrl& qmlSource, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
     Q_INVOKABLE void load(const QString& qmlSourceFile, const QmlContextObjectCallback& onQmlLoadedCallback = DEFAULT_CONTEXT_CALLBACK);
+
     void clearCache();
     void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
     // Optional values for event handling
@@ -77,7 +80,6 @@ public:
     void resume();
     bool isPaused() const;
 
-    void setBaseUrl(const QUrl& baseUrl);
     QQuickItem* getRootItem();
     QQuickWindow* getWindow();
     QObject* getEventHandler();
@@ -126,16 +128,15 @@ protected:
     void setFocusText(bool newFocusText);
 
 private:
-    QQmlContext* contextForUrl(const QUrl& url, bool forceNewContext = false);
     static QOpenGLContext* getSharedContext();
 
-    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, QQuickItem* parent, const QmlContextObjectCallback& callbacks);
+    QQmlContext* contextForUrl(const QUrl& url, bool forceNewContext = false);
+    void loadInternal(const QUrl& qmlSource, bool createNewContext, QQuickItem* parent, const QmlContextObjectCallback& onQmlLoadedCallback);
+    void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, QQuickItem* parent, const QmlContextObjectCallback& onQmlLoadedCallback);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
-    void setupFbo();
     bool allowNewFrame(uint8_t fps);
     void render();
     void cleanup();
-    QJsonObject getGLContextData();
 
 private slots:
     void updateQuick();

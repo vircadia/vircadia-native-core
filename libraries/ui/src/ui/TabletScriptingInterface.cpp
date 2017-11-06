@@ -210,9 +210,9 @@ QObject* TabletScriptingInterface::getFlags() {
 // TabletProxy
 //
 
-static const char* TABLET_SOURCE_URL = "Tablet.qml";
-static const char* WEB_VIEW_SOURCE_URL = "TabletWebView.qml";
-static const char* VRMENU_SOURCE_URL = "TabletMenu.qml";
+static const char* TABLET_SOURCE_URL = "hifi/tablet/Tablet.qml";
+static const char* WEB_VIEW_SOURCE_URL = "hifi/tablet/TabletWebView.qml";
+static const char* VRMENU_SOURCE_URL = "hifi/tablet/TabletMenu.qml";
 
 class TabletRootWindow : public QmlWindowClass {
     virtual QString qmlSource() const override { return "hifi/tablet/WindowRoot.qml"; }
@@ -232,6 +232,15 @@ TabletProxy::~TabletProxy() {
     disconnect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
 }
 
+QVariant TabletProxy::getButtons() {
+    Q_ASSERT(QThread::currentThread() == qApp->thread());
+    QVariantList result;
+    for (const auto& button : _tabletButtonProxies) {
+        result.push_back(QVariant::fromValue(button.data()));
+    }
+    return result;
+}
+
 void TabletProxy::setToolbarMode(bool toolbarMode) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setToolbarMode", Q_ARG(bool, toolbarMode));
@@ -247,7 +256,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     if (toolbarMode) {
-        removeButtonsFromHomeScreen();
         addButtonsToToolbar();
 
         // create new desktop window
@@ -267,7 +275,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         removeButtonsFromToolbar();
 
         if (_currentPathLoaded == TABLET_SOURCE_URL) {
-            addButtonsToHomeScreen();
+            // Tablet QML now pulls buttons from Tablet proxy
         } else {
             loadHomeScreen(true);
         }
@@ -284,18 +292,20 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
     }
 }
 
+#if 0
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
     if (buttonProxy == NULL){
-        qCCritical(uiLogging) << "TabletScriptingInterface addButtonProxyToQmlTablet buttonProxy is NULL";
+        qCCritical(uiLogging) << __FUNCTION__ << "buttonProxy is NULL";
         return;
     }
 
     QVariant resultVar;
+    qCDebug(uiLogging) << "QQQ" << __FUNCTION__ << "adding button " << buttonProxy;
     bool hasResult = QMetaObject::invokeMethod(qmlTablet, "addButtonProxy", Qt::DirectConnection,
                                                Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, buttonProxy->getProperties()));
     if (!hasResult) {
-        qCWarning(uiLogging) << "TabletScriptingInterface addButtonProxyToQmlTablet has no result";
+        qCWarning(uiLogging) << __FUNCTION__ << " has no result";
         return;
     }
 
@@ -307,6 +317,8 @@ static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* 
     QObject::connect(qmlButton, SIGNAL(clicked()), buttonProxy, SLOT(clickedSlot()));
     buttonProxy->setQmlButton(qobject_cast<QQuickItem*>(qmlButton));
 }
+#endif
+
 
 static QString getUsername() {
     QString username = "Unknown user";
@@ -362,7 +374,7 @@ void TabletProxy::onTabletShown() {
         static_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
         if (_showRunningScripts) {
             _showRunningScripts = false;
-            pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+            pushOntoStack("hifi/dialogs/TabletRunningScripts.qml");
         }
     }
 }
@@ -396,9 +408,6 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
         });
 
         if (_toolbarMode) {
-            // if someone creates the tablet in toolbar mode, make sure to display the home screen on the tablet.
-            auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
         }
 
@@ -427,7 +436,6 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
             QMetaObject::invokeMethod(_qmlTabletRoot, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
     } else {
-        removeButtonsFromHomeScreen();
         _state = State::Uninitialized;
         emit screenChanged(QVariant("Closed"), QVariant(""));
         _currentPathLoaded = "";
@@ -456,7 +464,6 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
     }
 
     if (root) {
-        removeButtonsFromHomeScreen();
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         QObject* menu = offscreenUi->getRootMenu();
         QMetaObject::invokeMethod(root, "setMenuProperties", Q_ARG(QVariant, QVariant::fromValue(menu)), Q_ARG(const QVariant&, QVariant(submenu)));
@@ -530,7 +537,6 @@ void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
     }
 
     if (root) {
-        removeButtonsFromHomeScreen(); //works only in Tablet
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
         _state = State::QML;
         if (path != _currentPathLoaded) {
@@ -612,8 +618,6 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
 
     if ((_state != State::Home && _state != State::Uninitialized) || forceOntoHomeScreen) {
         if (!_toolbarMode && _qmlTabletRoot) {
-            auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-            QObject::connect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
             QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
             QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound");
         } else if (_toolbarMode && _desktopWindow) {
@@ -674,7 +678,6 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
     }
 
     if (root) {
-        removeButtonsFromHomeScreen();
         if (loadOtherBase) {
             QMetaObject::invokeMethod(root, "loadTabletWebBase");
         } else {
@@ -701,12 +704,8 @@ TabletButtonProxy* TabletProxy::addButton(const QVariant& properties) {
     auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
     _tabletButtonProxies.push_back(tabletButtonProxy);
     if (!_toolbarMode && _qmlTabletRoot) {
-        auto tablet = getQmlTablet();
-        if (tablet) {
-            addButtonProxyToQmlTablet(tablet, tabletButtonProxy.data());
-        } else {
-            qCCritical(uiLogging) << "Could not find tablet in TabletRoot.qml";
-        }
+        // Tablet now pulls buttons from the tablet proxy
+        // FIXME emit a signal so that the tablet can refresh buttons if they change
     } else if (_toolbarMode) {
         auto toolbarProxy = DependencyManager::get<TabletScriptingInterface>()->getSystemToolbarProxy();
         if (toolbarProxy) {
@@ -791,31 +790,11 @@ void TabletProxy::sendToQml(const QVariant& msg) {
     }
 }
 
-void TabletProxy::addButtonsToHomeScreen() {
-    auto tablet = getQmlTablet();
-    if (!tablet || _toolbarMode) {
-        return;
-    }
-    for (auto& buttonProxy : _tabletButtonProxies) {
-        addButtonProxyToQmlTablet(tablet, buttonProxy.data());
-    }
-    auto loader = _qmlTabletRoot->findChild<QQuickItem*>("loader");
-    QObject::disconnect(loader, SIGNAL(loaded()), this, SLOT(addButtonsToHomeScreen()));
-}
 
 OffscreenQmlSurface* TabletProxy::getTabletSurface() {
     return _qmlOffscreenSurface;
 }
 
-void TabletProxy::removeButtonsFromHomeScreen() {
-    auto tablet = getQmlTablet();
-    for (auto& buttonProxy : _tabletButtonProxies) {
-        if (tablet) {
-            QMetaObject::invokeMethod(tablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, buttonProxy->getProperties()));
-        }
-        buttonProxy->setQmlButton(nullptr);
-    }
-}
 
 void TabletProxy::desktopWindowClosed() {
     gotoHomeScreen();

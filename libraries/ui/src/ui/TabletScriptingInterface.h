@@ -196,6 +196,8 @@ public:
 
     Q_INVOKABLE bool isPathLoaded(const QVariant& path);
 
+    Q_INVOKABLE QVariant getButtons();
+
     QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
 
     OffscreenQmlSurface* getTabletSurface();
@@ -237,12 +239,10 @@ signals:
     void tabletShownChanged();
 
 protected slots:
-    void addButtonsToHomeScreen();
     void desktopWindowClosed();
     void emitWebEvent(const QVariant& msg);
     void onTabletShown();
 protected:
-    void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
     void addButtonsToToolbar();
     void removeButtonsFromToolbar();
@@ -277,7 +277,9 @@ public:
     TabletButtonProxy(const QVariantMap& properties);
     ~TabletButtonProxy();
 
-    void setQmlButton(QQuickItem* qmlButton);
+
+    Q_INVOKABLE void setQmlButton(QQuickItem* qmlButton);
+    
     void setToolbarButtonProxy(QObject* toolbarButtonProxy);
 
     QUuid getUuid() const { return _uuid; }

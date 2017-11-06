@@ -26,8 +26,8 @@
     // Relevant Variables:
     //   -WALLET_QML_SOURCE: The path to the Wallet QML
     //   -onWalletScreen: true/false depending on whether we're looking at the app.
-    var WALLET_QML_SOURCE = "qrc:///qml/hifi/commerce/wallet/Wallet.qml";
-    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
+    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
     var onWalletScreen = false;
     function onButtonClicked() {
         if (!tablet) {
@@ -38,11 +38,7 @@
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
         } else {
-            var window = new OverlayWindow({
-                title: "Wallet",
-                source: WALLET_QML_SOURCE,
-                width: 480, height: 706
-            });
+            tablet.loadQMLSource(WALLET_QML_SOURCE);
         }
     }
 

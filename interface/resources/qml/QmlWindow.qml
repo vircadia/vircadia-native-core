@@ -34,13 +34,9 @@ Windows.Window {
             dynamicContent.destroy();
             dynamicContent = null; 
         }
-        console.log("QQQ Foo");
-        QmlSurface.createContentFromQml(source, contentHolder, function(newObject) {
-            console.log("QQQ Bar " + dynamicContent);
+        QmlSurface.load(source, contentHolder, function(newObject) {
             dynamicContent = newObject;
-            dynamicContent.visible = true;
         });
-        console.log("QQQ Baz");
     }
 
     // Handle message traffic from the script that launched us to the loaded QML
