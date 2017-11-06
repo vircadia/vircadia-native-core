@@ -13,13 +13,13 @@
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI, Xform, getEntityParents
 
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
-Script.include("/~/system/libraries/Xform.hs");
+Script.include("/~/system/libraries/Xform.js");
 
 (function() {
     var PICK_WITH_HAND_RAY = true;
@@ -115,32 +115,53 @@ Script.include("/~/system/libraries/Xform.hs");
 
     var MARGIN = 25;
 
-    function TargetObject(entityID) {
+    function TargetObject(entityID, entityProps) {
         this.entityID = entityID;
-        this.entityProps = null;
-        this.parentID = null;
-        this.parentProps = [];
-        this.childrenProps = [];
-        this.parentsCollisionStatus = [];
-        this.childrenCollisionStatus = [];
+        this.entityProps = entityProps;
+        this.targetEntityID = null;
+        this.targetEntityProps = null;
+        this.previousCollisionStatus = null;
         this.madeDynamic = null;
-        this.parentEntityProps = null;
 
         this.makeDynamic = function() {
+            if (this.targetEntityID) {
+                var newProps = {
+                    dynamic: true,
+                    collisionless: true
+                };
+                this.previousCollisionStatus = this.targetEntityProps.collisionless;
+                Entities.editEntity(this.targetEntityID, newProps);
+                this.madeDynamic = true;
+            }
         };
 
-        this.saveCollisionStatus = function() {
-        };
-
-        this.restoreEntitiesProperties = function() {
+        this.restoreTargetEntityOriginalProps = function() {
+            if (this.madeDynamic) {
+                var props = {};
+                props.dynamic = false;
+                props.collisionless = this.previousCollisionStatus;
+                var zeroVector = {x: 0, y: 0, z:0};
+                props.localVelocity = zeroVector;
+                props.localRotation = zeroVector;
+                Entities.editEntity(this.targetEntityID, props);
+            }
         };
 
         this.getTargetEntity = function() {
             var parentPropsLength = this.parentProps.length;
             if (parentPropsLength !== 0) {
-                return this.parentProps[parentPropsLength].id;
+                var targetEntity = {
+                    id: this.parentProps[parentPropsLength - 1].id,
+                    props: this.parentProps[parentPropsLength - 1]};
+                this.targetEntityID = targetEntity.id;
+                this.targetEntityProps = targetEntity.props;
+                return targetEntity;
             }
-            return this.entityID;
+            this.targetEntityID = this.entityID;
+            this.targetEntityProps = this.entityProps;
+            return {
+                id: this.entityID,
+                props: this.entityProps};
         };
     }
 
@@ -153,11 +174,11 @@ Script.include("/~/system/libraries/Xform.hs");
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
         this.previousCollisionStatus = false;
+        this.locked = false;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
-        this.madeDynamic = false;
 
         var ACTION_TTL = 15; // seconds
 
@@ -191,10 +212,25 @@ Script.include("/~/system/libraries/Xform.hs");
             LaserPointers.enableLaserPointer(laserPointerID);
             LaserPointers.setRenderState(laserPointerID, mode);
             if (this.distanceHolding || this.distanceRotating) {
-                // calculate offset
-                LaserPointers.setLockEndUUID(laserPointerID, this.entityToLockOnto, this.grabbedIsOverlay);
+                if (!this.locked) {
+                    // calculate offset
+                    var targetProps = Entities.getEntityProperties(this.targetObject.entityID, [
+                        "position",
+                        "rotation"
+                    ]);
+                    var zeroVector = { x: 0, y: 0, z:0, w: 0 };
+                    var intersection = controllerData.rayPicks[this.hand].intersection;
+                    var intersectionMat = new Xform(zeroVector, intersection);
+                    var modelMat = new Xform(targetProps.rotation, targetProps.position);
+                    var modelMatInv = modelMat.inv();
+                    var xformMat = Xform.mul(modelMatInv, intersectionMat);
+                    var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
+                    LaserPointers.setLockEndUUID(laserPointerID, this.targetObject.entityID, this.grabbedIsOverlay, offsetMat);
+                    this.locked = true;
+                }
             } else {
                 LaserPointers.setLockEndUUID(laserPointerID, null, false);
+                this.locked = false;
             }
         };
 
@@ -373,22 +409,15 @@ Script.include("/~/system/libraries/Xform.hs");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
-
-            if (this.madeDynamic) {
-                var props = {};
-                props.dynamic = false;
-                props.collisionless = this.previousCollisionStatus;
-                props.localVelocity = {x: 0, y: 0, z: 0};
-                props.localRotation = {x: 0, y: 0, z: 0};
-                Entities.editEntity(this.grabbedThingID, props);
-                this.madeDynamic = false;
+            if (this.targetObject) {
+                this.targetObject.restoreTargetEntityOriginalProps();
             }
             this.actionID = null;
             this.grabbedThingID = null;
-            this.entityToLockOnto = null;
+            this.targetObject = null;
         };
 
-         this.updateRecommendedArea = function() {
+        this.updateRecommendedArea = function() {
             var dims = Controller.getViewportDimensions();
             this.reticleMaxX = dims.x - MARGIN;
             this.reticleMaxY = dims.y - MARGIN;
@@ -532,30 +561,24 @@ Script.include("/~/system/libraries/Xform.hs");
                 if (rayPickInfo.type === RayPick.INTERSECTED_ENTITY) {
                     if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
-                        this.entityToLockOnto = entityID;
                         var targetProps = Entities.getEntityProperties(entityID, [
                             "dynamic", "shapeType", "position",
                             "rotation", "dimensions", "density",
                             "userData", "locked", "type"
                         ]);
 
-                        this.targetObject = new TargetObject(entityID);
+                        this.targetObject = new TargetObject(entityID, targetProps);
+                        this.targetObject.parentProps = getEntityParents(targetProps);
                         if (entityID !== this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
                         }
+                        var targetEntity = this.targetObject.getTargetEntity();
+                        entityID = targetEntity.id;
+                        targetProps = targetEntity.props;
 
                         if (entityIsGrabbable(targetProps)) {
-                            var groupRootProps = findGroupParent(controllerData, targetProps);
-                            if (entityIsGrabbable(groupRootProps)) {
-                                targetProps = groupRootProps;
-                                entityID = targetProps.id;
-                            }
                             if (!entityIsDistanceGrabbable(targetProps)) {
-                                targetProps.dynamic = true;
-                                this.previousCollisionStatus = targetProps.collisionless;
-                                targetProps.collisionless = true;
-                                Entities.editEntity(entityID, targetProps);
-                                this.madeDynamic = true;
+                                this.targetObject.makeDynamic();
                             }
 
                             if (!this.distanceRotating) {

@@ -74,7 +74,7 @@ public:
 
     void setPrecisionPicking(const bool precisionPicking);
     void setLaserLength(const float laserLength);
-    void setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offset = glm::mat4());
+    void setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat = glm::mat4());
 
     void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     void setIncludeItems(const QVector<QUuid>& includeItems) const;
@@ -91,6 +91,7 @@ private:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
+    glm::mat4 _offsetMat;
     std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
 
     const QUuid _rayPickUID;

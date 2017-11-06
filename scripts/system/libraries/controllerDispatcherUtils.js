@@ -308,16 +308,6 @@ findGroupParent = function (controllerData, targetProps) {
     return targetProps;
 };
 
-getChildrenProps = function(entityID) {
-    var childrenProps = [];
-    var childrenIDs = Entities.getChildrenIDs(entityID);
-    for (var index = 0; index < childrenIDs.length; index++) {
-        var childProps = Entities.getEntityProperties(childrenIDs[index]);
-        childrenProps.push(childProps);
-    }
-    return childrenProps;
-};
-
 getEntityParents = function(targetProps) {
     var parentProperties = [];
     while (targetProps.parentID &&
