@@ -4423,7 +4423,12 @@ void Application::cameraModeChanged() {
             Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
             break;
         case CAMERA_MODE_MIRROR:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+            if (isHMDMode()) {
+                _myCamera.setMode(_myCamera.getLastMode());
+                qDebug() << "Mirror mode is not available";
+            } else {
+                Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+            }
             break;
         case CAMERA_MODE_INDEPENDENT:
             Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
