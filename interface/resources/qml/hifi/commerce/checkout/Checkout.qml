@@ -585,7 +585,7 @@ Rectangle {
         // "Rez" button
         HifiControlsUit.Button {
             id: rezNowButton;
-            enabled: root.canRezCertifiedItems;
+            enabled: root.canRezCertifiedItems || root.isWearable;
             buttonGlyph: hifi.glyphs.lightning;
             color: hifi.buttons.red;
             colorScheme: hifi.colorSchemes.light;
@@ -634,7 +634,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: explainRezText;
-            //visible: !root.isWearable;
+            visible: !root.isWearable;
             text: '<font color="' + hifi.colors.redAccent + '"><a href="#">What does "Rez" mean?</a></font>'
             // Text size
             size: 16;

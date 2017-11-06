@@ -692,7 +692,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<SelectionScriptingInterface>();
-    DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
     DependencyManager::set<WalletScriptingInterface>();
@@ -1019,6 +1018,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // connect to the packet sent signal of the _entityEditSender
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_entityEditSender, &EntityEditPacketSender::addingEntityWithCertificate, this, &Application::addingEntityWithCertificate);
 
     const char** constArgv = const_cast<const char**>(argv);
     QString concurrentDownloadsStr = getCmdOption(argc, constArgv, "--concurrent-downloads");
@@ -1188,7 +1188,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // allow you to move an entity around in your hand
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
 
+    // Overlays need to exist before we set the ContextOverlayInterface dependency
     _overlays.init(); // do this before scripts load
+    DependencyManager::set<ContextOverlayInterface>();
+
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -1478,52 +1481,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    // If the user clicks somewhere where there is NO entity at all, we will release focus
-    connect(getEntities().data(), &EntityTreeRenderer::mousePressOffEntity, [=]() {
-        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-    });
-
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
-
-    connect(overlays, &Overlays::mousePressOnOverlay, [=](const OverlayID& overlayID, const PointerEvent& event) {
-        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays->getOverlay(overlayID));
-        // Only Web overlays can have keyboard focus.
-        if (thisOverlay) {
-            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-            setKeyboardFocusOverlay(overlayID);
-        }
-    });
-
     connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
     });
 
-    connect(overlays, &Overlays::mousePressOffOverlay, [=]() {
-        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
-    });
-
     connect(this, &Application::aboutToQuit, [=]() {
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
-
-    connect(overlays,
-        SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
-        DependencyManager::get<ContextOverlayInterface>().data(),
-        SLOT(contextOverlays_mousePressOnOverlay(const OverlayID&, const PointerEvent&)));
-
-    connect(overlays,
-        SIGNAL(hoverEnterOverlay(const OverlayID&, const PointerEvent&)),
-        DependencyManager::get<ContextOverlayInterface>().data(),
-        SLOT(contextOverlays_hoverEnterOverlay(const OverlayID&, const PointerEvent&)));
-
-    connect(overlays,
-        SIGNAL(hoverLeaveOverlay(const OverlayID&, const PointerEvent&)),
-        DependencyManager::get<ContextOverlayInterface>().data(),
-        SLOT(contextOverlays_hoverLeaveOverlay(const OverlayID&, const PointerEvent&)));
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
@@ -4592,14 +4561,9 @@ QUuid Application::getKeyboardFocusEntity() const {
     return _keyboardFocusedEntity.get();
 }
 
-void Application::setKeyboardFocusEntity(QUuid id) {
-    EntityItemID entityItemID(id);
-    setKeyboardFocusEntity(entityItemID);
-}
-
 static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
 
-void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
+void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
     if (_keyboardFocusedEntity.get() != entityItemID) {
         _keyboardFocusedEntity.set(entityItemID);
 
@@ -4636,7 +4600,7 @@ OverlayID Application::getKeyboardFocusOverlay() {
     return _keyboardFocusedOverlay.get();
 }
 
-void Application::setKeyboardFocusOverlay(OverlayID overlayID) {
+void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
     if (overlayID != _keyboardFocusedOverlay.get()) {
         _keyboardFocusedOverlay.set(overlayID);
 
@@ -5805,6 +5769,11 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 }
 
 void Application::packetSent(quint64 length) {
+}
+
+void Application::addingEntityWithCertificate(const QString& certificateID, const QString& placeName) {
+    auto ledger = DependencyManager::get<Ledger>();
+    ledger->updateLocation(certificateID, placeName);
 }
 
 void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
@@ -7472,51 +7441,6 @@ bool Application::makeRenderingContextCurrent() {
 
 bool Application::isForeground() const {
     return _isForeground && !_window->isMinimized();
-}
-
-void Application::sendMousePressOnEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->mousePressOnEntity(entityItemID, event);
-}
-
-void Application::sendMouseMoveOnEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->mouseMoveOnEntity(entityItemID, event);
-}
-
-void Application::sendMouseReleaseOnEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->mouseReleaseOnEntity(entityItemID, event);
-}
-
-void Application::sendClickDownOnEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->clickDownOnEntity(entityItemID, event);
-}
-
-void Application::sendHoldingClickOnEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->holdingClickOnEntity(entityItemID, event);
-}
-
-void Application::sendClickReleaseOnEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->clickReleaseOnEntity(entityItemID, event);
-}
-
-void Application::sendHoverEnterEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->hoverEnterEntity(entityItemID, event);
-}
-
-void Application::sendHoverOverEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->hoverOverEntity(entityItemID, event);
-}
-
-void Application::sendHoverLeaveEntity(QUuid id, PointerEvent event) {
-    EntityItemID entityItemID(id);
-    emit getEntities()->hoverLeaveEntity(entityItemID, event);
 }
 
 // FIXME?  perhaps two, one for the main thread and one for the offscreen UI rendering thread?

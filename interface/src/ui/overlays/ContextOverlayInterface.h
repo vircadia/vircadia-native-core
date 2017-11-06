@@ -51,6 +51,7 @@ public:
 
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
+    void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); _lastInspectedEntity = entityID; }
     void setEnabled(bool enabled);
     bool getEnabled() { return _enabled; }
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
@@ -70,10 +71,14 @@ public slots:
     void contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event);
     bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
 
+private slots:
+    void handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+
 private:
     bool _verboseLogging { true };
     bool _enabled { true };
-    QUuid _currentEntityWithContextOverlay{};
+    EntityItemID _currentEntityWithContextOverlay{};
+    EntityItemID _lastInspectedEntity{};
     QString _entityMarketplaceID;
     bool _contextOverlayJustClicked { false };
 
@@ -87,6 +92,9 @@ private:
     void deletingEntity(const EntityItemID& entityItemID);
 
     SelectionToSceneHandler _selectionToSceneHandler;
+
+    Q_INVOKABLE void startChallengeOwnershipTimer();
+    QTimer _challengeOwnershipTimeoutTimer;
 };
 
 #endif // hifi_ContextOverlayInterface_h

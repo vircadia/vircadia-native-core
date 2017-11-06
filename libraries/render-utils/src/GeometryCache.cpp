@@ -482,8 +482,10 @@ void GeometryCache::buildShapes() {
     using namespace geometry;
     auto vertexBuffer = std::make_shared<gpu::Buffer>();
     auto indexBuffer = std::make_shared<gpu::Buffer>();
-    // Cube 
+    // Cube
     setupFlatShape(_shapes[Cube], geometry::cube(), _shapeVertices, _shapeIndices);
+    //Quad renders as flat Cube
+    setupFlatShape(_shapes[Quad], geometry::cube(), _shapeVertices, _shapeIndices);
     // Tetrahedron
     setupFlatShape(_shapes[Tetrahedron], geometry::tetrahedron(), _shapeVertices, _shapeIndices);
     // Icosahedron
@@ -524,12 +526,10 @@ void GeometryCache::buildShapes() {
     extrudePolygon<64>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
     //Cone,
     extrudePolygon<64>(_shapes[Cone], _shapeVertices, _shapeIndices, true);
-    //Circle
-    drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
+    // Circle renders as flat Cylinder
+    extrudePolygon<64>(_shapes[Circle], _shapeVertices, _shapeIndices);
     // Not implemented yet:
-    //Quad,
-    //Torus, 
- 
+    //Torus,
 }
 
 const GeometryCache::ShapeData * GeometryCache::getShapeData(const Shape shape) const {

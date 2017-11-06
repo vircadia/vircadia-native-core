@@ -26,7 +26,7 @@ class Ledger : public QObject, public Dependency {
 
 public:
     void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure = false);
-    bool receiveAt(const QString& hfc_key, const QString& old_key);
+    bool receiveAt(const QString& hfc_key, const QString& old_key, const QString& machine_fingerprint);
     void balance(const QStringList& keys);
     void inventory(const QStringList& keys);
     void history(const QStringList& keys);
@@ -34,6 +34,14 @@ public:
     void reset();
     void updateLocation(const QString& asset_id, const QString location, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
+
+    enum CertificateStatus {
+        CERTIFICATE_STATUS_UNKNOWN = 0,
+        CERTIFICATE_STATUS_VERIFICATION_SUCCESS,
+        CERTIFICATE_STATUS_VERIFICATION_TIMEOUT,
+        CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED,
+        CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED,
+    };
 
 signals:
     void buyResult(QJsonObject result);
@@ -44,6 +52,8 @@ signals:
     void accountResult(QJsonObject result);
     void locationUpdateResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
+
+    void updateCertificateStatus(const QString& certID, uint certStatus);
 
 public slots:
     void buySuccess(QNetworkReply& reply);

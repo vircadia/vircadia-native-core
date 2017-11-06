@@ -1,0 +1,89 @@
+label {
+  font-style: normal;
+  font-weight: normal;
+  line-height: 24px;
+  font-size: 16px;
+
+  color: #373A3C;
+}
+
+.step-title {
+  margin-bottom: 20px;
+  line-height: 26px;
+  font-size: 24px;
+
+  color: #373A3C;
+}
+
+.step-description {
+  line-height: 24px;
+  font-size: 16px;
+
+  color: #818A91;
+}
+
+.step-info {
+  font-style: normal;
+  font-weight: normal;
+  line-height: 24px;
+  font-size: 16px;
+
+  color: #373A3C;
+}
+
+#admin-row {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+#connect-question {
+  margin-top: 10px;
+}
+
+#connect-account-btn {
+  margin-top: 30px;
+  margin-bottom: 205px;
+}
+
+#place-name-group {
+  margin-top: 42px;
+  margin-bottom: 140px;
+  display: inline-block;
+}
+
+#place-name-link {
+  line-height: 38px;
+  font-size: 32px;
+
+  display: inline-block;
+
+  color: #373A3C;
+}
+
+#place-name-edit {
+  text-align: right;
+}
+
+#change-place-name {
+  line-height: 24px;
+  font-size: 18px;
+}
+
+#rez-options-row {
+  margin-bottom: 60px;
+}
+
+#verify-password-row {
+  margin-bottom: 33px;
+}
+
+#checkmark-image {
+  margin-top: 66px;
+  margin-bottom: 59px;
+  width: 169px;
+  height: 169px;
+}
+
+#visit-domain-row {
+  margin-bottom: 68px;
+}

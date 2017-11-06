@@ -16,6 +16,10 @@
 #include <ResourceCache.h>
 #include <ScriptCache.h>
 #include <EntityEditFilters.h>
+#include <NetworkingConstants.h>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <AddressManager.h>
 
 #include "AssignmentParentFinder.h"
 #include "EntityNodeData.h"
@@ -29,15 +33,26 @@ const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
 EntityServer::EntityServer(ReceivedMessage& message) :
     OctreeServer(message),
-    _entitySimulation(NULL)
+    _entitySimulation(NULL),
+    _dynamicDomainVerificationTimer(this)
 {
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ScriptCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase, PacketType::EntityPhysics },
-                                            this, "handleEntityPacket");
+    packetReceiver.registerListenerForTypes({ PacketType::EntityAdd,
+        PacketType::EntityEdit,
+        PacketType::EntityErase,
+        PacketType::EntityPhysics,
+        PacketType::ChallengeOwnership,
+        PacketType::ChallengeOwnershipRequest,
+        PacketType::ChallengeOwnershipReply },
+        this,
+        "handleEntityPacket");
+
+    connect(&_dynamicDomainVerificationTimer, &QTimer::timeout, this, &EntityServer::startDynamicDomainVerification);
+    _dynamicDomainVerificationTimer.setSingleShot(true);
 }
 
 EntityServer::~EntityServer() {
@@ -93,6 +108,9 @@ void EntityServer::beforeRun() {
     connect(_pruneDeletedEntitiesTimer, SIGNAL(timeout()), this, SLOT(pruneDeletedEntities()));
     const int PRUNE_DELETED_MODELS_INTERVAL_MSECS = 1 * 1000; // once every second
     _pruneDeletedEntitiesTimer->start(PRUNE_DELETED_MODELS_INTERVAL_MSECS);
+
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &EntityServer::domainSettingsRequestFailed);
 }
 
 void EntityServer::entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
@@ -296,6 +314,18 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
         tree->setEntityMaxTmpLifetime(EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME);
     }
 
+    int minTime;
+    if (readOptionInt("dynamicDomainVerificationTimeMin", settingsSectionObject, minTime)) {
+        _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = minTime * 1000;
+    }
+
+    int maxTime;
+    if (readOptionInt("dynamicDomainVerificationTimeMax", settingsSectionObject, maxTime)) {
+        _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = maxTime * 1000;
+    }
+
+    startDynamicDomainVerification();
+
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
 
@@ -409,4 +439,80 @@ QString EntityServer::serverSubclassStats() {
     statsString += "\r\n\r\n";
 
     return statsString;
+}
+
+void EntityServer::domainSettingsRequestFailed() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    qCDebug(entities) << "The EntityServer couldn't get the Domain Settings. Starting dynamic domain verification with default values...";
+
+    _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
+    _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS = DEFAULT_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
+    startDynamicDomainVerification();
+}
+
+void EntityServer::startDynamicDomainVerification() {
+    qCDebug(entities) << "Starting Dynamic Domain Verification...";
+
+    QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainId().remove(QRegExp("\\{|\\}"));
+
+    EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
+    QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
+
+    QHashIterator<QString, EntityItemID> i(localMap);
+    qCDebug(entities) << localMap.size() << "entities in _entityCertificateIDMap";
+    while (i.hasNext()) {
+        i.next();
+
+        EntityItemPointer entity = tree->findEntityByEntityItemID(i.value());
+
+        if (entity) {
+            if (!entity->getProperties().verifyStaticCertificateProperties()) {
+                qCDebug(entities) << "During Dynamic Domain Verification, a certified entity with ID" << i.value() << "failed"
+                    << "static certificate verification.";
+                // Delete the entity if it doesn't pass static certificate verification
+                tree->deleteEntity(i.value(), true);
+            } else {
+
+                QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+                QNetworkRequest networkRequest;
+                networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+                networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+                requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
+                QJsonObject request;
+                request["certificate_id"] = i.key();
+                networkRequest.setUrl(requestURL);
+
+                QNetworkReply* networkReply = NULL;
+                networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+
+                connect(networkReply, &QNetworkReply::finished, [=]() {
+                    QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+                    jsonObject = jsonObject["data"].toObject();
+
+                    if (networkReply->error() == QNetworkReply::NoError) {
+                        if (jsonObject["domain_id"].toString() != thisDomainID) {
+                            qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
+                                << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << i.value();
+                            tree->deleteEntity(i.value(), true);
+                        } else {
+                            qCDebug(entities) << "Entity passed dynamic domain verification:" << i.value();
+                        }
+                    } else {
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << i.value()
+                            << "More info:" << jsonObject;
+                        tree->deleteEntity(i.value(), true);
+                    }
+
+                    networkReply->deleteLater();
+                });
+            }
+        } else {
+            qCWarning(entities) << "During DDV, an entity with ID" << i.value() << "was NOT found in the Entity Tree!";
+        }
+    }
+
+    int nextInterval = qrand() % ((_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS + 1) - _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS) + _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
+    qCDebug(entities) << "Restarting Dynamic Domain Verification timer for" << nextInterval / 1000 << "seconds";
+    _dynamicDomainVerificationTimer.start(nextInterval);
 }

@@ -25,7 +25,7 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string referrerURL: "https://metaverse.highfidelity.com/marketplace?";
+    property string referrerURL: (Account.metaverseServerURL + "/marketplace?");
     readonly property int additionalDropdownHeight: usernameDropdown.height - myUsernameButton.anchors.bottomMargin;
     property alias usernameDropdownVisible: usernameDropdown.visible;
 

@@ -43,6 +43,8 @@ signals:
     void accountResult(QJsonObject result);
     void certificateInfoResult(QJsonObject result);
 
+    void updateCertificateStatus(const QString& certID, uint certStatus);
+
 protected:
     Q_INVOKABLE void getWalletStatus();
 

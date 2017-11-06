@@ -124,7 +124,9 @@
                 print("TABLET in showTabletUI, already rezzed");
             }
             var tabletProperties = {};
-            UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
+            if (!HMD.tabletContextualMode) { // contextual mode forces tablet in place -> don't update attachment
+                UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
+            }
             tabletProperties.visible = true;
             Overlays.editOverlay(HMD.tabletID, tabletProperties);
             Overlays.editOverlay(HMD.homeButtonID, { visible: true });
