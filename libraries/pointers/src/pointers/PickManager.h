@@ -33,6 +33,10 @@ public:
     void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignore) const;
     void setIncludeItems(unsigned int uid, const QVector<QUuid>& include) const;
 
+    bool isLeftHand(unsigned int uid);
+    bool isRightHand(unsigned int uid);
+    bool isMouse(unsigned int uid);
+
     void setShouldPickHUDOperator(std::function<bool()> shouldPickHUDOperator) { _shouldPickHUDOperator = shouldPickHUDOperator; }
     void setCalculatePos2DFromHUDOperator(std::function<glm::vec2(const glm::vec3&)> calculatePos2DFromHUDOperator) { _calculatePos2DFromHUDOperator = calculatePos2DFromHUDOperator; }
     glm::vec2 calculatePos2DFromHUD(const glm::vec3& intersection) { return _calculatePos2DFromHUDOperator(intersection); }

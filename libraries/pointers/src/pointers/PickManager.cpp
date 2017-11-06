@@ -97,3 +97,27 @@ void PickManager::update() {
     bool shouldPickHUD = _shouldPickHUDOperator();
     _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], shouldPickHUD);
 }
+
+bool PickManager::isLeftHand(unsigned int uid) {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->isLeftHand();
+    }
+    return false;
+}
+
+bool PickManager::isRightHand(unsigned int uid) {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->isRightHand();
+    }
+    return false;
+}
+
+bool PickManager::isMouse(unsigned int uid) {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->isMouse();
+    }
+    return false;
+}

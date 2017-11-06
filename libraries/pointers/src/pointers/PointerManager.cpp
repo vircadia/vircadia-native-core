@@ -120,3 +120,27 @@ void PointerManager::setLockEndUUID(unsigned int uid, const QUuid& objectID, boo
         pointer->setLockEndUUID(objectID, isOverlay);
     }
 }
+
+bool PointerManager::isLeftHand(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isLeftHand();
+    }
+    return false;
+}
+
+bool PointerManager::isRightHand(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isRightHand();
+    }
+    return false;
+}
+
+bool PointerManager::isMouse(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isMouse();
+    }
+    return false;
+}

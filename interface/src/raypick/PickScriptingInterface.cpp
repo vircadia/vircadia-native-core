@@ -109,6 +109,18 @@ void PickScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValu
     DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
+bool PickScriptingInterface::isLeftHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isLeftHand(uid);
+}
+
+bool PickScriptingInterface::isRightHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isRightHand(uid);
+}
+
+bool PickScriptingInterface::isMouse(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isMouse(uid);
+}
+
 QScriptValue pickTypesToScriptValue(QScriptEngine* engine, const PickQuery::PickType& pickType) {
     return pickType;
 }

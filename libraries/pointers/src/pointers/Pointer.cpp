@@ -46,6 +46,18 @@ void Pointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
     DependencyManager::get<PickManager>()->setIncludeItems(_pickUID, includeItems);
 }
 
+bool Pointer::isLeftHand() const {
+    return DependencyManager::get<PickManager>()->isLeftHand(_pickUID);
+}
+
+bool Pointer::isRightHand() const {
+    return DependencyManager::get<PickManager>()->isRightHand(_pickUID);
+}
+
+bool Pointer::isMouse() const {
+    return DependencyManager::get<PickManager>()->isMouse(_pickUID);
+}
+
 void Pointer::update(unsigned int pointerID) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {

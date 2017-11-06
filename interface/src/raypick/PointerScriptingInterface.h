@@ -21,7 +21,6 @@ class PointerScriptingInterface : public QObject, public Dependency {
 public:
     unsigned int createLaserPointer(const QVariant& properties) const;
 
-public slots:
     Q_INVOKABLE unsigned int createPointer(const PickQuery::PickType& type, const QVariant& properties) const;
     Q_INVOKABLE void enablePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->enablePointer(uid); }
     Q_INVOKABLE void disablePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->disablePointer(uid); }
@@ -36,6 +35,10 @@ public slots:
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities) const;
 
     Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay); }
+
+    Q_INVOKABLE bool isLeftHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isLeftHand(uid); }
+    Q_INVOKABLE bool isRightHand(unsigned int uid) { return DependencyManager::get<PointerManager>()->isRightHand(uid); }
+    Q_INVOKABLE bool isMouse(unsigned int uid) { return DependencyManager::get<PointerManager>()->isMouse(uid); }
 
 signals:
     void triggerBegin(const QUuid& id, const PointerEvent& pointerEvent);

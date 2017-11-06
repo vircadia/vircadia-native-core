@@ -100,6 +100,8 @@ public:
 
     PointerEvent::EventType choosePointerEventType(QEvent::Type type);
 
+    unsigned int deviceIdByTouchPoint(qreal x, qreal y);
+
 signals:
     void focusObjectChanged(QObject* newFocus);
     void focusTextChanged(bool focusText);

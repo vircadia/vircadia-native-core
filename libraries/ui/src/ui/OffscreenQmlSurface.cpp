@@ -927,6 +927,18 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
     return false;
 }
 
+unsigned int OffscreenQmlSurface::deviceIdByTouchPoint(qreal x, qreal y) {
+    auto mapped = _rootItem->mapFromGlobal(QPoint(x, y));
+
+    for (auto pair : _activeTouchPoints) {
+        if (mapped.x() == (int)pair.second.pos().x() && mapped.y() == (int)pair.second.pos().y()) {
+            return pair.first;
+        }
+    }
+
+    return PointerEvent::INVALID_POINTER_ID;
+}
+
 PointerEvent::EventType OffscreenQmlSurface::choosePointerEventType(QEvent::Type type) {
     switch (type) {
         case QEvent::MouseButtonDblClick:

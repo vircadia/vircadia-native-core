@@ -40,6 +40,10 @@ public:
 
     void update();
 
+    bool isLeftHand(unsigned int uid);
+    bool isRightHand(unsigned int uid);
+    bool isMouse(unsigned int uid);
+
     static const unsigned int MOUSE_POINTER_ID { PointerEvent::INVALID_POINTER_ID + 1 };
 
 private:

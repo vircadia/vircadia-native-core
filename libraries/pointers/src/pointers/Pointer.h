@@ -53,6 +53,10 @@ public:
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
+    bool isLeftHand() const;
+    bool isRightHand() const;
+    bool isMouse() const;
+
     // Pointers can choose to implement these
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay) {}

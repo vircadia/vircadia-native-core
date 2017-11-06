@@ -182,6 +182,10 @@ public:
     void setIgnoreItems(const QVector<QUuid>& items);
     void setIncludeItems(const QVector<QUuid>& items);
 
+    virtual bool isLeftHand() const { return false; }
+    virtual bool isRightHand() const { return false; }
+    virtual bool isMouse() const { return false; }
+
 private:
     PickFilter _filter;
     const float _maxDistance;
