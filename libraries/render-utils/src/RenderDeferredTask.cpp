@@ -42,7 +42,7 @@
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
 #include "DrawHaze.h"
-#include "OutlineEffect.h"
+#include "HighlightEffect.h"
 
 #include <gpu/StandardShaderLib.h>
 
@@ -183,15 +183,15 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
-    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOutlineRangeTimer", "Outline");
+    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
     // Select items that need to be outlined
     const auto selectionBaseName = "contextOverlayHighlightList";
     const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
 
-    const auto outlineInputs = DrawOutlineTask::Inputs(items.get0(), deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
-    task.addJob<DrawOutlineTask>("DrawOutline", outlineInputs);
+    const auto outlineInputs = DrawHighlightTask::Inputs(items.get0(), deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
+    task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
 
-    task.addJob<EndGPURangeTimer>("OutlineRangeTimer", outlineRangeTimer);
+    task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);

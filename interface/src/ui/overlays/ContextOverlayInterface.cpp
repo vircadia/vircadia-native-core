@@ -88,7 +88,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
 void ContextOverlayInterface::initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction) {
     handler.initialize(selectionName);
     connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &handler, &SelectionToSceneHandler::selectedItemsListChanged);
-    transaction.resetSelectionOutline(selectionName.toStdString());
+    transaction.resetSelectionHighlight(selectionName.toStdString());
 }
 
 static const uint32_t MOUSE_HW_ID = 0;

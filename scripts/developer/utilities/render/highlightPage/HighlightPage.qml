@@ -1,5 +1,5 @@
 //
-//  outlinePage.qml
+//  highlightPage.qml
 //  developer/utilities/render
 //
 //  Olivier Prat, created on 08/08/2017.
@@ -17,8 +17,8 @@ import "qrc:///qml/controls-uit" as HifiControls
 
 Rectangle {
     id: root
-    property var outlineIndex: 0
-    property var drawConfig: Render.getConfig("RenderMainView.OutlineEffect"+outlineIndex)
+    property var highlightIndex: 0
+    property var drawConfig: Render.getConfig("RenderMainView.HighlightEffect"+highlightIndex)
 
     HifiConstants { id: hifi;}
     anchors.margins: hifi.dimensions.contentMargin.x

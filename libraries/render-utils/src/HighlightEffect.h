@@ -1,5 +1,5 @@
 //
-//  OutlineEffect.h
+//  HighlightEffect.h
 //  render-utils/src/
 //
 //  Created by Olivier Prat on 08/08/17.
@@ -9,19 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_render_utils_OutlineEffect_h
-#define hifi_render_utils_OutlineEffect_h
+#ifndef hifi_render_utils_HighlightEffect_h
+#define hifi_render_utils_HighlightEffect_h
 
 #include <render/Engine.h>
-#include <render/OutlineStyleStage.h>
+#include <render/HighlightStage.h>
 #include <render/RenderFetchCullSortTask.h>
 
 #include "DeferredFramebuffer.h"
 #include "DeferredFrameTransform.h"
 
-class OutlineRessources {
+class HighlightRessources {
 public:
-    OutlineRessources();
+    HighlightRessources();
 
     gpu::FramebufferPointer getDepthFramebuffer();
     gpu::TexturePointer getDepthTexture();
@@ -44,131 +44,131 @@ protected:
     void allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer);
 };
 
-using OutlineRessourcesPointer = std::shared_ptr<OutlineRessources>;
+using HighlightRessourcesPointer = std::shared_ptr<HighlightRessources>;
 
-class OutlineSharedParameters {
+class HighlightSharedParameters {
 public:
 
     enum {
-        MAX_OUTLINE_COUNT = 8
+        MAX_HIGHLIGHT_COUNT = 8
     };
 
-    OutlineSharedParameters();
+    HighlightSharedParameters();
 
-    std::array<render::OutlineStyleStage::Index, MAX_OUTLINE_COUNT> _outlineIds;
+    std::array<render::HighlightStage::Index, MAX_HIGHLIGHT_COUNT> _highlightIds;
 
-    static float getBlurPixelWidth(const render::OutlineStyle& style, int frameBufferHeight);
+    static float getBlurPixelWidth(const render::HighlightStyle& style, int frameBufferHeight);
 };
 
-using OutlineSharedParametersPointer = std::shared_ptr<OutlineSharedParameters>;
+using HighlightSharedParametersPointer = std::shared_ptr<HighlightSharedParameters>;
 
-class PrepareDrawOutline {
+class PrepareDrawHighlight {
 public:
     using Inputs = gpu::FramebufferPointer;
-    using Outputs = OutlineRessourcesPointer;
-    using JobModel = render::Job::ModelIO<PrepareDrawOutline, Inputs, Outputs>;
+    using Outputs = HighlightRessourcesPointer;
+    using JobModel = render::Job::ModelIO<PrepareDrawHighlight, Inputs, Outputs>;
 
-    PrepareDrawOutline();
+    PrepareDrawHighlight();
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
 private:
 
-    OutlineRessourcesPointer _ressources;
+    HighlightRessourcesPointer _ressources;
 
 };
 
-class SelectionToOutline {
+class SelectionToHighlight {
 public:
 
     using Outputs = std::vector<std::string>;
-    using JobModel = render::Job::ModelO<SelectionToOutline, Outputs>;
+    using JobModel = render::Job::ModelO<SelectionToHighlight, Outputs>;
 
-    SelectionToOutline(OutlineSharedParametersPointer parameters) : _sharedParameters{ parameters } {}
+    SelectionToHighlight(HighlightSharedParametersPointer parameters) : _sharedParameters{ parameters } {}
 
     void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
 
 private:
 
-    OutlineSharedParametersPointer _sharedParameters;
+    HighlightSharedParametersPointer _sharedParameters;
 };
 
 class ExtractSelectionName {
 public:
 
-    using Inputs = SelectionToOutline::Outputs;
+    using Inputs = SelectionToHighlight::Outputs;
     using Outputs = std::string;
     using JobModel = render::Job::ModelIO<ExtractSelectionName, Inputs, Outputs>;
 
-    ExtractSelectionName(unsigned int outlineIndex) : _outlineIndex{ outlineIndex } {}
+    ExtractSelectionName(unsigned int highlightIndex) : _highlightIndex{ highlightIndex } {}
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
 private:
 
-    unsigned int _outlineIndex;
+    unsigned int _highlightIndex;
 
 };
 
-class DrawOutlineMask {
+class DrawHighlightMask {
 public:
 
-    using Inputs = render::VaryingSet2<render::ShapeBounds, OutlineRessourcesPointer>;
+    using Inputs = render::VaryingSet2<render::ShapeBounds, HighlightRessourcesPointer>;
     using Outputs = glm::ivec4;
-    using JobModel = render::Job::ModelIO<DrawOutlineMask, Inputs, Outputs>;
+    using JobModel = render::Job::ModelIO<DrawHighlightMask, Inputs, Outputs>;
 
-    DrawOutlineMask(unsigned int outlineIndex, render::ShapePlumberPointer shapePlumber, OutlineSharedParametersPointer parameters);
+    DrawHighlightMask(unsigned int highlightIndex, render::ShapePlumberPointer shapePlumber, HighlightSharedParametersPointer parameters);
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
 protected:
 
-    unsigned int _outlineIndex;
+    unsigned int _highlightIndex;
     render::ShapePlumberPointer _shapePlumber;
-    OutlineSharedParametersPointer _sharedParameters;
+    HighlightSharedParametersPointer _sharedParameters;
     
     static gpu::BufferPointer _boundsBuffer;
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
 };
 
-class DrawOutline {
+class DrawHighlight {
 public:
 
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, OutlineRessourcesPointer, DeferredFramebufferPointer, glm::ivec4>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, HighlightRessourcesPointer, DeferredFramebufferPointer, glm::ivec4>;
     using Config = render::Job::Config;
-    using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
+    using JobModel = render::Job::ModelI<DrawHighlight, Inputs, Config>;
 
-    DrawOutline(unsigned int outlineIndex, OutlineSharedParametersPointer parameters);
+    DrawHighlight(unsigned int highlightIndex, HighlightSharedParametersPointer parameters);
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 private:
 
-#include "Outline_shared.slh"
+#include "Highlight_shared.slh"
 
     enum {
-        SCENE_DEPTH_SLOT = 0,
-        OUTLINED_DEPTH_SLOT,
+        SCENE_DEPTH_MAP_SLOT = 0,
+        HIGHLIGHTED_DEPTH_MAP_SLOT,
 
-        OUTLINE_PARAMS_SLOT = 0,
+        HIGHLIGHT_PARAMS_SLOT = 0,
         FRAME_TRANSFORM_SLOT,
     };
 
-    using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineParameters>;
+    using HighlightConfigurationBuffer = gpu::StructBuffer<HighlightParameters>;
 
-    static const gpu::PipelinePointer& getPipeline(const render::OutlineStyle& style);
+    static const gpu::PipelinePointer& getPipeline(const render::HighlightStyle& style);
 
     static gpu::PipelinePointer _pipeline;
     static gpu::PipelinePointer _pipelineFilled;
 
-    unsigned int _outlineIndex;
-    OutlineParameters _parameters;
-    OutlineSharedParametersPointer _sharedParameters;
-    OutlineConfigurationBuffer _configuration;
+    unsigned int _highlightIndex;
+    HighlightParameters _parameters;
+    HighlightSharedParametersPointer _sharedParameters;
+    HighlightConfigurationBuffer _configuration;
 };
 
-class DebugOutlineConfig : public render::Job::Config {
+class DebugHighlightConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(bool viewMask MEMBER viewMask NOTIFY dirty)
 
@@ -180,14 +180,14 @@ signals:
     void dirty();
 };
 
-class DebugOutline {
+class DebugHighlight {
 public:
-    using Inputs = render::VaryingSet2<OutlineRessourcesPointer, glm::ivec4>;
-    using Config = DebugOutlineConfig;
-    using JobModel = render::Job::ModelI<DebugOutline, Inputs, Config>;
+    using Inputs = render::VaryingSet2<HighlightRessourcesPointer, glm::ivec4>;
+    using Config = DebugHighlightConfig;
+    using JobModel = render::Job::ModelI<DebugHighlight, Inputs, Config>;
 
-    DebugOutline();
-    ~DebugOutline();
+    DebugHighlight();
+    ~DebugHighlight();
 
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -202,14 +202,14 @@ private:
     void initializePipelines();
 };
 
-class DrawOutlineTask {
+class DrawHighlightTask {
 public:
 
     using Inputs = render::VaryingSet4<RenderFetchCullSortTask::BucketList, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
     using Config = render::Task::Config;
-    using JobModel = render::Task::ModelI<DrawOutlineTask, Inputs, Config>;
+    using JobModel = render::Task::ModelI<DrawHighlightTask, Inputs, Config>;
 
-    DrawOutlineTask();
+    DrawHighlightTask();
 
     void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
@@ -221,6 +221,6 @@ private:
 
 };
 
-#endif // hifi_render_utils_OutlineEffect_h
+#endif // hifi_render_utils_HighlightEffect_h
 
 

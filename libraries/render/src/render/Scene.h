@@ -17,7 +17,7 @@
 #include "Stage.h"
 #include "Selection.h"
 #include "Transition.h"
-#include "OutlineStyle.h"
+#include "HighlightStyle.h"
 
 namespace render {
 
@@ -38,7 +38,7 @@ class Transaction {
 public:
 
     typedef std::function<void(ItemID, const Transition*)> TransitionQueryFunc;
-    typedef std::function<void(OutlineStyle const*)> SelectionOutlineQueryFunc;
+    typedef std::function<void(HighlightStyle const*)> SelectionHighlightQueryFunc;
 
     Transaction() {}
     ~Transaction() {}
@@ -63,9 +63,9 @@ public:
     // Selection transactions
     void resetSelection(const Selection& selection);
 
-    void resetSelectionOutline(const std::string& selectionName, const OutlineStyle& style = OutlineStyle());
-    void removeOutlineFromSelection(const std::string& selectionName);
-    void querySelectionOutline(const std::string& selectionName, SelectionOutlineQueryFunc func);
+    void resetSelectionHighlight(const std::string& selectionName, const HighlightStyle& style = HighlightStyle());
+    void removeHighlightFromSelection(const std::string& selectionName);
+    void querySelectionHighlight(const std::string& selectionName, SelectionHighlightQueryFunc func);
 
     void merge(const Transaction& transaction);
 
@@ -81,9 +81,9 @@ protected:
     using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
     using TransitionReApply = ItemID;
     using SelectionReset = Selection;
-    using OutlineReset = std::tuple<std::string, OutlineStyle>;
-    using OutlineRemove = std::string;
-    using OutlineQuery = std::tuple<std::string, SelectionOutlineQueryFunc>;
+    using HighlightReset = std::tuple<std::string, HighlightStyle>;
+    using HighlightRemove = std::string;
+    using HighlightQuery = std::tuple<std::string, SelectionHighlightQueryFunc>;
 
     using Resets = std::vector<Reset>;
     using Removes = std::vector<Remove>;
@@ -92,9 +92,9 @@ protected:
     using TransitionQueries = std::vector<TransitionQuery>;
     using TransitionReApplies = std::vector<TransitionReApply>;
     using SelectionResets = std::vector<SelectionReset>;
-    using OutlineResets = std::vector<OutlineReset>;
-    using OutlineRemoves = std::vector<OutlineRemove>;
-    using OutlineQueries = std::vector<OutlineQuery>;
+    using HighlightResets = std::vector<HighlightReset>;
+    using HighlightRemoves = std::vector<HighlightRemove>;
+    using HighlightQueries = std::vector<HighlightQuery>;
 
     Resets _resetItems;
     Removes _removedItems;
@@ -103,9 +103,9 @@ protected:
     TransitionQueries _queriedTransitions;
     TransitionReApplies _reAppliedTransitions;
     SelectionResets _resetSelections;
-    OutlineResets _outlineResets;
-    OutlineRemoves _outlineRemoves;
-    OutlineQueries _outlineQueries;
+    HighlightResets _highlightResets;
+    HighlightRemoves _highlightRemoves;
+    HighlightQueries _highlightQueries;
 };
 typedef std::queue<Transaction> TransactionQueue;
 
@@ -203,9 +203,9 @@ protected:
     void transitionItems(const Transaction::TransitionAdds& transactions);
     void reApplyTransitions(const Transaction::TransitionReApplies& transactions);
     void queryTransitionItems(const Transaction::TransitionQueries& transactions);
-    void resetOutlines(const Transaction::OutlineResets& transactions);
-    void removeOutlines(const Transaction::OutlineRemoves& transactions);
-    void queryOutlines(const Transaction::OutlineQueries& transactions);
+    void resetHighlights(const Transaction::HighlightResets& transactions);
+    void removeHighlights(const Transaction::HighlightRemoves& transactions);
+    void queryHighlights(const Transaction::HighlightQueries& transactions);
 
     void collectSubItems(ItemID parentId, ItemIDs& subItems) const;
 

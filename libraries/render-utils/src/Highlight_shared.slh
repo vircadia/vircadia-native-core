@@ -1,4 +1,4 @@
-// glsl / C++ compatible source as interface for Outline
+// glsl / C++ compatible source as interface for highlight
 #ifdef __cplusplus
 #   define TVEC2 glm::vec2
 #   define TVEC3 glm::vec3
@@ -9,7 +9,7 @@
 #   define TVEC4 vec4
 #endif
 
-struct OutlineParameters
+struct HighlightParameters
 {
 	TVEC3 _color;
     float _intensity;

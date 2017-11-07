@@ -14,7 +14,7 @@
 #include <gpu/Batch.h>
 #include "Logging.h"
 #include "TransitionStage.h"
-#include "OutlineStyleStage.h"
+#include "HighlightStage.h"
 
 using namespace render;
 
@@ -55,16 +55,16 @@ void Transaction::resetSelection(const Selection& selection) {
     _resetSelections.emplace_back(selection);
 }
 
-void Transaction::resetSelectionOutline(const std::string& selectionName, const OutlineStyle& style) {
-    _outlineResets.emplace_back(OutlineReset{ selectionName, style });
+void Transaction::resetSelectionHighlight(const std::string& selectionName, const HighlightStyle& style) {
+    _highlightResets.emplace_back(HighlightReset{ selectionName, style });
 }
 
-void Transaction::removeOutlineFromSelection(const std::string& selectionName) {
-    _outlineRemoves.emplace_back(selectionName);
+void Transaction::removeHighlightFromSelection(const std::string& selectionName) {
+    _highlightRemoves.emplace_back(selectionName);
 }
 
-void Transaction::querySelectionOutline(const std::string& selectionName, SelectionOutlineQueryFunc func) {
-    _outlineQueries.emplace_back(OutlineQuery{ selectionName, func });
+void Transaction::querySelectionHighlight(const std::string& selectionName, SelectionHighlightQueryFunc func) {
+    _highlightQueries.emplace_back(HighlightQuery{ selectionName, func });
 }
 
 void Transaction::merge(const Transaction& transaction) {
@@ -75,9 +75,9 @@ void Transaction::merge(const Transaction& transaction) {
     _addedTransitions.insert(_addedTransitions.end(), transaction._addedTransitions.begin(), transaction._addedTransitions.end());
     _queriedTransitions.insert(_queriedTransitions.end(), transaction._queriedTransitions.begin(), transaction._queriedTransitions.end());
     _reAppliedTransitions.insert(_reAppliedTransitions.end(), transaction._reAppliedTransitions.begin(), transaction._reAppliedTransitions.end());
-    _outlineResets.insert(_outlineResets.end(), transaction._outlineResets.begin(), transaction._outlineResets.end());
-    _outlineRemoves.insert(_outlineRemoves.end(), transaction._outlineRemoves.begin(), transaction._outlineRemoves.end());
-    _outlineQueries.insert(_outlineQueries.end(), transaction._outlineQueries.begin(), transaction._outlineQueries.end());
+    _highlightResets.insert(_highlightResets.end(), transaction._highlightResets.begin(), transaction._highlightResets.end());
+    _highlightRemoves.insert(_highlightRemoves.end(), transaction._highlightRemoves.begin(), transaction._highlightRemoves.end());
+    _highlightQueries.insert(_highlightQueries.end(), transaction._highlightQueries.begin(), transaction._highlightQueries.end());
 }
 
 
@@ -193,9 +193,9 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         resetSelections(transaction._resetSelections);
     }
 
-    resetOutlines(transaction._outlineResets);
-    removeOutlines(transaction._outlineRemoves);
-    queryOutlines(transaction._outlineQueries);
+    resetHighlights(transaction._highlightResets);
+    removeHighlights(transaction._highlightRemoves);
+    queryHighlights(transaction._highlightQueries);
 }
 
 void Scene::resetItems(const Transaction::Resets& transactions) {
@@ -336,44 +336,44 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
     }
 }
 
-void Scene::resetOutlines(const Transaction::OutlineResets& transactions) {
-    auto outlineStage = getStage<OutlineStyleStage>(OutlineStyleStage::getName());
+void Scene::resetHighlights(const Transaction::HighlightResets& transactions) {
+    auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
 
     for (auto& transaction : transactions) {
         const auto& selectionName = std::get<0>(transaction);
         const auto& newStyle = std::get<1>(transaction);
-        auto outlineId = outlineStage->getOutlineIdBySelection(selectionName);
+        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-        if (OutlineStyleStage::isIndexInvalid(outlineId)) {
-            outlineStage->addOutline(selectionName, newStyle);
+        if (HighlightStage::isIndexInvalid(outlineId)) {
+            outlineStage->addHighlight(selectionName, newStyle);
         } else {
-            outlineStage->editOutline(outlineId)._style = newStyle;
+            outlineStage->editHighlight(outlineId)._style = newStyle;
         }
     }
 }
 
-void Scene::removeOutlines(const Transaction::OutlineRemoves& transactions) {
-    auto outlineStage = getStage<OutlineStyleStage>(OutlineStyleStage::getName());
+void Scene::removeHighlights(const Transaction::HighlightRemoves& transactions) {
+    auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
 
     for (auto& selectionName : transactions) {
-        auto outlineId = outlineStage->getOutlineIdBySelection(selectionName);
+        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-        if (!OutlineStyleStage::isIndexInvalid(outlineId)) {
-            outlineStage->removeOutline(outlineId);
+        if (!HighlightStage::isIndexInvalid(outlineId)) {
+            outlineStage->removeHighlight(outlineId);
         }
     }
 }
 
-void Scene::queryOutlines(const Transaction::OutlineQueries& transactions) {
-    auto outlineStage = getStage<OutlineStyleStage>(OutlineStyleStage::getName());
+void Scene::queryHighlights(const Transaction::HighlightQueries& transactions) {
+    auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
 
     for (auto& transaction : transactions) {
         const auto& selectionName = std::get<0>(transaction);
         const auto& func = std::get<1>(transaction);
-        auto outlineId = outlineStage->getOutlineIdBySelection(selectionName);
+        auto outlineId = outlineStage->getHighlightIdBySelection(selectionName);
 
-        if (!OutlineStyleStage::isIndexInvalid(outlineId)) {
-            func(&outlineStage->editOutline(outlineId)._style);
+        if (!HighlightStage::isIndexInvalid(outlineId)) {
+            func(&outlineStage->editHighlight(outlineId)._style);
         } else {
             func(nullptr);
         }

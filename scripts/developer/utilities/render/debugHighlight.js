@@ -1,5 +1,5 @@
 //
-//  debugOutline.js
+//  debugHighlight.js
 //  developer/utilities/render
 //
 //  Olivier Prat, created on 08/08/2017.
@@ -10,9 +10,9 @@
 //
 
 // Set up the qml ui
-var qml = Script.resolvePath('outline.qml');
+var qml = Script.resolvePath('highlight.qml');
 var window = new OverlayWindow({
-    title: 'Outline',
+    title: 'Highlight',
     source: qml,
     width: 400, 
     height: 400,
@@ -54,7 +54,7 @@ var end2 = {
     visible: true
 }
 
-var outlineGroupIndex = 0
+var highlightGroupIndex = 0
 var isSelectionAddEnabled = false
 var isSelectionEnabled = false
 var renderStates = [{name: "test", end: end}];
@@ -72,18 +72,18 @@ var ray = LaserPointers.createLaserPointer({
 function getSelectionName() {
     var selectionName = "contextOverlayHighlightList"
 
-    if (outlineGroupIndex>0) {
-        selectionName += outlineGroupIndex
+    if (highlightGroupIndex>0) {
+        selectionName += highlightGroupIndex
     }
     return selectionName
 }
 
 function fromQml(message) {
     tokens = message.split(' ')
-    print("Received '"+message+"' from outline.qml")
-    if (tokens[0]=="outline") {
-        outlineGroupIndex = parseInt(tokens[1])
-        print("Switching to outline group "+outlineGroupIndex)
+    print("Received '"+message+"' from hightlight.qml")
+    if (tokens[0]=="highlight") {
+        highlightGroupIndex = parseInt(tokens[1])
+        print("Switching to highlight group "+highlightGroupIndex)
     } else if (tokens[0]=="pick") {
         isSelectionEnabled = tokens[1]=='true'
         print("Ray picking set to "+isSelectionEnabled.toString())
@@ -143,7 +143,7 @@ function update(deltaTime) {
             selectedID = prevID
             selectedType = prevType
             Selection.addToSelectedItemsList(selectionName, selectedType, selectedID)
-            print("OUTLINE " + outlineGroupIndex + " picked type: " + result.type + ", id: " + result.objectID);
+            print("HIGHLIGHT " + highlightGroupIndex + " picked type: " + result.type + ", id: " + result.objectID);
         }
     } else {
         if (prevID != 0 && !isSelectionAddEnabled) {

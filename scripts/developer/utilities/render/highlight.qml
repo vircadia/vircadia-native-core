@@ -1,5 +1,5 @@
 //
-//  outline.qml
+//  highlight.qml
 //  developer/utilities/render
 //
 //  Olivier Prat, created on 08/08/2017.
@@ -11,7 +11,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
-import "outlinePage"
+import "highlightPage"
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
 
@@ -21,7 +21,7 @@ Rectangle {
     color: hifi.colors.baseGray;
     anchors.margins: hifi.dimensions.contentMargin.x
 
-    property var debugConfig: Render.getConfig("RenderMainView.OutlineDebug")
+    property var debugConfig: Render.getConfig("RenderMainView.HighlightDebug")
     signal sendToScript(var message);
 
     Column {
@@ -65,15 +65,15 @@ Rectangle {
             height: 400
 
             onCurrentIndexChanged: {
-                sendToScript("outline "+currentIndex)
+                sendToScript("highlight "+currentIndex)
             }
 
             Repeater {
                 model: [ 0, 1, 2, 3 ]
                 Tab {
                     title: "Outl."+modelData
-                    OutlinePage {
-                        outlineIndex: modelData
+                    HighlightPage {
+                        highlightIndex: modelData
                     }
                 }
             }
