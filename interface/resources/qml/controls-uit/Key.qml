@@ -13,6 +13,8 @@ Item {
     property alias mouseArea: mouseArea1
     property alias fontFamily: letter.font.family;
     property alias fontPixelSize: letter.font.pixelSize
+    property alias verticalAlignment: letter.verticalAlignment
+    property alias letterAnchors: letter.anchors
 
     function resetToggledMode(mode) {
         toggled = mode;

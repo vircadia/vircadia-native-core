@@ -251,7 +251,9 @@ Rectangle {
                 Key { width: 43; glyph: "."; }
                 Key {
                     fontFamily: hiFiGlyphs.name;
-                    fontPixelSize: 34;
+                    fontPixelSize: 48;
+                    letterAnchors.topMargin: -4;
+                    verticalAlignment: Text.AlignVCenter;
                     width: 86; glyph: "\ue02b";
                 }
             }
@@ -342,7 +344,9 @@ Rectangle {
                 Key { width: 43; glyph: "."; }
                 Key {
                     fontFamily: hiFiGlyphs.name;
-                    fontPixelSize: 34;
+                    fontPixelSize: 48;
+                    letterAnchors.topMargin: -4;
+                    verticalAlignment: Text.AlignVCenter;
                     width: 86; glyph: "\ue02b";
                 }
             }
