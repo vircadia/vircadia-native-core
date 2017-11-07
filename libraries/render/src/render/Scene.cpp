@@ -426,7 +426,7 @@ void Scene::resetItemTransition(ItemID itemId) {
     }
 }
 
-// THis fucntion is thread safe
+// This function is thread safe
 Selection Scene::getSelection(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
@@ -434,6 +434,17 @@ Selection Scene::getSelection(const Selection::Name& name) const {
         return Selection();
     } else {
         return (*found).second;
+    }
+}
+
+// This function is thread safe
+bool Scene::isSelectionEmpty(const Selection::Name& name) const {
+    std::unique_lock<std::mutex> lock(_selectionsMutex);
+    auto found = _selections.find(name);
+    if (found == _selections.end()) {
+        return false;
+    } else {
+        return (*found).second.isEmpty();
     }
 }
 

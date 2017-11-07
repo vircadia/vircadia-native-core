@@ -50,12 +50,12 @@ class HighlightSharedParameters {
 public:
 
     enum {
-        MAX_HIGHLIGHT_COUNT = 8
+        MAX_PASS_COUNT = 8
     };
 
     HighlightSharedParameters();
 
-    std::array<render::HighlightStage::Index, MAX_HIGHLIGHT_COUNT> _highlightIds;
+    std::array<render::HighlightStage::Index, MAX_PASS_COUNT> _highlightIds;
 
     static float getBlurPixelWidth(const render::HighlightStyle& style, int frameBufferHeight);
 };
@@ -100,13 +100,13 @@ public:
     using Outputs = std::string;
     using JobModel = render::Job::ModelIO<ExtractSelectionName, Inputs, Outputs>;
 
-    ExtractSelectionName(unsigned int highlightIndex) : _highlightIndex{ highlightIndex } {}
+    ExtractSelectionName(unsigned int highlightIndex) : _highlightPassIndex{ highlightIndex } {}
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
 private:
 
-    unsigned int _highlightIndex;
+    unsigned int _highlightPassIndex;
 
 };
 
@@ -123,11 +123,11 @@ public:
 
 protected:
 
-    unsigned int _highlightIndex;
+    unsigned int _highlightPassIndex;
     render::ShapePlumberPointer _shapePlumber;
     HighlightSharedParametersPointer _sharedParameters;
-    
-    static gpu::BufferPointer _boundsBuffer;
+    gpu::BufferPointer _boundsBuffer;
+
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
 };
@@ -162,7 +162,7 @@ private:
     static gpu::PipelinePointer _pipeline;
     static gpu::PipelinePointer _pipelineFilled;
 
-    unsigned int _highlightIndex;
+    unsigned int _highlightPassIndex;
     HighlightParameters _parameters;
     HighlightSharedParametersPointer _sharedParameters;
     HighlightConfigurationBuffer _configuration;

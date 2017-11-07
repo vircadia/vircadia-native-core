@@ -143,6 +143,10 @@ public:
     // Thread safe
     Selection getSelection(const Selection::Name& name) const;
 
+    // Check if a particular selection is empty (returns true if doesn't exist)
+    // Thread safe
+    bool isSelectionEmpty(const Selection::Name& name) const;
+
     // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
 
     // Access a particular item form its ID

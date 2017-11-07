@@ -104,11 +104,10 @@ void PrepareDrawHighlight::run(const render::RenderContextPointer& renderContext
 
 gpu::PipelinePointer DrawHighlightMask::_stencilMaskPipeline;
 gpu::PipelinePointer DrawHighlightMask::_stencilMaskFillPipeline;
-gpu::BufferPointer DrawHighlightMask::_boundsBuffer;
 
 DrawHighlightMask::DrawHighlightMask(unsigned int highlightIndex, 
                                  render::ShapePlumberPointer shapePlumber, HighlightSharedParametersPointer parameters) :
-    _highlightIndex{ highlightIndex },
+    _highlightPassIndex{ highlightIndex },
     _shapePlumber { shapePlumber },
     _sharedParameters{ parameters } {
 }
@@ -147,7 +146,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
     }
 
     auto highlightStage = renderContext->_scene->getStage<render::HighlightStage>(render::HighlightStage::getName());
-    auto highlightId = _sharedParameters->_highlightIds[_highlightIndex];
+    auto highlightId = _sharedParameters->_highlightIds[_highlightPassIndex];
 
     if (!inShapes.empty() && !render::HighlightStage::isIndexInvalid(highlightId)) {
         auto ressources = inputs.get1();
@@ -221,8 +220,8 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
 
             // Draw stencil mask with object bounding boxes
             const auto highlightWidthLoc = _stencilMaskPipeline->getProgram()->getUniforms().findLocation("outlineWidth");
-            const auto sqrt3 = 1.74f;
-            const float blurPixelWidth = 2.0f * sqrt3 * HighlightSharedParameters::getBlurPixelWidth(highlight._style, args->_viewport.w);
+            const auto securityMargin = 2.0f;
+            const float blurPixelWidth = 2.0f * securityMargin * HighlightSharedParameters::getBlurPixelWidth(highlight._style, args->_viewport.w);
             const auto framebufferSize = ressources->getSourceFrameSize();
 
             auto stencilPipeline = highlight._style.isFilled() ? _stencilMaskFillPipeline : _stencilMaskPipeline;
@@ -242,7 +241,7 @@ gpu::PipelinePointer DrawHighlight::_pipeline;
 gpu::PipelinePointer DrawHighlight::_pipelineFilled;
 
 DrawHighlight::DrawHighlight(unsigned int highlightIndex, HighlightSharedParametersPointer parameters) :
-    _highlightIndex{ highlightIndex },
+    _highlightPassIndex{ highlightIndex },
     _sharedParameters{ parameters } {
 }
 
@@ -261,9 +260,9 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
             auto args = renderContext->args;
 
             auto highlightStage = renderContext->_scene->getStage<render::HighlightStage>(render::HighlightStage::getName());
-            auto highlightId = _sharedParameters->_highlightIds[_highlightIndex];
+            auto highlightId = _sharedParameters->_highlightIds[_highlightPassIndex];
             if (!render::HighlightStage::isIndexInvalid(highlightId)) {
-                auto& highlight = highlightStage->getHighlight(_sharedParameters->_highlightIds[_highlightIndex]);
+                auto& highlight = highlightStage->getHighlight(highlightId);
                 auto pipeline = getPipeline(highlight._style);
                 {
                     auto& shaderParameters = _configuration.edit();
@@ -427,12 +426,13 @@ const gpu::PipelinePointer& DebugHighlight::getDepthPipeline() {
 }
 
 void SelectionToHighlight::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
-    auto highlightStage = renderContext->_scene->getStage<render::HighlightStage>(render::HighlightStage::getName());
+    auto scene = renderContext->_scene;
+    auto highlightStage = scene->getStage<render::HighlightStage>(render::HighlightStage::getName());
 
     outputs.clear();
     _sharedParameters->_highlightIds.fill(render::HighlightStage::INVALID_INDEX);
 
-    for (auto i = 0; i < HighlightSharedParameters::MAX_HIGHLIGHT_COUNT; i++) {
+    for (auto i = 0; i < HighlightSharedParameters::MAX_PASS_COUNT; i++) {
         std::ostringstream stream;
         if (i > 0) {
             stream << "highlightList" << i;
@@ -440,17 +440,19 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
             stream << "contextOverlayHighlightList";
         }
         auto selectionName = stream.str();
-        auto highlightId = highlightStage->getHighlightIdBySelection(selectionName);
-        if (!render::HighlightStage::isIndexInvalid(highlightId)) {
-            _sharedParameters->_highlightIds[outputs.size()] = highlightId;
-            outputs.emplace_back(selectionName);
+        if (!scene->isSelectionEmpty(selectionName)) {
+            auto highlightId = highlightStage->getHighlightIdBySelection(selectionName);
+            if (!render::HighlightStage::isIndexInvalid(highlightId)) {
+                _sharedParameters->_highlightIds[outputs.size()] = highlightId;
+                outputs.emplace_back(selectionName);
+            }
         }
     }
 }
 
 void ExtractSelectionName::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
-    if (_highlightIndex < inputs.size()) {
-        outputs = inputs[_highlightIndex];
+    if (_highlightPassIndex < inputs.size()) {
+        outputs = inputs[_highlightPassIndex];
     } else {
         outputs.clear();
     }
@@ -487,7 +489,7 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
     const auto highlightRessources = task.addJob<PrepareDrawHighlight>("PrepareHighlight", primaryFramebuffer);
     render::Varying highlight0Rect;
 
-    for (auto i = 0; i < HighlightSharedParameters::MAX_HIGHLIGHT_COUNT; i++) {
+    for (auto i = 0; i < HighlightSharedParameters::MAX_PASS_COUNT; i++) {
         const auto selectionName = task.addJob<ExtractSelectionName>("ExtractSelectionName", highlightSelectionNames, i);
         const auto groupItems = addSelectItemJobs(task, selectionName, items);
         const auto highlightedItemIDs = task.addJob<render::MetaToSubItems>("HighlightMetaToSubItemIDs", groupItems);
