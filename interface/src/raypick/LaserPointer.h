@@ -21,6 +21,12 @@
 
 class RayPickResult;
 
+struct LockEndObject {
+    QUuid id {QUuid()};
+    bool isOverlay {false};
+    glm::mat4 offsetMat {glm::mat4()};
+};
+
 class RenderState {
 
 public:
@@ -91,8 +97,8 @@ private:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
+    LockEndObject _lockEndObject;
     glm::mat4 _offsetMat;
-    std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
 
     const QUuid _rayPickUID;
 
