@@ -48,6 +48,17 @@ private:
 };
 
 
+class SelectionHighlightStyle {
+public:
+    SelectionHighlightStyle() {}
+
+    bool fromVariantMap(const QVariantMap& properties);
+    QVariantMap toVariantMap() const;
+
+
+
+};
+
 class SelectionScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -61,6 +72,10 @@ public:
 
     Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
     Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+
+    Q_INVOKABLE bool enableListHighlight(const QString& listName, const QVariantMap& highlightStyle);
+    Q_INVOKABLE bool disableListHighlight(const QString& listName);
+    Q_INVOKABLE QVariantMap getListHighlightStyle(const QString& listName) const;
 
 signals:
     void selectedItemsListChanged(const QString& listName);
