@@ -159,6 +159,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
 
+    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
+    task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
+
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
@@ -168,9 +171,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).asVarying();
         task.addJob<DebugLightClusters>("DebugLightClusters", debugLightClustersInputs);
     }
-
-    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
-    task.addJob<DrawHaze>("DrawHaze", drawHazeInputs);
 
     const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
 
