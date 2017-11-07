@@ -237,6 +237,7 @@ Script.include("/~/system/libraries/utils.js");
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
+            scaleWithAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
 

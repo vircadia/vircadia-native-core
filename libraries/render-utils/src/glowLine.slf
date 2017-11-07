@@ -10,8 +10,9 @@
 //
 
 in vec4 _color;
-in float distanceFromCenter;
+in float _scale;
 
+in float distanceFromCenter;
 out vec4 _fragColor;
 
 void main(void) {
@@ -21,7 +22,7 @@ void main(void) {
     float alpha = 1.0 - abs(distanceFromCenter);
     
     // Convert from a linear alpha curve to a sharp peaked one
-	alpha = _color.a * pow(alpha, 10.0);
+	alpha = _color.a * pow(alpha, 10.0/_scale);
 	
 	// Drop everything where the curve falls off to nearly nothing
     if (alpha <= 0.05) {

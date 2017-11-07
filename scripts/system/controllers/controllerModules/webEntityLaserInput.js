@@ -88,7 +88,6 @@ Script.include("/~/system/libraries/controllers.js");
         {name: "hold", distance: DEFAULT_SEARCH_SPHERE_DISTANCE, path: holdPath}
     ];
 
-
     // triggered when stylus presses a web overlay/entity
     var HAPTIC_STYLUS_STRENGTH = 1.0;
     var HAPTIC_STYLUS_DURATION = 20.0;
@@ -452,6 +451,7 @@ Script.include("/~/system/libraries/controllers.js");
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
+            scaleWithAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
     }

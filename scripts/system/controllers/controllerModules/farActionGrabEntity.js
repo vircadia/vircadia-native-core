@@ -584,6 +584,7 @@ Script.include("/~/system/libraries/controllers.js");
             renderStates: renderStates,
             faceAvatar: true,
             distanceScaleEnd: true,
+            scaleWithAvatar: true,
             defaultRenderStates: defaultRenderStates
         });
     }

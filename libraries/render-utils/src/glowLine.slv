@@ -16,14 +16,17 @@ layout(std140) uniform lineData {
     vec4 p1;
     vec4 p2;
     vec4 color;
+    float scale;
 };
 
 out vec4 _color;
+out float _scale;
 // the distance from the center in 'quad space'
 out float distanceFromCenter;
 
 void main(void) {
     _color = color;
+    _scale = scale;
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
