@@ -16,7 +16,9 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "SkyboxPropertyGroup.h"
+#include "HazePropertyGroup.h"
 #include "StagePropertyGroup.h"
+#include <ComponentMode.h>
 
 class ZoneEntityItem : public EntityItem {
 public:
@@ -56,7 +58,7 @@ public:
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
 
     virtual bool isReadyToComputeShape() const override { return false; }
-    void setShapeType(ShapeType type) override { _shapeType = type; }
+    void setShapeType(ShapeType type) override { withWriteLock([&] { _shapeType = type; }); }
     virtual ShapeType getShapeType() const override;
 
     virtual bool hasCompoundShapeURL() const;
@@ -68,7 +70,13 @@ public:
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; _backgroundPropertiesChanged = true; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
+    void setHazeMode(const uint32_t value);
+    uint32_t getHazeMode() const;
+
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
+    
+    const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
+
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
     bool getFlyingAllowed() const { return _flyingAllowed; }
@@ -80,8 +88,13 @@ public:
 
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool backgroundPropertiesChanged() const { return _backgroundPropertiesChanged; }
-    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
+
+    bool hazePropertiesChanged() const { 
+        return _hazePropertiesChanged; 
+    }
+
+    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
 
     void resetRenderingPropertiesChanged();
 
@@ -99,6 +112,8 @@ public:
     static const bool DEFAULT_GHOSTING_ALLOWED;
     static const QString DEFAULT_FILTER_URL;
 
+    static const uint32_t DEFAULT_HAZE_MODE{ (uint32_t)COMPONENT_MODE_INHERIT };
+
 protected:
     KeyLightPropertyGroup _keyLightProperties;
 
@@ -107,8 +122,11 @@ protected:
 
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
-    StagePropertyGroup _stageProperties;
+    uint32_t _hazeMode{ DEFAULT_HAZE_MODE };
+
     SkyboxPropertyGroup _skyboxProperties;
+    HazePropertyGroup _hazeProperties;
+    StagePropertyGroup _stageProperties;
 
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
@@ -116,8 +134,9 @@ protected:
 
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };
-    bool _backgroundPropertiesChanged { false };
+    bool _backgroundPropertiesChanged{ false };
     bool _skyboxPropertiesChanged { false };
+    bool _hazePropertiesChanged{ false };
     bool _stagePropertiesChanged { false };
 
     static bool _drawZoneBoundaries;

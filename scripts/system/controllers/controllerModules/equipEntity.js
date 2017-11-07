@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
+   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
    cloneEntity, DISPATCHER_PROPERTIES
@@ -225,26 +225,39 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     }
 
     function getAttachPointForHotspotFromSettings(hotspot, hand) {
+        var skeletonModelURL = MyAvatar.skeletonModelURL;
         var attachPointSettings = getAttachPointSettings();
-        var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
-        var joints = attachPointSettings[hotspot.key];
-        if (joints) {
-            return joints[jointName];
-        } else {
-            return undefined;
+        var avatarSettingsData = attachPointSettings[skeletonModelURL];
+        if (avatarSettingsData) {
+            var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
+            var joints = avatarSettingsData[hotspot.key];
+            if (joints) {
+                return joints[jointName];
+            }
         }
+        return undefined;
     }
 
     function storeAttachPointForHotspotInSettings(hotspot, hand, offsetPosition, offsetRotation) {
         var attachPointSettings = getAttachPointSettings();
+        var skeletonModelURL = MyAvatar.skeletonModelURL;
+        var avatarSettingsData = attachPointSettings[skeletonModelURL];
+        if (!avatarSettingsData) {
+            avatarSettingsData = {};
+            attachPointSettings[skeletonModelURL] = avatarSettingsData;
+        }
         var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
-        var joints = attachPointSettings[hotspot.key];
+        var joints = avatarSettingsData[hotspot.key];
         if (!joints) {
             joints = {};
-            attachPointSettings[hotspot.key] = joints;
+            avatarSettingsData[hotspot.key] = joints;
         }
         joints[jointName] = [offsetPosition, offsetRotation];
         setAttachPointSettings(attachPointSettings);
+    }
+
+    function clearAttachPoints() {
+        setAttachPointSettings({});
     }
 
     function EquipEntity(hand) {
@@ -254,6 +267,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.triggerValue = 0;
         this.messageGrabEntity = false;
         this.grabEntityProps = null;
+        this.shouldSendStart = false;
+        this.equipedWithSecondary = false;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -331,7 +346,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var props = controllerData.nearbyEntityPropertiesByID[hotspot.entityID];
 
             var hasParent = true;
-            if (props.parentID === NULL_UUID) {
+            if (props.parentID === Uuid.NULL) {
                 hasParent = false;
             }
 
@@ -367,6 +382,10 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         this.secondaryReleased = function() {
             return this.rawSecondaryValue < BUMPER_ON_VALUE;
+        };
+
+        this.secondarySmoothedSqueezed = function() {
+            return this.rawSecondaryValue > BUMPER_ON_VALUE;
         };
 
         this.chooseNearEquipHotspots = function(candidateEntityProps, controllerData) {
@@ -485,7 +504,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             var reparentProps = {
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex,
                 localVelocity: {x: 0, y: 0, z: 0},
                 localAngularVelocity: {x: 0, y: 0, z: 0},
@@ -498,6 +517,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var cloneID = this.cloneHotspot(grabbedProperties, controllerData);
                 this.targetEntityID = cloneID;
                 Entities.editEntity(this.targetEntityID, reparentProps);
+                controllerData.nearbyEntityPropertiesByID[this.targetEntityID] = grabbedProperties;
                 isClone = true;
             } else if (!grabbedProperties.locked) {
                 Entities.editEntity(this.targetEntityID, reparentProps);
@@ -507,8 +527,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 return;
             }
 
-            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "startEquip", args);
+            // we don't want to send startEquip message until the trigger is released.  otherwise,
+            // guns etc will fire right as they are equipped.
+            this.shouldSendStart = true;
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
@@ -530,13 +551,20 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.endEquipEntity = function () {
+            this.storeAttachPointInSettings();
             Entities.editEntity(this.targetEntityID, {
-                parentID: NULL_UUID,
+                parentID: Uuid.NULL,
                 parentJointIndex: -1
             });
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseEquip", args);
+
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.targetEntityID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
 
             ensureDynamic(this.targetEntityID);
             this.targetEntityID = null;
@@ -588,22 +616,23 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             // if the potentialHotspot is cloneable, clone it and return it
             // if the potentialHotspot os not cloneable and locked return null
 
-            if (potentialEquipHotspot) {
-                if ((this.triggerSmoothedSqueezed() && !this.waitForTriggerRelease) || this.messageGrabEntity) {
-                    this.grabbedHotspot = potentialEquipHotspot;
-                    this.targetEntityID = this.grabbedHotspot.entityID;
-                    this.startEquipEntity(controllerData);
-                    this.messageGrabEnity = false;
-                }
+            if (potentialEquipHotspot &&
+                (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) ||
+                 this.messageGrabEntity)) {
+                this.grabbedHotspot = potentialEquipHotspot;
+                this.targetEntityID = this.grabbedHotspot.entityID;
+                this.startEquipEntity(controllerData);
+                this.messageGrabEnity = false;
+                this.equipedWithSecondary = this.secondarySmoothedSqueezed();
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
                 return makeRunningValues(false, [], []);
             }
         };
 
-        this.isTargetIDValid = function() {
-            var entityProperties = Entities.getEntityProperties(this.targetEntityID, ["type"]);
-            return "type" in entityProperties;
+        this.isTargetIDValid = function(controllerData) {
+            var entityProperties = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
+            return entityProperties && "type" in entityProperties;
         };
 
         this.isReady = function (controllerData, deltaTime) {
@@ -616,7 +645,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var timestamp = Date.now();
             this.updateInputs(controllerData);
 
-            if (!this.isTargetIDValid()) {
+            if (!this.isTargetIDValid(controllerData)) {
                 this.endEquipEntity();
                 return makeRunningValues(false, [], []);
             }
@@ -625,7 +654,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 return this.checkNearbyHotspots(controllerData, deltaTime, timestamp);
             }
 
-            if (controllerData.secondaryValues[this.hand]) {
+            if (controllerData.secondaryValues[this.hand] && !this.equipedWithSecondary) {
                 // this.secondaryReleased() will always be true when not depressed
                 // so we cannot simply rely on that for release - ensure that the
                 // trigger was first "prepared" by being pushed in before the release
@@ -642,8 +671,18 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             var dropDetected = this.dropGestureProcess(deltaTime);
 
-            if (this.triggerSmoothedReleased()) {
+            if (this.triggerSmoothedReleased() || this.secondaryReleased()) {
+                if (this.shouldSendStart) {
+                    // we don't want to send startEquip message until the trigger is released.  otherwise,
+                    // guns etc will fire right as they are equipped.
+                    var startArgs = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                    Entities.callEntityMethod(this.targetEntityID, "startEquip", startArgs);
+                    this.shouldSendStart = false;
+                }
                 this.waitForTriggerRelease = false;
+                if (this.secondaryReleased() && this.equipedWithSecondary) {
+                    this.equipedWithSecondary = false;
+                }
             }
 
             if (dropDetected && this.prevDropDetected !== dropDetected) {
@@ -659,14 +698,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
                 this.waitForTriggerRelease = true;
                 // store the offset attach points into preferences.
-                if (this.grabbedHotspot && this.targetEntityID) {
-                    var prefprops = Entities.getEntityProperties(this.targetEntityID, ["localPosition", "localRotation"]);
-                    if (prefprops && prefprops.localPosition && prefprops.localRotation) {
-                        storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand,
-                            prefprops.localPosition, prefprops.localRotation);
-                    }
-                }
-
                 this.endEquipEntity();
                 return makeRunningValues(false, [], []);
             }
@@ -674,10 +705,22 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
-            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.targetEntityID, "continueEquip", args);
+            if (!this.shouldSendStart) {
+                var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                Entities.callEntityMethod(this.targetEntityID, "continueEquip", args);
+            }
 
             return makeRunningValues(true, [this.targetEntityID], []);
+        };
+
+        this.storeAttachPointInSettings = function() {
+            if (this.grabbedHotspot && this.targetEntityID) {
+                var prefProps = Entities.getEntityProperties(this.targetEntityID, ["localPosition", "localRotation"]);
+                if (prefProps && prefProps.localPosition && prefProps.localRotation) {
+                    storeAttachPointForHotspotInSettings(this.grabbedHotspot, this.hand,
+                        prefProps.localPosition, prefProps.localRotation);
+                }
+            }
         };
 
         this.cleanup = function () {
@@ -724,11 +767,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     enableDispatcherModule("LeftEquipEntity", leftEquipEntity);
     enableDispatcherModule("RightEquipEntity", rightEquipEntity);
 
-    this.cleanup = function () {
+    function cleanup() {
         leftEquipEntity.cleanup();
         rightEquipEntity.cleanup();
         disableDispatcherModule("LeftEquipEntity");
         disableDispatcherModule("RightEquipEntity");
+        clearAttachPoints();
     };
-    Script.scriptEnding.connect(this.cleanup);
+    Script.scriptEnding.connect(cleanup);
 }());

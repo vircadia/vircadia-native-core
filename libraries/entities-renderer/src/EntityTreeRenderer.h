@@ -36,6 +36,7 @@ namespace render { namespace entities {
     class EntityRenderer;
     using EntityRendererPointer = std::shared_ptr<EntityRenderer>;
     using EntityRendererWeakPointer = std::weak_ptr<EntityRenderer>;
+
 } }
 
 // Allow the use of std::unordered_map with QUuid keys
@@ -116,21 +117,6 @@ public:
     void onEntityChanged(const EntityItemID& id);
 
 signals:
-    void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseDoublePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void mousePressOffEntity();
-    void mouseDoublePressOffEntity();
-
-    void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void clickReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-
-    void hoverEnterEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void hoverOverEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void hoverLeaveEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -157,12 +143,13 @@ protected:
     }
 
 private:
+    void addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction);
+    void updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction);
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 
     void resetEntitiesScriptEngine();
 
-    void addEntityToScene(const EntityItemPointer& entity);
     bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
     bool applyLayeredZones();
@@ -260,6 +247,7 @@ private:
 
     std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
+    std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 

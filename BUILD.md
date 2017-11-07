@@ -2,7 +2,7 @@
 
 - [cmake](https://cmake.org/download/):  3.9
 - [Qt](https://www.qt.io/download-open-source):   5.9.1
-- [OpenSSL](https://www.openssl.org/): Use the latest available version of OpenSSL to avoid security vulnerabilities.
+- [OpenSSL](https://www.openssl.org/): Use the latest available 1.0 version (**NOT** 1.1) of OpenSSL to avoid security vulnerabilities.
 - [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
 ### CMake External Project Dependencies
@@ -25,7 +25,7 @@ The above dependencies will be downloaded, built, linked and included automatica
 
 These are not placed in your normal build tree when doing an out of source build so that they do not need to be re-downloaded and re-compiled every time the CMake build folder is cleared. Should you want to force a re-download and re-compile of a specific external, you can simply remove that directory from the appropriate subfolder in `build/ext`. Should you want to force a re-download and re-compile of all externals, just remove the `build/ext` folder.
 
-If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DUSE_LOCAL_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
+If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DUSE\_LOCAL\_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
 
 ### OS Specific Build Guides
 

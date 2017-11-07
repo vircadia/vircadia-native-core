@@ -35,7 +35,7 @@ var imageData = [];
 var storyIDsToMaybeDelete = [];
 var shareAfterLogin = false;
 var snapshotToShareAfterLogin = [];
-var METAVERSE_BASE = location.metaverseServerUrl;
+var METAVERSE_BASE = Account.metaverseServerURL;
 var isLoggedIn;
 var numGifSnapshotUploadsPending = 0;
 var numStillSnapshotUploadsPending = 0;
@@ -113,15 +113,8 @@ function onMessage(message) {
             openLoginWindow();
             break;
         case 'chooseSnapshotLocation':
-            var snapshotPath = Window.browseDir("Choose Snapshots Directory", "", "");
-
-            if (snapshotPath) { // not cancelled
-                Snapshot.setSnapshotsLocation(snapshotPath);
-                tablet.emitScriptEvent(JSON.stringify({
-                    type: "snapshot",
-                    action: "snapshotLocationChosen"
-                }));
-            }
+            Window.browseDirChanged.connect(snapshotDirChanged);
+            Window.browseDirAsync("Choose Snapshots Directory", "", "");
             break;
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
@@ -570,6 +563,17 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
             image_data: imageData
         }));
     });
+}
+
+function snapshotDirChanged(snapshotPath) {
+    Window.browseDirChanged.disconnect(snapshotDirChanged);
+    if (snapshotPath !== "") { // not cancelled
+        Snapshot.setSnapshotsLocation(snapshotPath);
+        tablet.emitScriptEvent(JSON.stringify({
+            type: "snapshot",
+            action: "snapshotLocationChosen"
+        }));
+    }
 }
 
 function processingGifStarted(pathStillSnapshot) {

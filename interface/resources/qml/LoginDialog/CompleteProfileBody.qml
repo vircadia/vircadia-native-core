@@ -29,11 +29,12 @@ Item {
         readonly property int maxHeight: 720
 
         function resize() {
-            var targetWidth = Math.max(titleWidth, Math.max(additionalTextContainer.contentWidth,
-                                                            termsContainer.contentWidth))
+            if (root.isTablet === false) {
+                var targetWidth = Math.max(titleWidth, Math.max(additionalTextContainer.contentWidth,
+                                                                termsContainer.contentWidth))
+                parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
+            }
             var targetHeight = 5 * hifi.dimensions.contentSpacing.y + buttons.height + additionalTextContainer.height + termsContainer.height
-
-            parent.width = root.width = Math.max(d.minWidth, Math.min(d.maxWidth, targetWidth))
             parent.height = root.height = Math.max(d.minHeight, Math.min(d.maxHeight, targetHeight))
         }
     }
@@ -61,11 +62,8 @@ Item {
 
         Button {
             anchors.verticalCenter: parent.verticalCenter
-
             text: qsTr("Cancel")
-
-
-            onClicked: root.destroy()
+            onClicked: root.tryDestroy()
         }
     }
 
@@ -96,17 +94,19 @@ Item {
         id: termsContainer
         anchors {
             top: additionalTextContainer.bottom
-            left: parent.left
             margins: 0
             topMargin: 2 * hifi.dimensions.contentSpacing.y
+            horizontalCenter: parent.horizontalCenter
         }
+        width: parent.width
 
         text: qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
         wrapMode: Text.WordWrap
         color: hifi.colors.baseGrayHighlight
         lineHeight: 1
         lineHeightMode: Text.ProportionalHeight
-        horizontalAlignment: Text.AlignHCenter
+        fontSizeMode: Text.HorizontalFit
+        horizontalAlignment: Text.AlignVCenter
 
         onLinkActivated: loginDialog.openUrl(link)
     }
@@ -128,8 +128,10 @@ Item {
             console.log("Create Failed: " + error)
 
             bodyLoader.source = "UsernameCollisionBody.qml"
-            bodyLoader.item.width = root.pane.width
-            bodyLoader.item.height = root.pane.height
+            if (!root.isTablet) {
+                bodyLoader.item.width = root.pane.width
+                bodyLoader.item.height = root.pane.height
+            }
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded")

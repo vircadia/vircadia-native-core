@@ -24,15 +24,18 @@
 #include <shared/NsightHelpers.h>
 #include "ModelFormatLogging.h"
 
-template<class T> int streamSize() {
+template<class T>
+int streamSize() {
     return sizeof(T);
 }
 
-template<bool> int streamSize() {
+template<bool>
+int streamSize() {
     return 1;
 }
 
-template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
+template<class T>
+QVariant readBinaryArray(QDataStream& in, int& position) {
     quint32 arrayLength;
     quint32 encoding;
     quint32 compressedLength;
@@ -45,9 +48,8 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
     QVector<T> values;
     if ((int)QSysInfo::ByteOrder == (int)in.byteOrder()) {
         values.resize(arrayLength);
-        const unsigned int DEFLATE_ENCODING = 1;
         QByteArray arrayData;
-        if (encoding == DEFLATE_ENCODING) {
+        if (encoding == FBX_PROPERTY_COMPRESSED_FLAG) {
             // preface encoded data with uncompressed length
             QByteArray compressed(sizeof(quint32) + compressedLength, 0);
             *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
@@ -69,8 +71,7 @@ template<class T> QVariant readBinaryArray(QDataStream& in, int& position) {
         }
     } else {
         values.reserve(arrayLength);
-        const unsigned int DEFLATE_ENCODING = 1;
-        if (encoding == DEFLATE_ENCODING) {
+        if (encoding == FBX_PROPERTY_COMPRESSED_FLAG) {
             // preface encoded data with uncompressed length
             QByteArray compressed(sizeof(quint32) + compressedLength, 0);
             *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
@@ -350,8 +351,7 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
 FBXNode FBXReader::parseFBX(QIODevice* device) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xff0000ff, device);
     // verify the prolog
-    const QByteArray BINARY_PROLOG = "Kaydara FBX Binary  ";
-    if (device->peek(BINARY_PROLOG.size()) != BINARY_PROLOG) {
+    if (device->peek(FBX_BINARY_PROLOG.size()) != FBX_BINARY_PROLOG) {
         // parse as a text file
         FBXNode top;
         Tokenizer tokenizer(device);
@@ -377,15 +377,13 @@ FBXNode FBXReader::parseFBX(QIODevice* device) {
     //   Bytes 0 - 20: Kaydara FBX Binary  \x00(file - magic, with 2 spaces at the end, then a NULL terminator).
     //   Bytes 21 - 22: [0x1A, 0x00](unknown but all observed files show these bytes).
     //   Bytes 23 - 26 : unsigned int, the version number. 7300 for version 7.3 for example.
-    const int HEADER_BEFORE_VERSION = 23;
-    const quint32 VERSION_FBX2016 = 7500;
-    in.skipRawData(HEADER_BEFORE_VERSION);
-    int position = HEADER_BEFORE_VERSION;
+    in.skipRawData(FBX_HEADER_BYTES_BEFORE_VERSION);
+    int position = FBX_HEADER_BYTES_BEFORE_VERSION;
     quint32 fileVersion;
     in >> fileVersion;
     position += sizeof(fileVersion);
     qCDebug(modelformat) << "fileVersion:" << fileVersion;
-    bool has64BitPositions = (fileVersion >= VERSION_FBX2016);
+    bool has64BitPositions = (fileVersion >= FBX_VERSION_2016);
 
     // parse the top-level node
     FBXNode top;

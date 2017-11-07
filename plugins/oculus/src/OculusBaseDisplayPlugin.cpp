@@ -84,7 +84,7 @@ glm::mat4 OculusBaseDisplayPlugin::getCullingProjection(const glm::mat4& basePro
         float baseFarClip = baseFrustum.getFarClip();
         auto combinedFov = _eyeFovs[0];
         combinedFov.LeftTan = combinedFov.RightTan = std::max(combinedFov.LeftTan, combinedFov.RightTan);
-        return toGlm(ovrMatrix4f_Projection(combinedFov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_ClipRangeOpenGL));
+        return toGlm(ovrMatrix4f_Projection(combinedFov, baseNearClip, baseFarClip, ovrProjection_ClipRangeOpenGL));
     } else {
         return baseProjection;
     }

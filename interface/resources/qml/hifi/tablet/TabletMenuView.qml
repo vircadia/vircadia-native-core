@@ -11,9 +11,11 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import TabletScriptingInterface 1.0
 
 import "../../styles-uit"
 import "."
+
 FocusScope {
     id: root
     implicitHeight: background.height
@@ -35,7 +37,6 @@ FocusScope {
         color: hifi.colors.faintGray
         //color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
-
 
     ListView {
         id: listView
@@ -68,16 +69,21 @@ FocusScope {
         delegate: TabletMenuItem {
             text: name
             source: item
-            onImplicitHeightChanged: listView.recalcSize()
-            onImplicitWidthChanged: listView.recalcSize()
+            onImplicitHeightChanged: listView !== null ? listView.recalcSize() : 0
+            onImplicitWidthChanged: listView !== null ? listView.recalcSize() : 0
 
             MouseArea {
+                enabled: name !== "" && item.enabled
                 anchors.fill: parent
                 hoverEnabled: true
-                onEntered: listView.currentIndex = index
+                onEntered: {
+                    tabletInterface.playSound(TabletEnums.ButtonHover);
+                    listView.currentIndex = index
+                }
+
                 onClicked: {
-                    root.selected(item)
-                    tabletRoot.playButtonClickSound();
+                    tabletInterface.playSound(TabletEnums.ButtonClick);
+                    root.selected(item);
                 }
             }
         }
@@ -124,8 +130,6 @@ FocusScope {
     function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
     function selectCurrentItem() { if (listView.currentIndex != -1) root.selected(currentItem.source); }
     function previousPage() { root.parent.pop(); }
-
-    
 }
 
 

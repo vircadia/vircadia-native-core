@@ -12,7 +12,6 @@
 
 Script.include("libraries/utils.js");
 
-var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 var DEFAULT_WEARABLE_DATA = {
     joints: {}
 };
@@ -116,7 +115,7 @@ function AttachedEntitiesManager() {
         var allowedJoints = getEntityCustomData('wearable', grabbedEntity, DEFAULT_WEARABLE_DATA).joints;
 
         var props = Entities.getEntityProperties(grabbedEntity, ["position", "parentID", "parentJointIndex"]);
-        if (props.parentID === NULL_UUID || props.parentID === MyAvatar.sessionUUID) {
+        if (props.parentID === Uuid.NULL || props.parentID === MyAvatar.sessionUUID) {
             var bestJointName = "";
             var bestJointIndex = -1;
             var bestJointDistance = 0;
@@ -168,7 +167,7 @@ function AttachedEntitiesManager() {
                 if (updatePresets) {
                     this.updateRelativeOffsets(newEntity);
                 }
-            } else if (props.parentID != NULL_UUID) {
+            } else if (props.parentID != Uuid.NULL) {
                 // drop the entity and set it to have no parent (not on the avatar), unless it's being equipped in a hand.
                 if (props.parentID === MyAvatar.sessionUUID &&
                     (props.parentJointIndex == MyAvatar.getJointIndex("RightHand") ||
@@ -176,7 +175,7 @@ function AttachedEntitiesManager() {
                     // this is equipped on a hand -- don't clear the parent.
                 } else {
                     var wearProps = Entities.getEntityProperties(grabbedEntity);
-                    wearProps.parentID = NULL_UUID;
+                    wearProps.parentID = Uuid.NULL;
                     wearProps.parentJointIndex = -1;
                     delete wearProps.id;
                     delete wearProps.created;

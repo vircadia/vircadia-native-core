@@ -370,7 +370,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         return Math.min(Math.max(value, min), max);
     }
 
-    var recommendedRect = Controller.getRecommendedOverlayRect();
+    var recommendedRect = Controller.getRecommendedHUDRect();
     var recommendedDimmensions = { x: recommendedRect.width, y: recommendedRect.height };
     that.windowDimensions = recommendedDimmensions; // Controller.getViewportDimensions();
     that.origin = { x: recommendedRect.x, y: recommendedRect.y };
@@ -378,7 +378,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     // For example, maybe we want "keep the same percentage to whatever two edges are closest to the edge of screen".
     // If we change that, the places to do so are onResizeViewport, save (maybe), and the initial move based on Settings, below.
     that.onResizeViewport = function (newSize) { // Can be overridden or extended by clients.
-        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var recommendedRect = Controller.getRecommendedHUDRect();
         var recommendedDimmensions = { x: recommendedRect.width, y: recommendedRect.height };
         var originRelativeX = (that.x - that.origin.x - that.offset.x);
         var originRelativeY = (that.y - that.origin.y - that.offset.y);
@@ -396,7 +396,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         // code once the new toolbar position is well established with users.
         this.isNewPositionKey = optionalPersistenceKey + '.isNewPosition';
         this.save = function () {
-            var recommendedRect = Controller.getRecommendedOverlayRect();
+            var recommendedRect = Controller.getRecommendedHUDRect();
             var screenSize = { x: recommendedRect.width, y: recommendedRect.height };
             if (screenSize.x > 0 && screenSize.y > 0) {
                 // Guard against invalid screen size that can occur at shut-down.
@@ -443,7 +443,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         that.move(that.dragOffsetX + event.x, that.dragOffsetY + event.y);
     };
     that.checkResize = function () { // Can be overriden or extended, but usually not. See onResizeViewport.
-        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var recommendedRect = Controller.getRecommendedHUDRect();
         var currentWindowSize = { x: recommendedRect.width, y: recommendedRect.height };
 
         if ((currentWindowSize.x !== that.windowDimensions.x) || (currentWindowSize.y !== that.windowDimensions.y)) {
@@ -471,7 +471,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
         var savedFraction = isNewPosition ? JSON.parse(Settings.getValue(this.fractionKey) || "0") : 0;
         Settings.setValue(this.isNewPositionKey, true);
 
-        var recommendedRect = Controller.getRecommendedOverlayRect();
+        var recommendedRect = Controller.getRecommendedHUDRect();
         var screenSize = { x: recommendedRect.width, y: recommendedRect.height };
         if (savedFraction) {
             // If we have saved data, keep the toolbar at the same proportion of the screen width/height.

@@ -13,7 +13,8 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtGraphicalEffects 1.0
+import QtQuick.Controls 2.2
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -25,17 +26,10 @@ Item {
 
     id: root;
     property bool historyReceived: false;
+    property int pendingCount: 0;
 
     Hifi.QmlCommerce {
         id: commerce;
-
-        onSecurityImageResult: {
-            if (exists) {
-                // just set the source again (to be sure the change was noticed)
-                securityImage.source = "";
-                securityImage.source = "image://security/securityImage";
-            }
-        }
 
         onBalanceResult : {
             balanceText.text = result.data.balance;
@@ -46,12 +40,11 @@ Item {
             if (result.status === 'success') {
                 transactionHistoryModel.clear();
                 transactionHistoryModel.append(result.data.history);
-            }
-        }
-    }
 
-    SecurityImageModel {
-        id: securityImageModel;
+                calculatePendingAndInvalidated();
+            }
+            refreshTimer.start();
+        }
     }
 
     Connections {
@@ -68,216 +61,230 @@ Item {
         // Text size
         size: 24;
         // Style
-        color: hifi.colors.faintGray;
+        color: hifi.colors.white;
         elide: Text.ElideRight;
         // Anchors
-        anchors.top: securityImageContainer.top;
-        anchors.bottom: securityImageContainer.bottom;
+        anchors.top: parent.top;
         anchors.left: parent.left;
-        anchors.right: hfcBalanceContainer.left;
+        anchors.leftMargin: 20;
+        width: parent.width/2;
+        height: 80;
     }
 
     // HFC Balance Container
     Item {
         id: hfcBalanceContainer;
         // Anchors
-        anchors.top: securityImageContainer.top;
-        anchors.right: securityImageContainer.left;
-        anchors.rightMargin: 16;
-        width: 175;
-        height: 60;
-        Rectangle {
-            id: hfcBalanceField;
-            color: hifi.colors.darkGray;
-            anchors.right: parent.right;
+        anchors.top: parent.top;
+        anchors.right: parent.right;
+        anchors.leftMargin: 20;
+        width: parent.width/2;
+        height: 80;
+        
+        // "HFC" balance label
+        HiFiGlyphs {
+            id: balanceLabel;
+            text: hifi.glyphs.hfc;
+            // Size
+            size: 40;
+            // Anchors
             anchors.left: parent.left;
+            anchors.top: parent.top;
             anchors.bottom: parent.bottom;
-            height: parent.height - 15;
+            // Style
+            color: hifi.colors.white;
+        }
 
-            // "HFC" balance label
-            FiraSansRegular {
-                id: balanceLabel;
-                text: "HFC";
-                // Text size
-                size: 20;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.right: hfcBalanceField.right;
-                anchors.rightMargin: 4;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.lightGrayText;
-                // Alignment
-                horizontalAlignment: Text.AlignRight;
-                verticalAlignment: Text.AlignVCenter;
+        // Balance Text
+        FiraSansRegular {
+            id: balanceText;
+            text: "--";
+            // Text size
+            size: 28;
+            // Anchors
+            anchors.top: balanceLabel.top;
+            anchors.bottom: balanceLabel.bottom;
+            anchors.left: balanceLabel.right;
+            anchors.leftMargin: 10;
+            anchors.right: parent.right;
+            anchors.rightMargin: 4;
+            // Style
+            color: hifi.colors.white;
+            // Alignment
+            verticalAlignment: Text.AlignVCenter;
 
-                onVisibleChanged: {
-                    if (visible) {
-                        historyReceived = false;
-                        commerce.balance();
-                        commerce.history();
-                    }
+            onVisibleChanged: {
+                if (visible) {
+                    historyReceived = false;
+                    commerce.balance();
+                    commerce.history();
+                } else {
+                    refreshTimer.stop();
                 }
             }
-
-            // Balance Text
-            FiraSansSemiBold {
-                id: balanceText;
-                text: "--";
-                // Text size
-                size: 28;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.left: parent.left;
-                anchors.right: balanceLabel.left;
-                anchors.rightMargin: 4;
-                // Style
-                color: hifi.colors.lightGrayText;
-                // Alignment
-                horizontalAlignment: Text.AlignRight;
-                verticalAlignment: Text.AlignVCenter;
-            }
         }
-        // "balance" text above field
+
+        // "balance" text below field
         RalewayRegular {
-            text: "balance";
+            text: "BALANCE (HFC)";
             // Text size
-            size: 12;
+            size: 14;
             // Anchors
-            anchors.top: parent.top;
-            anchors.bottom: hfcBalanceField.top;
-            anchors.bottomMargin: 4;
-            anchors.left: hfcBalanceField.left;
-            anchors.right: hfcBalanceField.right;
+            anchors.top: balanceLabel.top;
+            anchors.topMargin: balanceText.paintedHeight + 20;
+            anchors.bottom: balanceLabel.bottom;
+            anchors.left: balanceText.left;
+            anchors.right: balanceText.right;
+            height: paintedHeight;
             // Style
-            color: hifi.colors.faintGray;
-            // Alignment
-            horizontalAlignment: Text.AlignLeft;
-            verticalAlignment: Text.AlignVCenter;
+            color: hifi.colors.white;
         }
     }
 
-    // Security Image
-    Item {
-        id: securityImageContainer;
-        // Anchors
-        anchors.top: parent.top;
-        anchors.right: parent.right;
-        width: 75;
-        height: childrenRect.height;
-
-        onVisibleChanged: {
-            if (visible) {
-                commerce.getSecurityImage();
-            }
-        }
-
-        Image {
-            id: securityImage;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.horizontalCenter: parent.horizontalCenter;
-            height: parent.width - 10;
-            width: height;
-            fillMode: Image.PreserveAspectFit;
-            mipmap: true;
-            cache: false;
-            source: "image://security/securityImage";
-        }
-        Image {
-            id: securityImageOverlay;
-            source: "images/lockOverlay.png";
-            width: securityImage.width * 0.45;
-            height: securityImage.height * 0.45;
-            anchors.bottom: securityImage.bottom;
-            anchors.right: securityImage.right;
-            mipmap: true;
-            opacity: 0.9;
-        }
-        // "Security image" text below pic
-        RalewayRegular {
-            text: "security image";
-            // Text size
-            size: 12;
-            // Anchors
-            anchors.top: securityImage.bottom;
-            anchors.topMargin: 4;
-            anchors.left: securityImageContainer.left;
-            anchors.right: securityImageContainer.right;
-            height: paintedHeight;
-            // Style
-            color: hifi.colors.faintGray;
-            // Alignment
-            horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;
+    Timer {
+        id: refreshTimer;
+        interval: 4000; // Remove this after demo?
+        onTriggered: {
+            console.log("Refreshing Wallet Home...");
+            historyReceived = false;
+            commerce.balance();
+            commerce.history();
         }
     }
 
     // Recent Activity
-    Item {
+    Rectangle {
         id: recentActivityContainer;
-        anchors.top: securityImageContainer.bottom;
-        anchors.topMargin: 8;
         anchors.left: parent.left;
         anchors.right: parent.right;
         anchors.bottom: parent.bottom;
+        height: 440;
+        
+    
+        LinearGradient {
+            anchors.fill: parent;
+            start: Qt.point(0, 0);
+            end: Qt.point(0, height);
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: hifi.colors.white }
+                GradientStop { position: 1.0; color: hifi.colors.faintGray }
+            }
+        }
 
-        RalewayRegular {
+        RalewaySemiBold {
             id: recentActivityText;
             text: "Recent Activity";
             // Anchors
             anchors.top: parent.top;
+            anchors.topMargin: 26;
             anchors.left: parent.left;
+            anchors.leftMargin: 20;
             anchors.right: parent.right;
+            anchors.rightMargin: 30;
             height: 30;
             // Text size
             size: 22;
             // Style
-            color: hifi.colors.faintGray;
+            color: hifi.colors.baseGrayHighlight;
         }
         ListModel {
             id: transactionHistoryModel;
         }
-        Rectangle {
+        Item {
             anchors.top: recentActivityText.bottom;
-            anchors.topMargin: 4;
+            anchors.topMargin: 26;
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            color: "white";
-
+            anchors.rightMargin: 24;
+            
             ListView {
                 id: transactionHistory;
+                ScrollBar.vertical: ScrollBar {
+                policy: transactionHistory.contentHeight > parent.parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded;
+                parent: transactionHistory.parent;
+                anchors.top: transactionHistory.top;
+                anchors.left: transactionHistory.right;
+                anchors.leftMargin: 4;
+                anchors.bottom: transactionHistory.bottom;
+                width: 20;
+                }
                 anchors.centerIn: parent;
                 width: parent.width - 12;
-                height: parent.height - 12;
+                height: parent.height;
                 visible: transactionHistoryModel.count !== 0;
                 clip: true;
                 model: transactionHistoryModel;
                 delegate: Item {
                     width: parent.width;
-                    height: transactionText.height + 30;
-                    FiraSansRegular {
-                        id: transactionText;
-                        text: model.text;
-                        // Style
-                        size: 18;
+                    height: (model.transaction_type === "pendingCount" && root.pendingCount !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);
+
+                    Item {
+                        visible: model.transaction_type === "pendingCount" && root.pendingCount !== 0;
+                        anchors.top: parent.top;
+                        anchors.left: parent.left;
                         width: parent.width;
-                        height: paintedHeight;
-                        anchors.verticalCenter: parent.verticalCenter;
-                        color: "black";
-                        wrapMode: Text.WordWrap;
-                        // Alignment
-                        horizontalAlignment: Text.AlignLeft;
-                        verticalAlignment: Text.AlignVCenter;
+                        height: visible ? parent.height : 0;
+
+                        AnonymousProRegular {
+                            id: pendingCountText;
+                            anchors.fill: parent;
+                            text: root.pendingCount + ' Transaction' + (root.pendingCount > 1 ? 's' : '') + ' Pending';
+                            size: 18;
+                            color: hifi.colors.blueAccent;
+                            verticalAlignment: Text.AlignVCenter;
+                            horizontalAlignment: Text.AlignHCenter;
+                        }
                     }
 
-                    HifiControlsUit.Separator {
+                    Item {
+                        visible: model.transaction_type !== "pendingCount" && (model.status === "confirmed" || model.status === "invalidated");
+                        anchors.top: parent.top;
                         anchors.left: parent.left;
-                        anchors.right: parent.right;
-                        anchors.bottom: parent.bottom;
+                        width: parent.width;
+                        height: visible ? parent.height : 0;
+
+                        AnonymousProRegular {
+                            id: dateText;
+                            text: model.created_at ? getFormattedDate(model.created_at * 1000) : "";
+                            // Style
+                            size: 18;
+                            anchors.left: parent.left;
+                            anchors.top: parent.top;
+                            anchors.topMargin: 15;
+                            width: 118;
+                            height: paintedHeight;
+                            color: hifi.colors.blueAccent;
+                            wrapMode: Text.WordWrap;
+                            // Alignment
+                            horizontalAlignment: Text.AlignRight;
+                        }
+
+                        AnonymousProRegular {
+                            id: transactionText;
+                            text: model.text ? (model.status === "invalidated" ? ("INVALIDATED: " + model.text) : model.text) : "";
+                            size: 18;
+                            anchors.top: parent.top;
+                            anchors.topMargin: 15;
+                            anchors.left: dateText.right;
+                            anchors.leftMargin: 20;
+                            anchors.right: parent.right;
+                            height: paintedHeight;
+                            color: model.status === "invalidated" ? hifi.colors.redAccent : hifi.colors.baseGrayHighlight;
+                            wrapMode: Text.WordWrap;
+                            font.strikeout: model.status === "invalidated";
+
+                            onLinkActivated: {
+                                sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                            }
+                        }
+
+                        HifiControlsUit.Separator {
+                        colorScheme: 1;
+                            anchors.left: parent.left;
+                            anchors.right: parent.right;
+                            anchors.bottom: parent.bottom;
+                        }
                     }
                 }
                 onAtYEndChanged: {
@@ -304,6 +311,48 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
+
+    function getFormattedDate(timestamp) {
+        function addLeadingZero(n) {
+            return n < 10 ? '0' + n : '' + n;
+        }
+
+        var a = new Date(timestamp);
+        var year = a.getFullYear();
+        var month = addLeadingZero(a.getMonth());
+        var day = addLeadingZero(a.getDate());
+        var hour = a.getHours();
+        var drawnHour = hour;
+        if (hour === 0) {
+            drawnHour = 12;
+        } else if (hour > 12) {
+            drawnHour -= 12;
+        }
+        drawnHour = addLeadingZero(drawnHour);
+        
+        var amOrPm = "AM";
+        if (hour >= 12) {
+            amOrPm = "PM";
+        }
+
+        var min = addLeadingZero(a.getMinutes());
+        var sec = addLeadingZero(a.getSeconds());
+        return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
+    }
+
+    
+    function calculatePendingAndInvalidated(startingPendingCount) {
+        var pendingCount = startingPendingCount ? startingPendingCount : 0;
+        for (var i = 0; i < transactionHistoryModel.count; i++) {
+            if (transactionHistoryModel.get(i).status === "pending") {
+                pendingCount++;
+            }
+        }
+
+        root.pendingCount = pendingCount;
+        transactionHistoryModel.insert(0, {"transaction_type": "pendingCount"});
+    }
+
     //
     // Function Name: fromScript()
     //

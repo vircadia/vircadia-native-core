@@ -12,12 +12,20 @@
 #define hifi_LaserPointer_h
 
 #include <QString>
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 #include <DependencyManager.h>
-#include "raypick/RayPickScriptingInterface.h"
+#include <shared/ReadWriteLockable.h>
+
+#include "ui/overlays/Overlay.h"
 
 class RayPickResult;
+
+struct LockEndObject {
+    QUuid id { QUuid() };
+    bool isOverlay { false };
+    glm::mat4 offsetMat { glm::mat4() };
+};
 
 class RenderState {
 
@@ -32,6 +40,9 @@ public:
     const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
     const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
 
+    void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
+    const glm::vec3& getEndDim() const { return _endDim; }
+
     void deleteOverlays();
 
 private:
@@ -41,55 +52,57 @@ private:
     bool _startIgnoreRays;
     bool _pathIgnoreRays;
     bool _endIgnoreRays;
+
+    glm::vec3 _endDim;
 };
 
 
-class LaserPointer {
+class LaserPointer : public ReadWriteLockable {
 
 public:
+    using Pointer = std::shared_ptr<LaserPointer>;
 
     typedef std::unordered_map<std::string, RenderState> RenderStateMap;
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
     ~LaserPointer();
 
     QUuid getRayUID() { return _rayPickUID; }
     void enable();
     void disable();
-    const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID); }
+    const RayPickResult getPrevRayPickResult();
 
     void setRenderState(const std::string& state);
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
-    void setPrecisionPicking(const bool precisionPicking) { DependencyManager::get<RayPickScriptingInterface>()->setPrecisionPicking(_rayPickUID, precisionPicking); }
-    void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
-    void setIncludeEntities(const QScriptValue& includeEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeEntities(_rayPickUID, includeEntities); }
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays); }
-    void setIncludeOverlays(const QScriptValue& includeOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeOverlays(_rayPickUID, includeOverlays); }
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreAvatars(_rayPickUID, ignoreAvatars); }
-    void setIncludeAvatars(const QScriptValue& includeAvatars) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeAvatars(_rayPickUID, includeAvatars); }
+    void setPrecisionPicking(const bool precisionPicking);
+    void setLaserLength(const float laserLength);
+    void setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat = glm::mat4());
 
-    void setLockEndUUID(QUuid objectID, const bool isOverlay) { _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay); }
+    void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
+    void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
     void update();
 
 private:
     bool _renderingEnabled;
+    float _laserLength { 0.0f };
     std::string _currentRenderState { "" };
     RenderStateMap _renderStates;
     DefaultRenderStateMap _defaultRenderStates;
     bool _faceAvatar;
     bool _centerEndY;
     bool _lockEnd;
-    std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
+    bool _distanceScaleEnd;
+    LockEndObject _lockEndObject;
 
-    QUuid _rayPickUID;
+    const QUuid _rayPickUID;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);
     void disableRenderState(const RenderState& renderState);
 
 };

@@ -71,12 +71,14 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     } else {
         QUrl url = _url.resolved(filename);
 
-        QString texdir = mapping.value("texdir").toString();
+        QString texdir = mapping.value(TEXDIR_FIELD).toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
             }
             _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
+        } else {
+            _textureBaseUrl = url.resolved(QUrl("."));
         }
 
         auto animGraphVariant = mapping.value("animGraphUrl");
@@ -173,9 +175,9 @@ void GeometryReader::run() {
 
         QString urlname = _url.path().toLower();
         if (!urlname.isEmpty() && !_url.path().isEmpty() &&
-			(_url.path().toLower().endsWith(".fbx") || 
-			_url.path().toLower().endsWith(".obj") || 
-			_url.path().toLower().endsWith(".obj.gz"))) {
+            (_url.path().toLower().endsWith(".fbx") || 
+            _url.path().toLower().endsWith(".obj") || 
+            _url.path().toLower().endsWith(".obj.gz"))) {
             FBXGeometry::Pointer fbxGeometry;
 
             if (_url.path().toLower().endsWith(".fbx")) {
@@ -185,15 +187,15 @@ void GeometryReader::run() {
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, _combineParts, _url));
-			} else if (_url.path().toLower().endsWith(".obj.gz")) {
-				QByteArray uncompressedData;
-				if (gunzip(_data, uncompressedData)){
-					fbxGeometry.reset(OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url));
-				} else {
-					throw QString("failed to decompress .obj.gz" );
-				}
+            } else if (_url.path().toLower().endsWith(".obj.gz")) {
+                QByteArray uncompressedData;
+                if (gunzip(_data, uncompressedData)){
+                    fbxGeometry.reset(OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url));
+                } else {
+                    throw QString("failed to decompress .obj.gz" );
+                }
 
-			} else {
+            } else {
                 throw QString("unsupported format");
             }
 
@@ -239,7 +241,11 @@ private:
 };
 
 void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    QThreadPool::globalInstance()->start(new GeometryReader(_self, _url, _mapping, data, _combineParts));
+    if (_url != _effectiveBaseURL) {
+        _url = _effectiveBaseURL;
+        _textureBaseUrl = _effectiveBaseURL;
+    }
+    QThreadPool::globalInstance()->start(new GeometryReader(_self, _effectiveBaseURL, _mapping, data, _combineParts));
 }
 
 void GeometryDefinitionResource::setGeometryDefinition(FBXGeometry::Pointer fbxGeometry) {
@@ -456,7 +462,7 @@ void GeometryResourceWatcher::setResource(GeometryResource::Pointer resource) {
     _resource = resource;
     if (_resource) {
         if (_resource->isLoaded()) {
-            _geometryRef = std::make_shared<Geometry>(*_resource);
+            resourceFinished(true);
         } else {
             startWatching();
         }

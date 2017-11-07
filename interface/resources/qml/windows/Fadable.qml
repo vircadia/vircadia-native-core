@@ -26,6 +26,7 @@ FocusScope {
     property var completionCallback;
     // The target property to animate, usually scale or opacity
     property alias fadeTargetProperty: root.opacity
+    property bool disableFade: false
     // always start the property at 0 to enable fade in on creation
     fadeTargetProperty: 0
     // DO NOT set visible to false or when derived types override it it

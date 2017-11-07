@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
    NEAR_GRAB_RADIUS
@@ -26,6 +26,7 @@ Script.include("/~/system/libraries/utils.js");
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
+        this.robbed = false;
 
         this.parameters = makeDispatcherModuleParameters(
             90,
@@ -47,7 +48,7 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.thisHandIsParent = function(props) {
-            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
+            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== MyAvatar.SELF_ID) {
                 return false;
             }
 
@@ -87,18 +88,13 @@ Script.include("/~/system/libraries/utils.js");
         this.startNearParentingGrabOverlay = function (controllerData) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
-            var handJointIndex;
-            // if (this.ignoreIK) {
-            //     handJointIndex = this.controllerJointIndex;
-            // } else {
-            //     handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
-            // }
-            handJointIndex = this.controllerJointIndex;
+            this.controllerJointIndex = getControllerJointIndex(this.hand);
+            var handJointIndex = this.controllerJointIndex;
 
             var grabbedProperties = this.getGrabbedProperties();
 
             var reparentProps = {
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex,
                 velocity: {x: 0, y: 0, z: 0},
                 angularVelocity: {x: 0, y: 0, z: 0}
@@ -111,9 +107,9 @@ Script.include("/~/system/libraries/utils.js");
             } else if (this.otherHandIsParent(grabbedProperties)) {
                 // the other hand is parent. Steal the object and information
                 var otherModule = this.getOtherModule();
-                this.previousParentID[this.grabbedThingID] = otherModule.previousParentID[this.garbbedThingID];
+                this.previousParentID[this.grabbedThingID] = otherModule.previousParentID[this.grabbedThingID];
                 this.previousParentJointIndex[this.grabbedThingID] = otherModule.previousParentJointIndex[this.grabbedThingID];
-
+                otherModule.robbed = true;
             } else {
                 this.previousParentID[this.grabbedThingID] = grabbedProperties.parentID;
                 this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
@@ -134,12 +130,12 @@ Script.include("/~/system/libraries/utils.js");
 
         this.endNearParentingGrabOverlay = function () {
             var previousParentID = this.previousParentID[this.grabbedThingID];
-            if (previousParentID === NULL_UUID || previousParentID === null || previousParentID === undefined) {
+            if ((previousParentID === Uuid.NULL || previousParentID === null) && !this.robbed) {
                 Overlays.editOverlay(this.grabbedThingID, {
-                    parentID: NULL_UUID,
+                    parentID: Uuid.NULL,
                     parentJointIndex: -1
                 });
-            } else {
+            } else if (!this.robbed){
                 // before we grabbed it, overlay was a child of something; put it back.
                 Overlays.editOverlay(this.grabbedThingID, {
                     parentID: this.previousParentID[this.grabbedThingID],
@@ -151,6 +147,12 @@ Script.include("/~/system/libraries/utils.js");
                     resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
                 }
             }
+
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.grabbedThingID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
 
             this.grabbedThingID = null;
         };
@@ -170,7 +172,9 @@ Script.include("/~/system/libraries/utils.js");
 
 
         this.isReady = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
+            if ((controllerData.triggerClicks[this.hand] === 0 &&
+                 controllerData.secondaryValues[this.hand] === 0)) {
+                this.robbed = false;
                 return makeRunningValues(false, [], []);
             }
 
@@ -182,7 +186,7 @@ Script.include("/~/system/libraries/utils.js");
             });
 
             var targetID = this.getTargetID(grabbableOverlays, controllerData);
-            if (targetID) {
+            if (targetID && !this.robbed) {
                 this.grabbedThingID = targetID;
                 this.startNearParentingGrabOverlay(controllerData);
                 return makeRunningValues(true, [this.grabbedThingID], []);
@@ -194,6 +198,7 @@ Script.include("/~/system/libraries/utils.js");
         this.run = function (controllerData) {
             if (controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0) {
                 this.endNearParentingGrabOverlay();
+                this.robbed = false;
                 return makeRunningValues(false, [], []);
             } else {
                 // check if someone stole the target from us

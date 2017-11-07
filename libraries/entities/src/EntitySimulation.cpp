@@ -9,9 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <AACube.h>
-
 #include "EntitySimulation.h"
+
+#include <AACube.h>
+#include <Profile.h>
+
 #include "EntitiesLogging.h"
 #include "MovingEntitiesOperator.h"
 
@@ -27,6 +29,7 @@ void EntitySimulation::setEntityTree(EntityTreePointer tree) {
 }
 
 void EntitySimulation::updateEntities() {
+    PROFILE_RANGE(simulation_physics, "ES::updateEntities");
     QMutexLocker lock(&_mutex);
     quint64 now = usecTimestampNow();
 
@@ -35,8 +38,12 @@ void EntitySimulation::updateEntities() {
     callUpdateOnEntitiesThatNeedIt(now);
     moveSimpleKinematics(now);
     updateEntitiesInternal(now);
-    PerformanceTimer perfTimer("sortingEntities");
-    sortEntitiesThatMoved();
+
+    {
+        PROFILE_RANGE(simulation_physics, "Sort");
+        PerformanceTimer perfTimer("sortingEntities");
+        sortEntitiesThatMoved();
+    }
 }
 
 void EntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
@@ -141,7 +148,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
 void EntitySimulation::sortEntitiesThatMoved() {
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
-    MovingEntitiesOperator moveOperator(_entityTree);
+    MovingEntitiesOperator moveOperator;
     AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
     SetOfEntities::iterator itemItr = _entitiesToSort.begin();
     while (itemItr != _entitiesToSort.end()) {
@@ -258,6 +265,7 @@ void EntitySimulation::clearEntities() {
 }
 
 void EntitySimulation::moveSimpleKinematics(const quint64& now) {
+    PROFILE_RANGE_EX(simulation_physics, "Kinematics", 0xffff00ff, (uint64_t)_simpleKinematicEntities.size());
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {
         EntityItemPointer entity = *itemItr;

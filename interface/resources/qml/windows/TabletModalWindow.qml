@@ -15,7 +15,7 @@ import "."
 Rectangle {
     id: modalWindow
     layer.enabled: true
-    property var title: "Modal"
+    property var title: "Open"
     width: tabletRoot.width
     height: tabletRoot.height
     color: "#80000000"

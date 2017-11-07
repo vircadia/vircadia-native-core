@@ -240,6 +240,7 @@ public:
 
     /// displays contents for debugging
     void debugContent();
+    void debugBytes();
     
     static quint64 getCompressContentTime() { return _compressContentTime; } /// total time spent compressing content
     static quint64 getCompressContentCalls() { return _compressContentCalls; } /// total calls to compress content

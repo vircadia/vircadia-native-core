@@ -557,10 +557,10 @@ void NodeList::pingPunchForDomainServer() {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendPingsToDS);
 
         // send the ping packet to the local and public sockets for this node
-        auto localPingPacket = constructICEPingPacket(PingType::Local, _sessionUUID);
+        auto localPingPacket = constructICEPingPacket(PingType::Local, _domainHandler.getICEClientID());
         sendPacket(std::move(localPingPacket), _domainHandler.getICEPeer().getLocalSocket());
 
-        auto publicPingPacket = constructICEPingPacket(PingType::Public, _sessionUUID);
+        auto publicPingPacket = constructICEPingPacket(PingType::Public, _domainHandler.getICEClientID());
         sendPacket(std::move(publicPingPacket), _domainHandler.getICEPeer().getPublicSocket());
 
         _domainHandler.getICEPeer().incrementConnectionAttempts();
@@ -809,7 +809,7 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
-        eachMatchingNode([&nodeID](const SharedNodePointer& node)->bool {
+        eachMatchingNode([](const SharedNodePointer& node)->bool {
             if (node->getType() == NodeType::AudioMixer || node->getType() == NodeType::AvatarMixer) {
                 return true;
             } else {

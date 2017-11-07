@@ -17,7 +17,18 @@
 #include "OctreeConstants.h"
 #include "OctreeQuery.h"
 
-OctreeQuery::OctreeQuery() {
+const float DEFAULT_FOV = 45.0f; // degrees
+const float DEFAULT_ASPECT_RATIO = 1.0f;
+const float DEFAULT_NEAR_CLIP = 0.1f;
+const float DEFAULT_FAR_CLIP = 3.0f;
+
+OctreeQuery::OctreeQuery() :
+    _cameraFov(DEFAULT_FOV),
+    _cameraAspectRatio(DEFAULT_ASPECT_RATIO),
+    _cameraNearClip(DEFAULT_NEAR_CLIP),
+    _cameraFarClip(DEFAULT_FAR_CLIP),
+    _cameraCenterRadius(DEFAULT_FAR_CLIP)
+{
     _maxQueryPPS = DEFAULT_MAX_OCTREE_PPS;
 }
 

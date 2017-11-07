@@ -79,10 +79,10 @@ private:
         void sendUserActivityData(QString activity);
         void configureCalibrationSettings(const QJsonObject configurationSettings);
         QJsonObject configurationSettings();
-        controller::Pose addOffsetToPuckPose(int joint) const;
+        controller::Pose addOffsetToPuckPose(const controller::InputCalibrationData& inputCalibration, int joint) const;
         glm::mat4 calculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
         glm::mat4 calculateDefaultToReferenceForHmd(const controller::InputCalibrationData& inputCalibration);
-        void updateCalibratedLimbs();
+        void updateCalibratedLimbs(const controller::InputCalibrationData& inputCalibration);
         bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
         void handleHmd(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData);

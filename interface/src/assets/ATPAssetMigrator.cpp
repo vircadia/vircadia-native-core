@@ -42,117 +42,161 @@ static const QString COMPOUND_SHAPE_URL_KEY = "compoundShapeURL";
 static const QString MESSAGE_BOX_TITLE = "ATP Asset Migration";
 
 void ATPAssetMigrator::loadEntityServerFile() {
-    auto filename = OffscreenUi::getOpenFileName(_dialogParent, tr("Select an entity-server content file to migrate"), QString(), tr("Entity-Server Content (*.gz)"));
-    
-    if (!filename.isEmpty()) {
-        qCDebug(asset_migrator) << "Selected filename for ATP asset migration: " << filename;
-        
-        static const QString MIGRATION_CONFIRMATION_TEXT {
-            "The ATP Asset Migration process will scan the selected entity-server file,\nupload discovered resources to the"\
-            " current asset-server\nand then save a new entity-server file with the ATP URLs.\n\nAre you ready to"\
-            " continue?\n\nMake sure you are connected to the right domain."
-        };
-        
-        auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE, MIGRATION_CONFIRMATION_TEXT,
-                                            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-        
-        if (button == QMessageBox::No) {
-            return;
-        }
-        
-        // try to open the file at the given filename
-        QFile modelsFile { filename };
-        
-        if (modelsFile.open(QIODevice::ReadOnly)) {
-            QByteArray compressedJsonData = modelsFile.readAll();
-            QByteArray jsonData;
-            
-            if (!gunzip(compressedJsonData, jsonData)) {
-                OffscreenUi::warning(_dialogParent, "Error", "The file at" + filename + "was not in gzip format.");
-            }
-            
-            QJsonDocument modelsJSON = QJsonDocument::fromJson(jsonData);
-            _entitiesArray = modelsJSON.object()["Entities"].toArray();
-            
-            for (auto jsonValue : _entitiesArray) {
-                QJsonObject entityObject = jsonValue.toObject();
-                QString modelURLString = entityObject.value(MODEL_URL_KEY).toString();
-                QString compoundURLString = entityObject.value(COMPOUND_SHAPE_URL_KEY).toString();
+    ModalDialogListener* dlg = OffscreenUi::getOpenFileNameAsync(_dialogParent, tr("Select an entity-server content file to migrate"),
+                                      QString(), tr("Entity-Server Content (*.gz)"));
 
-                for (int i = 0; i < 2; ++i) {
-                    bool isModelURL = (i == 0);
-                    quint8 replacementType = i;
-                    auto migrationURLString = (isModelURL) ? modelURLString : compoundURLString;
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        const QString& filename = response.toString();
+        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        if (!filename.isEmpty()) {
+            qCDebug(asset_migrator) << "Selected filename for ATP asset migration: " << filename;
 
-                    if (!migrationURLString.isEmpty()) {
-                        QUrl migrationURL = QUrl(migrationURLString);
+            auto migrateResources = [=](QUrl migrationURL, QJsonValueRef jsonValue, bool isModelURL) {
+                auto request =
+                        DependencyManager::get<ResourceManager>()->createResourceRequest(this, migrationURL);
 
-                        if (!_ignoredUrls.contains(migrationURL)
-                            && (migrationURL.scheme() == URL_SCHEME_HTTP || migrationURL.scheme() == URL_SCHEME_HTTPS
-                                || migrationURL.scheme() == URL_SCHEME_FILE || migrationURL.scheme() == URL_SCHEME_FTP)) {
+                if (request) {
+                    qCDebug(asset_migrator) << "Requesting" << migrationURL << "for ATP asset migration";
 
-                                if (_pendingReplacements.contains(migrationURL)) {
-                                    // we already have a request out for this asset, just store the QJsonValueRef
-                                    // so we can do the hash replacement when the request comes back
-                                    _pendingReplacements.insert(migrationURL, { jsonValue, replacementType });
-                                } else if (_uploadedAssets.contains(migrationURL)) {
-                                    // we already have a hash for this asset
-                                    // so just do the replacement immediately
-                                    if (isModelURL) {
-                                        entityObject[MODEL_URL_KEY] = _uploadedAssets.value(migrationURL).toString();
-                                    } else {
-                                        entityObject[COMPOUND_SHAPE_URL_KEY] = _uploadedAssets.value(migrationURL).toString();
-                                    }
+                    // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
+                    // to an ATP one once ready
+                    _pendingReplacements.insert(migrationURL, { jsonValue, (isModelURL ? 0 : 1)});
 
-                                    jsonValue = entityObject;
-                                } else if (wantsToMigrateResource(migrationURL)) {
-                                    auto request =
-                                        DependencyManager::get<ResourceManager>()->createResourceRequest(this, migrationURL);
+                    connect(request, &ResourceRequest::finished, this, [=]() {
+                        if (request->getResult() == ResourceRequest::Success) {
+                            migrateResource(request);
+                        } else {
+                            ++_errorCount;
+                            _pendingReplacements.remove(migrationURL);
+                            qWarning() << "Could not retrieve asset at" << migrationURL.toString();
 
-                                    if (request) {
-                                        qCDebug(asset_migrator) << "Requesting" << migrationURL << "for ATP asset migration";
+                            checkIfFinished();
+                        }
+                        request->deleteLater();
+                    });
 
-                                        // add this combination of QUrl and QJsonValueRef to our multi hash so we can change the URL
-                                        // to an ATP one once ready
-                                        _pendingReplacements.insert(migrationURL, { jsonValue, (isModelURL ? 0 : 1)});
-
-                                        connect(request, &ResourceRequest::finished, this, [=]() {
-                                            if (request->getResult() == ResourceRequest::Success) {
-                                                migrateResource(request);
-                                            } else {
-                                                ++_errorCount;
-                                                _pendingReplacements.remove(migrationURL);
-                                                qWarning() << "Could not retrieve asset at" << migrationURL.toString();
-
-                                                checkIfFinished();
-                                            }
-                                            request->deleteLater();
-                                        });
-
-                                        request->send();
-                                    } else {
-                                        ++_errorCount;
-                                        qWarning() << "Count not create request for asset at" << migrationURL.toString();
-                                    }
-                                    
-                                } else {
-                                    _ignoredUrls.insert(migrationURL);
-                                }
-                            }
-                    }
+                    request->send();
+                } else {
+                    ++_errorCount;
+                    qWarning() << "Could not create request for asset at" << migrationURL.toString();
                 }
 
-            }
-            
-            _doneReading = true;
+            };
+            static const QString MIGRATION_CONFIRMATION_TEXT {
+                "The ATP Asset Migration process will scan the selected entity-server file,\nupload discovered resources to the"\
+                " current asset-server\nand then save a new entity-server file with the ATP URLs.\n\nAre you ready to"\
+                " continue?\n\nMake sure you are connected to the right domain."
+            };
+            ModalDialogListener* migrationConfirmDialog = OffscreenUi::asyncQuestion(_dialogParent, MESSAGE_BOX_TITLE, MIGRATION_CONFIRMATION_TEXT,
+                                       QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+            QObject::connect(migrationConfirmDialog, &ModalDialogListener::response, this, [=] (QVariant answer) {
+                QObject::disconnect(migrationConfirmDialog, &ModalDialogListener::response, this, nullptr);
 
-            checkIfFinished();
-            
-        } else {
-            OffscreenUi::warning(_dialogParent, "Error",
-                                 "There was a problem loading that entity-server file for ATP asset migration. Please try again");
+                if (QMessageBox::Yes == static_cast<QMessageBox::StandardButton>(answer.toInt())) {
+                    // try to open the file at the given filename
+                    QFile modelsFile { filename };
+
+                    if (modelsFile.open(QIODevice::ReadOnly)) {
+                        QByteArray compressedJsonData = modelsFile.readAll();
+                        QByteArray jsonData;
+
+                        if (!gunzip(compressedJsonData, jsonData)) {
+                            OffscreenUi::asyncWarning(_dialogParent, "Error", "The file at" + filename + "was not in gzip format.");
+                        }
+
+                        QJsonDocument modelsJSON = QJsonDocument::fromJson(jsonData);
+                        _entitiesArray = modelsJSON.object()["Entities"].toArray();
+
+                        for (auto jsonValue : _entitiesArray) {
+                            QJsonObject entityObject = jsonValue.toObject();
+                            QString modelURLString = entityObject.value(MODEL_URL_KEY).toString();
+                            QString compoundURLString = entityObject.value(COMPOUND_SHAPE_URL_KEY).toString();
+
+                            for (int i = 0; i < 2; ++i) {
+                                bool isModelURL = (i == 0);
+                                quint8 replacementType = i;
+                                auto migrationURLString = (isModelURL) ? modelURLString : compoundURLString;
+
+                                if (!migrationURLString.isEmpty()) {
+                                    QUrl migrationURL = QUrl(migrationURLString);
+
+                                    if (!_ignoredUrls.contains(migrationURL)
+                                            && (migrationURL.scheme() == URL_SCHEME_HTTP || migrationURL.scheme() == URL_SCHEME_HTTPS
+                                                || migrationURL.scheme() == URL_SCHEME_FILE || migrationURL.scheme() == URL_SCHEME_FTP)) {
+
+                                        if (_pendingReplacements.contains(migrationURL)) {
+                                            // we already have a request out for this asset, just store the QJsonValueRef
+                                            // so we can do the hash replacement when the request comes back
+                                            _pendingReplacements.insert(migrationURL, { jsonValue, replacementType });
+                                        } else if (_uploadedAssets.contains(migrationURL)) {
+                                            // we already have a hash for this asset
+                                            // so just do the replacement immediately
+                                            if (isModelURL) {
+                                                entityObject[MODEL_URL_KEY] = _uploadedAssets.value(migrationURL).toString();
+                                            } else {
+                                                entityObject[COMPOUND_SHAPE_URL_KEY] = _uploadedAssets.value(migrationURL).toString();
+                                            }
+
+                                            jsonValue = entityObject;
+                                        } else {
+
+                                            static bool hasAskedForCompleteMigration { false };
+                                            static bool wantsCompleteMigration { false };
+
+                                            if (!hasAskedForCompleteMigration) {
+                                                // this is the first resource migration - ask the user if they just want to migrate everything
+                                                static const QString COMPLETE_MIGRATION_TEXT { "Do you want to migrate all assets found in this entity-server file?\n"\
+                                                                                               "Select \"Yes\" to upload all discovered assets to the current asset-server immediately.\n"\
+                                                                                               "Select \"No\" to be prompted for each discovered asset."
+                                                                                             };
+                                                ModalDialogListener* migrationConfirmDialog1 = OffscreenUi::asyncQuestion(_dialogParent, MESSAGE_BOX_TITLE,
+                                                                           "Would you like to migrate the following resource?\n" + migrationURL.toString(),
+                                                                           QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+
+                                                QObject::connect(migrationConfirmDialog1, &ModalDialogListener::response, this, [=] (QVariant answer) {
+                                                    QObject::disconnect(migrationConfirmDialog1, &ModalDialogListener::response, this, nullptr);
+                                                    if (static_cast<QMessageBox::StandardButton>(answer.toInt()) ==
+                                                            QMessageBox::Yes) {
+                                                        wantsCompleteMigration = true;
+                                                        migrateResources(migrationURL, jsonValue, isModelURL);
+                                                    } else {
+                                                        ModalDialogListener* migrationConfirmDialog2 = OffscreenUi::asyncQuestion(_dialogParent, MESSAGE_BOX_TITLE, COMPLETE_MIGRATION_TEXT,
+                                                                                   QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+
+                                                        QObject::connect(migrationConfirmDialog2, &ModalDialogListener::response, this, [=] (QVariant answer) {
+                                                            QObject::disconnect(migrationConfirmDialog2, &ModalDialogListener::response, this, nullptr);
+                                                            if (static_cast<QMessageBox::StandardButton>(answer.toInt()) ==
+                                                                    QMessageBox::Yes) {
+                                                                migrateResources(migrationURL, jsonValue, isModelURL);
+                                                            } else {
+                                                                _ignoredUrls.insert(migrationURL);
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                                hasAskedForCompleteMigration = true;
+                                            }
+                                            if (wantsCompleteMigration) {
+                                                migrateResources(migrationURL, jsonValue, isModelURL);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        _doneReading = true;
+
+                        checkIfFinished();
+
+                    } else {
+                        OffscreenUi::asyncWarning(_dialogParent, "Error",
+                                                  "There was a problem loading that entity-server file for ATP asset migration. Please try again");
+                    }
+                }
+            });
         }
-    }
+    });
 }
 
 void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
@@ -248,9 +292,6 @@ void ATPAssetMigrator::checkIfFinished() {
     // are we out of pending replacements? if so it is time to save the entity-server file
     if (_doneReading && _pendingReplacements.empty()) {
         saveEntityServerFile();
-
-        // reset after the attempted save, success or fail
-        reset();
     }
 }
 
@@ -288,39 +329,43 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
 
 void ATPAssetMigrator::saveEntityServerFile() {
     // show a dialog to ask the user where they want to save the file
-    QString saveName = OffscreenUi::getSaveFileName(_dialogParent, "Save Migrated Entities File");
-    
-    QFile saveFile { saveName };
-    
-    if (saveFile.open(QIODevice::WriteOnly)) {
-        QJsonObject rootObject;
-        rootObject[ENTITIES_OBJECT_KEY] = _entitiesArray;
-        
-        QJsonDocument newDocument { rootObject };
-        QByteArray jsonDataForFile;
-        
-        if (gzip(newDocument.toJson(), jsonDataForFile, -1)) {
-            
-            saveFile.write(jsonDataForFile);
-            saveFile.close();
+    ModalDialogListener* dlg = OffscreenUi::getSaveFileNameAsync(_dialogParent, "Save Migrated Entities File");
+    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
+        const QString& saveName = response.toString();
+        QFile saveFile { saveName };
 
-            QString infoMessage = QString("Your new entities file has been saved at\n%1.").arg(saveName);
+        if (saveFile.open(QIODevice::WriteOnly)) {
+            QJsonObject rootObject;
+            rootObject[ENTITIES_OBJECT_KEY] = _entitiesArray;
 
-            if (_errorCount > 0) {
-                infoMessage += QString("\nThere were %1 models that could not be migrated.\n").arg(_errorCount);
-                infoMessage += "Check the warnings in your log for details.\n";
-                infoMessage += "You can re-attempt migration on those models\nby restarting this process with the newly saved file.";
+            QJsonDocument newDocument { rootObject };
+            QByteArray jsonDataForFile;
+
+            if (gzip(newDocument.toJson(), jsonDataForFile, -1)) {
+
+                saveFile.write(jsonDataForFile);
+                saveFile.close();
+
+                QString infoMessage = QString("Your new entities file has been saved at\n%1.").arg(saveName);
+
+                if (_errorCount > 0) {
+                    infoMessage += QString("\nThere were %1 models that could not be migrated.\n").arg(_errorCount);
+                    infoMessage += "Check the warnings in your log for details.\n";
+                    infoMessage += "You can re-attempt migration on those models\nby restarting this process with the newly saved file.";
+                }
+
+                OffscreenUi::asyncInformation(_dialogParent, "Success", infoMessage);
+            } else {
+                OffscreenUi::asyncWarning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
             }
 
-            OffscreenUi::information(_dialogParent, "Success", infoMessage);
         } else {
-            OffscreenUi::warning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
+            OffscreenUi::asyncWarning(_dialogParent, "Error",
+                                 QString("Could not open file at %1 to write new entities file to.").arg(saveName));
         }
-    
-    } else {
-        OffscreenUi::warning(_dialogParent, "Error",
-                             QString("Could not open file at %1 to write new entities file to.").arg(saveName));
-    }
+        // reset after the attempted save, success or fail
+        reset();
+    });
 }
 
 void ATPAssetMigrator::reset() {

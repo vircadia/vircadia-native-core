@@ -32,6 +32,7 @@
 #include "AnimUtil.h"
 #include "IKTarget.h"
 
+
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
@@ -151,6 +152,7 @@ void Rig::overrideRoleAnimation(const QString& role, const QString& url, float f
             const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
             float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
             auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop, false);
+            _roleAnimStates[role] = { role, url, fps, loop, firstFrame, lastFrame };
             AnimNode::Pointer parent = node->getParent();
             parent->replaceChild(node, clipNode);
         } else {
@@ -249,6 +251,7 @@ void Rig::reset(const FBXGeometry& geometry) {
     _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? geometry.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
     if (!_animGraphURL.isEmpty()) {
+        _animNode.reset();
         initAnimGraph(_animGraphURL);
     }
 }
@@ -998,14 +1001,13 @@ void Rig::updateAnimationStateHandlers() { // called on avatar update thread (wh
 }
 
 void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform) {
-
-    PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
-    PerformanceTimer perfTimer("updateAnimations");
+    DETAILED_PROFILE_RANGE_EX(simulation_animation_detail, __FUNCTION__, 0xffff00ff, 0);
+    DETAILED_PERFORMANCE_TIMER("updateAnimations");
 
     setModelOffset(rootTransform);
 
     if (_animNode && _enabledAnimations) {
-        PerformanceTimer perfTimer("handleTriggers");
+        DETAILED_PERFORMANCE_TIMER("handleTriggers");
 
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
@@ -1619,28 +1621,37 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 }
 
 void Rig::initAnimGraph(const QUrl& url) {
-    _animGraphURL = url;
+    if (_animGraphURL != url || (!_animNode && !_animLoading)) {
+        _animGraphURL = url;
 
-    _animNode.reset();
+        _animNode.reset();
 
-    // load the anim graph
-    _animLoader.reset(new AnimNodeLoader(url));
-    connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
-        _animNode = nodeIn;
-        _animNode->setSkeleton(_animSkeleton);
+        // load the anim graph
+        _animLoader.reset(new AnimNodeLoader(url));
+        _animLoading = true;
+        connect(_animLoader.get(), &AnimNodeLoader::success, [this](AnimNode::Pointer nodeIn) {
+            _animNode = nodeIn;
+            _animNode->setSkeleton(_animSkeleton);
 
-        if (_userAnimState.clipNodeEnum != UserAnimState::None) {
-            // restore the user animation we had before reset.
-            UserAnimState origState = _userAnimState;
-            _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
-            overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
-        }
+            if (_userAnimState.clipNodeEnum != UserAnimState::None) {
+                // restore the user animation we had before reset.
+                UserAnimState origState = _userAnimState;
+                _userAnimState = { UserAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
+                overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
+            }
+            // restore the role animations we had before reset.
+            for (auto& roleAnimState : _roleAnimStates) {
+                auto roleState = roleAnimState.second;
+                overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
+            }
+            _animLoading = false;
 
-        emit onLoadComplete();
-    });
-    connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
-        qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
-    });
+            emit onLoadComplete();
+        });
+        connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
+            qCCritical(animation) << "Error loading" << url.toDisplayString() << "code = " << error << "str =" << str;
+        });
+    }
 }
 
 bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const {
@@ -1653,7 +1664,7 @@ bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const 
 }
 
 void Rig::applyOverridePoses() {
-    PerformanceTimer perfTimer("override");
+    DETAILED_PERFORMANCE_TIMER("override");
     if (_numOverrides == 0 || !_animSkeleton) {
         return;
     }
@@ -1670,7 +1681,7 @@ void Rig::applyOverridePoses() {
 }
 
 void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) {
-    PerformanceTimer perfTimer("buildAbsolute");
+    DETAILED_PERFORMANCE_TIMER("buildAbsolute");
     if (!_animSkeleton) {
         return;
     }
@@ -1725,8 +1736,9 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
 }
 
 void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
-    PerformanceTimer perfTimer("copyJoints");
-    PROFILE_RANGE(simulation_animation_detail, "copyJoints");
+    DETAILED_PROFILE_RANGE(simulation_animation_detail, "copyJoints");
+    DETAILED_PERFORMANCE_TIMER("copyJoints");
+
     if (!_animSkeleton) {
         return;
     }

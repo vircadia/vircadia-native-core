@@ -9,20 +9,39 @@
 //
 
 import QtQuick 2.0
+import "."
 
-Item {
+Rectangle {
     id: keyboardBase
+    objectName: "keyboard"
+
+    anchors.left: parent.left
+    anchors.right: parent.right
+
+    color: "#252525"
 
     property bool raised: false
     property bool numeric: false
 
+    readonly property int keyboardRowHeight: 50
+    readonly property int keyboardWidth: 480
+
+    readonly property int mirrorTextHeight: keyboardRowHeight
+
+    property bool password: false
+    property alias mirroredText: mirrorText.text
+    property bool showMirrorText: true
     readonly property int raisedHeight: 200
 
-    height: enabled && raised ? raisedHeight : 0
+    height: enabled && raised ? raisedHeight + (showMirrorText ? keyboardRowHeight : 0) : 0
     visible: enabled && raised
 
     property bool shiftMode: false
     property bool numericShiftMode: false
+
+    onRaisedChanged: {
+        mirroredText = "";
+    }
 
     function resetShiftMode(mode) {
         shiftMode = mode;
@@ -93,24 +112,47 @@ Item {
     }
 
     Rectangle {
-        id: leftRect
         y: 0
-        height: 200
+        x: 0
+        height: showMirrorText ? mirrorTextHeight : 0
+        width: keyboardWidth
         color: "#252525"
-        anchors.right: keyboardRect.left
-        anchors.rightMargin: 0
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
+        anchors.horizontalCenter: parent.horizontalCenter
+
+        TextInput {
+            id: mirrorText
+            visible: showMirrorText
+            FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
+            font.family: ralewaySemiBold.name
+            font.pointSize: 13.5
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+            color: "#FFFFFF";
+            anchors.fill: parent
+            wrapMode: Text.WordWrap
+            readOnly: false // we need this to allow control to accept QKeyEvent
+            selectByMouse: false
+            echoMode: password ? TextInput.Password : TextInput.Normal
+
+            Keys.onPressed: {
+                if (event.key == Qt.Key_Return || event.key == Qt.Key_Space) {
+                    mirrorText.text = "";
+                    event.accepted = true;
+                }
+            }
+        }
+
+        MouseArea { // ... and we need this mouse area to prevent mirrorText from getting mouse events to ensure it will never get focus
+            anchors.fill: parent
+        }
     }
 
     Rectangle {
         id: keyboardRect
-        x: 206
-        y: 0
-        width: 480
-        height: 200
+        x: 0
+        y: showMirrorText ? mirrorTextHeight : 0
+        width: keyboardWidth
+        height: raisedHeight
         color: "#252525"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
@@ -118,13 +160,13 @@ Item {
 
         Column {
             id: columnAlpha
-            width: 480
-            height: 200
+            width: keyboardWidth
+            height: raisedHeight
             visible: !numeric
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -142,8 +184,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 20
 
@@ -160,8 +202,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -185,8 +227,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -205,13 +247,13 @@ Item {
 
         Column {
             id: columnNumeric
-            width: 480
-            height: 200
+            width: keyboardWidth
+            height: raisedHeight
             visible: numeric
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -229,8 +271,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -248,8 +290,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -273,8 +315,8 @@ Item {
             }
 
             Row {
-                width: 480
-                height: 50
+                width: keyboardWidth
+                height: keyboardRowHeight
                 anchors.left: parent.left
                 anchors.leftMargin: 4
 
@@ -290,32 +332,5 @@ Item {
                 Key { width: 43; glyph: "\u276D"; }
             }
         }
-    }
-
-    Rectangle {
-        id: rightRect
-        y: 280
-        height: 200
-        color: "#252525"
-        border.width: 0
-        anchors.left: keyboardRect.right
-        anchors.leftMargin: 0
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 0
-    }
-
-    Rectangle {
-        id: rectangle1
-        color: "#ffffff"
-        anchors.bottom: keyboardRect.top
-        anchors.bottomMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.top: parent.top
-        anchors.topMargin: 0
     }
 }

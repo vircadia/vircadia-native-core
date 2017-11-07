@@ -23,8 +23,14 @@
 
 #include "SharedLogging.h"
 
+const QSettings::Format JSON_FORMAT = QSettings::registerFormat("json", readJSONFile, writeJSONFile);
+
 QSettings::SettingsMap jsonDocumentToVariantMap(const QJsonDocument& document);
 QJsonDocument variantMapToJsonDocument(const QSettings::SettingsMap& map);
+
+QString settingsFilename() {
+    return QSettings().fileName();
+}
 
 bool readJSONFile(QIODevice& device, QSettings::SettingsMap& map) {
     QJsonParseError jsonParseError;

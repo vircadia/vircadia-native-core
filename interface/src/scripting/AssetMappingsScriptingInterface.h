@@ -25,20 +25,36 @@
 
 class AssetMappingModel : public QStandardItemModel {
     Q_OBJECT
+    Q_PROPERTY(bool autoRefreshEnabled READ isAutoRefreshEnabled WRITE setAutoRefreshEnabled)
+    Q_PROPERTY(int numPendingBakes READ getNumPendingBakes NOTIFY numPendingBakesChanged)
+
 public:
+    AssetMappingModel();
+
     Q_INVOKABLE void refresh();
+
+    bool isAutoRefreshEnabled();
+    void setAutoRefreshEnabled(bool enabled);
 
     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
     bool isKnownFolder(QString path) const;
+
+    int getNumPendingBakes() const { return _numPendingBakes;  }
 
 public slots:
     void clear();
 
 signals:
+    void numPendingBakesChanged(int newCount);
     void errorGettingMappings(QString errorString);
+    void updated();
 
 private:
+    void setupRoles();
+
     QHash<QString, QStandardItem*> _pathToItemMap;
+    QTimer _autoRefreshTimer;
+    int _numPendingBakes{ 0 };
 };
 
 Q_DECLARE_METATYPE(AssetMappingModel*)
@@ -61,10 +77,11 @@ public:
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback = QJSValue());
     Q_INVOKABLE void getMapping(QString path, QJSValue callback = QJSValue());
     Q_INVOKABLE void uploadFile(QString path, QString mapping, QJSValue startedCallback = QJSValue(), QJSValue completedCallback = QJSValue(), bool dropEvent = false);
-    Q_INVOKABLE void deleteMappings(QStringList paths, QJSValue callback);
+    Q_INVOKABLE void deleteMappings(QStringList paths, QJSValue callback = QJSValue());
     Q_INVOKABLE void deleteMapping(QString path, QJSValue callback) { deleteMappings(QStringList(path), callback = QJSValue()); }
     Q_INVOKABLE void getAllMappings(QJSValue callback = QJSValue());
     Q_INVOKABLE void renameMapping(QString oldPath, QString newPath, QJSValue callback = QJSValue());
+    Q_INVOKABLE void setBakingEnabled(QStringList paths, bool enabled, QJSValue callback = QJSValue());
 
 protected:
     QSet<AssetRequest*> _pendingRequests;
