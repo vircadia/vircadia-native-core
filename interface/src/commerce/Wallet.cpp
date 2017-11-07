@@ -327,6 +327,12 @@ Wallet::Wallet() {
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
 
+        if (_mustRegenerateKeypair) {
+            _mustRegenerateKeypair = false;
+            resetKeysOnly();
+            generateKeyPair();
+        }
+
         if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
             status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
         } else if (!wallet->walletIsAuthenticatedWithPassphrase()) {
@@ -661,9 +667,13 @@ QString Wallet::getKeyFilePath() {
     }
 }
 
-void Wallet::reset() {
+void Wallet::resetKeysOnly() {
     _publicKeys.clear();
 
+    QFile keyFile(keyFilePath());
+    keyFile.remove();
+}
+void Wallet::reset() {
     delete _securityImage;
     _securityImage = nullptr;
 
@@ -671,9 +681,7 @@ void Wallet::reset() {
     updateImageProvider();
     _passphrase->clear();
 
-
-    QFile keyFile(keyFilePath());
-    keyFile.remove();
+    resetKeysOnly();
 }
 bool Wallet::writeWallet(const QString& newPassphrase) {
     RSA* keys = readKeys(keyFilePath().toStdString().c_str());

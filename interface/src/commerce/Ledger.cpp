@@ -90,6 +90,15 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
+void Ledger::receiveAtSuccess(QNetworkReply& reply) {
+    auto wallet = DependencyManager::get<Wallet>();
+    QByteArray response = reply.readAll();
+    QJsonObject data = QJsonDocument::fromJson(response).object();
+
+    if (data["status"] == "fail") { // Not on "The List" for receiving HFC
+        wallet->setMustRegenerateKeypair(true);
+    }
+}
 bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QString& machine_fingerprint) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
