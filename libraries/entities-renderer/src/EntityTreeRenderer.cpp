@@ -12,6 +12,7 @@
 #include "EntityTreeRenderer.h"
 
 #include <glm/gtx/quaternion.hpp>
+#include <queue>
 
 #include <QEventLoop>
 #include <QScriptSyntaxCheckResult>
@@ -272,7 +273,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
     }
 }
 
-void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
     PROFILE_RANGE_EX(simulation_physics, "Change", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
@@ -286,21 +287,129 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 #endif
     });
 
-    for (const auto& entityId : changedEntities) {
-        auto renderable = renderableForEntityId(entityId);
-        if (!renderable) {
-            continue;
+    {
+        PROFILE_RANGE_EX(simulation_physics, "CopyRenderables", 0xffff00ff, (uint64_t)changedEntities.size());
+        if (_renderablesToUpdate.empty()) {
+            for (const auto& entityId : changedEntities) {
+                auto renderable = renderableForEntityId(entityId);
+                if (!renderable) {
+                    continue;
+                }
+                _renderablesToUpdate.insert({ entityId, renderable });
+            }
+        } else {
+            // we weren't able to update all renderables last frame
+            // so we have to be more careful when processing changed renderables
+            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
+            for (const auto& entityId : changedEntities) {
+                auto renderable = renderableForEntityId(entityId);
+                itr = _renderablesToUpdate.find(entityId);
+                if (itr != _renderablesToUpdate.end()) {
+                    if (!renderable) {
+                        _renderablesToUpdate.erase(itr);
+                        continue;
+                    }
+                    _renderablesToUpdate.insert(itr, { entityId, renderable });
+                } else {
+                    _renderablesToUpdate.insert({ entityId, renderable });
+                }
+            }
         }
-        _renderablesToUpdate.insert({ entityId, renderable });
     }
 
-    if (!_renderablesToUpdate.empty()) {
+    float expectedUpdateCost = _avgRenderableUpdateCost * _renderablesToUpdate.size();
+    const float MAX_UPDATE_RENDERABLES_TIME_BUDGET = 2 * USECS_PER_MSEC;
+    if (expectedUpdateCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET) {
+        // we expect to update all renderables within available time budget
         PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+        uint64_t updateStart = usecTimestampNow();
         for (const auto& entry : _renderablesToUpdate) {
             const auto& renderable = entry.second;
             renderable->updateInScene(scene, transaction);
         }
+        size_t numRenderables = _renderablesToUpdate.size() + 1; // add one to avoid divide by zero
         _renderablesToUpdate.clear();
+
+        // compute average per-renderable update cost
+        float cost = (float)(usecTimestampNow() - updateStart) / (float)(numRenderables);
+        const float blend = 0.1f;
+        _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+    } else {
+        // we expect the cost to updating all renderables to exceed available time budget
+        // so we first sort by priority and update in order until out of time
+        uint64_t sortStart = usecTimestampNow();
+        std::priority_queue<SortableEntityRenderer> sortedRenderables;
+        {
+            PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
+            glm::vec3 viewCenter = view.getPosition();
+            glm::vec3 forward = view.getDirection();
+            const float OUT_OF_VIEW_PENALTY = -10.0f;
+            while (itr != _renderablesToUpdate.end()) {
+        	    // priority = weighted linear combination of:
+        	    //   (a) apparentSize
+        	    //   (b) proximity to center of view
+        	    //   (c) time since last update
+                EntityItemPointer entity = itr->second->getEntity();
+        	    glm::vec3 entityPosition = entity->getPosition();
+        	    glm::vec3 offset = entityPosition - viewCenter;
+        	    float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
+
+        	    float diameter = entity->getQueryAACube().getScale();
+        	    float apparentSize = diameter / distance;
+        	    float cosineAngle = glm::dot(offset, forward) / distance;
+        	    float age = (float)(sortStart - itr->second->getUpdateTime()) / (float)(USECS_PER_SECOND);
+
+        	    // NOTE: we are adding values of different units to get a single measure of "priority".
+        	    // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
+        	    // These weights are pure magic tuning and should be hard coded in the relation below,
+        	    // but are currently exposed for anyone who would like to explore fine tuning:
+                const float APPARENT_SIZE_COEFFICIENT = 1.0f;
+                const float CENTER_SORT_COEFFICIENT = 0.5f;
+                const float AGE_SORT_COEFFICIENT = 0.25f;
+        	    float priority = APPARENT_SIZE_COEFFICIENT * apparentSize
+            	    + CENTER_SORT_COEFFICIENT * cosineAngle
+            	    + AGE_SORT_COEFFICIENT * age;
+
+        	    // decrement priority of things outside keyhole
+        	    if (distance > view.getCenterRadius()) {
+            	    if (!view.sphereIntersectsFrustum(entityPosition, 0.5f * diameter)) {
+                	    priority += OUT_OF_VIEW_PENALTY;
+            	    }
+        	    }
+
+                sortedRenderables.push(SortableEntityRenderer(itr->second, priority));
+                ++itr;
+            }
+        }
+        {
+            PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+
+            // compute remaining time budget
+            uint64_t updateStart = usecTimestampNow();
+            const uint64_t MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET = 1 * USECS_PER_MSEC;
+            uint64_t timeBudget = MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET;
+            uint64_t timeForSort = updateStart - sortStart;
+            if (timeForSort < MAX_UPDATE_RENDERABLES_TIME_BUDGET - MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET) {
+                timeBudget = MAX_UPDATE_RENDERABLES_TIME_BUDGET - timeForSort;
+            }
+            uint64_t expiry = updateStart + timeBudget;
+
+            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
+            size_t numSorted = sortedRenderables.size();
+            while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
+                const EntityRendererPointer& renderer = sortedRenderables.top().renderer;
+                renderer->updateInScene(scene, transaction);
+                _renderablesToUpdate.erase(renderer->getEntity()->getID());
+                sortedRenderables.pop();
+            }
+
+            // compute average per-renderable update cost
+            size_t numUpdated = numSorted - sortedRenderables.size() + 1; // add one to avoid divide by zero
+            float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated + 1);
+            const float blend = 0.1f;
+            _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+        }
     }
 }
 
@@ -319,7 +428,9 @@ void EntityTreeRenderer::update(bool simulate) {
             if (scene) {
                 render::Transaction transaction;
                 addPendingEntities(scene, transaction);
-                updateChangedEntities(scene, transaction);
+                ViewFrustum view;
+                _viewState->copyCurrentViewFrustum(view);
+                updateChangedEntities(scene, view, transaction);
                 scene->enqueueTransaction(transaction);
             }
         }

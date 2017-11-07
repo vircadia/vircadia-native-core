@@ -51,6 +51,14 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 using CalculateEntityLoadingPriority = std::function<float(const EntityItem& item)>;
 
+class SortableEntityRenderer {
+public:
+    SortableEntityRenderer(EntityRendererPointer r, float p) : renderer(r), priority(p) {}
+    EntityRendererPointer renderer;
+    float priority;
+    bool operator<(const SortableEntityRenderer& other) const { return priority < other.priority; }
+};
+
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeProcessor, public Dependency {
     Q_OBJECT
@@ -144,7 +152,7 @@ protected:
 
 private:
     void addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction);
-    void updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction);
+    void updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction);
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 
@@ -235,11 +243,12 @@ private:
     NetworkTexturePointer _skyboxTexture;
     QString _ambientTextureURL;
     QString _skyboxTextureURL;
+    float _avgRenderableUpdateCost { 0.0f };
     bool _pendingAmbientTexture { false };
     bool _pendingSkyboxTexture { false };
 
-    quint64 _lastZoneCheck { 0 };
-    const quint64 ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
+    uint64_t _lastZoneCheck { 0 };
+    const uint64_t ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
 
     ReadWriteLockable _changedEntitiesGuard;
