@@ -59,7 +59,7 @@ void HighlightRessources::update(const gpu::FramebufferPointer& primaryFrameBuff
 void HighlightRessources::allocateColorBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
     _colorFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithStencil"));
     _colorFrameBuffer->setRenderBuffer(0, primaryFrameBuffer->getRenderBuffer(0));
-    _colorFrameBuffer->setDepthStencilBuffer(_depthStencilTexture, _depthStencilTexture->getTexelFormat());
+    _colorFrameBuffer->setStencilBuffer(_depthStencilTexture, _depthStencilTexture->getTexelFormat());
 }
 
 void HighlightRessources::allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
