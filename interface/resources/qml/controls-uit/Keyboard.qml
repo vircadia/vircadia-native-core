@@ -251,6 +251,7 @@ Rectangle {
                 Key { width: 43; glyph: "."; }
                 Key {
                     fontFamily: hiFiGlyphs.name;
+                    fontPixelSize: 34;
                     width: 86; glyph: "\ue02b";
                 }
             }
@@ -341,6 +342,7 @@ Rectangle {
                 Key { width: 43; glyph: "."; }
                 Key {
                     fontFamily: hiFiGlyphs.name;
+                    fontPixelSize: 34;
                     width: 86; glyph: "\ue02b";
                 }
             }
