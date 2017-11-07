@@ -23,6 +23,7 @@
 <@include Haze.slh@>
 
 uniform sampler2D colorMap;
+uniform sampler2D linearDepthMap;
 
 vec4 unpackPositionFromZeye(vec2 texcoord) {
     float Zeye = -texture(linearDepthMap, texcoord).x;

@@ -40,7 +40,48 @@ layout(std140) uniform hazeBuffer {
     HazeParams hazeParams;
 };
 
-uniform sampler2D linearDepthMap;
+vec3 computeHazeColor(vec3 color, Light directionalLight, mat4 invViewMat, vec3 worldFragPos) {
+    // Directional light attenuation is simulated by assuming the light source is at a fixed height above the
+    // fragment.  This height is where the haze density is reduced by 95% from the haze at the fragment's height
+    //
+    // The distance is computed from the height and the directional light orientation
+    // The distance is limited to height * 1,000, which gives an angle of ~0.057 degrees
+    vec3 lightDirection = getLightDirection(directionalLight);
 
+    // Height at which haze density is reduced by 95% (default set to 2000.0 for safety ,this should never happen)
+    float height_95p = 2000.0;
+    const float log_p_005 = log(0.05);
+    if (hazeParams.hazeKeyLightAltitudeFactor > 0.0f) {
+        height_95p = -log_p_005 / hazeParams.hazeKeyLightAltitudeFactor;
+    }
+
+    // Note that we need the sine to be positive
+    float sin_pitch = abs(lightDirection.y);
+            
+    float distance;
+    const float minimumSinPitch = 0.001;
+    if (sin_pitch < minimumSinPitch) {
+        distance = height_95p / minimumSinPitch;
+    } else {
+        distance = height_95p / sin_pitch;
+    }
+
+    // Integration is from the fragment towards the light source
+    // Note that the haze base reference affects only the haze density as function of altitude
+    float hazeDensityDistribution =  
+        hazeParams.hazeKeyLightRangeFactor * 
+        exp(-hazeParams.hazeKeyLightAltitudeFactor * (worldFragPos.y - hazeParams.hazeBaseReference));
+
+    float hazeIntegral =  hazeDensityDistribution * distance;
+
+    // Note that t is constant and equal to -log(0.05)
+    //      float t = hazeParams.hazeAltitudeFactor * height_95p;
+    //      hazeIntegral *= (1.0 - exp (-t)) / t;
+    hazeIntegral *= 0.3171178;
+
+    float hazeAmount = 1.0 - exp(-hazeIntegral);
+
+    return mix(color, vec3(0.0, 0.0, 0.0), hazeAmount);
+}
 <@endif@>
 
