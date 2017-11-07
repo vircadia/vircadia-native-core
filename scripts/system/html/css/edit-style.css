@@ -1500,8 +1500,8 @@ input#reset-to-natural-dimensions {
     display: none;
 }
 /* items to hide */
-#properties-list.LightMenu .shape-group.shape-section.property.dropdown,
-#properties-list.LightMenu color-section.color-control1 {
+#properties-list.LightMenu #shape-list,
+#properties-list.LightMenu #base-color-section {
     display: none
 }
 
@@ -1536,8 +1536,8 @@ input#reset-to-natural-dimensions {
     display: none;
 }
 /* items to hide */
-#properties-list.ModelMenu .shape-group.shape-section.property.dropdown,
-#properties-list.ModelMenu .color-section.color-control1 {
+#properties-list.ModelMenu #shape-list,
+#properties-list.ModelMenu #base-color-section {
     display: none
 }
 
@@ -1572,8 +1572,8 @@ input#reset-to-natural-dimensions {
     display: none;
 }
 /* items to hide */
-#properties-list.ZoneMenu .shape-group.shape-section.property.dropdown,
-#properties-list.ZoneMenu .color-section.color-control1 {
+#properties-list.ZoneMenu #shape-list,
+#properties-list.ZoneMenu #base-color-section {
     display: none
 }
 
@@ -1608,8 +1608,8 @@ input#reset-to-natural-dimensions {
     display: none;
 }
 /* items to hide */
-#properties-list.WebMenu .shape-group.shape-section.property.dropdown,
-#properties-list.WebMenu .color-section.color-control1 {
+#properties-list.WebMenu #shape-list,
+#properties-list.WebMenu #base-color-section {
     display: none;
 }
 
@@ -1645,8 +1645,8 @@ input#reset-to-natural-dimensions {
     display: none;
 }
 /* items to hide */
-#properties-list.TextMenu .shape-group.shape-section.property.dropdown,
-#properties-list.TextMenu .color-section.color-control1 {
+#properties-list.TextMenu #shape-list,
+#properties-list.TextMenu #base-color-section {
     display: none
 }
 
