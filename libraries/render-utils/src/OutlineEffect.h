@@ -86,8 +86,8 @@ protected:
     unsigned int _outlineIndex;
     render::ShapePlumberPointer _shapePlumber;
     OutlineSharedParametersPointer _sharedParameters;
+    gpu::BufferPointer _boundsBuffer;
     
-    static gpu::BufferPointer _boundsBuffer;
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
 };
