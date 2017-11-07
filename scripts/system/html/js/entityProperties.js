@@ -1120,7 +1120,7 @@ function loaded() {
                             activeElement.select();
                         }
                     }
-					clearSelection();
+                    clearSelection();
                 }
             });
         }
