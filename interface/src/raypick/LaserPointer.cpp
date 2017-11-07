@@ -25,7 +25,6 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
     _distanceScaleEnd(distanceScaleEnd),
     _rayPickUID(DependencyManager::get<RayPickScriptingInterface>()->createRayPick(rayProps))
 {
-    _offsetMat = glm::mat4();
 
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
@@ -238,7 +237,7 @@ void LaserPointer::setLaserLength(const float laserLength) {
 void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat) {
     withWriteLock([&] {
         _lockEndObject.id = objectID;
-        _lockEndObject.isOverlay;
+        _lockEndObject.isOverlay = isOverlay;
         _lockEndObject.offsetMat = offsetMat;
     });
 }
