@@ -118,7 +118,7 @@ public:
     // for example: if we want the closest result, compare based on distance
     // if we want all results, combine them
     // must return a new pointer
-    virtual std::shared_ptr<PickResult> compareAndProcessNewResult(const std::shared_ptr<PickResult> newRes) = 0;
+    virtual std::shared_ptr<PickResult> compareAndProcessNewResult(const std::shared_ptr<PickResult>& newRes) = 0;
 
     // returns true if this result contains any valid results with distance < maxDistance
     // can also filter out results with distance >= maxDistance
@@ -182,6 +182,10 @@ public:
     void setIgnoreItems(const QVector<QUuid>& items);
     void setIncludeItems(const QVector<QUuid>& items);
 
+    virtual bool isLeftHand() const { return false; }
+    virtual bool isRightHand() const { return false; }
+    virtual bool isMouse() const { return false; }
+
 private:
     PickFilter _filter;
     const float _maxDistance;
@@ -198,12 +202,21 @@ class Pick : public PickQuery {
 public:
     Pick(const PickFilter& filter, const float maxDistance, const bool enabled) : PickQuery(filter, maxDistance, enabled) {}
 
-    virtual const T getMathematicalPick() const = 0;
+    virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
     virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
     virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
     virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 };
+
+namespace std {
+    template <>
+    struct hash<PickQuery::PickType> {
+        size_t operator()(const PickQuery::PickType& a) const {
+            return a;
+        }
+    };
+}
 
 #endif // hifi_Pick_h

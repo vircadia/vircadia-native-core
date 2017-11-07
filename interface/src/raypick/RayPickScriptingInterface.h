@@ -36,17 +36,22 @@ class RayPickScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(unsigned int INTERSECTED_HUD READ INTERSECTED_HUD CONSTANT)
     SINGLETON_DEPENDENCY
 
-public slots:
+public:
     Q_INVOKABLE unsigned int createRayPick(const QVariant& properties);
     Q_INVOKABLE void enableRayPick(unsigned int uid);
     Q_INVOKABLE void disableRayPick(unsigned int uid);
     Q_INVOKABLE void removeRayPick(unsigned int uid);
     Q_INVOKABLE QVariantMap getPrevRayPickResult(unsigned int uid);
 
-    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, const bool precisionPicking);
+    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking);
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities);
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities);
 
+    Q_INVOKABLE bool isLeftHand(unsigned int uid);
+    Q_INVOKABLE bool isRightHand(unsigned int uid);
+    Q_INVOKABLE bool isMouse(unsigned int uid);
+
+public slots:
     static unsigned int PICK_NOTHING() { return PickScriptingInterface::PICK_NOTHING(); }
     static unsigned int PICK_ENTITIES() { return PickScriptingInterface::PICK_ENTITIES(); }
     static unsigned int PICK_OVERLAYS() { return PickScriptingInterface::PICK_OVERLAYS(); }

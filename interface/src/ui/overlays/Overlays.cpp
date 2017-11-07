@@ -784,8 +784,6 @@ float Overlays::height() {
     return offscreenUi->getWindow()->size().height();
 }
 
-static const uint32_t MOUSE_POINTER_ID = 0;
-
 static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay,
     const RayToOverlayIntersectionResult& rayPickResult) {
 
@@ -846,7 +844,7 @@ PointerEvent Overlays::calculateOverlayPointerEvent(OverlayID overlayID, PickRay
 
     glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
 
-    PointerEvent pointerEvent(eventType, MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
+    PointerEvent pointerEvent(eventType, PointerManager::MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
                               ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
 
     return pointerEvent;

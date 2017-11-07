@@ -25,7 +25,7 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
         case PickQuery::PickType::Ray:
             return createRayPick(properties);
         default:
-            return 0;
+            return PickManager::INVALID_PICK_ID;
     }
 }
 
@@ -78,7 +78,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
         return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
     }
 
-    return 0;
+    return PickManager::INVALID_PICK_ID;
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {
@@ -94,10 +94,15 @@ void PickScriptingInterface::removePick(unsigned int uid) {
 }
 
 QVariantMap PickScriptingInterface::getPrevPickResult(unsigned int uid) {
-    return DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    QVariantMap result;
+    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResult(uid);
+    if (pickResult) {
+        result = pickResult->toVariantMap();
+    }
+    return result;
 }
 
-void PickScriptingInterface::setPrecisionPicking(unsigned int uid, const bool precisionPicking) {
+void PickScriptingInterface::setPrecisionPicking(unsigned int uid, bool precisionPicking) {
     DependencyManager::get<PickManager>()->setPrecisionPicking(uid, precisionPicking);
 }
 
@@ -107,6 +112,18 @@ void PickScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue
 
 void PickScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) {
     DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
+}
+
+bool PickScriptingInterface::isLeftHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isLeftHand(uid);
+}
+
+bool PickScriptingInterface::isRightHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isRightHand(uid);
+}
+
+bool PickScriptingInterface::isMouse(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isMouse(uid);
 }
 
 QScriptValue pickTypesToScriptValue(QScriptEngine* engine, const PickQuery::PickType& pickType) {

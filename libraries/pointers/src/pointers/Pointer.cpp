@@ -30,7 +30,7 @@ void Pointer::disable() {
     DependencyManager::get<PickManager>()->disablePick(_pickUID);
 }
 
-const QVariantMap Pointer::getPrevPickResult() {
+PickResultPointer Pointer::getPrevPickResult() {
     return DependencyManager::get<PickManager>()->getPrevPickResult(_pickUID);
 }
 
@@ -46,27 +46,70 @@ void Pointer::setIncludeItems(const QVector<QUuid>& includeItems) const {
     DependencyManager::get<PickManager>()->setIncludeItems(_pickUID, includeItems);
 }
 
-void Pointer::update(unsigned int pointerID) {
+bool Pointer::isLeftHand() const {
+    return DependencyManager::get<PickManager>()->isLeftHand(_pickUID);
+}
+
+bool Pointer::isRightHand() const {
+    return DependencyManager::get<PickManager>()->isRightHand(_pickUID);
+}
+
+bool Pointer::isMouse() const {
+    return DependencyManager::get<PickManager>()->isMouse(_pickUID);
+}
+
+void Pointer::update(unsigned int pointerID, float deltaTime) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
-        QVariantMap pickResult = getPrevPickResult();
+        auto pickResult = getPrevPickResult();
         updateVisuals(pickResult);
         generatePointerEvents(pointerID, pickResult);
     });
 }
 
-void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& pickResult) {
-    // TODO: avatars?
+void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPointer& pickResult) {
+    // TODO: avatars/HUD?
     auto pointerManager = DependencyManager::get<PointerManager>();
 
+    // NOTE: After this loop: _prevButtons = buttons that were removed
+    // If switching to disabled or should stop triggering, release all buttons
+    Buttons buttons;
+    Buttons newButtons;
+    Buttons sameButtons;
+    const std::string PRIMARY_BUTTON = "Primary";
+    bool primaryPressed = false;
+    if (_enabled && shouldTrigger()) {
+        buttons = getPressedButtons();
+        primaryPressed = buttons.find(PRIMARY_BUTTON) != buttons.end();
+        for (const std::string& button : buttons) {
+            if (_prevButtons.find(button) == _prevButtons.end()) {
+                newButtons.insert(button);
+            } else {
+                sameButtons.insert(button);
+                _prevButtons.erase(button);
+            }
+        }
+    }
+
     // Hover events
+    bool doHover = shouldHover();
     Pointer::PickedObject hoveredObject = getHoveredObject(pickResult);
     PointerEvent hoveredEvent = buildPointerEvent(hoveredObject, pickResult);
     hoveredEvent.setType(PointerEvent::Move);
     hoveredEvent.setID(pointerID);
-    // TODO: set buttons on hover events
-    hoveredEvent.setButton(PointerEvent::NoButtons);
-    if (_enabled && _hover && shouldHover()) {
+    bool releaseOnHoverLeave = !primaryPressed || (!_enabled && _prevEnabled) || (!doHover && _prevDoHover);
+    hoveredEvent.setReleaseOnHoverLeave(releaseOnHoverLeave);
+
+    // if shouldHover && !_prevDoHover, only send hoverBegin
+    if (_enabled && _hover && doHover && !_prevDoHover) {
+        if (hoveredObject.type == ENTITY) {
+            emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
+        } else if (hoveredObject.type == OVERLAY) {
+            emit pointerManager->hoverBeginOverlay(hoveredObject.objectID, hoveredEvent);
+        } else if (hoveredObject.type == HUD) {
+            emit pointerManager->hoverBeginHUD(hoveredEvent);
+        }
+    } else if (_enabled && _hover && doHover) {
         if (hoveredObject.type == OVERLAY) {
             if (_prevHoveredObject.type == OVERLAY) {
                 if (hoveredObject.objectID == _prevHoveredObject.objectID) {
@@ -74,6 +117,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
                 } else {
                     PointerEvent prevHoveredEvent = buildPointerEvent(_prevHoveredObject, pickResult);
                     prevHoveredEvent.setID(pointerID);
+                    prevHoveredEvent.setReleaseOnHoverLeave(releaseOnHoverLeave);
                     emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, prevHoveredEvent);
                     emit pointerManager->hoverBeginOverlay(hoveredObject.objectID, hoveredEvent);
                 }
@@ -82,7 +126,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
                 if (_prevHoveredObject.type == ENTITY) {
                     emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
                 } else if (_prevHoveredObject.type == HUD) {
-                    emit pointerManager->hoverEndHUD(_prevHoveredObject.objectID, hoveredEvent);
+                    emit pointerManager->hoverEndHUD(hoveredEvent);
                 }
             }
         }
@@ -95,6 +139,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
                 } else {
                     PointerEvent prevHoveredEvent = buildPointerEvent(_prevHoveredObject, pickResult);
                     prevHoveredEvent.setID(pointerID);
+                    prevHoveredEvent.setReleaseOnHoverLeave(releaseOnHoverLeave);
                     emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, prevHoveredEvent);
                     emit pointerManager->hoverBeginEntity(hoveredObject.objectID, hoveredEvent);
                 }
@@ -103,7 +148,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
                 if (_prevHoveredObject.type == OVERLAY) {
                     emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
                 } else if (_prevHoveredObject.type == HUD) {
-                    emit pointerManager->hoverEndHUD(_prevHoveredObject.objectID, hoveredEvent);
+                    emit pointerManager->hoverEndHUD(hoveredEvent);
                 }
             }
         }
@@ -111,9 +156,9 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
         if (hoveredObject.type == HUD) {
             if (_prevHoveredObject.type == HUD) {
                 // There's only one HUD
-                emit pointerManager->hoverContinueHUD(hoveredObject.objectID, hoveredEvent);
+                emit pointerManager->hoverContinueHUD(hoveredEvent);
             } else {
-                emit pointerManager->hoverBeginHUD(hoveredObject.objectID, hoveredEvent);
+                emit pointerManager->hoverBeginHUD(hoveredEvent);
                 if (_prevHoveredObject.type == ENTITY) {
                     emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
                 } else if (_prevHoveredObject.type == OVERLAY) {
@@ -123,20 +168,15 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
         }
     }
 
-    // Trigger events
-    Buttons buttons;
-    Buttons newButtons;
-    Buttons sameButtons;
-    // NOTE: After this loop: _prevButtons = buttons that were removed
-    // If switching to disabled or should stop triggering, release all buttons
-    if (_enabled && shouldTrigger()) {
-        buttons = getPressedButtons();
-        for (const std::string& button : buttons) {
-            if (_prevButtons.find(button) == _prevButtons.end()) {
-                newButtons.insert(button);
-            } else {
-                sameButtons.insert(button);
-                _prevButtons.erase(button);
+    if (_hover) {
+        // send hoverEnd events if we disable the pointer, disable hovering, or actually stop hovering over an object
+        if ((!_enabled && _prevEnabled) || (!doHover && _prevDoHover) || (hoveredObject.type == NONE && _prevHoveredObject.type != NONE)) {
+            if (_prevHoveredObject.type == ENTITY) {
+                emit pointerManager->hoverEndEntity(_prevHoveredObject.objectID, hoveredEvent);
+            } else if (_prevHoveredObject.type == OVERLAY) {
+                emit pointerManager->hoverEndOverlay(_prevHoveredObject.objectID, hoveredEvent);
+            } else if (_prevHoveredObject.type == HUD) {
+                emit pointerManager->hoverEndHUD(hoveredEvent);
             }
         }
     }
@@ -152,25 +192,23 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
         } else if (hoveredObject.type == OVERLAY) {
             emit pointerManager->triggerBeginOverlay(hoveredObject.objectID, hoveredEvent);
         } else if (hoveredObject.type == HUD) {
-            emit pointerManager->triggerBeginHUD(hoveredObject.objectID, hoveredEvent);
+            emit pointerManager->triggerBeginHUD(hoveredEvent);
         }
         _triggeredObjects[button] = hoveredObject;
     }
-    // We still want other trigger events for Focus buttons, but they only set focus on triggerBegin
-    hoveredEvent.setShouldFocus(false);
 
     // Trigger continue
     for (const std::string& button : sameButtons) {
         PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult);
         triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Move);
-        hoveredEvent.setButton(chooseButton(button));
+        triggeredEvent.setButton(chooseButton(button));
         if (_triggeredObjects[button].type == ENTITY) {
             emit pointerManager->triggerContinueEntity(_triggeredObjects[button].objectID, triggeredEvent);
         } else if (_triggeredObjects[button].type == OVERLAY) {
             emit pointerManager->triggerContinueOverlay(_triggeredObjects[button].objectID, triggeredEvent);
         } else if (_triggeredObjects[button].type == HUD) {
-            emit pointerManager->triggerContinueHUD(_triggeredObjects[button].objectID, triggeredEvent);
+            emit pointerManager->triggerContinueHUD(triggeredEvent);
         }
     }
 
@@ -179,19 +217,21 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const QVariantMap& p
         PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult);
         triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Release);
-        hoveredEvent.setButton(chooseButton(button));
+        triggeredEvent.setButton(chooseButton(button));
         if (_triggeredObjects[button].type == ENTITY) {
             emit pointerManager->triggerEndEntity(_triggeredObjects[button].objectID, triggeredEvent);
         } else if (_triggeredObjects[button].type == OVERLAY) {
             emit pointerManager->triggerEndOverlay(_triggeredObjects[button].objectID, triggeredEvent);
         } else if (_triggeredObjects[button].type == HUD) {
-            emit pointerManager->triggerEndHUD(_triggeredObjects[button].objectID, triggeredEvent);
+            emit pointerManager->triggerEndHUD(triggeredEvent);
         }
         _triggeredObjects.erase(button);
     }
 
     _prevHoveredObject = hoveredObject;
     _prevButtons = buttons;
+    _prevEnabled = _enabled;
+    _prevDoHover = doHover;
 }
 
 PointerEvent::Button Pointer::chooseButton(const std::string& button) {

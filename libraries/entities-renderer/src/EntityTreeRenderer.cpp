@@ -571,8 +571,6 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-static const uint32_t MOUSE_POINTER_ID = 0;
-
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
@@ -593,7 +591,7 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         }
 
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Press, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -625,7 +623,7 @@ void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects && rayPickResult.entity) {
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Press, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Press, PointerManager::MOUSE_POINTER_ID,
             pos2D, rayPickResult.intersection,
             rayPickResult.surfaceNormal, ray.direction,
             toPointerButton(*event), toPointerButtons(*event), Qt::NoModifier);
@@ -657,7 +655,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
 
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -673,7 +671,7 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     // we're releasing the button, then this is considered a clickReleaseOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Release, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Release, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -699,7 +697,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     if (rayPickResult.intersects && rayPickResult.entity) {
         glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-        PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+        PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                   toPointerButton(*event), toPointerButtons(*event),
@@ -713,7 +711,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // then we need to send the hover leave.
         if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
             glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+            PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                       pos2D, rayPickResult.intersection,
                                       rayPickResult.surfaceNormal, ray.direction,
                                       toPointerButton(*event), toPointerButtons(*event),
@@ -744,7 +742,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
             glm::vec2 pos2D = projectOntoEntityXYPlane(rayPickResult.entity, ray, rayPickResult);
-            PointerEvent pointerEvent(PointerEvent::Move, MOUSE_POINTER_ID,
+            PointerEvent pointerEvent(PointerEvent::Move, PointerManager::MOUSE_POINTER_ID,
                                   pos2D, rayPickResult.intersection,
                                   rayPickResult.surfaceNormal, ray.direction,
                                       toPointerButton(*event), toPointerButtons(*event),

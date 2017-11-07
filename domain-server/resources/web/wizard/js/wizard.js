@@ -58,6 +58,7 @@ $(document).ready(function(){
 
   reloadSettings(function(success) {
     if (success) {
+      getDomainFromAPI();
       setupWizardSteps();
       updatePlaceNameDisplay();
       updateUsernameDisplay();

@@ -1825,14 +1825,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
-        QVariantMap result = DependencyManager::get<PickManager>()->getPrevPickResult(rayPickID);
-        if (result["type"].isValid()) {
-            entityResult.intersects = result["type"] != PickScriptingInterface::INTERSECTED_NONE();
+        auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(rayPickID);
+        if (pickResult) {
+            entityResult.intersects = pickResult->type != IntersectionType::NONE;
             if (entityResult.intersects) {
-                entityResult.intersection = vec3FromVariant(result["intersection"]);
-                entityResult.distance = result["distance"].toFloat();
-                entityResult.surfaceNormal = vec3FromVariant(result["surfaceNormal"]);
-                entityResult.entityID = result["objectID"].toUuid();
+                entityResult.intersection = pickResult->intersection;
+                entityResult.distance = pickResult->distance;
+                entityResult.surfaceNormal = pickResult->surfaceNormal;
+                entityResult.entityID = pickResult->objectID;
                 entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
             }
         }
@@ -3296,7 +3296,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto eventPosition = compositor.getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     auto button = event->button();
     auto buttons = event->buttons();
     // Determine if the ReticleClick Action is 1 and if so, fake include the LeftMouseButton
@@ -3342,7 +3342,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
     offscreenUi->unfocusWindows();
 
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -3372,7 +3372,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
 void Application::mouseDoublePressEvent(QMouseEvent* event) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -3398,7 +3398,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
@@ -4963,7 +4963,7 @@ void Application::update(float deltaTime) {
 
     {
         PROFILE_RANGE(app, "PointerManager");
-        DependencyManager::get<PointerManager>()->update();
+        DependencyManager::get<PointerManager>()->update(deltaTime);
     }
 
     {

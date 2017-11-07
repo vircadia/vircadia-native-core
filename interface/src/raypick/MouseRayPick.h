@@ -18,7 +18,9 @@ class MouseRayPick : public RayPick {
 public:
     MouseRayPick(const PickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
 
-    const PickRay getMathematicalPick() const override;
+    PickRay getMathematicalPick() const override;
+
+    bool isMouse() const override { return true; }
 };
 
 #endif // hifi_MouseRayPick_h

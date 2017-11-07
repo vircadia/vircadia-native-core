@@ -8,19 +8,21 @@
 
 #include "PointerManager.h"
 
+#include "PickManager.h"
+
 std::shared_ptr<Pointer> PointerManager::find(unsigned int uid) const {
     return resultWithReadLock<std::shared_ptr<Pointer>>([&] {
         auto itr = _pointers.find(uid);
         if (itr != _pointers.end()) {
-            return *itr;
+            return itr->second;
         }
         return std::shared_ptr<Pointer>();
     });
 }
 
 unsigned int PointerManager::addPointer(std::shared_ptr<Pointer> pointer) {
-    unsigned int result = 0;
-    if (pointer->getRayUID() > 0) {
+    unsigned int result = PointerEvent::INVALID_POINTER_ID;
+    if (pointer->getRayUID() != PickManager::INVALID_PICK_ID) {
         withWriteLock([&] {
             // Don't let the pointer IDs overflow
             if (_nextPointerID < UINT32_MAX) {
@@ -34,7 +36,7 @@ unsigned int PointerManager::addPointer(std::shared_ptr<Pointer> pointer) {
 
 void PointerManager::removePointer(unsigned int uid) {
     withWriteLock([&] {
-        _pointers.remove(uid);
+        _pointers.erase(uid);
     });
 }
 
@@ -66,21 +68,22 @@ void PointerManager::editRenderState(unsigned int uid, const std::string& state,
     }
 }
 
-const QVariantMap PointerManager::getPrevPickResult(unsigned int uid) const {
+PickResultPointer PointerManager::getPrevPickResult(unsigned int uid) const {
+    PickResultPointer result;
     auto pointer = find(uid);
     if (pointer) {
-        return pointer->getPrevPickResult();
+        result = pointer->getPrevPickResult();
     }
-    return QVariantMap();
+    return result;
 }
 
-void PointerManager::update() {
-    auto cachedPointers = resultWithReadLock<QHash<unsigned int, std::shared_ptr<Pointer>>>([&] {
+void PointerManager::update(float deltaTime) {
+    auto cachedPointers = resultWithReadLock<std::unordered_map<unsigned int, std::shared_ptr<Pointer>>>([&] {
         return _pointers;
     });
 
-    for (const auto& uid : cachedPointers.keys()) {
-        cachedPointers[uid]->update(uid);
+    for (const auto& pointerPair : cachedPointers) {
+        pointerPair.second->update(pointerPair.first, deltaTime);
     }
 }
 
@@ -117,4 +120,28 @@ void PointerManager::setLockEndUUID(unsigned int uid, const QUuid& objectID, boo
     if (pointer) {
         pointer->setLockEndUUID(objectID, isOverlay);
     }
+}
+
+bool PointerManager::isLeftHand(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isLeftHand();
+    }
+    return false;
+}
+
+bool PointerManager::isRightHand(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isRightHand();
+    }
+    return false;
+}
+
+bool PointerManager::isMouse(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isMouse();
+    }
+    return false;
 }

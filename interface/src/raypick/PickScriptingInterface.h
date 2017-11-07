@@ -37,17 +37,21 @@ public:
 
     void registerMetaTypes(QScriptEngine* engine);
 
-public slots:
     Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
     Q_INVOKABLE void enablePick(unsigned int uid);
     Q_INVOKABLE void disablePick(unsigned int uid);
     Q_INVOKABLE void removePick(unsigned int uid);
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
-    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, const bool precisionPicking);
+    Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking);
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities);
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeEntities);
 
+    Q_INVOKABLE bool isLeftHand(unsigned int uid);
+    Q_INVOKABLE bool isRightHand(unsigned int uid);
+    Q_INVOKABLE bool isMouse(unsigned int uid);
+
+public slots:
     static constexpr unsigned int PICK_NOTHING() { return 0; }
     static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ENTITIES); }
     static constexpr unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_OVERLAYS); }

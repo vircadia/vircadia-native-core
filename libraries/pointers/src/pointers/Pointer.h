@@ -16,6 +16,7 @@
 #include <QVariant>
 
 #include <shared/ReadWriteLockable.h>
+#include "Pick.h"
 
 #include <controllers/impl/Endpoint.h>
 #include "PointerEvent.h"
@@ -44,7 +45,7 @@ public:
 
     virtual void enable();
     virtual void disable();
-    virtual const QVariantMap getPrevPickResult();
+    virtual PickResultPointer getPrevPickResult();
 
     virtual void setRenderState(const std::string& state) = 0;
     virtual void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) = 0;
@@ -53,17 +54,20 @@ public:
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
+    bool isLeftHand() const;
+    bool isRightHand() const;
+    bool isMouse() const;
+
     // Pointers can choose to implement these
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay) {}
 
-    void update(unsigned int pointerID);
-    virtual void updateVisuals(const QVariantMap& pickResult) = 0;
-    void generatePointerEvents(unsigned int pointerID, const QVariantMap& pickResult);
+    virtual void update(unsigned int pointerID, float deltaTime);
+    virtual void updateVisuals(const PickResultPointer& pickResult) {}
+    void generatePointerEvents(unsigned int pointerID, const PickResultPointer& pickResult);
 
     struct PickedObject {
-        PickedObject() {}
-        PickedObject(const QUuid& objectID, IntersectionType type) : objectID(objectID), type(type) {}
+        PickedObject(const QUuid& objectID = QUuid(), IntersectionType type = IntersectionType::NONE) : objectID(objectID), type(type) {}
 
         QUuid objectID;
         IntersectionType type;
@@ -78,9 +82,9 @@ protected:
     bool _enabled;
     bool _hover;
 
-    virtual PointerEvent buildPointerEvent(const PickedObject& target, const QVariantMap& pickResult) const = 0;
+    virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const = 0;
 
-    virtual PickedObject getHoveredObject(const QVariantMap& pickResult) = 0;
+    virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) = 0;
     virtual Buttons getPressedButtons() = 0;
 
     virtual bool shouldHover() = 0;
@@ -89,6 +93,8 @@ protected:
 private:
     PickedObject _prevHoveredObject;
     Buttons _prevButtons;
+    bool _prevEnabled { false };
+    bool _prevDoHover { false };
     std::unordered_map<std::string, PickedObject> _triggeredObjects;
 
     PointerEvent::Button chooseButton(const std::string& button);
