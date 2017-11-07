@@ -979,6 +979,8 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
+    //this a spot to work on the avatar npc in my branch
+
     QVector<JointData> jointsData;
 
     const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
