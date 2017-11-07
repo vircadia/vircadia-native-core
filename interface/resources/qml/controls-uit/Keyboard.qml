@@ -56,6 +56,8 @@ Rectangle {
             return ">";
         } else if (str === "/") {
             return "?";
+        } else if (str === "-") {
+            return "_";
         } else {
             return str.toUpperCase(str);
         }
@@ -68,6 +70,8 @@ Rectangle {
             return ".";
         } else if (str === "?") {
             return "/";
+        } else if (str === "_") {
+            return "-";
         } else {
             return str.toLowerCase(str);
         }
@@ -86,7 +90,7 @@ Rectangle {
 
     onShiftModeChanged: {
         forEachKey(function (key) {
-            if (/[a-z]/i.test(key.glyph)) {
+            if (/[a-z-_]/i.test(key.glyph)) {
                 if (shiftMode) {
                     key.glyph = keyboardBase.toUpper(key.glyph);
                 } else {
@@ -125,11 +129,11 @@ Rectangle {
             font.family: font.name
             font.pixelSize: 20
             verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignLeft
+            horizontalAlignment: Text.AlignHCenter
             color: "#00B4EF";
             anchors.left: parent.left
             anchors.leftMargin: 10
-            anchors.right: lowerKeyboard.left
+            anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
 
@@ -149,98 +153,6 @@ Rectangle {
                 anchors.fill: parent
             }
         }
-
-        Item {
-            id: lowerKeyboard
-            anchors.right: parent.right
-            anchors.rightMargin: keyboardRect.width - (key_Backspace.x + key_Backspace.width + key_Backspace.contentPadding)
-            width: key_Backspace.width * 2
-            height: parent.height
-
-            Rectangle {
-                id: roundedRect
-                color: "#121212"
-                radius: 6
-                border.color: "#00000000"
-                anchors.fill: parent
-                anchors.margins: 4
-
-                MouseArea {
-                    id: mouseArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-
-                    onClicked: {
-                        webEntity.lowerKeyboard();
-                    }
-
-                    onEntered: {
-                        roundedRect.state = "mouseOver";
-                    }
-
-                    onExited: {
-                        roundedRect.state = "";
-                    }
-
-                    onPressed: {
-                        roundedRect.state = "mouseClicked";
-                    }
-
-                    onReleased: {
-                        if (containsMouse) {
-                            roundedRect.state = "mouseOver";
-                        } else {
-                            roundedRect.state = "";
-                        }
-                    }
-                }
-
-                states: [
-                    State {
-                        name: "mouseOver"
-                        PropertyChanges {
-                            target: roundedRect
-                            color: "#121212"
-                            border.width: 2
-                            border.color: "#00b4ef"
-                        }
-                    },
-                    State {
-                        name: "mouseClicked"
-                        PropertyChanges {
-                            target: roundedRect
-                            border.width: 2
-                            border.color: "#00b4ef"
-                        }
-                        PropertyChanges {
-                            target: colorOverlay
-                            color: '#00B4EF'
-                        }
-                    },
-                    State {
-                        name: "mouseDepressed"
-                        PropertyChanges {
-                            target: roundedRect
-                            color: "#0578b1"
-                            border.width: 0
-                        }
-                    }
-                ]
-
-                Image {
-                    id: buttonImage
-                    anchors.centerIn: parent
-                    source: "../../images/lowerKeyboard.png" // "file:///D:/AI/hifi-elderorb-vs2/interface/resources/images/lowerKeyboard.png";
-                }
-
-                ColorOverlay {
-                    id: colorOverlay
-                    anchors.fill: buttonImage
-                    source: buttonImage
-                    color: 'white'
-                }
-            }
-        }
     }
 
     Rectangle {
@@ -252,6 +164,8 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 0
+
+        FontLoader { id: hiFiGlyphs; source: pathToFonts + "fonts/hifi-glyphs.ttf"; }
 
         Column {
             id: columnAlpha
@@ -275,7 +189,7 @@ Rectangle {
                 Key { width: 43; glyph: "i"; }
                 Key { width: 43; glyph: "o"; }
                 Key { width: 43; glyph: "p"; }
-                Key { width: 43; glyph: "←"; id: key_Backspace }
+                Key { width: 43; glyph: "←"; }
             }
 
             Row {
@@ -316,7 +230,7 @@ Rectangle {
                 Key { width: 43; glyph: "b"; }
                 Key { width: 43; glyph: "n"; }
                 Key { width: 43; glyph: "m"; }
-                Key { width: 43; glyph: "_"; }
+                Key { width: 43; glyph: "-"; }
                 Key { width: 43; glyph: "/"; }
                 Key { width: 43; glyph: "?"; }
             }
@@ -335,8 +249,10 @@ Rectangle {
                 Key { width: 231; glyph: " "; }
                 Key { width: 43; glyph: ","; }
                 Key { width: 43; glyph: "."; }
-                Key { width: 43; glyph: "\u276C"; }
-                Key { width: 43; glyph: "\u276D"; }
+                Key {
+                    fontFamily: hiFiGlyphs.name;
+                    width: 86; glyph: "\ue02b";
+                }
             }
         }
 
@@ -423,8 +339,10 @@ Rectangle {
                 Key { width: 231; glyph: " "; }
                 Key { width: 43; glyph: ","; }
                 Key { width: 43; glyph: "."; }
-                Key { width: 43; glyph: "\u276C"; }
-                Key { width: 43; glyph: "\u276D"; }
+                Key {
+                    fontFamily: hiFiGlyphs.name;
+                    width: 86; glyph: "\ue02b";
+                }
             }
         }
     }

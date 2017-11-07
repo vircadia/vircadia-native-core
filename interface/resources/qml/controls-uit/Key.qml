@@ -11,6 +11,7 @@ Item {
     property bool toggle: false   // does this button have the toggle behaivor?
     property bool toggled: false  // is this button currently toggled?
     property alias mouseArea: mouseArea1
+    property alias fontFamily: letter.font.family;
 
     function resetToggledMode(mode) {
         toggled = mode;
