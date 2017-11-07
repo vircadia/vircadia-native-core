@@ -63,14 +63,72 @@ namespace render {
     };
     using HighlightStagePointer = std::shared_ptr<HighlightStage>;
 
+    class HighlightStageConfig : public render::Job::Config {
+        Q_OBJECT
+            Q_PROPERTY(QString selectionName READ getSelectionName WRITE setSelectionName NOTIFY dirty)
+            Q_PROPERTY(bool isOutlineSmooth READ isOutlineSmooth WRITE setOutlineSmooth NOTIFY dirty)
+            Q_PROPERTY(float colorR READ getColorRed WRITE setColorRed NOTIFY dirty)
+            Q_PROPERTY(float colorG READ getColorGreen WRITE setColorGreen NOTIFY dirty)
+            Q_PROPERTY(float colorB READ getColorBlue WRITE setColorBlue NOTIFY dirty)
+            Q_PROPERTY(float outlineWidth READ getOutlineWidth WRITE setOutlineWidth NOTIFY dirty)
+            Q_PROPERTY(float outlineIntensity READ getOutlineIntensity WRITE setOutlineIntensity NOTIFY dirty)
+            Q_PROPERTY(float unoccludedFillOpacity READ getUnoccludedFillOpacity WRITE setUnoccludedFillOpacity NOTIFY dirty)
+            Q_PROPERTY(float occludedFillOpacity READ getOccludedFillOpacity WRITE setOccludedFillOpacity NOTIFY dirty)
+
+    public:
+
+        using SelectionStyles = std::map<std::string, HighlightStyle>;
+
+        QString getSelectionName() const { return QString(_selectionName.c_str()); }
+        void setSelectionName(const QString& name);
+
+        bool isOutlineSmooth() const { return getStyle().isOutlineSmooth; }
+        void setOutlineSmooth(bool isSmooth);
+
+        float getColorRed() const { return getStyle().color.r; }
+        void setColorRed(float value);
+
+        float getColorGreen() const { return getStyle().color.g; }
+        void setColorGreen(float value);
+
+        float getColorBlue() const { return getStyle().color.b; }
+        void setColorBlue(float value);
+
+        float getOutlineWidth() const { return getStyle().outlineWidth; }
+        void setOutlineWidth(float value);
+
+        float getOutlineIntensity() const { return getStyle().outlineIntensity; }
+        void setOutlineIntensity(float value);
+
+        float getUnoccludedFillOpacity() const { return getStyle().unoccludedFillOpacity; }
+        void setUnoccludedFillOpacity(float value);
+
+        float getOccludedFillOpacity() const { return getStyle().occludedFillOpacity; }
+        void setOccludedFillOpacity(float value);
+
+        std::string _selectionName{ "contextOverlayHighlightList" };
+        mutable SelectionStyles _styles;
+
+        const HighlightStyle& getStyle() const;
+        HighlightStyle& editStyle();
+
+    signals:
+        void dirty();
+    };
+
     class HighlightStageSetup {
     public:
-        using JobModel = render::Job::Model<HighlightStageSetup>;
+        using Config = HighlightStageConfig;
+        using JobModel = render::Job::Model<HighlightStageSetup, Config>;
 
         HighlightStageSetup();
+
+        void configure(const Config& config);
         void run(const RenderContextPointer& renderContext);
 
     protected:
+
+        HighlightStageConfig::SelectionStyles _styles;
     };
 
 }

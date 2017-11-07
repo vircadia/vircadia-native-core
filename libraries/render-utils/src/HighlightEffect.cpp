@@ -434,9 +434,10 @@ void SelectionToHighlight::run(const render::RenderContextPointer& renderContext
 
     for (auto i = 0; i < HighlightSharedParameters::MAX_HIGHLIGHT_COUNT; i++) {
         std::ostringstream stream;
-        stream << "contextOverlayHighlightList";
         if (i > 0) {
-            stream << i;
+            stream << "highlightList" << i;
+        } else {
+            stream << "contextOverlayHighlightList";
         }
         auto selectionName = stream.str();
         auto highlightId = highlightStage->getHighlightIdBySelection(selectionName);

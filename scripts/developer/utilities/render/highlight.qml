@@ -11,9 +11,10 @@
 import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
-import "highlightPage"
+
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
+import  "configSlider"
 
 Rectangle {
     id: root
@@ -22,10 +23,13 @@ Rectangle {
     anchors.margins: hifi.dimensions.contentMargin.x
 
     property var debugConfig: Render.getConfig("RenderMainView.HighlightDebug")
+    property var highlightConfig: Render.getConfig("UpdateScene.HighlightStageSetup")
+    
     signal sendToScript(var message);
 
     Column {
-        spacing: 5
+        id: col
+        spacing: 10
         anchors.left: parent.left
         anchors.right: parent.right       
         anchors.margins: hifi.dimensions.contentMargin.x  
@@ -59,21 +63,112 @@ Rectangle {
             }
         }
 
-        TabView {
-            id: tabs
-            width: 384
-            height: 400
+        HifiControls.ComboBox {
+            id: box
+            width: 350
+            z: 999
+            editable: true
+            colorScheme: hifi.colorSchemes.dark
+            model: [
+                "contextOverlayHighlightList", 
+                "highlightList1", 
+                "highlightList2", 
+                "highlightList3", 
+                "highlightList4"]
+            label: ""
 
-            onCurrentIndexChanged: {
-                sendToScript("highlight "+currentIndex)
+            Timer {
+                id: postpone
+                interval: 100; running: false; repeat: false
+                onTriggered: { paramWidgetLoader.sourceComponent = paramWidgets }
             }
+            onCurrentIndexChanged: {
+                root.highlightConfig["selectionName"] = model[currentIndex];
+                sendToScript("highlight "+currentIndex)
+                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+                // by setting the loader source to Null and then recreate it 100ms later
+                paramWidgetLoader.sourceComponent = undefined;
+                postpone.interval = 100
+                postpone.start()
+            }
+        }
 
-            Repeater {
-                model: [ 0, 1, 2, 3 ]
-                Tab {
-                    title: "Outl."+modelData
-                    HighlightPage {
-                        highlightIndex: modelData
+        Loader {
+            id: paramWidgetLoader
+            sourceComponent: paramWidgets
+            width: 350
+        }
+
+        Component {
+            id: paramWidgets
+
+            Column {
+                spacing: 10
+                anchors.margins: hifi.dimensions.contentMargin.x  
+
+                HifiControls.Label {
+                    text: "Outline"       
+                }
+                Column {
+                    spacing: 10
+                    anchors.left: parent.left
+                    anchors.right: parent.right 
+                    HifiControls.CheckBox {
+                        text: "Smooth"
+                        checked: root.highlightConfig["isOutlineSmooth"]
+                        onCheckedChanged: {
+                            root.highlightConfig["isOutlineSmooth"] = checked;
+                        }
+                    }
+                    Repeater {
+                        model: ["Width:outlineWidth:5.0:0.0",
+                                "Intensity:outlineIntensity:1.0:0.0"
+                                        ]
+                        ConfigSlider {
+                                label: qsTr(modelData.split(":")[0])
+                                integral: false
+                                config: root.highlightConfig
+                                property: modelData.split(":")[1]
+                                max: modelData.split(":")[2]
+                                min: modelData.split(":")[3]
+                        }
+                    }
+                }
+
+                Separator {}
+                HifiControls.Label {
+                    text: "Color"       
+                }
+                Repeater {
+                    model: ["Red:colorR:1.0:0.0",
+                            "Green:colorG:1.0:0.0",
+                            "Blue:colorB:1.0:0.0"
+                                    ]
+                    ConfigSlider {
+                            label: qsTr(modelData.split(":")[0])
+                            integral: false
+                            config: root.highlightConfig
+                            property: modelData.split(":")[1]
+                            max: modelData.split(":")[2]
+                            min: modelData.split(":")[3]
+                    }
+                }
+
+                Separator {}
+                HifiControls.Label {
+                    text: "Fill Opacity"       
+                }
+                Repeater {
+                    model: ["Unoccluded:unoccludedFillOpacity:1.0:0.0",
+                            "Occluded:occludedFillOpacity:1.0:0.0"
+                                    ]
+                    ConfigSlider {
+                            label: qsTr(modelData.split(":")[0])
+                            integral: false
+                            config: root.highlightConfig
+                            property: modelData.split(":")[1]
+                            max: modelData.split(":")[2]
+                            min: modelData.split(":")[3]
                     }
                 }
             }
