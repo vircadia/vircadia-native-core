@@ -126,7 +126,7 @@ Window {
 
         sortButtons();
 
-        shown = true;
+        fadeIn(null);
 
         return result;
     }
@@ -142,7 +142,7 @@ Window {
         buttons.splice(index, 1);
 
         if (buttons.length === 0) {
-            shown = false;
+            fadeOut(null);
         }
     }
 }

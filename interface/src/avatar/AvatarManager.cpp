@@ -179,6 +179,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
 
+        bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
+        if (ignoring) {
+            sortedAvatars.pop();
+            continue;
+        }
+
         // for ALL avatars...
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());

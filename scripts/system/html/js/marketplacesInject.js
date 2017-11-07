@@ -29,6 +29,7 @@
     var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
+    var metaverseServerURL = "https://metaverse.highfidelity.com";
 
     function injectCommonCode(isDirectoryPage) {
 
@@ -57,7 +58,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === "https://metaverse.highfidelity.com/marketplace?";
+        var isInitialHiFiPage = location.href === metaverseServerURL + "/marketplace?";
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -69,7 +70,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
+            (document.referrer !== "") ? window.history.back() : window.location = (metaverseServerURL + "/marketplace?");
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -140,6 +141,10 @@
         if (!$('body').hasClass("login-injected") && !userIsLoggedIn) {
             $('body').addClass("login-injected");
             var resultsElement = document.getElementById('results');
+            if (!resultsElement) { // If we're on the main page, this will evaluate to `true`
+                resultsElement = document.getElementById('item-show');
+                resultsElement.style = 'margin-top:0;';
+            }
             var logInElement = document.createElement('div');
             logInElement.classList.add("row");
             logInElement.id = "logInDiv";
@@ -637,6 +642,7 @@
                         commerceMode = !!parsedJsonMessage.data.commerceMode;
                         userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
                         walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
+                        metaverseServerURL = parsedJsonMessage.data.metaverseServerURL;
                         injectCode();
                     }
                 }

@@ -65,9 +65,6 @@ public:
 
     virtual Text3DOverlay* createClone() const override;
 
-protected:
-    Transform evalRenderTransform() override;
-
 private:
     TextRenderer3D* _textRenderer = nullptr;
 

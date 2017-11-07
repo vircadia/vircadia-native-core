@@ -26,6 +26,7 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 
+
 using namespace render;
 using namespace render::entities;
 
@@ -49,7 +50,9 @@ void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
 }
 
-
+const Transform& EntityRenderer::getModelTransform() const {
+    return _modelTransform;
+}
 
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -271,6 +274,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (!isValidRenderItem()) {
         return;
     }
@@ -289,6 +293,14 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         doRenderUpdateAsynchronous(_entity);
         _renderUpdateQueued = false;
     });
+}
+
+void EntityRenderer::clearSubRenderItemIDs() {
+    _subRenderItemIDs.clear();
+}
+
+void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
+    _subRenderItemIDs = ids;
 }
 
 //
@@ -330,6 +342,7 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
 }
 
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
         auto transparent = isTransparent();
         if (_prevIsTransparent && !transparent) {

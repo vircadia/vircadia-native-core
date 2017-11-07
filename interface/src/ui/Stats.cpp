@@ -106,14 +106,15 @@ extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
 extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
+    QQuickItem* parent = parentItem();
     if (!force) {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-            if (isVisible()) {
-                setVisible(false);
+            if (parent->isVisible()) {
+                parent->setVisible(false);
             }
             return;
-        } else if (!isVisible()) {
-            setVisible(true);
+        } else if (!parent->isVisible()) {
+            parent->setVisible(true);
         }
     }
 

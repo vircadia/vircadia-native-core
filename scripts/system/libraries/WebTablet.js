@@ -25,7 +25,6 @@ var ROT_LANDSCAPE = {x: 1.0, y: 1.0, z: 0, w: 0};
 var ROT_LANDSCAPE_WINDOW = {x: 0.0, y: 0.0, z: 0.0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
-var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
 var NO_HANDS = -1;
 var DELAY_FOR_30HZ = 33; // milliseconds
@@ -100,7 +99,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
             "grabbableKey": {"grabbable": true}
         }),
         dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
-        parentID: AVATAR_SELF_ID,
+        parentID: MyAvatar.SELF_ID,
         visible: visible
     };
 
@@ -150,6 +149,23 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         parentJointIndex: -1
     });
 
+    this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
+        name: "homeButtonHighlight",
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
+        localRotation: { x: 0, y: 1, z: 0, w: 0 },
+        dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
+        solid: true,
+        outerRadius: 25 * tabletScaleFactor,
+        innerRadius: 20 * tabletScaleFactor,
+        ignoreIntersection: true,
+        alpha: 1.0,
+        color: { red: 255, green: 255, blue: 255 },
+        visible: visible,
+        drawInFront: false,
+        parentID: this.tabletEntityID,
+        parentJointIndex: -1
+     });
+
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonID == senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -169,6 +185,23 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
             }
         }
     };
+
+    this.myOnHoverEnterOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverEnterOverlay(overlayID, pointerEvent);
+    };
+
+    Overlays.hoverEnterOverlay.connect(this.myOnHoverEnterOverlay);
+
+    this.myOnHoverLeaveOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverLeaveOverlay(overlayID, pointerEvent);
+    };
+
+    Overlays.hoverLeaveOverlay.connect(this.myOnHoverLeaveOverlay);
+
+    this.myOnHoverOverOverlay = function (overlayID, pointerEvent) {
+        _this.onHoverOverOverlay(overlayID, pointerEvent);
+    };
+    Overlays.hoverOverOverlay.connect(this.myOnHoverOverOverlay);
 
     this.state = "idle";
 
@@ -273,9 +306,14 @@ WebTablet.prototype.setWidth = function (width) {
 };
 
 WebTablet.prototype.destroy = function () {
+    Overlays.hoverEnterOverlay.disconnect(this.myOnHoverEnterOverlay);
+    Overlays.hoverLeaveOverlay.disconnect(this.myOnHoverLeaveOverlay);
+    Overlays.hoverOverOverlay.disconnect(this.myOnHoverOverOverlay);
+
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
+    Overlays.deleteOverlay(this.homeButtonHighlightID);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
@@ -367,6 +405,24 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
     };
 };
 
+WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
+    if (overlayID === this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 1.0 });
+    }
+}
+
+WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
+    if (overlayID !== this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+    }
+}
+
+WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
+    if (overlayID === this.homeButtonID) {
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+    }
+}
+
 // compute position, rotation & parentJointIndex of the tablet
 WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMouse, tabletProperties) {
     if (HMD.active) {
@@ -414,7 +470,7 @@ WebTablet.prototype.register = function() {
 
 WebTablet.prototype.cleanUpOldTabletsOnJoint = function(jointIndex) {
     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, jointIndex);
-    children = children.concat(Entities.getChildrenIDsOfJoint(AVATAR_SELF_ID, jointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, jointIndex));
     children.forEach(function(childID) {
         var props = Entities.getEntityProperties(childID, ["name"]);
         if (props.name === "WebTablet Tablet") {
@@ -504,6 +560,22 @@ WebTablet.prototype.scheduleMouseMoveProcessor = function() {
     }
 };
 
+WebTablet.prototype.handleHomeButtonHover = function(x, y) {
+    var pickRay = Camera.computePickRay(x, y);
+    var entityPickResults;
+    var homebuttonHovered = false;
+    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
+    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
+        entityPickResults.overlayID === this.tabletEntityID)) {
+        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID], []);
+        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
+            homebuttonHovered = true;
+        }
+    }
+
+    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homebuttonHovered ? 1.0 : 0.0 });
+}
+
 WebTablet.prototype.mouseMoveEvent = function (event) {
     if (this.dragging) {
         this.currentMouse = {
@@ -511,6 +583,8 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
             y: event.y
         };
         this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(event.x, event.y);
     }
 };
 
@@ -537,6 +611,8 @@ WebTablet.prototype.mouseMoveProcessor = function () {
             });
         }
         this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(this.currentMouse.x, this.currentMouse.y);
     }
 };
 

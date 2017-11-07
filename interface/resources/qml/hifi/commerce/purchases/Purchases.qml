@@ -241,7 +241,7 @@ Rectangle {
         }
     }
 
-    FirstUseTutorial {
+    HifiCommerceCommon.FirstUseTutorial {
         id: firstUseTutorial;
         z: 999;
         visible: root.activeView === "firstUseTutorial";

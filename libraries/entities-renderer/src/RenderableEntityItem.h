@@ -49,6 +49,9 @@ public:
     virtual bool addToScene(const ScenePointer& scene, Transaction& transaction) final;
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction);
 
+    void clearSubRenderItemIDs();
+    void setSubRenderItemIDs(const render::ItemIDs& ids);
+
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);
@@ -105,16 +108,18 @@ protected:
     template<typename T>
     std::shared_ptr<T> asTypedEntity() { return std::static_pointer_cast<T>(_entity); }
         
+
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     static std::function<bool()> _entitiesShouldFadeFunction;
+    const Transform& getModelTransform() const;
 
     SharedSoundPointer _collisionSound;
     QUuid _changeHandlerId;
     ItemID _renderItemID{ Item::INVALID_ITEM_ID };
+    ItemIDs _subRenderItemIDs;
     quint64 _fadeStartTime{ usecTimestampNow() };
     bool _isFading{ _entitiesShouldFadeFunction() };
     bool _prevIsTransparent { false };
-    Transform _modelTransform;
     Item::Bound _bound;
     bool _visible { false };
     bool _moving { false };
@@ -123,6 +128,10 @@ protected:
 
 
 private:
+    // The base class relies on comparing the model transform to the entity transform in order 
+    // to trigger an update, so the member must not be visible to derived classes as a modifiable
+    // transform
+    Transform _modelTransform;
     // The rendering code only gets access to the entity in very specific circumstances
     // i.e. to see if the rendering code needs to update because of a change in state of the 
     // entity.  This forces all the rendering code itself to be independent of the entity

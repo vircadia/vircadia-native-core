@@ -95,7 +95,7 @@ protected:
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
     virtual void compositeScene();
-    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator();
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
     virtual void compositePointer();
     virtual void compositeExtra() {};
 
@@ -140,6 +140,8 @@ protected:
     gpu::Frame* _lastFrame { nullptr };
     gpu::FramebufferPointer _compositeFramebuffer;
     gpu::PipelinePointer _hudPipeline;
+    gpu::PipelinePointer _mirrorHUDPipeline;
+    gpu::ShaderPointer _mirrorHUDPS;
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;

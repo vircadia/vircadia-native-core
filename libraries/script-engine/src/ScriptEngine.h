@@ -55,6 +55,8 @@ static const int DEFAULT_ENTITY_PPS_PER_SCRIPT = 900;
 
 class ScriptEngines;
 
+Q_DECLARE_METATYPE(ScriptEnginePointer)
+
 class CallbackData {
 public:
     QScriptValue function;
@@ -198,7 +200,8 @@ public:
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap = false); // will call unload method
     Q_INVOKABLE void unloadAllEntityScripts();
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
-                                            const QStringList& params = QStringList()) override;
+                                            const QStringList& params = QStringList(),
+                                            const QUuid& remoteCallerID = QUuid()) override;
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 

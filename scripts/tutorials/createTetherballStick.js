@@ -14,7 +14,6 @@
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
 var LIFETIME = 3600;
 var BALL_SIZE = 0.175;
 var BALL_DAMPING = 0.5;

@@ -22,27 +22,23 @@ class LaserPointerScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public slots:
-    Q_INVOKABLE QUuid createLaserPointer(const QVariant& properties);
-    Q_INVOKABLE void enableLaserPointer(QUuid uid) { qApp->getLaserPointerManager().enableLaserPointer(uid); }
-    Q_INVOKABLE void disableLaserPointer(QUuid uid) { qApp->getLaserPointerManager().disableLaserPointer(uid); }
-    Q_INVOKABLE void removeLaserPointer(QUuid uid) { qApp->getLaserPointerManager().removeLaserPointer(uid); }
-    Q_INVOKABLE void editRenderState(QUuid uid, const QString& renderState, const QVariant& properties);
-    Q_INVOKABLE void setRenderState(QUuid uid, const QString& renderState) { qApp->getLaserPointerManager().setRenderState(uid, renderState.toStdString()); }
-    Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid) { return qApp->getLaserPointerManager().getPrevRayPickResult(uid); }
+    Q_INVOKABLE QUuid createLaserPointer(const QVariant& properties) const;
+    Q_INVOKABLE void enableLaserPointer(const QUuid& uid) const { qApp->getLaserPointerManager().enableLaserPointer(uid); }
+    Q_INVOKABLE void disableLaserPointer(const QUuid& uid) const { qApp->getLaserPointerManager().disableLaserPointer(uid); }
+    Q_INVOKABLE void removeLaserPointer(const QUuid& uid) const { qApp->getLaserPointerManager().removeLaserPointer(uid); }
+    Q_INVOKABLE void editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const;
+    Q_INVOKABLE void setRenderState(const QUuid& uid, const QString& renderState) const { qApp->getLaserPointerManager().setRenderState(uid, renderState.toStdString()); }
+    Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid) const { return qApp->getLaserPointerManager().getPrevRayPickResult(uid); }
 
-    Q_INVOKABLE void setPrecisionPicking(QUuid uid, const bool precisionPicking) { qApp->getLaserPointerManager().setPrecisionPicking(uid, precisionPicking); }
-    Q_INVOKABLE void setLaserLength(QUuid uid, const float laserLength) { qApp->getLaserPointerManager().setLaserLength(uid, laserLength); }
-    Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) { qApp->getLaserPointerManager().setIgnoreEntities(uid, ignoreEntities); }
-    Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) { qApp->getLaserPointerManager().setIncludeEntities(uid, includeEntities); }
-    Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) { qApp->getLaserPointerManager().setIgnoreOverlays(uid, ignoreOverlays); }
-    Q_INVOKABLE void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) { qApp->getLaserPointerManager().setIncludeOverlays(uid, includeOverlays); }
-    Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) { qApp->getLaserPointerManager().setIgnoreAvatars(uid, ignoreAvatars); }
-    Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) { qApp->getLaserPointerManager().setIncludeAvatars(uid, includeAvatars); }
+    Q_INVOKABLE void setPrecisionPicking(const QUuid& uid, bool precisionPicking) const { qApp->getLaserPointerManager().setPrecisionPicking(uid, precisionPicking); }
+    Q_INVOKABLE void setLaserLength(const QUuid& uid, float laserLength) const { qApp->getLaserPointerManager().setLaserLength(uid, laserLength); }
+    Q_INVOKABLE void setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreEntities) const;
+    Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities) const;
 
-    Q_INVOKABLE void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) { qApp->getLaserPointerManager().setLockEndUUID(uid, objectID, isOverlay); }
+    Q_INVOKABLE void setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const { qApp->getLaserPointerManager().setLockEndUUID(uid, objectID, isOverlay); }
 
 private:
-    const RenderState buildRenderState(const QVariantMap& propMap);
+    static RenderState buildRenderState(const QVariantMap& propMap);
 
 };
 

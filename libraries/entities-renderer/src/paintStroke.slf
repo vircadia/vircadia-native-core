@@ -40,7 +40,7 @@ void main(void) {
     packDeferredFragmentTranslucent(
         float(frontCondition) * interpolatedNormal,
         texel.a * varColor.a,
-        polyline.color * texel.rgb,
+        color * texel.rgb,
         vec3(0.01, 0.01, 0.01),
         10.0);
 }
