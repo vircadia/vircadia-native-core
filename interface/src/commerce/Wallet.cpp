@@ -16,6 +16,7 @@
 #include "ui/ImageProvider.h"
 #include "scripting/HMDScriptingInterface.h"
 
+#include <FingerprintUtils.h>
 #include <PathUtils.h>
 #include <OffscreenUi.h>
 #include <AccountManager.h>
@@ -541,7 +542,8 @@ bool Wallet::generateKeyPair() {
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, oldKey);
+    QString machineFingerprint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+    return ledger->receiveAt(key, oldKey, machineFingerprint);
 }
 
 QStringList Wallet::listPublicKeys() {

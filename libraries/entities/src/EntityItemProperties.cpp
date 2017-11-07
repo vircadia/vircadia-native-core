@@ -1221,8 +1221,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-                                                  QByteArray& buffer) {
+OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+                QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties) {
+
     OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
@@ -1264,16 +1265,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         QByteArray encodedUpdateDelta = updateDeltaCoder;
 
         EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
-        EntityPropertyFlags requestedProperties = properties.getChangedProperties();
         EntityPropertyFlags propertiesDidntFit = requestedProperties;
-
-        // TODO: we need to handle the multi-pass form of this, similar to how we handle entity data
-        //
-        // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
-        // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
-        //if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
-        //    requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
-        //}
 
         LevelDetails entityLevel = packetData->startLevel();
 
@@ -1302,7 +1294,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         int propertyCount = 0;
 
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits
-        && successLastUpdatedFits && successPropertyFlagsFits;
+                && successLastUpdatedFits && successPropertyFlagsFits;
 
         int startOfEntityItemData = packetData->getUncompressedByteOffset();
 
@@ -1316,7 +1308,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions());
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
             APPEND_ENTITY_PROPERTY(PROP_DENSITY, properties.getDensity());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, properties.getVelocity());
@@ -1472,6 +1464,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
+
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
@@ -1522,12 +1515,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // If any part of the model items didn't fit, then the element is considered partial
         if (appendState != OctreeElement::COMPLETED) {
-            // TODO: handle mechanism for handling partial fitting data!
-            // add this item into our list for the next appendElementData() pass
-            //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
-
-            // for now, if it's not complete, it's not successful
-            success = false;
+            didntFitProperties = propertiesDidntFit;
         }
     }
 
@@ -1543,11 +1531,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
             success = false;
+            appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
+            // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-    return success;
+
+
+    return appendState;
 }
 
 QByteArray EntityItemProperties::getPackedNormals() const {
@@ -1673,7 +1665,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
