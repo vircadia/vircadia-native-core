@@ -99,7 +99,6 @@ void PrepareDrawOutline::run(const render::RenderContextPointer& renderContext, 
 
 gpu::PipelinePointer DrawOutlineMask::_stencilMaskPipeline;
 gpu::PipelinePointer DrawOutlineMask::_stencilMaskFillPipeline;
-gpu::BufferPointer DrawOutlineMask::_boundsBuffer;
 
 DrawOutlineMask::DrawOutlineMask(unsigned int outlineIndex, 
                                  render::ShapePlumberPointer shapePlumber, OutlineSharedParametersPointer parameters) :
