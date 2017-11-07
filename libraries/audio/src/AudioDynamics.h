@@ -31,6 +31,9 @@
 #define MULQ31(a,b)     ((int32_t)(MUL64(a, b) >> 31))
 #define MULDIV64(a,b,c) (int32_t)(MUL64(a, b) / (c))
 
+#define ADDMOD32(a,b)   (int32_t)((uint32_t)(a) + (uint32_t)(b))
+#define SUBMOD32(a,b)   (int32_t)((uint32_t)(a) - (uint32_t)(b))
+
 //
 // on x86 architecture, assume that SSE2 is present
 //
@@ -132,6 +135,7 @@ static const int32_t exp2Table[1 << EXP2_TABBITS][3] = {
 
 static const int IEEE754_FABS_MASK = 0x7fffffff;
 static const int IEEE754_MANT_BITS = 23;
+static const int IEEE754_EXPN_BITS = 8;
 static const int IEEE754_EXPN_BIAS = 127;
 
 //
@@ -149,7 +153,7 @@ static inline int32_t peaklog2(float* input) {
 
     // split into e and x - 1.0
     int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
-    int32_t x = (peak << (31 - IEEE754_MANT_BITS)) & 0x7fffffff;
+    int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
     // saturate
     if (e > 31) {
@@ -188,7 +192,7 @@ static inline int32_t peaklog2(float* input0, float* input1) {
 
     // split into e and x - 1.0
     int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
-    int32_t x = (peak << (31 - IEEE754_MANT_BITS)) & 0x7fffffff;
+    int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
     // saturate
     if (e > 31) {
@@ -231,7 +235,7 @@ static inline int32_t peaklog2(float* input0, float* input1, float* input2, floa
 
     // split into e and x - 1.0
     int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
-    int32_t x = (peak << (31 - IEEE754_MANT_BITS)) & 0x7fffffff;
+    int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
     // saturate
     if (e > 31) {
@@ -256,30 +260,30 @@ static inline int32_t peaklog2(float* input0, float* input1, float* input2, floa
 // Count Leading Zeros
 // Emulates the CLZ (ARM) and LZCNT (x86) instruction
 //
-static inline int CLZ(uint32_t x) {
+static inline int CLZ(uint32_t u) {
 
-    if (x == 0) {
+    if (u == 0) {
         return 32;
     }
 
     int e = 0;
-    if (x < 0x00010000) {
-        x <<= 16;
+    if (u < 0x00010000) {
+        u <<= 16;
         e += 16;
     }
-    if (x < 0x01000000) {
-        x <<= 8;
+    if (u < 0x01000000) {
+        u <<= 8;
         e += 8;
     }
-    if (x < 0x10000000) {
-        x <<= 4;
+    if (u < 0x10000000) {
+        u <<= 4;
         e += 4;
     }
-    if (x < 0x40000000) {
-        x <<= 2;
+    if (u < 0x40000000) {
+        u <<= 2;
         e += 2;
     }
-    if (x < 0x80000000) {
+    if (u < 0x80000000) {
         e += 1;
     }
     return e;
@@ -287,19 +291,19 @@ static inline int CLZ(uint32_t x) {
 
 //
 // Compute -log2(x) for x=[0,1] in Q31, result in Q26
-// x = 0 returns 0x7fffffff
-// x < 0 undefined
+// x <= 0 returns 0x7fffffff
 //
 static inline int32_t fixlog2(int32_t x) {
 
-    if (x == 0) {
+    if (x <= 0) {
         return 0x7fffffff;
     }
 
     // split into e and x - 1.0
-    int e = CLZ((uint32_t)x);
-    x <<= e;            // normalize to [0x80000000, 0xffffffff]
-    x &= 0x7fffffff;    // x - 1.0
+    uint32_t u = (uint32_t)x;
+    int e = CLZ(u);
+    u <<= e;            // normalize to [0x80000000, 0xffffffff]
+    x = u & 0x7fffffff; // x - 1.0
 
     int k = x >> (31 - LOG2_TABBITS);
 
@@ -317,13 +321,18 @@ static inline int32_t fixlog2(int32_t x) {
 
 //
 // Compute exp2(-x) for x=[0,32] in Q26, result in Q31
-// x < 0 undefined
+// x <= 0 returns 0x7fffffff
 //
 static inline int32_t fixexp2(int32_t x) {
 
+    if (x <= 0) {
+        return 0x7fffffff;
+    }
+
     // split into e and 1.0 - x
-    int e = x >> LOG2_FRACBITS;
-    x = ~(x << LOG2_INTBITS) & 0x7fffffff;
+    uint32_t u = (uint32_t)x;
+    int e = u >> LOG2_FRACBITS;
+    x = ~(u << LOG2_INTBITS) & 0x7fffffff;
 
     int k = x >> (31 - EXP2_TABBITS);
 
@@ -394,19 +403,21 @@ public:
 
         // Fast FIR attack/lowpass filter using a 2-stage CIC filter.
         // The step response reaches final value after N-1 samples.
+        // NOTE: CIC integrators intentionally overflow, using modulo arithmetic.
+        // See E. B. Hogenauer, "An economical class of digital filters for decimation and interpolation"
 
         const int32_t CICGAIN = 0xffffffff / (CIC1 * CIC2); // Q32
         x = MULHI(x, CICGAIN);
 
         _buffer[i] = _acc1;
-        _acc1 += x;                 // integrator
+        _acc1 = ADDMOD32(_acc1, x);         // integrator
         i = (i + CIC1 - 1) & MASK;
-        x = _acc1 - _buffer[i];     // comb
+        x = SUBMOD32(_acc1, _buffer[i]);    // comb
 
         _buffer[i] = _acc2;
-        _acc2 += x;                 // integrator
+        _acc2 = ADDMOD32(_acc2, x);         // integrator
         i = (i + CIC2 - 1) & MASK;
-        x = _acc2 - _buffer[i];     // comb
+        x = SUBMOD32(_acc2, _buffer[i]);    // comb
 
         _index = (i + 1) & MASK;    // skip unused tap
         return x;
@@ -459,19 +470,21 @@ public:
 
         // Fast FIR attack/lowpass filter using a 2-stage CIC filter.
         // The step response reaches final value after N-1 samples.
+        // NOTE: CIC integrators intentionally overflow, using modulo arithmetic.
+        // See E. B. Hogenauer, "An economical class of digital filters for decimation and interpolation"
 
         const int32_t CICGAIN = 0xffffffff / (CIC1 * CIC2); // Q32
         x = MULHI(x, CICGAIN);
 
         _buffer[i] = _acc1;
-        _acc1 += x;                 // integrator
+        _acc1 = ADDMOD32(_acc1, x);         // integrator
         i = (i + CIC1 - 1) & MASK;
-        x = _acc1 - _buffer[i];     // comb
+        x = SUBMOD32(_acc1, _buffer[i]);    // comb
 
         _buffer[i] = _acc2;
-        _acc2 += x;                 // integrator
+        _acc2 = ADDMOD32(_acc2, x);         // integrator
         i = (i + CIC2 - 1) & MASK;
-        x = _acc2 - _buffer[i];     // comb
+        x = SUBMOD32(_acc2, _buffer[i]);    // comb
 
         _index = (i + 1) & MASK;    // skip unused tap
         return x;

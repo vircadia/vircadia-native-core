@@ -121,8 +121,6 @@ bool Model::needsFixupInScene() const {
     return (_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded();
 }
 
-// TODO?: should we combine translation and rotation into single method to avoid double-work?
-// (figure out where we call these)
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
     updateRenderItems();
@@ -131,6 +129,14 @@ void Model::setTranslation(const glm::vec3& translation) {
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
     updateRenderItems();
+}
+
+// temporary HACK: set transform while avoiding implicit calls to updateRenderItems()
+// TODO: make setRotation() and friends set flag to be used later to decide to updateRenderItems()
+void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
+    _translation = transform.getTranslation();
+    _rotation = transform.getRotation();
+    // DO NOT call updateRenderItems() here!
 }
 
 Transform Model::getTransform() const {
@@ -209,11 +215,6 @@ void Model::updateRenderItems() {
         return;
     }
 
-    glm::vec3 scale = getScale();
-    if (_collisionGeometry) {
-        // _collisionGeometry is already scaled
-        scale = glm::vec3(1.0f);
-    }
     _needsUpdateClusterMatrices = true;
     _renderItemsNeedUpdate = false;
 
@@ -221,7 +222,7 @@ void Model::updateRenderItems() {
     // the application will ensure only the last lambda is actually invoked.
     void* key = (void*)this;
     std::weak_ptr<Model> weakSelf = shared_from_this();
-    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf, scale]() {
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [weakSelf]() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();
@@ -233,17 +234,18 @@ void Model::updateRenderItems() {
         // We need to update them here so we can correctly update the bounding box.
         self->updateClusterMatrices();
 
+        Transform modelTransform = self->getTransform();
+        modelTransform.setScale(glm::vec3(1.0f));
+
         uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
 
         render::Transaction transaction;
         foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter](ModelMeshPartPayload& data) {
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform](ModelMeshPartPayload& data) {
                 ModelPointer model = data._model.lock();
                 if (model && model->isLoaded()) {
                     // Ensure the model geometry was not reset between frames
                     if (deleteGeometryCounter == model->_deleteGeometryCounter) {
-                        Transform modelTransform = model->getTransform();
-                        modelTransform.setScale(glm::vec3(1.0f));
 
                         const Model::MeshState& state = model->getMeshState(data._meshIndex);
                         Transform renderTransform = modelTransform;
@@ -256,10 +258,8 @@ void Model::updateRenderItems() {
             });
         }
 
-        // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
-        Transform modelTransform = self->getTransform();
         foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
             transaction.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
@@ -269,6 +269,11 @@ void Model::updateRenderItems() {
 
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     });
+}
+
+void Model::setRenderItemsNeedUpdate() {
+    _renderItemsNeedUpdate = true;
+    emit requestRenderUpdate();
 }
 
 void Model::initJointTransforms() {
@@ -590,6 +595,21 @@ void Model::setVisibleInScene(bool newValue, const render::ScenePointer& scene) 
 void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
     if (_isLayeredInFront != layered) {
         _isLayeredInFront = layered;
+
+        render::Transaction transaction;
+        foreach(auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+        }
+        foreach(auto item, _collisionRenderItemsMap.keys()) {
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
+void Model::setLayeredInHUD(bool layered, const render::ScenePointer& scene) {
+    if (_isLayeredInHUD != layered) {
+        _isLayeredInHUD = layered;
 
         render::Transaction transaction;
         foreach(auto item, _modelMeshRenderItemsMap.keys()) {
@@ -941,7 +961,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
-    PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
+    DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1062,8 +1082,7 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(simulation_detail, __FUNCTION__);
-    PerformanceTimer perfTimer("Model::simulate");
+    DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
@@ -1101,7 +1120,7 @@ void Model::computeMeshPartLocalBounds() {
 
 // virtual
 void Model::updateClusterMatrices() {
-    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+    DETAILED_PERFORMANCE_TIMER("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
@@ -1219,6 +1238,7 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
 }
 
 void Model::createRenderItemSet() {
+    updateClusterMatrices();
     if (_collisionGeometry) {
         if (_collisionRenderItems.empty()) {
             createCollisionRenderItemSet();
@@ -1269,7 +1289,6 @@ void Model::createVisibleRenderItemSet() {
             shapeID++;
         }
     }
-    computeMeshPartLocalBounds();
 }
 
 void Model::createCollisionRenderItemSet() {
@@ -1309,55 +1328,6 @@ void Model::createCollisionRenderItemSet() {
 
 bool Model::isRenderable() const {
     return !_meshStates.isEmpty() || (isLoaded() && _renderGeometry->getMeshes().empty());
-}
-
-bool Model::initWhenReady(const render::ScenePointer& scene) {
-    // NOTE: this only called by SkeletonModel
-    if (_addedToScene || !isRenderable()) {
-        return false;
-    }
-
-    createRenderItemSet();
-
-    render::Transaction transaction;
-
-    bool addedTransaction = false;
-    if (_collisionGeometry) {
-        foreach (auto renderItem, _collisionRenderItems) {
-            auto item = scene->allocateID();
-            auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-            _collisionRenderItemsMap.insert(item, renderPayload);
-            transaction.resetItem(item, renderPayload);
-        }
-        addedTransaction = !_collisionRenderItems.empty();
-    } else {
-        bool hasTransparent = false;
-        size_t verticesCount = 0;
-        foreach (auto renderItem, _modelMeshRenderItems) {
-            auto item = scene->allocateID();
-            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-
-            hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
-            verticesCount += renderItem.get()->getVerticesCount();
-            _modelMeshRenderItemsMap.insert(item, renderPayload);
-            transaction.resetItem(item, renderPayload);
-        }
-        addedTransaction = !_modelMeshRenderItemsMap.empty();
-        _renderInfoVertexCount = verticesCount;
-        _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
-        _renderInfoHasTransparent = hasTransparent;
-    }
-    _addedToScene = addedTransaction;
-    if (addedTransaction) {
-        scene->enqueueTransaction(transaction);
-        // NOTE: updateRender items enqueues identical transaction (using a lambda)
-        // so it looks like we're doing double work here, but I don't want to remove the call
-        // for fear there is some side effect we'll miss. -- Andrew 2016.07.21
-        // TODO: figure out if we really need this call to updateRenderItems() or not.
-        updateRenderItems();
-    }
-
-    return true;
 }
 
 class CollisionRenderGeometry : public Geometry {

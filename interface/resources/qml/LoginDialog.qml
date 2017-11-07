@@ -27,6 +27,8 @@ ModalWindow {
     destroyOnHidden: true
     visible: true
 
+    readonly property bool isTablet: false
+
     property string iconText: ""
     property int iconSize: 50
 
@@ -34,6 +36,10 @@ ModalWindow {
     property int titleWidth: 0
 
     keyboardOverride: true  // Disable ModalWindow's keyboard.
+
+    function tryDestroy() {
+        root.destroy()
+    }
 
     LoginDialog {
         id: loginDialog

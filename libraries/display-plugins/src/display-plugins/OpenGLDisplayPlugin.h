@@ -22,6 +22,8 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 
+#include <gpu/Batch.h>
+
 namespace gpu {
     namespace gl {
         class GLBackend;
@@ -30,7 +32,7 @@ namespace gpu {
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
-    Q_PROPERTY(float overlayAlpha MEMBER _overlayAlpha)
+    Q_PROPERTY(float hudAlpha MEMBER _hudAlpha)
     using Parent = DisplayPlugin;
 protected:
     using Mutex = std::mutex;
@@ -93,7 +95,7 @@ protected:
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
     virtual void compositeScene();
-    virtual void compositeOverlay();
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
     virtual void compositePointer();
     virtual void compositeExtra() {};
 
@@ -129,20 +131,22 @@ protected:
     bool _vsyncEnabled { true };
     QThread* _presentThread{ nullptr };
     std::queue<gpu::FramePointer> _newFrameQueue;
-    RateCounter<100> _droppedFrameRate;
-    RateCounter<100> _newFrameRate;
-    RateCounter<100> _presentRate;
-    RateCounter<100> _renderRate;
+    RateCounter<200> _droppedFrameRate;
+    RateCounter<200> _newFrameRate;
+    RateCounter<200> _presentRate;
+    RateCounter<200> _renderRate;
 
     gpu::FramePointer _currentFrame;
     gpu::Frame* _lastFrame { nullptr };
     gpu::FramebufferPointer _compositeFramebuffer;
-    gpu::PipelinePointer _overlayPipeline;
+    gpu::PipelinePointer _hudPipeline;
+    gpu::PipelinePointer _mirrorHUDPipeline;
+    gpu::ShaderPointer _mirrorHUDPS;
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;
     gpu::TexturePointer _displayTexture{};
-    float _compositeOverlayAlpha { 1.0f };
+    float _compositeHUDAlpha { 1.0f };
 
     struct CursorData {
         QImage image;
@@ -176,6 +180,6 @@ protected:
     // Any resource shared by the main thread and the presentation thread must
     // be serialized through this mutex
     mutable Mutex _presentMutex;
-    float _overlayAlpha{ 1.0f };
+    float _hudAlpha{ 1.0f };
 };
 

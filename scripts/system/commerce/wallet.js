@@ -16,6 +16,8 @@
 (function () { // BEGIN LOCAL_SCOPE
     Script.include("/~/system/libraries/accountUtils.js");
 
+    var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
+
     // Function Name: onButtonClicked()
     //
     // Description:
@@ -25,6 +27,7 @@
     //   -WALLET_QML_SOURCE: The path to the Wallet QML
     //   -onWalletScreen: true/false depending on whether we're looking at the app.
     var WALLET_QML_SOURCE = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/purchases/Purchases.qml";
     var onWalletScreen = false;
     function onButtonClicked() {
         if (!tablet) {
@@ -54,6 +57,7 @@
     //   -Called when a message is received from SpectatorCamera.qml. The "message" argument is what is sent from the QML
     //    in the format "{method, params}", like json-rpc. See also sendToQml().
     var isHmdPreviewDisabled = true;
+    var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
     function fromQml(message) {
         switch (message.method) {
             case 'passphrasePopup_cancelClicked':
@@ -76,8 +80,18 @@
                 onButtonClicked();
                 break;
             case 'walletReset':
+                Settings.setValue("isFirstUseOfPurchases", true);
                 onButtonClicked();
                 onButtonClicked();
+                break;
+            case 'transactionHistory_linkClicked':
+                tablet.gotoWebScreen(message.marketplaceLink, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
+            case 'goToPurchases':
+                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                break;
+            case 'goToMarketplaceItemPage':
+                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
@@ -131,7 +145,7 @@
     var button;
     var buttonName = "WALLET";
     var tablet = null;
-    var walletEnabled = Settings.getValue("inspectionMode", false);
+    var walletEnabled = Settings.getValue("commerce", false);
     function startup() {
         if (walletEnabled) {
             tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");

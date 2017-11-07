@@ -131,6 +131,7 @@ private:
     Geometry::Pointer& _geometryRef;
 };
 
+
 /// Stores cached model geometries.
 class ModelCache : public ResourceCache, public Dependency {
     Q_OBJECT

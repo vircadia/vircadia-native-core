@@ -7,10 +7,12 @@
 # 
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-    if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
-        set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
-    else()
-        set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
+    if (NOT DEFINED ${_RESULT_NAME}) 
+        if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
+            set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
+        else()
+            set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
+        endif()
     endif()
 endfunction()
 
@@ -28,7 +30,7 @@ function(calculate_default_qt_dir _RESULT_NAME)
         set(QT_DEFAULT_ARCH "gcc_64")
     endif()
 
-    if (WIN32)
+    if (WIN32 OR (ANDROID AND ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")))
         set(QT_DEFAULT_ROOT "c:/Qt")
     else()
         set(QT_DEFAULT_ROOT "$ENV{HOME}/Qt")
@@ -44,7 +46,11 @@ endfunction()
 # Sets the QT_CMAKE_PREFIX_PATH and QT_DIR variables
 # Also enables CMAKE_AUTOMOC and CMAKE_AUTORCC
 macro(setup_qt)
-    set(QT_CMAKE_PREFIX_PATH "$ENV{QT_CMAKE_PREFIX_PATH}")
+    # if QT_CMAKE_PREFIX_PATH was not specified before hand,
+    # try to use the environment variable
+    if (NOT QT_CMAKE_PREFIX_PATH)
+        set(QT_CMAKE_PREFIX_PATH "$ENV{QT_CMAKE_PREFIX_PATH}")
+    endif()
     if (("QT_CMAKE_PREFIX_PATH" STREQUAL "") OR (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}"))
         calculate_default_qt_dir(QT_DIR)
         set(QT_CMAKE_PREFIX_PATH "${QT_DIR}/lib/cmake")

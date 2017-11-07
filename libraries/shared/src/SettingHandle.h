@@ -39,7 +39,7 @@ public:
     QStringList childKeys() const;
     QStringList allKeys() const;
     bool contains(const QString& key) const;
-    int	beginReadArray(const QString & prefix);
+    int    beginReadArray(const QString & prefix);
     void beginWriteArray(const QString& prefix, int size = -1);
     void endArray();
     void setArrayIndex(int i);

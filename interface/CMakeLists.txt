@@ -1,6 +1,20 @@
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
+file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
+add_custom_target(qml SOURCES ${QML_SRC})
+GroupSources("resources/qml")
+
+function(JOIN VALUES GLUE OUTPUT)
+  string (REGEX REPLACE "([^\\]|^);" "\\1${GLUE}" _TMP_STR "${VALUES}")
+  string (REGEX REPLACE "[\\](.)" "\\1" _TMP_STR "${_TMP_STR}") #fixes escaping
+  set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
+endfunction()
+
+
+set(INTERFACE_QML_QRC ${CMAKE_CURRENT_BINARY_DIR}/qml.qrc)
+generate_qrc(OUTPUT ${INTERFACE_QML_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources GLOBS *.qml *.qss *.js *.html *.ttf *.gif *.svg *.png *.jpg)      
+
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
@@ -66,9 +80,7 @@ qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 # add them to the interface source files
 set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
-file(GLOB_RECURSE QML_SRC resources/qml/*.qml resources/qml/*.js)
-add_custom_target(qml SOURCES ${QML_SRC})
-GroupSources("resources/qml")
+list(APPEND INTERFACE_SRCS ${INTERFACE_QML_QRC})
 
 if (UNIX)
   install(
@@ -131,9 +143,9 @@ if (APPLE)
 
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
-
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
+  list(APPEND INTERFACE_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME})
 endif()
+
 
 # create the executable, make it a bundle on OS X
 if (APPLE)
@@ -171,8 +183,6 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
-target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")
-
 if (WIN32)
   # These are external plugins, but we need to do the 'add dependency' here so that their
   # binary directories get added to the fixup path
@@ -200,6 +210,7 @@ endif()
 # link required hifi libraries
 link_hifi_libraries(
   shared octree ktx gpu gl gpu-gl procedural model render
+  pointers
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui auto-updater midi
@@ -213,10 +224,6 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries
 
 target_bullet()
 target_opengl()
-
-if (NOT ANDROID)
-  target_glew()
-endif ()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -268,7 +275,13 @@ target_link_libraries(
 )
 
 if (UNIX)
-    target_link_libraries(${TARGET_NAME} pthread)
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+        # Linux
+        target_link_libraries(${TARGET_NAME} pthread atomic)
+    else ()
+        # OSX
+        target_link_libraries(${TARGET_NAME} pthread)
+    endif ()
 endif(UNIX)
 
 # assume we are using a Qt build without bearer management

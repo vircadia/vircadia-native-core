@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays,
-   MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, NULL_UUID:true, AVATAR_SELF_ID:true, FORBIDDEN_GRAB_TYPES:true,
+/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
+   MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
    DEFAULT_REGISTRATION_POINT:true, INCHES_TO_METERS:true,
    TRIGGER_OFF_VALUE:true,
@@ -35,12 +35,19 @@
    propsArePhysical:true,
    controllerDispatcherPluginsNeedSort:true,
    projectOntoXYPlane:true,
+   getChildrenProps:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
    entityHasActions:true,
    ensureDynamic:true,
    findGroupParent:true,
-   BUMPER_ON_VALUE:true
+   BUMPER_ON_VALUE:true,
+   getEntityParents:true,
+   findHandChildEntities:true,
+   TEAR_AWAY_DISTANCE:true,
+   TEAR_AWAY_COUNT:true,
+   TEAR_AWAY_CHECK_TIME:true,
+   distanceBetweenPointAndEntityBoundingBox:true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -54,9 +61,6 @@ ONE_VEC = { x: 1, y: 1, z: 1 };
 
 LEFT_HAND = 0;
 RIGHT_HAND = 1;
-
-NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
-AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
 FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
 
@@ -78,6 +82,10 @@ COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };
 COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
 
 NEAR_GRAB_RADIUS = 1.0;
+
+TEAR_AWAY_DISTANCE = 0.1; // ungrab an entity if its bounding-box moves this far from the hand
+TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
+TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 
 DISPATCHER_PROPERTIES = [
     "position",
@@ -193,17 +201,6 @@ entityIsDistanceGrabbable = function(props) {
         return false;
     }
 
-    // XXX
-    // var distance = Vec3.distance(props.position, handPosition);
-    // this.otherGrabbingUUID = entityIsGrabbedByOther(entityID);
-    // if (this.otherGrabbingUUID !== null) {
-    //     // don't distance grab something that is already grabbed.
-    //     if (debug) {
-    //         print("distance grab is skipping '" + props.name + "': already grabbed by another.");
-    //     }
-    //     return false;
-    // }
-
     return true;
 };
 
@@ -224,7 +221,7 @@ getControllerJointIndex = function (hand) {
         return controllerJointIndex;
     }
 
-    return MyAvatar.getJointIndex("Head");
+    return -1;
 };
 
 propsArePhysical = function (props) {
@@ -286,7 +283,7 @@ ensureDynamic = function (entityID) {
     // if we distance hold something and keep it very still before releasing it, it ends up
     // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
     var props = Entities.getEntityProperties(entityID, ["velocity", "dynamic", "parentID"]);
-    if (props.dynamic && props.parentID === NULL_UUID) {
+    if (props.dynamic && props.parentID === Uuid.NULL) {
         var velocity = props.velocity;
         if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             velocity = { x: 0.0, y: 0.2, z: 0.0 };
@@ -296,8 +293,9 @@ ensureDynamic = function (entityID) {
 };
 
 findGroupParent = function (controllerData, targetProps) {
-    while (targetProps.parentID && targetProps.parentID !== NULL_UUID) {
-        // XXX use controllerData.nearbyEntityPropertiesByID ?
+    while (targetProps.parentID &&
+           targetProps.parentID !== Uuid.NULL &&
+           Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
             break;
@@ -310,6 +308,67 @@ findGroupParent = function (controllerData, targetProps) {
     return targetProps;
 };
 
+getEntityParents = function(targetProps) {
+    var parentProperties = [];
+    while (targetProps.parentID &&
+           targetProps.parentID !== Uuid.NULL &&
+           Entities.getNestableType(targetProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = targetProps.parentID;
+        targetProps = parentProps;
+        parentProperties.push(parentProps);
+    }
+
+    return parentProperties;
+};
+
+
+findHandChildEntities = function(hand) {
+    // find children of avatar's hand joint
+    var handJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+    var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, handJointIndex));
+
+    // find children of faux controller joint
+    var controllerJointIndex = getControllerJointIndex(hand);
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, controllerJointIndex));
+
+    // find children of faux camera-relative controller joint
+    var controllerCRJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                        "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                        "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerCRJointIndex));
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, controllerCRJointIndex));
+
+    return children.filter(function (childID) {
+        var childType = Entities.getNestableType(childID);
+        return childType == "entity";
+    });
+};
+
+distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {
+    var entityXform = new Xform(entityProps.rotation, entityProps.position);
+    var localPoint = entityXform.inv().xformPoint(point);
+    var minOffset = Vec3.multiplyVbyV(entityProps.registrationPoint, entityProps.dimensions);
+    var maxOffset = Vec3.multiplyVbyV(Vec3.subtract(ONE_VEC, entityProps.registrationPoint), entityProps.dimensions);
+    var localMin = Vec3.subtract(entityXform.trans, minOffset);
+    var localMax = Vec3.sum(entityXform.trans, maxOffset);
+
+    var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
+    v.x = Math.max(v.x, localMin.x);
+    v.x = Math.min(v.x, localMax.x);
+    v.y = Math.max(v.y, localMin.y);
+    v.y = Math.min(v.y, localMax.y);
+    v.z = Math.max(v.z, localMin.z);
+    v.z = Math.min(v.z, localMax.z);
+
+    return Vec3.distance(v, localPoint);
+};
+
 if (typeof module !== 'undefined') {
     module.exports = {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,
@@ -318,6 +377,14 @@ if (typeof module !== 'undefined') {
         makeRunningValues: makeRunningValues,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
-        BUMPER_ON_VALUE: BUMPER_ON_VALUE
+        BUMPER_ON_VALUE: BUMPER_ON_VALUE,
+        TEAR_AWAY_DISTANCE: TEAR_AWAY_DISTANCE,
+        propsArePhysical: propsArePhysical,
+        entityIsGrabbable: entityIsGrabbable,
+        NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
+        projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
+        projectOntoEntityXYPlane: projectOntoEntityXYPlane,
+        TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
+        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE
     };
 }

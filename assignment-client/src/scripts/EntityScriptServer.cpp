@@ -30,6 +30,8 @@
 #include <UUID.h>
 #include <WebSocketServerClass.h>
 
+#include <EntityScriptClient.h> // for EntityScriptServerServices
+
 #include "EntityScriptServerLogging.h"
 #include "../entities/AssignmentParentFinder.h"
 
@@ -68,6 +70,9 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
 
+    DependencyManager::set<EntityScriptServerServices>();
+
+
     // Needed to ensure the creation of the DebugDraw instance on the main thread
     DebugDraw::getInstance();
 
@@ -85,6 +90,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     packetReceiver.registerListener(PacketType::ReloadEntityServerScript, this, "handleReloadEntityServerScriptPacket");
     packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
     packetReceiver.registerListener(PacketType::EntityServerScriptLog, this, "handleEntityServerScriptLogPacket");
+    packetReceiver.registerListener(PacketType::EntityScriptCallMethod, this, "handleEntityScriptCallMethodPacket");
 
     static const int LOG_INTERVAL = MSECS_PER_SECOND / 10;
     auto timer = new QTimer(this);
@@ -102,7 +108,7 @@ static const QString ENTITY_SCRIPT_SERVER_LOGGING_NAME = "entity-script-server";
 void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
 
         if (_entityViewer.getTree() && !_shuttingDown) {
@@ -116,7 +122,7 @@ void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<Rec
 void EntityScriptServer::handleEntityScriptGetStatusPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // These are temporary checks until we can ensure that nodes eventually disconnect if the Domain Server stops telling them
     // about each other.
-    if (senderNode->getCanRez() || senderNode->getCanRezTmp()) {
+    if (senderNode->getCanRez() || senderNode->getCanRezTmp() || senderNode->getCanRezCertified() || senderNode->getCanRezTmpCertified()) {
         MessageID messageID;
         message->readPrimitive(&messageID);
         auto entityID = QUuid::fromRfc4122(message->read(NUM_BYTES_RFC4122_UUID));
@@ -230,6 +236,27 @@ void EntityScriptServer::pushLogs() {
         }
     }
 }
+
+void EntityScriptServer::handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode) {
+
+    if (_entitiesScriptEngine && _entityViewer.getTree() && !_shuttingDown) {
+        auto entityID = QUuid::fromRfc4122(receivedMessage->read(NUM_BYTES_RFC4122_UUID));
+
+        auto method = receivedMessage->readString();
+
+        quint16 paramCount;
+        receivedMessage->readPrimitive(&paramCount);
+
+        QStringList params;
+        for (int param = 0; param < paramCount; param++) {
+            auto paramString = receivedMessage->readString();
+            params << paramString;
+        }
+
+        _entitiesScriptEngine->callEntityScriptMethod(entityID, method, params, senderNode->getUUID());
+    }
+}
+
 
 void EntityScriptServer::run() {
     // make sure we request our script once the agent connects to the domain
@@ -561,6 +588,7 @@ void EntityScriptServer::aboutToFinish() {
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<ScriptEngines>();
+    DependencyManager::destroy<EntityScriptServerServices>();
 
     // cleanup codec & encoder
     if (_codec && _encoder) {

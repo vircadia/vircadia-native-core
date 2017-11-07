@@ -30,7 +30,7 @@ class EntityRenderer : public QObject, public std::enable_shared_from_this<Entit
 
 public:
     static void initEntityRenderers();
-    static Pointer addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene);
+    static Pointer addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene, Transaction& transaction);
 
     // Allow classes to override this to interact with the user
     virtual bool wantsHandControllerPointerEvents() const { return false; }
@@ -73,12 +73,13 @@ protected:
 
     // Will be called on the main thread from updateInScene.  This can be used to fetch things like 
     // network textures or model geometry from resource caches
-    virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {  }
+    virtual void doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity);
 
     // Will be called by the lambda posted to the scene in updateInScene.  
     // This function will execute on the rendering thread, so you cannot use network caches to fetch
     // data in this method if using multi-threaded rendering
-    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity);
+    
+    virtual void doRenderUpdateAsynchronous(const EntityItemPointer& entity) { }
 
     // Called by the `render` method after `needsRenderUpdate`
     virtual void doRender(RenderArgs* args) = 0;
@@ -104,8 +105,10 @@ protected:
     template<typename T>
     std::shared_ptr<T> asTypedEntity() { return std::static_pointer_cast<T>(_entity); }
         
+
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
     static std::function<bool()> _entitiesShouldFadeFunction;
+    const Transform& getModelTransform() const;
 
     SharedSoundPointer _collisionSound;
     QUuid _changeHandlerId;
@@ -113,7 +116,6 @@ protected:
     quint64 _fadeStartTime{ usecTimestampNow() };
     bool _isFading{ _entitiesShouldFadeFunction() };
     bool _prevIsTransparent { false };
-    Transform _modelTransform;
     Item::Bound _bound;
     bool _visible { false };
     bool _moving { false };
@@ -122,6 +124,10 @@ protected:
 
 
 private:
+    // The base class relies on comparing the model transform to the entity transform in order 
+    // to trigger an update, so the member must not be visible to derived classes as a modifiable
+    // transform
+    Transform _modelTransform;
     // The rendering code only gets access to the entity in very specific circumstances
     // i.e. to see if the rendering code needs to update because of a change in state of the 
     // entity.  This forces all the rendering code itself to be independent of the entity

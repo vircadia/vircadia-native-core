@@ -57,7 +57,8 @@ public:
         AccessDenied,
         InvalidByteRange,
         InvalidURL,
-        NotFound
+        NotFound,
+        RedirectFail
     };
     Q_ENUM(Result)
 
@@ -66,9 +67,11 @@ public:
     Result getResult() const { return _result; }
     QString getResultString() const;
     QUrl getUrl() const { return _url; }
+    QUrl getRelativePathUrl() const { return _relativePathURL; }
     bool loadedFromCache() const { return _loadedFromCache; }
     bool getRangeRequestSuccessful() const { return _rangeRequestSuccessful; }
     bool getTotalSizeOfResource() const { return _totalSizeOfResource; }
+    void setFailOnRedirect(bool failOnRedirect) { _failOnRedirect = failOnRedirect; }
 
     void setCacheEnabled(bool value) { _cacheEnabled = value; }
     void setByteRange(ByteRange byteRange) { _byteRange = byteRange; }
@@ -82,16 +85,20 @@ signals:
 
 protected:
     virtual void doSend() = 0;
+    void recordBytesDownloadedInStats(const QString& statName, int64_t bytesReceived);
 
     QUrl _url;
+    QUrl _relativePathURL;
     State _state { NotStarted };
     Result _result;
     QByteArray _data;
+    bool _failOnRedirect { false };
     bool _cacheEnabled { true };
     bool _loadedFromCache { false };
     ByteRange _byteRange;
     bool _rangeRequestSuccessful { false };
     uint64_t _totalSizeOfResource { 0 };
+    int64_t _lastRecordedBytesDownloaded { 0 };
 };
 
 #endif

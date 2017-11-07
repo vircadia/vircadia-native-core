@@ -76,6 +76,7 @@
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
+#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -147,6 +148,8 @@ public:
 
     void initializeGL();
     void initializeUi();
+
+    void updateCamera(RenderArgs& renderArgs);
     void paintGL();
     void resizeGL();
 
@@ -157,7 +160,7 @@ public:
     QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
-    QRect getRecommendedOverlayRect() const;
+    QRect getRecommendedHUDRect() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
@@ -173,7 +176,6 @@ public:
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
     void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
-    void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     QSharedPointer<EntityTreeRenderer> getEntities() const { return DependencyManager::get<EntityTreeRenderer>(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -192,10 +194,9 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-
-    size_t getFrameCount() const { return _frameCount; }
-    float getFps() const { return _frameCounter.rate(); }
-    float getTargetFrameRate() const; // frames/second
+    size_t getRenderFrameCount() const { return _renderFrameCount; }
+    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -266,8 +267,7 @@ public:
 
     void updateMyAvatarLookAtPosition();
 
-    float getAvatarSimrate() const { return _avatarSimCounter.rate(); }
-    float getAverageSimsPerSecond() const { return _simCounter.rate(); }
+    float getGameLoopRate() const { return _gameLoopCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
     void takeSecondaryCameraSnapshot();
@@ -276,18 +276,6 @@ public:
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
     gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture;  }
     gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
-
-    Q_INVOKABLE void sendMousePressOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseMoveOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendMouseReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendClickDownOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoldingClickOnEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendClickReleaseOnEntity(QUuid id, PointerEvent event);
-
-    Q_INVOKABLE void sendHoverEnterEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverOverEntity(QUuid id, PointerEvent event);
-    Q_INVOKABLE void sendHoverLeaveEntity(QUuid id, PointerEvent event);
 
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
@@ -326,6 +314,7 @@ public slots:
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
+    Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
 
@@ -388,11 +377,10 @@ public slots:
     void setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions);
 
     QUuid getKeyboardFocusEntity() const;  // thread-safe
-    void setKeyboardFocusEntity(QUuid id);
-    void setKeyboardFocusEntity(EntityItemID entityItemID);
+    void setKeyboardFocusEntity(const EntityItemID& entityItemID);
 
     OverlayID getKeyboardFocusOverlay();
-    void setKeyboardFocusOverlay(OverlayID overlayID);
+    void setKeyboardFocusOverlay(const OverlayID& overlayID);
 
     void addAssetToWorldMessageClose();
 
@@ -429,7 +417,6 @@ private slots:
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
-    bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     bool askToReplaceDomainContent(const QString& url);
 
@@ -441,6 +428,7 @@ private slots:
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
+    static void addingEntityWithCertificate(const QString& certificateID, const QString& placeName);
     void updateDisplayMode();
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
 
@@ -464,13 +452,11 @@ private:
     void update(float deltaTime);
 
     // Various helper functions called during update()
-    void updateLOD() const;
+    void updateLOD(float deltaTime) const;
     void updateThreads(float deltaTime);
     void updateDialogs(float deltaTime) const;
 
-    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
-
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
+    void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions);
 
     int sendNackPackets();
     void sendAvatarViewFrustum();
@@ -481,7 +467,7 @@ private:
 
     void initializeAcceptedFiles();
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
+    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
@@ -533,12 +519,13 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
-    uint32_t _frameCount { 0 };
+    uint32_t _renderFrameCount { 0 };
 
     // Frame Rate Measurement
-    RateCounter<> _frameCounter;
-    RateCounter<> _avatarSimCounter;
-    RateCounter<> _simCounter;
+    RateCounter<500> _renderLoopCounter;
+    RateCounter<500> _gameLoopCounter;
+
+    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
@@ -555,7 +542,6 @@ private:
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
-    ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
     OctreeQuery _octreeQuery; // NodeData derived class for querying octee cells from octree servers
@@ -626,6 +612,24 @@ private:
     render::EnginePointer _renderEngine{ new render::Engine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
+    struct AppRenderArgs {
+        render::Args _renderArgs;
+        glm::mat4 _eyeToWorld;
+        glm::mat4 _eyeOffsets[2];
+        glm::mat4 _eyeProjections[2];
+        glm::mat4 _headPose;
+        glm::mat4 _sensorToWorld;
+        float _sensorToWorldScale { 1.0f };
+        bool _isStereo{ false };
+    };
+    AppRenderArgs _appRenderArgs;
+
+
+    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
+    void editRenderArgs(RenderArgsEditor editor);
+
+
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
     OverlayConductor _overlayConductor;
@@ -652,8 +656,6 @@ private:
     Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
 
-    QThread* _deadlockWatchdogThread;
-
     std::map<void*, std::function<void()>> _postUpdateLambdas;
     std::mutex _postUpdateLambdasLock;
 
@@ -661,11 +663,9 @@ private:
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
     uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
     uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
-    quint64 _lastPhysicsCheckTime { 0 }; // when did we last check to see if physics was ready
+    quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
-
-    bool _recentlyClearedDomain { false };
 
     QString _returnFromFullScreenMirrorTo;
 
@@ -692,6 +692,7 @@ private:
     FileScriptingInterface* _fileDownload;
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
+    SharedSoundPointer _sampleSound;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
@@ -707,5 +708,8 @@ private:
     LaserPointerManager _laserPointerManager;
 
     friend class RenderEventHandler;
+
+    std::atomic<bool> _pendingIdleEvent { false };
+    std::atomic<bool> _pendingRenderEvent { false };
 };
 #endif // hifi_Application_h

@@ -28,6 +28,8 @@ public:
 
 protected:
     virtual bool applyTransformTo(Transform& transform, bool force = false) override;
+
+    Transform evalRenderTransform() override;
 };
 
 #endif // hifi_Billboard3DOverlay_h

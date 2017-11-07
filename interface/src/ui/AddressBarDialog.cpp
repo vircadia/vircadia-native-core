@@ -39,7 +39,7 @@ AddressBarDialog::AddressBarDialog(QQuickItem* parent) : OffscreenQmlDialog(pare
     });
     _backEnabled = !(DependencyManager::get<AddressManager>()->getBackStack().isEmpty());
     _forwardEnabled = !(DependencyManager::get<AddressManager>()->getForwardStack().isEmpty());
-    connect(addressManager.data(), &AddressManager::hostChanged, this, &AddressBarDialog::metaverseServerUrlChanged);
+    connect(addressManager.data(), &AddressManager::hostChanged, this, &AddressBarDialog::hostChanged);
     connect(DependencyManager::get<DialogsManager>().data(), &DialogsManager::setUseFeed, this, &AddressBarDialog::setUseFeed);
     connect(qApp, &Application::receivedHifiSchemeURL, this, &AddressBarDialog::receivedHifiSchemeURL);
 }
@@ -73,11 +73,11 @@ void AddressBarDialog::loadForward() {
 }
 
 void AddressBarDialog::displayAddressOfflineMessage() {
-    OffscreenUi::critical("", "That user or place is currently offline");
+    OffscreenUi::asyncCritical("", "That user or place is currently offline");
 }
 
 void AddressBarDialog::displayAddressNotFoundMessage() {
-    OffscreenUi::critical("", "There is no address information for that user or place");
+    OffscreenUi::asyncCritical("", "There is no address information for that user or place");
 }
 
 void AddressBarDialog::observeShownChanged(bool visible) {

@@ -9,6 +9,7 @@
 //
 
 import QtQuick 2.5
+import TabletScriptingInterface 1.0
 
 import "../../controls-uit"
 
@@ -38,6 +39,16 @@ Preference {
 
     CheckBox {
         id: checkBox
+        onHoveredChanged: {
+            if (hovered) {
+                tabletInterface.playSound(TabletEnums.ButtonHover);
+            }
+        }
+
+        onClicked: {
+            tabletInterface.playSound(TabletEnums.ButtonClick);
+        }
+
         anchors {
             top: spacer.bottom
             left: parent.left

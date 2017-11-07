@@ -32,6 +32,7 @@ private:
 
     Procedural _procedural;
     QString _lastUserData;
+    Transform _renderTransform;
     entity::Shape _shape { entity::Sphere };
     glm::vec4 _color;
     glm::vec3 _position;

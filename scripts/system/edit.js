@@ -163,7 +163,7 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
     visible: false
 });
 
-var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var marketplaceWindow = new OverlayWebWindow({
     title: 'Marketplace',
     source: "about:blank",
@@ -228,7 +228,7 @@ var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
 
 var toolBar = (function () {
-    var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
+    var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
     var that = {},
         toolBar,
         activeButton = null,
@@ -247,9 +247,12 @@ var toolBar = (function () {
                 direction = MyAvatar.orientation;
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
-
+            // Align entity with Avatar orientation.
+            properties.rotation = MyAvatar.orientation;
+            
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                    
                 // Adjust position of entity per bounding box prior to creating it.
                 var registration = properties.registration;
                 if (registration === undefined) {
@@ -259,7 +262,14 @@ var toolBar = (function () {
 
                 var orientation = properties.orientation;
                 if (orientation === undefined) {
-                    var DEFAULT_ORIENTATION = Quat.fromPitchYawRollDegrees(0, 0, 0);
+                    properties.orientation = MyAvatar.orientation;
+                    var DEFAULT_ORIENTATION = properties.orientation;
+                    orientation = DEFAULT_ORIENTATION;
+                } else {
+                    // If the orientation is already defined, we perform the corresponding rotation assuming that
+                    //  our start referential is the avatar referential.
+                    properties.orientation = Quat.multiply(MyAvatar.orientation, properties.orientation);
+                    var DEFAULT_ORIENTATION = properties.orientation;
                     orientation = DEFAULT_ORIENTATION;
                 }
 
@@ -405,7 +415,7 @@ var toolBar = (function () {
             }
         });
 
-        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
+        var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
@@ -424,7 +434,7 @@ var toolBar = (function () {
         tablet.fromQml.connect(fromQml);
 
         createButton.clicked.connect(function() {
-            if ( ! (Entities.canRez() || Entities.canRezTmp()) ) {
+            if ( ! (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified()) ) {
                 Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
                 return;
             }
@@ -433,17 +443,8 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
-            var importURL = null;
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
-            if (importURL) {
-                if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                    toolBar.toggle();
-                }
-                importSVO(importURL);
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
         addButton("openAssetBrowserButton", "assets-01.svg", function() {
@@ -633,7 +634,7 @@ var toolBar = (function () {
         if (active === isActive) {
             return;
         }
-        if (active && !Entities.canRez() && !Entities.canRezTmp()) {
+        if (active && !Entities.canRez() && !Entities.canRezTmp() && !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
             Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             return;
         }
@@ -788,7 +789,7 @@ function handleDomainChange() {
         return;
     }
 
-    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
     createButton.editProperties({
         icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
         captionColorOverride: (hasRezPermissions ? "" : "#888888"),
@@ -1233,7 +1234,8 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
-    Messages.unsubscribe("Toolbar-DomainChanged");
+    // Messages.unsubscribe("Toolbar-DomainChanged"); // Do not unsubscribe because the shapes.js app also subscribes and 
+    // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
     createButton = null;
 });
 
@@ -1244,6 +1246,7 @@ var lastPosition = null;
 Script.update.connect(function (deltaTime) {
     progressDialog.move();
     selectionDisplay.checkMove();
+    selectionDisplay.checkControllerMove();
     var dOrientation = Math.abs(Quat.dot(Camera.orientation, lastOrientation) - 1);
     var dPosition = Vec3.distance(Camera.position, lastPosition);
     if (dOrientation > 0.001 || dPosition > 0.001) {
@@ -1330,7 +1333,7 @@ function sortSelectedEntities(selected) {
     return sortedEntities;
 }
 
-function recursiveDelete(entities, childrenList) {
+function recursiveDelete(entities, childrenList, deletedIDs) {
     var entitiesLength = entities.length;
     for (var i = 0; i < entitiesLength; i++) {
         var entityID = entities[i];
@@ -1343,6 +1346,7 @@ function recursiveDelete(entities, childrenList) {
             properties: initialProperties,
             children: grandchildrenList
         });
+        deletedIDs.push(entityID);
         Entities.deleteEntity(entityID);
     }
 }
@@ -1357,7 +1361,7 @@ function unparentSelectedEntities() {
         }
         selectedEntities.forEach(function (id, index) {
             var parentId = Entities.getEntityProperties(id, ["parentID"]).parentID;
-            if (parentId !== null && parentId.length > 0 && parentId !== "{00000000-0000-0000-0000-000000000000}") {
+            if (parentId !== null && parentId.length > 0 && parentId !== Uuid.NULL) {
                 parentCheck = true;
             }
             Entities.editEntity(id, {parentID: null});
@@ -1410,6 +1414,8 @@ function parentSelectedEntities() {
 }
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
+        var deletedIDs = [];
+
         selectedParticleEntityID = null;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
@@ -1420,16 +1426,22 @@ function deleteSelectedEntities() {
             var initialProperties = SelectionManager.savedProperties[entityID];
             var children = Entities.getChildrenIDs(entityID);
             var childList = [];
-            recursiveDelete(children, childList);
+            recursiveDelete(children, childList, deletedIDs);
             savedProperties.push({
                 entityID: entityID,
                 properties: initialProperties,
                 children: childList
             });
+            deletedIDs.push(entityID);
             Entities.deleteEntity(entityID);
         }
         SelectionManager.clearSelections();
         pushCommandForSelections([], savedProperties);
+
+        entityListTool.webView.emitScriptEvent(JSON.stringify({
+            type: "deleted",
+            ids: deletedIDs
+        }));
     }
 }
 
@@ -1461,6 +1473,50 @@ function toggleSelectedEntitiesVisible() {
     }
 }
 
+function onFileSaveChanged(filename) {
+    Window.saveFileChanged.disconnect(onFileSaveChanged);
+    if (filename !== "") {
+        var success = Clipboard.exportEntities(filename, selectionManager.selections);
+        if (!success) {
+            Window.notifyEditError("Export failed.");
+        }
+    }
+}
+
+function onFileOpenChanged(filename) {
+    // disconnect the event, otherwise the requests will stack up
+    try {
+        // Not all calls to onFileOpenChanged() connect an event.
+        Window.openFileChanged.disconnect(onFileOpenChanged);
+    } catch (e) {
+        // Ignore.
+    }
+
+    var importURL = null;
+    if (filename !== "") {
+        importURL = filename;
+        if (!/^(http|https):\/\//.test(filename)) {
+            importURL = "file:///" + importURL;
+        }
+    }
+    if (importURL) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
+            toolBar.toggle();
+        }
+        importSVO(importURL);
+    }
+}
+
+function onPromptTextChanged(prompt) {
+    Window.promptTextChanged.disconnect(onPromptTextChanged);
+    if (prompt !== "") {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp() && Entities.canRezCertified() && Entities.canRezTmpCertified())) {
+            toolBar.toggle();
+        }
+        importSVO(prompt);
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1478,30 +1534,16 @@ function handeMenuEvent(menuItem) {
         if (!selectionManager.hasSelection()) {
             Window.notifyEditError("No entities have been selected.");
         } else {
-            var filename = Window.save("Select Where to Save", "", "*.json");
-            if (filename) {
-                var success = Clipboard.exportEntities(filename, selectionManager.selections);
-                if (!success) {
-                    Window.notifyEditError("Export failed.");
-                }
-            }
+            Window.saveFileChanged.connect(onFileSaveChanged);
+            Window.saveAsync("Select Where to Save", "", "*.json");
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
-        var importURL = null;
         if (menuItem === "Import Entities") {
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            importURL = Window.prompt("URL of SVO to import", "");
-        }
-
-        if (importURL) {
-            if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                toolBar.toggle();
-            }
-            importSVO(importURL);
+            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
         entityListTool.toggleVisible();
@@ -1537,7 +1579,8 @@ function getPositionToCreateEntity(extra) {
 }
 
 function importSVO(importURL) {
-    if (!Entities.canRez() && !Entities.canRezTmp()) {
+    if (!Entities.canRez() && !Entities.canRezTmp() &&
+        !Entities.canRezCertified() && !Entities.canRezTmpCertified()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
     }

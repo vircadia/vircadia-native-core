@@ -97,6 +97,8 @@ static const bool HIFI_AUTOREFRESH_FILE_SCRIPTS { true };
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
+int scriptEnginePointerMetaID = qRegisterMetaType<ScriptEnginePointer>();
+
 Q_LOGGING_CATEGORY(scriptengineScript, "hifi.scriptengine.script")
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
@@ -107,10 +109,13 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine) {
         }
         message += context->argument(i).toString();
     }
-    qCDebug(scriptengineScript).noquote() << message;  // noquote() so that \n is treated as newline
 
     if (ScriptEngine *scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->print(message);
+        // prefix the script engine name to help disambiguate messages in the main debug log
+        qCDebug(scriptengineScript, "[%s] %s", qUtf8Printable(scriptEngine->getFilename()), qUtf8Printable(message));
+    } else {
+        qCDebug(scriptengineScript, "%s", qUtf8Printable(message));
     }
 
     return QScriptValue();
@@ -465,22 +470,22 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
 }
 
 void ScriptEngine::scriptErrorMessage(const QString& message) {
-    qCCritical(scriptengine) << qPrintable(message);
+    qCCritical(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit errorMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptWarningMessage(const QString& message) {
-    qCWarning(scriptengine) << qPrintable(message);
+    qCWarning(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit warningMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptInfoMessage(const QString& message) {
-    qCInfo(scriptengine) << qPrintable(message);
+    qCInfo(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit infoMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptPrintedMessage(const QString& message) {
-    qCDebug(scriptengine) << qPrintable(message);
+    qCDebug(scriptengine, "[%s] %s", qUtf8Printable(getFilename()), qUtf8Printable(message));
     emit printedMessage(message, getFilename());
 }
 
@@ -2470,7 +2475,7 @@ void ScriptEngine::callWithEnvironment(const EntityItemID& entityID, const QUrl&
     doWithEnvironment(entityID, sandboxURL, operation);
 }
 
-void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params) {
+void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const QStringList& params, const QUuid& remoteCallerID) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::callEntityScriptMethod() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]  "
@@ -2480,7 +2485,8 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         QMetaObject::invokeMethod(this, "callEntityScriptMethod",
                                   Q_ARG(const EntityItemID&, entityID),
                                   Q_ARG(const QString&, methodName),
-                                  Q_ARG(const QStringList&, params));
+                                  Q_ARG(const QStringList&, params),
+                                  Q_ARG(const QUuid&, remoteCallerID));
         return;
     }
 #ifdef THREAD_DEBUGGING
@@ -2494,13 +2500,41 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     if (isEntityScriptRunning(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         QScriptValue entityScript = details.scriptObject; // previously loaded
-        if (entityScript.property(methodName).isFunction()) {
+
+        // If this is a remote call, we need to check to see if the function is remotely callable
+        // we do this by checking for the existance of the 'remotelyCallable' property on the
+        // entityScript. And we confirm that the method name is included. If this fails, the
+        // function will not be called.
+        bool callAllowed = false;
+        if (remoteCallerID == QUuid()) {
+            callAllowed = true;
+        } else {
+            if (entityScript.property("remotelyCallable").isArray()) {
+                auto callables = entityScript.property("remotelyCallable");
+                auto callableCount = callables.property("length").toInteger();
+                for (int i = 0; i < callableCount; i++) {
+                    auto callable = callables.property(i).toString();
+                    if (callable == methodName) {
+                        callAllowed = true;
+                        break;
+                    }
+                }
+            }
+            if (!callAllowed) {
+                qDebug() << "Method [" << methodName << "] not remotely callable.";
+            }
+        }
+
+        if (callAllowed && entityScript.property(methodName).isFunction()) {
             QScriptValueList args;
             args << entityID.toScriptValue(this);
             args << qScriptValueFromSequence(this, params);
-            callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
-        }
 
+            QScriptValue oldData = this->globalObject().property("Script").property("remoteCallerID");
+            this->globalObject().property("Script").setProperty("remoteCallerID", remoteCallerID.toString()); // Make the remoteCallerID available to javascript as a global.
+            callWithEnvironment(entityID, details.definingSandboxURL, entityScript.property(methodName), entityScript, args);
+            this->globalObject().property("Script").setProperty("remoteCallerID", oldData);
+        }
     }
 }
 

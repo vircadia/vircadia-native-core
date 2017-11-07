@@ -84,10 +84,10 @@ public:
     // new Scene/Engine rendering support
     void setVisibleInScene(bool newValue, const render::ScenePointer& scene);
     void setLayeredInFront(bool layered, const render::ScenePointer& scene);
+    void setLayeredInHUD(bool layered, const render::ScenePointer& scene);
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
-    bool initWhenReady(const render::ScenePointer& scene);
     bool addToScene(const render::ScenePointer& scene,
                     render::Transaction& transaction) {
         auto getters = render::Item::Status::Getters(0);
@@ -102,9 +102,10 @@ public:
     bool isVisible() const { return _isVisible; }
 
     bool isLayeredInFront() const { return _isLayeredInFront; }
+    bool isLayeredInHUD() const { return _isLayeredInHUD; }
 
     virtual void updateRenderItems();
-    void setRenderItemsNeedUpdate() { _renderItemsNeedUpdate = true; }
+    void setRenderItemsNeedUpdate();
     bool getRenderItemsNeedUpdate() { return _renderItemsNeedUpdate; }
     AABox getRenderableMeshBound() const;
     const render::ItemIDs& fetchRenderItemIDs() const;
@@ -205,6 +206,7 @@ public:
 
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
+    void setTransformNoUpdateRenderItems(const Transform& transform); // temporary HACK
 
     const glm::vec3& getTranslation() const { return _translation; }
     const glm::quat& getRotation() const { return _rotation; }
@@ -260,12 +262,15 @@ public:
 
     Q_INVOKABLE MeshProxyList getMeshes() const;
 
+    void scaleToFit();
+
 public slots:
     void loadURLFinished(bool success);
 
 signals:
     void setURLFinished(bool success);
     void setCollisionModelURLFinished(bool success);
+    void requestRenderUpdate();
 
 protected:
 
@@ -317,7 +322,6 @@ protected:
     virtual void initJointStates();
 
     void setScaleInternal(const glm::vec3& scale);
-    void scaleToFit();
     void snapToRegistrationPoint();
 
     void computeMeshPartLocalBounds();
@@ -382,8 +386,8 @@ protected:
     QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
 
-	QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
-	QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
+    QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
+    QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
 
     render::ItemIDs _modelMeshRenderItemIDs;
 
@@ -411,6 +415,7 @@ protected:
     int _renderInfoHasTransparent { false };
 
     bool _isLayeredInFront { false };
+    bool _isLayeredInHUD { false };
 
 private:
     float _loadingPriority { 0.0f };

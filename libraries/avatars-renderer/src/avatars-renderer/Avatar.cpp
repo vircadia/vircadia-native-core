@@ -286,6 +286,13 @@ void Avatar::updateAvatarEntities() {
                 properties.setScript(noScript);
             }
 
+            auto specifiedHref = properties.getHref();
+            if (!isMyAvatar() && !specifiedHref.isEmpty()) {
+                qCDebug(avatars_renderer) << "removing entity href from avatar attached entity:" << entityID << "old href:" << specifiedHref;
+                QString noHref;
+                properties.setHref(noHref);
+            }
+
             // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
             // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
             // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
@@ -994,10 +1001,12 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             glm::mat4 finalMat = glm::inverse(avatarMatrix) * sensorToWorldMatrix;
             return glmExtractRotation(finalMat);
         }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX:
         case CONTROLLER_LEFTHAND_INDEX: {
             Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
             return controllerLeftHandTransform.getRotation();
         }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX:
         case CONTROLLER_RIGHTHAND_INDEX: {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getRotation();
@@ -1032,10 +1041,12 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
             glm::mat4 finalMat = glm::inverse(avatarMatrix) * sensorToWorldMatrix;
             return extractTranslation(finalMat);
         }
+        case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX:
         case CONTROLLER_LEFTHAND_INDEX: {
             Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
             return controllerLeftHandTransform.getTranslation();
         }
+        case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX:
         case CONTROLLER_RIGHTHAND_INDEX: {
             Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
             return controllerRightHandTransform.getTranslation();

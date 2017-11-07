@@ -19,11 +19,12 @@
 #include <SpatialParentFinder.h>
 
 class EntityTree;
-typedef std::shared_ptr<EntityTree> EntityTreePointer;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
 
-
+#include "AddEntityOperator.h"
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
+#include "MovingEntitiesOperator.h"
 
 class EntityEditFilters;
 class Model;
@@ -80,16 +81,21 @@ public:
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
+    virtual void readBitstreamToTree(const unsigned char* bitstream,
+            uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args) override;
+    int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
+
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
     virtual bool getWantSVOfileVersions() const override { return true; }
     virtual PacketType expectedDataPacketType() const override { return PacketType::EntityData; }
-    virtual bool canProcessVersion(PacketVersion thisVersion) const override
-                    { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
     virtual bool handlesEditPacketType(PacketType packetType) const override;
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& senderNode) override;
+    virtual void processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
+    virtual void processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
+    virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
@@ -105,9 +111,6 @@ public:
     virtual bool suppressEmptySubtrees() const override { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
     virtual bool mustIncludeAllChildData() const override { return false; }
-
-    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const override
-                    { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
 
     virtual void update() override { update(true); }
 
@@ -160,6 +163,11 @@ public:
     /// \param foundEntities[out] vector of EntityItemPointer
     void findEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
 
+    /// finds all entities that match scanOperator
+    /// \parameter scanOperator function that scans entities that match criteria
+    /// \parameter foundEntities[out] vector of EntityItemPointer
+    void findEntities(RecurseOctreeOperation& scanOperator, QVector<EntityItemPointer>& foundEntities);
+
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
 
@@ -174,6 +182,11 @@ public:
     QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const { 
         QReadLocker locker(&_recentlyDeletedEntitiesLock);
         return _recentlyDeletedEntityItemIDs;
+    }
+
+    QHash<QString, EntityItemID> getEntityCertificateIDMap() const {
+        QReadLocker locker(&_entityCertificateIDMapLock);
+        return _entityCertificateIDMap;
     }
 
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
@@ -254,6 +267,7 @@ public:
     void knowAvatarID(QUuid avatarID) { _avatarIDs += avatarID; }
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
     void deleteDescendantsOfAvatar(QUuid avatarID);
+    void removeFromChildrenOfAvatars(EntityItemPointer entity);
 
     void addToNeedsParentFixupList(EntityItemPointer entity);
 
@@ -261,13 +275,19 @@ public:
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
+    QByteArray computeEncryptedNonce(const QString& certID, const QString ownerKey);
+    bool verifyDecryptedNonce(const QString& certID, const QString& decryptedNonce, EntityItemID& id);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
+    void deletingEntityPointer(EntityItem* entityID);
     void addingEntity(const EntityItemID& entityID);
+    void editingEntityPointer(const EntityItemPointer& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
+    void killChallengeOwnershipTimeoutTimer(const QString& certID);
 
 protected:
 
@@ -308,6 +328,12 @@ protected:
     mutable QReadWriteLock _entityMapLock;
     QHash<EntityItemID, EntityItemPointer> _entityMap;
 
+    mutable QReadWriteLock _entityCertificateIDMapLock;
+    QHash<QString, EntityItemID> _entityCertificateIDMap;
+
+    mutable QReadWriteLock _certNonceMapLock;
+    QHash<QString, QUuid> _certNonceMap;
+
     EntitySimulationPointer _simulation;
 
     bool _wantEditLogging = false;
@@ -346,6 +372,17 @@ protected:
     bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
     QStringList _entityScriptSourceWhitelist;
+
+    MovingEntitiesOperator _entityMover;
+    QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
+
+    Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
+    Q_INVOKABLE void startPendingTransferStatusTimer(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
+
+private:
+    void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
+    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& encryptedText, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
+    void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode, bool isRetryingValidation);
 };
 
 #endif // hifi_EntityTree_h

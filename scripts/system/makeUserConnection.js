@@ -16,6 +16,7 @@
 
     var request = Script.require('request').request;
 
+    var WANT_DEBUG = Settings.getValue('MAKE_USER_CONNECTION_DEBUG', false);
     var LABEL = "makeUserConnection";
     var MAX_AVATAR_DISTANCE = 0.2; // m
     var GRIP_MIN = 0.75; // goes from 0-1, so 75% pressed is pressed
@@ -120,6 +121,9 @@
     var successfulHandshakeSound;
 
     function debug() {
+        if (!WANT_DEBUG) {
+            return;
+        }
         var stateString = "<" + STATE_STRINGS[state] + ">";
         var connecting = "[" + connectingId + "/" + connectingHandJointIndex + "]";
         var current = "[" + currentHand + "/" + currentHandJointIndex + "]"
@@ -372,7 +376,7 @@
             var myHeadIndex = MyAvatar.getJointIndex("Head");
             var otherHeadIndex = avatar.getJointIndex("Head");
             var diff = (avatar.getJointPosition(otherHeadIndex).y - MyAvatar.getJointPosition(myHeadIndex).y) / 2;
-            print("head height difference: " + diff);
+            debug("head height difference: " + diff);
             updateAnimationData(diff);
         }
     }
@@ -440,7 +444,7 @@
         }, WAITING_INTERVAL);
     }
 
-    var pollCount = 0, requestUrl = location.metaverseServerUrl + '/api/v1/user/connection_request';
+    var pollCount = 0, requestUrl = Account.metaverseServerURL + '/api/v1/user/connection_request';
     // As currently implemented, we select the closest waiting avatar (if close enough) and send
     // them a connectionRequest.  If nobody is close enough we send a waiting message, and wait for a
     // connectionRequest.  If the 2 people who want to connect are both somewhat out of range when they
@@ -565,7 +569,7 @@
         // IWBNI we also did some fail sound/visual effect.
         Window.makeConnection(false, result.connection);
         if (Account.isLoggedIn()) { // Give extra failure info
-            request(location.metaverseServerUrl + '/api/v1/users/' + Account.username + '/location', function (error, response) {
+            request(Account.metaverseServerURL + '/api/v1/users/' + Account.username + '/location', function (error, response) {
                 var message = '';
                 if (error || response.status !== 'success') {
                     message = 'Unable to get location.';

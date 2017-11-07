@@ -62,7 +62,9 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
     # since it's unrunnable by the cross-compiling build machine
 
     # so, we require the compiling user to point us at a compiled executable version for their native toolchain
-    find_program(NATIVE_SCRIBE scribe PATHS ${SCRIBE_PATH} ENV SCRIBE_PATH)
+    if (NOT NATIVE_SCRIBE)
+        find_program(NATIVE_SCRIBE scribe PATHS ${SCRIBE_PATH} ENV SCRIBE_PATH)
+    endif()
 
     if (NOT NATIVE_SCRIBE)
       message(FATAL_ERROR "The High Fidelity scribe tool is required for shader pre-processing. \
@@ -116,6 +118,7 @@ macro(AUTOSCRIBE_SHADER_LIB)
   foreach(SHADER_FILE ${SHADER_SOURCE_FILES})
     AUTOSCRIBE_SHADER(${SHADER_FILE} ${SHADER_INCLUDE_FILES})
     file(TO_CMAKE_PATH "${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
+    set_property(SOURCE ${AUTOSCRIBE_GENERATED_FILE} PROPERTY SKIP_AUTOMOC ON)
     list(APPEND AUTOSCRIBE_SHADER_SRC ${AUTOSCRIBE_GENERATED_FILE})
   endforeach()
   #message(${TARGET_NAME} ${AUTOSCRIBE_SHADER_SRC})

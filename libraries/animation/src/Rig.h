@@ -303,6 +303,7 @@ protected:
     std::shared_ptr<AnimNode> _animNode;
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
+    bool _animLoading { false };
     AnimVariantMap _animVars;
     enum class RigRole {
         Idle = 0,
@@ -334,8 +335,22 @@ protected:
         float firstFrame;
         float lastFrame;
     };
+    
+    struct RoleAnimState {
+       RoleAnimState() {}
+       RoleAnimState(const QString& roleId, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            role(roleId), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        QString role;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
+    };
 
     UserAnimState _userAnimState;
+    std::map<QString, RoleAnimState> _roleAnimStates;
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };

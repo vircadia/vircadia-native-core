@@ -15,6 +15,9 @@
 #define hifi_Wallet_h
 
 #include <DependencyManager.h>
+#include <Node.h>
+#include <ReceivedMessage.h>
+#include "scripting/WalletScriptingInterface.h"
 
 #include <QPixmap>
 
@@ -23,15 +26,15 @@ class Wallet : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-
+    Wallet();
     ~Wallet();
     // These are currently blocking calls, although they might take a moment.
     bool generateKeyPair();
     QStringList listPublicKeys();
     QString signWithKey(const QByteArray& text, const QString& key);
     void chooseSecurityImage(const QString& imageFile);
-    void getSecurityImage();
-    void sendKeyFilePathIfExists();
+    bool getSecurityImage();
+    QString getKeyFilePath();
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }
@@ -40,7 +43,7 @@ public:
     void setCKey(const QByteArray& ckey) { _ckey = ckey; }
     QByteArray getCKey() { return _ckey; }
 
-    void setPassphrase(const QString& passphrase);
+    bool setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
     bool walletIsAuthenticatedWithPassphrase();
@@ -48,9 +51,22 @@ public:
 
     void reset();
 
+    void getWalletStatus();
+    enum WalletStatus {
+        WALLET_STATUS_NOT_LOGGED_IN = 0,
+        WALLET_STATUS_NOT_SET_UP,
+        WALLET_STATUS_NOT_AUTHENTICATED,
+        WALLET_STATUS_READY
+    };
+
 signals:
     void securityImageResult(bool exists);
     void keyFilePathIfExistsResult(const QString& path);
+
+    void walletStatusResult(uint walletStatus);
+
+private slots:
+    void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
 private:
     QStringList _publicKeys{};
@@ -64,6 +80,9 @@ private:
     void updateImageProvider();
     bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
     bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
+    bool writeBackupInstructions();
+
+    void account();
 };
 
 #endif // hifi_Wallet_h

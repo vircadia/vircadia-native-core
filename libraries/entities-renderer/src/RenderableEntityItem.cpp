@@ -26,6 +26,7 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 
+
 using namespace render;
 using namespace render::entities;
 
@@ -49,7 +50,9 @@ void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
 }
 
-
+const Transform& EntityRenderer::getModelTransform() const {
+    return _modelTransform;
+}
 
 void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters) {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -187,7 +190,7 @@ void EntityRenderer::render(RenderArgs* args) {
 // Methods called by the EntityTreeRenderer
 //
 
-EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene) {
+EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer, const EntityItemPointer& entity, const ScenePointer& scene, Transaction& transaction) {
     EntityRenderer::Pointer result;
     if (!entity) {
         return result;
@@ -245,9 +248,7 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
     }
 
     if (result) {
-        Transaction transaction;
         result->addToScene(scene, transaction);
-        scene->enqueueTransaction(transaction);
     }
 
     return result;
@@ -273,6 +274,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (!isValidRenderItem()) {
         return;
     }
@@ -331,25 +333,28 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     return false;
 }
 
-void EntityRenderer::doRenderUpdateAsynchronous(const EntityItemPointer& entity) {
-    auto transparent = isTransparent();
-    if (_prevIsTransparent && !transparent) {
-        _isFading = false;
-    }
-    _prevIsTransparent = transparent;
+void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
+    DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
+    withWriteLock([&] {
+        auto transparent = isTransparent();
+        if (_prevIsTransparent && !transparent) {
+            _isFading = false;
+        }
+        _prevIsTransparent = transparent;
 
-    bool success = false;
-    auto bound = entity->getAABox(success);
-    if (success) {
-        _bound = bound;
-    }
-    auto newModelTransform = entity->getTransformToCenter(success);
-    if (success) {
-        _modelTransform = newModelTransform;
-    }
+        bool success = false;
+        auto bound = entity->getAABox(success);
+        if (success) {
+            _bound = bound;
+        }
+        auto newModelTransform = entity->getTransformToCenter(success);
+        if (success) {
+            _modelTransform = newModelTransform;
+        }
 
-    _moving = entity->isMovingRelativeToParent();
-    _visible = entity->getVisible();
+        _moving = entity->isMovingRelativeToParent();
+        _visible = entity->getVisible();
+    });
 }
 
 void EntityRenderer::onAddToScene(const EntityItemPointer& entity) {
