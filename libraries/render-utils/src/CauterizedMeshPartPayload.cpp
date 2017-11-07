@@ -39,8 +39,8 @@ void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>
                 (const gpu::Byte*) cauterizedClusterMatrices.data());
         }
         else {
-            _cauterizedClusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-                (const gpu::Byte*) clusterMatrices.data());
+            _cauterizedClusterBuffer->setSubData(0, cauterizedClusterMatrices.size() * sizeof(glm::mat4),
+                (const gpu::Byte*) cauterizedClusterMatrices.data());
         }
     }
 }
