@@ -196,7 +196,52 @@ Item {
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            anchors.rightMargin: 24;
+
+            Item {
+                visible: transactionHistoryModel.count === 0 && root.historyReceived;
+                anchors.centerIn: parent;
+                width: parent.width - 12;
+                height: parent.height;
+
+                HifiControlsUit.Separator {
+                colorScheme: 1;
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    anchors.top: parent.top;
+                }
+
+                RalewayRegular {
+                    id: noActivityText;
+                text: "No activity yet.<br><br><br>Looking for a little spending money?<br>Click the button below to apply for your <b>free HFC</b>!";
+                // Text size
+                size: 24;
+                // Style
+                color: hifi.colors.blueAccent;
+                anchors.top: parent.top;
+                anchors.topMargin: 26;
+                anchors.left: parent.left;
+                anchors.right: parent.right;
+                height: paintedHeight;
+                wrapMode: Text.WordWrap;
+                horizontalAlignment: Text.AlignHCenter;
+                }
+
+                // "Apply" button
+                HifiControlsUit.Button {
+                    id: changePassphraseButton;
+                    color: hifi.buttons.blue;
+                    colorScheme: hifi.colorSchemes.dark;
+                    anchors.top: noActivityText.bottom;
+                    anchors.topMargin: 25;
+                    anchors.horizontalCenter: parent.horizontalCenter;
+                    width: 180;
+                    height: 40;
+                    text: "Apply Now";
+                    onClicked: {
+                        Qt.openUrlExternally("https://www.highfidelity.com/");
+                    }
+                }
+            }
             
             ListView {
                 id: transactionHistory;
@@ -294,17 +339,6 @@ Item {
                     }
                 }
             }
-
-            // This should never be visible (since you immediately get 100 HFC)
-            FiraSansRegular {
-                id: emptyTransationHistory;
-                size: 24;
-                visible: !transactionHistory.visible && root.historyReceived;
-                text: "Recent Activity Unavailable";
-                anchors.fill: parent;
-                horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
-            }
         }
     }
 
@@ -350,7 +384,9 @@ Item {
         }
 
         root.pendingCount = pendingCount;
-        transactionHistoryModel.insert(0, {"transaction_type": "pendingCount"});
+        if (pendingCount > 0) {
+            transactionHistoryModel.insert(0, {"transaction_type": "pendingCount"});
+        }
     }
 
     //
