@@ -98,7 +98,6 @@ private:
     bool _lockEnd;
     bool _distanceScaleEnd;
     LockEndObject _lockEndObject;
-    glm::mat4 _offsetMat;
 
     const QUuid _rayPickUID;
 
