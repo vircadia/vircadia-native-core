@@ -59,18 +59,15 @@ Windows.ScrollingWindow {
     }
 
     function loadSource(url) {
-        loader.source = "";  // make sure we load the qml fresh each time.
-        loader.source = url;
+        loader.load(url) 
     }
 
     function loadWebBase() {
-        loader.source = "";
-        loader.source = "WindowWebView.qml";
+        loader.load("hifi/tablet/TabletWebView.qml");
     }
 
     function loadTabletWebBase() {
-        loader.source = "";
-        loader.source = "./BlocksWebView.qml";
+        loader.load("hifi/tablet/BlocksWebView.qml");
     }
 
     function loadWebUrl(url, injectedJavaScriptUrl) {
@@ -111,37 +108,72 @@ Windows.ScrollingWindow {
         username = newUsername;
     }
 
-    Loader {
+    // Hook up callback for clara.io download from the marketplace.
+    Connections {
+        id: eventBridgeConnection
+        target: eventBridge
+        onWebEventReceived: {
+            if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
+            }
+        }
+    }
+
+    Item {
         id: loader
-        objectName: "loader"
-        asynchronous: false
+        objectName: "loader";
+        property string source: "";
+        property var item: null;
 
         height: pane.scrollHeight
         width: pane.contentWidth
         anchors.left: parent.left
         anchors.top: parent.top
-
-        // Hook up callback for clara.io download from the marketplace.
-        Connections {
-            id: eventBridgeConnection
-            target: eventBridge
-            onWebEventReceived: {
-                if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
-                    ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
-                }
+        signal loaded;
+        
+        onWidthChanged: {
+            if (loader.item) {
+                loader.item.width = loader.width;
             }
         }
+        
+        onHeightChanged: {
+            if (loader.item) {
+                loader.item.height = loader.height;
+            }
+        }
+        
+        function load(newSource, callback) {
+            if (loader.source == newSource) {
+                loader.loaded();
+                return;
+            }
 
-        onLoaded: {
-            if (loader.item.hasOwnProperty("sendToScript")) {
-                loader.item.sendToScript.connect(tabletRoot.sendToScript);
+            if (loader.item) {
+                loader.item.destroy();
+                loader.item = null;
             }
-            if (loader.item.hasOwnProperty("setRootMenu")) {
-                loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
-            }
-            loader.item.forceActiveFocus();
+            
+            QmlSurface.load(newSource, loader, function(newItem) {
+                loader.item = newItem;
+                loader.item.width = loader.width;
+                loader.item.height = loader.height;
+                loader.loaded();
+                if (loader.item.hasOwnProperty("sendToScript")) {
+                    loader.item.sendToScript.connect(tabletRoot.sendToScript);
+                }
+                if (loader.item.hasOwnProperty("setRootMenu")) {
+                    loader.item.setRootMenu(tabletRoot.rootMenu, tabletRoot.subMenu);
+                }
+                loader.item.forceActiveFocus();
+                
+                if (callback) {
+                    callback();
+                }
+            });
         }
     }
+
 
     implicitWidth: 480
     implicitHeight: 706

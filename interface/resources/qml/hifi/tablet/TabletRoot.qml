@@ -202,8 +202,16 @@ Item {
 		}
     	
     	function load(newSource, callback) {
-    		loader.source = newSource;
-    		loader.item = null;
+            if (loader.source == newSource) {
+                loader.loaded();
+                return;
+            }
+
+            if (loader.item) {
+                loader.item.destroy();
+                loader.item = null;
+            }
+
 	        QmlSurface.load(newSource, loader, function(newItem) {
 	        	loader.item = newItem;
 	        	loader.item.width = loader.width;
@@ -232,7 +240,6 @@ Item {
 	            	callback();
 	            }
 	        });
-			console.log("QQQ done calling QmlSurface.load")
     	}
 	}
 
