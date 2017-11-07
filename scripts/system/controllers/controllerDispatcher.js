@@ -169,7 +169,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                     var pointer = (hand === RIGHT_HAND) ? _this.rightControllerPointer : _this.leftControllerPointer;
                     var targetID = laserLockInfo.targetID;
                     var targetIsOverlay = laserLockInfo.isOverlay;
-                    Pointers.setLockEndUid(pointer, targetID, targetIsOverlay);
+                    Pointers.setLockEndUUID(pointer, targetID, targetIsOverlay);
                     _this.laserLockStatus[hand] = targetID;
                 }
             } else {
