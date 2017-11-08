@@ -81,21 +81,23 @@ Item {
         }) 
     }
 
-    function loadWebOnTop(url, injectJavaScriptUrl) {
-        tabletApps.append({"appUrl": loader.source, "isWebUrl": true, "scriptUrl": injectJavaScriptUrl, "appWebUrl": url});
-        loader.item.url = tabletApps.get(currentApp).appWebUrl;
-        loader.item.scriptUrl = tabletApps.get(currentApp).scriptUrl;
-        if (loader.item.hasOwnProperty("gotoPreviousApp")) {
-            loader.item.gotoPreviousApp = true;
-        }
+    function loadWebContent(source, url, injectJavaScriptUrl) {
+        tabletApps.append({"appUrl": source, "isWebUrl": true, "scriptUrl": injectJavaScriptUrl, "appWebUrl": url});
+        loader.load(source, function() {
+            loader.item.url = tabletApps.get(currentApp).appWebUrl;
+            loader.item.scriptUrl = tabletApps.get(currentApp).scriptUrl;
+            if (loader.item.hasOwnProperty("gotoPreviousApp")) {
+                loader.item.gotoPreviousApp = true;
+            }
+        });
     }
 
-    function loadWebBase() {
-    	loader.load("hifi/tablet/TabletWebView.qml");
+    function loadWebBase(url, injectJavaScriptUrl) {
+        loadWebContent("hifi/tablet/TabletWebView.qml", url, injectJavaScriptUrl);
     }
 
-    function loadTabletWebBase() {
-    	loader.load("hifi/tablet/BlocksWebView.qml");
+    function loadTabletWebBase(url, injectJavaScriptUrl) {
+        loadWebContent("hifi/tablet/BlocksWebView.qml", url, injectJavaScriptUrl);
     }
         
     function returnToPreviousApp() {

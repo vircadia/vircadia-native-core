@@ -679,19 +679,20 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
 
     if (root) {
         if (loadOtherBase) {
-            QMetaObject::invokeMethod(root, "loadTabletWebBase");
+            QMetaObject::invokeMethod(root, "loadTabletWebBase", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
         } else {
-            QMetaObject::invokeMethod(root, "loadWebBase");
+            QMetaObject::invokeMethod(root, "loadWebBase", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
         }
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         if (_toolbarMode && _desktopWindow) {
             QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
         }
-        QMetaObject::invokeMethod(root, "loadWebUrl", Q_ARG(const QVariant&, QVariant(url)), Q_ARG(const QVariant&, QVariant(injectedJavaScriptUrl)));
+        _state = State::Web;
+        emit screenChanged(QVariant("Web"), QVariant(url));
+        _currentPathLoaded = QVariant(url);
+    } else {
+        qWarning() << "Unable to load web content due to missing root";
     }
-    _state = State::Web;
-    emit screenChanged(QVariant("Web"), QVariant(url));
-    _currentPathLoaded = QVariant(url);
 }
 
 TabletButtonProxy* TabletProxy::addButton(const QVariant& properties) {
