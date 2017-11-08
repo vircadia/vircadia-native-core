@@ -432,7 +432,8 @@ Item {
         anchors.verticalCenter: nameCardRemoveConnectionImage.verticalCenter
         x: 240
         onClicked: {
-            AddressManager.goToUser(thisNameCard.userName);
+            console.log("Vist user button clicked."); // Remove after debugging.
+            AddressManager.goToUser(thisNameCard.userName, false);
             UserActivityLogger.palAction("go_to_user", thisNameCard.userName);
         }
     }
@@ -594,7 +595,10 @@ Item {
         // the avatar goes into fly mode rather than falling. However, that is not exposed to Javascript right now.
         // FIXME: it would be nice if this used the same teleport steps and smoothing as in the teleport.js script.
         // Note, however, that this script allows teleporting to a person in the air, while teleport.js is going to a grounded target.
+        // Position avatar 2 metres from the target in the direction that target avatar was facing.
         MyAvatar.position = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.orientation, {x: 0, y: 0, z: -2}));
-        MyAvatar.orientation = Quat.multiply(avatar.orientation, {y: 1});
+        
+        // Rotate avatar on Y axis to face target avatar and cancel out any inherited roll and pitch.
+        MyAvatar.orientation = Quat.cancelOutRollAndPitch(Quat.multiply(avatar.orientation, {y: 1}));
     }
 }
