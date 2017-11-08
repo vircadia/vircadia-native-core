@@ -346,37 +346,37 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             glm::vec3 forward = view.getDirection();
             const float OUT_OF_VIEW_PENALTY = -10.0f;
             while (itr != _renderablesToUpdate.end()) {
-        	    // priority = weighted linear combination of:
-        	    //   (a) apparentSize
-        	    //   (b) proximity to center of view
-        	    //   (c) time since last update
+                // priority = weighted linear combination of:
+                //   (a) apparentSize
+                //   (b) proximity to center of view
+                //   (c) time since last update
                 EntityItemPointer entity = itr->second->getEntity();
-        	    glm::vec3 entityPosition = entity->getPosition();
-        	    glm::vec3 offset = entityPosition - viewCenter;
-        	    float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
+                glm::vec3 entityPosition = entity->getPosition();
+                glm::vec3 offset = entityPosition - viewCenter;
+                float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
 
-        	    float diameter = entity->getQueryAACube().getScale();
-        	    float apparentSize = diameter / distance;
-        	    float cosineAngle = glm::dot(offset, forward) / distance;
-        	    float age = (float)(sortStart - itr->second->getUpdateTime()) / (float)(USECS_PER_SECOND);
+                float diameter = entity->getQueryAACube().getScale();
+                float apparentSize = diameter / distance;
+                float cosineAngle = glm::dot(offset, forward) / distance;
+                float age = (float)(sortStart - itr->second->getUpdateTime()) / (float)(USECS_PER_SECOND);
 
-        	    // NOTE: we are adding values of different units to get a single measure of "priority".
-        	    // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
-        	    // These weights are pure magic tuning and should be hard coded in the relation below,
-        	    // but are currently exposed for anyone who would like to explore fine tuning:
+                // NOTE: we are adding values of different units to get a single measure of "priority".
+                // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
+                // These weights are pure magic tuning and should be hard coded in the relation below,
+                // but are currently exposed for anyone who would like to explore fine tuning:
                 const float APPARENT_SIZE_COEFFICIENT = 1.0f;
                 const float CENTER_SORT_COEFFICIENT = 0.5f;
                 const float AGE_SORT_COEFFICIENT = 0.25f;
-        	    float priority = APPARENT_SIZE_COEFFICIENT * apparentSize
-            	    + CENTER_SORT_COEFFICIENT * cosineAngle
-            	    + AGE_SORT_COEFFICIENT * age;
+                float priority = APPARENT_SIZE_COEFFICIENT * apparentSize
+                    + CENTER_SORT_COEFFICIENT * cosineAngle
+                    + AGE_SORT_COEFFICIENT * age;
 
-        	    // decrement priority of things outside keyhole
-        	    if (distance > view.getCenterRadius()) {
-            	    if (!view.sphereIntersectsFrustum(entityPosition, 0.5f * diameter)) {
-                	    priority += OUT_OF_VIEW_PENALTY;
-            	    }
-        	    }
+                // decrement priority of things outside keyhole
+                if (distance > view.getCenterRadius()) {
+                    if (!view.sphereIntersectsFrustum(entityPosition, 0.5f * diameter)) {
+                        priority += OUT_OF_VIEW_PENALTY;
+                    }
+                }
 
                 sortedRenderables.push(SortableEntityRenderer(itr->second, priority));
                 ++itr;
