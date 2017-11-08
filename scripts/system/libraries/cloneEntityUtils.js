@@ -8,8 +8,7 @@
 /* global entityIsCloneable:true, getGrabbableData:true, cloneEntity:true, propsAreCloneDynamic:true, Script,
    propsAreCloneDynamic:true, Entities*/
 
-Script.include("/~/system/controllers/controllerDispatcherUtils.js");
-
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
 // Object assign  polyfill
 if (typeof Object.assign !== 'function') {
