@@ -128,6 +128,7 @@ Rectangle {
                     Text {
                         id: text2
                         width: 160
+                        x: dynamic.width / 2
                         color: "#ffffff"
                         text: qsTr("Models with automatic collisions set to 'Exact' cannot be dynamic, and should not be used as floors")
                         wrapMode: Text.WordWrap
@@ -190,10 +191,10 @@ Rectangle {
                     width: 200
                     height: 400
                     spacing: 5
-                    
-                    anchors {
-                        rightMargin: 15
-                    }
+
+                    anchors.horizontalCenter: column3.horizontalCenter
+                    anchors.horizontalCenterOffset: -20
+
                     Button {
                         id: button1
                         text: qsTr("Add")
