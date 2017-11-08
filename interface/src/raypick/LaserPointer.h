@@ -21,6 +21,12 @@
 
 class RayPickResult;
 
+struct LockEndObject {
+    QUuid id { QUuid() };
+    bool isOverlay { false };
+    glm::mat4 offsetMat { glm::mat4() };
+};
+
 class RenderState {
 
 public:
@@ -74,7 +80,7 @@ public:
 
     void setPrecisionPicking(const bool precisionPicking);
     void setLaserLength(const float laserLength);
-    void setLockEndUUID(QUuid objectID, const bool isOverlay);
+    void setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat = glm::mat4());
 
     void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     void setIncludeItems(const QVector<QUuid>& includeItems) const;
@@ -92,7 +98,7 @@ private:
     bool _lockEnd;
     bool _distanceScaleEnd;
     bool _scaleWithAvatar;
-    std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
+    LockEndObject _lockEndObject;
 
     const QUuid _rayPickUID;
 
