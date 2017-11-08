@@ -142,7 +142,8 @@ DiffTraversal::DiffTraversal() {
     _path.reserve(MIN_PATH_DEPTH);
 }
 
-DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum) {
+DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, 
+        int32_t lodLevelOffset, bool usesViewFrustum) {
     assert(root);
     // there are three types of traversal:
     //
