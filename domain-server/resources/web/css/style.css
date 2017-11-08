@@ -302,6 +302,7 @@ table .headers + .headers td {
 }
 
 .account-connected-header {
+  vertical-align: middle;
   color: #6FCF97;
   font-size: 30px;
   margin-right: 20px;
