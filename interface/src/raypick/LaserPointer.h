@@ -22,9 +22,9 @@
 class RayPickResult;
 
 struct LockEndObject {
-    QUuid id{ QUuid() };
-    bool isOverlay{ false };
-    glm::mat4 offsetMat{ glm::mat4() };
+    QUuid id { QUuid() };
+    bool isOverlay { false };
+    glm::mat4 offsetMat { glm::mat4() };
 };
 
 class RenderState {
@@ -89,8 +89,8 @@ public:
 
 private:
     bool _renderingEnabled;
-    float _laserLength{ 0.0f };
-    std::string _currentRenderState{ "" };
+    float _laserLength { 0.0f };
+    std::string _currentRenderState { "" };
     RenderStateMap _renderStates;
     DefaultRenderStateMap _defaultRenderStates;
     bool _faceAvatar;
