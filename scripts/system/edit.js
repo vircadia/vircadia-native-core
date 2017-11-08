@@ -1333,7 +1333,7 @@ function sortSelectedEntities(selected) {
     return sortedEntities;
 }
 
-function recursiveDelete(entities, childrenList) {
+function recursiveDelete(entities, childrenList, deletedIDs) {
     var entitiesLength = entities.length;
     for (var i = 0; i < entitiesLength; i++) {
         var entityID = entities[i];
@@ -1346,6 +1346,7 @@ function recursiveDelete(entities, childrenList) {
             properties: initialProperties,
             children: grandchildrenList
         });
+        deletedIDs.push(entityID);
         Entities.deleteEntity(entityID);
     }
 }
@@ -1413,6 +1414,8 @@ function parentSelectedEntities() {
 }
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
+        var deletedIDs = [];
+
         selectedParticleEntityID = null;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
@@ -1423,16 +1426,22 @@ function deleteSelectedEntities() {
             var initialProperties = SelectionManager.savedProperties[entityID];
             var children = Entities.getChildrenIDs(entityID);
             var childList = [];
-            recursiveDelete(children, childList);
+            recursiveDelete(children, childList, deletedIDs);
             savedProperties.push({
                 entityID: entityID,
                 properties: initialProperties,
                 children: childList
             });
+            deletedIDs.push(entityID);
             Entities.deleteEntity(entityID);
         }
         SelectionManager.clearSelections();
         pushCommandForSelections([], savedProperties);
+
+        entityListTool.webView.emitScriptEvent(JSON.stringify({
+            type: "deleted",
+            ids: deletedIDs
+        }));
     }
 }
 

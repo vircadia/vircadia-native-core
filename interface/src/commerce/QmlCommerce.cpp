@@ -31,7 +31,7 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     
     auto accountManager = DependencyManager::get<AccountManager>();
-    connect(accountManager.data(), &AccountManager::usernameChanged, [&]() {
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
         setPassphrase("");
     });
 }
