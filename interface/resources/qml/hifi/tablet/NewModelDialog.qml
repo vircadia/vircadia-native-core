@@ -172,7 +172,8 @@ Rectangle {
                             if (dynamic.checked) {
                                 currentIndex = priorIndex;
 
-                                errorMessageBox("Models with Automatic Collisions set to \"" + staticMeshCollisionText + "\" cannot be dynamic.");
+                                errorMessageBox("Models with Automatic Collisions set to \"" 
+                                                    + staticMeshCollisionText + "\" cannot be dynamic.");
                                 //--EARLY EXIT--( Can't have a static mesh model that's dynamic )
                                 return;
                             }
