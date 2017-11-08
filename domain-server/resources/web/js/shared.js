@@ -236,7 +236,7 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
 
               if (forcePathTo === undefined || forcePathTo === null) {
                 var path = "<div class='form-group'>";
-                path += "<label for='place-path-input' class='control-label'>Path</label>";
+                path += "<label for='place-path-input' class='control-label'>Path or Viewpoint</label>";
                 path += "<input type='text' id='place-path-input' class='form-control' value='/'>";
                 path += "</div>";
                 modal_body.append($(path));
