@@ -533,7 +533,7 @@ function createNewDomainID(label, justConnected) {
 
   $.post("/api/domains", domainJSON, function(data){
     // we successfully created a domain ID, set it on that field
-    var domainID = data.domain_id;
+    var domainID = data.domain.id;
     console.log("Setting domain id to ", data, domainID);
     $(Settings.DOMAIN_ID_SELECTOR).val(domainID).change();
 
