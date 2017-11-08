@@ -163,7 +163,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).asVarying();
+    const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel, hazeModel).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // LIght Cluster Grid Debuging job
@@ -291,6 +291,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
+    const auto& hazeModel = inputs.get2();
 
     RenderArgs* args = renderContext->args;
 
@@ -311,6 +312,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(render::ShapePipeline::Slot::HAZE_MODEL, hazeModel->getParametersBuffer());
 
         // From the lighting model define a global shapKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;

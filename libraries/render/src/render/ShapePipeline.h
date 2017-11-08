@@ -238,6 +238,7 @@ public:
             LIGHT,
             LIGHT_AMBIENT_BUFFER,
             FADE_PARAMETERS,
+            HAZE_MODEL
         };
 
         enum MAP {
