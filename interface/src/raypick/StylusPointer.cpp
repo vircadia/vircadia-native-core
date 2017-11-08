@@ -448,7 +448,7 @@ void StylusPointer::updateStylusTarget() {
     }
 }
 
-void StylusPointer::update(float deltaTime) {
+void StylusPointer::update(unsigned int pointerID, float deltaTime) {
     // This only needs to be a read lock because update won't change any of the properties that can be modified from scripts
     withReadLock([&] {
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();

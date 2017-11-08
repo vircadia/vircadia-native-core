@@ -855,7 +855,7 @@ QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObjec
     return QPointF(offscreenPosition.x, offscreenPosition.y);
 }
 
-QPointF OffscreenQmlSurface::mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget) {
+QPointF OffscreenQmlSurface::mapToVirtualScreen(const QPointF& originalPoint) {
     return _mouseTranslator(originalPoint);
 }
 
@@ -909,7 +909,7 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
 
         case QEvent::Wheel: {
             QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
-            QPointF transformedPos = mapToVirtualScreen(wheelEvent->pos(), originalDestination);
+            QPointF transformedPos = mapToVirtualScreen(wheelEvent->pos());
             QWheelEvent mappedEvent(
                     transformedPos,
                     wheelEvent->delta(),  wheelEvent->buttons(),
@@ -920,35 +920,158 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
             }
             break;
         }
-
-        // Fall through
-        case QEvent::MouseButtonDblClick:
-        case QEvent::MouseButtonPress:
-        case QEvent::MouseButtonRelease:
-        case QEvent::MouseMove: {
-            QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-            QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos(), originalDestination);
-            QMouseEvent mappedEvent(mouseEvent->type(),
-                    transformedPos,
-                    mouseEvent->screenPos(), mouseEvent->button(),
-                    mouseEvent->buttons(), mouseEvent->modifiers());
-            if (event->type() == QEvent::MouseMove) {
-                // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
-                // need to investigate into why this crash is happening.
-                //_qmlContext->setContextProperty("lastMousePosition", transformedPos);
-            }
-            mappedEvent.ignore();
-            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
-                return mappedEvent.isAccepted();
-            }
-            break;
-        }
-
         default:
             break;
     }
 
     return false;
+}
+
+unsigned int OffscreenQmlSurface::deviceIdByTouchPoint(qreal x, qreal y) {
+    auto mapped = _rootItem->mapFromGlobal(QPoint(x, y));
+
+    for (auto pair : _activeTouchPoints) {
+        if (mapped.x() == (int)pair.second.pos().x() && mapped.y() == (int)pair.second.pos().y()) {
+            return pair.first;
+        }
+    }
+
+    return PointerEvent::INVALID_POINTER_ID;
+}
+
+PointerEvent::EventType OffscreenQmlSurface::choosePointerEventType(QEvent::Type type) {
+    switch (type) {
+        case QEvent::MouseButtonDblClick:
+            return PointerEvent::DoublePress;
+        case QEvent::MouseButtonPress:
+            return PointerEvent::Press;
+        case QEvent::MouseButtonRelease:
+            return PointerEvent::Release;
+        case QEvent::MouseMove:
+            return PointerEvent::Move;
+        default:
+            return PointerEvent::Move;
+    }
+}
+
+void OffscreenQmlSurface::hoverEndEvent(const PointerEvent& event, class QTouchDevice& device) {
+    if (!_paused && _quickWindow && _pressed && event.sendReleaseOnHoverLeave()) {
+        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
+            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
+        handlePointerEvent(endEvent, device);
+        // QML onReleased is only triggered if a click has happened first.  We need to send this "fake" mouse move event to properly trigger an onExited.
+        PointerEvent endMoveEvent(PointerEvent::Move, event.getID());
+        handlePointerEvent(endMoveEvent, device);
+    }
+}
+
+bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QTouchDevice& device) {
+    // Ignore mouse interaction if we're paused
+    if (_paused || !_quickWindow) {
+        return false;
+    }
+
+    if (event.getType() == PointerEvent::Press) {
+        _pressed = true;
+    } else if (event.getType() == PointerEvent::Release) {
+        _pressed = false;
+    }
+
+    QPointF windowPoint(event.getPos2D().x, event.getPos2D().y);
+
+    Qt::TouchPointState state = Qt::TouchPointStationary;
+    if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
+        state = Qt::TouchPointPressed;
+    } else if (event.getType() == PointerEvent::Release) {
+        state = Qt::TouchPointReleased;
+    } else if (_activeTouchPoints.count(event.getID()) && windowPoint != _activeTouchPoints[event.getID()].pos()) {
+        state = Qt::TouchPointMoved;
+    }
+
+    QEvent::Type touchType = QEvent::TouchUpdate;
+    if (_activeTouchPoints.empty()) {
+        // If the first active touch point is being created, send a begin
+        touchType = QEvent::TouchBegin;
+    } if (state == Qt::TouchPointReleased && _activeTouchPoints.size() == 1 && _activeTouchPoints.count(event.getID())) {
+        // If the last active touch point is being released, send an end
+        touchType = QEvent::TouchEnd;
+    }
+
+    {
+        QTouchEvent::TouchPoint point;
+        point.setId(event.getID());
+        point.setState(state);
+        point.setPos(windowPoint);
+        point.setScreenPos(windowPoint);
+        _activeTouchPoints[event.getID()] = point;
+    }
+
+    QTouchEvent touchEvent(touchType, &device, event.getKeyboardModifiers());
+    {
+        QList<QTouchEvent::TouchPoint> touchPoints;
+        Qt::TouchPointStates touchPointStates;
+        for (const auto& entry : _activeTouchPoints) {
+            touchPointStates |= entry.second.state();
+            touchPoints.push_back(entry.second);
+        }
+
+        touchEvent.setWindow(_quickWindow);
+        touchEvent.setDevice(&device);
+        touchEvent.setTarget(_rootItem);
+        touchEvent.setTouchPoints(touchPoints);
+        touchEvent.setTouchPointStates(touchPointStates);
+    }
+
+    // Send mouse events to the surface so that HTML dialog elements work with mouse press and hover.
+    //
+    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
+    // receive mouse events
+    Qt::MouseButton button = Qt::NoButton;
+    Qt::MouseButtons buttons = Qt::NoButton;
+    if (event.getButton() == PointerEvent::PrimaryButton) {
+        button = Qt::LeftButton;
+    }
+    if (event.getButtons() & PointerEvent::PrimaryButton) {
+        buttons |= Qt::LeftButton;
+    }
+
+    bool eventsAccepted = false;
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    if (event.getType() == PointerEvent::Move) {
+        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
+        // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
+        // need to investigate into why this crash is happening.
+        //_qmlContext->setContextProperty("lastMousePosition", windowPoint);
+        QCoreApplication::sendEvent(_quickWindow, &mouseEvent);
+        eventsAccepted &= mouseEvent.isAccepted();
+    }
+#endif
+
+    if (touchType == QEvent::TouchBegin) {
+        _touchBeginAccepted = QCoreApplication::sendEvent(_quickWindow, &touchEvent);
+    } else if (_touchBeginAccepted) {
+        QCoreApplication::sendEvent(_quickWindow, &touchEvent);
+    }
+    eventsAccepted &= touchEvent.isAccepted();
+
+    // If this was a release event, remove the point from the active touch points
+    if (state == Qt::TouchPointReleased) {
+        _activeTouchPoints.erase(event.getID());
+    }
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
+    if (event.getType() == PointerEvent::Move) {
+        // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
+        // need to investigate into why this crash is happening.
+        //_qmlContext->setContextProperty("lastMousePosition", windowPoint);
+        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
+        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
+        eventsAccepted &= mouseEvent.isAccepted();
+    }
+#endif
+
+    return eventsAccepted;
 }
 
 void OffscreenQmlSurface::pause() {

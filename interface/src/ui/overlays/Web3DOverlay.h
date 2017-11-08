@@ -67,7 +67,7 @@ public:
     void destroyWebSurface();
     void onResizeWebSurface();
 
-    Q_INVOKABLE int deviceIdByTouchPoint(qreal x, qreal y);
+    Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
 
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
@@ -98,8 +98,6 @@ private:
     bool _showKeyboardFocusHighlight{ true };
 
     bool _pressed{ false };
-    bool _touchBeginAccepted { false };
-    std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
     QTouchDevice _touchDevice;
 
     uint8_t _desiredMaxFPS { 10 };

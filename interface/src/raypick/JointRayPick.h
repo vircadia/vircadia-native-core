@@ -20,6 +20,9 @@ public:
 
     PickRay getMathematicalPick() const override;
 
+    bool isLeftHand() const override { return (_jointName == "_CONTROLLER_LEFTHAND") || (_jointName == "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"); }
+    bool isRightHand() const override { return (_jointName == "_CONTROLLER_RIGHTHAND") || (_jointName == "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"); }
+
 private:
     std::string _jointName;
     glm::vec3 _posOffset;

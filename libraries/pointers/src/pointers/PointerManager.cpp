@@ -8,60 +8,67 @@
 
 #include "PointerManager.h"
 
-std::shared_ptr<Pointer> PointerManager::find(const QUuid& uid) const {
+#include "PickManager.h"
+
+std::shared_ptr<Pointer> PointerManager::find(unsigned int uid) const {
     return resultWithReadLock<std::shared_ptr<Pointer>>([&] {
         auto itr = _pointers.find(uid);
         if (itr != _pointers.end()) {
-            return *itr;
+            return itr->second;
         }
         return std::shared_ptr<Pointer>();
     });
 }
 
-QUuid PointerManager::addPointer(std::shared_ptr<Pointer> pointer) {
-    QUuid result;
-    if (!pointer->getRayUID().isNull()) {
-        result = QUuid::createUuid();
-        withWriteLock([&] { _pointers[result] = pointer; });
+unsigned int PointerManager::addPointer(std::shared_ptr<Pointer> pointer) {
+    unsigned int result = PointerEvent::INVALID_POINTER_ID;
+    if (pointer->getRayUID() != PickManager::INVALID_PICK_ID) {
+        withWriteLock([&] {
+            // Don't let the pointer IDs overflow
+            if (_nextPointerID < UINT32_MAX) {
+                result = _nextPointerID++;
+                _pointers[result] = pointer;
+            }
+        });
     }
     return result;
 }
 
-void PointerManager::removePointer(const QUuid& uid) {
+void PointerManager::removePointer(unsigned int uid) {
     withWriteLock([&] {
-        _pointers.remove(uid);
+        _pointers.erase(uid);
     });
 }
 
-void PointerManager::enablePointer(const QUuid& uid) const {
+void PointerManager::enablePointer(unsigned int uid) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->enable();
     }
 }
 
-void PointerManager::disablePointer(const QUuid& uid) const {
+void PointerManager::disablePointer(unsigned int uid) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->disable();
     }
 }
 
-void PointerManager::setRenderState(const QUuid& uid, const std::string& renderState) const {
+void PointerManager::setRenderState(unsigned int uid, const std::string& renderState) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setRenderState(renderState);
     }
 }
 
-void PointerManager::editRenderState(const QUuid& uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const {
+void PointerManager::editRenderState(unsigned int uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->editRenderState(state, startProps, pathProps, endProps);
     }
 }
 
-PickResultPointer PointerManager::getPrevPickResult(const QUuid& uid) const {
+PickResultPointer PointerManager::getPrevPickResult(unsigned int uid) const {
     PickResultPointer result;
     auto pointer = find(uid);
     if (pointer) {
@@ -71,46 +78,70 @@ PickResultPointer PointerManager::getPrevPickResult(const QUuid& uid) const {
 }
 
 void PointerManager::update(float deltaTime) {
-    auto cachedPointers = resultWithReadLock<QList<std::shared_ptr<Pointer>>>([&] {
-        return _pointers.values();
+    auto cachedPointers = resultWithReadLock<std::unordered_map<unsigned int, std::shared_ptr<Pointer>>>([&] {
+        return _pointers;
     });
 
-    for (const auto& pointer : cachedPointers) {
-        pointer->update(deltaTime);
+    for (const auto& pointerPair : cachedPointers) {
+        pointerPair.second->update(pointerPair.first, deltaTime);
     }
 }
 
-void PointerManager::setPrecisionPicking(const QUuid& uid, bool precisionPicking) const {
+void PointerManager::setPrecisionPicking(unsigned int uid, bool precisionPicking) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setPrecisionPicking(precisionPicking);
     }
 }
 
-void PointerManager::setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const {
+void PointerManager::setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignoreEntities) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setIgnoreItems(ignoreEntities);
     }
 }
 
-void PointerManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& includeEntities) const {
+void PointerManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& includeEntities) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setIncludeItems(includeEntities);
     }
 }
 
-void PointerManager::setLength(const QUuid& uid, float length) const {
+void PointerManager::setLength(unsigned int uid, float length) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setLength(length);
     }
 }
 
-void PointerManager::setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const {
+void PointerManager::setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay) const {
     auto pointer = find(uid);
     if (pointer) {
         pointer->setLockEndUUID(objectID, isOverlay);
     }
+}
+
+bool PointerManager::isLeftHand(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isLeftHand();
+    }
+    return false;
+}
+
+bool PointerManager::isRightHand(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isRightHand();
+    }
+    return false;
+}
+
+bool PointerManager::isMouse(unsigned int uid) {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->isMouse();
+    }
+    return false;
 }

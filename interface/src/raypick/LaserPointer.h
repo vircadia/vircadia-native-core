@@ -67,13 +67,16 @@ public:
 
     void updateVisuals(const PickResultPointer& prevRayPickResult) override;
 
-    PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
-    Pointer::Buttons getPressedButtons() override;
-
     static RenderState buildRenderState(const QVariantMap& propMap);
 
 protected:
     PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const override;
+
+    PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
+    Pointer::Buttons getPressedButtons() override;
+
+    bool shouldHover() override { return _currentRenderState != ""; }
+    bool shouldTrigger() override { return _currentRenderState != ""; }
 
 private:
     PointerTriggers _triggers;

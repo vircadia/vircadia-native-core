@@ -39,7 +39,7 @@ using PointerTriggers = std::vector<PointerTrigger>;
 
 class Pointer : protected ReadWriteLockable {
 public:
-    Pointer(const QUuid& uid, bool enabled, bool hover) : _pickUID(uid), _enabled(enabled), _hover(hover) {}
+    Pointer(unsigned int uid, bool enabled, bool hover) : _pickUID(uid), _enabled(enabled), _hover(hover) {}
 
     virtual ~Pointer();
 
@@ -54,13 +54,17 @@ public:
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
+    bool isLeftHand() const;
+    bool isRightHand() const;
+    bool isMouse() const;
+
     // Pointers can choose to implement these
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay) {}
 
-    virtual void update(float deltaTime);
+    virtual void update(unsigned int pointerID, float deltaTime);
     virtual void updateVisuals(const PickResultPointer& pickResult) {}
-    void generatePointerEvents(const PickResultPointer& pickResult);
+    void generatePointerEvents(unsigned int pointerID, const PickResultPointer& pickResult);
 
     struct PickedObject {
         PickedObject(const QUuid& objectID = QUuid(), IntersectionType type = IntersectionType::NONE) : objectID(objectID), type(type) {}
@@ -71,21 +75,26 @@ public:
 
     using Buttons = std::unordered_set<std::string>;
 
-    virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) = 0;
-    virtual Buttons getPressedButtons() = 0;
-
-    QUuid getRayUID() { return _pickUID; }
+    unsigned int getRayUID() { return _pickUID; }
 
 protected:
-    const QUuid _pickUID;
+    const unsigned int _pickUID;
     bool _enabled;
     bool _hover;
 
     virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const = 0;
 
+    virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) = 0;
+    virtual Buttons getPressedButtons() = 0;
+
+    virtual bool shouldHover() = 0;
+    virtual bool shouldTrigger() = 0;
+
 private:
     PickedObject _prevHoveredObject;
     Buttons _prevButtons;
+    bool _prevEnabled { false };
+    bool _prevDoHover { false };
     std::unordered_map<std::string, PickedObject> _triggeredObjects;
 
     PointerEvent::Button chooseButton(const std::string& button);

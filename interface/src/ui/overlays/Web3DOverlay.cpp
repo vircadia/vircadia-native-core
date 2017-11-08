@@ -56,6 +56,8 @@
 #include "ui/Snapshot.h"
 #include "SoundCache.h"
 
+#include "raypick/PointerScriptingInterface.h"
+
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
 static const float METERS_TO_INCHES = 39.3701f;
@@ -160,14 +162,6 @@ void Web3DOverlay::buildWebSurface() {
     QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
 }
 
-void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
-    if ((_pressed || (!_activeTouchPoints.empty() && _touchBeginAccepted))) {
-        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
-            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
-        handlePointerEvent(endEvent);
-    }
-}
-
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
@@ -224,6 +218,7 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Render", AbstractViewStateInterface::instance()->getRenderEngine()->getConfiguration().get());
         _webSurface->getSurfaceContext()->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
 
         _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
@@ -253,18 +248,12 @@ void Web3DOverlay::onResizeWebSurface() {
     _webSurface->resize(QSize(_resolution.x, _resolution.y));
 }
 
-const int INVALID_DEVICE_ID = -1;
-
-Q_INVOKABLE int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
-    auto mapped = _webSurface->getRootItem()->mapFromGlobal(QPoint(x, y));
-
-    for (auto pair : _activeTouchPoints) {
-        if (mapped.x() == (int)pair.second.pos().x() && mapped.y() == (int)pair.second.pos().y()) {
-            return pair.first;
-        }
+unsigned int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
+    if (_webSurface) {
+        return _webSurface->deviceIdByTouchPoint(x, y);
+    } else {
+        return PointerEvent::INVALID_POINTER_ID;
     }
-
-    return INVALID_DEVICE_ID;
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
@@ -348,6 +337,19 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
     _webSurface->setProxyWindow(proxyWindow);
 }
 
+void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
+    if (_inputMode == Mouse) {
+        PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
+            event.getButton(), event.getButtons(), event.getKeyboardModifiers());
+        handlePointerEvent(endEvent);
+        // QML onReleased is only triggered if a click has happened first.  We need to send this "fake" mouse move event to properly trigger an onExited.
+        PointerEvent endMoveEvent(PointerEvent::Move, event.getID());
+        handlePointerEvent(endMoveEvent);
+    } else if (_webSurface) {
+        _webSurface->hoverEndEvent(event, _touchDevice);
+    }
+}
+
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
     if (event.getType() == PointerEvent::Press) {
         _pressed = true;
@@ -363,93 +365,11 @@ void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
 }
 
 void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
-    if (!_webSurface) {
-        return;
+    if (_webSurface) {
+        PointerEvent webEvent = event;
+        webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
+        _webSurface->handlePointerEvent(webEvent, _touchDevice);
     }
-
-    glm::vec2 windowPos = event.getPos2D() * (METERS_TO_INCHES * _dpi);
-    QPointF windowPoint(windowPos.x, windowPos.y);
-
-    Qt::TouchPointState state = Qt::TouchPointStationary;
-    if (event.getType() == PointerEvent::Press && event.getButton() == PointerEvent::PrimaryButton) {
-        state = Qt::TouchPointPressed;
-    } else if (event.getType() == PointerEvent::Release) {
-        state = Qt::TouchPointReleased;
-    } else if (_activeTouchPoints.count(event.getID()) && windowPoint != _activeTouchPoints[event.getID()].pos()) {
-        state = Qt::TouchPointMoved;
-    }
-
-    QEvent::Type touchType = QEvent::TouchUpdate;
-    if (_activeTouchPoints.empty()) {
-        // If the first active touch point is being created, send a begin
-        touchType = QEvent::TouchBegin;
-    } if (state == Qt::TouchPointReleased && _activeTouchPoints.size() == 1 && _activeTouchPoints.count(event.getID())) {
-        // If the last active touch point is being released, send an end
-        touchType = QEvent::TouchEnd;
-    } 
-
-    {
-        QTouchEvent::TouchPoint point;
-        point.setId(event.getID());
-        point.setState(state);
-        point.setPos(windowPoint);
-        point.setScreenPos(windowPoint);
-        _activeTouchPoints[event.getID()] = point;
-    }
-
-    QTouchEvent touchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
-    {
-        QList<QTouchEvent::TouchPoint> touchPoints;
-        Qt::TouchPointStates touchPointStates;
-        for (const auto& entry : _activeTouchPoints) {
-            touchPointStates |= entry.second.state();
-            touchPoints.push_back(entry.second);
-        }
-
-        touchEvent.setWindow(_webSurface->getWindow());
-        touchEvent.setDevice(&_touchDevice);
-        touchEvent.setTarget(_webSurface->getRootItem());
-        touchEvent.setTouchPoints(touchPoints);
-        touchEvent.setTouchPointStates(touchPointStates);
-    }
-
-    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
-    //
-    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
-    // receive mouse events
-    Qt::MouseButton button = Qt::NoButton;
-    Qt::MouseButtons buttons = Qt::NoButton;
-    if (event.getButton() == PointerEvent::PrimaryButton) {
-        button = Qt::LeftButton;
-    }
-    if (event.getButtons() & PointerEvent::PrimaryButton) {
-        buttons |= Qt::LeftButton;
-    }
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-    if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
-    }
-#endif
-
-    if (touchType == QEvent::TouchBegin) {
-        _touchBeginAccepted = QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
-    } else if (_touchBeginAccepted) {
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
-    }
-
-    // If this was a release event, remove the point from the active touch points
-    if (state == Qt::TouchPointReleased) {
-        _activeTouchPoints.erase(event.getID());
-    }
-
-#if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
-    if (event.getType() == PointerEvent::Move) {
-        QMouseEvent mouseEvent(QEvent::MouseMove, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
-    }
-#endif
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
@@ -485,7 +405,7 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
             return;
     }
 
-    QMouseEvent mouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QMouseEvent mouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, event.getKeyboardModifiers());
     QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
 }
 

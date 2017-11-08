@@ -37,7 +37,7 @@ template<typename T>
 class PickCacheOptimizer {
 
 public:
-    void update(QHash<QUuid, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD);
+    void update(std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD);
 
 protected:
     typedef std::unordered_map<T, std::unordered_map<PickCacheKey, PickResultPointer>> PickCache;
@@ -67,21 +67,18 @@ void PickCacheOptimizer<T>::cacheResult(const bool intersects, const PickResultP
 }
 
 template<typename T>
-void PickCacheOptimizer<T>::update(QHash<QUuid, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD) {
+void PickCacheOptimizer<T>::update(std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>& picks, bool shouldPickHUD) {
     PickCache results;
-    for (const auto& uid : picks.keys()) {
-        std::shared_ptr<Pick<T>> pick = std::static_pointer_cast<Pick<T>>(picks[uid]);
-        if (!pick->isEnabled() || pick->getFilter().doesPickNothing() || pick->getMaxDistance() < 0.0f) {
-            continue;
-        }
+    for (const auto& pickPair : picks) {
+        std::shared_ptr<Pick<T>> pick = std::static_pointer_cast<Pick<T>>(pickPair.second);
 
         T mathematicalPick = pick->getMathematicalPick();
+        PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
-        if (!mathematicalPick) {
+        if (!pick->isEnabled() || pick->getFilter().doesPickNothing() || pick->getMaxDistance() < 0.0f || !mathematicalPick) {
+            pick->setPickResult(res);
             continue;
         }
-
-        PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
         if (pick->getFilter().doesPickEntities()) {
             PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };

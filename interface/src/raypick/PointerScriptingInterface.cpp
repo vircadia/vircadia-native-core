@@ -16,18 +16,19 @@
 #include "LaserPointer.h"
 #include "StylusPointer.h"
 
-void PointerScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) const {
+void PointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
-void PointerScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) const {
+
+void PointerScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) const {
     DependencyManager::get<PointerManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
 }
 
-QUuid PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) {
-    // Interaction with managers should always happen ont he main thread
+unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType& type, const QVariant& properties) {
+    // Interaction with managers should always happen on the main thread
     if (QThread::currentThread() != qApp->thread()) {
-        QUuid result;
-        BLOCKING_INVOKE_METHOD(this, "createPointer", Q_RETURN_ARG(QUuid, result), Q_ARG(PickQuery::PickType, type), Q_ARG(QVariant, properties));
+        unsigned int result;
+        BLOCKING_INVOKE_METHOD(this, "createPointer", Q_RETURN_ARG(unsigned int, result), Q_ARG(PickQuery::PickType, type), Q_ARG(QVariant, properties));
         return result;
     }
 
@@ -37,11 +38,11 @@ QUuid PointerScriptingInterface::createPointer(const PickQuery::PickType& type, 
         case PickQuery::PickType::Stylus:
             return createStylus(properties);
         default:
-            return QUuid();
+            return PointerEvent::INVALID_POINTER_ID;
     }
 }
 
-QUuid PointerScriptingInterface::createStylus(const QVariant& properties) const {
+unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
     bilateral::Side side = bilateral::Side::Invalid;
     {
         QVariant handVar = properties.toMap()["hand"];
@@ -51,13 +52,13 @@ QUuid PointerScriptingInterface::createStylus(const QVariant& properties) const 
     }
 
     if (bilateral::Side::Invalid == side) {
-        return QUuid();
+        return PointerEvent::INVALID_POINTER_ID;
     }
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(side));
 }
 
-QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
+unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 
     bool faceAvatar = false;
@@ -141,7 +142,7 @@ QUuid PointerScriptingInterface::createLaserPointer(const QVariant& properties) 
                                                                                                faceAvatar, centerEndY, lockEnd, distanceScaleEnd, enabled));
 }
 
-void PointerScriptingInterface::editRenderState(const QUuid& uid, const QString& renderState, const QVariant& properties) const {
+void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
     QVariantMap propMap = properties.toMap();
 
     QVariant startProps;
@@ -162,7 +163,7 @@ void PointerScriptingInterface::editRenderState(const QUuid& uid, const QString&
     DependencyManager::get<PointerManager>()->editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
 }
 
-QVariantMap PointerScriptingInterface::getPrevPickResult(const QUuid& uid) const { 
+QVariantMap PointerScriptingInterface::getPrevPickResult(unsigned int uid) const { 
     QVariantMap result;
     auto pickResult = DependencyManager::get<PointerManager>()->getPrevPickResult(uid);
     if (pickResult) {
@@ -170,4 +171,3 @@ QVariantMap PointerScriptingInterface::getPrevPickResult(const QUuid& uid) const
     }
     return result;
 }
-

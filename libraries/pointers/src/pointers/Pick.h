@@ -182,6 +182,10 @@ public:
     void setIgnoreItems(const QVector<QUuid>& items);
     void setIncludeItems(const QVector<QUuid>& items);
 
+    virtual bool isLeftHand() const { return false; }
+    virtual bool isRightHand() const { return false; }
+    virtual bool isMouse() const { return false; }
+
 private:
     PickFilter _filter;
     const float _maxDistance;
@@ -205,5 +209,14 @@ public:
     virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 };
+
+namespace std {
+    template <>
+    struct hash<PickQuery::PickType> {
+        size_t operator()(const PickQuery::PickType& a) const {
+            return a;
+        }
+    };
+}
 
 #endif // hifi_Pick_h

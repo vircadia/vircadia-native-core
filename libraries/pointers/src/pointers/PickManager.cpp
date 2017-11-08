@@ -9,38 +9,43 @@
 
 PickManager::PickManager() {
     setShouldPickHUDOperator([]() { return false; });
+    setCalculatePos2DFromHUDOperator([](const glm::vec3& intersection) { return glm::vec2(NAN); });
 }
 
-QUuid PickManager::addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick) {
-    QUuid id = QUuid::createUuid();
+unsigned int PickManager::addPick(PickQuery::PickType type, const std::shared_ptr<PickQuery> pick) {
+    unsigned int id = INVALID_PICK_ID;
     withWriteLock([&] {
-        _picks[type][id] = pick;
-        _typeMap[id] = type;
+        // Don't let the pick IDs overflow
+        if (_nextPickID < UINT32_MAX) {
+            id = _nextPickID++;
+            _picks[type][id] = pick;
+            _typeMap[id] = type;
+        }
     });
     return id;
 }
 
-std::shared_ptr<PickQuery> PickManager::findPick(const QUuid& uid) const {
+std::shared_ptr<PickQuery> PickManager::findPick(unsigned int uid) const {
     return resultWithReadLock<std::shared_ptr<PickQuery>>([&] {
         auto type = _typeMap.find(uid);
         if (type != _typeMap.end()) {
-            return _picks[type.value()][uid];
+            return _picks.find(type->second)->second.find(uid)->second;
         }
         return std::shared_ptr<PickQuery>();
     });
 }
 
-void PickManager::removePick(const QUuid& uid) {
+void PickManager::removePick(unsigned int uid) {
     withWriteLock([&] {
         auto type = _typeMap.find(uid);
         if (type != _typeMap.end()) {
-            _picks[type.value()].remove(uid);
-            _typeMap.remove(uid);
+            _picks[type->second].erase(uid);
+            _typeMap.erase(uid);
         }
     });
 }
 
-PickResultPointer PickManager::getPrevPickResult(const QUuid& uid) const {
+PickResultPointer PickManager::getPrevPickResult(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick) {
         return pick->getPrevPickResult();
@@ -48,35 +53,35 @@ PickResultPointer PickManager::getPrevPickResult(const QUuid& uid) const {
     return PickResultPointer();
 }
 
-void PickManager::enablePick(const QUuid& uid) const {
+void PickManager::enablePick(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->enable();
     }
 }
 
-void PickManager::disablePick(const QUuid& uid) const {
+void PickManager::disablePick(unsigned int uid) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->disable();
     }
 }
 
-void PickManager::setPrecisionPicking(const QUuid& uid, bool precisionPicking) const {
+void PickManager::setPrecisionPicking(unsigned int uid, bool precisionPicking) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->setPrecisionPicking(precisionPicking);
     }
 }
 
-void PickManager::setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignore) const {
+void PickManager::setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignore) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->setIgnoreItems(ignore);
     }
 }
 
-void PickManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& include) const {
+void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& include) const {
     auto pick = findPick(uid);
     if (pick) {
         pick->setIncludeItems(include);
@@ -84,7 +89,7 @@ void PickManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>& includ
 }
 
 void PickManager::update() {
-    QHash<PickQuery::PickType, QHash<QUuid, std::shared_ptr<PickQuery>>> cachedPicks;
+    std::unordered_map<PickQuery::PickType, std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>> cachedPicks;
     withReadLock([&] {
         cachedPicks = _picks;
     });
@@ -92,4 +97,28 @@ void PickManager::update() {
     bool shouldPickHUD = _shouldPickHUDOperator();
     _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], shouldPickHUD);
     _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], false);
+}
+
+bool PickManager::isLeftHand(unsigned int uid) {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->isLeftHand();
+    }
+    return false;
+}
+
+bool PickManager::isRightHand(unsigned int uid) {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->isRightHand();
+    }
+    return false;
+}
+
+bool PickManager::isMouse(unsigned int uid) {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->isMouse();
+    }
+    return false;
 }

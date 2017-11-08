@@ -89,7 +89,7 @@ public:
 
     void enable() override;
     void disable() override;
-    void update(float deltaTime) override;
+    void update(unsigned int pointerID, float deltaTime) override;
 
 private:
 
@@ -97,6 +97,8 @@ private:
     virtual void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override {}
     virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) override { return PickedObject();  }
     virtual Buttons getPressedButtons() override { return {}; }
+    bool shouldHover() override { return true; }
+    bool shouldTrigger() override { return true; }
     virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const override { return PointerEvent();  }
 
 

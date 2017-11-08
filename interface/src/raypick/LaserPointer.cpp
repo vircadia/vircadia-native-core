@@ -290,7 +290,6 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
 }
 
 PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const {
-    uint32_t id = 0;
     QUuid pickedID;
     glm::vec3 intersection, surfaceNormal, direction, origin;
     if (target.type != NONE) {
@@ -302,7 +301,7 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const P
         origin = vec3FromVariant(searchRay["origin"]);
         pickedID = rayPickResult->objectID;;
     }
-    
+
     glm::vec2 pos2D;
     if (pickedID != target.objectID) {
         if (target.type == ENTITY) {
@@ -315,8 +314,10 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const P
         pos2D = projectOntoEntityXYPlane(target.objectID, intersection);
     } else if (target.type == OVERLAY) {
         pos2D = projectOntoOverlayXYPlane(target.objectID, intersection);
+    } else if (target.type == HUD) {
+        pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(intersection);
     }
-    return PointerEvent(PointerEvent::Move, id, pos2D, intersection, surfaceNormal, direction, PointerEvent::NoButtons);
+    return PointerEvent(pos2D, intersection, surfaceNormal, direction);
 }
 
 glm::vec3 LaserPointer::intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const {

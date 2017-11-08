@@ -20,16 +20,16 @@
 #include <pointers/Pick.h>
 #include <ScriptEngine.h>
 
-QUuid PickScriptingInterface::createPick(const PickQuery::PickType type, const QVariant& properties) {
+unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, const QVariant& properties) {
     switch (type) {
         case PickQuery::PickType::Ray:
             return createRayPick(properties);
         default:
-            return QUuid();
+            return PickManager::INVALID_PICK_ID;
     }
 }
 
-QUuid PickScriptingInterface::createRayPick(const QVariant& properties) {
+unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
 
     bool enabled = false;
@@ -78,22 +78,22 @@ QUuid PickScriptingInterface::createRayPick(const QVariant& properties) {
         return DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
     }
 
-    return QUuid();
+    return PickManager::INVALID_PICK_ID;
 }
 
-void PickScriptingInterface::enablePick(const QUuid& uid) {
+void PickScriptingInterface::enablePick(unsigned int uid) {
     DependencyManager::get<PickManager>()->enablePick(uid);
 }
 
-void PickScriptingInterface::disablePick(const QUuid& uid) {
+void PickScriptingInterface::disablePick(unsigned int uid) {
     DependencyManager::get<PickManager>()->disablePick(uid);
 }
 
-void PickScriptingInterface::removePick(const QUuid& uid) {
+void PickScriptingInterface::removePick(unsigned int uid) {
     DependencyManager::get<PickManager>()->removePick(uid);
 }
 
-QVariantMap PickScriptingInterface::getPrevPickResult(const QUuid& uid) {
+QVariantMap PickScriptingInterface::getPrevPickResult(unsigned int uid) {
     QVariantMap result;
     auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResult(uid);
     if (pickResult) {
@@ -102,16 +102,28 @@ QVariantMap PickScriptingInterface::getPrevPickResult(const QUuid& uid) {
     return result;
 }
 
-void PickScriptingInterface::setPrecisionPicking(const QUuid& uid, const bool precisionPicking) {
+void PickScriptingInterface::setPrecisionPicking(unsigned int uid, bool precisionPicking) {
     DependencyManager::get<PickManager>()->setPrecisionPicking(uid, precisionPicking);
 }
 
-void PickScriptingInterface::setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreItems) {
+void PickScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) {
     DependencyManager::get<PickManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
 }
 
-void PickScriptingInterface::setIncludeItems(const QUuid& uid, const QScriptValue& includeItems) {
+void PickScriptingInterface::setIncludeItems(unsigned int uid, const QScriptValue& includeItems) {
     DependencyManager::get<PickManager>()->setIncludeItems(uid, qVectorQUuidFromScriptValue(includeItems));
+}
+
+bool PickScriptingInterface::isLeftHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isLeftHand(uid);
+}
+
+bool PickScriptingInterface::isRightHand(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isRightHand(uid);
+}
+
+bool PickScriptingInterface::isMouse(unsigned int uid) {
+    return DependencyManager::get<PickManager>()->isMouse(uid);
 }
 
 QScriptValue pickTypesToScriptValue(QScriptEngine* engine, const PickQuery::PickType& pickType) {
