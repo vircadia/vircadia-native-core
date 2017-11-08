@@ -54,7 +54,7 @@ public:
     using Config = BloomThresholdConfig;
     using JobModel = render::Job::ModelIO<BloomThreshold, Inputs, Outputs, Config>;
 
-    BloomThreshold();
+    BloomThreshold(unsigned int downsamplingFactor);
 
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
@@ -64,6 +64,7 @@ private:
     gpu::FramebufferPointer _outputBuffer;
     gpu::PipelinePointer _pipeline;
     float _threshold;
+    unsigned int _downsamplingFactor;
 };
 
 
@@ -96,6 +97,20 @@ private:
     float _intensity{ 1.0f };
 };
 
+class BloomDraw {
+public:
+    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using JobModel = render::Job::ModelI<BloomDraw, Inputs>;
+
+    BloomDraw() {}
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+private:
+
+    gpu::PipelinePointer _pipeline;
+};
+
 class DebugBloomConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(int mode MEMBER mode NOTIFY dirty)
@@ -121,7 +136,7 @@ signals:
 
 class DebugBloom {
 public:
-    using Inputs = render::VaryingSet4<gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet5<gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Config = DebugBloomConfig;
     using JobModel = render::Job::ModelI<DebugBloom, Inputs, Config>;
 

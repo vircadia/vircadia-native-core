@@ -17,6 +17,8 @@
 
 using namespace render;
 
+gpu::PipelinePointer HalfDownsample::_pipeline;
+
 HalfDownsample::HalfDownsample() {
 
 }
@@ -57,7 +59,7 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(gpu::State::DepthTest(false));
+        state->setDepthTest(gpu::State::DepthTest(false, false));
         _pipeline = gpu::Pipeline::create(program, state);
     }
 

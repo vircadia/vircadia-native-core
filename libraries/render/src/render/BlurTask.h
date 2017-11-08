@@ -72,7 +72,7 @@ using BlurParamsPointer = std::shared_ptr<BlurParams>;
 
 class BlurInOutResource {
 public:
-    BlurInOutResource(bool generateOutputFramebuffer = false);
+    BlurInOutResource(bool generateOutputFramebuffer, unsigned int downsampleFactor);
 
     struct Resources {
         gpu::TexturePointer sourceTexture;
@@ -85,8 +85,9 @@ public:
 
     gpu::FramebufferPointer _blurredFramebuffer;
 
-    // the output framebuffer defined if the job needs to output the result in a new framebuffer and not in place in th einput buffer
+    // the output framebuffer defined if the job needs to output the result in a new framebuffer and not in place in the input buffer
     gpu::FramebufferPointer _outputFramebuffer;
+    unsigned int _downsampleFactor{ 1U };
     bool _generateOutputFramebuffer{ false };
 };
 
@@ -115,7 +116,7 @@ public:
     using Config = BlurGaussianConfig;
     using JobModel = Job::ModelIO<BlurGaussian, gpu::FramebufferPointer, gpu::FramebufferPointer, Config>;
 
-    BlurGaussian(bool generateOutputFramebuffer = false);
+    BlurGaussian(bool generateOutputFramebuffer = false, unsigned int downsampleFactor = 1U);
 
     void configure(const Config& config);
     void run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer);

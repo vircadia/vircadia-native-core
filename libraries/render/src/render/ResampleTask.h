@@ -30,7 +30,8 @@ namespace render {
 
     protected:
 
-        gpu::PipelinePointer _pipeline;
+        static gpu::PipelinePointer _pipeline;
+
         gpu::FramebufferPointer _destinationFrameBuffer;
 
         gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);

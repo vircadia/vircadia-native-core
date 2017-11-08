@@ -21,8 +21,9 @@
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
-BloomThreshold::BloomThreshold() {
-
+BloomThreshold::BloomThreshold(unsigned int downsamplingFactor) :
+    _downsamplingFactor(downsamplingFactor) {
+    assert(downsamplingFactor > 0);
 }
 
 void BloomThreshold::configure(const Config& config) {
@@ -41,9 +42,13 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
     assert(inputFrameBuffer->hasColor());
 
     auto inputBuffer = inputFrameBuffer->getRenderBuffer(0);
-    auto bufferSize = glm::ivec2(inputBuffer->getDimensions());
+    auto bufferSize = gpu::Vec2u(inputBuffer->getDimensions());
 
-    if (!_outputBuffer || _outputBuffer->getSize() != inputFrameBuffer->getSize()) {
+    // Downsample resolution
+    bufferSize.x /= _downsamplingFactor;
+    bufferSize.y /= _downsamplingFactor;
+
+    if (!_outputBuffer || _outputBuffer->getSize() != bufferSize) {
         auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputBuffer->getTexelFormat(), bufferSize.x, bufferSize.y,
                                                 gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT)));
 
@@ -68,13 +73,15 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
+    glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
-        batch.setViewportTransform(args->_viewport);
+        batch.setViewportTransform(viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, args->_viewport));
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, viewport));
         batch.setPipeline(_pipeline);
 
         batch.setFramebuffer(_outputBuffer);
@@ -117,8 +124,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
-                                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        state->setDepthTest(gpu::State::DepthTest(false, false));
         _pipeline = gpu::Pipeline::create(program, state);
     }
 
@@ -127,24 +133,68 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     const auto blur0FB = inputs.get1();
     const auto blur1FB = inputs.get2();
     const auto blur2FB = inputs.get3();
+    const glm::ivec4 viewport{ 0, 0, framebufferSize.x, framebufferSize.y };
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
         batch.setFramebuffer(frameBuffer);
 
-        batch.setViewportTransform(args->_viewport);
+        batch.setViewportTransform(viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
         batch.setPipeline(_pipeline);
 
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, viewport));
         batch.setResourceTexture(BLUR0_SLOT, blur0FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR1_SLOT, blur1FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR2_SLOT, blur2FB->getRenderBuffer(0));
-        batch._glUniform1f(INTENSITY_SLOT, _intensity);
+        batch._glUniform1f(INTENSITY_SLOT, _intensity / 3.0f);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
+}
+
+void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+    RenderArgs* args = renderContext->args;
+
+    const auto frameBuffer = inputs.get0();
+    const auto bloomFrameBuffer = inputs.get1();
+
+    if (frameBuffer && bloomFrameBuffer) {
+        const auto framebufferSize = frameBuffer->getSize();
+
+        if (!_pipeline) {
+            auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
+            auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+            gpu::Shader::BindingSet slotBindings;
+            gpu::Shader::makeProgram(*program, slotBindings);
+
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            state->setDepthTest(gpu::State::DepthTest(false, false));
+            state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
+                                    gpu::State::ZERO, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+            _pipeline = gpu::Pipeline::create(program, state);
+        }
+
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+
+            batch.setFramebuffer(frameBuffer);
+
+            batch.setViewportTransform(args->_viewport);
+            batch.setProjectionTransform(glm::mat4());
+            batch.resetViewTransform();
+            batch.setPipeline(_pipeline);
+
+            batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
+            batch.setResourceTexture(0, bloomFrameBuffer->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+    }
 }
 
 DebugBloom::DebugBloom() {
@@ -161,6 +211,7 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
     RenderArgs* args = renderContext->args;
 
     const auto frameBuffer = inputs.get0();
+    const auto combinedBlurBuffer = inputs.get4();
     const auto framebufferSize = frameBuffer->getSize();
     const auto level0FB = inputs.get1();
     const auto level1FB = inputs.get2();
@@ -216,6 +267,11 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
             batch.setModelTransform(modelTransform);
             batch.setResourceTexture(0, levelTextures[2]);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            modelTransform.postTranslate(glm::vec3(2.0f, 0.0f, 0.0f));
+            batch.setModelTransform(modelTransform);
+            batch.setResourceTexture(0, combinedBlurBuffer->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
         } else {
             auto viewport = args->_viewport;
             auto blurLevel = _mode - DebugBloomConfig::MODE_LEVEL0;
@@ -258,7 +314,7 @@ void BloomConfig::setSize(float value) {
         assert(blurJobIt != task->_jobs.end());
         auto& gaussianBlur = blurJobIt->edit<render::BlurGaussian>();
         auto gaussianBlurParams = gaussianBlur.getParameters();
-        gaussianBlurParams->setFilterGaussianTaps((BLUR_MAX_NUM_TAPS - 1) / 2, sigma);
+        gaussianBlurParams->setFilterGaussianTaps(5, sigma);
         // Gaussian blur increases at each level to have a slower rolloff on the edge
         // of the response
         sigma *= 1.5f;
@@ -280,32 +336,24 @@ void Bloom::configure(const Config& config) {
 }
 
 void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
-    const auto bloomInputBuffer = task.addJob<BloomThreshold>("BloomThreshold", inputs);
-    const auto bloomHalfInputBuffer = task.addJob<render::HalfDownsample>("BloomHalf", bloomInputBuffer);
-    const auto bloomQuarterInputBuffer = task.addJob<render::HalfDownsample>("BloomQuarter", bloomHalfInputBuffer);
+    // Start by computing threshold of color buffer input at quarter resolution
+    const auto bloomInputBuffer = task.addJob<BloomThreshold>("BloomThreshold", inputs, 4U);
 
-#if 1
-    // Multi-scale blur
-    const auto blurFB0 = task.addJob<render::BlurGaussian>("BloomBlur0", bloomQuarterInputBuffer);
-    const auto halfBlurFB0 = task.addJob<render::HalfDownsample>("BloomHalfBlur0", blurFB0);
-    const auto blurFB1 = task.addJob<render::BlurGaussian>("BloomBlur1", halfBlurFB0, true);
-    const auto halfBlurFB1 = task.addJob<render::HalfDownsample>("BloomHalfBlur1", blurFB1);
-    const auto blurFB2 = task.addJob<render::BlurGaussian>("BloomBlur2", halfBlurFB1, true);
-#else
-    // Multi-scale downsampling debug
-    const auto blurFB0 = bloomQuarterInputBuffer;
-    const auto blurFB1 = task.addJob<render::HalfDownsample>("BloomHalfBlur1", blurFB0);
-    const auto blurFB2 = task.addJob<render::HalfDownsample>("BloomHalfBlur2", blurFB1);
-    // This is only needed so as not to crash as we expect to have the three blur jobs
-    task.addJob<render::BlurGaussian>("BloomBlur0", bloomHalfInputBuffer, true);
-    task.addJob<render::BlurGaussian>("BloomBlur1", blurFB1, true);
-    task.addJob<render::BlurGaussian>("BloomBlur2", blurFB2, true);
-#endif
+    // Multi-scale blur, each new blur is half resolution of the previous pass
+    const auto blurFB0 = task.addJob<render::BlurGaussian>("BloomBlur0", bloomInputBuffer, true);
+    const auto blurFB1 = task.addJob<render::BlurGaussian>("BloomBlur1", blurFB0, true, 2U);
+    const auto blurFB2 = task.addJob<render::BlurGaussian>("BloomBlur2", blurFB1, true, 2U);
 
     const auto& input = inputs.get<Inputs>();
     const auto& frameBuffer = input[1];
 
-    const auto applyInput = DebugBloom::Inputs(frameBuffer, blurFB0, blurFB1, blurFB2).asVarying();
+    // Mix all blur levels at quarter resolution
+    const auto applyInput = BloomApply::Inputs(bloomInputBuffer, blurFB0, blurFB1, blurFB2).asVarying();
     task.addJob<BloomApply>("BloomApply", applyInput);
-    task.addJob<DebugBloom>("DebugBloom", applyInput);
+    // And them blend result in additive manner on top of final color buffer
+    const auto drawInput = BloomDraw::Inputs(frameBuffer, bloomInputBuffer).asVarying();
+    task.addJob<BloomDraw>("BloomDraw", drawInput);
+
+    const auto debugInput = DebugBloom::Inputs(frameBuffer, blurFB0, blurFB1, blurFB2, bloomInputBuffer).asVarying();
+    task.addJob<DebugBloom>("DebugBloom", debugInput);
 }

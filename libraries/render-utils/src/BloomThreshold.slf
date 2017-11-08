@@ -16,12 +16,30 @@ uniform float threshold;
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
+#define DOWNSAMPLING_FACTOR     4
+#define SAMPLE_COUNT            (DOWNSAMPLING_FACTOR/2)
+
 void main(void) {
-    vec4 color = texture(colorMap, varTexCoord0);
-    float luminance = (color.r+color.g+color.b) / 3.0;
-    float mask = clamp((luminance-threshold)*0.25, 0, 1);
+    vec2 deltaX = dFdx(varTexCoord0) / SAMPLE_COUNT;
+    vec2 deltaY = dFdy(varTexCoord0) / SAMPLE_COUNT;
+    vec2 startUv = varTexCoord0;
+    vec4 maskedColor = vec4(0,0,0,0);
 
-    color *= mask;
+    for (int y=0 ; y<SAMPLE_COUNT ; y++) {
+        vec2 uv = startUv;
 
-    outFragColor = vec4(color.rgb, 1.0);
+        for (int x=0 ; x<SAMPLE_COUNT ; x++) {
+            vec4 color = texture(colorMap, uv);
+            float luminance = (color.r+color.g+color.b) / 3.0;
+            float mask = clamp((luminance-threshold)*0.25, 0, 1);
+
+            color *= mask;
+            maskedColor += color;
+            uv += deltaX;
+        }
+
+        startUv += deltaY;
+    }
+    maskedColor /= SAMPLE_COUNT*SAMPLE_COUNT;
+    outFragColor = vec4(maskedColor.rgb, 1.0);
 }
