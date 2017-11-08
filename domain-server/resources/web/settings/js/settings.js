@@ -629,9 +629,7 @@ function showOrHideLabel() {
 }
 
 function setupDomainLabelSetting() {
-  if (!showOrHideLabel()) {
-    return;
-  }
+  showOrHideLabel();
 
   var html = "<div>"
   html += "<label class='control-label'>Specify a label for your domain</label> <a class='domain-loading-hide' href='#'>Edit</a>";
