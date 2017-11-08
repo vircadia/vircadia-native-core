@@ -2223,11 +2223,13 @@ glm::vec3 variantToVec3(const QVariant& var) {
     return result;
 }
 
-void AttachmentData::fromVariant(const QVariant& variant) {
+bool AttachmentData::fromVariant(const QVariant& variant) {
+    bool isValid = false;
     auto map = variant.toMap();
     if (map.contains("modelUrl")) {
         auto urlString = map["modelUrl"].toString();
         modelURL = urlString;
+        isValid = true;
     }
     if (map.contains("jointName")) {
         jointName = map["jointName"].toString();
@@ -2244,6 +2246,7 @@ void AttachmentData::fromVariant(const QVariant& variant) {
     if (map.contains("soft")) {
         isSoft = map["soft"].toBool();
     }
+    return isValid;
 }
 
 QVariantList AvatarData::getAttachmentsVariant() const {
@@ -2259,8 +2262,7 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
     newAttachments.reserve(variant.size());
     for (const auto& attachmentVar : variant) {
         AttachmentData attachment;
-        attachment.fromVariant(attachmentVar);
-        if (!attachment.modelURL.isEmpty()) {
+        if (attachment.fromVariant(attachmentVar)) {
             newAttachments.append(attachment);
         }
     }
