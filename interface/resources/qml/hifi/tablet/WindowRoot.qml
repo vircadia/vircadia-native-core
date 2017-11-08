@@ -62,20 +62,22 @@ Windows.ScrollingWindow {
         loader.load(url) 
     }
 
-    function loadWebBase() {
-        loader.load("hifi/tablet/TabletWebView.qml");
+    function loadWebContent(source, url, injectJavaScriptUrl) {
+        loader.load(source, function() {
+            loader.item.url = url
+            loader.item.scriptURL = injectJavaScriptUrl;
+            if (loader.item.hasOwnProperty("closeButtonVisible")) {
+                loader.item.closeButtonVisible = false;
+            }
+        });
     }
 
-    function loadTabletWebBase() {
-        loader.load("hifi/tablet/BlocksWebView.qml");
+    function loadWebBase(url, injectJavaScriptUrl) {
+        loadWebContent("hifi/tablet/TabletWebView.qml", url, injectJavaScriptUrl);
     }
 
-    function loadWebUrl(url, injectedJavaScriptUrl) {
-        loader.item.url = url;
-        loader.item.scriptURL = injectedJavaScriptUrl;
-        if (loader.item.hasOwnProperty("closeButtonVisible")) {
-            loader.item.closeButtonVisible = false;
-        }
+    function loadTabletWebBase(url, injectJavaScriptUrl) {
+        loadWebContent("hifi/tablet/BlocksWebView.qml", url, injectJavaScriptUrl);
     }
 
     // used to send a message from qml to interface script.
