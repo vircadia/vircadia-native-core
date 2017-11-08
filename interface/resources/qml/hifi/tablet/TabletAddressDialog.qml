@@ -11,6 +11,7 @@
 import Hifi 1.0
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 import "../../controls"
 import "../../styles"
@@ -205,16 +206,16 @@ StackView {
                 anchors {
                     top: parent.top;
                     left: addressLineContainer.left;
-                    right: addressLineContainer.right;
                 }
             }
 
             HifiStyles.FiraSansRegular {
                 id: location;
                 anchors {
-                    left: addressLineContainer.left;
-                    leftMargin: 8;
-                    verticalCenter: addressLineContainer.verticalCenter;
+                    left: notice.right
+                    leftMargin: 8
+                    right: addressLineContainer.right
+                    verticalCenter: notice.verticalCenter
                 }
                 font.pixelSize: addressLine.font.pixelSize;
                 color: "gray";
@@ -222,7 +223,7 @@ StackView {
                 visible: addressLine.text.length === 0
             }
 
-            TextInput {
+            TextField {
                 id: addressLine
                 width: addressLineContainer.width - addressLineContainer.anchors.leftMargin - addressLineContainer.anchors.rightMargin;
                 anchors {
@@ -230,13 +231,23 @@ StackView {
                     leftMargin: 8;
                     verticalCenter: addressLineContainer.verticalCenter;
                 }
-                font.pixelSize: hifi.fonts.pixelSize * 0.75
                 onTextChanged: {
                     updateLocationText(text.length > 0);
                 }
                 onAccepted: {
                     addressBarDialog.keyboardEnabled = false;
                     toggleOrGo();
+                }
+                placeholderText: "Type domain address here"
+                verticalAlignment: TextInput.AlignBottom
+                style: TextFieldStyle {
+                    textColor: hifi.colors.text
+                    placeholderTextColor: "gray"
+                    font {
+                        family: hifi.fonts.fontFamily
+                        pixelSize: hifi.fonts.pixelSize * 0.75
+                    }
+                    background: Item {}
                 }
             }
 
