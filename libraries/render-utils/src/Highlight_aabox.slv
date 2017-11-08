@@ -93,11 +93,12 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+    <$transformModelToMonoClipPos(cam, obj, pos, gl_Position)$>
 
     // Offset the vertex to take into account the outline width
     pos.xyz += UNIT_BOX_NORMALS[triangleIndex];
     vec4 offsetPosition;
-    <$transformModelToClipPos(cam, obj, pos, offsetPosition)$>
+    <$transformModelToMonoClipPos(cam, obj, pos, offsetPosition)$>
     gl_Position.xy += normalize(offsetPosition.xy-gl_Position.xy) * outlineWidth * gl_Position.w;
+    <$transformStereoClipsSpace(cam, gl_Position)$>
 }
