@@ -218,29 +218,14 @@ Item {
                 size: 24;
                 // Style
                 color: hifi.colors.blueAccent;
-                anchors.top: parent.top;
-                anchors.topMargin: 26;
                 anchors.left: parent.left;
+                anchors.leftMargin: 12;
                 anchors.right: parent.right;
+                anchors.rightMargin: 12;
+                anchors.verticalCenter: parent.verticalCenter;
                 height: paintedHeight;
                 wrapMode: Text.WordWrap;
                 horizontalAlignment: Text.AlignHCenter;
-                }
-
-                // "Apply" button
-                HifiControlsUit.Button {
-                    id: changePassphraseButton;
-                    color: hifi.buttons.blue;
-                    colorScheme: hifi.colorSchemes.dark;
-                    anchors.top: noActivityText.bottom;
-                    anchors.topMargin: 25;
-                    anchors.horizontalCenter: parent.horizontalCenter;
-                    width: 180;
-                    height: 40;
-                    text: "Apply Now";
-                    onClicked: {
-                        Qt.openUrlExternally("https://www.highfidelity.com/");
-                    }
                 }
             }
             

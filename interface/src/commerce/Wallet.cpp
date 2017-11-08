@@ -324,12 +324,16 @@ Wallet::Wallet() {
 
     connect(ledger.data(), &Ledger::accountResult, this, [&]() {
         auto wallet = DependencyManager::get<Wallet>();
+        auto ledger = DependencyManager::get<Ledger>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
 
-        if (_mustRegenerateKeypair) {
+        if (_mustRegenerateKeypair || (!_passphrase->isEmpty() && _publicKeys.count() == 0)) {
+            qCDebug(commerce) << "Regenerating keys and resetting user_hfc_account. _mustRegenerateKeypair:"
+                << _mustRegenerateKeypair << "_publicKeys.count():" << _publicKeys.count();
             _mustRegenerateKeypair = false;
             resetKeysOnly();
+            ledger->reset();
             generateKeyPair();
         }
 
