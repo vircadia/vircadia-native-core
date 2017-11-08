@@ -57,6 +57,11 @@ void QmlCommerce::getWalletAuthenticatedStatus() {
     emit walletAuthenticatedStatusResult(wallet->walletIsAuthenticatedWithPassphrase());
 }
 
+void QmlCommerce::setMustRegenerateKeypair(const bool& val) {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->setMustRegenerateKeypair(val);
+}
+
 void QmlCommerce::getSecurityImage() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->getSecurityImage();

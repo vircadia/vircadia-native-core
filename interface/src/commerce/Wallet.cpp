@@ -328,9 +328,9 @@ Wallet::Wallet() {
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
 
-        if (_mustRegenerateKeypair || (!_passphrase->isEmpty() && _publicKeys.count() == 0)) {
+        if (_mustRegenerateKeypair || getKeyFilePath() == "") {
             qCDebug(commerce) << "Regenerating keys and resetting user_hfc_account. _mustRegenerateKeypair:"
-                << _mustRegenerateKeypair << "_publicKeys.count():" << _publicKeys.count();
+                << _mustRegenerateKeypair << "keyFilePath:" << getKeyFilePath();
             _mustRegenerateKeypair = false;
             resetKeysOnly();
             ledger->reset();
@@ -535,25 +535,32 @@ bool Wallet::generateKeyPair() {
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
 
-    qCInfo(commerce) << "Generating keypair.";
-    auto keyPair = generateRSAKeypair();
-
-    writeBackupInstructions();
-
-    // TODO: redo this soon -- need error checking and so on
-    writeSecurityImage(_securityImage, keyFilePath());
+    qCInfo(commerce) << "Generating keypair...";
+    QPair<QByteArray*, QByteArray*> keyPair = generateRSAKeypair();
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
-    QString key = keyPair.first->toBase64();
-    _publicKeys.push_back(key);
-    qCDebug(commerce) << "public key:" << key;
+    if (keyPair.first) {
+        writeBackupInstructions();
 
-    // It's arguable whether we want to change the receiveAt every time, but:
-    // 1. It's certainly needed the first time, when createIfNeeded answers true.
-    // 2. It is maximally private, and we can step back from that later if desired.
-    // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
-    auto ledger = DependencyManager::get<Ledger>();
-    QString machineFingerprint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
-    return ledger->receiveAt(key, oldKey, machineFingerprint);
+        // TODO: redo this soon -- need error checking and so on
+        if (_securityImage) {
+            writeSecurityImage(_securityImage, keyFilePath());
+        }
+
+        QString key = keyPair.first->toBase64();
+        _publicKeys.push_back(key);
+        qCDebug(commerce) << "public key:" << key;
+
+        // It's arguable whether we want to change the receiveAt every time, but:
+        // 1. It's certainly needed the first time, when createIfNeeded answers true.
+        // 2. It is maximally private, and we can step back from that later if desired.
+        // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
+        auto ledger = DependencyManager::get<Ledger>();
+        QString machineFingerprint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+        return ledger->receiveAt(key, oldKey, machineFingerprint);
+    } else {
+        qCDebug(commerce) << "Failure generating keys!";
+        return false;
+    }
 }
 
 QStringList Wallet::listPublicKeys() {

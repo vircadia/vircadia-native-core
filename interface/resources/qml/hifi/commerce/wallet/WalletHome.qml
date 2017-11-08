@@ -43,6 +43,10 @@ Item {
 
                 calculatePendingAndInvalidated();
             }
+
+            if (transactionHistoryModel.count === 0) {
+                commerce.setMustRegenerateKeypair(true);
+            }
             refreshTimer.start();
         }
     }

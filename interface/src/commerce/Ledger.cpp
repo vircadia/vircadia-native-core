@@ -94,7 +94,9 @@ void Ledger::receiveAtSuccess(QNetworkReply& reply) {
     QByteArray response = reply.readAll();
     QJsonObject data = QJsonDocument::fromJson(response).object();
 
-    if (data["status"] == "fail") { // Not on "The List" for receiving HFC
+    // ZRF FIXME! Change to something like `data["status"] == fail`
+    // Not on "The List" for receiving HFC
+    if (true) {
         wallet->setMustRegenerateKeypair(true);
     }
 }
