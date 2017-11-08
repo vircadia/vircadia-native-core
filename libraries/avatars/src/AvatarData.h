@@ -903,7 +903,7 @@ public:
     void fromJson(const QJsonObject& json);
 
     QVariant toVariant() const;
-    void fromVariant(const QVariant& variant);
+    bool fromVariant(const QVariant& variant);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);
