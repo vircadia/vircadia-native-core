@@ -37,8 +37,7 @@ void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>
         if (!_cauterizedClusterBuffer) {
             _cauterizedClusterBuffer = std::make_shared<gpu::Buffer>(cauterizedClusterMatrices.size() * sizeof(glm::mat4),
                 (const gpu::Byte*) cauterizedClusterMatrices.data());
-        }
-        else {
+        } else {
             _cauterizedClusterBuffer->setSubData(0, cauterizedClusterMatrices.size() * sizeof(glm::mat4),
                 (const gpu::Byte*) cauterizedClusterMatrices.data());
         }
