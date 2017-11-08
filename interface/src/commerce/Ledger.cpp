@@ -43,6 +43,7 @@ QJsonObject Ledger::failResponse(const QString& label, QNetworkReply& reply) {
 #define FailHandler(NAME) void Ledger::NAME##Failure(QNetworkReply& reply) { emit NAME##Result(failResponse(#NAME, reply)); }
 #define Handler(NAME) ApiHandler(NAME) FailHandler(NAME)
 Handler(buy)
+Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
 
@@ -89,18 +90,6 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-void Ledger::receiveAtSuccess(QNetworkReply& reply) {
-    auto wallet = DependencyManager::get<Wallet>();
-    QByteArray response = reply.readAll();
-    QJsonObject data = QJsonDocument::fromJson(response).object();
-
-    // ZRF FIXME! Change to something like `data["status"] == fail`
-    // Not on "The List" for receiving HFC
-    if (true) {
-        wallet->setMustRegenerateKeypair(true);
-    }
-}
-void Ledger::receiveAtFailure(QNetworkReply& reply) { failResponse("receiveAt", reply); }
 bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QString& machine_fingerprint) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {

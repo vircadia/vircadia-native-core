@@ -324,18 +324,8 @@ Wallet::Wallet() {
 
     connect(ledger.data(), &Ledger::accountResult, this, [&]() {
         auto wallet = DependencyManager::get<Wallet>();
-        auto ledger = DependencyManager::get<Ledger>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
-
-        if (_mustRegenerateKeypair || getKeyFilePath() == "") {
-            qCDebug(commerce) << "Regenerating keys and resetting user_hfc_account. _mustRegenerateKeypair:"
-                << _mustRegenerateKeypair << "keyFilePath:" << getKeyFilePath();
-            _mustRegenerateKeypair = false;
-            resetKeysOnly();
-            ledger->reset(); // Hits `reset_user_hfc_account` endpoint
-            generateKeyPair(); // Hits `receive_at` endpoint
-        }
 
         if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
             status = (uint)WalletStatus::WALLET_STATUS_NOT_SET_UP;
@@ -535,32 +525,25 @@ bool Wallet::generateKeyPair() {
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
 
-    qCInfo(commerce) << "Generating keypair...";
-    QPair<QByteArray*, QByteArray*> keyPair = generateRSAKeypair();
+    qCInfo(commerce) << "Generating keypair.";
+    auto keyPair = generateRSAKeypair();
+
+    writeBackupInstructions();
+
+    // TODO: redo this soon -- need error checking and so on
+    writeSecurityImage(_securityImage, keyFilePath());
     QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
-    if (keyPair.first) {
-        writeBackupInstructions();
+    QString key = keyPair.first->toBase64();
+    _publicKeys.push_back(key);
+    qCDebug(commerce) << "public key:" << key;
 
-        // TODO: redo this soon -- need error checking and so on
-        if (_securityImage) {
-            writeSecurityImage(_securityImage, keyFilePath());
-        }
-
-        QString key = keyPair.first->toBase64();
-        _publicKeys.push_back(key);
-        qCDebug(commerce) << "public key:" << key;
-
-        // It's arguable whether we want to change the receiveAt every time, but:
-        // 1. It's certainly needed the first time, when createIfNeeded answers true.
-        // 2. It is maximally private, and we can step back from that later if desired.
-        // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
-        auto ledger = DependencyManager::get<Ledger>();
-        QString machineFingerprint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
-        return ledger->receiveAt(key, oldKey, machineFingerprint);
-    } else {
-        qCDebug(commerce) << "Failure generating keys!";
-        return false;
-    }
+    // It's arguable whether we want to change the receiveAt every time, but:
+    // 1. It's certainly needed the first time, when createIfNeeded answers true.
+    // 2. It is maximally private, and we can step back from that later if desired.
+    // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
+    auto ledger = DependencyManager::get<Ledger>();
+    QString machineFingerprint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+    return ledger->receiveAt(key, oldKey, machineFingerprint);
 }
 
 QStringList Wallet::listPublicKeys() {
@@ -678,13 +661,9 @@ QString Wallet::getKeyFilePath() {
     }
 }
 
-void Wallet::resetKeysOnly() {
+void Wallet::reset() {
     _publicKeys.clear();
 
-    QFile keyFile(keyFilePath());
-    keyFile.remove();
-}
-void Wallet::reset() {
     delete _securityImage;
     _securityImage = nullptr;
 
@@ -692,7 +671,9 @@ void Wallet::reset() {
     updateImageProvider();
     _passphrase->clear();
 
-    resetKeysOnly();
+
+    QFile keyFile(keyFilePath());
+    keyFile.remove();
 }
 bool Wallet::writeWallet(const QString& newPassphrase) {
     RSA* keys = readKeys(keyFilePath().toStdString().c_str());

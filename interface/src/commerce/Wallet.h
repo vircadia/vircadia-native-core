@@ -49,7 +49,6 @@ public:
     bool walletIsAuthenticatedWithPassphrase();
     bool changePassphrase(const QString& newPassphrase);
 
-    void resetKeysOnly();
     void reset();
 
     void getWalletStatus();
@@ -59,8 +58,6 @@ public:
         WALLET_STATUS_NOT_AUTHENTICATED,
         WALLET_STATUS_READY
     };
-
-    void setMustRegenerateKeypair(const bool& val) { _mustRegenerateKeypair = val; }
 
 signals:
     void securityImageResult(bool exists);
@@ -86,8 +83,6 @@ private:
     bool writeBackupInstructions();
 
     void account();
-
-    bool _mustRegenerateKeypair { false };
 };
 
 #endif // hifi_Wallet_h
