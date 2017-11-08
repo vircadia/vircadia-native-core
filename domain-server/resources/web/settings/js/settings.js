@@ -503,7 +503,7 @@ function showDomainCreationAlert(justConnected) {
   swal({
     title: 'Create new domain ID',
     type: 'input',
-    text: 'Enter a short description for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
+    text: 'Enter a label this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
     showCancelButton: true,
     confirmButtonText: "Create",
     closeOnConfirm: false,
