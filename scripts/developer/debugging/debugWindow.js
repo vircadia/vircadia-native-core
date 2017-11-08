@@ -15,6 +15,7 @@ var scriptData = ScriptDiscoveryService.getRunning();
 var scripts = scriptData.filter(function (datum) { return datum.name === 'debugWindow.js'; });
 if (scripts.length >= 2) {
     //2nd instance of the script is too much
+    ScriptDiscoveryService.stopScript(scripts[1].url);
     return;
 }
 
