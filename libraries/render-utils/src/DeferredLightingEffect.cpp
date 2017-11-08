@@ -560,7 +560,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Haze
         if (haze) {
-	        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
+	        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getParametersBuffer());
         }
 		
         batch.draw(gpu::TRIANGLE_STRIP, 4);
