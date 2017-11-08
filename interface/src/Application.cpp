@@ -5781,7 +5781,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine.data(), &ScriptEngine::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
-    connect(scriptEngine.data(), &ScriptEngine::finished, this, &Application::cleanupRunningScripts);
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     qScriptRegisterMetaType(scriptEngine.data(), OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
@@ -6195,15 +6194,10 @@ void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const
 }
 
 void Application::showScriptLogs() {
-    if (!_runningScripts.contains("debugWindow.js")) {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
-        defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-        ScriptEnginePointer sePointer = scriptEngines->loadScript(defaultScriptsLoc.toString());
-        _runningScripts["debugWindow.js"] = sePointer;
-    } else {
-        qWarning() << "Scripts Log already running";
-    }
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
+    defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
+    scriptEngines->loadScript(defaultScriptsLoc.toString());
 }
 
 void Application::showAssetServerWidget(QString filePath) {
@@ -7300,10 +7294,6 @@ void Application::switchDisplayMode() {
         emit activeDisplayPluginChanged();
     }
     _previousHMDWornStatus = currentHMDWornStatus;
-}
-
-void Application::cleanupRunningScripts(const QString& fileNameString, ScriptEnginePointer) {
-    _runningScripts.remove(QUrl(fileNameString).fileName());
 }
 
 void Application::startHMDStandBySession() {

@@ -10,13 +10,23 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
+//check if script already running.
+var scriptData = ScriptDiscoveryService.getRunning();
+var scripts = scriptData.filter(function (datum) { return datum.name === 'debugWindow.js'; });
+if (scripts.length >= 2) {
+    //2nd instance of the script is too much
+    return;
+}
+
 // Set up the qml ui
 var qml = Script.resolvePath('debugWindow.qml');
+
 var window = new OverlayWindow({
     title: 'Debug Window',
     source: qml,
     width: 400, height: 900,
 });
+
 window.setPosition(25, 50);
 window.closed.connect(function() { Script.stop(); });
 
