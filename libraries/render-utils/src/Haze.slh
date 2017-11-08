@@ -40,7 +40,17 @@ layout(std140) uniform hazeBuffer {
     HazeParams hazeParams;
 };
 
-vec3 computeHazeColorKeyLightAttenuation(vec3 color, Light directionalLight, mat4 invViewMat, vec3 worldFragPos) {
+
+// Input:
+//      color               - fragment original color
+//      directionalLight    - parameters of the keylight
+//      worldFragPos        - fragment position in world coordinates
+// Output:
+//      fragment colour after haze effect
+//
+// General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
+//
+vec3 computeHazeColorKeyLightAttenuation(vec3 color, Light directionalLight, vec3 worldFragPos) {
     // Directional light attenuation is simulated by assuming the light source is at a fixed height above the
     // fragment.  This height is where the haze density is reduced by 95% from the haze at the fragment's height
     //
@@ -84,7 +94,17 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, Light directionalLight, mat
     return mix(color, vec3(0.0, 0.0, 0.0), hazeAmount);
 }
 
-vec4 computeHazeColor(vec4 fragColor, vec4 eyeFragPos, vec4 worldFragPos, vec3 worldEyePos) {
+// Input:
+//      fragColor    - fragment original color
+//      eyeFragPos   - fragment position in eye  coordinates
+//      worldFragPos - fragment position in world coordinates
+//      worldEyePos  - eye      position in world coordinates
+// Output:
+//      fragment colour after haze effect
+//
+// General algorithm taken from http://www.iquilezles.org/www/articles/fog/fog.htm, with permission
+//
+vec4 computeHazeColor(vec4 fragColor, vec4 eyeFragPos, vec4 worldFragPos, vec4 worldEyePos) {
     // Distance to fragment 
     float distance = length(eyeFragPos.xyz);
 

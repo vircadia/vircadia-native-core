@@ -49,7 +49,7 @@ void main(void) {
     vec4 fragColor = texture(colorMap, varTexCoord0);
     vec4 eyeFragPos = unpackPositionFromZeye(varTexCoord0);
     vec4 worldFragPos = getViewInverse() * eyeFragPos;
-    vec3 worldEyePos = getViewInverse()[3].xyz;
+    vec4 worldEyePos = getViewInverse()[3];
 
     outFragColor = computeHazeColor(fragColor, eyeFragPos, worldFragPos, worldEyePos);
 }
