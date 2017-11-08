@@ -310,7 +310,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
                         continue;
                     }
                     _renderablesToUpdate.insert(itr, { entityId, renderable });
-                } else {
+                } else if (renderable) {
                     _renderablesToUpdate.insert({ entityId, renderable });
                 }
             }
