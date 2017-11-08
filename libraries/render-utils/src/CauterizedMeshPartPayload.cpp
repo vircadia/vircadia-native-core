@@ -21,17 +21,7 @@ CauterizedMeshPartPayload::CauterizedMeshPartPayload(ModelPointer model, int mes
     : ModelMeshPartPayload(model, meshIndex, partIndex, shapeIndex, transform, offsetTransform) {}
 
 void CauterizedMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices, const std::vector<glm::mat4>& cauterizedClusterMatrices) {
-
-    // Once computed the cluster matrices, update the buffer(s)
-    if (clusterMatrices.size() > 1) {
-        if (!_clusterBuffer) {
-            _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
-            (const gpu::Byte*) clusterMatrices.data());
-        } else {
-            _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
-            (const gpu::Byte*) clusterMatrices.data());
-        }
-    }
+    ModelMeshPartPayload::updateClusterBuffer(clusterMatrices);
 
     if (cauterizedClusterMatrices.size() > 1) {
         if (!_cauterizedClusterBuffer) {
