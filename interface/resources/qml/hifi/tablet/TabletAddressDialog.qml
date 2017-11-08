@@ -84,7 +84,6 @@ StackView {
         anchors.centerIn = parent;
     }
 
-
     function resetAfterTeleport() {
         //storyCardFrame.shown = root.shown = false;
     }
@@ -135,7 +134,8 @@ StackView {
             bottom: parent.bottom
         }
 
-        onHostChanged: updateLocationTextTimer.start();
+        onHostChanged: updateLocationTextTimer.restart();
+
         Rectangle {
             id: navBar
             width: parent.width
@@ -358,7 +358,7 @@ StackView {
             // Delay updating location text a bit to avoid flicker of content and so that connection status is valid.
             id: updateLocationTextTimer
             running: false
-            interval: 500  // ms
+            interval: 1000  // ms
             repeat: false
             onTriggered: updateLocationText(false);
         }
