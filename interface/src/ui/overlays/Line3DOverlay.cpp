@@ -12,7 +12,6 @@
 
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
-#include <Application.h>
 
 #include "AbstractViewStateInterface.h"
 
