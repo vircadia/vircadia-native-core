@@ -248,7 +248,7 @@ public:
         renderWireCubeInstance(args, batch, glm::vec4(color, 1.0f), pipeline);
     }
     
-    // //Dynamic geometry
+    // Dynamic geometry
     void renderShape(gpu::Batch& batch, Shape shape);
     void renderWireShape(gpu::Batch& batch, Shape shape);
     size_t getShapeTriangleCount(Shape shape);

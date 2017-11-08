@@ -74,7 +74,7 @@ private:
 
     float _glow { 0.0 };
     float _glowWidth { 0.0 };
-    float _glowScale{ 1.0 };
+    float _glowScale { 1.0 };
     int _geometryCacheID;
 };
 

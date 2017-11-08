@@ -113,9 +113,9 @@ void LaserPointerManager::setIncludeItems(const QUuid& uid, const QVector<QUuid>
     }
 }
 
-void LaserPointerManager::setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat) const {
+void LaserPointerManager::setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay) const {
     auto laserPointer = find(uid);
     if (laserPointer) {
-        laserPointer->setLockEndUUID(objectID, isOverlay, offsetMat);
+        laserPointer->setLockEndUUID(objectID, isOverlay);
     }
 }

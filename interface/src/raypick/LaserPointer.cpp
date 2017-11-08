@@ -7,7 +7,7 @@
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-////
+//
 #include "LaserPointer.h"
 
 #include "Application.h"
@@ -15,7 +15,7 @@
 #include "RayPickScriptingInterface.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled) :
+    const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
@@ -121,7 +121,8 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
     glm::vec3 endVec;
     if (((defaultState || !_lockEnd) && _lockEndObject.id.isNull()) || type == IntersectionType::HUD) {
         endVec = pickRay.origin + pickRay.direction * distance;
-    } else {
+    }
+    else {
         if (!_lockEndObject.id.isNull()) {
             glm::vec3 pos;
             glm::quat rot;
@@ -132,7 +133,8 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
                 rot = quatFromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "rotation").value);
                 dim = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "dimensions").value);
                 registrationPoint = glm::vec3(0.5f);
-            } else {
+            }
+            else {
                 EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
                 glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
                 glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
@@ -143,17 +145,20 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
             }
             const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
             endVec = pos + rot * (dim * (DEFAULT_REGISTRATION_POINT - registrationPoint));
-        } else {
+        }
+        else {
             if (type == IntersectionType::ENTITY) {
                 endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(objectID)[3];
-            } else if (type == IntersectionType::OVERLAY) {
+            }
+            else if (type == IntersectionType::OVERLAY) {
                 endVec = vec3FromVariant(qApp->getOverlays().getProperty(objectID, "position").value);
-            } else if (type == IntersectionType::AVATAR) {
+            }
+            else if (type == IntersectionType::AVATAR) {
                 endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(objectID)->getPosition();
             }
         }
     }
-
+    
     float avatarScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getAvatarScale();
 
     QVariant end = vec3toVariant(endVec);
@@ -180,7 +185,8 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         }
         if (_centerEndY) {
             endProps.insert("position", end);
-        } else {
+        }
+        else {
             glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
             endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
         }
@@ -221,13 +227,14 @@ void LaserPointer::update() {
         if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
             (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
             float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;
-            qDebug() << &_currentRenderState;
             updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
             disableRenderState(_defaultRenderStates[_currentRenderState].second);
-        } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
+        }
+        else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
             disableRenderState(_renderStates[_currentRenderState]);
             updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), prevRayPickResult.searchRay, true);
-        } else if (!_currentRenderState.empty()) {
+        }
+        else if (!_currentRenderState.empty()) {
             disableRenderState(_renderStates[_currentRenderState]);
             disableRenderState(_defaultRenderStates[_currentRenderState].second);
         }

@@ -150,7 +150,6 @@ Laser = function (side) {
     }
 
     function update(hand) {
-        return;
         var handPosition,
             handOrientation,
             deltaOrigin,
