@@ -720,7 +720,8 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
         return QString();
     }
     qCDebug(uiLogging) << result.toString();
-    return result.toUrl().toLocalFile();
+    // originally was result.toUrl().toLocalFile();, but toLocalFile() is not working
+    return result.toString();
 }
 
 ModalDialogListener* OffscreenUi::fileDialogAsync(const QVariantMap& properties) {

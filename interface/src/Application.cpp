@@ -2702,7 +2702,6 @@ bool Application::importFromZIP(const QString& filePath) {
     return true;
 }
 
-<<<<<<< HEAD
 bool Application::importFromFBX(const QString& filePath) {
     qDebug() << "An fbx file has been dropped in: " << filePath;
     QUrl empty;
@@ -2715,9 +2714,6 @@ bool Application::importFromFBX(const QString& filePath) {
     return true;
 }
 
-=======
-// thread-safe
->>>>>>> 85efe5265d1e31eccae22571e407b938030c8f6e
 void Application::onPresent(quint32 frameCount) {
     bool expected = false;
     if (_pendingIdleEvent.compare_exchange_strong(expected, true)) {
