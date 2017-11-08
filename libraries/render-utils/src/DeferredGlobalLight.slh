@@ -138,7 +138,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
     // Attenuate the light if haze effect selected
     if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
-        color = computeHazeColor(color, directionalLight, invViewMat, position);    
+        color = computeHazeColorKeyLightAttenuation(color, directionalLight, invViewMat, position);    
     }
 
     return color;
