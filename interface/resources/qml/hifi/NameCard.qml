@@ -576,7 +576,7 @@ Item {
             // The slider for my card is special, it controls the master gain
             id: gainSliderText;
             visible: isMyCard;
-            text: "master gain";
+            text: "master volume";
             size: hifi.fontSizes.tabularData;
             anchors.left: parent.right;
             anchors.leftMargin: 8;
