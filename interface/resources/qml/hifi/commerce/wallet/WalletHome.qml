@@ -212,7 +212,8 @@ Item {
 
                 RalewayRegular {
                     id: noActivityText;
-                text: "No activity yet.<br><br><br>Looking for a little spending money?<br>Click the button below to apply for your <b>free HFC</b>!";
+                text: "<b>The Wallet app is in closed Beta.</b><br><br>To request entry and <b>receive free HFC</b>, please contact " +
+                "<b>info@highfidelity.com</b> with your High Fidelity account username and the email address registered to that account.";
                 // Text size
                 size: 24;
                 // Style

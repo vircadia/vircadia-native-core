@@ -43,7 +43,6 @@ QJsonObject Ledger::failResponse(const QString& label, QNetworkReply& reply) {
 #define FailHandler(NAME) void Ledger::NAME##Failure(QNetworkReply& reply) { emit NAME##Result(failResponse(#NAME, reply)); }
 #define Handler(NAME) ApiHandler(NAME) FailHandler(NAME)
 Handler(buy)
-Handler(receiveAt)
 Handler(balance)
 Handler(inventory)
 
@@ -99,6 +98,7 @@ void Ledger::receiveAtSuccess(QNetworkReply& reply) {
         wallet->setMustRegenerateKeypair(true);
     }
 }
+void Ledger::receiveAtFailure(QNetworkReply& reply) { failResponse("receiveAt", reply); }
 bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QString& machine_fingerprint) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
