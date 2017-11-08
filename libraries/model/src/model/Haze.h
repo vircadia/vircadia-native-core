@@ -95,7 +95,7 @@ namespace model {
         void setZoneTransform(const glm::mat4& zoneTransform);
 
         using UniformBufferView = gpu::BufferView;
-        UniformBufferView getParametersBuffer() const { return _hazeParametersBuffer; }
+        UniformBufferView getHazeParametersBuffer() const { return _hazeParametersBuffer; }
 
     protected:
         class Parameters {
@@ -128,7 +128,7 @@ namespace model {
             Parameters() {}
         };
 
-        UniformBufferView _hazeParametersBuffer;
+        UniformBufferView _hazeParametersBuffer{ nullptr };
     };
 
     using HazePointer = std::shared_ptr<Haze>;

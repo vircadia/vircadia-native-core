@@ -271,6 +271,7 @@ public:
         int lightAmbientMapUnit;
         int fadeMaskTextureUnit;
         int fadeParameterBufferUnit;
+        int hazeParameterBufferUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
