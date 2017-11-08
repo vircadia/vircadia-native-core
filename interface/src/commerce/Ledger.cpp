@@ -111,7 +111,7 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QSt
     }
 
     QJsonObject transaction;
-    transaction["hfc_key"] = hfc_key;
+    transaction["public_key"] = hfc_key;
     transaction["machine_fingerprint"] = machine_fingerprint;
     QJsonDocument transactionDoc{ transaction };
     auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);

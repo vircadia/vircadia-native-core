@@ -333,8 +333,8 @@ Wallet::Wallet() {
                 << _mustRegenerateKeypair << "keyFilePath:" << getKeyFilePath();
             _mustRegenerateKeypair = false;
             resetKeysOnly();
-            ledger->reset();
-            generateKeyPair();
+            ledger->reset(); // Hits `reset_user_hfc_account` endpoint
+            generateKeyPair(); // Hits `receive_at` endpoint
         }
 
         if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
