@@ -2702,7 +2702,6 @@ bool Application::importFromZIP(const QString& filePath) {
 }
 
 // thread-safe
-
 void Application::onPresent(quint32 frameCount) {
     bool expected = false;
     if (_pendingIdleEvent.compare_exchange_strong(expected, true)) {
@@ -6466,13 +6465,6 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
 
         // Close progress message box.
         addAssetToWorldInfoDone(filenameFromPath(filePath));
-    }
-
-    // Delete temporary directories created from downloads
-    if (filePath.contains(".fbx")) {
-        QString tempPath = filePath.remove(filePath.section("/", -1));
-        qCDebug(interfaceapp) << "Removing temporary path: " << tempPath;
-        QDir(tempPath).removeRecursively();
     }
 }
 
