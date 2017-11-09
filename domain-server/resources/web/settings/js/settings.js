@@ -652,6 +652,7 @@ function setupDomainLabelSetting() {
       title: 'Edit Label',
       message: modal_body,
       closeButton: false,
+      onEscape: true,
       buttons: [
         {
           label: 'Cancel',
@@ -775,6 +776,7 @@ function setupDomainNetworkingSettings() {
       title: 'Edit Network',
       message: modal_body,
       closeButton: false,
+      onEscape: true,
       buttons: [
         {
           label: 'Cancel',
@@ -922,6 +924,7 @@ function placeTableRow(name, path, isTemporary, placeID) {
     var dialog = bootbox.dialog({
       message: confirmString,
       closeButton: false,
+      onEscape: true,
       buttons: [
         {
           label: Strings.REMOVE_PLACE_CANCEL_BUTTON,
@@ -1096,6 +1099,7 @@ function editHighFidelityPlace(placeID, name, path) {
   dialog = bootbox.dialog({
     title: Strings.EDIT_PLACE_TITLE,
     closeButton: false,
+    onEscape: true,
     message: modal_body,
     buttons: modal_buttons
   })
@@ -1178,6 +1182,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
 
         bootbox.dialog({
           title: "Choose matching domain",
+          onEscape: true,
           message: modal_body,
           buttons: modal_buttons
         })

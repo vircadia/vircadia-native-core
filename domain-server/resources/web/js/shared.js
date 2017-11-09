@@ -363,7 +363,8 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
               title: Strings.ADD_PLACE_TITLE,
               message: modal_body,
               closeButton: false,
-              buttons: modal_buttons
+              buttons: modal_buttons,
+              onEscape: true
             });
           } else {
             bootbox.alert(Strings.ADD_PLACE_UNABLE_TO_LOAD_ERROR);
