@@ -51,14 +51,6 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 
 using CalculateEntityLoadingPriority = std::function<float(const EntityItem& item)>;
 
-class SortableEntityRenderer {
-public:
-    SortableEntityRenderer(EntityRendererPointer r, float p) : renderer(r), priority(p) {}
-    EntityRendererPointer renderer;
-    float priority;
-    bool operator<(const SortableEntityRenderer& other) const { return priority < other.priority; }
-};
-
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeProcessor, public Dependency {
     Q_OBJECT
