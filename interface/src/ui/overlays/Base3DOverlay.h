@@ -76,8 +76,10 @@ protected:
     virtual void parentDeleted() override;
 
     mutable Transform _renderTransform;
+    mutable bool _renderVisible;
     virtual Transform evalRenderTransform();
     virtual void setRenderTransform(const Transform& transform);
+    void setRenderVisible(bool visible);
     const Transform& getRenderTransform() const { return _renderTransform; }
 
     float _lineWidth;
