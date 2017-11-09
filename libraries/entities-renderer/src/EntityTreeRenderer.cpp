@@ -38,6 +38,22 @@
 
 #include "RenderableWebEntityItem.h"
 
+// implement these methods BEFORE including PrioritySortUtil.h
+namespace PrioritySortUtil {
+    glm::vec3 getObjectPosition(const EntityRendererPointer& object) {
+        return object->getEntity()->getPosition();
+    }
+
+    float getObjectRadius(const EntityRendererPointer& object) {
+        return 0.5f * object->getEntity()->getQueryAACube().getScale();
+    }
+
+    uint64_t getObjectAge(const EntityRendererPointer& object) {
+        return object->getUpdateTime();
+    }
+}
+#include <PrioritySortUtil.h>
+
 size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
 
@@ -338,47 +354,16 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         // we expect the cost to updating all renderables to exceed available time budget
         // so we first sort by priority and update in order until out of time
         uint64_t sortStart = usecTimestampNow();
-        std::priority_queue<SortableEntityRenderer> sortedRenderables;
+        using SortableRenderer = PrioritySortUtil::Sortable<EntityRendererPointer>;
+        std::priority_queue< SortableRenderer > sortedRenderables;
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+            PrioritySortUtil::PriorityCalculator<EntityRendererPointer> priorityCalculator(view);
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
-            glm::vec3 viewCenter = view.getPosition();
-            glm::vec3 forward = view.getDirection();
-            const float OUT_OF_VIEW_PENALTY = -10.0f;
             while (itr != _renderablesToUpdate.end()) {
-                // priority = weighted linear combination of:
-                //   (a) apparentSize
-                //   (b) proximity to center of view
-                //   (c) time since last update
-                EntityItemPointer entity = itr->second->getEntity();
-                glm::vec3 entityPosition = entity->getPosition();
-                glm::vec3 offset = entityPosition - viewCenter;
-                float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
-
-                float diameter = entity->getQueryAACube().getScale();
-                float apparentSize = diameter / distance;
-                float cosineAngle = glm::dot(offset, forward) / distance;
-                float age = (float)(sortStart - itr->second->getUpdateTime()) / (float)(USECS_PER_SECOND);
-
-                // NOTE: we are adding values of different units to get a single measure of "priority".
-                // Thus we multiply each component by a conversion "weight" that scales its units relative to the others.
-                // These weights are pure magic tuning and should be hard coded in the relation below,
-                // but are currently exposed for anyone who would like to explore fine tuning:
-                const float APPARENT_SIZE_COEFFICIENT = 1.0f;
-                const float CENTER_SORT_COEFFICIENT = 0.5f;
-                const float AGE_SORT_COEFFICIENT = 0.25f;
-                float priority = APPARENT_SIZE_COEFFICIENT * apparentSize
-                    + CENTER_SORT_COEFFICIENT * cosineAngle
-                    + AGE_SORT_COEFFICIENT * age;
-
-                // decrement priority of things outside keyhole
-                if (distance > view.getCenterRadius()) {
-                    if (!view.sphereIntersectsFrustum(entityPosition, 0.5f * diameter)) {
-                        priority += OUT_OF_VIEW_PENALTY;
-                    }
-                }
-
-                sortedRenderables.push(SortableEntityRenderer(itr->second, priority));
+                float priority = priorityCalculator.computePriority(itr->second);
+                SortableRenderer entry(itr->second, priority);
+                sortedRenderables.push(entry);
                 ++itr;
             }
         }
@@ -398,7 +383,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const EntityRendererPointer& renderer = sortedRenderables.top().renderer;
+                const EntityRendererPointer& renderer = sortedRenderables.top().getObject();
                 renderer->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderer->getEntity()->getID());
                 sortedRenderables.pop();
