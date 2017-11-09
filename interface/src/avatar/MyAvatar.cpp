@@ -2189,6 +2189,7 @@ void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
 
     setTargetScale(clampedTargetScale);
     qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+    emit(scaleChanged());
 }
 
 float MyAvatar::getDomainMinScale() {
