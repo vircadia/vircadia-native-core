@@ -18,7 +18,7 @@ namespace PrioritySortUtil {
     // PrioritySortUtil is a helper template for sorting 3D objects relative to a ViewFrustum.
     // To use this utility:
     //
-    // (1) Declare and implent the following methods for your "object" type T:
+    // (1) Declare and implement the following methods for your "object" type T:
     //
     //     glm::vec3 PrioritySortUtil<typename T>::getObjectPosition(const T&);
     //     float PrioritySortUtil<typename T>::getObjectRadius(const T&);
@@ -97,7 +97,7 @@ namespace PrioritySortUtil {
                 + _ageWeight * (float)(usecTimestampNow() - PrioritySortUtil::getObjectAge(object));
 
             // decrement priority of things outside keyhole
-            if (distance + radius > _viewRadius) {
+            if (distance - radius > _viewRadius) {
                 if (!_view.sphereIntersectsFrustum(position, radius)) {
                     constexpr float OUT_OF_VIEW_PENALTY = -10.0f;
                     priority += OUT_OF_VIEW_PENALTY;
