@@ -34,6 +34,7 @@ class PickScriptingInterface : public QObject, public Dependency {
 
 public:
     unsigned int createRayPick(const QVariant& properties);
+    unsigned int createStylusPick(const QVariant& properties);
 
     void registerMetaTypes(QScriptEngine* engine);
 

@@ -62,8 +62,8 @@ public:
     virtual void setLength(float length) {}
     virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay) {}
 
-    virtual void update(unsigned int pointerID, float deltaTime);
-    virtual void updateVisuals(const PickResultPointer& pickResult) {}
+    void update(unsigned int pointerID, float deltaTime);
+    virtual void updateVisuals(const PickResultPointer& pickResult) = 0;
     void generatePointerEvents(unsigned int pointerID, const PickResultPointer& pickResult);
 
     struct PickedObject {
@@ -87,8 +87,8 @@ protected:
     virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) = 0;
     virtual Buttons getPressedButtons() = 0;
 
-    virtual bool shouldHover() = 0;
-    virtual bool shouldTrigger() = 0;
+    virtual bool shouldHover(const PickResultPointer& pickResult) { return true; }
+    virtual bool shouldTrigger(const PickResultPointer& pickResult) { return true; }
 
 private:
     PickedObject _prevHoveredObject;

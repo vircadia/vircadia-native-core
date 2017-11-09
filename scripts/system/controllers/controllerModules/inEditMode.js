@@ -42,8 +42,34 @@ Script.include("/~/system/libraries/utils.js");
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
 
+<<<<<<< HEAD
+=======
+
+        this.processControllerTriggers = function(controllerData) {
+            if (controllerData.triggerClicks[this.hand]) {
+                this.mode = "full";
+            } else if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                this.mode = "half";
+            } else {
+                this.mode = "none";
+            }
+        };
+
+        this.updateLaserPointer = function(controllerData) {
+            LaserPointers.enableLaserPointer(this.laserPointer);
+            LaserPointers.setRenderState(this.laserPointer, this.mode);
+
+            if (HMD.tabletID !== this.tabletID || HMD.homeButtonID !== this.homeButtonID || HMD.tabletScreenID !== this.tabletScreenID) {
+                this.tabletID = HMD.tabletID;
+                this.homeButtonID = HMD.homeButtonID;
+                this.tabletScreenID = HMD.tabletScreenID;
+                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.homeButtonID, HMD.tabletScreenID]);
+            }
+        };
+
+>>>>>>> 5a78c9ebfee6685c32abcef652fb6b3b3f7dc348
         this.pointingAtTablet = function(objectID) {
-            if (objectID === HMD.tabletScreenID || objectID === HMD.tabletButtonID) {
+            if (objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID) {
                 return true;
             }
             return false;
@@ -120,6 +146,26 @@ Script.include("/~/system/libraries/utils.js");
             this.sendPickData(controllerData);
             return this.isReady(controllerData);
         };
+<<<<<<< HEAD
+=======
+
+        this.cleanup = function() {
+            LaserPointers.disableLaserPointer(this.laserPointer);
+            LaserPointers.removeLaserPointer(this.laserPointer);
+        };
+
+        this.laserPointer = LaserPointers.createLaserPointer({
+            joint: (this.hand === RIGHT_HAND) ? "_CONTROLLER_RIGHTHAND" : "_CONTROLLER_LEFTHAND",
+            filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS,
+            maxDistance: PICK_MAX_DISTANCE,
+            posOffset: getGrabPointSphereOffset(this.handToController(), true),
+            renderStates: renderStates,
+            faceAvatar: true,
+            defaultRenderStates: defaultRenderStates
+        });
+
+        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.homeButtonID, HMD.tabletScreenID]);
+>>>>>>> 5a78c9ebfee6685c32abcef652fb6b3b3f7dc348
     }
 
     var leftHandInEditMode = new InEditMode(LEFT_HAND);

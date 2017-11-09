@@ -12,7 +12,7 @@
 
 #include "avatar/AvatarManager.h"
 
-JointRayPick::JointRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const PickFilter& filter, const float maxDistance, const bool enabled) :
+JointRayPick::JointRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const PickFilter& filter, float maxDistance, bool enabled) :
     RayPick(filter, maxDistance, enabled),
     _jointName(jointName),
     _posOffset(posOffset),
