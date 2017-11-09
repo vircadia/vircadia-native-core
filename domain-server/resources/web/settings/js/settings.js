@@ -620,12 +620,10 @@ function parseJSONResponse(xhr) {
 
 function showOrHideLabel() {
   var type = getCurrentDomainIDType();
-  if (!accessTokenIsSet() || (type !== DOMAIN_ID_TYPE_FULL && type !== DOMAIN_ID_TYPE_UNKNOWN)) {
-    $(".panel#label").hide();
-    return false;
-  }
-  $(".panel#label").show();
-  return true;
+  var shouldShow = accessTokenIsSet() && (type === DOMAIN_ID_TYPE_FULL || type === DOMAIN_ID_TYPE_UNKNOWN);
+  $(".panel#label").toggle(shouldShow);
+  $("li a[href='#label']").parent().toggle(shouldShow);
+  return shouldShow;
 }
 
 function setupDomainLabelSetting() {
