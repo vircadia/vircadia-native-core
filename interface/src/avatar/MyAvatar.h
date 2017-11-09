@@ -561,6 +561,8 @@ public slots:
     float getDomainMinScale();
     float getDomainMaxScale();
 
+    void leaveDomain();
+
     void setGravity(float gravity);
     float getGravity();
 
@@ -637,6 +639,8 @@ private:
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
+
+    void saveAvatarScale();
 
     glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
     float getScriptedMotorTimescale() const { return _scriptedMotorTimescale; }
