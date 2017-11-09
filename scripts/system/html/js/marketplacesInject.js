@@ -89,7 +89,7 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = metaverseServerURL + "/marketplace";
+            window.location = "http://www.highfidelity.com/marketplace";
         });
     }
 
@@ -612,9 +612,9 @@
         var HIFI_ITEM_PAGE = 3;
         var pageType = DIRECTORY;
 
-        if (location.href.indexOf(metaverseServerURL + "/") !== -1) { pageType = HIFI; }
+        if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
-        if (location.href.indexOf(metaverseServerURL + "/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
+        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
