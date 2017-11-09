@@ -25,7 +25,7 @@ namespace PrioritySortUtil {
     //     uint64_t PrioritySortUtil<typename T>::getObjectAge(const T&);
     //
     // (2) Below the implementation in (1):
-    /
+    //
     //     #include <PrioritySortUtil.h>
     //
     // (3) Create a PriorityCalculator instance:
@@ -124,3 +124,4 @@ namespace PrioritySortUtil {
     };
 }
 #endif // hifi_PrioritySortUtil_h
+
