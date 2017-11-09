@@ -90,7 +90,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key, const QString& machine_fingerprint) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -99,7 +99,13 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
         return false; // We know right away that we will fail, so tell the caller.
     }
 
-    signedSend("public_key", hfc_key.toUtf8(), old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    QJsonObject transaction;
+    transaction["hfc_key"] = hfc_key;
+    transaction["machine_fingerprint"] = machine_fingerprint;
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+
+    signedSend("transaction", transactionString, old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
@@ -220,18 +226,26 @@ void Ledger::account() {
 }
 
 // The api/failResponse is called just for the side effect of logging.
-void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("reset", reply); }
-void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("reset", reply); }
+void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("updateLocation", reply); }
+void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("updateLocation", reply); }
 void Ledger::updateLocation(const QString& asset_id, const QString location, const bool controlledFailure) {
     auto wallet = DependencyManager::get<Wallet>();
-    QStringList keys = wallet->listPublicKeys();
-    QString key = keys[0];
-    QJsonObject transaction;
-    transaction["asset_id"] = asset_id;
-    transaction["location"] = location;
-    QJsonDocument transactionDoc{ transaction };
-    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-    signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
+    auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
+    uint walletStatus = walletScriptingInterface->getWalletStatus();
+
+    if (walletStatus != (uint)wallet->WALLET_STATUS_READY) {
+        emit walletScriptingInterface->walletNotSetup();
+        qDebug(commerce) << "User attempted to update the location of a certificate, but their wallet wasn't ready. Status:" << walletStatus;
+    } else {
+        QStringList keys = wallet->listPublicKeys();
+        QString key = keys[0];
+        QJsonObject transaction;
+        transaction["certificate_id"] = asset_id;
+        transaction["place_name"] = location;
+        QJsonDocument transactionDoc{ transaction };
+        auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+        signedSend("transaction", transactionString, key, "location", "updateLocationSuccess", "updateLocationFailure", controlledFailure);
+    }
 }
 
 void Ledger::certificateInfoSuccess(QNetworkReply& reply) {

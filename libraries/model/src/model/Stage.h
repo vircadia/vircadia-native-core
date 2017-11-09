@@ -15,7 +15,6 @@
 
 #include "Light.h"
 #include "Skybox.h"
-#include "Haze.h"
 
 namespace model {
 
@@ -175,65 +174,8 @@ public:
     void setSkybox(const SkyboxPointer& skybox);
     const SkyboxPointer& getSkybox() const { valid(); return _skybox; }
 
-    // Haze
-    enum HazeMode {
-        HAZE_OFF,
-        HAZE_ON,
-
-        NUM_HAZE_MODES
-    };
-
-    void setHazeMode(uint32_t mode);
-    uint32_t getHazeMode() const { return _hazeMode; }
-
-    void setHazeRange(float hazeRange) { _hazeRange = hazeRange; }
-    float getHazeRange() const { return _hazeRange; }
-    void setHazeColor(const xColor hazeColor) { _hazeColor = hazeColor; }
-    xColor getHazeColor() { return _hazeColor; }
-    void setHazeGlareColor(const xColor hazeGlareColor) { _hazeGlareColor = hazeGlareColor; }
-    xColor getHazeGlareColor() const { return _hazeGlareColor; }
-    void setHazeEnableGlare(bool hazeEnableGlare) { _hazeEnableGlare = hazeEnableGlare; }
-    bool getHazeEnableGlare() const { return _hazeEnableGlare; }
-    void setHazeGlareAngle(float hazeGlareAngle) { _hazeGlareAngle = hazeGlareAngle; }
-    float getHazeGlareAngle() const { return _hazeGlareAngle; }
-
-    void setHazeAltitudeEffect(bool hazeAltitudeEffect) { _hazeAltitudeEffect = hazeAltitudeEffect; }
-    bool getHazeAltitudeEffect() const { return _hazeAltitudeEffect; }
-    void setHazeCeiling(float hazeCeiling) { _hazeCeiling = hazeCeiling; }
-    float getHazeCeiling() const { return _hazeCeiling; }
-    void setHazeBaseRef(float hazeBaseRef) { _hazeBaseRef = hazeBaseRef; }
-    float getHazeBaseRef() const { return _hazeBaseRef; }
-
-    void setHazeBackgroundBlend(float hazeBackgroundBlend) { _hazeBackgroundBlend = hazeBackgroundBlend; }
-    float getHazeBackgroundBlend() const { return _hazeBackgroundBlend; }
-
-    void setHazeAttenuateKeyLight(bool hazeAttenuateKeyLight) { _hazeAttenuateKeyLight = hazeAttenuateKeyLight; }
-    bool getHazeAttenuateKeyLight() const { return _hazeAttenuateKeyLight; }
-    void setHazeKeyLightRange(float hazeKeyLightRange) { _hazeKeyLightRange = hazeKeyLightRange; }
-    float getHazeKeyLightRange() const { return _hazeKeyLightRange; }
-    void setHazeKeyLightAltitude(float hazeKeyLightAltitude) { _hazeKeyLightAltitude = hazeKeyLightAltitude; }
-    float getHazeKeyLightAltitude() const { return _hazeKeyLightAltitude; }
-
 protected:
     BackgroundMode _backgroundMode = SKY_DEFAULT;
-    
-    uint8_t _hazeMode = (uint8_t)HAZE_OFF;
-    
-    float _hazeRange;
-    xColor _hazeColor;
-    xColor _hazeGlareColor;
-    bool _hazeEnableGlare;
-    float _hazeGlareAngle;
-
-    bool _hazeAltitudeEffect;
-    float _hazeCeiling;
-    float _hazeBaseRef;
-
-    float _hazeBackgroundBlend;
-
-    bool _hazeAttenuateKeyLight;
-    float _hazeKeyLightRange;
-    float _hazeKeyLightAltitude;
 
     LightPointer _sunLight;
     mutable SkyboxPointer _skybox;

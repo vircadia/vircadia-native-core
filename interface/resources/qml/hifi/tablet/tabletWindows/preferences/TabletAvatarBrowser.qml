@@ -31,7 +31,7 @@ Item {
 
     BaseWebView {
         id: webview
-        url: "https://metaverse.highfidelity.com/marketplace?category=avatars"
+        url: (Account.metaverseServerURL + "/marketplace?category=avatars")
         focus: true
 
         anchors {

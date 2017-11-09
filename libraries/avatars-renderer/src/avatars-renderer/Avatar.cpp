@@ -286,6 +286,13 @@ void Avatar::updateAvatarEntities() {
                 properties.setScript(noScript);
             }
 
+            auto specifiedHref = properties.getHref();
+            if (!isMyAvatar() && !specifiedHref.isEmpty()) {
+                qCDebug(avatars_renderer) << "removing entity href from avatar attached entity:" << entityID << "old href:" << specifiedHref;
+                QString noHref;
+                properties.setHref(noHref);
+            }
+
             // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
             // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
             // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
@@ -721,19 +728,19 @@ void Avatar::simulateAttachments(float deltaTime) {
         glm::quat jointRotation;
         if (attachment.isSoft) {
             // soft attachments do not have transform offsets
-            model->setTranslation(getPosition());
-            model->setRotation(getOrientation() * Quaternions::Y_180);
+            model->setTransformNoUpdateRenderItems(Transform(getOrientation() * Quaternions::Y_180, glm::vec3(1.0), getPosition()));
             model->simulate(deltaTime);
+            model->updateRenderItems();
         } else {
             if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPosition) &&
                 _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRotation)) {
-                model->setTranslation(jointPosition + jointRotation * attachment.translation * getModelScale());
-                model->setRotation(jointRotation * attachment.rotation);
+                model->setTransformNoUpdateRenderItems(Transform(jointRotation * attachment.rotation, glm::vec3(1.0), jointPosition + jointRotation * attachment.translation * getModelScale()));
                 float scale = getModelScale() * attachment.scale;
                 model->setScaleToFit(true, model->getNaturalDimensions() * scale, true); // hack to force rescale
                 model->setSnapModelToCenter(false); // hack to force resnap
                 model->setSnapModelToCenter(true);
                 model->simulate(deltaTime);
+                model->updateRenderItems();
             }
         }
     }

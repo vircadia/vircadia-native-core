@@ -14,6 +14,15 @@
 #include <QObject>
 #include <QtCore/QJsonDocument>
 
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <NetworkingConstants.h>
+#include <NetworkAccessManager.h>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -1212,8 +1221,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-                                                  QByteArray& buffer) {
+OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+                QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties) {
+
     OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
@@ -1255,16 +1265,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         QByteArray encodedUpdateDelta = updateDeltaCoder;
 
         EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
-        EntityPropertyFlags requestedProperties = properties.getChangedProperties();
         EntityPropertyFlags propertiesDidntFit = requestedProperties;
-
-        // TODO: we need to handle the multi-pass form of this, similar to how we handle entity data
-        //
-        // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
-        // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
-        //if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
-        //    requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
-        //}
 
         LevelDetails entityLevel = packetData->startLevel();
 
@@ -1293,7 +1294,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         int propertyCount = 0;
 
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits
-        && successLastUpdatedFits && successPropertyFlagsFits;
+                && successLastUpdatedFits && successPropertyFlagsFits;
 
         int startOfEntityItemData = packetData->getUncompressedByteOffset();
 
@@ -1307,7 +1308,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions());
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
             APPEND_ENTITY_PROPERTY(PROP_DENSITY, properties.getDensity());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, properties.getVelocity());
@@ -1463,6 +1464,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
+
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
@@ -1513,12 +1515,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // If any part of the model items didn't fit, then the element is considered partial
         if (appendState != OctreeElement::COMPLETED) {
-            // TODO: handle mechanism for handling partial fitting data!
-            // add this item into our list for the next appendElementData() pass
-            //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
-
-            // for now, if it's not complete, it's not successful
-            success = false;
+            didntFitProperties = propertiesDidntFit;
         }
     }
 
@@ -1534,11 +1531,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
             success = false;
+            appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
+            // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-    return success;
+
+
+    return appendState;
 }
 
 QByteArray EntityItemProperties::getPackedNormals() const {
@@ -1664,7 +1665,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
@@ -2470,4 +2471,111 @@ bool EntityItemProperties::parentRelatedPropertyChanged() const {
 
 bool EntityItemProperties::queryAACubeRelatedPropertyChanged() const {
     return parentRelatedPropertyChanged() || dimensionsChanged();
+}
+
+// Checking Certifiable Properties
+#define ADD_STRING_PROPERTY(n, N) if (!get##N().isEmpty()) json[#n] = get##N()
+#define ADD_ENUM_PROPERTY(n, N) json[#n] = get##N##AsString()
+#define ADD_INT_PROPERTY(n, N) if (get##N() != 0) json[#n] = (get##N() == (quint32) -1) ? -1.0 : ((double) get##N())
+QByteArray EntityItemProperties::getStaticCertificateJSON() const {
+    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
+    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
+    // of the entity as reviewed during the certification submission.
+
+    QJsonObject json;
+    if (!getAnimation().getURL().isEmpty()) {
+        json["animationURL"] = getAnimation().getURL();
+    }
+    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
+    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
+    ADD_INT_PROPERTY(editionNumber, EditionNumber);
+    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
+    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
+    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
+    ADD_STRING_PROPERTY(itemLicenseUrl, ItemLicense);
+    ADD_STRING_PROPERTY(itemName, ItemName);
+    ADD_INT_PROPERTY(limitedRun, LimitedRun);
+    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
+    ADD_STRING_PROPERTY(modelURL, ModelURL);
+    ADD_STRING_PROPERTY(script, Script);
+    ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    json["type"] = EntityTypes::getEntityTypeName(getType());
+
+    return QJsonDocument(json).toJson(QJsonDocument::Compact);
+}
+QByteArray EntityItemProperties::getStaticCertificateHash() const {
+    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
+}
+
+bool EntityItemProperties::verifyStaticCertificateProperties() {
+    // True IIF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+
+    if (getCertificateID().isEmpty()) {
+        return false;
+    }
+
+    const QByteArray marketplacePublicKeyByteArray = EntityItem::_marketplacePublicKey.toUtf8();
+    const unsigned char* marketplacePublicKey = reinterpret_cast<const unsigned char*>(marketplacePublicKeyByteArray.constData());
+    int marketplacePublicKeyLength = marketplacePublicKeyByteArray.length();
+
+    BIO *bio = BIO_new_mem_buf((void*)marketplacePublicKey, marketplacePublicKeyLength);
+    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    if (evp_key) {
+        RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
+        if (rsa) {
+            const QByteArray digestByteArray = getStaticCertificateHash();
+            const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
+            int digestLength = digestByteArray.length();
+
+            const QByteArray signatureByteArray = QByteArray::fromBase64(getCertificateID().toUtf8());
+            const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
+            int signatureLength = signatureByteArray.length();
+
+            ERR_clear_error();
+            bool answer = RSA_verify(NID_sha256,
+                digest,
+                digestLength,
+                signature,
+                signatureLength,
+                rsa);
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "ERROR while verifying static certificate properties! RSA error:" << error_str
+                    << "\nStatic Cert JSON:" << getStaticCertificateJSON()
+                    << "\nKey:" << EntityItem::_marketplacePublicKey << "\nKey Length:" << marketplacePublicKeyLength
+                    << "\nDigest:" << digest << "\nDigest Length:" << digestLength
+                    << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+            }
+            RSA_free(rsa);
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            return answer;
+        } else {
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+            return false;
+        }
+    } else {
+        if (bio) {
+            BIO_free(bio);
+        }
+        long error = ERR_get_error();
+        const char* error_str = ERR_error_string(error, NULL);
+        qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+        return false;
+    }
 }

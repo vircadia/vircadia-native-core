@@ -14,9 +14,10 @@
 #include <QtCore/QObject>
 #include <QtEndian>
 #include <QJsonDocument>
-#include <openssl/rsa.h>  // see comments for DEBUG_CERT
-#include <openssl/pem.h>
-#include <openssl/x509.h>
+#include <NetworkingConstants.h>
+#include <NetworkAccessManager.h>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
 
 #include <glm/gtx/transform.hpp>
 
@@ -41,6 +42,7 @@ int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
 
 int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
+QString EntityItem::_marketplacePublicKey;
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID)
@@ -81,7 +83,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ACCELERATION;
 
-    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
+    requestedProperties += PROP_DIMENSIONS;
     requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
@@ -239,7 +241,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
 
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions());
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
@@ -1569,107 +1571,6 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(getDimensions());
 }
 
-// Checking Certifiable Properties
-#define ADD_STRING_PROPERTY(n, N) if (!propertySet.get##N().isEmpty()) json[#n] = propertySet.get##N()
-#define ADD_ENUM_PROPERTY(n, N) json[#n] = propertySet.get##N##AsString()
-#define ADD_INT_PROPERTY(n, N) if (propertySet.get##N() != 0) json[#n] = (propertySet.get##N() == (quint32) -1) ? -1.0 : ((double) propertySet.get##N())
-QByteArray EntityItem::getStaticCertificateJSON() const {
-    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
-    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
-    // of the entity as reviewed during the certification submission.
-
-    QJsonObject json;
-    EntityItemProperties propertySet = getProperties(); // Note: neither EntityItem nor EntityitemProperties "properties" are QObject "properties"!
-    // It is important that this be reproducible in the same order each time. Since we also generate these on the server, we do it alphabetically
-    // to help maintainence in two different code bases.
-    if (!propertySet.getAnimation().getURL().isEmpty()) {
-        json["animation.url"] = propertySet.getAnimation().getURL();
-    }
-    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
-    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
-    ADD_INT_PROPERTY(editionNumber, EditionNumber);
-    ADD_INT_PROPERTY(entityInstanceNumber, EntityInstanceNumber);
-    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
-    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
-    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
-    ADD_STRING_PROPERTY(itemLicense, ItemLicense);
-    ADD_STRING_PROPERTY(itemName, ItemName);
-    ADD_INT_PROPERTY(limitedRun, LimitedRun);
-    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
-    ADD_STRING_PROPERTY(modelURL, ModelURL);
-    ADD_STRING_PROPERTY(script, Script);
-    ADD_ENUM_PROPERTY(shapeType, ShapeType);
-    json["type"] = EntityTypes::getEntityTypeName(propertySet.getType());
-
-    return QJsonDocument(json).toJson(QJsonDocument::Compact);
-}
-QByteArray EntityItem::getStaticCertificateHash() const {
-    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
-}
-
-#ifdef DEBUG_CERT
-QString EntityItem::computeCertificateID() {
-    // Until the marketplace generates it, compute and answer the certificateID here.
-    // Does not set it, as that will have to be done from script engine in order to update server, etc.
-    const auto hash = getStaticCertificateHash();
-    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
-    const unsigned int textLength = hash.length();
-
-    const char privateKey[] = "-----BEGIN RSA PRIVATE KEY-----\n\
-MIIBOQIBAAJBALCoBiDAZOClO26tC5pd7JikBL61WIgpAqbcNnrV/TcG6LPI7Zbi\n\
-MjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQJABvOlwhYwIhL+gr12jm2R\n\
-yPPzZ9nVEQ6kFxLlZfIT09119fd6OU1X5d4sHWfMfSIEgjwQIDS3ZU1kY3XKo87X\n\
-zQIhAOPHlYa1OC7BLhaTouy68qIU2vCKLP8mt4S31/TT0UOnAiEAxor6gU6yupTQ\n\
-yuyV3yHvr5LkZKBGqhjmOTmDfgtX7ncCIChGbgX3nQuHVOLhD/nTxHssPNozVGl5\n\
-KxHof+LmYSYZAiB4U+yEh9SsXdq40W/3fpLMPuNq1PRezJ5jGidGMcvF+wIgUNec\n\
-3Kg2U+CVZr8/bDT/vXRrsKj1zfobYuvbfVH02QY=\n\
------END RSA PRIVATE KEY-----";
-    BIO* bio = BIO_new_mem_buf((void*)privateKey, sizeof(privateKey));
-    RSA* rsa = PEM_read_bio_RSAPrivateKey(bio, NULL, NULL, NULL);
-
-    QByteArray signature(RSA_size(rsa), 0);
-    unsigned int signatureLength = 0;
-    const int signOK = RSA_sign(NID_sha256, text, textLength, reinterpret_cast<unsigned char*>(signature.data()), &signatureLength, rsa);
-    BIO_free(bio);
-    RSA_free(rsa);
-    if (!signOK) {
-        qCWarning(entities) << "Unable to compute signature for" << getName() << getEntityItemID();
-        return "";
-    }
-    return signature.toBase64();
-#endif
-}
-
-bool EntityItem::verifyStaticCertificateProperties() {
-    // True IIF a non-empty certificateID matches the static certificate json.
-    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
-
-    if (getCertificateID().isEmpty()) {
-        return false;
-    }
-    const auto signatureBytes = QByteArray::fromBase64(getCertificateID().toLatin1());
-    const auto signature = reinterpret_cast<const unsigned char*>(signatureBytes.constData());
-    const unsigned int signatureLength = signatureBytes.length();
-
-    const auto hash = getStaticCertificateHash();
-    const auto text = reinterpret_cast<const unsigned char*>(hash.constData());
-    const unsigned int textLength = hash.length();
-
-    // After DEBUG_CERT ends, we will get/cache this once from the marketplace when needed, and it likely won't be RSA.
-    const char publicKey[] = "-----BEGIN PUBLIC KEY-----\n\
-MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALCoBiDAZOClO26tC5pd7JikBL61WIgp\n\
-AqbcNnrV/TcG6LPI7ZbiMjdUixmTNvYMRZH3Wlqtl2IKG1W68y3stKECAwEAAQ==\n\
------END PUBLIC KEY-----";
-    BIO *bio = BIO_new_mem_buf((void*)publicKey, sizeof(publicKey));
-    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
-    bool answer = RSA_verify(NID_sha256, text, textLength, signature, signatureLength, rsa);
-    BIO_free(bio);
-    RSA_free(rsa);
-    EVP_PKEY_free(evp_key);
-    return answer;
-}
-
 void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
     if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
         glm::mat4 scale = glm::scale(getDimensions());
@@ -1754,7 +1655,6 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
         setDimensions(value);
         markDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
         _queryAACubeSet = false;
-        dimensionsChanged();
     }
 }
 
@@ -2984,5 +2884,36 @@ void EntityItem::somethingChangedNotification() {
         for (const auto& handler : _changeHandlers.values()) {
             handler(id);
         }
+    });
+}
+
+void EntityItem::retrieveMarketplacePublicKey() {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL;
+    requestURL.setPath("/api/v1/commerce/marketplace_key");
+    QJsonObject request;
+    networkRequest.setUrl(requestURL);
+
+    QNetworkReply* networkReply = NULL;
+    networkReply = networkAccessManager.get(networkRequest);
+
+    connect(networkReply, &QNetworkReply::finished, [=]() {
+        QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+        jsonObject = jsonObject["data"].toObject();
+
+        if (networkReply->error() == QNetworkReply::NoError) {
+            if (!jsonObject["public_key"].toString().isEmpty()) {
+                EntityItem::_marketplacePublicKey = jsonObject["public_key"].toString();
+                qCWarning(entities) << "Marketplace public key has been set to" << _marketplacePublicKey;
+            } else {
+                qCWarning(entities) << "Marketplace public key is empty!";
+            }
+        } else {
+            qCWarning(entities) << "Call to" << networkRequest.url() << "failed! Error:" << networkReply->error();
+        }
+
+        networkReply->deleteLater();
     });
 }

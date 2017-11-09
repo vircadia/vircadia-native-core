@@ -295,6 +295,14 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
     });
 }
 
+void EntityRenderer::clearSubRenderItemIDs() {
+    _subRenderItemIDs.clear();
+}
+
+void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
+    _subRenderItemIDs = ids;
+}
+
 //
 // Internal methods
 //
