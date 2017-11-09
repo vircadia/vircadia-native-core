@@ -979,6 +979,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
+    //added by angus
     //this a spot to work on the avatar npc in my branch
 
     QVector<JointData> jointsData;
@@ -989,6 +990,19 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
         return;
     }
 
+    //get entity model anim props
+    bool isLooping = entity->getAnimationLoop();
+    int firstFrame = entity->getAnimationFirstFrame();
+    int lastFrame = entity->getAnimationLastFrame();
+    bool isHolding = entity->getAnimationHold();
+    int updatedFrameCount = frameCount;
+
+    if ((firstFrame >= 0) && (firstFrame < lastFrame) && (lastFrame <= frameCount)) {
+        //length of animation in now determined by first and last frame
+        updatedFrameCount = lastFrame - firstFrame;
+    }
+
+
     if (!_lastAnimated) {
         _lastAnimated = usecTimestampNow();
         return;
@@ -997,11 +1011,25 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     auto now = usecTimestampNow();
     auto interval = now - _lastAnimated;
     _lastAnimated = now;
-    float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-    _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
+    //we handle the hold animation property here
+    //if hold don't advance the current frame.
+    if (!isHolding) {
+        float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+        _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
+    }
 
     {
-        int animationCurrentFrame = (int)(glm::floor(_currentFrame)) % frameCount;
+        //where are we in the currently defined animation segment?       
+        int animationCurrentFrame = (int)(glm::floor(_currentFrame)) % updatedFrameCount;
+        //this starts us at the offset first frame.
+        animationCurrentFrame += firstFrame;
+
+        //here we implement the looping animation property
+        //if we have played through the animation once then we hold on the last frame
+        if (!isLooping && (_currentFrame > (updatedFrameCount - 1))) {
+            animationCurrentFrame = updatedFrameCount + firstFrame;
+        }
+
         if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
             animationCurrentFrame = 0;
         }
@@ -1314,7 +1342,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         if (newAnimationProperties != _renderAnimationProperties) {
             withWriteLock([&] {
                 _renderAnimationProperties = newAnimationProperties;
-                _currentFrame = _renderAnimationProperties.getCurrentFrame();
+                //if (entity->getAnimationHold()) {
+                  //  _currentFrame = _renderAnimationProperties.getCurrentFrame();
+                //}
             });
         }
     }

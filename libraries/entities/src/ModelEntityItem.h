@@ -90,6 +90,7 @@ public:
     bool getAnimationAllowTranslation() const { return _animationProperties.getAllowTranslation(); };
 
     void setAnimationLoop(bool loop);
+    bool getAnimationLoop() const;
 
     void setAnimationHold(bool hold);
     bool getAnimationHold() const;

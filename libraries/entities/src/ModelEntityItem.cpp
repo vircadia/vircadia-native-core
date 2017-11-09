@@ -538,6 +538,13 @@ void ModelEntityItem::setAnimationLoop(bool loop) {
     });
 }
 
+bool ModelEntityItem::getAnimationLoop() const {
+    return resultWithReadLock<bool>([&] {
+        return _animationProperties.getLoop();
+    });
+}
+
+
 void ModelEntityItem::setAnimationHold(bool hold) { 
     withWriteLock([&] {
         _animationProperties.setHold(hold);
