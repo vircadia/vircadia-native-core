@@ -280,13 +280,16 @@ void Base3DOverlay::update(float duration) {
         if (render::Item::isValidID(itemID)) {
             // Capture the render transform value in game loop before
             auto latestTransform = evalRenderTransform();
+            bool latestVisible = getVisible();
             _renderTransformDirty = false;
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<Overlay>(itemID, [latestTransform](Overlay& data) {
+            transaction.updateItem<Overlay>(itemID, [latestTransform, latestVisible](Overlay& data) {
                 auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
                 if (overlay3D) {
+                    // TODO: overlays need to communicate all relavent render properties through transactions
                     overlay3D->setRenderTransform(latestTransform);
+                    overlay3D->setRenderVisible(latestVisible);
                 }
             });
             scene->enqueueTransaction(transaction);
@@ -304,6 +307,10 @@ Transform Base3DOverlay::evalRenderTransform() {
 
 void Base3DOverlay::setRenderTransform(const Transform& transform) {
     _renderTransform = transform;
+}
+
+void Base3DOverlay::setRenderVisible(bool visible) {
+    _renderVisible = visible;
 }
 
 SpatialParentTree* Base3DOverlay::getParentTree() const {
