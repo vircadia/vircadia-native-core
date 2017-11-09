@@ -314,10 +314,10 @@ public:
                     const glm::vec4& color1, const glm::vec4& color2, int id);
 
     void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
-                    const glm::vec4& color, float glowIntensity, float glowWidth, float glowScale, int id);
+                    const glm::vec4& color, float glowIntensity, float glowWidth, int id);
 
     void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec4& color, int id) 
-                       { renderGlowLine(batch, p1, p2, color, 1.0f, 0.05f, 1.0f, id); }
+                       { renderGlowLine(batch, p1, p2, color, 1.0f, 0.05f, id); }
 
     void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id)
                           { renderDashedLine(batch, start, end, color, 0.05f, 0.025f, id); }

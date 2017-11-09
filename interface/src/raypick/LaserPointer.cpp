@@ -14,6 +14,8 @@
 #include "avatar/AvatarManager.h"
 #include "RayPickScriptingInterface.h"
 
+static const float DEFAULT_LASER_POINTER_SIZE = 0.02f;
+
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled) :
     _renderingEnabled(enabled),
@@ -163,11 +165,10 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         pathProps.insert("end", end);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", renderState.doesPathIgnoreRays());
-        if (_scaleWithAvatar) {
-            auto glowScaleProp = qApp->getOverlays().getProperty(renderState.getPathID(), "glowScale").value;
-            float glowScale = glowScaleProp.isValid() ? avatarScale * glowScaleProp.toFloat() : avatarScale;
-            pathProps.insert("glowScale", glowScale);
-        }
+
+        float glowWidth = _scaleWithAvatar ? DEFAULT_LASER_POINTER_SIZE * avatarScale : DEFAULT_LASER_POINTER_SIZE;
+        pathProps.insert("glowWidth", glowWidth);
+        
         qApp->getOverlays().editOverlay(renderState.getPathID(), pathProps);
     }
     if (!renderState.getEndID().isNull()) {

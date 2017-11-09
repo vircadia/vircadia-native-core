@@ -1868,7 +1868,7 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
 
 
 void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
-    const glm::vec4& color, float glowIntensity, float glowWidth, float glowScale, int id) {
+    const glm::vec4& color, float glowIntensity, float glowWidth, int id) {
 
     // Disable glow lines on OSX
 #ifndef Q_OS_WIN
@@ -1931,10 +1931,10 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
             vec4 p1;
             vec4 p2;
             vec4 color;
-            float scale;
+            float width;
         };
 
-        LineData lineData { vec4(p1, 1.0f), vec4(p2, 1.0f), color, glowScale };
+        LineData lineData { vec4(p1, 1.0f), vec4(p2, 1.0f), color, glowWidth };
         details.uniformBuffer->resize(sizeof(LineData));
         details.uniformBuffer->setSubData(0, lineData);
     }
