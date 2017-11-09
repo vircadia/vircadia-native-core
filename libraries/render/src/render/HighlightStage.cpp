@@ -3,6 +3,7 @@
 using namespace render;
 
 std::string HighlightStage::_name("Highlight");
+const HighlightStage::Index HighlightStage::INVALID_INDEX{ render::indexed_container::INVALID_INDEX };
 
 HighlightStage::Index HighlightStage::addHighlight(const std::string& selectionName, const HighlightStyle& style) {
     Highlight outline{ selectionName, style };
