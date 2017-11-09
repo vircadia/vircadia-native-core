@@ -561,8 +561,6 @@ public slots:
     float getDomainMinScale();
     float getDomainMaxScale();
 
-    void leaveDomain();
-
     void setGravity(float gravity);
     float getGravity();
 
@@ -623,6 +621,9 @@ signals:
     void sensorToWorldScaleChanged(float sensorToWorldScale);
     void attachmentsChanged();
     void scaleChanged();
+
+private slots:
+    void leaveDomain();
 
 private:
 
