@@ -119,7 +119,6 @@ protected:
     QUuid _changeHandlerId;
     ItemID _renderItemID{ Item::INVALID_ITEM_ID };
     ItemIDs _subRenderItemIDs;
-    quint64 _fadeStartTime{ usecTimestampNow() };
     uint64_t _fadeStartTime{ usecTimestampNow() };
     uint64_t _updateTime{ usecTimestampNow() }; // used when sorting/throttling render updates
     bool _isFading{ _entitiesShouldFadeFunction() };
