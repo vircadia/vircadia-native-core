@@ -75,8 +75,8 @@ protected:
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
     Pointer::Buttons getPressedButtons() override;
 
-    bool shouldHover() override { return _currentRenderState != ""; }
-    bool shouldTrigger() override { return _currentRenderState != ""; }
+    bool shouldHover(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
+    bool shouldTrigger(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
 
 private:
     PointerTriggers _triggers;
@@ -93,14 +93,6 @@ private:
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);
     void disableRenderState(const RenderState& renderState);
-
-
-    glm::vec3 intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction) const;
-    glm::vec3 intersectRayWithOverlayXYPlane(const QUuid& overlayID, const glm::vec3& origin, const glm::vec3& direction) const;
-    glm::vec3 intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat rotation, const glm::vec3& registration) const;
-    glm::vec2 projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos) const;
-    glm::vec2 projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::vec3& worldPos) const;
-    glm::vec2 projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint) const;
 
 };
 

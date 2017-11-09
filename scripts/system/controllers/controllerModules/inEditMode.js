@@ -128,16 +128,16 @@ Script.include("/~/system/libraries/utils.js");
             LaserPointers.enableLaserPointer(this.laserPointer);
             LaserPointers.setRenderState(this.laserPointer, this.mode);
 
-            if (HMD.tabletID !== this.tabletID || HMD.tabletButtonID !== this.tabletButtonID || HMD.tabletScreenID !== this.tabletScreenID) {
+            if (HMD.tabletID !== this.tabletID || HMD.homeButtonID !== this.homeButtonID || HMD.tabletScreenID !== this.tabletScreenID) {
                 this.tabletID = HMD.tabletID;
-                this.tabletButtonID = HMD.tabletButtonID;
+                this.homeButtonID = HMD.homeButtonID;
                 this.tabletScreenID = HMD.tabletScreenID;
-                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
+                LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.homeButtonID, HMD.tabletScreenID]);
             }
         };
 
         this.pointingAtTablet = function(objectID) {
-            if (objectID === HMD.tabletScreenID || objectID === HMD.tabletButtonID) {
+            if (objectID === HMD.tabletScreenID || objectID === HMD.homeButtonID) {
                 return true;
             }
             return false;
@@ -240,7 +240,7 @@ Script.include("/~/system/libraries/utils.js");
             defaultRenderStates: defaultRenderStates
         });
 
-        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.tabletButtonID, HMD.tabletScreenID]);
+        LaserPointers.setIgnoreItems(this.laserPointer, [HMD.tabletID, HMD.homeButtonID, HMD.tabletScreenID]);
     }
 
     var leftHandInEditMode = new InEditMode(LEFT_HAND);

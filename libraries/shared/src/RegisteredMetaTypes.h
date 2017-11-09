@@ -154,18 +154,30 @@ public:
     }
 };
 
-struct StylusTip : public MathPick {
-    bilateral::Side side{ bilateral::Side::Invalid };
+class StylusTip : public MathPick {
+public:
+    StylusTip() : position(NAN), velocity(NAN) {}
+    StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
+        orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
+
+    bilateral::Side side { bilateral::Side::Invalid };
     glm::vec3 position;
     glm::quat orientation;
     glm::vec3 velocity;
-    virtual operator bool() const override { return side != bilateral::Side::Invalid; }
+
+    operator bool() const override { return side != bilateral::Side::Invalid; }
+
+    bool operator==(const StylusTip& other) const {
+        return (side == other.side && position == other.position && orientation == other.orientation && velocity == other.velocity);
+    }
+
     QVariantMap toVariantMap() const override {
-        QVariantMap pickRay;
-        pickRay["position"] = vec3toVariant(position);
-        pickRay["orientation"] = quatToVariant(orientation);
-        pickRay["velocity"] = vec3toVariant(velocity);
-        return pickRay;
+        QVariantMap stylusTip;
+        stylusTip["side"] = (int)side;
+        stylusTip["position"] = vec3toVariant(position);
+        stylusTip["orientation"] = quatToVariant(orientation);
+        stylusTip["velocity"] = vec3toVariant(velocity);
+        return stylusTip;
     }
 };
 

@@ -78,7 +78,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     Buttons sameButtons;
     const std::string PRIMARY_BUTTON = "Primary";
     bool primaryPressed = false;
-    if (_enabled && shouldTrigger()) {
+    if (_enabled && shouldTrigger(pickResult)) {
         buttons = getPressedButtons();
         primaryPressed = buttons.find(PRIMARY_BUTTON) != buttons.end();
         for (const std::string& button : buttons) {
@@ -92,7 +92,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
     }
 
     // Hover events
-    bool doHover = shouldHover();
+    bool doHover = shouldHover(pickResult);
     Pointer::PickedObject hoveredObject = getHoveredObject(pickResult);
     PointerEvent hoveredEvent = buildPointerEvent(hoveredObject, pickResult);
     hoveredEvent.setType(PointerEvent::Move);

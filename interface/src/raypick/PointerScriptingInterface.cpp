@@ -43,19 +43,19 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
 }
 
 unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
-    bilateral::Side side = bilateral::Side::Invalid;
-    {
-        QVariant handVar = properties.toMap()["hand"];
-        if (handVar.isValid()) {
-            side = bilateral::side(handVar.toInt());
-        }
+    QVariantMap propertyMap = properties.toMap();
+
+    bool hover = false;
+    if (propertyMap["hover"].isValid()) {
+        hover = propertyMap["hover"].toBool();
     }
 
-    if (bilateral::Side::Invalid == side) {
-        return PointerEvent::INVALID_POINTER_ID;
+    bool enabled = false;
+    if (propertyMap["enabled"].isValid()) {
+        enabled = propertyMap["enabled"].toBool();
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(side));
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled));
 }
 
 unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
