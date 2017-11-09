@@ -739,7 +739,7 @@ function setupDomainNetworkingSettings() {
   var includeAddress = autoNetworkingSetting === 'disabled';
 
   if (includeAddress) {
-    var label = "Network Address and Port";
+    var label = "Network Address:Port";
   } else {
     var label = "Network Port";
   }
