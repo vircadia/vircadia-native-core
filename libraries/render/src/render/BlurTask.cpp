@@ -137,8 +137,8 @@ void BlurParams::setLinearDepthPosFar(float farPosDepth) {
 
 
 BlurInOutResource::BlurInOutResource(bool generateOutputFramebuffer, unsigned int downsampleFactor) :
-_generateOutputFramebuffer(generateOutputFramebuffer),
-_downsampleFactor(downsampleFactor) {
+    _downsampleFactor(downsampleFactor),
+    _generateOutputFramebuffer(generateOutputFramebuffer) {
     assert(downsampleFactor > 0);
 }
 
