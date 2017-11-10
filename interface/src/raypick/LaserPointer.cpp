@@ -14,8 +14,6 @@
 #include "avatar/AvatarManager.h"
 #include "RayPickScriptingInterface.h"
 
-static const float DEFAULT_LASER_POINTER_SIZE = 0.02f;
-
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool scaleWithAvatar, const bool enabled) :
     _renderingEnabled(enabled),
