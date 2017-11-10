@@ -527,8 +527,7 @@ function showDomainCreationAlert(justConnected) {
 function createNewDomainID(label, justConnected) {
   // get the JSON object ready that we'll use to create a new domain
   var domainJSON = {
-   "label": label
-    //"access_token": $(Settings.ACCESS_TOKEN_SELECTOR).val()
+    "label": label
   }
 
   $.post("/api/domains", domainJSON, function(data){
