@@ -27,9 +27,6 @@ class ClipboardScriptingInterface : public QObject {
 public:
     ClipboardScriptingInterface();
 
-signals:
-    void readyToImport();
-    
 public:
     /**jsdoc
      * Compute the extents of the contents held in the clipboard.
