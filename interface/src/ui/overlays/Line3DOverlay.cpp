@@ -16,11 +16,9 @@
 #include "AbstractViewStateInterface.h"
 
 QString const Line3DOverlay::TYPE = "line3d";
-static const float DEFAULT_LINE_WIDTH = 0.02f;
 
 Line3DOverlay::Line3DOverlay() :
-    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID()),
-    _lineWidth(DEFAULT_LINE_WIDTH)
+    _geometryCacheID(DependencyManager::get<GeometryCache>()->allocateID())
 {
 }
 
