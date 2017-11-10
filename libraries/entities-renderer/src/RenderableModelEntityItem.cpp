@@ -1364,6 +1364,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
                 if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
                     _currentFrame = newAnimationProperties.getCurrentFrame();
                     _endAnim = (_currentFrame - 1) + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame()));
+                    _lastAnimated = 0;
                     //qCDebug(entitiesrenderer) << "reset current frame" << _endAnim;
                 }
                 if ( _renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
