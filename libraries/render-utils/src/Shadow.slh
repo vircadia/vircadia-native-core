@@ -68,13 +68,11 @@ vec2 PCFkernel[4] = vec2[4](
 );
 
 float evalShadowAttenuationPCF(vec4 position, vec4 shadowTexcoord) {
-    // PCF is buggy so disable it for the time being
-#if 0
-    float pcfRadius = 3.0;
+#if 1
 	float shadowScale = getShadowScale();
 
     // Offset for efficient PCF, see http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html
-    vec2 offset = pcfRadius * step(fract(position.xy), vec2(0.5, 0.5));
+    vec2 offset = step(fract(position.xy), vec2(0.5, 0.5));
 
     float shadowAttenuation = (0.25 * (
         fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[0], 0.0)) +
