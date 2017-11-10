@@ -137,9 +137,11 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     assert(lightStage);
 
     auto shadow = lightStage->getCurrentKeyShadow();
-    if (!shadow) return;
+    if (!shadow || _cascadeIndex >= shadow->getCascadeCount()) {
+        return;
+    }
 
-    const auto& fbo = shadow->getCascade(0).framebuffer;
+    const auto& fbo = shadow->getCascade(_cascadeIndex).framebuffer;
 
     RenderArgs* args = renderContext->args;
     ShapeKey::Builder defaultKeyBuilder;
@@ -149,7 +151,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     // the minimal Z range.
     adjustNearFar(inShapeBounds, adjustedShadowFrustum);
     // Reapply the frustum as it has been adjusted
-    shadow->setFrustum(0, adjustedShadowFrustum);
+    shadow->setFrustum(_cascadeIndex, adjustedShadowFrustum);
     args->popViewFrustum();
     args->pushViewFrustum(adjustedShadowFrustum);
 
@@ -215,22 +217,25 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         initZPassPipelines(*shapePlumber, state);
     }
 
-    const auto cachedMode = task.addJob<RenderShadowSetup>("ShadowSetup", 0);
+    for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
+        const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", i);
+        const auto shadowFilter = setupOutput.getN<RenderShadowSetup::Outputs>(1);
 
-    // CPU jobs:
-    // Fetch and cull the items from the scene
-    auto shadowFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
-    const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowSelection", shadowFilter);
-    const auto culledShadowSelection = task.addJob<CullSpatialSelection>("CullShadowSelection", shadowSelection, cullFunctor, RenderDetails::SHADOW, shadowFilter);
+        // CPU jobs:
+        // Fetch and cull the items from the scene
+        const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowSelection", shadowFilter);
+        const auto cullInputs = CullSpatialSelection::Inputs(shadowSelection, shadowFilter).asVarying();
+        const auto culledShadowSelection = task.addJob<CullSpatialSelection>("CullShadowSelection", cullInputs, cullFunctor, RenderDetails::SHADOW);
 
-    // Sort
-    const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadowSort", culledShadowSelection);
-    const auto sortedShapesAndBounds = task.addJob<DepthSortShapesAndComputeBounds>("DepthSortShadowMap", sortedPipelines, true);
+        // Sort
+        const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadowSort", culledShadowSelection);
+        const auto sortedShapesAndBounds = task.addJob<DepthSortShapesAndComputeBounds>("DepthSortShadowMap", sortedPipelines, true);
 
-    // GPU jobs: Render to shadow map
-    task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapesAndBounds, shapePlumber);
+        // GPU jobs: Render to shadow map
+        task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapesAndBounds, shapePlumber, i);
 
-    task.addJob<RenderShadowTeardown>("ShadowTeardown", cachedMode);
+        task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
+    }
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
@@ -239,15 +244,18 @@ void RenderShadowTask::configure(const Config& configuration) {
 //    Task::configure(configuration);
 }
 
-void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
+void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Outputs& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
+    // Cache old render args
+    RenderArgs* args = renderContext->args;
+
+    output.edit0() = args->_renderMode;
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
-    if (globalShadow) {
-        // Cache old render args
-        RenderArgs* args = renderContext->args;
-        output = args->_renderMode;
+    const auto globalShadowCascadeCount = globalShadow->getCascadeCount();
+    if (globalShadow && _cascadeIndex<globalShadowCascadeCount) {
+        output.edit1() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
 
         const auto nearClip = args->getViewFrustum().getNearClip();
         const auto farClip = args->getViewFrustum().getFarClip();
@@ -255,7 +263,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
 
         static const float SHADOW_MAX_DISTANCE = 25.0f;
         static const float SHADOW_OVERLAP_DISTANCE = 1.0f;
-        float maxCascadeDistance = SHADOW_MAX_DISTANCE / powf(2.0f, globalShadow->getCascadeCount() - 1 - _cascadeIndex);
+        float maxCascadeDistance = SHADOW_MAX_DISTANCE / powf(2.0f, globalShadowCascadeCount - 1 - _cascadeIndex);
         float minCascadeDistance = maxCascadeDistance / 2.0f - SHADOW_OVERLAP_DISTANCE;
 
         if (_cascadeIndex == 0) {
@@ -268,6 +276,8 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
         // Set the keylight render args
         args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));
         args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+    } else {
+        output.edit1() = ItemFilter::Builder::nothing();
     }
 }
 
@@ -275,6 +285,8 @@ void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext
     RenderArgs* args = renderContext->args;
 
     // Reset the render args
-    args->popViewFrustum();
-    args->_renderMode = input;
+    args->_renderMode = input.get0();
+    if (!input.get1().selectsNothing()) {
+        args->popViewFrustum();
+    }
 };

@@ -533,19 +533,25 @@ void DrawFrustums::run(const render::RenderContextPointer& renderContext) {
         _frustumMeshIndices = gpu::BufferView(indices, gpu::Element(gpu::SCALAR, gpu::UINT8, gpu::INDEX));
         _viewFrustumMeshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
         _viewFrustumMeshStream.addBuffer(_viewFrustumMeshVertices._buffer, _viewFrustumMeshVertices._offset, _viewFrustumMeshVertices._stride);
-        _shadowFrustumMeshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
-        _shadowFrustumMeshStream.addBuffer(_shadowFrustumMeshVertices._buffer, _shadowFrustumMeshVertices._offset, _shadowFrustumMeshVertices._stride);
+        for (auto i = 0; i < MAX_SHADOW_FRUSTUM_COUNT; i++) {
+            _shadowFrustumMeshVertices[i] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
+            _shadowFrustumMeshStream[i].addBuffer(_shadowFrustumMeshVertices[i]._buffer, _shadowFrustumMeshVertices[i]._offset, _shadowFrustumMeshVertices[i]._stride);
+        }
     }
+
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
+
+    const auto globalShadow = lightStage->getCurrentKeyShadow();
 
     if (_updateFrustums) {
         updateFrustum(args->getViewFrustum(), _viewFrustumMeshVertices);
 
-        auto lightStage = renderContext->_scene->getStage<LightStage>();
-        assert(lightStage);
-
-        const auto globalShadow = lightStage->getCurrentKeyShadow();
         if (globalShadow) {
-            updateFrustum(*globalShadow->getCascade(0).getFrustum(), _shadowFrustumMeshVertices);
+            const auto cascadeCount = std::min(MAX_SHADOW_FRUSTUM_COUNT, (int)globalShadow->getCascadeCount());
+            for (auto i = 0; i < cascadeCount; i++) {
+                updateFrustum(*globalShadow->getCascade(i).getFrustum(), _shadowFrustumMeshVertices[i]);
+            }
         }
     }
 
@@ -583,9 +589,16 @@ void DrawFrustums::run(const render::RenderContextPointer& renderContext) {
         batch.setInputStream(0, _viewFrustumMeshStream);
         batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
 
-        batch._glUniform4f(0, 1.0f, 0.0f, 0.0f, 1.0f);
-        batch.setInputStream(0, _shadowFrustumMeshStream);
-        batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
+        if (globalShadow) {
+            const auto cascadeCount = std::min(MAX_SHADOW_FRUSTUM_COUNT, (int)globalShadow->getCascadeCount());
+            for (auto i = 0; i < cascadeCount; i++) {
+                float cascadeTint = i / (float)(globalShadow->getCascadeCount() - 1);
+
+                batch._glUniform4f(0, 1.0f, 0.0f, cascadeTint, 1.0f);
+                batch.setInputStream(0, _shadowFrustumMeshStream[i]);
+                batch.drawIndexed(gpu::LINE_STRIP, sizeof(indexData) / sizeof(indexData[0]), 0U);
+            }
+        }
 
         args->_batch = nullptr;
     });

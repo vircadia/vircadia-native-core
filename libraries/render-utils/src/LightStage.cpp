@@ -19,6 +19,7 @@ const glm::mat4 LightStage::Shadow::_biasMatrix{
     0.0, 0.5, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
     0.5, 0.5, 0.5, 1.0 };
+const unsigned int LightStage::SUN_SHADOW_CASCADE_COUNT{ 3 };
 
 LightStage::LightStage() {
 }
@@ -168,11 +169,11 @@ LightStage::Index LightStage::addLight(const LightPointer& light) {
     }
 }
 
-LightStage::Index LightStage::addShadow(Index lightIndex) {
+LightStage::Index LightStage::addShadow(Index lightIndex, unsigned int cascadeCount) {
     auto light = getLight(lightIndex);
     Index shadowId = INVALID_INDEX;
     if (light) {
-        shadowId = _shadows.newElement(std::make_shared<Shadow>(light));
+        shadowId = _shadows.newElement(std::make_shared<Shadow>(light, cascadeCount));
         _descs[lightIndex].shadowId = shadowId;
     }
     return shadowId;

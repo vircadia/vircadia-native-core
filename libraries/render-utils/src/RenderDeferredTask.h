@@ -193,13 +193,15 @@ public:
 
 private:
 
+    static const int MAX_SHADOW_FRUSTUM_COUNT{ 4 };
+
     bool _updateFrustums{ true };
     gpu::PipelinePointer _pipeline;
     gpu::BufferView _frustumMeshIndices;
     gpu::BufferView _viewFrustumMeshVertices;
-    gpu::BufferView _shadowFrustumMeshVertices;
     gpu::BufferStream _viewFrustumMeshStream;
-    gpu::BufferStream _shadowFrustumMeshStream;
+    gpu::BufferView _shadowFrustumMeshVertices[MAX_SHADOW_FRUSTUM_COUNT];
+    gpu::BufferStream _shadowFrustumMeshStream[MAX_SHADOW_FRUSTUM_COUNT];
 
     static void updateFrustum(const ViewFrustum& frustum, gpu::BufferView& vertexBuffer);
 };

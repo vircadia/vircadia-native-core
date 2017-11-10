@@ -31,6 +31,8 @@ public:
     static std::string _stageName;
     static const std::string& getName() { return _stageName; }
 
+    static const unsigned int SUN_SHADOW_CASCADE_COUNT;
+
     using Index = render::indexed_container::Index;
     static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
@@ -109,7 +111,7 @@ public:
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
 
-    Index addShadow(Index lightIndex);
+    Index addShadow(Index lightIndex, unsigned int cascadeCount = 1U);
 
     LightPointer removeLight(Index index);
     

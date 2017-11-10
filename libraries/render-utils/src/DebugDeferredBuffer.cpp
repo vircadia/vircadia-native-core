@@ -284,7 +284,10 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_SCATTERING_SHADER;
         case LightingMode:
             return DEFAULT_LIGHTING_SHADER;
-        case ShadowMode:
+        case Shadow0Mode:
+        case Shadow1Mode:
+        case Shadow2Mode:
+        case Shadow3Mode:
             return DEFAULT_SHADOW_SHADER;
         case LinearDepthMode:
             return DEFAULT_LINEAR_DEPTH_SHADER;
@@ -438,7 +441,8 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
-            batch.setResourceTexture(Shadow, globalShadow->getCascade(0).map);
+            const auto cascadeIndex = glm::clamp(_mode - Mode::Shadow0Mode, 0, (int)globalShadow->getCascadeCount() - 1);
+            batch.setResourceTexture(Shadow, globalShadow->getCascade(cascadeIndex).map);
         }
 
         if (linearDepthTarget) {
