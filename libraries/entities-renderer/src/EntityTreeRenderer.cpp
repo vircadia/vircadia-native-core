@@ -355,7 +355,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         std::priority_queue< SortableRenderer > sortedRenderables;
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
-            PrioritySortUtil::Prioritizer<EntityRendererPointer> prioritizer(view);
+            PrioritySortUtil::Prioritizer prioritizer(view);
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
             while (itr != _renderablesToUpdate.end()) {
                 float priority = prioritizer.computePriority(PrioritizableRenderer(itr->second));

@@ -80,7 +80,6 @@ namespace PrioritySortUtil {
         virtual uint64_t getTimestamp() const = 0;
     };
 
-    template <typename T>
     class Prioritizer {
     public:
         Prioritizer() = delete;
