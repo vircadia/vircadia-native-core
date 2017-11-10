@@ -139,7 +139,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     auto shadow = lightStage->getCurrentKeyShadow();
     if (!shadow) return;
 
-    const auto& fbo = shadow->framebuffer;
+    const auto& fbo = shadow->getCascade(0).framebuffer;
 
     RenderArgs* args = renderContext->args;
     ShapeKey::Builder defaultKeyBuilder;
@@ -149,7 +149,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
     // the minimal Z range.
     adjustNearFar(inShapeBounds, adjustedShadowFrustum);
     // Reapply the frustum as it has been adjusted
-    shadow->setFrustum(adjustedShadowFrustum);
+    shadow->setFrustum(0, adjustedShadowFrustum);
     args->popViewFrustum();
     args->pushViewFrustum(adjustedShadowFrustum);
 
@@ -252,10 +252,10 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
         auto nearClip = args->getViewFrustum().getNearClip();
         float nearDepth = -args->_boomOffset.z;
         const float SHADOW_MAX_DISTANCE = 20.0f;
-        globalShadow->setKeylightFrustum(args->getViewFrustum(), nearDepth, nearClip + SHADOW_MAX_DISTANCE, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+        globalShadow->setKeylightFrustum(0, args->getViewFrustum(), nearDepth, nearClip + SHADOW_MAX_DISTANCE, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
         // Set the keylight render args
-        args->pushViewFrustum(*(globalShadow->getFrustum()));
+        args->pushViewFrustum(*(globalShadow->getCascade(0).getFrustum()));
         args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
     }
 }

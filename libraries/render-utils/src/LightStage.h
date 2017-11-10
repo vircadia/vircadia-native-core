@@ -46,27 +46,43 @@ public:
         using UniformBufferView = gpu::BufferView;
         static const int MAP_SIZE = 1024;
 
-        Shadow(model::LightPointer light);
+        class Cascade {
+            friend Shadow;
+        public:
 
-        void setKeylightFrustum(const ViewFrustum& viewFrustum, float viewMinShadowDistance, float viewMaxShadowDistance, float nearDepth = 1.0f, float farDepth = 1000.0f);
+            Cascade();
 
-        void setFrustum(const ViewFrustum& shadowFrustum);
-        const std::shared_ptr<ViewFrustum> getFrustum() const { return _frustum; }
+            gpu::FramebufferPointer framebuffer;
+            gpu::TexturePointer map;
 
-        const glm::mat4& getView() const;
-        const glm::mat4& getProjection() const;
+            const std::shared_ptr<ViewFrustum>& getFrustum() const { return _frustum; }
+
+            const glm::mat4& getView() const;
+            const glm::mat4& getProjection() const;
+
+        private:
+
+            std::shared_ptr<ViewFrustum> _frustum;
+        };
+
+        Shadow(model::LightPointer light, unsigned int cascadeCount = 1);
+
+        void setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum, float viewMinShadowDistance, float viewMaxShadowDistance, float nearDepth = 1.0f, float farDepth = 1000.0f);
+        void setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
 
         const UniformBufferView& getBuffer() const { return _schemaBuffer; }
 
-        gpu::FramebufferPointer framebuffer;
-        gpu::TexturePointer map;
+        unsigned int getCascadeCount() const { return (unsigned int)_cascades.size(); }
+        const Cascade& getCascade(unsigned int index) const { return _cascades[index]; }
 
     protected:
+
+        using Cascades = std::vector<Cascade>;
 
         static const glm::mat4 _biasMatrix;
 
         model::LightPointer _light;
-        std::shared_ptr<ViewFrustum> _frustum;
+        Cascades _cascades;
 
 #include "Shadows_shared.slh"
 

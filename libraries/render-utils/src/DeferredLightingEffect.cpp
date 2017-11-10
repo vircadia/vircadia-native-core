@@ -503,7 +503,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Bind the shadow buffer
         if (globalShadow) {
-            batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow->map);
+            batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow->getCascade(0).map);
         }
 
         auto& program = deferredLightingEffect->_directionalSkyboxLight;

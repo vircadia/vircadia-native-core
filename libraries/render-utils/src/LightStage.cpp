@@ -28,20 +28,34 @@ LightStage::Shadow::Schema::Schema() {
     defaultTransform.bias = 0.005f;
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
+    cascadeCount = 1;
 }
 
-LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
+LightStage::Shadow::Cascade::Cascade() : _frustum{ std::make_shared<ViewFrustum>() } {
     framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
     map = framebuffer->getDepthStencilBuffer();
-    Schema schema;
-    _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
 }
 
-void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum, 
+const glm::mat4& LightStage::Shadow::Cascade::getView() const {
+    return _frustum->getView();
+}
+
+const glm::mat4& LightStage::Shadow::Cascade::getProjection() const {
+    return _frustum->getProjection();
+}
+
+LightStage::Shadow::Shadow(model::LightPointer light, unsigned int cascadeCount) : _light{ light } {
+    Schema schema;
+    _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
+    _cascades.resize(cascadeCount);
+}
+
+void LightStage::Shadow::setKeylightFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
                                             float viewMinShadowDistance, float viewMaxShadowDistance, 
                                             float nearDepth, float farDepth) {
     assert(viewMinShadowDistance < viewMaxShadowDistance);
     assert(nearDepth < farDepth);
+    assert(cascadeIndex < _cascades.size());
 
     // Orient the keylight frustum
     const auto& direction = glm::normalize(_light->getDirection());
@@ -55,12 +69,15 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
         auto up = glm::normalize(glm::cross(side, direction));
         orientation = glm::quat_cast(glm::mat3(side, up, -direction));
     }
-    _frustum->setOrientation(orientation);
+
+    auto& cascade = _cascades[cascadeIndex];
+
+    cascade._frustum->setOrientation(orientation);
 
     // Position the keylight frustum
-    _frustum->setPosition(viewFrustum.getPosition() - (nearDepth + farDepth)*direction);
+    cascade._frustum->setPosition(viewFrustum.getPosition() - (nearDepth + farDepth)*direction);
 
-    const Transform view{ _frustum->getView()};
+    const Transform view{ cascade._frustum->getView()};
     const Transform viewInverse{ view.getInverseMatrix() };
 
     auto nearCorners = viewFrustum.getCorners(viewMinShadowDistance);
@@ -92,30 +109,24 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
     auto near = glm::max(max.z, -nearDepth);
     auto far = -min.z;
     glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, near, far);
-    _frustum->setProjection(ortho);
+    cascade._frustum->setProjection(ortho);
 
     // Calculate the frustum's internal state
-    _frustum->calculate();
+    cascade._frustum->calculate();
 
     // Update the buffer
-    _schemaBuffer.edit<Schema>().cascades[0].reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
+    _schemaBuffer.edit<Schema>().cascades[cascadeIndex].reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
 }
 
-void LightStage::Shadow::setFrustum(const ViewFrustum& shadowFrustum) {
+void LightStage::Shadow::setFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum) {
+    assert(cascadeIndex < _cascades.size());
     const Transform view{ shadowFrustum.getView() };
     const Transform viewInverse{ view.getInverseMatrix() };
+    auto& cascade = _cascades[cascadeIndex];
 
-    *_frustum = shadowFrustum;
+    *cascade._frustum = shadowFrustum;
     // Update the buffer
-    _schemaBuffer.edit<Schema>().cascades[0].reprojection = _biasMatrix * shadowFrustum.getProjection() * viewInverse.getMatrix();
-}
-
-const glm::mat4& LightStage::Shadow::getView() const {
-    return _frustum->getView();
-}
-
-const glm::mat4& LightStage::Shadow::getProjection() const {
-    return _frustum->getProjection();
+    _schemaBuffer.edit<Schema>().cascades[cascadeIndex].reprojection = _biasMatrix * shadowFrustum.getProjection() * viewInverse.getMatrix();
 }
 
 LightStage::Index LightStage::findLight(const LightPointer& light) const {

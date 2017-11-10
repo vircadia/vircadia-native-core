@@ -545,7 +545,7 @@ void DrawFrustums::run(const render::RenderContextPointer& renderContext) {
 
         const auto globalShadow = lightStage->getCurrentKeyShadow();
         if (globalShadow) {
-            updateFrustum(*globalShadow->getFrustum(), _shadowFrustumMeshVertices);
+            updateFrustum(*globalShadow->getCascade(0).getFrustum(), _shadowFrustumMeshVertices);
         }
     }
 
