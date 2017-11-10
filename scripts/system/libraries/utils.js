@@ -185,7 +185,7 @@ logTrace = function(str) {
 // (the vector that would move the point outside the sphere)
 // otherwise returns false
 findSphereHit = function(point, sphereRadius) {
-    var EPSILON = 0.000001;	//smallish positive number - used as margin of error for some computations
+    var EPSILON = 0.000001; //smallish positive number - used as margin of error for some computations
     var vectorLength = Vec3.length(point);
     if (vectorLength < EPSILON) {
         return true;
@@ -400,22 +400,25 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     });
 
     // update webOverlay
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2) * sensorScaleOffsetOverride;
-    var WEB_ENTITY_Y_OFFSET = 0.004 * sensorScaleOffsetOverride;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) * sensorScaleOffsetOverride;
+    var WEB_ENTITY_Y_OFFSET = 0.004 * sensorScaleFactor * sensorScaleOffsetOverride;
+    var screenWidth = 0.82 * tabletWidth;
+    var screenHeight = 0.81 * tabletHeight;
     Overlays.editOverlay(HMD.tabletScreenID, {
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        dimensions: {x: screenWidth, y: screenHeight, z: 0.1},
         dpi: tabletDpi
     });
 
     // update homeButton
     var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * sensorScaleOffsetOverride;
     Overlays.editOverlay(HMD.homeButtonID, {
-        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
+        localPosition: {x: 0, y: -HOME_BUTTON_Y_OFFSET, z: 0 },
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor}
     });
 
     Overlays.editOverlay(HMD.homeButtonHighlightID, {
-        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003, z: -0.0158 },
+        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET + 0.003 * sensorScaleFactor * sensorScaleOffsetOverride, z: -0.0158 * sensorScaleFactor * sensorScaleOffsetOverride },
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor },
         outerRadius: 25 * tabletScaleFactor,
         innerRadius: 20 * tabletScaleFactor

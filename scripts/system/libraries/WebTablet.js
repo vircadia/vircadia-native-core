@@ -118,15 +118,16 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2) * (1 / sensorScaleFactor);
-    var WEB_ENTITY_Y_OFFSET = 0.004 * (1 / sensorScaleFactor);
-
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) / sensorScaleFactor;
+    var WEB_ENTITY_Y_OFFSET = 0.004;
+    var screenWidth = 0.82 * tabletWidth;
+    var screenHeight = 0.81 * tabletHeight;
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
-        resolution: this.getTabletTextureResolution(),
+        dimensions: {x: screenWidth, y: screenHeight, z: 0.1},
         dpi: tabletDpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,
@@ -139,7 +140,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * (1 / sensorScaleFactor);
     this.homeButtonID = Overlays.addOverlay("sphere", {
         name: "homeButton",
-        localPosition: {x: -0.001, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
+        localPosition: {x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: 0.0},
         localRotation: {x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: 4 * tabletScaleFactor, y: 4 * tabletScaleFactor, z: 4 * tabletScaleFactor},
         alpha: 0.0,
@@ -266,11 +267,16 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
 
     this.landscape = newLandscapeValue;
     Overlays.editOverlay(this.tabletEntityID,
-                         { rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) :
-                                                      Quat.multiply(Camera.orientation, ROT_Y_180) });
+                         { rotation: Quat.multiply(Camera.orientation, this.landscape ? ROT_LANDSCAPE : ROT_Y_180) });
+
+    var tabletWidth = getTabletWidthFromSettings() * MyAvatar.sensorToWorldScale;
+    var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
+    var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
+    var screenWidth = 0.82 * tabletWidth;
+    var screenHeight = 0.81 * tabletHeight;
     Overlays.editOverlay(this.webOverlayID, {
-        resolution: this.getTabletTextureResolution(),
-        rotation: Quat.multiply(Camera.orientation, ROT_LANDSCAPE_WINDOW)
+        rotation: Quat.multiply(Camera.orientation, ROT_LANDSCAPE_WINDOW),
+        dimensions: {x: this.landscape ? screenHeight : screenWidth, y: this.landscape ? screenWidth : screenHeight, z: 0.1}
     });
 };
 
