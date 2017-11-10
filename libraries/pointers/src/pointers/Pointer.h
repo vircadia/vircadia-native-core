@@ -82,7 +82,7 @@ protected:
     bool _enabled;
     bool _hover;
 
-    virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const = 0;
+    virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const = 0;
 
     virtual PickedObject getHoveredObject(const PickResultPointer& pickResult) = 0;
     virtual Buttons getPressedButtons() = 0;

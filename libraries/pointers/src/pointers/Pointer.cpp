@@ -199,7 +199,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
 
     // Trigger continue
     for (const std::string& button : sameButtons) {
-        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult);
+        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult, false);
         triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Move);
         triggeredEvent.setButton(chooseButton(button));
@@ -214,7 +214,7 @@ void Pointer::generatePointerEvents(unsigned int pointerID, const PickResultPoin
 
     // Trigger end
     for (const std::string& button : _prevButtons) {
-        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult);
+        PointerEvent triggeredEvent = buildPointerEvent(_triggeredObjects[button], pickResult, false);
         triggeredEvent.setID(pointerID);
         triggeredEvent.setType(PointerEvent::Release);
         triggeredEvent.setButton(chooseButton(button));
