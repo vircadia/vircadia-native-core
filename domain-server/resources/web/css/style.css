@@ -80,11 +80,23 @@ span.port {
   display: none;
 }
 
-#setup-sidebar.affix {
-  /* This overrides a case where going to the bottom of the page,
-   * then scrolling up, causes `position: relative` to be added to the style
-   */
-  position: fixed !important;
+@media (min-width: 768px) {
+  #setup-sidebar.affix {
+    /* This overrides a case where going to the bottom of the page,
+     * then scrolling up, causes `position: relative` to be added to the style
+     */
+    position: fixed !important;
+  }
+}
+
+@media (max-width: 767px) {
+  #setup-sidebar.affix {
+    position: static !important;
+  }
+
+  #setup-sidebar {
+    margin-bottom: 20px;
+  }
 }
 
 #setup-sidebar button {
