@@ -137,9 +137,12 @@
   </div>
 
   <div class="row">
-    <div class="col-md-3 col-md-offset-9">
+    <dd class="col-md-3">
+      <button type="button" class="btn btn-md btn-block btn-default back-button">Back</button>
+    </dd>
+    <dd class="col-md-3 col-md-offset-6">
       <button id="save-permissions" type="button" class="btn btn-md btn-block btn-primary">Next</button>
-    </div>
+    </dd>
   </div>
 </div>
 
@@ -179,7 +182,10 @@
   </dl>
 
   <dl class="row">
-    <dd class="col-md-3 col-md-offset-9">
+    <dd class="col-md-3">
+      <button type="button" class="btn btn-md btn-block btn-default back-button">Back</button>
+    </dd>
+    <dd class="col-md-3 col-md-offset-6">
       <button id="save-username-password" type="button" class="btn btn-md btn-block btn-primary">Finish</button>
     </dd>
   </dl>

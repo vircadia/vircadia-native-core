@@ -108,7 +108,7 @@ function setupWizardSteps() {
 
   if (Settings.data.values.wizard.cloud_domain) {
     $('.desktop-only').remove();
-    $('.wizard-step').find('.back-button').hide();
+    $('.wizard-step:first').find('.back-button').hide();
 
     steps = $('.wizard-step');
     $(steps).each(function(i) {
