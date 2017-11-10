@@ -18,15 +18,15 @@
 class MenuItemProperties;
 
 /**jsdoc
- * The `Menu` provides access to the menu that is shown at the top of the window
- * shown on a user's desktop and the right click menu that is accessible
- * in both Desktop and HMD mode.
+ * The Menu API provides access to the menu that is displayed at the top of the window
+ * on a user's desktop and when the "MENU" button is pressed on the tablet.
  *
  * <h3>Groupings</h3>
- * A `grouping` is a way to group a set of menus and/or menu items together
- * so that they can all be set visible or invisible as a group. There are
- * 2 available groups: "Advanced" and "Developer"
+ * A "grouping" provides a way to group a set of menus or menu items together so 
+ * that they can all be set visible or invisible as a group. 
+ * There are two available groups: "Advanced" and "Developer".
  * These groupings can be toggled in the "Settings" menu.
+ * If a menu item doesn't belong to a group it is always displayed.
  *
  * @namespace Menu
  */
@@ -55,8 +55,8 @@ public slots:
     /**jsdoc
      * Add a new top-level menu.
      * @function Menu.addMenu
-     * @param {string} menuName Name that will be shown in the menu.
-     * @param {string} grouping Name of the grouping to add this menu to.
+     * @param {string} menuName Name that will be displayed for the menu.
+     * @param {string} [grouping] Name of the grouping, if any, to add this menu to.
      */
     void addMenu(const QString& menuName, const QString& grouping = QString());
 
@@ -71,7 +71,7 @@ public slots:
      * Check whether a top-level menu exists.
      * @function Menu.menuExists
      * @param {string} menuName Name of the menu to check for existence.
-     * @return {bool} `true` if the menu exists, otherwise `false`.
+     * @returns {bool} `true` if the menu exists, otherwise `false`.
      */
     bool menuExists(const QString& menuName);
 
@@ -80,14 +80,14 @@ public slots:
      * The line will be placed at the bottom of the menu.
      * @function Menu.addSeparator
      * @param {string} menuName Name of the menu to add a separator to.
-     * @param {string} separatorName Name of the separator that will be shown (but unclickable) below the separator line.
+     * @param {string} separatorName Name of the separator that will be displayed as the label below the separator line.
      */
     void addSeparator(const QString& menuName, const QString& separatorName);
 
     /**jsdoc
-     * Remove a separator and its label from a menu.
+     * Remove a separator from a menu.
      * @function Menu.removeSeparator
-     * @param {string} menuName Name of the menu to remove a separator from.
+     * @param {string} menuName Name of the menu to remove the separator from.
      * @param {string} separatorName Name of the separator to remove.
      */
     void removeSeparator(const QString& menuName, const QString& separatorName);
@@ -95,7 +95,7 @@ public slots:
     /**jsdoc
      * Add a new menu item to a menu.
      * @function Menu.addMenuItem
-     * @param {Menu.MenuItemProperties} properties
+     * @param {Menu.MenuItemProperties} properties Properties of the menu item to create.
      */
     void addMenuItem(const MenuItemProperties& properties);
 
@@ -104,16 +104,9 @@ public slots:
      * @function Menu.addMenuItem
      * @param {string} menuName Name of the menu to add a menu item to.
      * @param {string} menuItem Name of the menu item. This is what will be displayed in the menu.
-     * @param {string} shortcutKey A shortcut key that can be used to trigger the menu item.
+     * @param {string} [shortcutKey] A shortcut key that can be used to trigger the menu item.
      */
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
-
-    /**jsdoc
-     * Add a new menu item to a menu.
-     * @function Menu.addMenuItem
-     * @param {string} menuName Name of the menu to add a menu item to.
-     * @param {string} menuItem Name of the menu item. This is what will be displayed in the menu.
-     */
     void addMenuItem(const QString& menuName, const QString& menuitem);
 
     /**jsdoc
@@ -129,12 +122,12 @@ public slots:
      * @function Menu.menuItemExists
      * @param {string} menuName Name of the menu that the menu item is in.
      * @param {string} menuItem Name of the menu item to check for existence of.
-     * @return {bool} `true` if the menu item exists, otherwise `false`.
+     * @returns {bool} `true` if the menu item exists, otherwise `false`.
      */
     bool menuItemExists(const QString& menuName, const QString& menuitem);
 
     /**
-     * Not working, will not document until fixed
+     * TODO: Not working; don't document until fixed.
      */
     void addActionGroup(const QString& groupName, const QStringList& actionList,
                         const QString& selected = QString());
@@ -144,7 +137,7 @@ public slots:
      * Check whether a checkable menu item is checked.
      * @function Menu.isOptionChecked
      * @param {string} menuOption The name of the menu item.
-     * @return `true` if the option is checked, otherwise false.
+     * @returns {bool} `true` if the option is checked, otherwise false.
      */
     bool isOptionChecked(const QString& menuOption);
 
@@ -157,39 +150,41 @@ public slots:
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
     /**jsdoc
-     * Toggle the status of a checkable menu item. If it is checked, it will be unchecked.
-     * If it is unchecked, it will be checked.
-     * @function Menu.setIsOptionChecked
-     * @param {string} menuOption The name of the menu item to toggle.
+     * Trigger the menu item as if the user clicked on it.
+     * @function Menu.triggerOption
+     * @param {string} menuOption The name of the menu item to trigger.
      */
     void triggerOption(const QString& menuOption);
 
     /**jsdoc
-     * Check whether a menu is enabled. If a menu is disabled it will be greyed out
-     * and unselectable.
+     * Check whether a menu is enabled. If a menu is disabled it is grayed out and unusable.
      * Menus are enabled by default.
      * @function Menu.isMenuEnabled
      * @param {string} menuName The name of the menu to check.
-     * @return {bool} `true` if the menu is enabled, otherwise false.
+     * @returns {bool} `true` if the menu is enabled, otherwise false.
      */
     bool isMenuEnabled(const QString& menuName);
 
     /**jsdoc
-     * Set a menu to be enabled or disabled.
+     * Set a menu to be enabled or disabled. If a menu is disabled it is grayed out and unusable.
      * @function Menu.setMenuEnabled
      * @param {string} menuName The name of the menu to modify.
      * @param {bool} isEnabled Whether the menu will be enabled or not.
      */
     void setMenuEnabled(const QString& menuName, bool isEnabled);
 
+    /**
+    * TODO: Not used or useful; will not document until used.
+    */
     void closeInfoView(const QString& path);
     bool isInfoViewVisible(const QString& path);
 
 signals:
     /**jsdoc
-     * This is a signal that is emitted when a menu item is clicked.
+     * Notifies scripts when a menu item is clicked (or triggered by {@link Menu.triggerOption}).
      * @function Menu.menuItemEvent
-     * @param {string} menuItem Name of the menu item that was triggered.
+     * @param {string} menuItem Name of the menu item that was clicked.
+     * @returns {Signal}
      */
     void menuItemEvent(const QString& menuItem);
 };
