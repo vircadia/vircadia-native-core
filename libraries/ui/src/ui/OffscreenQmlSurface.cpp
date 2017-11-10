@@ -1133,6 +1133,10 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
                     item->setProperty("passwordField", QVariant(passwordField));
                 }
 
+                if (raised) {
+                    item->setProperty("keyboardRaised", QVariant(!raised));
+                }
+
                 item->setProperty("keyboardRaised", QVariant(raised));
                 return;
             }
