@@ -115,6 +115,27 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::uniqu
     });
 }
 
+// This method is called when the edit packet layer has determined that it has a fully formed packet destined for
+// a known nodeID.
+void OctreeEditPacketSender::queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList) {
+
+    bool wantDebug = false;
+    DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
+        // only send to the NodeTypes that are getMyNodeType()
+        if (node->getType() == getMyNodeType()
+            && ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))
+            && node->getActiveSocket()) {
+
+            // NOTE: unlike packets, the packet lists don't get rewritten sequence numbers.
+
+            // add packet to history -- we don't keep track of sent PacketLists
+            //_sentPacketHistories[nodeUUID].packetSent(sequence, *packet);
+
+            queuePacketListForSending(node, std::move(packetList));
+        }
+    });
+}
+
 void OctreeEditPacketSender::processPreServerExistsPackets() {
     assert(serversExist()); // we should only be here if we have jurisdictions
 
@@ -247,7 +268,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, QByteArray&
                 });
             }
             if (isMyJurisdiction) {
-                std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID];
+                std::unique_ptr<NLPacket>& bufferedPacket = _pendingEditPackets[nodeUUID].first; //only a NLPacket for now
 
                 if (!bufferedPacket) {
                     bufferedPacket = initializePacket(type, node->getClockSkewUsec());
@@ -291,15 +312,24 @@ void OctreeEditPacketSender::releaseQueuedMessages() {
     } else {
         _packetsQueueLock.lock();
         for (auto& i : _pendingEditPackets) {
-            if (i.second) {
+            if (i.second.first) {
                 // construct a null unique_ptr to an NL packet
                 std::unique_ptr<NLPacket> releasedPacket;
                 
                 // swap the null ptr with the packet we want to release
-                i.second.swap(releasedPacket);
+                i.second.first.swap(releasedPacket);
                 
                 // move and release the queued packet
                 releaseQueuedPacket(i.first, std::move(releasedPacket));
+            } else if (i.second.second) {
+                // construct a null unique_ptr to an NLPacketList
+                std::unique_ptr<NLPacketList> releasedPacketList;
+
+                // swap the null ptr with the NLPacketList we want to release
+                i.second.second.swap(releasedPacketList);
+
+                // move and release the queued NLPacketList
+                releaseQueuedPacketList(i.first, std::move(releasedPacketList));
             }
             
         }
@@ -311,6 +341,14 @@ void OctreeEditPacketSender::releaseQueuedPacket(const QUuid& nodeID, std::uniqu
     _releaseQueuedPacketMutex.lock();
     if (packet->getPayloadSize() > 0 && packet->getType() != PacketType::Unknown) {
         queuePacketToNode(nodeID, std::move(packet));
+    }
+    _releaseQueuedPacketMutex.unlock();
+}
+
+void OctreeEditPacketSender::releaseQueuedPacketList(const QUuid& nodeID, std::unique_ptr<NLPacketList> packetList) {
+    _releaseQueuedPacketMutex.lock();
+    if (packetList->getMessageSize() > 0 && packetList->getType() != PacketType::Unknown) {
+        queuePacketListToNode(nodeID, std::move(packetList));
     }
     _releaseQueuedPacketMutex.unlock();
 }
