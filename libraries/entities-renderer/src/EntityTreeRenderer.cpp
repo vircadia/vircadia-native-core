@@ -19,40 +19,24 @@
 #include <QThreadPool>
 
 #include <shared/QtHelpers.h>
-#include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
+#include <AddressManager.h>
+#include <ColorUtils.h>
 #include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>
+#include <PrioritySortUtil.h>
+#include <Rig.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
-#include <AddressManager.h>
-#include <Rig.h>
 #include <EntitySimulation.h>
-#include <AddressManager.h>
 #include <ZoneRenderer.h>
 
 #include "EntitiesRendererLogging.h"
 #include "RenderableEntityItem.h"
 
 #include "RenderableWebEntityItem.h"
-
-// implement these methods BEFORE including PrioritySortUtil.h
-namespace PrioritySortUtil {
-    glm::vec3 getObjectPosition(const EntityRendererPointer& object) {
-        return object->getEntity()->getPosition();
-    }
-
-    float getObjectRadius(const EntityRendererPointer& object) {
-        return 0.5f * object->getEntity()->getQueryAACube().getScale();
-    }
-
-    uint64_t getObjectAge(const EntityRendererPointer& object) {
-        return object->getUpdateTime();
-    }
-}
-#include <PrioritySortUtil.h>
 
 size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
@@ -353,17 +337,30 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
     } else {
         // we expect the cost to updating all renderables to exceed available time budget
         // so we first sort by priority and update in order until out of time
+
+        // as per the instructions in PriortySortUtil we first derive from PrioritySortUtil::Prioritizable
+        class PrioritizableRenderer: public PrioritySortUtil::Prioritizable {
+        public:
+            PrioritizableRenderer(const EntityRendererPointer& renderer) : _renderer(renderer) { }
+            glm::vec3 getPosition() const override { return _renderer->getEntity()->getPosition(); }
+            float getRadius() const override { return 0.5f * _renderer->getEntity()->getQueryAACube().getScale(); }
+            uint64_t getTimestamp() const override { return _renderer->getUpdateTime(); }
+        private:
+            const EntityRendererPointer& _renderer;
+        };
+
+        // prioritize and sort the renderables
         uint64_t sortStart = usecTimestampNow();
         using SortableRenderer = PrioritySortUtil::Sortable<EntityRendererPointer>;
         std::priority_queue< SortableRenderer > sortedRenderables;
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
-            PrioritySortUtil::PriorityCalculator<EntityRendererPointer> priorityCalculator(view);
+            PrioritySortUtil::Prioritizer<EntityRendererPointer> prioritizer(view);
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
             while (itr != _renderablesToUpdate.end()) {
-                float priority = priorityCalculator.computePriority(itr->second);
-                SortableRenderer entry(itr->second, priority);
-                sortedRenderables.push(entry);
+                float priority = prioritizer.computePriority(PrioritizableRenderer(itr->second));
+                //SortableRenderer entry(itr->second, priority);
+                sortedRenderables.push(SortableRenderer(itr->second, priority));
                 ++itr;
             }
         }
@@ -380,10 +377,11 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             }
             uint64_t expiry = updateStart + timeBudget;
 
+            // process the sorted renderables
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const EntityRendererPointer& renderer = sortedRenderables.top().getObject();
+                const EntityRendererPointer& renderer = sortedRenderables.top().getThing();
                 renderer->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderer->getEntity()->getID());
                 sortedRenderables.pop();
