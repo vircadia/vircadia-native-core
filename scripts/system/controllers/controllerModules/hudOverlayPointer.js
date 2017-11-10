@@ -31,7 +31,6 @@
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawHUDLayer: true,
         parentID: MyAvatar.SELF_ID
@@ -53,7 +52,6 @@
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawHUDLayer: true,
         parentID: MyAvatar.SELF_ID
@@ -75,7 +73,6 @@
         alpha: 1,
         solid: true,
         glow: 1.0,
-        lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawHUDLayer: true,
         parentID: MyAvatar.SELF_ID

@@ -35,7 +35,6 @@ public:
     // TODO: consider implementing registration points in this class
     glm::vec3 getCenter() const { return getPosition(); }
 
-    float getLineWidth() const { return _lineWidth; }
     bool getIsSolid() const { return _isSolid; }
     bool getIsDashedLine() const { return _isDashedLine; }
     bool getIsSolidLine() const { return !_isDashedLine; }
@@ -44,7 +43,6 @@ public:
     bool getDrawHUDLayer() const { return _drawHUDLayer; }
     bool getIsGrabbable() const { return _isGrabbable; }
 
-    void setLineWidth(float lineWidth) { _lineWidth = lineWidth; }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
@@ -80,7 +78,6 @@ protected:
     virtual void setRenderTransform(const Transform& transform);
     const Transform& getRenderTransform() const { return _renderTransform; }
 
-    float _lineWidth;
     bool _isSolid;
     bool _isDashedLine;
     bool _ignoreRayIntersection;

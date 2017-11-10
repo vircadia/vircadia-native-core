@@ -43,6 +43,9 @@ public:
     void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
     const glm::vec3& getEndDim() const { return _endDim; }
 
+    void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
+    const float& getLineWidth() const { return _lineWidth; }
+
     void deleteOverlays();
 
 private:
@@ -54,6 +57,7 @@ private:
     bool _endIgnoreRays;
 
     glm::vec3 _endDim;
+    float _lineWidth;
 };
 
 

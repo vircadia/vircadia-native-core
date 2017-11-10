@@ -13,6 +13,8 @@
 
 #include "Base3DOverlay.h"
 
+static const float DEFAULT_LINE_WIDTH = 0.02f;
+
 class Line3DOverlay : public Base3DOverlay {
     Q_OBJECT
     using Parent = Base3DOverlay;
@@ -31,8 +33,8 @@ public:
     // getters
     glm::vec3 getStart() const;
     glm::vec3 getEnd() const;
+    const float& getLineWidth() const { return _lineWidth; }
     const float& getGlow() const { return _glow; }
-    const float& getGlowWidth() const { return _glowWidth; }
 
     // setters
     void setStart(const glm::vec3& start);
@@ -41,8 +43,8 @@ public:
     void setLocalStart(const glm::vec3& localStart) { setLocalPosition(localStart); }
     void setLocalEnd(const glm::vec3& localEnd);
 
+    void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
     void setGlow(const float& glow) { _glow = glow; }
-    void setGlowWidth(const float& glowWidth) { _glowWidth = glowWidth; }
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
@@ -70,8 +72,8 @@ private:
     glm::vec3 _direction; // in parent frame
     float _length { 1.0 }; // in parent frame
 
+    float _lineWidth { DEFAULT_LINE_WIDTH };
     float _glow { 0.0 };
-    float _glowWidth { 0.0 };
     int _geometryCacheID;
 };
 

@@ -97,6 +97,10 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
         if (endDim.isValid()) {
             _renderStates[state].setEndDim(vec3FromVariant(endDim));
         }
+        QVariant lineWidth = pathProps.toMap()["lineWidth"];
+        if (lineWidth.isValid()) {
+            _renderStates[state].setLineWidth(lineWidth.toFloat());
+        }
     });
 }
 
@@ -165,10 +169,9 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         pathProps.insert("end", end);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", renderState.doesPathIgnoreRays());
-
-        float glowWidth = _scaleWithAvatar ? DEFAULT_LASER_POINTER_SIZE * avatarScale : DEFAULT_LASER_POINTER_SIZE;
-        pathProps.insert("glowWidth", glowWidth);
-        
+        if (_scaleWithAvatar) {
+            pathProps.insert("lineWidth", renderState.getLineWidth() * avatarScale);
+        }
         qApp->getOverlays().editOverlay(renderState.getPathID(), pathProps);
     }
     if (!renderState.getEndID().isNull()) {
@@ -268,6 +271,7 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
     }
     if (!_pathID.isNull()) {
         _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
+        _lineWidth = qApp->getOverlays().getProperty(_pathID, "lineWidth").value.toFloat();
     }
     if (!_endID.isNull()) {
         _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);
