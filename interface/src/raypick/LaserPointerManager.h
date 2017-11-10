@@ -39,7 +39,7 @@ public:
     void setIgnoreItems(const QUuid& uid, const QVector<QUuid>& ignoreEntities) const;
     void setIncludeItems(const QUuid& uid, const QVector<QUuid>& includeEntities) const;
 
-    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay) const;
+    void setLockEndUUID(const QUuid& uid, const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const;
 
     void update();
 

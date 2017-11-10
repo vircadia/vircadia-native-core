@@ -25,7 +25,6 @@ LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& rende
     _distanceScaleEnd(distanceScaleEnd),
     _rayPickUID(DependencyManager::get<RayPickScriptingInterface>()->createRayPick(rayProps))
 {
-    
 
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
@@ -119,23 +118,25 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         qApp->getOverlays().editOverlay(renderState.getStartID(), startProps);
     }
     glm::vec3 endVec;
-    if (((defaultState || !_lockEnd) && _objectLockEnd.first.isNull()) || type == IntersectionType::HUD) {
+    if (((defaultState || !_lockEnd) && _lockEndObject.id.isNull()) || type == IntersectionType::HUD) {
         endVec = pickRay.origin + pickRay.direction * distance;
     } else {
-        if (!_objectLockEnd.first.isNull()) {
+        if (!_lockEndObject.id.isNull()) {
             glm::vec3 pos;
             glm::quat rot;
             glm::vec3 dim;
             glm::vec3 registrationPoint;
-            if (_objectLockEnd.second) {
-                pos = vec3FromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "position").value);
-                rot = quatFromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "rotation").value);
-                dim = vec3FromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "dimensions").value);
+            if (_lockEndObject.isOverlay) {
+                pos = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "position").value);
+                rot = quatFromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "rotation").value);
+                dim = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "dimensions").value);
                 registrationPoint = glm::vec3(0.5f);
             } else {
-                EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_objectLockEnd.first);
-                pos = props.getPosition();
-                rot = props.getRotation();
+                EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
+                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
+                glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
+                pos = extractTranslation(finalPosAndRotMat);
+                rot = glmExtractRotation(finalPosAndRotMat);
                 dim = props.getDimensions();
                 registrationPoint = props.getRegistrationPoint();
             }
@@ -209,7 +210,7 @@ void LaserPointer::update() {
     withReadLock([&] {
         RayPickResult prevRayPickResult = qApp->getRayPickManager().getPrevRayPickResult(_rayPickUID);
         if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
-            (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
+            (prevRayPickResult.type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
             float distance = _laserLength > 0.0f ? _laserLength : prevRayPickResult.distance;
             updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, distance, prevRayPickResult.objectID, prevRayPickResult.searchRay, false);
             disableRenderState(_defaultRenderStates[_currentRenderState].second);
@@ -233,9 +234,11 @@ void LaserPointer::setLaserLength(const float laserLength) {
     });
 }
 
-void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay) {
+void LaserPointer::setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat) {
     withWriteLock([&] {
-        _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay);
+        _lockEndObject.id = objectID;
+        _lockEndObject.isOverlay = isOverlay;
+        _lockEndObject.offsetMat = offsetMat;
     });
 }
 

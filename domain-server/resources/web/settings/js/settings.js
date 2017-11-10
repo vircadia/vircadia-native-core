@@ -980,20 +980,6 @@ function placeTableRowForPlaceObject(place) {
   return placeTableRow(place.name, placePathOrIndex, false, place.id);
 }
 
-function getDomainFromAPI(callback) {
-  var domainID = Settings.data.values.metaverse.id;
-  $.ajax({
-    url: "/api/domains/" + domainID,
-    dataType: 'json',
-    success: function(data) {
-      callback(data);
-    },
-    error: function() {
-      callback({ status: 'fail' });
-    }
-  });
-}
-
 function reloadDomainInfo() {
   $('#' + Settings.PLACES_TABLE_ID + " tbody tr").not('.headers').remove();
 
@@ -1010,7 +996,6 @@ function reloadDomainInfo() {
     // check if we have owner_places (for a real domain) or a name (for a temporary domain)
     if (data.status == "success") {
       $('.domain-loading-hide').show();
-      DomainInfo = data.domain;
       if (data.domain.owner_places) {
         // add a table row for each of these names
         _.each(data.domain.owner_places, function(place){
@@ -1043,7 +1028,6 @@ function reloadDomainInfo() {
       appendAddButtonToPlacesTable();
 
     } else {
-      DomainInfo = null;
       $('.domain-loading-error').show();
     }
   })

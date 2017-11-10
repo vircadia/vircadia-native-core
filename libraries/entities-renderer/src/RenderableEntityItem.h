@@ -49,6 +49,9 @@ public:
     virtual bool addToScene(const ScenePointer& scene, Transaction& transaction) final;
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction);
 
+    void clearSubRenderItemIDs();
+    void setSubRenderItemIDs(const render::ItemIDs& ids);
+
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);
@@ -113,6 +116,7 @@ protected:
     SharedSoundPointer _collisionSound;
     QUuid _changeHandlerId;
     ItemID _renderItemID{ Item::INVALID_ITEM_ID };
+    ItemIDs _subRenderItemIDs;
     quint64 _fadeStartTime{ usecTimestampNow() };
     bool _isFading{ _entitiesShouldFadeFunction() };
     bool _prevIsTransparent { false };

@@ -953,7 +953,7 @@ ItemKey ModelEntityRenderer::getKey() {
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
     if (_model) {
-        auto metaSubItems = _model->fetchRenderItemIDs();
+        auto metaSubItems = _subRenderItemIDs;
         subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
         return (uint32_t)metaSubItems.size();
     }
@@ -1202,6 +1202,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         if ((bool)model) {
             model->removeFromScene(scene, transaction);
             withWriteLock([&] { _model.reset(); });
+            transaction.updateItem<PayloadProxyInterface>(getRenderItemID(), [](PayloadProxyInterface& data) {
+                auto entityRenderer = static_cast<EntityRenderer*>(&data);
+                entityRenderer->clearSubRenderItemIDs();
+            });
         }
         return;
     }
@@ -1297,6 +1301,12 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             render::Item::Status::Getters statusGetters;
             makeStatusGetters(entity, statusGetters);
             model->addToScene(scene, transaction, statusGetters);
+
+            auto newRenderItemIDs{ model->fetchRenderItemIDs() };
+            transaction.updateItem<PayloadProxyInterface>(getRenderItemID(), [newRenderItemIDs](PayloadProxyInterface& data) {
+                auto entityRenderer = static_cast<EntityRenderer*>(&data);
+                entityRenderer->setSubRenderItemIDs(newRenderItemIDs);
+            });
         }
     }
 
