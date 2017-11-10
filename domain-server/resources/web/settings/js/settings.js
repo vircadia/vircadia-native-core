@@ -1024,7 +1024,9 @@ function reloadDomainInfo() {
         }
       }
 
-      appendAddButtonToPlacesTable();
+      if (accessTokenIsSet()) {
+        appendAddButtonToPlacesTable();
+      }
 
     } else {
       $('.domain-loading-error').show();

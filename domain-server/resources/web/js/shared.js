@@ -339,7 +339,6 @@ function chooseFromHighFidelityPlaces(accessToken, forcePathTo, onSuccessfullyAd
                         $('.add-place-confirm-button').html(Strings.ADD_PLACE_CONFIRM_BUTTON);
                         $('.add-place-cancel-button').removeAttr('disabled');
                         bootbox.alert(Strings.ADD_PLACE_UNKNOWN_ERROR);
-                        bootbox.alert("FAIL");
                       });
                     }
                   }
