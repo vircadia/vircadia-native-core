@@ -14,6 +14,7 @@
 #include "LightStage.h"
 
 std::string LightStage::_stageName { "LIGHT_STAGE"};
+const LightStage::Index LightStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
 LightStage::LightStage() {
 }
