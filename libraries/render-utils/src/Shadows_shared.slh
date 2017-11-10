@@ -1,0 +1,30 @@
+// glsl / C++ compatible source as interface for Shadows
+#ifdef __cplusplus
+#   define MAT4 glm::mat4
+#   define VEC3 glm::vec3
+#else
+#   define MAT4 mat4
+#   define VEC3 ve3
+#endif
+
+#define SHADOW_CASCADE_MAX_COUNT    4
+
+struct ShadowTransform {
+	MAT4 reprojection;
+
+	float bias;
+    vec3 _padding;
+};
+
+struct ShadowParameters {
+    int cascadeCount;
+    float invMapSize;
+    float _padding1;
+    float _padding2;
+    ShadowTransform cascades[SHADOW_CASCADE_MAX_COUNT];
+};
+
+// <@if 1@>
+// Trigger Scribe include 
+// <@endif@> <!def that !> 
+//

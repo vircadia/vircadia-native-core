@@ -68,15 +68,13 @@ public:
         model::LightPointer _light;
         std::shared_ptr<ViewFrustum> _frustum;
 
-        class Schema {
+#include "Shadows_shared.slh"
+
+        class Schema : public ShadowParameters {
         public:
 
             Schema();
 
-            glm::mat4 reprojection;
-
-            glm::float32 bias;
-            glm::float32 scale;
         };
         UniformBufferView _schemaBuffer = nullptr;
         

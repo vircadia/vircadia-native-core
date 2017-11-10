@@ -14,27 +14,22 @@
 // the shadow texture
 uniform sampler2DShadow shadowMap;
 
-struct ShadowTransform {
-	mat4 reprojection;
-
-	float bias;
-	float scale;
-};
+<@include Shadows_shared.slh@>
 
 uniform shadowTransformBuffer {
-	ShadowTransform _shadowTransform;
+	ShadowParameters shadow;
 };
 
 mat4 getShadowReprojection() {
-	return _shadowTransform.reprojection;
+	return shadow.cascades[0].reprojection;
 }
 
 float getShadowScale() {
-	return _shadowTransform.scale;
+	return shadow.invMapSize;
 }
 
 float getShadowBias() {
-	return _shadowTransform.bias;
+	return shadow.cascades[0].bias;
 }
 
 // Compute the texture coordinates from world coordinates

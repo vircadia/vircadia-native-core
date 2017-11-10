@@ -23,10 +23,11 @@ const glm::mat4 LightStage::Shadow::_biasMatrix{
 LightStage::LightStage() {
 }
 
-LightStage::Shadow::Schema::Schema() :
-    bias{ 0.005f },
-    scale{ 1.0f / MAP_SIZE } {
-
+LightStage::Shadow::Schema::Schema() {
+    ShadowTransform defaultTransform;
+    defaultTransform.bias = 0.005f;
+    std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
+    invMapSize = 1.0f / MAP_SIZE;
 }
 
 LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
@@ -97,7 +98,7 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
     _frustum->calculate();
 
     // Update the buffer
-    _schemaBuffer.edit<Schema>().reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
+    _schemaBuffer.edit<Schema>().cascades[0].reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
 }
 
 void LightStage::Shadow::setFrustum(const ViewFrustum& shadowFrustum) {
@@ -106,7 +107,7 @@ void LightStage::Shadow::setFrustum(const ViewFrustum& shadowFrustum) {
 
     *_frustum = shadowFrustum;
     // Update the buffer
-    _schemaBuffer.edit<Schema>().reprojection = _biasMatrix * shadowFrustum.getProjection() * viewInverse.getMatrix();
+    _schemaBuffer.edit<Schema>().cascades[0].reprojection = _biasMatrix * shadowFrustum.getProjection() * viewInverse.getMatrix();
 }
 
 const glm::mat4& LightStage::Shadow::getView() const {
