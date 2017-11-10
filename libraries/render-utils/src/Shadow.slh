@@ -11,38 +11,38 @@
 <@if not SHADOW_SLH@>
 <@def SHADOW_SLH@>
 
-// the shadow texture
-uniform sampler2DShadow shadowMap;
-
 <@include Shadows_shared.slh@>
+
+// the shadow texture
+uniform sampler2DShadow shadowMaps[SHADOW_CASCADE_MAX_COUNT];
 
 uniform shadowTransformBuffer {
 	ShadowParameters shadow;
 };
 
-mat4 getShadowReprojection() {
-	return shadow.cascades[0].reprojection;
+mat4 getShadowReprojection(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].reprojection;
 }
 
 float getShadowScale() {
 	return shadow.invMapSize;
 }
 
-float getShadowBias() {
-	return shadow.cascades[0].bias;
+float getShadowBias(int cascadeIndex) {
+	return shadow.cascades[cascadeIndex].bias;
 }
 
 // Compute the texture coordinates from world coordinates
-vec4 evalShadowTexcoord(vec4 position) {
-	float bias = -getShadowBias();
+vec4 evalShadowTexcoord(int cascadeIndex, vec4 position) {
+	float bias = -getShadowBias(cascadeIndex);
 
-	vec4 shadowCoord = getShadowReprojection() * position;
+	vec4 shadowCoord = getShadowReprojection(cascadeIndex) * position;
 	return vec4(shadowCoord.xy, shadowCoord.z + bias, 1.0);
 }
 
 // Sample the shadowMap with PCF (built-in)
-float fetchShadow(vec3 shadowTexcoord) {
-    return texture(shadowMap, shadowTexcoord);
+float fetchShadow(int cascadeIndex, vec3 shadowTexcoord) {
+    return texture(shadowMaps[cascadeIndex], shadowTexcoord);
 }
 
 vec2 PCFkernel[4] = vec2[4](
@@ -52,24 +52,24 @@ vec2 PCFkernel[4] = vec2[4](
     vec2(0.5, -1.5)
 );
 
-float evalShadowAttenuationPCF(vec4 position, vec4 shadowTexcoord) {
+float evalShadowAttenuationPCF(int cascadeIndex, vec4 position, vec4 shadowTexcoord) {
 	float shadowScale = getShadowScale();
 
     // Offset for efficient PCF, see http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html
     vec2 offset = step(fract(position.xy), vec2(0.5, 0.5));
 
     float shadowAttenuation = (0.25 * (
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[0], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[1], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[2], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[3], 0.0))
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[0], 0.0)) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[1], 0.0)) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[2], 0.0)) +
+        fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[3], 0.0))
     ));
 
     return shadowAttenuation;
 }
 
-float evalShadowAttenuation(vec4 position) {
-	vec4 shadowTexcoord = evalShadowTexcoord(position);
+float evalShadowCascadeAttenuation(int cascadeIndex, vec4 position) {
+	vec4 shadowTexcoord = evalShadowTexcoord(cascadeIndex, position);
     if (shadowTexcoord.x < 0.0 || shadowTexcoord.x > 1.0 ||
         shadowTexcoord.y < 0.0 || shadowTexcoord.y > 1.0 ||
         shadowTexcoord.z < 0.0 || shadowTexcoord.z > 1.0) {
@@ -77,7 +77,11 @@ float evalShadowAttenuation(vec4 position) {
         return 1.0;
     }
 
-    return evalShadowAttenuationPCF(position, shadowTexcoord);
+    return evalShadowAttenuationPCF(cascadeIndex, position, shadowTexcoord);
+}
+
+float evalShadowAttenuation(vec4 position) {
+    return evalShadowCascadeAttenuation(0, position);
 }
 
 <@endif@>
