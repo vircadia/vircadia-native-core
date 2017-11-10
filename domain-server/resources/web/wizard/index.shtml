@@ -60,8 +60,7 @@
   </div>
   <div id="admin-row" class="row">
     <p class="col-md-6">
-      <span id="admin-description" class="step-info"><b>Add your High Fidelity username</b> and any other usernames to grant administrator privileges.</span>
-      <span class='glyphicon glyphicon-info-sign' data-toggle="tooltip" title="Users who will have all the permissions for this domain."></span>
+      <span id="admin-description" class="step-info"><b>Add your High Fidelity username</b> and any other usernames to grant <a href='#' class='wizard-link'>administrator privileges</a></span>
     </p>
     <div class="col-md-6">
       <input id="admin-usernames" type="text" class="form-control">
@@ -78,7 +77,7 @@
   <div class="row">
     <div class="col-md-12">
       <p id="connect-question" class="step-info">
-        Who can connect to your domain?
+        Who can <a href='#' class='wizard-link'>connect</a> to your domain?
         <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='You can set this to allow a user to connect to this domain.'></span>
       </p>
     </div>
@@ -87,25 +86,21 @@
     <p class="col-md-2">
       <label>
         <input id="connect-none" name="connect-radio" type="radio" value="none" checked> None
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='Only the admins of this domain'></span>
       </label>
     </p>
     <p class="col-md-3">
       <label>
         <input id="connect-friends" name="connect-radio" type="radio" value="friends"> Friends
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='Users who are your Friends in High Fidelity'></span>
       </label>
     </p>
     <p class="col-md-5">
       <label>
         <input id="connect-logged-in" name="connect-radio" type="radio" value="logged-in"> Users logged in to High Fidelity
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='Users who are currently logged into High Fidelity'></span>
       </label>
     </p>
     <p class="col-md-2">
       <label>
         <input id="connect-everyone" name="connect-radio" type="radio" value="everyone"> Everyone
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title="Users who aren't logged into High Fidelity"></span>
       </label>
     </p>
   </div>
@@ -113,7 +108,7 @@
   <div class="row">
     <div class="col-md-12">
       <p class="step-info">
-        Who can rez items in your domain?
+        Who can <a href='#' class='wizard-link'>rez items</a> in your domain?
         <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='You can set this to allow a user to create entities in this domain.'></span>
       </p>
     </div>
@@ -122,25 +117,21 @@
     <p class="col-md-2">
       <label>
         <input id="rez-none" name="rez-radio" type="radio" value="none" checked> None
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='Only the admins of this domain'></span>
       </label>
     </p>
     <p class="col-md-3">
       <label>
-        <input id="rez-friends" name="rez-radio" type="radio" value="friends"> Friends
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='Users who are your Friends in High Fidelity'></span>
+        <input id="rez-friends" name="rez-radio" type="radio" value="friends" disabled> Friends
       </label>
     </p>
     <p class="col-md-5">
       <label>
-        <input id="rez-logged-in" name="rez-radio" type="radio" value="logged-in"> Users logged in to High Fidelity
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title='Users who are currently logged into High Fidelity'></span>
+        <input id="rez-logged-in" name="rez-radio" type="radio" value="logged-in" disabled> Users logged in to High Fidelity
       </label>
     </p>
     <p class="col-md-2">
       <label>
-        <input id="rez-everyone" name="rez-radio" type="radio" value="everyone"> Everyone
-        <span class='glyphicon glyphicon-info-sign' data-toggle='tooltip' title="Users who aren't logged into High Fidelity"></span>
+        <input id="rez-everyone" name="rez-radio" type="radio" value="everyone" disabled> Everyone
       </label>
     </p>
   </div>

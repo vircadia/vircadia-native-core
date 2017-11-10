@@ -31,6 +31,12 @@ label {
   color: #373A3C;
 }
 
+.wizard-link {
+  font-size: 16px;
+  font-weight: normal;
+  color: #2F80ED;
+}
+
 #admin-row {
   margin-top: 20px;
   margin-bottom: 20px;

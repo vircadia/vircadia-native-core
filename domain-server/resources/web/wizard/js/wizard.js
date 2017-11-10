@@ -56,6 +56,36 @@ $(document).ready(function(){
     exploreSettings();
   });
 
+  $('input[type=radio][name=connect-radio]').change(function() {
+    var inputs = $('input[type=radio][name=rez-radio]');
+    var disabled = [];
+
+    switch (this.value) {
+      case 'none':
+        disabled = inputs.splice(1);
+        break;
+      case 'friends':
+        disabled = inputs.splice(2);
+        break;
+      case 'logged-in':
+        disabled = inputs.splice(3);
+        break;
+      case 'everyone':
+        disabled = inputs.splice(4);
+        break;
+    }
+
+    $.each(inputs, function() {
+      $(this).prop('disabled', false);
+    });
+    $.each(disabled, function() {
+      if ($(this).prop('checked')) {
+        $(inputs.last()).prop('checked', true);
+      }
+      $(this).prop('disabled', true);
+    });
+  });
+
   reloadSettings(function(success) {
     if (success) {
       getDomainFromAPI();
