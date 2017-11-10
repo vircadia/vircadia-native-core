@@ -1012,24 +1012,33 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
     auto now = usecTimestampNow();
     auto interval = now - _lastAnimated;
     _lastAnimated = now;
-    //we handle the hold animation property here
-    //if hold don't advance the current frame.
-    if (!isHolding) {
-        float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-        _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
+
+
+    //here we implement the looping animation property
+    //if we have played through the animation once then we hold on the last frame
+   // if (!isLooping && (_currentFrame > _endAnim)) {
+        //don't advance current frame!!!
+        
+    //}else{
+    if( isLooping || ( _currentFrame < _endAnim ) ){
+        //else advance the current frame.
+        //if hold or not playing don't advance the current frame.
+        if (!isHolding && entity->getAnimationIsPlaying()) {
+            float deltaTime = (float)interval / (float)USECS_PER_SECOND;
+            _currentFrame += (deltaTime * _renderAnimationProperties.getFPS());
+        }
     }
 
     {
         //where are we in the currently defined animation segment?       
-        int animationCurrentFrame = (int)(glm::floor(_currentFrame)) % updatedFrameCount;
-        //this starts us at the offset first frame.
-        animationCurrentFrame += firstFrame;
+        int animationCurrentFrame = (int)(glm::floor(_currentFrame - _renderAnimationProperties.getFirstFrame())) % updatedFrameCount;
+        //this gives us the absolute frame value to use by adding the first frame value.
+        animationCurrentFrame += _renderAnimationProperties.getFirstFrame();
+        
 
-        //here we implement the looping animation property
-        //if we have played through the animation once then we hold on the last frame
-        if (!isLooping && (_currentFrame > (updatedFrameCount - 1))) {
-            animationCurrentFrame = updatedFrameCount + firstFrame;
-        }
+        
+
+        
 
         if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
             animationCurrentFrame = 0;
@@ -1352,10 +1361,19 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         auto newAnimationProperties = entity->getAnimationProperties();
         if (newAnimationProperties != _renderAnimationProperties) {
             withWriteLock([&] {
+                if ( (newAnimationProperties.getCurrentFrame() != _renderAnimationProperties.getCurrentFrame()) || (newAnimationProperties.getFirstFrame() != _renderAnimationProperties.getFirstFrame()) || (newAnimationProperties.getLastFrame() != _renderAnimationProperties.getLastFrame()) || (newAnimationProperties.getRunning() && !_renderAnimationProperties.getRunning())) {
+                    _currentFrame = newAnimationProperties.getCurrentFrame();
+                    _endAnim = (_currentFrame - 1) + ((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame()));
+                    //qCDebug(entitiesrenderer) << "reset current frame" << _endAnim;
+                }
+                if ( _renderAnimationProperties.getLoop() && !newAnimationProperties.getLoop()) {
+                    //set the end of animation relative to the current frame
+                    //qCDebug(entitiesrenderer) << "turned off looping";
+                    float startOffset = newAnimationProperties.getCurrentFrame() - newAnimationProperties.getFirstFrame();
+                    float posRelativeToStart = (_currentFrame - newAnimationProperties.getFirstFrame()) - startOffset;
+                    _endAnim = (_currentFrame - 1) + (((int)(newAnimationProperties.getLastFrame()) - (int)(newAnimationProperties.getFirstFrame())) - ((int)(glm::floor(posRelativeToStart)) % ((int)newAnimationProperties.getLastFrame() - (int)newAnimationProperties.getFirstFrame())));
+                }
                 _renderAnimationProperties = newAnimationProperties;
-                //if (entity->getAnimationHold()) {
-                  //  _currentFrame = _renderAnimationProperties.getCurrentFrame();
-                //}
             });
         }
     }

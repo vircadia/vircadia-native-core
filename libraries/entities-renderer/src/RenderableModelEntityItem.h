@@ -187,6 +187,10 @@ private:
     float _currentFrame { 0 };
     //bool _previousHold{ false };
     float _currentFramePropertyValue{ 0 };
+    float _firstFramePropertyValue{ 0 };
+    float _lastFramePropertyValue{ 0 };
+    bool  _stopLoop{ false };
+    float _endAnim{ 0 };
 
 };
 
