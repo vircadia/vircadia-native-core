@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global getControllerWorldLocation, Tablet, WebTablet:true, HMD, Settings, Script,
+/* global getControllerWorldLocation, Tablets, WebTablet:true, HMD, Settings, Script,
    Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4, resizeTablet */
 
 Script.include(Script.resolvePath("../libraries/utils.js"));
@@ -168,7 +168,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonID == senderID) {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             var isMessageOpen;
             if (onHomeScreen) {
@@ -513,7 +513,7 @@ WebTablet.prototype.mousePressEvent = function (event) {
                                          entityPickResults.overlayID === this.tabletEntityID)) {
         var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.webOverlayID, this.homeButtonID], []);
         if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             var isMessageOpen = tablet.isMessageDialogOpen();
             if (onHomeScreen) {

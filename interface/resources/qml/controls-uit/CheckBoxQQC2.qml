@@ -36,12 +36,12 @@ CheckBox {
     hoverEnabled: true
 
     onClicked: {
-        tabletInterface.playSound(TabletEnums.ButtonClick);
+        Tablets.playSound(TabletEnums.ButtonClick);
     }
 
     onHoveredChanged: {
         if (hovered) {
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablets.playSound(TabletEnums.ButtonHover);
         }
     }
 

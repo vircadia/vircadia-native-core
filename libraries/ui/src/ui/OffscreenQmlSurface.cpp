@@ -48,6 +48,7 @@
 #include "types/SoundEffect.h"
 
 #include "TabletScriptingInterface.h"
+#include "ToolbarScriptingInterface.h"
 #include "Logging.h"
 
 Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
@@ -62,7 +63,10 @@ public:
 
     void addWhitelistContextHandler(const std::initializer_list<QUrl>& urls, const QmlContextCallback& callback) {
         withWriteLock([&] {
-            for (const auto& url : urls) {
+            for (auto url : urls) {
+                if (url.isRelative()) {
+                    url = QUrl(PathUtils::qmlBasePath() + url.toString());
+                }
                 _callbacks[url].push_back(callback);
             }
         });
@@ -382,6 +386,13 @@ void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
     rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
     rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        qRegisterMetaType<TabletProxy*>();
+        qRegisterMetaType<TabletButtonProxy*>();
+    });
+    rootContext->setContextProperty("Tablets", DependencyManager::get<TabletScriptingInterface>().data());
+    rootContext->setContextProperty("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
 }
 
 QQmlEngine* acquireEngine(QQuickWindow* window) {
@@ -587,7 +598,7 @@ void OffscreenQmlSurface::create() {
     auto qmlEngine = acquireEngine(_quickWindow);
 
     _qmlContext = new QQmlContext(qmlEngine->rootContext());
-    _qmlContext->setBaseUrl(QUrl{ "qrc:///qml/" });
+    _qmlContext->setBaseUrl(QUrl{ PathUtils::qmlBasePath() });
     _qmlContext->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _qmlContext->setContextProperty("eventBridge", this);
     _qmlContext->setContextProperty("webEntity", this);
@@ -715,7 +726,6 @@ void OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, con
 }
     
 void OffscreenQmlSurface::loadInternal(const QUrl& qmlSource, bool createNewContext, QQuickItem* parent, const QmlContextObjectCallback& onQmlLoadedCallback) {
-    qCDebug(uiLogging) << "QQQ" << __FUNCTION__ << qmlSource;
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Called load on a non-surface thread";
     }
@@ -725,7 +735,6 @@ void OffscreenQmlSurface::loadInternal(const QUrl& qmlSource, bool createNewCont
     QUrl finalQmlSource = qmlSource;
     if ((qmlSource.isRelative() && !qmlSource.isEmpty()) || qmlSource.scheme() == QLatin1String("file")) {
         finalQmlSource = _qmlContext->resolvedUrl(qmlSource);
-        qCDebug(uiLogging) << "QQQ" << __FUNCTION__ << "resolved to " << finalQmlSource;
     }
 
     auto targetContext = contextForUrl(finalQmlSource, createNewContext);

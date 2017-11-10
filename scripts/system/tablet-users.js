@@ -33,7 +33,7 @@
         GlobalServices.findableBy = myVisibility;
     }
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/users-i.svg",
         activeIcon: "icons/tablet-icons/users-a.svg",

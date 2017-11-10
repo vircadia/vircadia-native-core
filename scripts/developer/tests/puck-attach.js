@@ -19,7 +19,7 @@ Script.include("/~/system/libraries/Xform.js");
 var TABLET_BUTTON_NAME = "PUCKTACH";
 var TABLET_APP_URL = "https://hifi-content.s3.amazonaws.com/seefo/production/puck-attach/puck-attach.html";
 
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
     text: TABLET_BUTTON_NAME,
     icon: "https://s3.amazonaws.com/hifi-public/tony/icons/puck-i.svg",

@@ -414,12 +414,12 @@
     }
 
     function setUp() {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;
         }
 
-        // Tablet button.
+        // Tablets button.
         button = tablet.addButton({
             icon: "icons/tablet-icons/finger-paint-i.svg",
             activeIcon: "icons/tablet-icons/finger-paint-a.svg",

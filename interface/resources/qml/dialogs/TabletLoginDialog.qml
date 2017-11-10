@@ -89,10 +89,10 @@ TabletModalWindow {
             //bodyLoader.active = false
         }
         if (gotoPreviousApp) {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
             tablet.returnToPreviousApp();
         } else {
-            Tablet.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
+            Tablets.getTablet("com.highfidelity.interface.tablet.system").gotoHomeScreen();
         }
     }
 

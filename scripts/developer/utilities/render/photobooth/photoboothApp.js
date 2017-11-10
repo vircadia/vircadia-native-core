@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* globals Tablet, Toolbars, Script, HMD, Controller, Menu */
+/* globals Tablets, Toolbars, Script, HMD, Controller, Menu */
 (function () {
     var SNAPSHOT_DELAY = 500; // 500ms
     var PHOTOBOOTH_WINDOW_HTML_URL = Script.resolvePath("./html/photobooth.html");
@@ -16,7 +16,7 @@
     var MODEL_BOUNDING_BOX_DIMENSIONS = {x: 1.0174,y: 1.1925,z: 1.0165};
     var PhotoBooth = {};
     var photoboothCreated = false;
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         icon: "icons/tablet-icons/snap-i.svg",
         text: "PHOTOBOOTH"

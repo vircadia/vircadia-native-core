@@ -8,14 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
+/* global EntityListTool, Tablets, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
    cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
 
 EntityListTool = function(opts) {
     var that = {};
 
     var webView = null;
-    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     webView.setVisible = function(value) {};
 
     var filterInView = false;

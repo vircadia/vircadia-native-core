@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
+/* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablets, Overlays,
    MyAvatar, Menu, AvatarInputs, Vec3 */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -33,7 +33,7 @@
 
     function checkTablet() {
         if (gTablet === null) {
-            gTablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            gTablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
         }
     }
 
@@ -315,7 +315,7 @@
     Script.scriptEnding.connect(function () {
 
         // if we reload scripts in tablet mode make sure we close the currently open window, by calling gotoHomeScreen
-        var tabletProxy = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        var tabletProxy = Tablets.getTablet("com.highfidelity.interface.tablet.system");
         if (tabletProxy && tabletProxy.toolbarMode) {
             tabletProxy.gotoHomeScreen();
         }

@@ -72,7 +72,7 @@ StackView {
         addressLine.focus = !HMD.active;
         root.parentChanged.connect(center);
         center();
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     }
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
@@ -149,7 +149,7 @@ StackView {
                 onClicked: {
                     addressBarDialog.loadHome();
                     tabletRoot.shown = false;
-                    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+                    tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
                     tablet.gotoHomeScreen();
                 }
                 anchors {

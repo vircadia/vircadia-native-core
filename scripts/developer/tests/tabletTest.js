@@ -10,7 +10,7 @@
 
 // Adds a BAM! button to the tablet ui.
 
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
     text: "BAM!!!"
 });

@@ -24,7 +24,7 @@ Item {
                                         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Ok) {
-                var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+                var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
                 tablet.gotoHomeScreen()
             }
         });

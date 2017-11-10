@@ -30,12 +30,12 @@ Original.RadioButton {
     readonly property int checkRadius: 2
 
     onClicked: {
-        tabletInterface.playSound(TabletEnums.ButtonClick);
+        Tablets.playSound(TabletEnums.ButtonClick);
     }
 
 // TODO: doesnt works for QQC1. check with QQC2
 //    onHovered: {
-//        tabletInterface.playSound(TabletEnums.ButtonHover);
+//        Tablets.playSound(TabletEnums.ButtonHover);
 //    }
 
     style: RadioButtonStyle {

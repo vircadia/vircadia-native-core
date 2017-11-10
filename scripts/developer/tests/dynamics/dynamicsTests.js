@@ -11,14 +11,14 @@
 
 "use strict";
 
-/* global Entities, Script, Tablet, MyAvatar, Vec3 */
+/* global Entities, Script, Tablets, MyAvatar, Vec3 */
 
 (function() { // BEGIN LOCAL_SCOPE
 
     var DYNAMICS_TESTS_URL = Script.resolvePath("dynamics-tests.html");
     var DEFAULT_LIFETIME = 120; // seconds
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
 
     var button = tablet.addButton({
         icon: Script.resolvePath("dynamicsTests.svg"),

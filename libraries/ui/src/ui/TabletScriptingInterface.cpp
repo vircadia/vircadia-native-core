@@ -210,7 +210,7 @@ QObject* TabletScriptingInterface::getFlags() {
 // TabletProxy
 //
 
-static const char* TABLET_SOURCE_URL = "hifi/tablet/Tablet.qml";
+static const char* TABLET_HOME_SOURCE_URL = "hifi/tablet/TabletHome.qml";
 static const char* WEB_VIEW_SOURCE_URL = "hifi/tablet/TabletWebView.qml";
 static const char* VRMENU_SOURCE_URL = "hifi/tablet/TabletMenu.qml";
 
@@ -274,7 +274,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
     } else {
         removeButtonsFromToolbar();
 
-        if (_currentPathLoaded == TABLET_SOURCE_URL) {
+        if (_currentPathLoaded == TABLET_HOME_SOURCE_URL) {
             // Tablet QML now pulls buttons from Tablet proxy
         } else {
             loadHomeScreen(true);
@@ -408,7 +408,7 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
         });
 
         if (_toolbarMode) {
-            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
+            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_HOME_SOURCE_URL)));
         }
 
         // force to the tablet to go to the homescreen
@@ -618,7 +618,7 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
 
     if ((_state != State::Home && _state != State::Uninitialized) || forceOntoHomeScreen) {
         if (!_toolbarMode && _qmlTabletRoot) {
-            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_SOURCE_URL)));
+            QMetaObject::invokeMethod(_qmlTabletRoot, "loadSource", Q_ARG(const QVariant&, QVariant(TABLET_HOME_SOURCE_URL)));
             QMetaObject::invokeMethod(_qmlTabletRoot, "playButtonClickSound");
         } else if (_toolbarMode && _desktopWindow) {
             // close desktop window
@@ -627,8 +627,8 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
             }
         }
         _state = State::Home;
-        emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
-        _currentPathLoaded = TABLET_SOURCE_URL;
+        emit screenChanged(QVariant("Home"), QVariant(TABLET_HOME_SOURCE_URL));
+        _currentPathLoaded = TABLET_HOME_SOURCE_URL;
     }
 }
 

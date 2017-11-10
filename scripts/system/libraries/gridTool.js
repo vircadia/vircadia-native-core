@@ -237,7 +237,7 @@ GridTool = function(opts) {
     var listeners = [];
 
     var webView = null;
-    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     webView.setVisible = function(value) {};
 
     horizontalGrid.addListener(function(data) {
