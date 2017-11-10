@@ -175,7 +175,7 @@ bool EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filte
         return parentWasNew || ancestorsWereNew;
     }
 
-    // since we didn't have a parent niether of our parents or ancestors could be new additions
+    // since we didn't have a parent, neither of our parents or ancestors could be new additions
     return false;
 }
 
@@ -204,7 +204,9 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
     return hasNewChild || hasNewDescendants;
 }
 
-void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset, bool usesViewFrustum) {
+void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset, 
+        bool usesViewFrustum) {
+
     DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root, lodLevelOffset, usesViewFrustum);
     // there are three types of traversal:
     //
@@ -423,12 +425,19 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
     uint64_t sendTime = usecTimestampNow();
     auto nodeData = static_cast<OctreeQueryNode*>(params.nodeData);
     nodeData->stats.encodeStarted();
+    auto entityNode = _node.toStrongRef();
+    auto entityNodeData = static_cast<EntityNodeData*>(entityNode->getLinkedData());
     while(!_sendQueue.empty()) {
         PrioritizedEntity queuedItem = _sendQueue.top();
         EntityItemPointer entity = queuedItem.getEntity();
         if (entity) {
             // Only send entities that match the jsonFilters, but keep track of everything we've tried to send so we don't try to send it again
-            if (entity->matchesJSONFilters(jsonFilters)) {
+            bool entityMatchesFilters = entity->matchesJSONFilters(jsonFilters);
+            if (entityMatchesFilters || entityNodeData->isEntityFlaggedAsExtra(entity->getID())) {
+                if (!jsonFilters.isEmpty() && entityMatchesFilters) {
+                    // Record explicitly filtered-in entity so that extra entities can be flagged.
+                    entityNodeData->insertSentFilteredEntity(entity->getID());
+                }
                 OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
 
                 if (appendEntityState != OctreeElement::COMPLETED) {
