@@ -62,6 +62,9 @@ public:
         gpu::TexturePointer map;
 
     protected:
+
+        static const glm::mat4 _biasMatrix;
+
         model::LightPointer _light;
         std::shared_ptr<ViewFrustum> _frustum;
 
@@ -70,8 +73,7 @@ public:
 
             Schema();
 
-            glm::mat4 projection;
-            glm::mat4 viewInverse;
+            glm::mat4 reprojection;
 
             glm::float32 bias;
             glm::float32 scale;

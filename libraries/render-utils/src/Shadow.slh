@@ -15,8 +15,7 @@
 uniform sampler2DShadow shadowMap;
 
 struct ShadowTransform {
-	mat4 projection;
-	mat4 viewInverse;
+	mat4 reprojection;
 
 	float bias;
 	float scale;
@@ -26,12 +25,8 @@ uniform shadowTransformBuffer {
 	ShadowTransform _shadowTransform;
 };
 
-mat4 getShadowViewInverse() {
-	return _shadowTransform.viewInverse;
-}
-
-mat4 getShadowProjection() {
-	return _shadowTransform.projection;
+mat4 getShadowReprojection() {
+	return _shadowTransform.reprojection;
 }
 
 float getShadowScale() {
@@ -44,14 +39,9 @@ float getShadowBias() {
 
 // Compute the texture coordinates from world coordinates
 vec4 evalShadowTexcoord(vec4 position) {
-	mat4 biasMatrix = mat4(
-		0.5, 0.0, 0.0, 0.0,
-		0.0, 0.5, 0.0, 0.0,
-		0.0, 0.0, 0.5, 0.0,	
-		0.5, 0.5, 0.5, 1.0);
 	float bias = -getShadowBias();
 
-	vec4 shadowCoord = biasMatrix * getShadowProjection() * getShadowViewInverse() * position;
+	vec4 shadowCoord = getShadowReprojection() * position;
 	return vec4(shadowCoord.xy, shadowCoord.z + bias, 1.0);
 }
 

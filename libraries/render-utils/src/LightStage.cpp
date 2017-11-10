@@ -14,6 +14,11 @@
 #include "LightStage.h"
 
 std::string LightStage::_stageName { "LIGHT_STAGE"};
+const glm::mat4 LightStage::Shadow::_biasMatrix{
+    0.5, 0.0, 0.0, 0.0,
+    0.0, 0.5, 0.0, 0.0,
+    0.0, 0.0, 0.5, 0.0,
+    0.5, 0.5, 0.5, 1.0 };
 
 LightStage::LightStage() {
 }
@@ -92,8 +97,7 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
     _frustum->calculate();
 
     // Update the buffer
-    _schemaBuffer.edit<Schema>().projection = ortho;
-    _schemaBuffer.edit<Schema>().viewInverse = viewInverse.getMatrix();
+    _schemaBuffer.edit<Schema>().reprojection = _biasMatrix * ortho * viewInverse.getMatrix();
 }
 
 void LightStage::Shadow::setFrustum(const ViewFrustum& shadowFrustum) {
@@ -102,8 +106,7 @@ void LightStage::Shadow::setFrustum(const ViewFrustum& shadowFrustum) {
 
     *_frustum = shadowFrustum;
     // Update the buffer
-    _schemaBuffer.edit<Schema>().projection = shadowFrustum.getProjection();
-    _schemaBuffer.edit<Schema>().viewInverse = viewInverse.getMatrix();
+    _schemaBuffer.edit<Schema>().reprojection = _biasMatrix * shadowFrustum.getProjection() * viewInverse.getMatrix();
 }
 
 const glm::mat4& LightStage::Shadow::getView() const {
