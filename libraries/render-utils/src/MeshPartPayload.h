@@ -87,9 +87,8 @@ public:
     typedef Payload::DataPointer Pointer;
 
     void notifyLocationChanged() override;
-    void updateTransformForSkinnedMesh(const Transform& renderTransform,
-            const Transform& boundTransform,
-            const gpu::BufferPointer& buffer);
+    void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices);
+    void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -103,7 +102,7 @@ public:
 
     void initCache();
 
-    void computeAdjustedLocalBound(const QVector<glm::mat4>& clusterMatrices);
+    void computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices);
 
     gpu::BufferPointer _clusterBuffer;
     ModelWeakPointer _model;

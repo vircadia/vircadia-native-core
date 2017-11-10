@@ -93,27 +93,41 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
-    bool success;
+    OctreeElement::AppendState encodeResult = OctreeElement::PARTIAL; // start the loop assuming there's more to send
     auto nodeList = DependencyManager::get<NodeList>();
+
+    EntityPropertyFlags didntFitProperties;
+    EntityItemProperties propertiesCopy = properties;
+
     if (properties.parentIDChanged() && properties.getParentID() == AVATAR_SELF_ID) {
-        EntityItemProperties propertiesCopy = properties;
         const QUuid myNodeID = nodeList->getSessionUUID();
         propertiesCopy.setParentID(myNodeID);
-        success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut);
-    } else {
-        success = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, properties, bufferOut);
     }
 
-    if (success) {
-        #ifdef WANT_DEBUG
-            qCDebug(entities) << "calling queueOctreeEditMessage()...";
-            qCDebug(entities) << "    id:" << entityItemID;
-            qCDebug(entities) << "    properties:" << properties;
-        #endif
-        queueOctreeEditMessage(type, bufferOut);
-        if (type == PacketType::EntityAdd && !properties.getCertificateID().isEmpty()) {
-            emit addingEntityWithCertificate(properties.getCertificateID(), DependencyManager::get<AddressManager>()->getPlaceName());
+    EntityPropertyFlags requestedProperties = propertiesCopy.getChangedProperties();
+
+    while (encodeResult == OctreeElement::PARTIAL) {
+        encodeResult = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut, requestedProperties, didntFitProperties);
+
+        if (encodeResult != OctreeElement::NONE) {
+            #ifdef WANT_DEBUG
+                qCDebug(entities) << "calling queueOctreeEditMessage()...";
+                qCDebug(entities) << "    id:" << entityItemID;
+                qCDebug(entities) << "    properties:" << properties;
+            #endif
+            queueOctreeEditMessage(type, bufferOut);
+            if (type == PacketType::EntityAdd && !properties.getCertificateID().isEmpty()) {
+                emit addingEntityWithCertificate(properties.getCertificateID(), DependencyManager::get<AddressManager>()->getPlaceName());
+            }
         }
+
+        // if we still have properties to send, switch the message type to edit, and request only the packets that didn't fit
+        if (encodeResult != OctreeElement::COMPLETED) {
+            type = PacketType::EntityEdit;
+            requestedProperties = didntFitProperties;
+        }
+
+        bufferOut.resize(NLPacket::maxPayloadSize(type)); // resize our output buffer for the next packet
     }
 }
 

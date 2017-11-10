@@ -35,7 +35,7 @@ public slots:
     Q_INVOKABLE void setIgnoreItems(const QUuid& uid, const QScriptValue& ignoreEntities) const;
     Q_INVOKABLE void setIncludeItems(const QUuid& uid, const QScriptValue& includeEntities) const;
 
-    Q_INVOKABLE void setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay) const { qApp->getLaserPointerManager().setLockEndUUID(uid, objectID, isOverlay); }
+    Q_INVOKABLE void setLockEndUUID(const QUuid& uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const { qApp->getLaserPointerManager().setLockEndUUID(uid, objectID, isOverlay, offsetMat); }
 
 private:
     static RenderState buildRenderState(const QVariantMap& propMap);

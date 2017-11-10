@@ -116,9 +116,9 @@ void PrepareStencil::drawBackground(gpu::State& state) {
         gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
 }
 
-// Pass if this area has NOT been marked as MASK
+// Pass if this area has NOT been marked as MASK or anything containing MASK
 void PrepareStencil::testMask(gpu::State& state) {
-    state.setStencilTest(true, 0x00, gpu::State::StencilTest(STENCIL_MASK, 0xFF, gpu::NOT_EQUAL,
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(STENCIL_MASK, STENCIL_MASK, gpu::NOT_EQUAL,
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
