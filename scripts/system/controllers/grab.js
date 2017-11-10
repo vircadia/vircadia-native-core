@@ -345,7 +345,7 @@ Grabber.prototype.pressEvent = function(event) {
     }
 
     Pointers.setRenderState(this.mouseRayEntities, "grabbed");
-    Pointers.setLockEndUid(this.mouseRayEntities, pickResults.objectID, false);
+    Pointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
 
     mouse.startDrag(event);
 
