@@ -7082,6 +7082,7 @@ DisplayPluginPointer Application::getActiveDisplayPlugin() const {
     return _displayPlugin;
 }
 
+static const char* exclusionGroupKey = "exclusionGroup";
 
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
@@ -7117,6 +7118,8 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     action->setCheckable(true);
     action->setChecked(active);
     displayPluginGroup->addAction(action);
+
+    action->setProperty(exclusionGroupKey, QVariant::fromValue(displayPluginGroup));
     Q_ASSERT(menu->menuItemExists(MenuOption::OutputMenu, name));
 }
 
