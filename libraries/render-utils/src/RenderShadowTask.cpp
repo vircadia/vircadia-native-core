@@ -215,7 +215,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         initZPassPipelines(*shapePlumber, state);
     }
 
-    const auto cachedMode = task.addJob<RenderShadowSetup>("ShadowSetup");
+    const auto cachedMode = task.addJob<RenderShadowSetup>("ShadowSetup", 0);
 
     // CPU jobs:
     // Fetch and cull the items from the scene
@@ -249,13 +249,24 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, O
         RenderArgs* args = renderContext->args;
         output = args->_renderMode;
 
-        auto nearClip = args->getViewFrustum().getNearClip();
-        float nearDepth = -args->_boomOffset.z;
-        const float SHADOW_MAX_DISTANCE = 20.0f;
-        globalShadow->setKeylightFrustum(0, args->getViewFrustum(), nearDepth, nearClip + SHADOW_MAX_DISTANCE, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+        const auto nearClip = args->getViewFrustum().getNearClip();
+        const auto farClip = args->getViewFrustum().getFarClip();
+        const auto nearDepth = -args->_boomOffset.z;
+
+        static const float SHADOW_MAX_DISTANCE = 25.0f;
+        static const float SHADOW_OVERLAP_DISTANCE = 1.0f;
+        float maxCascadeDistance = SHADOW_MAX_DISTANCE / powf(2.0f, globalShadow->getCascadeCount() - 1 - _cascadeIndex);
+        float minCascadeDistance = maxCascadeDistance / 2.0f - SHADOW_OVERLAP_DISTANCE;
+
+        if (_cascadeIndex == 0) {
+            minCascadeDistance = nearDepth;
+        } 
+        minCascadeDistance = std::max(minCascadeDistance, nearDepth);
+        maxCascadeDistance = std::min(maxCascadeDistance, farClip);
+        globalShadow->setKeylightFrustum(_cascadeIndex, args->getViewFrustum(), minCascadeDistance, maxCascadeDistance, SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
         // Set the keylight render args
-        args->pushViewFrustum(*(globalShadow->getCascade(0).getFrustum()));
+        args->pushViewFrustum(*(globalShadow->getCascade(_cascadeIndex).getFrustum()));
         args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
     }
 }

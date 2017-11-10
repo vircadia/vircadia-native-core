@@ -94,6 +94,8 @@ public:
         };
         UniformBufferView _schemaBuffer = nullptr;
         
+        void setupCascades();
+
         friend class Light;
     };
     using ShadowPointer = std::shared_ptr<Shadow>;

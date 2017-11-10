@@ -56,7 +56,13 @@ class RenderShadowSetup {
 public:
     using Output = RenderArgs::RenderMode;
     using JobModel = render::Job::ModelO<RenderShadowSetup, Output>;
+
+    RenderShadowSetup(unsigned int cascadeIndex) : _cascadeIndex{ cascadeIndex } {}
     void run(const render::RenderContextPointer& renderContext, Output& output);
+
+private:
+
+    unsigned int _cascadeIndex;
 };
 
 class RenderShadowTeardown {
