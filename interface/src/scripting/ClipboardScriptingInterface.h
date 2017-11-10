@@ -38,7 +38,7 @@ public:
     /**jsdoc
      * Compute the largest dimension of the extents of the contents held in the clipboard.
      * @function Clipboard.getClipboardContentsLargestDimension
-     * @returns {float} The largest dimension computed.
+     * @returns {Number} The largest dimension computed.
      */
     Q_INVOKABLE float getClipboardContentsLargestDimension();
 
@@ -46,29 +46,29 @@ public:
      * Import entities from a JSON file containing entity data into the clipboard.
      * You can generate a JSON file using {@link Clipboard.exportEntities}.
      * @function Clipboard.importEntities
-     * @param {string} filename Path and name of file to import.
-     * @returns {bool} `true` if the import was successful, otherwise `false`.
+     * @param {String} filename Path and name of file to import.
+     * @returns {Boolean} `true` if the import was successful, otherwise `false`.
      */
     Q_INVOKABLE bool importEntities(const QString& filename);
 
     /**jsdoc
      * Export the entities specified to a JSON file.
      * @function Clipboard.exportEntities
-     * @param {string} filename Path and name of the file to export entities to. Should have the extension `.json`.
+     * @param {String} filename Path and name of the file to export entities to. Should have the extension `.json`.
      * @param {EntityID[]} entityIDs IDs of entities to export.
-     * @returns {bool} `true` if the export was successful, otherwise `false`.
+     * @returns {Boolean} `true` if the export was successful, otherwise `false`.
      */
     Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     
     /**jsdoc
     * Export the entities with centers within a cube to a JSON file.
     * @function Clipboard.exportEntities
-    * @param {string} filename Path and name of the file to export entities to. Should have the extension `.json`.
-    * @param {float} x X-coordinate of the cube center.
-    * @param {float} y Y-coordinate of the cube center.
-    * @param {float} z Z-coordinate of the cube center.
-    * @param {float} scale Half dimension of the cube.
-    * @returns {bool} `true` if the export was successful, otherwise `false`.
+    * @param {String} filename Path and name of the file to export entities to. Should have the extension `.json`.
+    * @param {Number} x X-coordinate of the cube center.
+    * @param {Number} y Y-coordinate of the cube center.
+    * @param {Number} z Z-coordinate of the cube center.
+    * @param {Number} scale Half dimension of the cube.
+    * @returns {Boolean} `true` if the export was successful, otherwise `false`.
     */
     Q_INVOKABLE bool exportEntities(const QString& filename, float x, float y, float z, float scale);
 
