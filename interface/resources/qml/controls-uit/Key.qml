@@ -1,4 +1,5 @@
 import QtQuick 2.0
+import TabletScriptingInterface 1.0
 
 Item {
     id: keyItem
@@ -32,8 +33,15 @@ Item {
             }
         }
 
+        onContainsMouseChanged: {
+            if (containsMouse) {
+                tabletInterface.playSound(TabletEnums.ButtonHover);
+            }
+        }
+
         onClicked: {
             mouse.accepted = true;
+            tabletInterface.playSound(TabletEnums.ButtonClick);
 
             webEntity.synthesizeKeyPress(glyph);
             webEntity.synthesizeKeyPress(glyph, mirrorText);
@@ -47,8 +55,21 @@ Item {
             mouse.accepted = true;
         }
 
+        property var _HAPTIC_STRENGTH: 0.1;
+        property var _HAPTIC_DURATION: 3.0;
+        property var leftHand: 0;
+        property var rightHand: 1;
+
         onEntered: {
             keyItem.state = "mouseOver";
+
+            var globalPosition = keyItem.mapToGlobal(mouseArea1.mouseX, mouseArea1.mouseY);
+            var deviceId = Web3DOverlay.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
+            var hand = deviceId - 1; // based on touchEventUtils.js, deviceId is 'hand + 1', so 'hand' is 'deviceId' - 1
+
+            if (hand == leftHand || hand == rightHand) {
+                Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, hand);
+            }
         }
 
         onExited: {

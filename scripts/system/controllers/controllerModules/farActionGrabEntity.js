@@ -8,21 +8,24 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
-   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
+   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
+   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable, entityIsGrabbable,
    makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI
+   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
+   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI, Xform, getEntityParents
 
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
+Script.include("/~/system/libraries/Xform.js");
 
 (function() {
     var PICK_WITH_HAND_RAY = true;
 
+    var SEARCH_SPHERE_SIZE = 0.0132;
+    var dim = {x: SEARCH_SPHERE_SIZE, y: SEARCH_SPHERE_SIZE, z: SEARCH_SPHERE_SIZE};
     var halfPath = {
         type: "line3d",
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
@@ -33,10 +36,11 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var halfEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
@@ -54,10 +58,11 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
     var fullEnd = {
         type: "sphere",
+        dimensions: dim,
         solid: true,
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
@@ -75,7 +80,7 @@ Script.include("/~/system/libraries/controllers.js");
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
         drawInFront: true, // Even when burried inside of something, show it.
-        parentID: AVATAR_SELF_ID
+        parentID: MyAvatar.SELF_ID
     };
 
     var renderStates = [
@@ -109,17 +114,71 @@ Script.include("/~/system/libraries/controllers.js");
     ];
 
     var MARGIN = 25;
+
+    function TargetObject(entityID, entityProps) {
+        this.entityID = entityID;
+        this.entityProps = entityProps;
+        this.targetEntityID = null;
+        this.targetEntityProps = null;
+        this.previousCollisionStatus = null;
+        this.madeDynamic = null;
+
+        this.makeDynamic = function() {
+            if (this.targetEntityID) {
+                var newProps = {
+                    dynamic: true,
+                    collisionless: true
+                };
+                this.previousCollisionStatus = this.targetEntityProps.collisionless;
+                Entities.editEntity(this.targetEntityID, newProps);
+                this.madeDynamic = true;
+            }
+        };
+
+        this.restoreTargetEntityOriginalProps = function() {
+            if (this.madeDynamic) {
+                var props = {};
+                props.dynamic = false;
+                props.collisionless = this.previousCollisionStatus;
+                var zeroVector = {x: 0, y: 0, z:0};
+                props.localVelocity = zeroVector;
+                props.localRotation = zeroVector;
+                Entities.editEntity(this.targetEntityID, props);
+            }
+        };
+
+        this.getTargetEntity = function() {
+            var parentPropsLength = this.parentProps.length;
+            if (parentPropsLength !== 0) {
+                var targetEntity = {
+                    id: this.parentProps[parentPropsLength - 1].id,
+                    props: this.parentProps[parentPropsLength - 1]};
+                this.targetEntityID = targetEntity.id;
+                this.targetEntityProps = targetEntity.props;
+                return targetEntity;
+            }
+            this.targetEntityID = this.entityID;
+            this.targetEntityProps = this.entityProps;
+            return {
+                id: this.entityID,
+                props: this.entityProps};
+        };
+    }
+
     function FarActionGrabEntity(hand) {
         this.hand = hand;
         this.grabbedThingID = null;
+        this.targetObject = null;
         this.actionID = null; // action this script created...
+        this.entityToLockOnto = null;
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
+        this.previousCollisionStatus = false;
+        this.locked = false;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
-        this.madeDynamic = false;
 
         var ACTION_TTL = 15; // seconds
 
@@ -135,10 +194,6 @@ Script.include("/~/system/libraries/controllers.js");
             100);
 
         this.updateLaserPointer = function(controllerData) {
-            var SEARCH_SPHERE_SIZE = 0.011;
-            var MIN_SPHERE_SIZE = 0.0005;
-            var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE) * MyAvatar.sensorToWorldScale;
-            var dim = {x: radius, y: radius, z: radius};
             var mode = "hold";
             if (!this.distanceHolding && !this.distanceRotating) {
                 if (controllerData.triggerClicks[this.hand]) {
@@ -150,22 +205,32 @@ Script.include("/~/system/libraries/controllers.js");
 
             var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
             if (mode === "full") {
-                var fullEndToEdit = PICK_WITH_HAND_RAY ? this.fullEnd : fullEnd;
-                fullEndToEdit.dimensions = dim;
-                LaserPointers.editRenderState(laserPointerID, mode, { path: fullPath, end: fullEndToEdit });
                 this.contextOverlayTimer = false;
                 this.destroyContextOverlay();
-            } else if (mode === "half") {
-                var halfEndToEdit = PICK_WITH_HAND_RAY ? this.halfEnd : halfEnd;
-                halfEndToEdit.dimensions = dim;
-                LaserPointers.editRenderState(laserPointerID, mode, {path: halfPath, end: halfEndToEdit});
             }
+
             LaserPointers.enableLaserPointer(laserPointerID);
             LaserPointers.setRenderState(laserPointerID, mode);
             if (this.distanceHolding || this.distanceRotating) {
-                LaserPointers.setLockEndUUID(laserPointerID, this.grabbedThingID, this.grabbedIsOverlay);
+                if (!this.locked) {
+                    // calculate offset
+                    var targetProps = Entities.getEntityProperties(this.targetObject.entityID, [
+                        "position",
+                        "rotation"
+                    ]);
+                    var zeroVector = { x: 0, y: 0, z:0, w: 0 };
+                    var intersection = controllerData.rayPicks[this.hand].intersection;
+                    var intersectionMat = new Xform(zeroVector, intersection);
+                    var modelMat = new Xform(targetProps.rotation, targetProps.position);
+                    var modelMatInv = modelMat.inv();
+                    var xformMat = Xform.mul(modelMatInv, intersectionMat);
+                    var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
+                    LaserPointers.setLockEndUUID(laserPointerID, this.targetObject.entityID, this.grabbedIsOverlay, offsetMat);
+                    this.locked = true;
+                }
             } else {
                 LaserPointers.setLockEndUUID(laserPointerID, null, false);
+                this.locked = false;
             }
         };
 
@@ -238,7 +303,7 @@ Script.include("/~/system/libraries/controllers.js");
                 tag: "far-grab-" + MyAvatar.sessionUUID,
                 ttl: ACTION_TTL
             });
-            if (this.actionID === NULL_UUID) {
+            if (this.actionID === Uuid.NULL) {
                 this.actionID = null;
             }
 
@@ -344,19 +409,15 @@ Script.include("/~/system/libraries/controllers.js");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
-
-            if (this.madeDynamic) {
-                var props = {};
-                props.dynamic = false;
-                props.localVelocity = {x: 0, y: 0, z: 0};
-                Entities.editEntity(this.grabbedThingID, props);
-                this.madeDynamic = false;
+            if (this.targetObject) {
+                this.targetObject.restoreTargetEntityOriginalProps();
             }
             this.actionID = null;
             this.grabbedThingID = null;
+            this.targetObject = null;
         };
 
-         this.updateRecommendedArea = function() {
+        this.updateRecommendedArea = function() {
             var dims = Controller.getViewportDimensions();
             this.reticleMaxX = dims.x - MARGIN;
             this.reticleMaxY = dims.y - MARGIN;
@@ -436,7 +497,6 @@ Script.include("/~/system/libraries/controllers.js");
             this.distanceRotating = false;
 
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                this.updateLaserPointer(controllerData);
                 this.prepareDistanceRotatingData(controllerData);
                 return makeRunningValues(true, [], []);
             } else {
@@ -507,17 +567,20 @@ Script.include("/~/system/libraries/controllers.js");
                             "userData", "locked", "type"
                         ]);
 
+                        this.targetObject = new TargetObject(entityID, targetProps);
+                        this.targetObject.parentProps = getEntityParents(targetProps);
                         if (entityID !== this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
                         }
+                        var targetEntity = this.targetObject.getTargetEntity();
+                        entityID = targetEntity.id;
+                        targetProps = targetEntity.props;
 
                         if (entityIsGrabbable(targetProps)) {
                             if (!entityIsDistanceGrabbable(targetProps)) {
-                                targetProps.dynamic = true;
-                                Entities.editEntity(entityID, targetProps);
-                                this.madeDynamic = true;
+                                this.targetObject.makeDynamic();
                             }
-                            
+
                             if (!this.distanceRotating) {
                                 this.grabbedThingID = entityID;
                                 this.grabbedDistance = rayPickInfo.distance;
@@ -578,8 +641,6 @@ Script.include("/~/system/libraries/controllers.js");
             LaserPointers.removeLaserPointer(this.laserPointer);
         };
 
-        this.halfEnd = halfEnd;
-        this.fullEnd = fullEnd;
         this.laserPointer = LaserPointers.createLaserPointer({
             joint: (this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
@@ -587,6 +648,7 @@ Script.include("/~/system/libraries/controllers.js");
             posOffset: getGrabPointSphereOffset(this.handToController(), true),
             renderStates: renderStates,
             faceAvatar: true,
+            distanceScaleEnd: true,
             defaultRenderStates: defaultRenderStates
         });
     }

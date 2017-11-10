@@ -576,6 +576,10 @@
         createNotification("Processing GIF snapshot...", NotificationType.SNAPSHOT);
     }
 
+    function walletNotSetup() {
+        createNotification("Your wallet isn't set up. Open the WALLET app.", NotificationType.WALLET);
+    }
+
     function connectionAdded(connectionName) {
         createNotification(connectionName, NotificationType.CONNECTION);
     }

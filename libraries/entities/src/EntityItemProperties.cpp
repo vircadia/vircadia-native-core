@@ -14,6 +14,15 @@
 #include <QObject>
 #include <QtCore/QJsonDocument>
 
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <NetworkingConstants.h>
+#include <NetworkAccessManager.h>
+#include <QtNetwork/QNetworkReply>
+#include <QtNetwork/QNetworkRequest>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -27,6 +36,7 @@
 
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
+HazePropertyGroup EntityItemProperties::_staticHaze;
 StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 
@@ -71,6 +81,7 @@ void EntityItemProperties::debugDump() const {
 
     getAnimation().debugDump();
     getSkybox().debugDump();
+    getHaze().debugDump();
     getKeyLight().debugDump();
 
     qCDebug(entities) << "   changed properties...";
@@ -82,28 +93,11 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
-const char* shapeTypeNames[] = {
-    "none",
-    "box",
-    "sphere",
-    "capsule-x",
-    "capsule-y",
-    "capsule-z",
-    "cylinder-x",
-    "cylinder-y",
-    "cylinder-z",
-    "hull",
-    "plane",
-    "compound",
-    "simple-hull",
-    "simple-compound",
-    "static-mesh"
-};
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
 void addShapeType(ShapeType type) {
-    stringToShapeTypeLookup[shapeTypeNames[type]] = type;
+    stringToShapeTypeLookup[ShapeInfo::getNameForShapeType(type)] = type;
 }
 
 void buildStringToShapeTypeLookup() {
@@ -178,9 +172,7 @@ void EntityItemProperties::setCollisionMaskFromString(const QString& maskString)
 }
 
 QString EntityItemProperties::getShapeTypeAsString() const {
-    if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
-        return QString(shapeTypeNames[_shapeType]);
-    return QString(shapeTypeNames[SHAPE_TYPE_NONE]);
+    return ShapeInfo::getNameForShapeType(_shapeType);
 }
 
 void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
@@ -215,6 +207,42 @@ void EntityItemProperties::setBackgroundModeFromString(const QString& background
     if (result != BACKGROUND_MODES.end()) {
         _backgroundMode = result->first;
         _backgroundModeChanged = true;
+    }
+}
+
+using ComponentPair = std::pair<const ComponentMode, const QString>;
+const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
+        ComponentPair{ COMPONENT_MODE_INHERIT,{ "inherit" } },
+        ComponentPair{ COMPONENT_MODE_DISABLED,{ "disabled" } },
+        ComponentPair{ COMPONENT_MODE_ENABLED,{ "enabled" } }
+} };
+
+QString EntityItemProperties::getHazeModeAsString() const {
+    // return "inherit" if _hazeMode is not valid
+    if (_hazeMode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[_hazeMode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
+    }
+}
+
+QString EntityItemProperties::getHazeModeString(uint32_t mode) {
+    // return "inherit" if mode is not valid
+    if (mode < COMPONENT_MODE_ITEM_COUNT) {
+        return COMPONENT_MODES[mode].second;
+    } else {
+        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
+    }
+}
+
+void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
+    auto result = std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) {
+        return (pair.second == hazeMode);
+    });
+
+    if (result != COMPONENT_MODES.end()) {
+        _hazeMode = result->first;
+        _hazeModeChanged = true;
     }
 }
 
@@ -303,6 +331,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_MODE, backgroundMode);
+
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
+
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_DATA, voxelData);
@@ -314,7 +345,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_FACE_CAMERA, faceCamera);
     CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
     CHECK_PROPERTY_CHANGE(PROP_NORMALS, normals);
+    CHECK_PROPERTY_CHANGE(PROP_STROKE_COLORS, strokeColors);
     CHECK_PROPERTY_CHANGE(PROP_STROKE_WIDTHS, strokeWidths);
+    CHECK_PROPERTY_CHANGE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
     CHECK_PROPERTY_CHANGE(PROP_X_TEXTURE_URL, xTextureURL);
     CHECK_PROPERTY_CHANGE(PROP_Y_TEXTURE_URL, yTextureURL);
     CHECK_PROPERTY_CHANGE(PROP_Z_TEXTURE_URL, zTextureURL);
@@ -350,6 +383,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     changedProperties += _keyLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _stage.getChangedProperties();
+    changedProperties += _haze.getChangedProperties();
 
     return changedProperties;
 }
@@ -529,6 +563,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FILTER_URL, filterURL);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
+        _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
     // Web only
@@ -560,8 +597,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_WIDTH, lineWidth);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_COLORS, strokeColors);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
     }
 
     if (!skipDefaults && !strictSemantics) {
@@ -712,6 +751,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
 
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(backgroundMode, BackgroundMode);
+
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(hazeMode, HazeMode);
+
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
@@ -723,7 +765,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeColors, qVectorVec3, setStrokeColors);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths,qVectorFloat, setStrokeWidths);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
+    
 
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
@@ -739,6 +784,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _keyLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _stage.copyFromScriptValue(object, _defaultSettings);
+    _haze.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
@@ -862,6 +908,9 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
 
     COPY_PROPERTY_IF_CHANGED(backgroundMode);
+
+    COPY_PROPERTY_IF_CHANGED(hazeMode);
+
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
     COPY_PROPERTY_IF_CHANGED(voxelData);
@@ -873,13 +922,16 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(faceCamera);
     COPY_PROPERTY_IF_CHANGED(actionData);
     COPY_PROPERTY_IF_CHANGED(normals);
+    COPY_PROPERTY_IF_CHANGED(strokeColors);
     COPY_PROPERTY_IF_CHANGED(strokeWidths);
+    COPY_PROPERTY_IF_CHANGED(isUVModeStretch);
     COPY_PROPERTY_IF_CHANGED(created);
 
     _animation.merge(other._animation);
     _keyLight.merge(other._keyLight);
     _skybox.merge(other._skybox);
     _stage.merge(other._stage);
+    _haze.merge(other._haze);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
     COPY_PROPERTY_IF_CHANGED(yTextureURL);
@@ -1059,7 +1111,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
         ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
         ADD_PROPERTY_TO_MAP(PROP_NORMALS, Normals, normals, QVector<glm::vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>);
         ADD_PROPERTY_TO_MAP(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
+        ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
         ADD_PROPERTY_TO_MAP(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
@@ -1110,6 +1164,24 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
 
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_COLOR, Haze, haze, HazeGlareColor, hazeGlareColor);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ENABLE_GLARE, Haze, haze, HazeEnableGlare, hazeEnableGlare);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_ANGLE, Haze, haze, HazeGlareAngle, hazeGlareAngle);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE_EFFECT, Haze, haze, HazeAltitudeEffect, hazeAltitudeEfect);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_CEILING, Haze, haze, HazeCeiling, hazeCeiling);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
+
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
+
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
         // FIXME - these are not yet handled
@@ -1149,8 +1221,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
 //
 // TODO: Implement support for script and visible properties.
 //
-bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
-                                                  QByteArray& buffer) {
+OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
+                QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties) {
+
     OctreePacketData ourDataPacket(false, buffer.size()); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
@@ -1192,16 +1265,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         QByteArray encodedUpdateDelta = updateDeltaCoder;
 
         EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
-        EntityPropertyFlags requestedProperties = properties.getChangedProperties();
         EntityPropertyFlags propertiesDidntFit = requestedProperties;
-
-        // TODO: we need to handle the multi-pass form of this, similar to how we handle entity data
-        //
-        // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
-        // then our modelTreeElementExtraEncodeData should include data about which properties we need to append.
-        //if (modelTreeElementExtraEncodeData && modelTreeElementExtraEncodeData->includedItems.contains(getEntityItemID())) {
-        //    requestedProperties = modelTreeElementExtraEncodeData->includedItems.value(getEntityItemID());
-        //}
 
         LevelDetails entityLevel = packetData->startLevel();
 
@@ -1230,7 +1294,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         int propertyCount = 0;
 
         bool headerFits = successIDFits && successTypeFits && successLastEditedFits
-        && successLastUpdatedFits && successPropertyFlagsFits;
+                && successLastUpdatedFits && successPropertyFlagsFits;
 
         int startOfEntityItemData = packetData->getUncompressedByteOffset();
 
@@ -1244,7 +1308,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
             APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions());
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
             APPEND_ENTITY_PROPERTY(PROP_DENSITY, properties.getDensity());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, properties.getVelocity());
@@ -1358,6 +1422,10 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, properties.getFlyingAllowed());
                 APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, properties.getGhostingAllowed());
                 APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, properties.getFilterURL());
+
+                APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
+                _staticHaze.setProperties(properties);
+                _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -1383,9 +1451,11 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             if (properties.getType() == EntityTypes::PolyLine) {
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
-                APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getNormals());
+                APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getPackedNormals());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, properties.getPackedStrokeColors());
                 APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
+                APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, properties.getIsUVModeStretch());
             }
             // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
             // when encoding/decoding edits because otherwise they can't polymorph to other shape types
@@ -1394,6 +1464,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
+
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
             APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
@@ -1444,12 +1515,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
 
         // If any part of the model items didn't fit, then the element is considered partial
         if (appendState != OctreeElement::COMPLETED) {
-            // TODO: handle mechanism for handling partial fitting data!
-            // add this item into our list for the next appendElementData() pass
-            //modelTreeElementExtraEncodeData->includedItems.insert(getEntityItemID(), propertiesDidntFit);
-
-            // for now, if it's not complete, it's not successful
-            success = false;
+            didntFitProperties = propertiesDidntFit;
         }
     }
 
@@ -1465,11 +1531,53 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
             success = false;
+            appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
+            // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-    return success;
+
+
+    return appendState;
+}
+
+QByteArray EntityItemProperties::getPackedNormals() const {
+    return packNormals(getNormals());
+}
+
+QByteArray EntityItemProperties::packNormals(const QVector<glm::vec3>& normals) const {
+    int normalsSize = normals.size();
+    QByteArray packedNormals = QByteArray(normalsSize * 6 + 1, '0');
+    // add size of the array
+    packedNormals[0] = ((uint8_t)normalsSize);
+
+    int index = 1;
+    for (int i = 0; i < normalsSize; i++) {
+        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, normals[i], 15);
+        index += numBytes;
+    }
+    return packedNormals;
+}
+
+QByteArray EntityItemProperties::getPackedStrokeColors() const {
+    return packStrokeColors(getStrokeColors());
+}
+QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& strokeColors) const {
+    int strokeColorsSize = strokeColors.size();
+    QByteArray packedStrokeColors = QByteArray(strokeColorsSize * 3 + 1, '0');
+
+    // add size of the array
+    packedStrokeColors[0] = ((uint8_t)strokeColorsSize);
+
+
+    for (int i = 0; i < strokeColorsSize; i++) {
+        // add the color to the QByteArray
+        packedStrokeColors[i * 3 + 1] = strokeColors[i].r * 255;
+        packedStrokeColors[i * 3 + 2] = strokeColors[i].g * 255;
+        packedStrokeColors[i * 3 + 3] = strokeColors[i].b * 255;
+    }
+    return packedStrokeColors;
 }
 
 // TODO:
@@ -1557,7 +1665,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
@@ -1664,7 +1772,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FILTER_URL, QString, setFilterURL);
-    }
+ 
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
+        properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+   }
 
     if (properties.getType() == EntityTypes::PolyVox) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
@@ -1690,9 +1801,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::PolyLine) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QVector<glm::vec3>, setNormals);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QByteArray, setPackedNormals);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
     }
 
     // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
@@ -1723,6 +1836,53 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     return valid;
 }
 
+void EntityItemProperties::setPackedNormals(const QByteArray& value) {
+    setNormals(unpackNormals(value));
+}
+
+QVector<glm::vec3> EntityItemProperties::unpackNormals(const QByteArray& normals) {
+    // the size of the vector is packed first
+    QVector<glm::vec3> unpackedNormals = QVector<glm::vec3>((int)normals[0]);
+
+    if ((int)normals[0] == normals.size() / 6) {
+        int j = 0;
+        for (int i = 1; i < normals.size();) {
+            glm::vec3 aux = glm::vec3();
+            i += unpackFloatVec3FromSignedTwoByteFixed((unsigned char*)normals.data() + i, aux, 15);
+            unpackedNormals[j] = aux;
+            j++;
+        }
+    } else {
+        qCDebug(entities) << "WARNING - Expected received size for normals does not match. Expected: " << (int)normals[0] 
+                          << " Received: " << (normals.size() / 6);
+    }
+    return unpackedNormals;
+}
+
+void EntityItemProperties::setPackedStrokeColors(const QByteArray& value) {
+    setStrokeColors(unpackStrokeColors(value));
+}
+
+QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
+    // the size of the vector is packed first
+    QVector<glm::vec3> unpackedStrokeColors = QVector<glm::vec3>((int)strokeColors[0]);
+   
+    if ((int)strokeColors[0] == strokeColors.size() / 3) {
+        int j = 0;
+        for (int i = 1; i < strokeColors.size();) {
+
+            float r = (uint8_t)strokeColors[i++] / 255.0f;
+            float g = (uint8_t)strokeColors[i++] / 255.0f;
+            float b = (uint8_t)strokeColors[i++] / 255.0f;
+            unpackedStrokeColors[j++] = glmVec3(r, g, b);
+        }
+    } else {
+        qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: " 
+            << (int)strokeColors[0] << " Received: " << (strokeColors.size() / 3);
+    }
+
+    return unpackedStrokeColors;
+}
 
 // NOTE: This version will only encode the portion of the edit message immediately following the
 // header it does not include the send times and sequence number because that is handled by the
@@ -1843,10 +2003,12 @@ void EntityItemProperties::markAllChanged() {
     _keyLight.markAllChanged();
 
     _backgroundModeChanged = true;
+    _hazeModeChanged = true;
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
     _stage.markAllChanged();
+    _haze.markAllChanged();
 
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;
@@ -1862,7 +2024,9 @@ void EntityItemProperties::markAllChanged() {
     _actionDataChanged = true;
 
     _normalsChanged = true;
+    _strokeColorsChanged = true;
     _strokeWidthsChanged = true;
+    _isUVModeStretchChanged = true;
 
     _xTextureURLChanged = true;
     _yTextureURLChanged = true;
@@ -2181,6 +2345,11 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (backgroundModeChanged()) {
         out += "backgroundMode";
     }
+
+    if (hazeModeChanged()) {
+        out += "hazeMode";
+    }
+
     if (voxelVolumeSizeChanged()) {
         out += "voxelVolumeSize";
     }
@@ -2272,10 +2441,19 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "shape";
     }
 
+    if (strokeColorsChanged()) {
+        out += "strokeColors";
+    }
+
+    if (isUVModeStretchChanged()) {
+        out += "isUVModeStretch";
+    }
+
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
     getStage().listChangedProperties(out);
+    getHaze().listChangedProperties(out);
 
     return out;
 }
@@ -2293,4 +2471,111 @@ bool EntityItemProperties::parentRelatedPropertyChanged() const {
 
 bool EntityItemProperties::queryAACubeRelatedPropertyChanged() const {
     return parentRelatedPropertyChanged() || dimensionsChanged();
+}
+
+// Checking Certifiable Properties
+#define ADD_STRING_PROPERTY(n, N) if (!get##N().isEmpty()) json[#n] = get##N()
+#define ADD_ENUM_PROPERTY(n, N) json[#n] = get##N##AsString()
+#define ADD_INT_PROPERTY(n, N) if (get##N() != 0) json[#n] = (get##N() == (quint32) -1) ? -1.0 : ((double) get##N())
+QByteArray EntityItemProperties::getStaticCertificateJSON() const {
+    // Produce a compact json of every non-default static certificate property, with the property names in alphabetical order.
+    // The static certificate properties include all an only those properties that cannot be changed without altering the identity
+    // of the entity as reviewed during the certification submission.
+
+    QJsonObject json;
+    if (!getAnimation().getURL().isEmpty()) {
+        json["animationURL"] = getAnimation().getURL();
+    }
+    ADD_STRING_PROPERTY(collisionSoundURL, CollisionSoundURL);
+    ADD_STRING_PROPERTY(compoundShapeURL, CompoundShapeURL);
+    ADD_INT_PROPERTY(editionNumber, EditionNumber);
+    ADD_INT_PROPERTY(instanceNumber, EntityInstanceNumber);
+    ADD_STRING_PROPERTY(itemArtist, ItemArtist);
+    ADD_STRING_PROPERTY(itemCategories, ItemCategories);
+    ADD_STRING_PROPERTY(itemDescription, ItemDescription);
+    ADD_STRING_PROPERTY(itemLicenseUrl, ItemLicense);
+    ADD_STRING_PROPERTY(itemName, ItemName);
+    ADD_INT_PROPERTY(limitedRun, LimitedRun);
+    ADD_STRING_PROPERTY(marketplaceID, MarketplaceID);
+    ADD_STRING_PROPERTY(modelURL, ModelURL);
+    ADD_STRING_PROPERTY(script, Script);
+    ADD_ENUM_PROPERTY(shapeType, ShapeType);
+    json["type"] = EntityTypes::getEntityTypeName(getType());
+
+    return QJsonDocument(json).toJson(QJsonDocument::Compact);
+}
+QByteArray EntityItemProperties::getStaticCertificateHash() const {
+    return QCryptographicHash::hash(getStaticCertificateJSON(), QCryptographicHash::Sha256);
+}
+
+bool EntityItemProperties::verifyStaticCertificateProperties() {
+    // True IIF a non-empty certificateID matches the static certificate json.
+    // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
+
+    if (getCertificateID().isEmpty()) {
+        return false;
+    }
+
+    const QByteArray marketplacePublicKeyByteArray = EntityItem::_marketplacePublicKey.toUtf8();
+    const unsigned char* marketplacePublicKey = reinterpret_cast<const unsigned char*>(marketplacePublicKeyByteArray.constData());
+    int marketplacePublicKeyLength = marketplacePublicKeyByteArray.length();
+
+    BIO *bio = BIO_new_mem_buf((void*)marketplacePublicKey, marketplacePublicKeyLength);
+    EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+    if (evp_key) {
+        RSA* rsa = EVP_PKEY_get1_RSA(evp_key);
+        if (rsa) {
+            const QByteArray digestByteArray = getStaticCertificateHash();
+            const unsigned char* digest = reinterpret_cast<const unsigned char*>(digestByteArray.constData());
+            int digestLength = digestByteArray.length();
+
+            const QByteArray signatureByteArray = QByteArray::fromBase64(getCertificateID().toUtf8());
+            const unsigned char* signature = reinterpret_cast<const unsigned char*>(signatureByteArray.constData());
+            int signatureLength = signatureByteArray.length();
+
+            ERR_clear_error();
+            bool answer = RSA_verify(NID_sha256,
+                digest,
+                digestLength,
+                signature,
+                signatureLength,
+                rsa);
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "ERROR while verifying static certificate properties! RSA error:" << error_str
+                    << "\nStatic Cert JSON:" << getStaticCertificateJSON()
+                    << "\nKey:" << EntityItem::_marketplacePublicKey << "\nKey Length:" << marketplacePublicKeyLength
+                    << "\nDigest:" << digest << "\nDigest Length:" << digestLength
+                    << "\nSignature:" << signature << "\nSignature Length:" << signatureLength;
+            }
+            RSA_free(rsa);
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            return answer;
+        } else {
+            if (bio) {
+                BIO_free(bio);
+            }
+            if (evp_key) {
+                EVP_PKEY_free(evp_key);
+            }
+            long error = ERR_get_error();
+            const char* error_str = ERR_error_string(error, NULL);
+            qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+            return false;
+        }
+    } else {
+        if (bio) {
+            BIO_free(bio);
+        }
+        long error = ERR_get_error();
+        const char* error_str = ERR_error_string(error, NULL);
+        qCWarning(entities) << "Failed to verify static certificate properties! RSA error:" << error_str;
+        return false;
+    }
 }

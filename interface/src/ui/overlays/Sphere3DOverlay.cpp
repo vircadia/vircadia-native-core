@@ -27,7 +27,7 @@ Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
 }
 
 void Sphere3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_renderVisible) {
         return; // do nothing if we're not visible
     }
 
@@ -60,7 +60,7 @@ const render::ShapeKey Sphere3DOverlay::getShapeKey() {
     if (isTransparent()) {
         builder.withTranslucent();
     }
-    if (!getIsSolid() || shouldDrawHUDLayer()) {
+    if (!getIsSolid()) {
         builder.withUnlit().withDepthBias();
     }
     return builder.build();

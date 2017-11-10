@@ -26,7 +26,7 @@ const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer entity { new ModelEntityItem(entityID) };
+    EntityItemPointer entity(new ModelEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
     return entity;
 }
@@ -111,38 +111,19 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
-    if (args.bitstreamVersion < VERSION_ENTITIES_HAS_COLLISION_MODEL) {
-        setCompoundShapeURL("");
-    } else {
-        READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-    }
-
-    // Because we're using AnimationLoop which will reset the frame index if you change it's running state
-    // we want to read these values in the order they appear in the buffer, but call our setters in an
-    // order that allows AnimationLoop to preserve the correct frame rate.
-    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_URL, QString, setAnimationURL);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, setAnimationFPS);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, setAnimationCurrentFrame);
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
-    }
-
+    READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
-    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_PROPERTIES_GROUP) {
-        READ_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, QString, setAnimationSettings);
-    } else {
-        int bytesFromAnimation;
-        withWriteLock([&] {
-            // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
-            // will automatically read into the animation loop
-            bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                propertyFlags, overwriteLocalData, animationPropertiesChanged);
-        });
+    int bytesFromAnimation;
+    withWriteLock([&] {
+        // Note: since we've associated our _animationProperties with our _animationLoop, the readEntitySubclassDataFromBuffer()
+        // will automatically read into the animation loop
+        bytesFromAnimation = _animationProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData, animationPropertiesChanged);
+    });
 
-        bytesRead += bytesFromAnimation;
-        dataAt += bytesFromAnimation;
-    }
+    bytesRead += bytesFromAnimation;
+    dataAt += bytesFromAnimation;
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
@@ -557,12 +538,6 @@ void ModelEntityItem::setAnimationLoop(bool loop) {
     });
 }
 
-bool ModelEntityItem::getAnimationLoop() const { 
-    return resultWithReadLock<bool>([&] {
-        return _animationProperties.getLoop();
-    });
-}
-
 void ModelEntityItem::setAnimationHold(bool hold) { 
     withWriteLock([&] {
         _animationProperties.setHold(hold);
@@ -610,8 +585,10 @@ float ModelEntityItem::getAnimationCurrentFrame() const {
     });
 }
 
-float ModelEntityItem::getAnimationFPS() const { 
+bool ModelEntityItem::isAnimatingSomething() const {
     return resultWithReadLock<float>([&] {
-        return _animationProperties.getFPS();
-    });
+        return !_animationProperties.getURL().isEmpty() &&
+            _animationProperties.getRunning() &&
+            (_animationProperties.getFPS() != 0.0f);
+        });
 }

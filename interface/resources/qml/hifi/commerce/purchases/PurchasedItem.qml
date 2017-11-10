@@ -34,10 +34,12 @@ Item {
     property string itemId;
     property string itemPreviewImageUrl;
     property string itemHref;
+    property string certificateId;
     property int displayedItemCount;
     property int itemEdition;
     property int numberSold;
     property int limitedRun;
+    property bool isWearable;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -168,7 +170,7 @@ Item {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    sendToPurchases({method: 'purchases_itemCertificateClicked', itemMarketplaceId: root.itemId});
+                    sendToPurchases({method: 'purchases_itemCertificateClicked', itemCertificateId: root.certificateId});
                 }
                 onEntered: {
                     certificateIcon.color = hifi.colors.black;
@@ -225,7 +227,7 @@ Item {
                         } else if (root.purchaseStatus === "invalidated") {
                             "INVALIDATED"
                         } else if (root.numberSold !== -1) {
-                            ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "INFTY" : root.limitedRun))
+                            ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "\u221e" : root.limitedRun))
                         } else {
                             ""
                         }
@@ -341,7 +343,7 @@ Item {
             anchors.bottom: parent.bottom;
             anchors.right: parent.right;
             width: height;
-            enabled: root.canRezCertifiedItems && root.purchaseStatus !== "invalidated";
+            enabled: (root.canRezCertifiedItems || root.isWearable) && root.purchaseStatus !== "invalidated";
             
             onClicked: {
                 if (urlHandler.canHandleUrl(root.itemHref)) {
@@ -414,7 +416,7 @@ Item {
                         size: 16;
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
-                        text: "Rez It"
+                        text: root.isWearable ? "Wear It" : "Rez It"
                     }
                 }
             }

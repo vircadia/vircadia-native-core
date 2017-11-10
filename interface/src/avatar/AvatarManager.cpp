@@ -53,7 +53,7 @@ const QUuid MY_AVATAR_KEY;  // NULL key
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
-    _myAvatar(std::make_shared<MyAvatar>(qApp->thread()))
+    _myAvatar(new MyAvatar(qApp->thread()), [](MyAvatar* ptr) { ptr->deleteLater(); })
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
@@ -179,6 +179,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         const AvatarPriority& sortData = sortedAvatars.top();
         const auto& avatar = std::static_pointer_cast<Avatar>(sortData.avatar);
 
+        bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
+        if (ignoring) {
+            sortedAvatars.pop();
+            continue;
+        }
+
         // for ALL avatars...
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());
@@ -297,7 +303,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<OtherAvatar>(qApp->thread());
+    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {

@@ -68,6 +68,7 @@ For usage and examples: colpick.com/plugin
                     cal.data('colpick').color = col = hexToHsb(fixHex(this.value));
                     fillRGBFields(col, cal.get(0));
                     fillHSBFields(col, cal.get(0));
+                    fillHexFields(col, cal.get(0));
                 } else if (this.parentNode.className.indexOf('_hsb') > 0) {
                     cal.data('colpick').color = col = fixHSB({
                         h: parseInt(cal.data('colpick').fields.eq(4).val(), 10),
@@ -76,6 +77,7 @@ For usage and examples: colpick.com/plugin
                     });
                     fillRGBFields(col, cal.get(0));
                     fillHexFields(col, cal.get(0));
+                    fillHSBFields(col, cal.get(0));
                 } else {
                     cal.data('colpick').color = col = rgbToHsb(fixRGB({
                         r: parseInt(cal.data('colpick').fields.eq(1).val(), 10),
@@ -84,6 +86,7 @@ For usage and examples: colpick.com/plugin
                     }));
                     fillHexFields(col, cal.get(0));
                     fillHSBFields(col, cal.get(0));
+                    fillRGBFields(col, cal.get(0));
                 }
                 setSelector(col, cal.get(0));
                 setHue(col, cal.get(0));

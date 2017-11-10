@@ -69,8 +69,8 @@ ParticleEffectEntityRenderer::ParticleEffectEntityRenderer(const EntityItemPoint
 }
 
 bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    entity->checkAndMaybeUpdateQueryAACube();
-        
+    entity->updateQueryAACube();
+
     if (_emitting != entity->getIsEmitting()) {
         return true;
     }
@@ -251,12 +251,13 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     });
 
     if (_emitting && particleProperties.emitting()) {
+        const auto& modelTransform = getModelTransform();
         uint64_t emitInterval = particleProperties.emitIntervalUsecs();
         if (emitInterval > 0 && interval >= _timeUntilNextEmit) {
             auto timeRemaining = interval;
             while (timeRemaining > _timeUntilNextEmit) {
                 // emit particle
-                _cpuParticles.push_back(createParticle(now, _modelTransform, particleProperties));
+                _cpuParticles.push_back(createParticle(now, modelTransform, particleProperties));
                 _timeUntilNextEmit = emitInterval;
                 if (emitInterval < timeRemaining) {
                     timeRemaining -= emitInterval;
@@ -315,7 +316,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     // In trail mode, the particles are created in world space.
     // so we only set a transform if they're not in trail mode
     if (!_particleProperties.emission.shouldTrail) {
-        transform = _modelTransform;
+        transform = getModelTransform();
         transform.setScale(vec3(1));
     }
     batch.setModelTransform(transform);

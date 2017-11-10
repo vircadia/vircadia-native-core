@@ -116,6 +116,30 @@ public:
         return LightAndShadow(getLight(lightId), getShadow(lightId));
     }
 
+    LightPointer getCurrentKeyLight() const {
+        Index keyLightId{ 0 };
+        if (!_currentFrame._sunLights.empty()) {
+            keyLightId = _currentFrame._sunLights.front();
+        }
+        return _lights.get(keyLightId);
+    }
+
+    ShadowPointer getCurrentKeyShadow() const {
+        Index keyLightId{ 0 };
+        if (!_currentFrame._sunLights.empty()) {
+            keyLightId = _currentFrame._sunLights.front();
+        }
+        return getShadow(keyLightId);
+    }
+
+    LightAndShadow getCurrentKeyLightAndShadow() const {
+        Index keyLightId{ 0 };
+        if (!_currentFrame._sunLights.empty()) {
+            keyLightId = _currentFrame._sunLights.front();
+        }
+        return LightAndShadow(getLight(keyLightId), getShadow(keyLightId));
+    }
+
     LightStage();
     Lights _lights;
     LightMap _lightMap;

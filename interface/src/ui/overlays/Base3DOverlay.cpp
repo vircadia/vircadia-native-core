@@ -26,7 +26,8 @@ Base3DOverlay::Base3DOverlay() :
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
-    _drawInFront(false)
+    _drawInFront(false),
+    _drawHUDLayer(false)
 {
 }
 
@@ -38,6 +39,7 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _isDashedLine(base3DOverlay->_isDashedLine),
     _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
     _drawInFront(base3DOverlay->_drawInFront),
+    _drawHUDLayer(base3DOverlay->_drawHUDLayer),
     _isGrabbable(base3DOverlay->_isGrabbable)
 {
     setTransform(base3DOverlay->getTransform());
@@ -125,10 +127,16 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     bool needRenderItemUpdate = false;
 
     auto drawInFront = properties["drawInFront"];
-
     if (drawInFront.isValid()) {
         bool value = drawInFront.toBool();
         setDrawInFront(value);
+        needRenderItemUpdate = true;
+    }
+
+    auto drawHUDLayer = properties["drawHUDLayer"];
+    if (drawHUDLayer.isValid()) {
+        bool value = drawHUDLayer.toBool();
+        setDrawHUDLayer(value);
         needRenderItemUpdate = true;
     }
 
@@ -257,7 +265,7 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     SpatiallyNestable::locationChanged(tellPhysics);
 
     // Force the actual update of the render transform through the notify call
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Base3DOverlay::parentDeleted() {
@@ -267,29 +275,30 @@ void Base3DOverlay::parentDeleted() {
 void Base3DOverlay::update(float duration) {
     // In Base3DOverlay, if its location or bound changed, the renderTrasnformDirty flag is true.
     // then the correct transform used for rendering is computed in the update transaction and assigned.
-    if (_renderTransformDirty) {
+    if (_renderVariableDirty) {
         auto itemID = getRenderItemID();
-        // Capture the render transform value in game loop before 
-        auto latestTransform = evalRenderTransform();
-        _renderTransformDirty = false;
         if (render::Item::isValidID(itemID)) {
+            // Capture the render transform value in game loop before
+            auto latestTransform = evalRenderTransform();
+            bool latestVisible = getVisible();
+            _renderVariableDirty = false;
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<Overlay>(itemID, [latestTransform](Overlay& data) {
+            transaction.updateItem<Overlay>(itemID, [latestTransform, latestVisible](Overlay& data) {
                 auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
                 if (overlay3D) {
+                    // TODO: overlays need to communicate all relavent render properties through transactions
                     overlay3D->setRenderTransform(latestTransform);
+                    overlay3D->setRenderVisible(latestVisible);
                 }
             });
             scene->enqueueTransaction(transaction);
-        } else {
-            setRenderTransform(latestTransform);
         }
     }
 }
 
-void Base3DOverlay::notifyRenderTransformChange() const {
-    _renderTransformDirty = true;
+void Base3DOverlay::notifyRenderVariableChange() const {
+    _renderVariableDirty = true;
 }
 
 Transform Base3DOverlay::evalRenderTransform() {
@@ -298,4 +307,19 @@ Transform Base3DOverlay::evalRenderTransform() {
 
 void Base3DOverlay::setRenderTransform(const Transform& transform) {
     _renderTransform = transform;
+}
+
+void Base3DOverlay::setRenderVisible(bool visible) {
+    _renderVisible = visible;
+}
+
+SpatialParentTree* Base3DOverlay::getParentTree() const {
+    auto entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    return entityTree.get();
+}
+
+void Base3DOverlay::setVisible(bool visible) {
+    Parent::setVisible(visible);
+    notifyRenderVariableChange();
 }

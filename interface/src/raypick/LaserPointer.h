@@ -12,12 +12,20 @@
 #define hifi_LaserPointer_h
 
 #include <QString>
-#include "glm/glm.hpp"
+#include <glm/glm.hpp>
 
 #include <DependencyManager.h>
-#include "raypick/RayPickScriptingInterface.h"
+#include <shared/ReadWriteLockable.h>
+
+#include "ui/overlays/Overlay.h"
 
 class RayPickResult;
+
+struct LockEndObject {
+    QUuid id { QUuid() };
+    bool isOverlay { false };
+    glm::mat4 offsetMat { glm::mat4() };
+};
 
 class RenderState {
 
@@ -32,6 +40,9 @@ public:
     const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
     const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
 
+    void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
+    const glm::vec3& getEndDim() const { return _endDim; }
+
     void deleteOverlays();
 
 private:
@@ -41,18 +52,21 @@ private:
     bool _startIgnoreRays;
     bool _pathIgnoreRays;
     bool _endIgnoreRays;
+
+    glm::vec3 _endDim;
 };
 
 
-class LaserPointer {
+class LaserPointer : public ReadWriteLockable {
 
 public:
+    using Pointer = std::shared_ptr<LaserPointer>;
 
     typedef std::unordered_map<std::string, RenderState> RenderStateMap;
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool distanceScaleEnd, const bool enabled);
     ~LaserPointer();
 
     QUuid getRayUID() { return _rayPickUID; }
@@ -66,16 +80,10 @@ public:
 
     void setPrecisionPicking(const bool precisionPicking);
     void setLaserLength(const float laserLength);
-    void setLockEndUUID(QUuid objectID, const bool isOverlay);
+    void setLockEndUUID(QUuid objectID, const bool isOverlay, const glm::mat4& offsetMat = glm::mat4());
 
-    void setIgnoreEntities(const QScriptValue& ignoreEntities);
-    void setIncludeEntities(const QScriptValue& includeEntities);
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays);
-    void setIncludeOverlays(const QScriptValue& includeOverlays);
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars);
-    void setIncludeAvatars(const QScriptValue& includeAvatars);
-
-    QReadWriteLock* getLock() { return &_lock; }
+    void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
+    void setIncludeItems(const QVector<QUuid>& includeItems) const;
 
     void update();
 
@@ -88,10 +96,10 @@ private:
     bool _faceAvatar;
     bool _centerEndY;
     bool _lockEnd;
-    std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
+    bool _distanceScaleEnd;
+    LockEndObject _lockEndObject;
 
-    QUuid _rayPickUID;
-    QReadWriteLock _lock;
+    const QUuid _rayPickUID;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const PickRay& pickRay, const bool defaultState);

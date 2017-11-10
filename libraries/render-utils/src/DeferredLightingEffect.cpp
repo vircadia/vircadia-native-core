@@ -76,7 +76,7 @@ enum DeferredShader_BufferSlot {
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
     LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
     LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-
+    HAZE_MODEL_BUFFER_SLOT
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
@@ -169,6 +169,7 @@ static gpu::ShaderPointer makeLightProgram(const char* vertSource, const char* f
     slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HAZE_MODEL_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), LIGHT_AMBIENT_SLOT));
@@ -438,6 +439,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
+    const model::HazePointer& haze,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
     const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
@@ -496,7 +498,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getLightAndShadow(0);
+        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
 
         // Bind the shadow buffer
@@ -507,14 +509,21 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         auto& program = deferredLightingEffect->_directionalSkyboxLight;
         LightLocationsPtr locations = deferredLightingEffect->_directionalSkyboxLightLocations;
 
-        auto keyLight = lightStage->getLight(0);
+        auto keyLight = lightAndShadow.first;
+
+        model::LightPointer keyAmbientLight;
+        if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
+            keyAmbientLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
+        }
+        bool hasAmbientMap = (keyAmbientLight != nullptr);
 
         // Setup the global directional pass pipeline
         {
             if (deferredLightingEffect->_shadowMapEnabled) {
+
                 // If the keylight has an ambient Map then use the Skybox version of the pass
                 // otherwise use the ambient sphere version
-                if (keyLight->getAmbientMap()) {
+                if (hasAmbientMap) {
                     program = deferredLightingEffect->_directionalSkyboxLightShadow;
                     locations = deferredLightingEffect->_directionalSkyboxLightShadowLocations;
                 } else {
@@ -524,7 +533,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             } else {
                 // If the keylight has an ambient Map then use the Skybox version of the pass
                 // otherwise use the ambient sphere version
-                if (keyLight->getAmbientMap()) {
+                if (hasAmbientMap) {
                     program = deferredLightingEffect->_directionalSkyboxLight;
                     locations = deferredLightingEffect->_directionalSkyboxLightLocations;
                 } else {
@@ -538,6 +547,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
                     batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow->getBuffer());
                 }
             }
+
             batch.setPipeline(program);
         }
 
@@ -547,7 +557,12 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Setup the global lighting
         deferredLightingEffect->setupKeyLightBatch(args, batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
-        
+
+        // Haze
+        if (haze) {
+	        batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
+        }
+		
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         deferredLightingEffect->unsetKeyLightBatch(batch, locations->lightBufferUnit, locations->ambientBufferUnit, SKYBOX_MAP_UNIT);
@@ -566,7 +581,8 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
     const DeferredFrameTransformPointer& frameTransform,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
-    const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer, const LightClustersPointer& lightClusters) {
+    const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer, 
+    const LightClustersPointer& lightClusters) {
 
     bool points = lightingModel->isPointLightEnabled();
     bool spots = lightingModel->isSpotLightEnabled();
@@ -675,6 +691,8 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     auto lightClusters = inputs.get6();
     auto args = renderContext->args;
 
+    const auto haze = inputs.get7();
+
     if (!_gpuTimer) {
         _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
     }
@@ -684,7 +702,7 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     args->_batch = &batch;
      _gpuTimer->begin(batch);
 
-    setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
+    setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, haze, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
     
     lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 
@@ -757,6 +775,17 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
 
             // Add the global light to the light stage (for later shadow rendering)
             _defaultBackgroundID = backgroundStage->addBackground(_defaultBackground);
+        }
+    }
+
+    if (!_defaultHaze) {
+        auto hazeStage = renderContext->_scene->getStage<HazeStage>();
+        if (hazeStage) {
+
+            auto haze = std::make_shared<model::Haze>();
+
+            _defaultHaze = haze;
+            _defaultHazeID = hazeStage->addHaze(_defaultHaze);
         }
     }
 }

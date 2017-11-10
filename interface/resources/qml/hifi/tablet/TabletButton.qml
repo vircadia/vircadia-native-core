@@ -1,5 +1,6 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
+import TabletScriptingInterface 1.0
 
 Item {
     id: tabletButton
@@ -130,11 +131,13 @@ Item {
             }
             tabletButton.clicked();
             if (tabletRoot) {
-                tabletRoot.playButtonClickSound();
+                tabletInterface.playSound(TabletEnums.ButtonClick);
             }
         }
         onEntered: {
             tabletButton.isEntered = true;
+            tabletInterface.playSound(TabletEnums.ButtonHover);
+
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";
             } else {
@@ -168,7 +171,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#ffffff"
+                color: captionColorOverride !== "" ? captionColorOverride: "#ffffff"
                 text: tabletButton.hoverText
             }
 
@@ -194,7 +197,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeText
             }
 
@@ -225,7 +228,7 @@ Item {
 
             PropertyChanges {
                 target: text
-                color: "#333333"
+                color: captionColorOverride !== "" ? captionColorOverride: "#333333"
                 text: tabletButton.activeHoverText
             }
 

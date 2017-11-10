@@ -30,8 +30,10 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(glm::quat orientation READ getOrientation)
     Q_PROPERTY(bool mounted READ isMounted NOTIFY mountedChanged)
     Q_PROPERTY(bool showTablet READ getShouldShowTablet)
+    Q_PROPERTY(bool tabletContextualMode READ getTabletContextualMode)
     Q_PROPERTY(QUuid tabletID READ getCurrentTabletFrameID WRITE setCurrentTabletFrameID)
     Q_PROPERTY(QUuid homeButtonID READ getCurrentHomeButtonID WRITE setCurrentHomeButtonID)
+    Q_PROPERTY(QUuid homeButtonHighlightID READ getCurrentHomeButtonHightlightID WRITE setCurrentHomeButtonHightlightID)
     Q_PROPERTY(QUuid tabletScreenID READ getCurrentTabletScreenID WRITE setCurrentTabletScreenID)
 
 public:
@@ -74,7 +76,7 @@ public:
 
     Q_INVOKABLE void closeTablet();
 
-    Q_INVOKABLE void openTablet();
+    Q_INVOKABLE void openTablet(bool contextualMode = false);
 
 signals:
     bool shouldShowHandControllersChanged();
@@ -87,9 +89,10 @@ public:
 
     bool isMounted() const;
 
-    void toggleShouldShowTablet() { _showTablet = !_showTablet; }
-    void setShouldShowTablet(bool value) { _showTablet = value; }
+    void toggleShouldShowTablet();
+    void setShouldShowTablet(bool value);
     bool getShouldShowTablet() const { return _showTablet; }
+    bool getTabletContextualMode() const { return _tabletContextualMode; }
 
     void setCurrentTabletFrameID(QUuid tabletID) { _tabletUIID = tabletID; }
     QUuid getCurrentTabletFrameID() const { return _tabletUIID; }
@@ -97,14 +100,19 @@ public:
     void setCurrentHomeButtonID(QUuid homeButtonID) { _homeButtonID = homeButtonID; }
     QUuid getCurrentHomeButtonID() const { return _homeButtonID; }
 
+    void setCurrentHomeButtonHightlightID(QUuid homeButtonHightlightID) { _homeButtonHightlightID = homeButtonHightlightID; }
+    QUuid getCurrentHomeButtonHightlightID() const { return _homeButtonHightlightID; }
+
     void setCurrentTabletScreenID(QUuid tabletID) { _tabletScreenID = tabletID; }
     QUuid getCurrentTabletScreenID() const { return _tabletScreenID; }
 
 private:
     bool _showTablet { false };
+    bool _tabletContextualMode { false };
     QUuid _tabletUIID; // this is the entityID of the tablet frame
     QUuid _tabletScreenID; // this is the overlayID which is part of (a child of) the tablet-ui.
     QUuid _homeButtonID;
+    QUuid _homeButtonHightlightID;
     QUuid _tabletEntityID;
 
     // Get the position of the HMD

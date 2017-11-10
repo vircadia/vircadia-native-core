@@ -14,6 +14,8 @@ import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 import QtGraphicalEffects 1.0
 
+import TabletScriptingInterface 1.0
+
 Rectangle {
     readonly property var level: Audio.inputLevel;
 
@@ -57,8 +59,16 @@ Rectangle {
 
         hoverEnabled: true;
         scrollGestureEnabled: false;
-        onClicked: { Audio.muted = !Audio.muted; }
+        onClicked: {
+            Audio.muted = !Audio.muted;
+            tabletInterface.playSound(TabletEnums.ButtonClick);
+        }
         drag.target: dragTarget;
+        onContainsMouseChanged: {
+            if (containsMouse) {
+                tabletInterface.playSound(TabletEnums.ButtonHover);
+            }
+        }
     }
 
     QtObject {

@@ -147,6 +147,16 @@ public:
         NUM_SHAPES,
     };
 
+    /// @param entityShapeEnum:  The entity::Shape enumeration for the shape
+    ///           whose GeometryCache::Shape is desired.
+    /// @return GeometryCache::NUM_SHAPES in the event of an error; otherwise,
+    ///         the GeometryCache::Shape enum which aligns with the 
+    ///         specified entityShapeEnum
+    static GeometryCache::Shape getShapeForEntityShape(int entityShapeEnum);
+    static QString stringFromShape(GeometryCache::Shape geoShape);
+
+    static void computeSimpleHullPointListForShape(int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList);
+
     static uint8_t CUSTOM_PIPELINE_NUMBER;
     static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
     static void registerShapePipeline() {
@@ -339,14 +349,10 @@ public:
     void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
 
     struct ShapeData {
-        size_t _indexOffset{ 0 };
-        size_t _indexCount{ 0 };
-        size_t _wireIndexOffset{ 0 };
-        size_t _wireIndexCount{ 0 };
-
         gpu::BufferView _positionView;
         gpu::BufferView _normalView;
-        gpu::BufferPointer _indices;
+        gpu::BufferView _indicesView;
+        gpu::BufferView _wireIndicesView;
 
         void setupVertices(gpu::BufferPointer& vertexBuffer, const geometry::VertexVector& vertices);
         void setupIndices(gpu::BufferPointer& indexBuffer, const geometry::IndexVector& indices, const geometry::IndexVector& wireIndices);
@@ -359,15 +365,21 @@ public:
 
     using VShape = std::array<ShapeData, NUM_SHAPES>;
 
-    VShape _shapes;
+    /// returns ShapeData associated with the specified shape,
+    /// otherwise nullptr in the event of an error.
+    const ShapeData * getShapeData(Shape shape) const;
 
 private:
+
     GeometryCache();
     virtual ~GeometryCache();
     void buildShapes();
 
     typedef QPair<int, int> IntPair;
     typedef QPair<unsigned int, unsigned int> VerticesIndices;
+    
+    
+    VShape _shapes;
 
     gpu::PipelinePointer _standardDrawPipeline;
     gpu::PipelinePointer _standardDrawPipelineNoBlend;

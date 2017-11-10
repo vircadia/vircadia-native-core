@@ -8,6 +8,9 @@ Item {
 
     anchors.leftMargin: 300
     objectName: "StatsItem"
+    property int modality: Qt.NonModal
+    implicitHeight: row.height
+    implicitWidth: row.width
 
     Component.onCompleted: {
         stats.parentChanged.connect(fill);
@@ -18,8 +21,9 @@ Item {
     }
 
     function fill() {
-        // Explicitly fill in order to avoid warnings at shutdown
-        anchors.fill = parent;
+        // This will cause a  warning at shutdown, need to find another way to remove
+        // the warning other than filling the anchors to the parent
+        anchors.horizontalCenter = parent.horizontalCenter
     }
 
     Hifi.Stats {

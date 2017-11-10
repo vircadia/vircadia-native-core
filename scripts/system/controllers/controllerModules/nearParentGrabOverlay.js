@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, NULL_UUID,
+/* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex,
    enableDispatcherModule, disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    makeDispatcherModuleParameters, Overlays, makeRunningValues, Vec3, resizeTablet, getTabletWidthFromSettings,
    NEAR_GRAB_RADIUS
@@ -48,7 +48,7 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.thisHandIsParent = function(props) {
-            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
+            if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== MyAvatar.SELF_ID) {
                 return false;
             }
 
@@ -94,7 +94,7 @@ Script.include("/~/system/libraries/utils.js");
             var grabbedProperties = this.getGrabbedProperties();
 
             var reparentProps = {
-                parentID: AVATAR_SELF_ID,
+                parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex,
                 velocity: {x: 0, y: 0, z: 0},
                 angularVelocity: {x: 0, y: 0, z: 0}
@@ -130,9 +130,9 @@ Script.include("/~/system/libraries/utils.js");
 
         this.endNearParentingGrabOverlay = function () {
             var previousParentID = this.previousParentID[this.grabbedThingID];
-            if ((previousParentID === NULL_UUID || previousParentID === null) && !this.robbed) {
+            if ((previousParentID === Uuid.NULL || previousParentID === null) && !this.robbed) {
                 Overlays.editOverlay(this.grabbedThingID, {
-                    parentID: NULL_UUID,
+                    parentID: Uuid.NULL,
                     parentJointIndex: -1
                 });
             } else if (!this.robbed){
@@ -147,6 +147,12 @@ Script.include("/~/system/libraries/utils.js");
                     resizeTablet(getTabletWidthFromSettings(), this.previousParentJointIndex[this.grabbedThingID]);
                 }
             }
+
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'release',
+                grabbedEntity: this.grabbedThingID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
 
             this.grabbedThingID = null;
         };

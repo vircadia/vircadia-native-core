@@ -43,6 +43,9 @@ signals:
     void inventoryResult(QJsonObject result);
     void historyResult(QJsonObject result);
     void accountResult(QJsonObject result);
+    void certificateInfoResult(QJsonObject result);
+
+    void updateCertificateStatus(const QString& certID, uint certStatus);
 
 protected:
     Q_INVOKABLE void getWalletStatus();
@@ -63,6 +66,8 @@ protected:
     Q_INVOKABLE void generateKeyPair();
     Q_INVOKABLE void reset();
     Q_INVOKABLE void account();
+
+    Q_INVOKABLE void certificateInfo(const QString& certificateId);
 };
 
 #endif // hifi_QmlCommerce_h

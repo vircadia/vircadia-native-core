@@ -43,6 +43,7 @@ Item {
 
                 calculatePendingAndInvalidated();
             }
+            refreshTimer.start();
         }
     }
 
@@ -117,6 +118,8 @@ Item {
                     historyReceived = false;
                     commerce.balance();
                     commerce.history();
+                } else {
+                    refreshTimer.stop();
                 }
             }
         }
@@ -135,6 +138,17 @@ Item {
             height: paintedHeight;
             // Style
             color: hifi.colors.white;
+        }
+    }
+
+    Timer {
+        id: refreshTimer;
+        interval: 4000; // Remove this after demo?
+        onTriggered: {
+            console.log("Refreshing Wallet Home...");
+            historyReceived = false;
+            commerce.balance();
+            commerce.history();
         }
     }
 
@@ -164,7 +178,7 @@ Item {
             anchors.top: parent.top;
             anchors.topMargin: 26;
             anchors.left: parent.left;
-            anchors.leftMargin: 30;
+            anchors.leftMargin: 20;
             anchors.right: parent.right;
             anchors.rightMargin: 30;
             height: 30;
@@ -182,7 +196,38 @@ Item {
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            anchors.rightMargin: 24;
+
+            Item {
+                visible: transactionHistoryModel.count === 0 && root.historyReceived;
+                anchors.centerIn: parent;
+                width: parent.width - 12;
+                height: parent.height;
+
+                HifiControlsUit.Separator {
+                colorScheme: 1;
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    anchors.top: parent.top;
+                }
+
+                RalewayRegular {
+                    id: noActivityText;
+                text: "<b>The Wallet app is in closed Beta.</b><br><br>To request entry and <b>receive free HFC</b>, please contact " +
+                "<b>info@highfidelity.com</b> with your High Fidelity account username and the email address registered to that account.";
+                // Text size
+                size: 24;
+                // Style
+                color: hifi.colors.blueAccent;
+                anchors.left: parent.left;
+                anchors.leftMargin: 12;
+                anchors.right: parent.right;
+                anchors.rightMargin: 12;
+                anchors.verticalCenter: parent.verticalCenter;
+                height: paintedHeight;
+                wrapMode: Text.WordWrap;
+                horizontalAlignment: Text.AlignHCenter;
+                }
+            }
             
             ListView {
                 id: transactionHistory;
@@ -280,17 +325,6 @@ Item {
                     }
                 }
             }
-
-            // This should never be visible (since you immediately get 100 HFC)
-            FiraSansRegular {
-                id: emptyTransationHistory;
-                size: 24;
-                visible: !transactionHistory.visible && root.historyReceived;
-                text: "Recent Activity Unavailable";
-                anchors.fill: parent;
-                horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
-            }
         }
     }
 
@@ -299,10 +333,14 @@ Item {
     //
 
     function getFormattedDate(timestamp) {
+        function addLeadingZero(n) {
+            return n < 10 ? '0' + n : '' + n;
+        }
+
         var a = new Date(timestamp);
         var year = a.getFullYear();
-        var month = a.getMonth();
-        var day = a.getDate();
+        var month = addLeadingZero(a.getMonth());
+        var day = addLeadingZero(a.getDate());
         var hour = a.getHours();
         var drawnHour = hour;
         if (hour === 0) {
@@ -310,14 +348,15 @@ Item {
         } else if (hour > 12) {
             drawnHour -= 12;
         }
+        drawnHour = addLeadingZero(drawnHour);
         
         var amOrPm = "AM";
         if (hour >= 12) {
             amOrPm = "PM";
         }
 
-        var min = a.getMinutes();
-        var sec = a.getSeconds();
+        var min = addLeadingZero(a.getMinutes());
+        var sec = addLeadingZero(a.getSeconds());
         return year + '-' + month + '-' + day + '<br>' + drawnHour + ':' + min + amOrPm;
     }
 
@@ -331,7 +370,9 @@ Item {
         }
 
         root.pendingCount = pendingCount;
-        transactionHistoryModel.insert(0, {"transaction_type": "pendingCount"});
+        if (pendingCount > 0) {
+            transactionHistoryModel.insert(0, {"transaction_type": "pendingCount"});
+        }
     }
 
     //

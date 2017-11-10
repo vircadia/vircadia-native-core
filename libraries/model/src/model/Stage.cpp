@@ -13,6 +13,7 @@
 #include <glm/gtx/transform.hpp> 
 #include <math.h>
 #include <qcompilerdetection.h>
+#include <ComponentMode.h>
 
 using namespace model;
 

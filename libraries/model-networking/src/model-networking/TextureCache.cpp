@@ -620,6 +620,12 @@ void NetworkTexture::ktxMipRequestFinished() {
 
                 texture->assignStoredMip(mipLevel, data.size(), reinterpret_cast<const uint8_t*>(data.data()));
 
+                // If mip level assigned above is still unavailable, then we assume future requests will also fail.
+                auto minMipLevel = texture->minAvailableMipLevel();
+                if (minMipLevel > mipLevel) {
+                    return;
+                }
+
                 QMetaObject::invokeMethod(resource.data(), "setImage",
                     Q_ARG(gpu::TexturePointer, texture),
                     Q_ARG(int, texture->getWidth()),

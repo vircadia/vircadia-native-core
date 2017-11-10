@@ -121,8 +121,6 @@ bool Model::needsFixupInScene() const {
     return (_needsFixupInScene || !_addedToScene) && !_needsReload && isLoaded();
 }
 
-// TODO?: should we combine translation and rotation into single method to avoid double-work?
-// (figure out where we call these)
 void Model::setTranslation(const glm::vec3& translation) {
     _translation = translation;
     updateRenderItems();
@@ -131,6 +129,14 @@ void Model::setTranslation(const glm::vec3& translation) {
 void Model::setRotation(const glm::quat& rotation) {
     _rotation = rotation;
     updateRenderItems();
+}
+
+// temporary HACK: set transform while avoiding implicit calls to updateRenderItems()
+// TODO: make setRotation() and friends set flag to be used later to decide to updateRenderItems()
+void Model::setTransformNoUpdateRenderItems(const Transform& transform) {
+    _translation = transform.getTranslation();
+    _rotation = transform.getRotation();
+    // DO NOT call updateRenderItems() here!
 }
 
 Transform Model::getTransform() const {
@@ -220,7 +226,7 @@ void Model::updateRenderItems() {
 
         // do nothing, if the model has already been destroyed.
         auto self = weakSelf.lock();
-        if (!self) {
+        if (!self || !self->isLoaded()) {
             return;
         }
 
@@ -229,37 +235,31 @@ void Model::updateRenderItems() {
         self->updateClusterMatrices();
 
         Transform modelTransform = self->getTransform();
-        Transform physicsTransform = modelTransform;
         modelTransform.setScale(glm::vec3(1.0f));
 
-        uint32_t deleteGeometryCounter = self->_deleteGeometryCounter;
-
         render::Transaction transaction;
-        foreach (auto itemID, self->_modelMeshRenderItemsMap.keys()) {
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [deleteGeometryCounter, modelTransform](ModelMeshPartPayload& data) {
-                ModelPointer model = data._model.lock();
-                if (model && model->isLoaded()) {
-                    // Ensure the model geometry was not reset between frames
-                    if (deleteGeometryCounter == model->_deleteGeometryCounter) {
+        for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
 
-                        const Model::MeshState& state = model->getMeshState(data._meshIndex);
-                        Transform renderTransform = modelTransform;
-                        if (state.clusterMatrices.size() == 1) {
-                            renderTransform = modelTransform.worldTransform(Transform(state.clusterMatrices[0]));
-                        }
-                        data.updateTransformForSkinnedMesh(renderTransform, modelTransform, state.clusterBuffer);
-                    }
+            auto itemID = self->_modelMeshRenderItemIDs[i];
+            auto meshIndex = self->_modelMeshRenderItemShapes[i].meshIndex;
+            auto clusterMatrices(self->getMeshState(meshIndex).clusterMatrices);
+
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, clusterMatrices](ModelMeshPartPayload& data) {
+                data.updateClusterBuffer(clusterMatrices);
+                Transform renderTransform = modelTransform;
+                if (clusterMatrices.size() == 1) {
+                    renderTransform = modelTransform.worldTransform(Transform(clusterMatrices[0]));
                 }
+                data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
             });
         }
 
-        // collision mesh does not share the same unit scale as the FBX file's mesh: only apply offset
         Transform collisionMeshOffset;
         collisionMeshOffset.setIdentity();
         foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
-            transaction.updateItem<MeshPartPayload>(itemID, [physicsTransform, collisionMeshOffset](MeshPartPayload& data) {
+            transaction.updateItem<MeshPartPayload>(itemID, [modelTransform, collisionMeshOffset](MeshPartPayload& data) {
                 // update the model transform for this render item.
-                data.updateTransform(physicsTransform, collisionMeshOffset);
+                data.updateTransform(modelTransform, collisionMeshOffset);
             });
         }
 
@@ -307,7 +307,7 @@ bool Model::updateGeometry() {
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterMatrices.resize(mesh.clusters.size());
-            _meshStates.append(state);
+            _meshStates.push_back(state);
 
             // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
             // later in ModelMeshPayload, however the vast majority of meshes will not have them.
@@ -603,6 +603,21 @@ void Model::setLayeredInFront(bool layered, const render::ScenePointer& scene) {
     }
 }
 
+void Model::setLayeredInHUD(bool layered, const render::ScenePointer& scene) {
+    if (_isLayeredInHUD != layered) {
+        _isLayeredInHUD = layered;
+
+        render::Transaction transaction;
+        foreach(auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.resetItem(item, _modelMeshRenderItemsMap[item]);
+        }
+        foreach(auto item, _collisionRenderItemsMap.keys()) {
+            transaction.resetItem(item, _collisionRenderItemsMap[item]);
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
 bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
@@ -667,6 +682,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItemIDs.clear();
     _modelMeshRenderItemsMap.clear();
     _modelMeshRenderItems.clear();
+    _modelMeshRenderItemShapes.clear();
 
     foreach(auto item, _collisionRenderItemsMap.keys()) {
         transaction.removeItem(item);
@@ -942,7 +958,7 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
 }
 
 void Blender::run() {
-    PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
+    DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     QVector<glm::vec3> vertices, normals;
     if (_model) {
         int offset = 0;
@@ -1063,8 +1079,7 @@ void Model::snapToRegistrationPoint() {
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    PROFILE_RANGE(simulation_detail, __FUNCTION__);
-    PerformanceTimer perfTimer("Model::simulate");
+    DETAILED_PROFILE_RANGE(simulation_detail, __FUNCTION__);
     fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
 
@@ -1102,31 +1117,20 @@ void Model::computeMeshPartLocalBounds() {
 
 // virtual
 void Model::updateClusterMatrices() {
-    PerformanceTimer perfTimer("Model::updateClusterMatrices");
+    DETAILED_PERFORMANCE_TIMER("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
         return;
     }
     _needsUpdateClusterMatrices = false;
     const FBXGeometry& geometry = getFBXGeometry();
-    for (int i = 0; i < _meshStates.size(); i++) {
+    for (int i = 0; i < (int) _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
             auto jointMatrix = _rig.getJointTransform(cluster.jointIndex);
             glm_mat4u_mul(jointMatrix, cluster.inverseBindMatrix, state.clusterMatrices[j]);
-        }
-
-        // Once computed the cluster matrices, update the buffer(s)
-        if (mesh.clusters.size() > 1) {
-            if (!state.clusterBuffer) {
-                state.clusterBuffer = std::make_shared<gpu::Buffer>(state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                                    (const gpu::Byte*) state.clusterMatrices.constData());
-            } else {
-                state.clusterBuffer->setSubData(0, state.clusterMatrices.size() * sizeof(glm::mat4),
-                                                (const gpu::Byte*) state.clusterMatrices.constData());
-            }
         }
     }
 
@@ -1237,7 +1241,7 @@ void Model::createVisibleRenderItemSet() {
     const auto& meshes = _renderGeometry->getMeshes();
 
     // all of our mesh vectors must match in size
-    if ((int)meshes.size() != _meshStates.size()) {
+    if (meshes.size() != _meshStates.size()) {
         qCDebug(renderutils) << "WARNING!!!! Mesh Sizes don't match! We will not segregate mesh groups yet.";
         return;
     }
@@ -1246,6 +1250,7 @@ void Model::createVisibleRenderItemSet() {
     Q_ASSERT(_modelMeshRenderItems.isEmpty());
 
     _modelMeshRenderItems.clear();
+    _modelMeshRenderItemShapes.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1268,6 +1273,7 @@ void Model::createVisibleRenderItemSet() {
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
+            _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
         }
     }
@@ -1309,7 +1315,7 @@ void Model::createCollisionRenderItemSet() {
 }
 
 bool Model::isRenderable() const {
-    return !_meshStates.isEmpty() || (isLoaded() && _renderGeometry->getMeshes().empty());
+    return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
 class CollisionRenderGeometry : public Geometry {

@@ -90,7 +90,6 @@ public:
     void init();
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
-    void render3DHUDOverlays(RenderArgs* renderArgs);
     void disable();
     void enable();
 
@@ -103,12 +102,15 @@ public:
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     OverlayID addOverlay(const Overlay::Pointer& overlay);
 
-    void setOverlayDrawHUDLayer(const OverlayID& id, const bool drawHUDLayer);
-
     bool mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);
     bool mouseMoveEvent(QMouseEvent* event);
+
+    void mousePressEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseMoveEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void mouseReleaseEvent(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverLeaveEvent(const OverlayID& overlayID, const PointerEvent& event);
 
     void cleanupAllOverlays();
 
@@ -301,12 +303,12 @@ public slots:
     void sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
     void sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
-    void sendHoverEnterOverlay(const OverlayID& id, const PointerEvent& event);
-    void sendHoverOverOverlay(const OverlayID& id, const PointerEvent& event);
-    void sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& event);
+    void sendHoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendHoverOverOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
     OverlayID getKeyboardFocusOverlay();
-    void setKeyboardFocusOverlay(OverlayID id);
+    void setKeyboardFocusOverlay(const OverlayID& id);
 
 signals:
     /**jsdoc
@@ -334,10 +336,7 @@ private:
 
     mutable QMutex _mutex { QMutex::Recursive };
     QMap<OverlayID, Overlay::Pointer> _overlaysHUD;
-    QMap<OverlayID, Overlay::Pointer> _overlays3DHUD;
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
-
-    render::ShapePlumberPointer _shapePlumber;
 
 #if OVERLAY_PANELS
     QMap<OverlayID, OverlayPanel::Pointer> _panels;

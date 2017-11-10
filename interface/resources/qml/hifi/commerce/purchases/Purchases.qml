@@ -32,7 +32,7 @@ Rectangle {
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool canRezCertifiedItems: Entities.canRezCertified || Entities.canRezTmpCertified;
+    property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property bool pendingInventoryReply: true;
     property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
@@ -241,7 +241,7 @@ Rectangle {
         }
     }
 
-    FirstUseTutorial {
+    HifiCommerceCommon.FirstUseTutorial {
         id: firstUseTutorial;
         z: 999;
         visible: root.activeView === "firstUseTutorial";
@@ -427,12 +427,14 @@ Rectangle {
                 itemId: id;
                 itemPreviewImageUrl: preview;
                 itemHref: download_url;
+                certificateId: certificate_id;
                 purchaseStatus: status;
                 purchaseStatusChanged: statusChanged;
                 itemEdition: model.edition_number;
                 numberSold: model.number_sold;
                 limitedRun: model.limited_run;
                 displayedItemCount: model.displayedItemCount;
+                isWearable: model.categories.indexOf("Wearables") > -1;
                 anchors.topMargin: 12;
                 anchors.bottomMargin: 12;
 
@@ -581,9 +583,11 @@ Rectangle {
 
     Timer {
         id: inventoryTimer;
-        interval: 90000;
+        interval: 4000; // Change this back to 90000 after demo
+        //interval: 90000;
         onTriggered: {
             if (root.activeView === "purchasesMain" && !root.pendingInventoryReply) {
+                console.log("Refreshing Purchases...");
                 root.pendingInventoryReply = true;
                 commerce.inventory();
             }
@@ -659,6 +663,8 @@ Rectangle {
                     currentPurchasesModelStatus !== previousPurchasesModelStatus) {
                     
                     purchasesModel.setProperty(i, "statusChanged", true);
+                } else {
+                    purchasesModel.setProperty(i, "statusChanged", false);
                 }
             }
         }
@@ -684,8 +690,7 @@ Rectangle {
                 titleBarContainer.referrerURL = message.referrerURL;
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
-            case 'inspectionCertificate_setMarketplaceId':
-            case 'inspectionCertificate_setItemInfo':
+            case 'inspectionCertificate_setCertificateId':
                 inspectionCertificate.fromScript(message);
             break;
             case 'purchases_showMyItems':
