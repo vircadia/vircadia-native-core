@@ -24,6 +24,7 @@ exports.handlers = {
             '../../libraries/entities/src',
             '../../libraries/networking/src',
             '../../libraries/shared/src',
+            '../../libraries/shared/src/shared',
             '../../libraries/script-engine/src',
         ];
         var exts = ['.h', '.cpp'];

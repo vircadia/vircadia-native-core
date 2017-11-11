@@ -37,12 +37,70 @@ class Camera : public QObject {
     Q_OBJECT
 
     /**jsdoc
+     * The Camera API provides access to the "camera" that defines your view in desktop and HMD modes.
+     *
+     * <p />
+     *
+     * <h5>Modes:</h5>
+     *
+     * <p>Camera modes affect the position of the camera and the controls for camera movement. The camera can be in one of the
+     * following modes:</p>
+     *
+     * <table>
+     *   <thead>
+     *     <tr>
+     *       <th>Mode</th>
+     *       <th>String</th>
+     *       <th>Description</th>
+     *     </tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr>
+     *       <td><strong>First&nbsp;Person</strong></td>
+     *       <td><code>"first&nbsp;person"</code></td>
+     *       <td>The camera is positioned such that you have the same view as your avatar. The camera moves and rotates with 
+     *       your avatar.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>Third&nbsp;Person</strong></td>
+     *       <td><code>"third&nbsp;person"</code></td>
+     *       <td>The camera is positioned such that you have a view from just behind your avatar. The camera moves and rotates 
+     *       with your avatar.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>Mirror</strong></td>
+     *       <td><code>"mirror"</code></td>
+     *       <td>The camera is positioned such that you are looking directly at your avatar. The camera moves and rotates with 
+     *       your avatar.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>Independent</strong></td>
+     *       <td><code>"independent"</code></td>
+     *       <td>The camera's position and orientation don't change with your avatar movement. Instead, they can be set via 
+     *       scripting.</td>
+     *     </tr>
+     *     <tr>
+     *       <td><strong>Entity</strong></td>
+     *       <td><code>"entity"</code></td>
+     *       <td>The camera's position and orientation are set to be the same as a specified entity's, and move with the entity
+     *       as it moves.
+     *     </tr>
+     *   </tbody>
+     * </table>
+     *
+     * <p>The camera mode can be changed using <code>Camera.mode</code> and {@link Camera.setModeString}, and Interface's "View" 
+     * menu.</p>
+     *
      * @namespace Camera
-     * @property position {Vec3} The position of the camera.
-     * @property orientation {Quat} The orientation of the camera.
-     * @property mode {string} The current camera mode.
-     * @property frustum {Object} The frustum of the camera.
+     * @property position {Vec3} The position of the camera. You can set this value only when the camera is in entity mode.
+     * @property orientation {Quat} The orientation of the camera. You can set this value only when the camera is in entity 
+     *     mode.
+     * @property mode {String} The camera mode.
+     * @property frustum {Frustum} The camera frustum.
+     * @property cameraEntity {Uuid} The ID of the entity that is used for the camera position and orientation when the camera
+     *     is in entity mode.
      */
+    // FIXME: The cameraEntity property definition is copied from FancyCamera.h.
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
     Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
@@ -69,52 +127,116 @@ public:
     QVariantMap getViewFrustum();
 
 public slots:
+    /**jsdoc
+     * Get the current camera mode. You can also get the mode using the <code>Camera.mode</code> property.
+     * @function Camera.getModeString
+     * @return {String} The current camera mode.
+     */
     QString getModeString() const;
+    
+    /**jsdoc
+    * Set the camera mode. You can also set the mode using the <code>Camera.mode</code> property.
+    * @function Camera.setModeString
+    * @param {String} mode - The mode to set the camera to.
+    */
     void setModeString(const QString& mode);
 
+    /**jsdoc
+    * Get the current camera position. You can also get the position using the <code>Camera.position</code> property.
+    * @function Camera.getPosition
+    * @return {Vec3} The current camera position.
+    */
     glm::vec3 getPosition() const { return _position; }
+
+    /**jsdoc
+    * Set the camera position. You can also set the position using the <code>Camera.position</code> property. Only works if the
+    *     camera is in independent mode.
+    * @function Camera.setPosition
+    * @param {Vec3} position - The position to set the camera at.
+    */
     void setPosition(const glm::vec3& position);
 
+    /**jsdoc
+    * Get the current camera orientation. You can also get the orientation using the <code>Camera.orientation</code> property.
+    * @function Camera.getOrientation
+    * @return {Quat} The current camera orientation.
+    */
     glm::quat getOrientation() const { return _orientation; }
+
+    /**jsdoc
+    * Set the camera orientation. You can also set the orientation using the <code>Camera.orientation</code> property. Only
+    *     works if the camera is in independent mode.
+    * @function Camera.setOrientation
+    * @param {Quat} orientation - The orientation to set the camera to.
+    */
     void setOrientation(const glm::quat& orientation);
 
     /**jsdoc
-     * Compute a {PickRay} based on the current camera configuration and the position x,y on the screen.
+     * Compute a {PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the screen.
+     *     The {PickRay} can be used in functions such as {Entities.findRayIntersection} and {Overlays.findRayIntersection}.
      * @function Camera.computePickRay
-     * @param {float} x X-coordinate on screen.
-     * @param {float} y Y-coordinate on screen.
+     * @param {Number} x - X-coordinate on screen.
+     * @param {Number} y - Y-coordinate on screen.
      * @return {PickRay} The computed {PickRay}.
+     * @example
+     * function onMousePressEvent(event) {
+     *     var pickRay = Camera.computePickRay(event.x, event.y);
+     *     var intersection = Entities.findRayIntersection(pickRay);
+     *     if (intersection.intersects) {
+     *         print ("You clicked on entity " + intersection.entityID);
+     *     }
+     * }
+     *
+     * Controller.mousePressEvent.connect(onMousePressEvent);
      */
     virtual PickRay computePickRay(float x, float y) const = 0;
 
     /**jsdoc
-     * Set the camera to look at position <code>position</code>. Only works while in <code>independent</code>.
-     * camera mode.
+     * Rotate the camera to look at the specified <code>position</code>. Only works if the camera is in independent mode.
      * @function Camera.lookAt
-     * @param {Vec3} Position Position to look at.
+     * @param {Vec3} position - Position to look at.
+     * @example
+     * function onMousePressEvent(event) {
+     *     var pickRay = Camera.computePickRay(event.x, event.y);
+     *     var intersection = Entities.findRayIntersection(pickRay);
+     *     if (intersection.intersects) {
+     *         // Switch to independent mode.
+     *         Camera.mode = "independent";
+     *         // Look at the entity that was clicked.
+     *         var properties = Entities.getEntityProperties(intersection.entityID, "position");
+     *         Camera.lookAt(properties.position);
+     *     }
+     * }
+     *
+     * Controller.mousePressEvent.connect(onMousePressEvent);
      */
     void lookAt(const glm::vec3& position);
 
     /**jsdoc
-     * Set the camera to continue looking at position <code>position</code>.
-     * Only works while in `independent` camera mode.
+     * Set the camera to continue looking at the specified <code>position</code> even while the camera moves. Only works if the 
+     * camera is in independent mode.
      * @function Camera.keepLookingAt
-     * @param {Vec3} position Position to keep looking at.
+     * @param {Vec3} position - Position to keep looking at.
      */
     void keepLookingAt(const glm::vec3& position);
 
     /**jsdoc
-     * Stops the camera from continually looking at a position that was set with
-     * `keepLookingAt`
+     * Stops the camera from continually looking at the position that was set with <code>Camera.keepLookingAt</code>.
      * @function Camera.stopLookingAt
      */
     void stopLooking() { _isKeepLookingAt = false; }
 
 signals:
     /**jsdoc
-     * Triggered when camera mode has changed.
+     * Triggered when the camera mode changes.
      * @function Camera.modeUpdated
      * @return {Signal}
+     * @example
+     * function onCameraModeUpdated(newMode) {
+     *     print("The camera mode has changed to " + newMode);
+     * }
+     *
+     * Camera.modeUpdated.connect(onCameraModeUpdated);
      */
     void modeUpdated(const QString& newMode);
 
