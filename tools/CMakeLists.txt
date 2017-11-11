@@ -2,6 +2,9 @@
 add_subdirectory(scribe)
 set_target_properties(scribe PROPERTIES FOLDER "Tools")
 
+add_subdirectory(auto-tester)
+set_target_properties(auto-tester PROPERTIES FOLDER "Tools")
+
 if (BUILD_TOOLS)
   add_subdirectory(udt-test)
   set_target_properties(udt-test PROPERTIES FOLDER "Tools")
@@ -23,7 +26,4 @@ if (BUILD_TOOLS)
 
   add_subdirectory(oven)
   set_target_properties(oven PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(auto-tester)
-  set_target_properties(auto-tester PROPERTIES FOLDER "Tools")
 endif()

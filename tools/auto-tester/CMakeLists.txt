@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.9)
+set(TARGET_NAME auto-tester)
 
-project (auto-tester)
-
-add_executable(auto-tester src/main.cpp)
+setup_hifi_project(Core Widgets)

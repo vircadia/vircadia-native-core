@@ -12,7 +12,7 @@
 #ifndef hifi_AutoTester_h
 #define hifi_AutoTester_h
 
-////#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMainWindow>
 ////#include "ui_autoTester.h"
 ////#include "Test.h"
 ////
