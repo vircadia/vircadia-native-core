@@ -15,6 +15,7 @@
 #include "BackgroundStage.h"
 #include "HazeStage.h"
 #include <render/TransitionStage.h>
+#include <render/HighlightStage.h>
 #include "DeferredLightingEffect.h"
 
 void UpdateSceneTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -22,6 +23,7 @@ void UpdateSceneTask::build(JobModel& task, const render::Varying& input, render
     task.addJob<BackgroundStageSetup>("BackgroundStageSetup");
     task.addJob<HazeStageSetup>("HazeStageSetup");
     task.addJob<render::TransitionStageSetup>("TransitionStageSetup");
+    task.addJob<render::HighlightStageSetup>("HighlightStageSetup");
 
     task.addJob<DefaultLightingSetup>("DefaultLightingSetup");
 
