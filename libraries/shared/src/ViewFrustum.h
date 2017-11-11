@@ -33,8 +33,18 @@ const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = 16384.0f;
 
-// the "ViewFrustum" has a "keyhole" shape: a regular frustum for stuff that is "visible" with
-// a central sphere for stuff that is nearby (for physics simulation).
+/**jsdoc
+ * A ViewFrustum has a "keyhole" shape: a regular frustum for stuff that is visible plus a central sphere for stuff that is
+ * nearby (for physics simulation).
+ *
+ * @typedef ViewFrustum
+ * @property {number} aspectRatio - Aspect ratio of the frustum.
+ * @property {number} centerRadius - Center radius of the keyhole in meters.
+ * @property {number} fieldOfView - Horizontal field of view in degrees.
+ * @property {Quat} orientation - The direction that the frustum is looking at.
+ * @property {Vec3} position - The location of the frustum's apex.
+ * @property {Mat4} projection - The projection matrix for the view defined by the frustum.
+ */
 
 class ViewFrustum {
 public:

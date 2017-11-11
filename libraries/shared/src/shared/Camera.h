@@ -96,7 +96,7 @@ class Camera : public QObject {
      * @property orientation {Quat} The orientation of the camera. You can set this value only when the camera is in entity 
      *     mode.
      * @property mode {string} The camera mode.
-     * @property frustum {Frustum} The camera frustum.
+     * @property frustum {ViewFrustum} The camera frustum.
      * @property cameraEntity {Uuid} The ID of the entity that is used for the camera position and orientation when the camera
      *     is in entity mode.
      */
