@@ -438,6 +438,11 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
+    // We do not want to render HUD elements in secondary camera
+    if (renderContext->args->_renderMode == RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) {
+        return;
+    }
+
     // Grab the HUD texture
     gpu::doInBatch(renderContext->args->_context, [&](gpu::Batch& batch) {
         if (renderContext->args->_hudOperator) {
