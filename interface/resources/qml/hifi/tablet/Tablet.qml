@@ -14,7 +14,7 @@ Item {
     property int count: 0
 
     //timeout for press delay before swipe occurs
-    readonly property int pressDelayTime: 100
+    readonly property int pressDelayTime: HMD.active ? 150 : 100
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
