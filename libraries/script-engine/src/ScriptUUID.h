@@ -17,6 +17,13 @@
 #include <QUuid>
 #include <QtScript/QScriptable>
 
+/**jsdoc
+* A UUID. Represented in JavaScript as a string in the format, <code>{00000000-0000-0000-0000-000000000000}</code>.
+* Used to uniquely identify entities, overlays, avatars, and the like.
+*
+* @typedef Uuid
+*/
+
 /// Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API
 class ScriptUUID : public QObject, protected QScriptable {
     Q_OBJECT
