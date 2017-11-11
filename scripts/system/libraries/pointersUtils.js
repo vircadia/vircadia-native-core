@@ -16,7 +16,8 @@
 
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
-function Pointer(hudLayer, pickType, pointerData) {
+Pointer = function(hudLayer, pickType, pointerData) {
+    var _this = this;
     this.SEARCH_SPHERE_SIZE = 0.0132;
     this.dim = {x: this.SEARCH_SPHERE_SIZE, y: this.SEARCH_SPHERE_SIZE, z: this.SEARCH_SPHERE_SIZE};
     this.halfPath = {
@@ -28,7 +29,7 @@ function Pointer(hudLayer, pickType, pointerData) {
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
+        drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
         parentID: MyAvatar.SELF_ID
     };
@@ -39,7 +40,7 @@ function Pointer(hudLayer, pickType, pointerData) {
         color: COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
+        drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
         visible: true
     };
@@ -52,7 +53,7 @@ function Pointer(hudLayer, pickType, pointerData) {
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
+        drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
         parentID: MyAvatar.SELF_ID
     };
@@ -63,7 +64,7 @@ function Pointer(hudLayer, pickType, pointerData) {
         color: COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
         alpha: 0.9,
         ignoreRayIntersection: true,
-        drawInFront: true, // Even when burried inside of something, show it.
+        drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
         visible: true
     };
@@ -76,7 +77,7 @@ function Pointer(hudLayer, pickType, pointerData) {
         glow: 1.0,
         lineWidth: 5,
         ignoreRayIntersection: true, // always ignore this
-        drawInFront: true, // Even when burried inside of something, show it.
+        drawInFront: !hudLayer, // Even when burried inside of something, show it.
         drawHUDLayer: hudLayer,
         parentID: MyAvatar.SELF_ID
     };
@@ -95,18 +96,16 @@ function Pointer(hudLayer, pickType, pointerData) {
 
 
     this.pointerID = null;
-    this.triggers = [];
-    this.joint = null;
     this.visible = false;
     this.locked = false;
+    this.hand = pointerData.hand;
+    delete pointerData.hand;
 
     function createPointer(pickType, pointerData) {
-        if (this.pointerID) {
-            Pointers.removePointer(this.pointerID);
-        }
-        this.pointerID = Pointers.createPointer(pickType, pointerData);
-        Pointers.setRenderState(this.pointerID, "");
-        Pointers.enablePointer(this.pointerID);
+        var pointerID = Pointers.createPointer(pickType, pointerData);
+        Pointers.setRenderState(pointerID, "");
+        Pointers.enablePointer(pointerID);
+        return pointerID;
     }
 
     this.enable = function() {
@@ -125,26 +124,26 @@ function Pointer(hudLayer, pickType, pointerData) {
 
     this.lockEnd = function(lockData) {
         if (lockData !== undefined) {
-            var hand = lockData.hand;
             if (this.visible) {
                 var targetID = lockData.targetID;
                 var targetIsOverlay = lockData.isOverlay;
-                Pointers.setLockEndUUID(this.pointer, targetID, targetIsOverlay);
+                Pointers.setLockEndUUID(this.pointerID, targetID, targetIsOverlay);
                 this.locked = targetID;
             }
-        } else {
+        } else if (this.locked) {
+            Pointers.setLockEndUUID(this.pointerID, null, false);
             this.locked = false;
         }
     };
 
-    this.updateRenderState = function(triggerClicked, triggerValue) {
+    this.updateRenderState = function(triggerClicks, triggerValues) {
         var mode = "";
         if (this.visible) {
             if (this.locked) {
                 mode = "hold";
-            } else if (triggerClicked) {
+            } else if (triggerClicks[this.hand]) {
                 mode = "full";
-            } else if (triggerValue > TRIGGER_ON_VALUE) {
+            } else if (triggerValues[this.hand] > TRIGGER_ON_VALUE) {
                 mode = "half";
             }
         }
@@ -152,40 +151,42 @@ function Pointer(hudLayer, pickType, pointerData) {
         Pointers.setRenderState(this.pointerID, mode);
     };
     pointerData.renderStates = this.renderStates;
-    pointerData.defualtRenderStates = this.defualtRenderStates;
-    createPointer(pickType, pointerData);
-}
+    pointerData.defaultRenderStates = this.defaultRenderStates;
+    this.pointerID = createPointer(pickType, pointerData);
+    print(this.pointerID);
+};
 
 
-function PointerManager() {
+PointerManager = function() {
     this.pointers = [];
 
     this.createPointer = function(hudLayer, pickType, pointerData) {
         var pointer = new Pointer(hudLayer, pickType, pointerData);
         this.pointers.push(pointer);
+        return pointer.pointerID;
     };
 
     this.makePointerVisible = function(index) {
-        if (index < this.pointers.length) {
+        if (index < this.pointers.length && index >= 0) {
             this.pointers[index].makeVisible();
         }
     };
 
     this.makePointerInvisible = function(index) {
-        if (index < this.pointers.length) {
+        if (index < this.pointers.length && index >= 0) {
             this.pointers[index].makeInvisible();
         }
     };
 
     this.lockPointerEnd = function(index, lockData) {
-        if (index < this.pointers.length) {
+        if (index < this.pointers.length && index >= 0) {
             this.pointers[index].lockEnd(lockData);
         }
     };
 
-    this.updatePointersRenderState = function(triggerClicked, triggerValue) {
+    this.updatePointersRenderState = function(triggerClicks, triggerValues) {
         for (var index = 0; index < this.pointers.length; index++) {
-            this.pointers[index].updateRenderState(triggerClicked, triggerValue);
+            this.pointers[index].updateRenderState(triggerClicks, triggerValues);
         }
     };
-}
+};

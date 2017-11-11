@@ -20,9 +20,9 @@ controllerDispatcherPluginsNeedSort = false;
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
-Script.include("/~/system/libraries/pointersUtils.js");
 
 (function() {
+    Script.include("/~/system/libraries/pointersUtils.js");
     var NEAR_MAX_RADIUS = 0.1;
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
@@ -148,8 +148,8 @@ Script.include("/~/system/libraries/pointersUtils.js");
         this.setIgnoreTablet = function() {
             if (HMD.tabletID !== this.tabletID) {
                 this.tabletID = HMD.tabletID;
-                Pointers.setIgnoreItems(_this.leftControllerPointer, _this.blacklist.concat([HMD.tabletID]));
-                Pointers.setIgnoreItems(_this.rightControllerPointer, _this.blacklist.concat([HMD.tabletID]));
+                Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist.concat([HMD.tabletID]));
+                Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist.concat([HMD.tabletID]));
             }
         };
 
@@ -239,12 +239,12 @@ Script.include("/~/system/libraries/pointersUtils.js");
 
             // raypick for each controller
             var rayPicks = [
-                Pointers.getPrevPickResult(_this.leftControllerPointer),
-                Pointers.getPrevPickResult(_this.rightControllerPointer)
+                Pointers.getPrevPickResult(_this.leftPointer),
+                Pointers.getPrevPickResult(_this.rightPointer)
             ];
             var hudRayPicks = [
-                Pointers.getPrevPickResult(_this.leftControllerHudRayPick),
-                Pointers.getPrevPickResult(_this.rightControllerHudRayPick)
+                Pointers.getPrevPickResult(_this.leftHudPointer),
+                Pointers.getPrevPickResult(_this.rightHudPointer)
             ];
             var mouseRayPick = RayPick.getPrevRayPickResult(_this.mouseRayPick);
             // if the pickray hit something very nearby, put it into the nearby entities list
@@ -324,11 +324,12 @@ Script.include("/~/system/libraries/pointersUtils.js");
                         // activity-slots which this plugin consumes as "in use"
                         _this.runningPluginNames[orderedPluginName] = true;
                         _this.markSlots(candidatePlugin, orderedPluginName);
-                        _this.enableLaserForPlugin(candidatePlugin);
+                        _this.pointerManager.makePointerVisible(candidatePlugin.parameters.handLaser);
+                        //_this.enableLaserForPlugin(candidatePlugin);
                         if (DEBUG) {
                             print("controllerDispatcher running " + orderedPluginName);
                         }
-                    }
+}
                     if (PROFILE) {
                         Script.endProfileRange("dispatch.isReady." + orderedPluginName);
                     }
@@ -360,19 +361,19 @@ Script.include("/~/system/libraries/pointersUtils.js");
                             // of running plugins and mark its activity-slots as "not in use"
                             delete _this.runningPluginNames[runningPluginName];
                             _this.markSlots(plugin, false);
-                            _this.disableLaserForPlugin(plugin);
+                            _this.pointerManager.makePointerInvisible(plugin.parameters.handLaser);
                             if (DEBUG) {
                                 print("controllerDispatcher stopping " + runningPluginName);
                             }
                         }
-                        _this.lockLaserToTarget(runningness.laserLockInfo, plugin);
+                        _this.pointerManager.lockPointerEnd(plugin.parameters.handLaser, runningness.laserLockInfo);
                         if (PROFILE) {
                             Script.endProfileRange("dispatch.run." + runningPluginName);
                         }
                     }
                 }
             }
-            _this.pointerManager.updatePoiniterRenderStates(false, 0);
+            _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
@@ -397,35 +398,43 @@ Script.include("/~/system/libraries/pointersUtils.js");
 
         Controller.enableMapping(MAPPING_NAME);
 
-        this.pointerManager.createPointer(false, PickType.Ray, {
+        this.leftPointer = this.pointerManager.createPointer(false, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES,
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
-            hover: true
+            hover: true,
+            distanceScaleEnd: true,
+            hand: LEFT_HAND
         });
-        this.pointerManager.createPointer(false, PickType.Ray, {
+        this.rightPointer = this.pointerManager.createPointer(false, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
             filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES,
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
-            hover: true
+            hover: true,
+            distanceScaleEnd: true,
+            hand: RIGHT_HAND
         });
-        this.pointerManager.createPointer(true, PickType.Ray, {
+        this.leftHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
             joint: "_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_HUD,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
-            hover: true
+            hover: true,
+            distanceScaleEnd: true,
+            hand: LEFT_HAND
         });
-        this.pointerManager.createPointer(true, PickType.Ray, {
+        this.rightHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
             joint: "_CONTROLLER_RIGHTHAND",
             filter: Picks.PICK_HUD,
             maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE,
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
-            hover: true
+            hover: true,
+            distanceScaleEnd: true,
+            hand: RIGHT_HAND
         });
         this.mouseRayPick = RayPick.createRayPick({
             joint: "Mouse",

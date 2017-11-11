@@ -109,6 +109,10 @@ DISPATCHER_PROPERTIES = [
 // requiredDataForReady -- which "situation" parts this module looks at to decide if it will start
 // sleepMSBetweenRuns -- how long to wait between calls to this module's "run" method
 makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns, enableLaserForHand) {
+    if (enableLaserForHand === undefined) {
+        enableLaserForHand = -1;
+    }
+
     return {
         priority: priority,
         activitySlots: activitySlots,

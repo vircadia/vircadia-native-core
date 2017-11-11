@@ -21,6 +21,7 @@ Script.include("/~/system/libraries/utils.js");
     function InEditMode(hand) {
         this.hand = hand;
         this.triggerClicked = false;
+        this.selectedTarget = null;
 
         this.parameters = makeDispatcherModuleParameters(
             160,
@@ -50,23 +51,23 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.sendPickData = function(controllerData) {
-            if (controllerData.triggerClicks[this.hand] && !this.triggerClicked) {
-                var intersection = controllerData.rayPicks[this.hand];
-                if (intersection.type === Picks.INTERSECTED_ENTITY) {
+            if (controllerData.triggerClicks[this.hand]) {
+                if (!this.triggerClicked) {
+                    this.selectedTarget = controllerData.rayPicks[this.hand];
+                }
+                if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectEntity",
-                        entityID: intersection.objectID
+                        entityID: this.selectedTarget.objectID
                     }));
-                } else if (intersection.type === Picks.INTERSECTED_OVERLAY) {
+                } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectOverlay",
-                        overlayID: intersection.objectID
+                        overlayID: this.selectedTarget.objectID
                     }));
                 }
 
                 this.triggerClicked = true;
-            } else {
-                this.triggerClicked = false;
             }
         };
 
@@ -76,9 +77,12 @@ Script.include("/~/system/libraries/utils.js");
 
         this.isReady = function(controllerData) {
             if (isInEditMode()) {
-                this.triggerClicked = false;
+                if (controllerData.triggerValues[this.hand] <  TRIGGER_ON_VALUE) {
+                    this.triggerClicked = false;
+                }
                 return makeRunningValues(true, [], []);
             }
+            this.triggerClicked = false;
             return makeRunningValues(false, [], []);
         };
 

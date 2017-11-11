@@ -42,10 +42,6 @@
             return (this.hand === RIGHT_HAND) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
         };
 
-        _this.isClicked = function() {
-            return _this.triggerClicked;
-        };
-
         this.handToController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
@@ -64,10 +60,6 @@
             return point2d;
         };
 
-        this.setReticlePosition = function(point2d) {
-            Reticle.setPosition(point2d);
-        };
-
         this.pointingAtTablet = function(controllerData) {
             var rayPick = controllerData.rayPicks[this.hand];
             return (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID);
@@ -84,7 +76,7 @@
             if (!Window.isPointOnDesktopWindow(point2d) && !this.triggerClicked) {
                 return false;
             }
-            Reticle.visible = false;
+
             this.triggerClicked = controllerData.triggerClicks[this.hand];
             return true;
         };
@@ -105,11 +97,6 @@
 
     var leftHudOverlayPointer = new HudOverlayPointer(LEFT_HAND);
     var rightHudOverlayPointer = new HudOverlayPointer(RIGHT_HAND);
-
-    var clickMapping = Controller.newMapping('HudOverlayPointer-click');
-    clickMapping.from(rightHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
-    clickMapping.from(leftHudOverlayPointer.isClicked).to(Controller.Actions.ReticleClick);
-    clickMapping.enable();
 
     ControllerDispatcherUtils.enableDispatcherModule("LeftHudOverlayPointer", leftHudOverlayPointer);
     ControllerDispatcherUtils.enableDispatcherModule("RightHudOverlayPointer", rightHudOverlayPointer);
