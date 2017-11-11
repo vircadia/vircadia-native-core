@@ -10,6 +10,25 @@ $(document).ready(function(){
 
   $('[data-toggle="tooltip"]').tooltip();
 
+  $('.fake-link').on('click', function() {
+    return false;
+  });
+  $('.perms-link').on('click', function() {
+    var modal_body = '<div>';
+    modal_body += '<b>None</b> - No one will have permissions. Only you and the users your have given administrator privileges to will have permissions.</br></br>';
+    modal_body += '<b>Friends</b> - Users who are your Friends in High Fidelity.</br></br>';
+    modal_body += '<b>Users logged into High Fidelity</b> - Users who are currently logged into High Fidelity.</br></br>';
+    modal_body += '<b>Everyone</b> - Anyone who uses High Fidelity.';
+    modal_body += '</div>';
+
+    dialog = bootbox.dialog({
+      title: "User definition",
+      message: modal_body,
+      closeButton: true
+    });
+    return false;
+  });
+
   $('body').on('click', '.next-button', function() {
     goToNextStep();
   });
@@ -116,7 +135,7 @@ function setupWizardSteps() {
     });
 
     $('#permissions-description').html('You <span id="username-display"></span>have been assigned administrator privileges to this domain.');
-    $('#admin-description').html('Add more High Fidelity usernames to grant administrator privileges.');
+    $('#admin-description').html('Add more High Fidelity usernames');
   } else {
     $('.cloud-only').remove();
     $('#save-permissions').text("Finish");
