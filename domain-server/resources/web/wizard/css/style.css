@@ -90,6 +90,14 @@ label {
   height: 169px;
 }
 
-#visit-domain-row {
-  margin-bottom: 68px;
+#congratulation-text {
+  margin-bottom: 59px;
+}
+
+#visit-domain-checkbox {
+  margin-bottom: 23px;
+}
+
+#visit-domain-checkbox label {
+  margin: 0 0;
 }
