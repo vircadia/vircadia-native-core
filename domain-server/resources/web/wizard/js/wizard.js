@@ -2,6 +2,8 @@ var Metaverse = {
   accessToken: null
 }
 
+var currentStepNumber;
+
 $(document).ready(function(){
   Strings.ADD_PLACE_NOT_CONNECTED_MESSAGE = "You must have an access token to query your High Fidelity places.<br><br>" +
     "Please go back and connect your account.";
@@ -122,7 +124,7 @@ $(document).ready(function(){
 });
 
 function setupWizardSteps() {
-  var stepsCompleted = Settings.data.values.wizard.steps_completed;
+  currentStepNumber = Settings.data.values.wizard.steps_completed;
   var steps = null;
 
   if (Settings.data.values.wizard.cloud_domain) {
@@ -145,12 +147,12 @@ function setupWizardSteps() {
       $(this).children(".step-title").text("Step " + (i + 1) + " of " + steps.length);
     });
 
-    if (stepsCompleted == 0) {
+    if (currentStepNumber == 0) {
       $('#skip-wizard-button').show();
     }
   }
 
-  var currentStep = steps[stepsCompleted];
+  var currentStep = steps[currentStepNumber];
   $(currentStep).show();
 }
 
@@ -253,7 +255,7 @@ function goToNextStep() {
     currentStep.hide();
     nextStep.show();
 
-    var currentStepNumber = parseInt(Settings.data.values.wizard.steps_completed) + 1;
+    currentStepNumber += 1;
 
     postSettings({
       "wizard": {
@@ -282,7 +284,7 @@ function goToPreviousStep() {
     currentStep.hide();
     previousStep.show();
 
-    var currentStepNumber = parseInt(Settings.data.values.wizard.steps_completed) - 1;
+    currentStepNumber -= 1;
 
     postSettings({
       "wizard": {
@@ -488,7 +490,7 @@ function saveUsernamePassword() {
     return;
   }
 
-  var currentStepNumber = parseInt(Settings.data.values.wizard.steps_completed) + 1;
+  currentStepNumber += 1;
 
   var formJSON = {
     "security": {
