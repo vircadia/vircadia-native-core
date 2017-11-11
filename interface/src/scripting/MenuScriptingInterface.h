@@ -19,12 +19,12 @@ class MenuItemProperties;
 
 /**jsdoc
  * The Menu API provides access to the menu that is displayed at the top of the window
- * on a user's desktop and when the "MENU" button is pressed on the tablet.
+ * on a user's desktop and in the tablet when the "MENU" button is pressed.
  *
  * <h3>Groupings</h3>
  * A "grouping" provides a way to group a set of menus or menu items together so 
  * that they can all be set visible or invisible as a group. 
- * There are two available groups: "Advanced" and "Developer".
+ * There are two available groups: <code>"Advanced"</code> and <code>"Developer"</code>.
  * These groupings can be toggled in the "Settings" menu.
  * If a menu item doesn't belong to a group it is always displayed.
  *
@@ -71,7 +71,7 @@ public slots:
      * Check whether a top-level menu exists.
      * @function Menu.menuExists
      * @param {String} menuName Name of the menu to check for existence.
-     * @returns {Boolean} `true` if the menu exists, otherwise `false`.
+     * @returns {Boolean} <code>true</code> if the menu exists, otherwise <code>false</code>.
      */
     bool menuExists(const QString& menuName);
 
@@ -122,7 +122,7 @@ public slots:
      * @function Menu.menuItemExists
      * @param {String} menuName Name of the menu that the menu item is in.
      * @param {String} menuItem Name of the menu item to check for existence of.
-     * @returns {Boolean} `true` if the menu item exists, otherwise `false`.
+     * @returns {Boolean} <code>true</code> if the menu item exists, otherwise <code>false</code>.
      */
     bool menuItemExists(const QString& menuName, const QString& menuitem);
 
@@ -137,7 +137,7 @@ public slots:
      * Check whether a checkable menu item is checked.
      * @function Menu.isOptionChecked
      * @param {String} menuOption The name of the menu item.
-     * @returns {Boolean} `true` if the option is checked, otherwise false.
+     * @returns {Boolean} <code>true</code> if the option is checked, otherwise false.
      */
     bool isOptionChecked(const QString& menuOption);
 
@@ -145,7 +145,7 @@ public slots:
      * Set a checkable menu item as checked or unchecked.
      * @function Menu.setIsOptionChecked
      * @param {String} menuOption The name of the menu item to modify.
-     * @param {Boolean} isChecked If `true`, the menu item will be checked, otherwise it will not be checked.
+     * @param {Boolean} isChecked If <code>true</code>, the menu item will be checked, otherwise it will not be checked.
      */
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
 
@@ -161,7 +161,7 @@ public slots:
      * Menus are enabled by default.
      * @function Menu.isMenuEnabled
      * @param {String} menuName The name of the menu to check.
-     * @returns {Boolean} `true` if the menu is enabled, otherwise false.
+     * @returns {Boolean} <code>true</code> if the menu is enabled, otherwise false.
      */
     bool isMenuEnabled(const QString& menuName);
 
@@ -169,7 +169,7 @@ public slots:
      * Set a menu to be enabled or disabled. If a menu is disabled it is grayed out and unusable.
      * @function Menu.setMenuEnabled
      * @param {String} menuName The name of the menu to modify.
-     * @param {Boolean} isEnabled Whether the menu will be enabled or not.
+     * @param {Boolean} isEnabled If <code>true</code>, the menu will be enabled, otherwise it will be disabled.
      */
     void setMenuEnabled(const QString& menuName, bool isEnabled);
 
