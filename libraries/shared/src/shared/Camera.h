@@ -95,7 +95,7 @@ class Camera : public QObject {
      * @property position {Vec3} The position of the camera. You can set this value only when the camera is in entity mode.
      * @property orientation {Quat} The orientation of the camera. You can set this value only when the camera is in entity 
      *     mode.
-     * @property mode {String} The camera mode.
+     * @property mode {string} The camera mode.
      * @property frustum {Frustum} The camera frustum.
      * @property cameraEntity {Uuid} The ID of the entity that is used for the camera position and orientation when the camera
      *     is in entity mode.
@@ -130,14 +130,14 @@ public slots:
     /**jsdoc
      * Get the current camera mode. You can also get the mode using the <code>Camera.mode</code> property.
      * @function Camera.getModeString
-     * @return {String} The current camera mode.
+     * @return {string} The current camera mode.
      */
     QString getModeString() const;
     
     /**jsdoc
     * Set the camera mode. You can also set the mode using the <code>Camera.mode</code> property.
     * @function Camera.setModeString
-    * @param {String} mode - The mode to set the camera to.
+    * @param {string} mode - The mode to set the camera to.
     */
     void setModeString(const QString& mode);
 
@@ -175,8 +175,8 @@ public slots:
      * Compute a {PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the screen.
      *     The {PickRay} can be used in functions such as {Entities.findRayIntersection} and {Overlays.findRayIntersection}.
      * @function Camera.computePickRay
-     * @param {Number} x - X-coordinate on screen.
-     * @param {Number} y - Y-coordinate on screen.
+     * @param {number} x - X-coordinate on screen.
+     * @param {number} y - Y-coordinate on screen.
      * @return {PickRay} The computed {PickRay}.
      * @example
      * function onMousePressEvent(event) {
