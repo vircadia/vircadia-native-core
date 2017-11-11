@@ -11,10 +11,7 @@ $(document).ready(function(){
   $('#connect-account-btn').attr('href', URLs.METAVERSE_URL + "/user/tokens/new?for_domain_server=true");
 
   $('[data-toggle="tooltip"]').tooltip();
-
-  $('.fake-link').on('click', function() {
-    return false;
-  });
+  
   $('.perms-link').on('click', function() {
     var modal_body = '<div>';
     modal_body += '<b>None</b> - No one will have permissions. Only you and the users your have given administrator privileges to will have permissions.</br></br>';

@@ -60,7 +60,7 @@
   </div>
   <div id="admin-row" class="row">
     <p class="col-md-6">
-      <span class="step-info"><span id="admin-description"><b>Add your High Fidelity username</b> and any other usernames</span> to grant <a href='#' class='wizard-link fake-link' data-toggle="tooltip" title="Users who will have all the permissions for this domain.">administrator privileges</a></span>
+      <span class="step-info"><span id="admin-description"><b>Add your High Fidelity username</b> and any other usernames</span> to grant <span class='wizard-link' data-toggle="tooltip" title="Users who will have all the permissions for this domain.">administrator privileges</span></span>
     </p>
     <div class="col-md-6">
       <input id="admin-usernames" type="text" class="form-control">
