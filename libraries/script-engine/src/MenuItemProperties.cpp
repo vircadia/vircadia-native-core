@@ -57,7 +57,7 @@ QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuIt
  * the menu item will be placed at the end of the menu.
  *
  * @typedef {Object} Menu.MenuItemProperties
- * @property {String} menuName Name of the menu.
+ * @property {String} menuName Name of the menu. Nested menus can be described using the ">" symbol.
  * @property {String} menuItemName Name of the menu item.
  * @property {Boolean} [isCheckable=false] Whether or not the menu item is checkable.
  * @property {Boolean} [isChecked=false] Whether or not the menu item is checked.

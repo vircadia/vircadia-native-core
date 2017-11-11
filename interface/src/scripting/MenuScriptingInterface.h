@@ -22,6 +22,7 @@ class MenuItemProperties;
  * on a user's desktop and in the tablet when the "MENU" button is pressed.
  *
  * <h3>Groupings</h3>
+ * 
  * A "grouping" provides a way to group a set of menus or menu items together so 
  * that they can all be set visible or invisible as a group. 
  * There are two available groups: <code>"Advanced"</code> and <code>"Developer"</code>.
@@ -29,6 +30,23 @@ class MenuItemProperties;
  * If a menu item doesn't belong to a group it is always displayed.
  *
  * @namespace Menu
+ *
+ * @example
+ * Menu.addMenu("Demo Menu");
+ *
+ * Menu.addMenuItem({
+ *     menuName: "Demo Menu",
+ *     menuItemName: "Demo Item"
+ * });
+ *
+ * function onMenuItemEvent(menuItem)
+ * {
+ *     if(menuItem == "Demo Item") {
+ *         print("Nice! You clicked the demo menu item.");
+ *     }
+ * }
+ *
+ * Menu.menuItemEvent.connect(menuItemEventHandler);
  */
 
 /**
@@ -55,8 +73,11 @@ public slots:
     /**jsdoc
      * Add a new top-level menu.
      * @function Menu.addMenu
-     * @param {String} menuName Name that will be displayed for the menu.
+     * @param {String} menuName Name that will be displayed for the menu. Nested menus can be described using the ">" symbol.
      * @param {String} [grouping] Name of the grouping, if any, to add this menu to.
+     * @example
+     * Menu.addMenu("Test Menu");
+     * Menu.addMenu("Test Menu > Test Sub Menu");
      */
     void addMenu(const QString& menuName, const QString& grouping = QString());
 
@@ -64,6 +85,9 @@ public slots:
      * Remove a top-level menu.
      * @function Menu.removeMenu
      * @param {String} menuName Name of the menu to remove.
+     * @example
+     * Menu.removeMenu("Test Menu > Test Sub Menu");
+     * Menu.removeMenu("Test Menu");
      */
     void removeMenu(const QString& menuName);
 
@@ -72,6 +96,10 @@ public slots:
      * @function Menu.menuExists
      * @param {String} menuName Name of the menu to check for existence.
      * @returns {Boolean} <code>true</code> if the menu exists, otherwise <code>false</code>.
+     * @example
+     * if (Menu.menuExists("Developer")) {
+     *     // Perform a task if there is a Developer menu.
+     * }
      */
     bool menuExists(const QString& menuName);
 
@@ -81,6 +109,8 @@ public slots:
      * @function Menu.addSeparator
      * @param {String} menuName Name of the menu to add a separator to.
      * @param {String} separatorName Name of the separator that will be displayed as the label below the separator line.
+     * @example
+     * Menu.addSeparator("Developer","Test Separator");
      */
     void addSeparator(const QString& menuName, const QString& separatorName);
 
@@ -89,6 +119,8 @@ public slots:
      * @function Menu.removeSeparator
      * @param {String} menuName Name of the menu to remove the separator from.
      * @param {String} separatorName Name of the separator to remove.
+     * @example
+     * Menu.removeSeparator("Developer","Test Separator");
      */
     void removeSeparator(const QString& menuName, const QString& separatorName);
 
@@ -96,6 +128,14 @@ public slots:
      * Add a new menu item to a menu.
      * @function Menu.addMenuItem
      * @param {Menu.MenuItemProperties} properties Properties of the menu item to create.
+     * @example
+     * Menu.addMenuItem({
+     *     menuName:     "Developer",
+     *     menuItemName: "Test",
+     *     afterItem:    "Log",
+     *     shortcutKey:  "Ctrl+Shift+T",
+     *     grouping:     "Advanced"
+     * });
      */
     void addMenuItem(const MenuItemProperties& properties);
 
@@ -105,6 +145,8 @@ public slots:
      * @param {String} menuName Name of the menu to add a menu item to.
      * @param {String} menuItem Name of the menu item. This is what will be displayed in the menu.
      * @param {String} [shortcutKey] A shortcut key that can be used to trigger the menu item.
+     * @example
+     * Menu.addMenuItem("Developer", "Test", "Ctrl+Shift+T");
      */
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
     void addMenuItem(const QString& menuName, const QString& menuitem);
@@ -114,6 +156,7 @@ public slots:
      * @function Menu.removeMenuItem
      * @param {String} menuName Name of the menu to remove a menu item from.
      * @param {String} menuItem Name of the menu item to remove.
+     * Menu.removeMenuItem("Developer", "Test");
      */
     void removeMenuItem(const QString& menuName, const QString& menuitem);
 
@@ -123,6 +166,10 @@ public slots:
      * @param {String} menuName Name of the menu that the menu item is in.
      * @param {String} menuItem Name of the menu item to check for existence of.
      * @returns {Boolean} <code>true</code> if the menu item exists, otherwise <code>false</code>.
+     * @example
+     * if (Menu.menuItemExists("Developer", "Stats")) {
+     *     // Perform a task if there is a Stats item in the Developer menu.
+     * }
      */
     bool menuItemExists(const QString& menuName, const QString& menuitem);
 
@@ -185,6 +232,12 @@ signals:
      * @function Menu.menuItemEvent
      * @param {String} menuItem Name of the menu item that was clicked.
      * @returns {Signal}
+     * @example
+     * function onMenuItemEvent(menuItem) {
+     *     print("You clicked on " + menuItem);
+     * }
+     * 
+     * Menu.menuItemEvent.connect(onMenuItemEvent);
      */
     void menuItemEvent(const QString& menuItem);
 };
