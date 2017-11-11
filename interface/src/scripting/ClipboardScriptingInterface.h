@@ -47,28 +47,28 @@ public:
      * You can generate a JSON file using {@link Clipboard.exportEntities}.
      * @function Clipboard.importEntities
      * @param {String} filename Path and name of file to import.
-     * @returns {Boolean} `true` if the import was successful, otherwise `false`.
+     * @returns {Boolean} <code>true</code> if the import was successful, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool importEntities(const QString& filename);
 
     /**jsdoc
      * Export the entities specified to a JSON file.
      * @function Clipboard.exportEntities
-     * @param {String} filename Path and name of the file to export entities to. Should have the extension `.json`.
-     * @param {EntityID[]} entityIDs IDs of entities to export.
-     * @returns {Boolean} `true` if the export was successful, otherwise `false`.
+     * @param {String} filename Path and name of the file to export the entities to. Should have the extension ".json".
+     * @param {EntityID[]} entityIDs Array of IDs of the entities to export.
+     * @returns {Boolean} <code>true</code> if the export was successful, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
     
     /**jsdoc
     * Export the entities with centers within a cube to a JSON file.
     * @function Clipboard.exportEntities
-    * @param {String} filename Path and name of the file to export entities to. Should have the extension `.json`.
+    * @param {String} filename Path and name of the file to export the entities to. Should have the extension ".json".
     * @param {Number} x X-coordinate of the cube center.
     * @param {Number} y Y-coordinate of the cube center.
     * @param {Number} z Z-coordinate of the cube center.
     * @param {Number} scale Half dimension of the cube.
-    * @returns {Boolean} `true` if the export was successful, otherwise `false`.
+    * @returns {Boolean} <code>true</code> if the export was successful, otherwise <code>false</code>.
     */
     Q_INVOKABLE bool exportEntities(const QString& filename, float x, float y, float z, float scale);
 
