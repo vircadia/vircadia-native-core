@@ -21,7 +21,8 @@
 /**jsdoc
  * @namespace Paths
  * @readonly
- * @property {string} resources The path to the resources directory.
+ * @property {string} resources The path to the resources directory. <em>Readonly</em>
+ * @property {string} defaultScripts The path to the defaultScripts directory. <em>Readonly</em>
  */
 class PathUtils : public QObject, public Dependency {
     Q_OBJECT
