@@ -172,12 +172,13 @@ public slots:
     void setOrientation(const glm::quat& orientation);
 
     /**jsdoc
-     * Compute a {PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the screen.
-     *     The {PickRay} can be used in functions such as {Entities.findRayIntersection} and {Overlays.findRayIntersection}.
+     * Compute a {@link PickRay} based on the current camera configuration and the specified <code>x, y</code> position on the 
+     *     screen. The {@link PickRay} can be used in functions such as {@link Entities.findRayIntersection} and 
+     *     {@link Overlays.findRayIntersection}.
      * @function Camera.computePickRay
      * @param {number} x - X-coordinate on screen.
      * @param {number} y - Y-coordinate on screen.
-     * @return {PickRay} The computed {PickRay}.
+     * @return {PickRay} The computed {@link PickRay}.
      * @example
      * function onMousePressEvent(event) {
      *     var pickRay = Camera.computePickRay(event.x, event.y);

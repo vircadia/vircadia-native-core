@@ -125,6 +125,14 @@ QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
 QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);
 void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
+/**jsdoc
+ * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or overlays that lie under a
+ * mouse click or intersect a laser beam.
+ *
+ * @typedef PickRay
+ * @property {Vec3} origin - The starting position of the PickRay.
+ * @property {Quat} direction - The direction that the PickRay travels.
+ */
 class PickRay {
 public:
     PickRay() : origin(0.0f), direction(0.0f)  { }
