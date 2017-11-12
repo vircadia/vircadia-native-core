@@ -130,7 +130,7 @@ public slots:
     /**jsdoc
      * Get the current camera mode. You can also get the mode using the <code>Camera.mode</code> property.
      * @function Camera.getModeString
-     * @return {string} The current camera mode.
+     * @returns {string} The current camera mode.
      */
     QString getModeString() const;
     
@@ -144,7 +144,7 @@ public slots:
     /**jsdoc
     * Get the current camera position. You can also get the position using the <code>Camera.position</code> property.
     * @function Camera.getPosition
-    * @return {Vec3} The current camera position.
+    * @returns {Vec3} The current camera position.
     */
     glm::vec3 getPosition() const { return _position; }
 
@@ -159,7 +159,7 @@ public slots:
     /**jsdoc
     * Get the current camera orientation. You can also get the orientation using the <code>Camera.orientation</code> property.
     * @function Camera.getOrientation
-    * @return {Quat} The current camera orientation.
+    * @returns {Quat} The current camera orientation.
     */
     glm::quat getOrientation() const { return _orientation; }
 
@@ -178,8 +178,8 @@ public slots:
      * @function Camera.computePickRay
      * @param {number} x - X-coordinate on screen.
      * @param {number} y - Y-coordinate on screen.
-     * @return {PickRay} The computed {@link PickRay}.
-     * @example
+     * @returns {PickRay} The computed {@link PickRay}.
+     * @example <caption>Use a PickRay to detect mouse clicks on entities.</caption>
      * function onMousePressEvent(event) {
      *     var pickRay = Camera.computePickRay(event.x, event.y);
      *     var intersection = Entities.findRayIntersection(pickRay);
@@ -196,7 +196,7 @@ public slots:
      * Rotate the camera to look at the specified <code>position</code>. Only works if the camera is in independent mode.
      * @function Camera.lookAt
      * @param {Vec3} position - Position to look at.
-     * @example
+     * @example <caption>Rotate your camera to look at entities as you click on them with your mouse.</caption>
      * function onMousePressEvent(event) {
      *     var pickRay = Camera.computePickRay(event.x, event.y);
      *     var intersection = Entities.findRayIntersection(pickRay);
@@ -231,8 +231,8 @@ signals:
     /**jsdoc
      * Triggered when the camera mode changes.
      * @function Camera.modeUpdated
-     * @return {Signal}
-     * @example
+     * @returns {Signal}
+     * @example <caption>Report camera mode changes.</caption>
      * function onCameraModeUpdated(newMode) {
      *     print("The camera mode has changed to " + newMode);
      * }

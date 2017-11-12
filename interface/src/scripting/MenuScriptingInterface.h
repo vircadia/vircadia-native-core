@@ -33,7 +33,7 @@ class MenuItemProperties;
  *
  * @namespace Menu
  *
- * @example
+ * @example <caption>Add a menu and menu item, and detect clicks on the menu item added.</caption>
  * Menu.addMenu("Demo Menu");
  *
  * Menu.addMenuItem({
@@ -76,7 +76,7 @@ public slots:
      * @function Menu.addMenu
      * @param {string} menuName Name that will be displayed for the menu. Nested menus can be described using the ">" symbol.
      * @param {string} [grouping] Name of the grouping, if any, to add this menu to.
-     * @example
+     * @example <caption>Add a menu and a nested submenu.</caption>
      * Menu.addMenu("Test Menu");
      * Menu.addMenu("Test Menu > Test Sub Menu");
      */
@@ -86,7 +86,7 @@ public slots:
      * Remove a top-level menu.
      * @function Menu.removeMenu
      * @param {string} menuName Name of the menu to remove.
-     * @example
+     * @example <caption>Remove a menu and nested submenu.</caption>
      * Menu.removeMenu("Test Menu > Test Sub Menu");
      * Menu.removeMenu("Test Menu");
      */
@@ -97,20 +97,21 @@ public slots:
      * @function Menu.menuExists
      * @param {string} menuName - Name of the menu to check for existence.
      * @returns {boolean} <code>true</code> if the menu exists, otherwise <code>false</code>.
-     * @example
+     * @example <caption>Check if the "Developer" menu exists.</caption>
      * if (Menu.menuExists("Developer")) {
-     *     // Perform a task if there is a Developer menu.
+     *     print("Developer menu exists.");
      * }
      */
     bool menuExists(const QString& menuName);
 
     /**jsdoc
-     * Add a separator with an unclickable label below it.
-     * The line will be placed at the bottom of the menu.
+     * Add a separator with an unclickable label below it. The separator will be placed at the bottom of the menu.
+     * If you want to add a separator at a specific point in the menu, use {@link Menu.addMenuItem} with
+     * {@link Menu.MenuItemProperties} instead.
      * @function Menu.addSeparator
      * @param {string} menuName Name of the menu to add a separator to.
      * @param {string} separatorName Name of the separator that will be displayed as the label below the separator line.
-     * @example
+     * @example <caption>Add a separator.</caption>
      * Menu.addSeparator("Developer","Test Separator");
      */
     void addSeparator(const QString& menuName, const QString& separatorName);
@@ -120,7 +121,7 @@ public slots:
      * @function Menu.removeSeparator
      * @param {string} menuName Name of the menu to remove the separator from.
      * @param {string} separatorName Name of the separator to remove.
-     * @example
+     * @example <caption>Remove a separator.</caption>
      * Menu.removeSeparator("Developer","Test Separator");
      */
     void removeSeparator(const QString& menuName, const QString& separatorName);
@@ -129,7 +130,7 @@ public slots:
      * Add a new menu item to a menu.
      * @function Menu.addMenuItem
      * @param {Menu.MenuItemProperties} properties Properties of the menu item to create.
-     * @example
+     * @example <caption>Add a menu item using {@link Menu.MenuItemProperties}.</caption>
      * Menu.addMenuItem({
      *     menuName:     "Developer",
      *     menuItemName: "Test",
@@ -141,12 +142,12 @@ public slots:
     void addMenuItem(const MenuItemProperties& properties);
 
     /**jsdoc
-     * Add a new menu item to a menu.
+     * Add a new menu item to a menu. The new item is added at the end of the menu.
      * @function Menu.addMenuItem
      * @param {string} menuName Name of the menu to add a menu item to.
      * @param {string} menuItem Name of the menu item. This is what will be displayed in the menu.
      * @param {string} [shortcutKey] A shortcut key that can be used to trigger the menu item.
-     * @example
+     * @example <caption>Add a menu item to the end of the "Developer" menu.</caption>
      * Menu.addMenuItem("Developer", "Test", "Ctrl+Shift+T");
      */
     void addMenuItem(const QString& menuName, const QString& menuitem, const QString& shortcutKey);
@@ -167,9 +168,9 @@ public slots:
      * @param {string} menuName Name of the menu that the menu item is in.
      * @param {string} menuItem Name of the menu item to check for existence of.
      * @returns {boolean} <code>true</code> if the menu item exists, otherwise <code>false</code>.
-     * @example
+     * @example <caption>Determine if the Developer &gt; Stats menu exists.</caption>
      * if (Menu.menuItemExists("Developer", "Stats")) {
-     *     // Perform a task if there is a Stats item in the Developer menu.
+     *     print("Developer > Stats menu item exists.");
      * }
      */
     bool menuItemExists(const QString& menuName, const QString& menuitem);
@@ -185,7 +186,7 @@ public slots:
      * Check whether a checkable menu item is checked.
      * @function Menu.isOptionChecked
      * @param {string} menuOption The name of the menu item.
-     * @returns {boolean} <code>true</code> if the option is checked, otherwise false.
+     * @returns {boolean} <code>true</code> if the option is checked, otherwise <code>false</code>.
      */
     bool isOptionChecked(const QString& menuOption);
 
@@ -209,7 +210,7 @@ public slots:
      * Menus are enabled by default.
      * @function Menu.isMenuEnabled
      * @param {string} menuName The name of the menu to check.
-     * @returns {boolean} <code>true</code> if the menu is enabled, otherwise false.
+     * @returns {boolean} <code>true</code> if the menu is enabled, otherwise <code>false</code>.
      */
     bool isMenuEnabled(const QString& menuName);
 
@@ -233,7 +234,7 @@ signals:
      * @function Menu.menuItemEvent
      * @param {string} menuItem Name of the menu item that was clicked.
      * @returns {Signal}
-     * @example
+     * @example <caption>Detect menu item events.</caption>
      * function onMenuItemEvent(menuItem) {
      *     print("You clicked on " + menuItem);
      * }

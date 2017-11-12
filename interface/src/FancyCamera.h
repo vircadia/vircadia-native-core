@@ -52,7 +52,7 @@ public slots:
     *     entity using the <code>Camera.cameraEntity</code> property.
     * @function Camera.setCameraEntity
     * @param {Uuid} entityID The entity that the camera should follow when it's in entity mode.
-    * @example
+    * @example <caption>Move your camera to the position and orientation of the closest entity.</caption>
     * Camera.setModeString("entity");
     * var entity = Entities.findClosestEntity(MyAvatar.position, 100.0);
     * Camera.setCameraEntity(entity);
