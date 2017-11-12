@@ -14,8 +14,8 @@ int main(int argc, char *argv[])
 {
     QApplication application(argc, argv);
 
-////    AutoTester autoTester;
-////    autoTester.show();
+    AutoTester autoTester;
+    autoTester.show();
 
-////    return application.exec();
+    return application.exec();
 }

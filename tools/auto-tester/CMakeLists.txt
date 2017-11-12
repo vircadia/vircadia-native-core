@@ -10,4 +10,4 @@ source_group("UI Files" FILES ${QT_UI_FILES})
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
 # add them to the interface source files
-set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")
+##set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}")

@@ -13,24 +13,24 @@
 
 #include <QtWidgets/QMainWindow>
 #include "ui_autoTester.h"
-////#include "Test.h"
-////
-////class AutoTester : public QMainWindow
-////{
-////    Q_OBJECT
-////
-////public:
-////    AutoTester(QWidget *parent = Q_NULLPTR);
-////
-////private slots:
-////    void on_evaluateTestsButton_clicked();
-////    void on_createTestButton_clicked();
-////    void on_closeButton_clicked();
-////
-////private:
-////    Ui::AutoTesterClass ui;
-////
-////    Test test;
-////};
+#include "Test.h"
+
+class AutoTester : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    AutoTester(QWidget *parent = Q_NULLPTR);
+
+private slots:
+    void on_evaluateTestsButton_clicked();
+    void on_createTestButton_clicked();
+    void on_closeButton_clicked();
+
+private:
+    Ui::AutoTesterClass ui;
+
+    Test test;
+};
 
 #endif // hifi_AutoTester_h
