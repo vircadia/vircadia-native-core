@@ -13,7 +13,7 @@
 
 #include <QtWidgets/QMainWindow>
 #include "ui_autoTester.h"
-#include "Test.h"
+#include "../Test.h"
 
 class AutoTester : public QMainWindow
 {
