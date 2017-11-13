@@ -60,11 +60,30 @@ vec2 PCFkernel[4] = vec2[4](
     vec2(0.5, -1.5)
 );
 
+float evalShadowNoise(vec4 seed) {
+    float dot_product = dot(seed, vec4(12.9898,78.233,45.164,94.673));
+    return fract(sin(dot_product) * 43758.5453);
+}
+
 float evalShadowAttenuationPCF(int cascadeIndex, vec4 position, vec4 shadowTexcoord) {
 	float shadowScale = getShadowScale();
 
+#if 0
+    // Pattern dithering in screen space
+    ivec2 coords = ivec2(gl_FragCoord.xy);
+#else
+    // Pattern dithering in world space (mm resolution)
+    ivec2 coords = ivec2(position.x, position.y+position.z);
+#endif
+    // Add some noise to break dithering
+    int index = int(4.0*evalShadowNoise(gl_FragCoord.xyyx))%4;
+    coords.x += index & 1;
+    coords.y += (index & 2) >> 1;
+
     // Offset for efficient PCF, see http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html
-    vec2 offset = step(fract(position.xy), vec2(0.5, 0.5));
+    ivec2 offset = coords & ivec2(1,1);
+    offset.y = (offset.x+offset.y) & 1;
+    vec2 offsetF = vec2(offset);
 
     float shadowAttenuation = (0.25 * (
         fetchShadow(cascadeIndex, shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[0], 0.0)) +

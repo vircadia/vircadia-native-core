@@ -34,7 +34,7 @@ public:
     static const unsigned int SUN_SHADOW_CASCADE_COUNT;
 
     using Index = render::indexed_container::Index;
-    static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
+    static const Index INVALID_INDEX;
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
     
     using LightPointer = model::LightPointer;

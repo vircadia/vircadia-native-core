@@ -234,6 +234,10 @@ public:
     void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
+private:
+
+    static const render::Varying addSelectItemJobs(JobModel& task, const char* selectionName, 
+                                                   const render::Varying& metas, const render::Varying& opaques, const render::Varying& transparents);
 };
 
 #endif // hifi_RenderDeferredTask_h

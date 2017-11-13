@@ -47,6 +47,7 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
     std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
 public:
+
     ContextOverlayInterface();
 
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
@@ -75,6 +76,11 @@ private slots:
     void handleChallengeOwnershipReplyPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
 private:
+
+    enum {
+        MAX_SELECTION_COUNT = 16
+    };
+
     bool _verboseLogging { true };
     bool _enabled { true };
     EntityItemID _currentEntityWithContextOverlay{};
@@ -90,8 +96,9 @@ private:
     void disableEntityHighlight(const EntityItemID& entityItemID);
 
     void deletingEntity(const EntityItemID& entityItemID);
+    void initializeSelectionToSceneHandler(SelectionToSceneHandler& handler, const QString& selectionName, render::Transaction& transaction);
 
-    SelectionToSceneHandler _selectionToSceneHandler;
+    SelectionToSceneHandler _selectionToSceneHandlers[MAX_SELECTION_COUNT];
 
     Q_INVOKABLE void startChallengeOwnershipTimer();
     QTimer _challengeOwnershipTimeoutTimer;
