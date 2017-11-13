@@ -85,7 +85,6 @@ void Camera::setOrientation(const glm::quat& orientation) {
 }
 
 void Camera::setMode(CameraMode mode) {
-    _lastMode = _mode;
     _mode = mode;
     emit modeUpdated(modeToString(mode));
 }
