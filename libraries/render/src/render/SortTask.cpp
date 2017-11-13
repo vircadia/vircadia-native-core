@@ -76,17 +76,25 @@ void render::depthSortItems(const RenderContextPointer& renderContext, bool fron
     }
 
     // Finally once sorted result to a list of itemID
+    // Finally once sorted result to a list of itemID and keep uniques
+    render::ItemID previousID = Item::INVALID_ITEM_ID;
     if (!bounds) {
         for (auto& item : itemBoundSorts) {
-            outItems.emplace_back(ItemBound(item._id, item._bounds));
+            if (item._id != previousID) {
+                outItems.emplace_back(ItemBound(item._id, item._bounds));
+                previousID = item._id;
+            }
         }
     } else if (!itemBoundSorts.empty()) {
         if (bounds->isNull()) {
             *bounds = itemBoundSorts.front()._bounds;
         }
         for (auto& item : itemBoundSorts) {
-            *bounds += item._bounds;
-            outItems.emplace_back(ItemBound(item._id, item._bounds));
+            if (item._id != previousID) {
+                outItems.emplace_back(ItemBound(item._id, item._bounds));
+                previousID = item._id;
+                *bounds += item._bounds;
+            }
         }
     }
 }

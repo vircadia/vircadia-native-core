@@ -5,6 +5,7 @@
 using namespace render;
 
 std::string TransitionStage::_name("Transition");
+const TransitionStage::Index TransitionStage::INVALID_INDEX{ indexed_container::INVALID_INDEX };
 
 TransitionStage::Index TransitionStage::addTransition(ItemID itemId, Transition::Type type, ItemID boundId) {
     Transition transition;
