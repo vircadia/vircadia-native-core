@@ -10,10 +10,10 @@ link_hifi_libraries()
 
 set_property(TARGET auto-tester PROPERTY WIN32_EXECUTABLE true)
 
-# This is preferred to GLOB_RECURSE, as per CMake documentation
-set(SOURCES src/main.cpp src/Test.cpp src/ui/autoTester.cpp src/ui/mismatchWindow.cpp)
-set(MOC_HEADERS src/autoTester.h src/mismatchWindow.h)
-set(UIS src/ui/autoTester.ui src/ui/mismatchWindow.ui)
+# Find all sources files
+file (GLOB_RECURSE SOURCES src/*.cpp)
+file (GLOB_RECURSE MOC_HEADERS src/*.h)
+file (GLOB_RECURSE UIS src/ui/*.ui)
 
 if (WIN32)
   add_executable(PROJECT_NAME WIN32 ${SOURCES} ${MOC_SRCS} ${UI_HEADERS})
