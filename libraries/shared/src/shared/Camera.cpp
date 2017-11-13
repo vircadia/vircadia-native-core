@@ -131,6 +131,18 @@ void Camera::loadViewFrustum(ViewFrustum& frustum) const {
     frustum.calculate();
 }
 
+/**jsdoc
+ * A ViewFrustum has a "keyhole" shape: a regular frustum for stuff that is visible plus a central sphere for stuff that is
+ * nearby (for physics simulation).
+ *
+ * @typedef ViewFrustum
+ * @property {Vec3} position - The location of the frustum's apex.
+ * @property {Quat} orientation - The direction that the frustum is looking at.
+ * @property {number} centerRadius - Center radius of the keyhole in meters.
+ * @property {number} fieldOfView - Horizontal field of view in degrees.
+ * @property {number} aspectRatio - Aspect ratio of the frustum.
+ * @property {Mat4} projection - The projection matrix for the view defined by the frustum.
+ */
 QVariantMap Camera::getViewFrustum() {
     ViewFrustum frustum;
     loadViewFrustum(frustum);
