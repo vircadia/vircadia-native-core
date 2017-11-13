@@ -140,8 +140,10 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.isReady = function (controllerData) {
             if (this.processStylus(controllerData)) {
+                Pointers.enablePointer(this.pointer);
                 return makeRunningValues(true, [], []);
             } else {
+                Pointers.disablePointer(this.pointer);
                 return makeRunningValues(false, [], []);
             }
         };
