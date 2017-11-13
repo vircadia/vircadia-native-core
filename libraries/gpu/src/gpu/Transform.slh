@@ -193,13 +193,17 @@ TransformObject getTransformObject() {
     }
 <@endfunc@>
 
-<@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
-    { // transformModelToClipPos
+<@func transformModelToMonoClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
+    { // transformModelToMonoClipPos
         vec4 eyeWAPos;
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
-
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
-        
+    }
+<@endfunc@>
+
+<@func transformModelToClipPos(cameraTransform, objectTransform, modelPos, clipPos)@>
+    { // transformModelToClipPos
+        <$transformModelToMonoClipPos($cameraTransform$, $objectTransform$, $modelPos$, $clipPos$)$>
         <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
     }
 <@endfunc@>
