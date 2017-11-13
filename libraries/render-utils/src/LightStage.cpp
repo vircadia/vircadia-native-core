@@ -13,6 +13,8 @@
 
 #include "LightStage.h"
 
+#include <cmath>
+
 std::string LightStage::_stageName { "LIGHT_STAGE"};
 const glm::mat4 LightStage::Shadow::_biasMatrix{
     0.5, 0.0, 0.0, 0.0,
