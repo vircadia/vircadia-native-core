@@ -14,7 +14,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls

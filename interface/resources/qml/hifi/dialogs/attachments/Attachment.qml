@@ -1,8 +1,4 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
-import QtQuick.Dialogs 1.2 as OriginalDialogs
-import Qt.labs.settings 1.0
 
 import "."
 import ".."

@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 

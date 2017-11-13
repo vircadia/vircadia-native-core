@@ -1,6 +1,5 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 import '.'
 
 Item {
