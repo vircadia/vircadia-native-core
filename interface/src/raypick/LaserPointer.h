@@ -70,7 +70,7 @@ public:
     static RenderState buildRenderState(const QVariantMap& propMap);
 
 protected:
-    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const override;
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const override;
 
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
     Pointer::Buttons getPressedButtons() override;

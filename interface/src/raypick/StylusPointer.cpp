@@ -17,8 +17,6 @@
 #include "PickScriptingInterface.h"
 #include <pointers/PickManager.h>
 
-using namespace controller;
-
 // TODO: make these configurable per pointer
 static const float WEB_STYLUS_LENGTH = 0.2f;
 
@@ -29,6 +27,10 @@ static const float TABLET_MAX_TOUCH_DISTANCE = 0.01f;
 
 static const float HOVER_HYSTERESIS = 0.01f;
 static const float TOUCH_HYSTERESIS = 0.02f;
+
+static const float STYLUS_MOVE_DELAY = 0.33f * USECS_PER_SECOND;
+static const float TOUCH_PRESS_TO_MOVE_DEADSPOT = 0.0481f;
+static const float TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED = TOUCH_PRESS_TO_MOVE_DEADSPOT * TOUCH_PRESS_TO_MOVE_DEADSPOT;
 
 StylusPointer::StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createStylusPick(props), enabled, hover),
@@ -115,16 +117,10 @@ bool StylusPointer::shouldTrigger(const PickResultPointer& pickResult) {
         float distance = stylusPickResult->distance;
 
         // If we're triggering on an object, recalculate the distance instead of using the pickResult
+        glm::vec3 origin = vec3FromVariant(stylusPickResult->pickVariant["position"]);
+        glm::vec3 direction = -_state.surfaceNormal;
         if (!_state.triggeredObject.objectID.isNull() && stylusPickResult->objectID != _state.triggeredObject.objectID) {
-            glm::vec3 intersection;
-            glm::vec3 origin = vec3FromVariant(stylusPickResult->pickVariant["position"]);
-            glm::vec3 direction = -_state.surfaceNormal;
-            if (_state.triggeredObject.type == ENTITY) {
-                intersection = RayPick::intersectRayWithEntityXYPlane(_state.triggeredObject.objectID, origin, direction);
-            } else if (_state.triggeredObject.type == OVERLAY) {
-                intersection = RayPick::intersectRayWithOverlayXYPlane(_state.triggeredObject.objectID, origin, direction);
-            }
-            distance = glm::dot(intersection - origin, direction);
+            distance = glm::dot(findIntersection(_state.triggeredObject, origin, direction) - origin, direction);
         }
 
         float hysteresis = _state.triggering ? TOUCH_HYSTERESIS * sensorScaleFactor : 0.0f;
@@ -132,6 +128,9 @@ bool StylusPointer::shouldTrigger(const PickResultPointer& pickResult) {
                            TABLET_MAX_TOUCH_DISTANCE * sensorScaleFactor, hysteresis)) {
             if (_state.triggeredObject.objectID.isNull()) {
                 _state.triggeredObject = PickedObject(stylusPickResult->objectID, stylusPickResult->type);
+                _state.intersection = findIntersection(_state.triggeredObject, origin, direction);
+                _state.triggerPos2D = findPos2D(_state.triggeredObject, origin);
+                _state.triggerStartTime = usecTimestampNow();
                 _state.surfaceNormal = stylusPickResult->surfaceNormal;
                 _state.triggering = true;
             }
@@ -140,6 +139,9 @@ bool StylusPointer::shouldTrigger(const PickResultPointer& pickResult) {
     }
 
     _state.triggeredObject = PickedObject();
+    _state.intersection = glm::vec3(NAN);
+    _state.triggerPos2D = glm::vec2(NAN);
+    _state.triggerStartTime = 0;
     _state.surfaceNormal = glm::vec3(NAN);
     _state.triggering = false;
     return false;
@@ -159,34 +161,30 @@ Pointer::Buttons StylusPointer::getPressedButtons() {
     return toReturn;
 }
 
-PointerEvent StylusPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const {
+PointerEvent StylusPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover) const {
     QUuid pickedID;
+    glm::vec2 pos2D;
     glm::vec3 intersection, surfaceNormal, direction, origin;
     auto stylusPickResult = std::static_pointer_cast<StylusPickResult>(pickResult);
     if (stylusPickResult) {
         intersection = stylusPickResult->intersection;
-        surfaceNormal = _state.surfaceNormal;
+        surfaceNormal = hover ? stylusPickResult->surfaceNormal : _state.surfaceNormal;
         const QVariantMap& stylusTip = stylusPickResult->pickVariant;
         origin = vec3FromVariant(stylusTip["position"]);
-        direction = -_state.surfaceNormal;
+        direction = -surfaceNormal;
+        pos2D = findPos2D(target, origin);
         pickedID = stylusPickResult->objectID;
     }
 
-    if (pickedID != target.objectID) {
-        if (target.type == ENTITY) {
-            intersection = RayPick::intersectRayWithEntityXYPlane(target.objectID, origin, direction);
-        } else if (target.type == OVERLAY) {
-            intersection = RayPick::intersectRayWithOverlayXYPlane(target.objectID, origin, direction);
-        }
+    // If we just started triggering and we haven't moved too much, don't update intersection and pos2D
+    if (!_state.triggeredObject.objectID.isNull() && usecTimestampNow() - _state.triggerStartTime < STYLUS_MOVE_DELAY &&
+            glm::distance2(pos2D, _state.triggerPos2D) < TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED) {
+        pos2D = _state.triggerPos2D;
+        intersection = _state.intersection;
+    } else if (pickedID != target.objectID) {
+        intersection = findIntersection(target, origin, direction);
     }
-    glm::vec2 pos2D;
-    if (target.type == ENTITY) {
-        pos2D = RayPick::projectOntoEntityXYPlane(target.objectID, origin);
-    } else if (target.type == OVERLAY) {
-        pos2D = RayPick::projectOntoOverlayXYPlane(target.objectID, origin);
-    } else if (target.type == HUD) {
-        pos2D = DependencyManager::get<PickManager>()->calculatePos2DFromHUD(origin);
-    }
+
     return PointerEvent(pos2D, intersection, surfaceNormal, direction);
 }
 
@@ -202,5 +200,29 @@ void StylusPointer::setRenderState(const std::string& state) {
         _renderState = EVENTS_OFF;
     } else if (state == "disabled") {
         _renderState = DISABLED;
+    }
+}
+
+glm::vec3 StylusPointer::findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction) {
+    switch (pickedObject.type) {
+        case ENTITY:
+            return RayPick::intersectRayWithEntityXYPlane(pickedObject.objectID, origin, direction);
+        case OVERLAY:
+            return RayPick::intersectRayWithOverlayXYPlane(pickedObject.objectID, origin, direction);
+        default:
+            return glm::vec3(NAN);
+    }
+}
+
+glm::vec2 StylusPointer::findPos2D(const PickedObject& pickedObject, const glm::vec3& origin) {
+    switch (pickedObject.type) {
+        case ENTITY:
+            return RayPick::projectOntoEntityXYPlane(pickedObject.objectID, origin);
+        case OVERLAY:
+            return RayPick::projectOntoOverlayXYPlane(pickedObject.objectID, origin);
+        case HUD:
+            return DependencyManager::get<PickManager>()->calculatePos2DFromHUD(origin);
+        default:
+            return glm::vec2(NAN);
     }
 }

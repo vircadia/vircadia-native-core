@@ -289,7 +289,7 @@ RenderState LaserPointer::buildRenderState(const QVariantMap& propMap) {
     return RenderState(startID, pathID, endID);
 }
 
-PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const {
+PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover) const {
     QUuid pickedID;
     glm::vec3 intersection, surfaceNormal, direction, origin;
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);

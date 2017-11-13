@@ -96,12 +96,16 @@ OffscreenUi::OffscreenUi() {
     });
 
     auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginHUD, this, &OffscreenUi::handlePointerEvent);
+    connect(pointerManager.data(), &PointerManager::hoverBeginHUD, this, &OffscreenUi::hoverBeginEvent);
     connect(pointerManager.data(), &PointerManager::hoverContinueHUD, this, &OffscreenUi::handlePointerEvent);
     connect(pointerManager.data(), &PointerManager::hoverEndHUD, this, &OffscreenUi::hoverEndEvent);
     connect(pointerManager.data(), &PointerManager::triggerBeginHUD, this, &OffscreenUi::handlePointerEvent);
     connect(pointerManager.data(), &PointerManager::triggerContinueHUD, this, &OffscreenUi::handlePointerEvent);
     connect(pointerManager.data(), &PointerManager::triggerEndHUD, this, &OffscreenUi::handlePointerEvent);
+}
+
+void OffscreenUi::hoverBeginEvent(const PointerEvent& event) {
+    OffscreenQmlSurface::hoverBeginEvent(event, _touchDevice);
 }
 
 void OffscreenUi::hoverEndEvent(const PointerEvent& event) {

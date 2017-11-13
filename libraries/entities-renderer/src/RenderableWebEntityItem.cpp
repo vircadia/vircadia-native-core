@@ -314,6 +314,12 @@ void WebEntityRenderer::loadSourceURL() {
     }
 }
 
+void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
+    if (!_lastLocked && _webSurface) {
+        _webSurface->hoverBeginEvent(event, _touchDevice);
+    }
+}
+
 void WebEntityRenderer::hoverLeaveEntity(const PointerEvent& event) {
     if (!_lastLocked && _webSurface) {
         _webSurface->hoverEndEvent(event, _touchDevice);

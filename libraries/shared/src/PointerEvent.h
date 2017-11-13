@@ -59,14 +59,14 @@ public:
     uint32_t getButtons() const { return _buttons; }
     Qt::KeyboardModifiers getKeyboardModifiers() const { return _keyboardModifiers; }
     bool shouldFocus() const { return _shouldFocus; }
-    bool sendReleaseOnHoverLeave() const { return _releaseOnHoverLeave; }
+    bool sendMoveOnHoverLeave() const { return _moveOnHoverLeave; }
 
     void setID(uint32_t id) { _id = id; }
     void setType(EventType type) { _type = type; }
     void setButton(Button button);
-    void setShouldFocus(bool focus) { _shouldFocus = focus; }
-    void setReleaseOnHoverLeave(bool releaseOnHoverLeave) { _releaseOnHoverLeave = releaseOnHoverLeave; }
     void setPos2D(const glm::vec2& pos2D) { _pos2D = pos2D; }
+    void setShouldFocus(bool focus) { _shouldFocus = focus; }
+    void setMoveOnHoverLeave(bool moveOnHoverLeave) { _moveOnHoverLeave = moveOnHoverLeave; }
 
     static const unsigned int INVALID_POINTER_ID { 0 };
 
@@ -83,7 +83,7 @@ private:
     Qt::KeyboardModifiers _keyboardModifiers { Qt::KeyboardModifier::NoModifier }; // set of keys held when event was generated
 
     bool _shouldFocus { true };
-    bool _releaseOnHoverLeave { true };
+    bool _moveOnHoverLeave { true };
 };
 
 QDebug& operator<<(QDebug& dbg, const PointerEvent& p);

@@ -144,8 +144,9 @@ private slots:
     void onFocusObjectChanged(QObject* newFocus);
 
 public slots:
+    void hoverBeginEvent(const PointerEvent& event, class QTouchDevice& device);
     void hoverEndEvent(const PointerEvent& event, class QTouchDevice& device);
-    bool handlePointerEvent(const PointerEvent& event, class QTouchDevice& device);
+    bool handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release = false);
 
 private:
     QQuickWindow* _quickWindow { nullptr };
@@ -173,9 +174,15 @@ private:
 
     QQuickItem* _currentFocusItem { nullptr };
 
-    bool _pressed { false };
+    struct TouchState {
+        QTouchEvent::TouchPoint touchPoint;
+        bool hovering { false };
+        bool pressed { false };
+    };
+
+    bool _pressed;
     bool _touchBeginAccepted { false };
-    std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
+    std::map<uint32_t, TouchState> _activeTouchPoints;
 };
 
 #endif

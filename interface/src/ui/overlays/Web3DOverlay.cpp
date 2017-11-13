@@ -337,6 +337,14 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
     _webSurface->setProxyWindow(proxyWindow);
 }
 
+void Web3DOverlay::hoverEnterOverlay(const PointerEvent& event) {
+    if (_inputMode == Mouse) {
+        handlePointerEvent(event);
+    } else if (_webSurface) {
+        _webSurface->hoverBeginEvent(event, _touchDevice);
+    }
+}
+
 void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
     if (_inputMode == Mouse) {
         PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
@@ -351,12 +359,6 @@ void Web3DOverlay::hoverLeaveOverlay(const PointerEvent& event) {
 }
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
-    if (event.getType() == PointerEvent::Press) {
-        _pressed = true;
-    } else if (event.getType() == PointerEvent::Release) {
-        _pressed = false;
-    }
-
     if (_inputMode == Touch) {
         handlePointerEventAsTouch(event);
     } else {

@@ -41,7 +41,7 @@ protected:
     bool shouldHover(const PickResultPointer& pickResult) override;
     bool shouldTrigger(const PickResultPointer& pickResult) override;
 
-    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult) const override;
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, bool hover = true) const override;
 
 private:
     void show(const StylusTip& tip);
@@ -49,9 +49,13 @@ private:
 
     struct TriggerState {
         PickedObject triggeredObject;
+        glm::vec3 intersection { NAN };
+        glm::vec2 triggerPos2D { NAN };
         glm::vec3 surfaceNormal { NAN };
-        bool hovering { false };
+        quint64 triggerStartTime { 0 };
         bool triggering { false };
+
+        bool hovering { false };
     };
 
     TriggerState _state;
@@ -67,6 +71,9 @@ private:
     const OverlayID _stylusOverlay;
 
     static bool isWithinBounds(float distance, float min, float max, float hysteresis);
+    static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
+    static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
+
 };
 
 #endif // hifi_StylusPointer_h

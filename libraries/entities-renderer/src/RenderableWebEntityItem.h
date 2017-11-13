@@ -25,6 +25,7 @@ class WebEntityRenderer : public TypedEntityRenderer<WebEntityItem> {
 public:
     WebEntityRenderer(const EntityItemPointer& entity);
 
+    Q_INVOKABLE void hoverEnterEntity(const PointerEvent& event);
     Q_INVOKABLE void hoverLeaveEntity(const PointerEvent& event);
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
 
