@@ -37,7 +37,7 @@ AABox Planar3DOverlay::getBounds() const {
 
 void Planar3DOverlay::setDimensions(const glm::vec2& value) {
     _dimensions = value;
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Planar3DOverlay::setProperties(const QVariantMap& properties) {

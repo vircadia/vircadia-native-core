@@ -19,6 +19,12 @@
 #include <pointers/Pointer.h>
 #include <pointers/Pick.h>
 
+struct LockEndObject {
+    QUuid id { QUuid() };
+    bool isOverlay { false };
+    glm::mat4 offsetMat { glm::mat4() };
+};
+
 class RenderState {
 
 public:
@@ -63,7 +69,7 @@ public:
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
     void setLength(float length) override;
-    void setLockEndUUID(const QUuid& objectID, bool isOverlay) override;
+    void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) override;
 
     void updateVisuals(const PickResultPointer& prevRayPickResult) override;
 
@@ -88,7 +94,7 @@ private:
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
-    std::pair<QUuid, bool> _objectLockEnd { std::pair<QUuid, bool>(QUuid(), false)};
+    LockEndObject _lockEndObject;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay, bool defaultState);

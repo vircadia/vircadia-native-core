@@ -93,23 +93,25 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         qApp->getOverlays().editOverlay(renderState.getStartID(), startProps);
     }
     glm::vec3 endVec;
-    if (((defaultState || !_lockEnd) && _objectLockEnd.first.isNull()) || type == IntersectionType::HUD) {
+    if (((defaultState || !_lockEnd) && _lockEndObject.id.isNull()) || type == IntersectionType::HUD) {
         endVec = pickRay.origin + pickRay.direction * distance;
     } else {
-        if (!_objectLockEnd.first.isNull()) {
+        if (!_lockEndObject.id.isNull()) {
             glm::vec3 pos;
             glm::quat rot;
             glm::vec3 dim;
             glm::vec3 registrationPoint;
-            if (_objectLockEnd.second) {
-                pos = vec3FromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "position").value);
-                rot = quatFromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "rotation").value);
-                dim = vec3FromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "dimensions").value);
+            if (_lockEndObject.isOverlay) {
+                pos = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "position").value);
+                rot = quatFromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "rotation").value);
+                dim = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "dimensions").value);
                 registrationPoint = glm::vec3(0.5f);
             } else {
-                EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_objectLockEnd.first);
-                pos = props.getPosition();
-                rot = props.getRotation();
+                EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
+                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
+                glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
+                pos = extractTranslation(finalPosAndRotMat);
+                rot = glmExtractRotation(finalPosAndRotMat);
                 dim = props.getDimensions();
                 registrationPoint = props.getRegistrationPoint();
             }
@@ -183,7 +185,7 @@ void LaserPointer::updateVisuals(const PickResultPointer& pickResult) {
 
     IntersectionType type = rayPickResult ? rayPickResult->type : IntersectionType::NONE;
     if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
-        (type != IntersectionType::NONE || _laserLength > 0.0f || !_objectLockEnd.first.isNull())) {
+        (type != IntersectionType::NONE || _laserLength > 0.0f || !_lockEndObject.id.isNull())) {
         PickRay pickRay{ rayPickResult->pickVariant };
         QUuid uid = rayPickResult->objectID;
         float distance = _laserLength > 0.0f ? _laserLength : rayPickResult->distance;
@@ -224,9 +226,11 @@ void LaserPointer::setLength(float length) {
     });
 }
 
-void LaserPointer::setLockEndUUID(const QUuid& objectID, bool isOverlay) {
+void LaserPointer::setLockEndUUID(const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat) {
     withWriteLock([&] {
-        _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay);
+        _lockEndObject.id = objectID;
+        _lockEndObject.isOverlay = isOverlay;
+        _lockEndObject.offsetMat = offsetMat;
     });
 }
 

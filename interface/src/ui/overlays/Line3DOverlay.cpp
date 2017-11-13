@@ -96,7 +96,7 @@ void Line3DOverlay::setEnd(const glm::vec3& end) {
     } else {
         _direction = glm::vec3(0.0f);
     }
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Line3DOverlay::setLocalEnd(const glm::vec3& localEnd) {
@@ -123,7 +123,7 @@ AABox Line3DOverlay::getBounds() const {
 }
 
 void Line3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_renderVisible) {
         return; // do nothing if we're not visible
     }
 
