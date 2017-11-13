@@ -26,6 +26,7 @@
     var HUD_LASER_OFFSET = 2;
     function HudOverlayPointer(hand) {
         this.hand = hand;
+        this.running = false;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
@@ -64,8 +65,13 @@
             return (rayPick.objectID === HMD.tabletScreenID || rayPick.objectID === HMD.homeButtonID);
         };
 
+        this.getOtherModule = function() {
+            return this.hand === RIGHT_HAND ? leftHudOverlayPointer : rightHudOverlayPointer;
+        };
+
         this.processLaser = function(controllerData) {
             var controllerLocation = controllerData.controllerLocations[this.hand];
+            var otherModuleRunning = this.getOtherModule().running;
             if ((controllerData.triggerValues[this.hand] < ControllerDispatcherUtils.TRIGGER_ON_VALUE || !controllerLocation.valid) ||
                 this.pointingAtTablet(controllerData)) {
                 return false;
@@ -81,11 +87,17 @@
         };
 
         this.isReady = function (controllerData) {
-            if (this.processLaser(controllerData)) {
-                return ControllerDispatcherUtils.makeRunningValues(true, [], []);
-            } else {
-                return ControllerDispatcherUtils.makeRunningValues(false, [], []);
+            var otherModuleRunning = this.getOtherModule().running;
+            if (!otherModuleRunning) {
+                if (this.processLaser(controllerData)) {
+                    this.running = true;
+                    return ControllerDispatcherUtils.makeRunningValues(true, [], []);
+                } else {
+                    this.running = false;
+                    return ControllerDispatcherUtils.makeRunningValues(false, [], []);
+                }
             }
+            return ControllerDispatcherUtils.makeRunningValues(false, [], []);
         };
 
         this.run = function (controllerData, deltaTime) {

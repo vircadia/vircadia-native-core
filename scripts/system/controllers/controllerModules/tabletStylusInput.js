@@ -20,7 +20,7 @@ Script.include("/~/system/libraries/controllers.js");
         var stylusTargetIDs = [];
         for (var index = 0; index < stylusTargets.length; index++) {
             var stylusTarget = stylusTargets[index];
-            if (stylusTarget.distance <= maxNormalDistance) {
+            if (stylusTarget.distance <= maxNormalDistance && stylusTarget.id !== HMD.tabletID) {
                 stylusTargetIDs.push(stylusTarget.id);
             }
         }
