@@ -128,6 +128,12 @@
         } else {
             ContextOverlay.isInMarketplaceInspectionMode = false;
         }
+
+        if (!onCommerceScreen) {
+            tablet.sendToQml({
+                method: 'inspectionCertificate_resetCert'
+            });
+        }
     }
 
     function openWallet() {
