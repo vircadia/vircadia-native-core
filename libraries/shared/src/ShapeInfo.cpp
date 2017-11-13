@@ -53,7 +53,7 @@ void ShapeInfo::clear() {
     _triangleIndices.clear();
     _halfExtents = glm::vec3(0.0f);
     _offset = glm::vec3(0.0f);
-    _doubleHashKey.clear();
+    _hashKey.clear();
     _type = SHAPE_TYPE_NONE;
 }
 
@@ -87,14 +87,14 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
         default:
             break;
     }
-    _doubleHashKey.clear();
+    _hashKey.clear();
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _url = "";
     _type = SHAPE_TYPE_BOX;
     setHalfExtents(halfExtents);
-    _doubleHashKey.clear();
+    _hashKey.clear();
 }
 
 void ShapeInfo::setSphere(float radius) {
@@ -102,12 +102,12 @@ void ShapeInfo::setSphere(float radius) {
     _type = SHAPE_TYPE_SPHERE;
     radius = glm::max(radius, MIN_HALF_EXTENT);
     _halfExtents = glm::vec3(radius);
-    _doubleHashKey.clear();
+    _hashKey.clear();
 }
 
 void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollection) {
     _pointCollection = pointCollection;
-    _doubleHashKey.clear();
+    _hashKey.clear();
 }
 
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
@@ -116,12 +116,12 @@ void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
     radius = glm::max(radius, MIN_HALF_EXTENT);
     halfHeight = glm::max(halfHeight, 0.0f);
     _halfExtents = glm::vec3(radius, halfHeight, radius);
-    _doubleHashKey.clear();
+    _hashKey.clear();
 }
 
 void ShapeInfo::setOffset(const glm::vec3& offset) {
     _offset = offset;
-    _doubleHashKey.clear();
+    _hashKey.clear();
 }
 
 uint32_t ShapeInfo::getNumSubShapes() const {
@@ -256,119 +256,46 @@ bool ShapeInfo::contains(const glm::vec3& point) const {
     }
 }
 
-const DoubleHashKey& ShapeInfo::getHash() const {
+const HashKey& ShapeInfo::getHash() const {
     // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
-    if (_doubleHashKey.isNull() && _type != SHAPE_TYPE_NONE) {
-        bool useOffset = glm::length2(_offset) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET;
+    if (_hashKey.isNull() && _type != SHAPE_TYPE_NONE) {
         // The key is not yet cached therefore we must compute it.
 
-        // compute hash1
-        // TODO?: provide lookup table for hash/hash2 of _type rather than recompute?
-        uint32_t primeIndex = 0;
-        _doubleHashKey.computeHash((uint32_t)_type, primeIndex++);
-
+        _hashKey.hashUint64((uint64_t)_type);
         if (_type != SHAPE_TYPE_SIMPLE_HULL) {
-            // compute hash1
-            uint32_t hash = _doubleHashKey.getHash();
-            for (int j = 0; j < 3; ++j) {
-                // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                // so the cast to int produces a round() effect rather than a floor()
-                hash ^= DoubleHashKey::hashFunction(
-                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f),
-                    primeIndex++);
-                if (useOffset) {
-                    hash ^= DoubleHashKey::hashFunction(
-                        (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f),
-                        primeIndex++);
-                }
-            }
-            _doubleHashKey.setHash(hash);
-
-            // compute hash2
-            hash = _doubleHashKey.getHash2();
-            for (int j = 0; j < 3; ++j) {
-                // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                // so the cast to int produces a round() effect rather than a floor()
-                uint32_t floatHash = DoubleHashKey::hashFunction2(
-                    (uint32_t)(_halfExtents[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _halfExtents[j]) * 0.49f));
-                if (useOffset) {
-                    floatHash ^= DoubleHashKey::hashFunction2(
-                        (uint32_t)(_offset[j] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[j]) * 0.49f));
-                }
-                hash += ~(floatHash << 17);
-                hash ^= (floatHash >> 11);
-                hash += (floatHash << 4);
-                hash ^= (floatHash >> 7);
-                hash += ~(floatHash << 10);
-                hash = (hash << 16) | (hash >> 16);
-            }
-            _doubleHashKey.setHash2(hash);
+            _hashKey.hashVec3(_halfExtents);
+            _hashKey.hashVec3(_offset);
         } else {
-
+            // TODO: we could avoid hashing all of these points if we were to supply the ShapeInfo with a unique
+            // descriptive string.  Shapes that are uniquely described by their type and URL could just put their
+            // url in the description.
             assert(_pointCollection.size() == (size_t)1);
             const PointList & points = _pointCollection.back();
             const int numPoints = (int)points.size();
-            uint32_t hash = _doubleHashKey.getHash();
-            uint32_t hash2 = _doubleHashKey.getHash2();
 
-            for (int pointIndex = 0; pointIndex < numPoints; ++pointIndex) {
-                // compute hash1 & 2
-                const glm::vec3 &curPoint = points[pointIndex];
-                for (int vecCompIndex = 0; vecCompIndex < 3; ++vecCompIndex) {
-
-                    // NOTE: 0.49f is used to bump the float up almost half a millimeter
-                    // so the cast to int produces a round() effect rather than a floor()
-                    uint32_t valueToHash = (uint32_t)(curPoint[vecCompIndex] * MILLIMETERS_PER_METER + copysignf(1.0f, curPoint[vecCompIndex]) * 0.49f);
-
-                    hash ^= DoubleHashKey::hashFunction(valueToHash, primeIndex++);
-                    uint32_t floatHash = DoubleHashKey::hashFunction2(valueToHash);
-
-                    if (useOffset) {
-
-                        const uint32_t offsetValToHash = (uint32_t)(_offset[vecCompIndex] * MILLIMETERS_PER_METER + copysignf(1.0f, _offset[vecCompIndex])* 0.49f);
-
-                        hash ^= DoubleHashKey::hashFunction(offsetValToHash, primeIndex++);
-                        floatHash ^= DoubleHashKey::hashFunction2(offsetValToHash);
-                    }
-
-                    hash2 += ~(floatHash << 17);
-                    hash2 ^= (floatHash >> 11);
-                    hash2 += (floatHash << 4);
-                    hash2 ^= (floatHash >> 7);
-                    hash2 += ~(floatHash << 10);
-                    hash2 = (hash2 << 16) | (hash2 >> 16);
-                }
+            for (int i = 0; i < numPoints; ++i) {
+                _hashKey.hashVec3(points[i]);
             }
-
-            _doubleHashKey.setHash(hash);
-            _doubleHashKey.setHash2(hash2);
         }
 
         QString url = _url.toString();
         if (!url.isEmpty()) {
-            // fold the urlHash into both parts
             QByteArray baUrl = url.toLocal8Bit();
             uint32_t urlHash = qChecksum(baUrl.data(), baUrl.size());
-            _doubleHashKey.setHash(_doubleHashKey.getHash() ^ urlHash);
-            _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ urlHash);
+            _hashKey.hashUint64((uint64_t)urlHash);
         }
 
-        uint32_t numHulls = 0;
         if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-            numHulls = (uint32_t)_pointCollection.size();
+            uint64_t numHulls = (uint64_t)_pointCollection.size();
+            _hashKey.hashUint64(numHulls);
         } else if (_type == SHAPE_TYPE_SIMPLE_HULL) {
-            numHulls = 1;
-        }
-        if (numHulls > 0) {
-            uint32_t hash = DoubleHashKey::hashFunction(numHulls, primeIndex++);
-            _doubleHashKey.setHash(_doubleHashKey.getHash() ^ hash);
-            hash = DoubleHashKey::hashFunction2(numHulls);
-            _doubleHashKey.setHash2(_doubleHashKey.getHash2() ^ hash);
+            _hashKey.hashUint64(1);
         }
     }
-    return _doubleHashKey;
+    return _hashKey;
 }
 
 void ShapeInfo::setHalfExtents(const glm::vec3& halfExtents) {
     _halfExtents = glm::max(halfExtents, glm::vec3(MIN_HALF_EXTENT));
+    _hashKey.clear();
 }

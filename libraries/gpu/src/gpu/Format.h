@@ -38,6 +38,7 @@ enum Type : uint8_t {
     NUINT16,
     NINT8,
     NUINT8,
+    NUINT2,
 
     COMPRESSED,
 
@@ -309,6 +310,7 @@ public:
     static const Element COLOR_SRGBA_32;
     static const Element COLOR_BGRA_32;
     static const Element COLOR_SBGRA_32;
+    static const Element COLOR_RGBA_2;
     static const Element COLOR_R11G11B10;
     static const Element COLOR_RGB9E5;
     static const Element COLOR_COMPRESSED_RED;

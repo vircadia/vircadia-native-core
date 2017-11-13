@@ -64,6 +64,7 @@ gvr-interface/libs/*
 # ignore files for various dev environments
 TAGS
 *.sw[po]
+*.qmlc
 
 # ignore QML compilation output
 *.qmlc
