@@ -35,16 +35,18 @@
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "RenderUtilsLogging.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
 #include "DrawHaze.h"
-#include "OutlineEffect.h"
+#include "HighlightEffect.h"
 
 #include <gpu/StandardShaderLib.h>
 
+#include <sstream>
 
 using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
@@ -56,6 +58,18 @@ RenderDeferredTask::RenderDeferredTask()
 
 void RenderDeferredTask::configure(const Config& config)
 {
+}
+
+const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, const char* selectionName,
+                                                            const render::Varying& metas, 
+                                                            const render::Varying& opaques, 
+                                                            const render::Varying& transparents) {
+    const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), std::string()).asVarying();
+    const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput, selectionName);
+    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas, std::string()).asVarying();
+    const auto selectedMetasAndOpaques = task.addJob<SelectItems>("OpaqueSelection", selectMetaAndOpaqueInput, selectionName);
+    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques, std::string()).asVarying();
+    return task.addJob<SelectItems>("TransparentSelection", selectItemInput, selectionName);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -94,15 +108,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
-
-    // Select items that need to be outlined
-    const auto selectionName = "contextOverlayHighlightList";
-    const auto selectMetaInput = SelectItems::Inputs(metas, Varying()).asVarying();
-    const auto selectedMetas = task.addJob<SelectItems>("PassTestMetaSelection", selectMetaInput, selectionName);
-    const auto selectMetaAndOpaqueInput = SelectItems::Inputs(opaques, selectedMetas).asVarying();
-    const auto selectedMetasAndOpaques = task.addJob<SelectItems>("PassTestOpaqueSelection", selectMetaAndOpaqueInput, selectionName);
-    const auto selectItemInput = SelectItems::Inputs(transparents, selectedMetasAndOpaques).asVarying();
-    const auto selectedItems = task.addJob<SelectItems>("PassTestTransparentSelection", selectItemInput, selectionName);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).asVarying();
@@ -178,10 +183,15 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
-    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOutlineRangeTimer", "Outline");
-    const auto outlineInputs = DrawOutlineTask::Inputs(selectedItems, shapePlumber, deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
-    task.addJob<DrawOutlineTask>("DrawOutline", outlineInputs);
-    task.addJob<EndGPURangeTimer>("EndOutlineRangeTimer", outlineRangeTimer);
+    const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
+    // Select items that need to be outlined
+    const auto selectionBaseName = "contextOverlayHighlightList";
+    const auto selectedItems = addSelectItemJobs(task, selectionBaseName, metas, opaques, transparents);
+
+    const auto outlineInputs = DrawHighlightTask::Inputs(items.get0(), deferredFramebuffer, primaryFramebuffer, deferredFrameTransform).asVarying();
+    task.addJob<DrawHighlightTask>("DrawHighlight", outlineInputs);
+
+    task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
@@ -190,6 +200,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     
         task.addJob<DrawBounds>("DrawLightBounds", lights);
         task.addJob<DrawBounds>("DrawZones", zones);
+
+        // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
+        task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
 
     // Layered Overlays
@@ -236,9 +249,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         }
 
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
-        
-        // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
-        task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
 
     // AA job to be revisited
@@ -454,6 +464,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     auto blitFbo = renderArgs->_blitFramebuffer;
 
     if (!blitFbo) {
+        qCWarning(renderutils) << "Blit::run - no blit frame buffer.";
         return;
     }
 
