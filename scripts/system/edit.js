@@ -11,7 +11,7 @@
 //
 
 /* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger,
-   Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
+   Settings, Entities, Tablets, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -390,7 +390,7 @@ var toolBar = (function () {
     }
 
     function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
         tablet.popFromStack();
         switch (message.method) {
         case "newModelDialogAdd":
@@ -417,7 +417,7 @@ var toolBar = (function () {
 
         var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
             captionColorOverride: hasRezPermissions ? "" : "#888888",
             icon: createButtonIconRsrc,
@@ -463,7 +463,7 @@ var toolBar = (function () {
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
 
             // tablet version of new-model dialog
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
             tablet.pushOntoStack("NewModelDialog.qml");
         });
 
@@ -644,7 +644,7 @@ var toolBar = (function () {
         isActive = active;
         activeButton.editProperties({isActive: isActive});
 
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
 
         if (!isActive) {
             entityListTool.setVisible(false);
@@ -1542,7 +1542,7 @@ function handeMenuEvent(menuItem) {
             Window.openFileChanged.connect(onFileOpenChanged);
             Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
-            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
@@ -1850,7 +1850,7 @@ var PropertiesTool = function (opts) {
     var that = {};
 
     var webView = null;
-    webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    webView = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     webView.setVisible = function(value) {};
 
     var visible = false;
@@ -2293,7 +2293,7 @@ function selectParticleEntity(entityID) {
     particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
 
     // Switch to particle explorer
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
 }
 

@@ -11,10 +11,10 @@
 // Adds a button to the tablet that will switch to a web page.
 // This web page contains buttons that will use the event bridge to trigger sounds.
 
-/* globals Tablet */
+/* globals Tablets */
 
 
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
     text: "SOUNDS",
     icon: "http://s3.amazonaws.com/hifi-public/tony/icons/trombone-i.png",

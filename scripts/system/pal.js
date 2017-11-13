@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Tablet, Settings, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account, UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation*/
+/*global Tablets, Settings, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account, UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation*/
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // pal.js
@@ -677,7 +677,7 @@ var buttonName = "PEOPLE";
 var tablet = null;
 
 function startup() {
-    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         text: buttonName,
         icon: "icons/tablet-icons/people-i.svg",

@@ -9,7 +9,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global Script, Tablet, AudioScope, Audio */
+/* global Script, Tablets, AudioScope, Audio */
 
 (function () { // BEGIN LOCAL_SCOPE
 
@@ -17,7 +17,7 @@
     var scopePaused = AudioScope.getPause();
     var autoPause = false;
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     var showScopeButton = tablet.addButton({
         icon: "icons/tablet-icons/scope.svg",
         text: "Audio Scope",

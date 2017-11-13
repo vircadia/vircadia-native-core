@@ -1,6 +1,6 @@
 "use strict";
 /* jslint vars: true, plusplus: true, forin: true*/
-/* globals Tablet, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, Controller, print, getControllerWorldLocation */
+/* globals Tablets, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, Controller, print, getControllerWorldLocation */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // floatingLanternBox.js

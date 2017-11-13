@@ -265,7 +265,7 @@ void Base3DOverlay::locationChanged(bool tellPhysics) {
     SpatiallyNestable::locationChanged(tellPhysics);
 
     // Force the actual update of the render transform through the notify call
-    notifyRenderTransformChange();
+    notifyRenderVariableChange();
 }
 
 void Base3DOverlay::parentDeleted() {
@@ -275,18 +275,21 @@ void Base3DOverlay::parentDeleted() {
 void Base3DOverlay::update(float duration) {
     // In Base3DOverlay, if its location or bound changed, the renderTrasnformDirty flag is true.
     // then the correct transform used for rendering is computed in the update transaction and assigned.
-    if (_renderTransformDirty) {
+    if (_renderVariableDirty) {
         auto itemID = getRenderItemID();
         if (render::Item::isValidID(itemID)) {
             // Capture the render transform value in game loop before
             auto latestTransform = evalRenderTransform();
-            _renderTransformDirty = false;
+            bool latestVisible = getVisible();
+            _renderVariableDirty = false;
             render::ScenePointer scene = qApp->getMain3DScene();
             render::Transaction transaction;
-            transaction.updateItem<Overlay>(itemID, [latestTransform](Overlay& data) {
+            transaction.updateItem<Overlay>(itemID, [latestTransform, latestVisible](Overlay& data) {
                 auto overlay3D = dynamic_cast<Base3DOverlay*>(&data);
                 if (overlay3D) {
+                    // TODO: overlays need to communicate all relavent render properties through transactions
                     overlay3D->setRenderTransform(latestTransform);
+                    overlay3D->setRenderVisible(latestVisible);
                 }
             });
             scene->enqueueTransaction(transaction);
@@ -294,8 +297,8 @@ void Base3DOverlay::update(float duration) {
     }
 }
 
-void Base3DOverlay::notifyRenderTransformChange() const {
-    _renderTransformDirty = true;
+void Base3DOverlay::notifyRenderVariableChange() const {
+    _renderVariableDirty = true;
 }
 
 Transform Base3DOverlay::evalRenderTransform() {
@@ -306,8 +309,17 @@ void Base3DOverlay::setRenderTransform(const Transform& transform) {
     _renderTransform = transform;
 }
 
+void Base3DOverlay::setRenderVisible(bool visible) {
+    _renderVisible = visible;
+}
+
 SpatialParentTree* Base3DOverlay::getParentTree() const {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     return entityTree.get();
+}
+
+void Base3DOverlay::setVisible(bool visible) {
+    Parent::setVisible(visible);
+    notifyRenderVariableChange();
 }

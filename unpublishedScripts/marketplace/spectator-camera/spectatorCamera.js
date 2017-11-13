@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Tablet, Script,  */
+/*global Tablets, Script,  */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // spectatorCamera.js
@@ -188,7 +188,7 @@
     //   -tablet: The tablet instance to be modified.
     var tablet = null;
     function startup() {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(onDomainChanged);

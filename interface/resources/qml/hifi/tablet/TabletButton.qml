@@ -121,7 +121,6 @@ Item {
         enabled: true
         preventStealing: true
         onClicked: {
-            console.log("Tablet Button Clicked!");
             if (tabletButton.inDebugMode) {
                 if (tabletButton.isActive) {
                     tabletButton.isActive = false;
@@ -131,12 +130,12 @@ Item {
             }
             tabletButton.clicked();
             if (tabletRoot) {
-                tabletInterface.playSound(TabletEnums.ButtonClick);
+                Tablets.playSound(TabletEnums.ButtonClick);
             }
         }
         onEntered: {
             tabletButton.isEntered = true;
-            tabletInterface.playSound(TabletEnums.ButtonHover);
+            Tablets.playSound(TabletEnums.ButtonHover);
 
             if (tabletButton.isActive) {
                 tabletButton.state = "hover active state";

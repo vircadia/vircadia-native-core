@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Window, Script, Tablet, HMD, Controller, Account, XMLHttpRequest, location, print*/
+/*global Window, Script, Tablets, HMD, Controller, Account, XMLHttpRequest, location, print*/
 
 //
 //  goto.js
@@ -30,7 +30,7 @@
     var shouldActivateButton = false;
     function ignore() { }
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     var NORMAL_ICON    = "icons/tablet-icons/goto-i.svg";
     var NORMAL_ACTIVE  = "icons/tablet-icons/goto-a.svg";
     var WAITING_ICON   = "icons/tablet-icons/goto-msg.svg";

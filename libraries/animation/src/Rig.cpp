@@ -39,7 +39,12 @@ static std::mutex rigRegistryMutex;
 
 static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
     const float EPSILON = 0.0001f;
-    return glm::length(u - v) / glm::length(u) <= EPSILON;
+    float uLen = glm::length(u);
+    if (uLen == 0.0f) {
+        return glm::length(v) <= EPSILON;
+    } else {
+        return (glm::length(u - v) / uLen) <= EPSILON;
+    }
 }
 
 static bool isEqual(const glm::quat& p, const glm::quat& q) {
@@ -303,7 +308,9 @@ void Rig::setModelOffset(const glm::mat4& modelOffsetMat) {
         _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
 
         // rebuild cached default poses
-        buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
+        if (_animSkeleton) {
+            buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
+        }
     }
 }
 

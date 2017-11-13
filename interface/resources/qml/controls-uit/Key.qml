@@ -35,13 +35,13 @@ Item {
 
         onContainsMouseChanged: {
             if (containsMouse) {
-                tabletInterface.playSound(TabletEnums.ButtonHover);
+                Tablets.playSound(TabletEnums.ButtonHover);
             }
         }
 
         onClicked: {
             mouse.accepted = true;
-            tabletInterface.playSound(TabletEnums.ButtonClick);
+            Tablets.playSound(TabletEnums.ButtonClick);
 
             webEntity.synthesizeKeyPress(glyph);
             webEntity.synthesizeKeyPress(glyph, mirrorText);

@@ -45,7 +45,7 @@ var buttonConfig = utils.assign({
     activeIcon: require('./doppleganger-a.svg.json'),
 });
 
-var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
+var tablet = Tablets.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton(buttonConfig);
 
 Script.scriptEnding.connect(function() {

@@ -148,7 +148,7 @@
     var walletEnabled = Settings.getValue("commerce", false);
     function startup() {
         if (walletEnabled) {
-            tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
             button = tablet.addButton({
                 text: buttonName,
                 icon: "icons/tablet-icons/wallet-i.svg",

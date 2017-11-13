@@ -20,7 +20,7 @@
     var isRaiseHandButtonActive = false;
     var animHandlerId;
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         text: BUTTON_NAME,
         icon: "icons/tablet-icons/raise-hand-i.svg",

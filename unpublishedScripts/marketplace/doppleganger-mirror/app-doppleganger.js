@@ -12,7 +12,7 @@
 
 var DopplegangerClass = Script.require('./doppleganger.js');
 
-var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
+var tablet = Tablets.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton({
         icon: Script.resolvePath('./doppleganger-i.svg'),
         activeIcon: Script.resolvePath('./doppleganger-a.svg'),

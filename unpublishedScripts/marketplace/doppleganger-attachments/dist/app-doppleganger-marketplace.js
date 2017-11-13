@@ -905,7 +905,7 @@ var buttonConfig = utils.assign({
     activeIcon: __webpack_require__(7),
 });
 
-var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
+var tablet = Tablets.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton(buttonConfig);
 
 Script.scriptEnding.connect(function() {

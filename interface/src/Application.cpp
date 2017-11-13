@@ -2214,12 +2214,12 @@ extern void setupPreferences();
 void Application::initializeUi() {
     // Make sure all QML surfaces share the main thread GL context
     OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
-    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "qrc:///qml/OverlayWindowTest.qml" },
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "OverlayWindowTest.qml" },
         [](QQmlContext* context) {
         qDebug() << "Whitelist OverlayWindow worked";
         context->setContextProperty("OverlayWindowTestString", "TestWorked");
     });
-    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "qrc:///qml/hifi/audio/Audio.qml" },
+    OffscreenQmlSurface::addWhitelistContextHandler(QUrl{ "hifi/audio/Audio.qml" },
         [](QQmlContext* context) {
         qDebug() << "QQQ" << __FUNCTION__ << "Whitelist Audio worked";
     });
@@ -2335,9 +2335,6 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
     surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
-    surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
-    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
-    surfaceContext->setContextProperty("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
     surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
@@ -2727,7 +2724,7 @@ bool Application::importFromZIP(const QString& filePath) {
     qDebug() << "A zip file has been dropped in: " << filePath;
     QUrl empty;
     // handle Blocks download from Marketplace
-    if (filePath.contains("vr.google.com/downloads")) {
+    if (filePath.contains("poly.google.com/downloads")) {
         addAssetToWorldFromURL(filePath);
     } else {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
@@ -4475,7 +4472,7 @@ void Application::cameraModeChanged() {
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+        if (!isHMDMode() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
             getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
         }
@@ -5832,7 +5829,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
     qScriptRegisterMetaType(scriptEngine.data(),
                             wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
-    // Tablet inteference with Tablet.qml. Need to avoid this in QML space
+    scriptEngine->registerGlobalObject("Tablets", DependencyManager::get<TabletScriptingInterface>().data());
+    // FIXME remove these deprecated names for the tablet scripting interface
     scriptEngine->registerGlobalObject("tabletInterface", DependencyManager::get<TabletScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
 
@@ -6269,7 +6267,7 @@ void Application::addAssetToWorldFromURL(QString url) {
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
     }
-    if (url.contains("vr.google.com/downloads")) {
+    if (url.contains("poly.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
             filename.remove(".zip?noDownload=false");
@@ -6304,7 +6302,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
     }
-    if (url.contains("vr.google.com/downloads")) {
+    if (url.contains("poly.google.com/downloads")) {
         filename = url.section('/', -1);
         if (url.contains("noDownload")) {
             filename.remove(".zip?noDownload=false");
@@ -7308,6 +7306,10 @@ void Application::updateDisplayMode() {
         menu->setIsOptionChecked(MenuOption::FirstPerson, true);
         cameraMenuChanged();
     }
+    
+    // Remove the mirror camera option from menu if in HMD mode
+    auto mirrorAction = menu->getActionForOption(MenuOption::FullscreenMirror);
+    mirrorAction->setVisible(!isHmd);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }

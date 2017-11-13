@@ -27,7 +27,7 @@
         }
     }
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
         text: TABLET_BUTTON_NAME,
         icon: ICON_URL,

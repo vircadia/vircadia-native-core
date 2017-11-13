@@ -130,7 +130,7 @@ protected:
 private:
     static QOpenGLContext* getSharedContext();
 
-    QQmlContext* contextForUrl(const QUrl& url, bool forceNewContext = false);
+    QQmlContext* contextForUrl(const QUrl& url, QQuickItem* parent, bool forceNewContext = false);
     void loadInternal(const QUrl& qmlSource, bool createNewContext, QQuickItem* parent, const QmlContextObjectCallback& onQmlLoadedCallback);
     void finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, QQuickItem* parent, const QmlContextObjectCallback& onQmlLoadedCallback);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);

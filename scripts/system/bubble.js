@@ -183,7 +183,7 @@
 
     // Setup the bubble button
     var buttonName = "BUBBLE";
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         icon: "icons/tablet-icons/bubble-i.svg",
         activeIcon: "icons/tablet-icons/bubble-a.svg",

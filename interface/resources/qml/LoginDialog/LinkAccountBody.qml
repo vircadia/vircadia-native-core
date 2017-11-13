@@ -248,7 +248,7 @@ Item {
 
         //dont rise local keyboard
         keyboardEnabled = !root.isTablet && HMD.active;
-        //but rise Tablet's one instead for Tablet interface
+        //but rise Tablet's one instead for Tablets interface
         if (root.isTablet) {
             root.keyboardEnabled = HMD.active;
             root.keyboardRaised = Qt.binding( function() { return keyboardRaised; })

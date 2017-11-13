@@ -135,7 +135,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &MyAvatar::restrictScaleFromDomainSettings);
 
     // when we leave a domain we lift whatever restrictions that domain may have placed on our scale
-    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &MyAvatar::clearScaleRestriction);
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &MyAvatar::leaveDomain);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor();
 
@@ -2189,6 +2189,7 @@ void MyAvatar::clampScaleChangeToDomainLimits(float desiredScale) {
 
     setTargetScale(clampedTargetScale);
     qCDebug(interfaceapp, "Changed scale to %f", (double)_targetScale);
+    emit(scaleChanged());
 }
 
 float MyAvatar::getDomainMinScale() {
@@ -2275,6 +2276,18 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
 
     setModelScale(_targetScale);
     rebuildCollisionShape();
+    settings.endGroup();
+}
+
+void MyAvatar::leaveDomain() {
+    clearScaleRestriction();
+    saveAvatarScale();
+}
+
+void MyAvatar::saveAvatarScale() {
+    Settings settings;
+    settings.beginGroup("Avatar");
+    settings.setValue("scale", _targetScale);
     settings.endGroup();
 }
 

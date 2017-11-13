@@ -7,7 +7,7 @@
 // Distributed under the Apache License, Version 2.0
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* globals Tablet, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar, Snapshot */
+/* globals Tablets, Script, HMD, Settings, DialogsManager, Menu, Reticle, OverlayWebWindow, Desktop, Account, MyAvatar, Snapshot */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function () { // BEGIN LOCAL_SCOPE
@@ -22,7 +22,7 @@ var clearOverlayWhenMoving;
 var buttonName = "SNAP";
 var buttonConnected = false;
 
-var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+var tablet = Tablets.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
     icon: "icons/tablet-icons/snap-i.svg",
     activeIcon: "icons/tablet-icons/snap-a.svg",

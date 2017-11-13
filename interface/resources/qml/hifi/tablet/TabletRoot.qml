@@ -68,8 +68,8 @@ Item {
 
     function loadSource(url) {
         tabletApps.clear();
-        loader.load(url) 
-    	tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+        tabletApps.append({"appUrl": url, "isWebUrl": false, "scriptUrl": "", "appWebUrl": ""});
+        loader.load(url)
     }
 
     function loadQMLOnTop(url) {
@@ -84,8 +84,8 @@ Item {
     function loadWebContent(source, url, injectJavaScriptUrl) {
         tabletApps.append({"appUrl": source, "isWebUrl": true, "scriptUrl": injectJavaScriptUrl, "appWebUrl": url});
         loader.load(source, function() {
-            loader.item.url = tabletApps.get(currentApp).appWebUrl;
-            loader.item.scriptUrl = tabletApps.get(currentApp).scriptUrl;
+            loader.item.scriptURL = injectJavaScriptUrl;
+            loader.item.url = url;
             if (loader.item.hasOwnProperty("gotoPreviousApp")) {
                 loader.item.gotoPreviousApp = true;
             }
