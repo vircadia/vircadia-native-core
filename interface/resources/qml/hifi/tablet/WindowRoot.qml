@@ -64,8 +64,8 @@ Windows.ScrollingWindow {
 
     function loadWebContent(source, url, injectJavaScriptUrl) {
         loader.load(source, function() {
-            loader.item.url = url
             loader.item.scriptURL = injectJavaScriptUrl;
+            loader.item.url = url;
             if (loader.item.hasOwnProperty("closeButtonVisible")) {
                 loader.item.closeButtonVisible = false;
             }
@@ -146,11 +146,6 @@ Windows.ScrollingWindow {
         }
         
         function load(newSource, callback) {
-            if (loader.source == newSource) {
-                loader.loaded();
-                return;
-            }
-
             if (loader.item) {
                 loader.item.destroy();
                 loader.item = null;

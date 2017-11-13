@@ -697,13 +697,16 @@ QQuickItem* OffscreenQmlSurface::getRootItem() {
     return _rootItem;
 }
 
-QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, bool forceNewContext) {
+QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {
     // Get any whitelist functionality
     QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(qmlSource);
     // If we have whitelisted content, we must load a new context
     forceNewContext |= !callbacks.empty();
 
-    QQmlContext* targetContext = _qmlContext;
+    QQmlContext* targetContext = parent ? QQmlEngine::contextForObject(parent) : _qmlContext;
+    if (!targetContext) {
+    	targetContext = _qmlContext;
+    }
     if (_rootItem && forceNewContext) {
         targetContext = new QQmlContext(targetContext);
     }
@@ -737,7 +740,7 @@ void OffscreenQmlSurface::loadInternal(const QUrl& qmlSource, bool createNewCont
         finalQmlSource = _qmlContext->resolvedUrl(qmlSource);
     }
 
-    auto targetContext = contextForUrl(finalQmlSource, createNewContext);
+    auto targetContext = contextForUrl(finalQmlSource, parent, createNewContext);
     auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
     if (qmlComponent->isLoading()) {
         connect(qmlComponent, &QQmlComponent::statusChanged, this, [=](QQmlComponent::Status) { 
