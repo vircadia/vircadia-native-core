@@ -257,7 +257,7 @@ unsigned int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
-    if (!_visible || !getParentVisible()) {
+    if (!_renderVisible || !getParentVisible()) {
         return;
     }
 

@@ -35,6 +35,7 @@
    propsArePhysical:true,
    controllerDispatcherPluginsNeedSort:true,
    projectOntoXYPlane:true,
+   getChildrenProps:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
    makeLaserLockInfo:true,
@@ -42,6 +43,7 @@
    ensureDynamic:true,
    findGroupParent:true,
    BUMPER_ON_VALUE:true,
+   getEntityParents:true,
    findHandChildEntities:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
@@ -320,6 +322,23 @@ findGroupParent = function (controllerData, targetProps) {
     }
 
     return targetProps;
+};
+
+getEntityParents = function(targetProps) {
+    var parentProperties = [];
+    while (targetProps.parentID &&
+           targetProps.parentID !== Uuid.NULL &&
+           Entities.getNestableType(targetProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = targetProps.parentID;
+        targetProps = parentProps;
+        parentProperties.push(parentProps);
+    }
+
+    return parentProperties;
 };
 
 

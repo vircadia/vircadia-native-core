@@ -115,10 +115,10 @@ void PointerManager::setLength(unsigned int uid, float length) const {
     }
 }
 
-void PointerManager::setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay) const {
+void PointerManager::setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat) const {
     auto pointer = find(uid);
     if (pointer) {
-        pointer->setLockEndUUID(objectID, isOverlay);
+        pointer->setLockEndUUID(objectID, isOverlay, offsetMat);
     }
 }
 

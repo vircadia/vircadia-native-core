@@ -19,6 +19,7 @@
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
+Script.include("/~/system/libraries/Xform.js");
 
 (function() {
     var GRABBABLE_PROPERTIES = [
@@ -40,18 +41,71 @@ Script.include("/~/system/libraries/controllers.js");
     ];
 
     var MARGIN = 25;
+
+    function TargetObject(entityID, entityProps) {
+        this.entityID = entityID;
+        this.entityProps = entityProps;
+        this.targetEntityID = null;
+        this.targetEntityProps = null;
+        this.previousCollisionStatus = null;
+        this.madeDynamic = null;
+
+        this.makeDynamic = function() {
+            if (this.targetEntityID) {
+                var newProps = {
+                    dynamic: true,
+                    collisionless: true
+                };
+                this.previousCollisionStatus = this.targetEntityProps.collisionless;
+                Entities.editEntity(this.targetEntityID, newProps);
+                this.madeDynamic = true;
+            }
+        };
+
+        this.restoreTargetEntityOriginalProps = function() {
+            if (this.madeDynamic) {
+                var props = {};
+                props.dynamic = false;
+                props.collisionless = this.previousCollisionStatus;
+                var zeroVector = {x: 0, y: 0, z:0};
+                props.localVelocity = zeroVector;
+                props.localRotation = zeroVector;
+                Entities.editEntity(this.targetEntityID, props);
+            }
+        };
+
+        this.getTargetEntity = function() {
+            var parentPropsLength = this.parentProps.length;
+            if (parentPropsLength !== 0) {
+                var targetEntity = {
+                    id: this.parentProps[parentPropsLength - 1].id,
+                    props: this.parentProps[parentPropsLength - 1]};
+                this.targetEntityID = targetEntity.id;
+                this.targetEntityProps = targetEntity.props;
+                return targetEntity;
+            }
+            this.targetEntityID = this.entityID;
+            this.targetEntityProps = this.entityProps;
+            return {
+                id: this.entityID,
+                props: this.entityProps};
+        };
+    }
+
     function FarActionGrabEntity(hand) {
         this.hand = hand;
         this.grabbedThingID = null;
+        this.targetObject = null;
         this.actionID = null; // action this script created...
+        this.entityToLockOnto = null;
         this.entityWithContextOverlay = false;
         this.contextOverlayTimer = false;
         this.previousCollisionStatus = false;
+        this.locked = false;
         this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
-        this.madeDynamic = false;
 
         var ACTION_TTL = 15; // seconds
 
@@ -234,18 +288,12 @@ Script.include("/~/system/libraries/controllers.js");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
-
-            if (this.madeDynamic) {
-                var props = {};
-                props.dynamic = false;
-                props.collisionless = this.previousCollisionStatus;
-                props.localVelocity = {x: 0, y: 0, z: 0};
-                props.localRotation = {x: 0, y: 0, z: 0};
-                Entities.editEntity(this.grabbedThingID, props);
-                this.madeDynamic = false;
+            if (this.targetObject) {
+                this.targetObject.restoreTargetEntityOriginalProps();
             }
             this.actionID = null;
             this.grabbedThingID = null;
+            this.targetObject = null;
         };
 
         this.updateRecommendedArea = function() {
@@ -394,17 +442,18 @@ Script.include("/~/system/libraries/controllers.js");
                             "userData", "locked", "type"
                         ]);
 
+                        this.targetObject = new TargetObject(entityID, targetProps);
+                        this.targetObject.parentProps = getEntityParents(targetProps);
                         if (entityID !== this.entityWithContextOverlay) {
                             this.destroyContextOverlay();
                         }
+                        var targetEntity = this.targetObject.getTargetEntity();
+                        entityID = targetEntity.id;
+                        targetProps = targetEntity.props;
 
                         if (entityIsGrabbable(targetProps)) {
                             if (!entityIsDistanceGrabbable(targetProps)) {
-                                targetProps.dynamic = true;
-                                this.previousCollisionStatus = targetProps.collisionless;
-                                targetProps.collisionless = true;
-                                Entities.editEntity(entityID, targetProps);
-                                this.madeDynamic = true;
+                                this.targetObject.makeDynamic();
                             }
 
                             if (!this.distanceRotating) {
