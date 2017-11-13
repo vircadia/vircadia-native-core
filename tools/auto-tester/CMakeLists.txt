@@ -1,25 +1,34 @@
 set(TARGET_NAME auto-tester)
+project(${TARGET_NAME})
 
 setup_hifi_project(Widgets)
 link_hifi_libraries()
 
-# grab the implementation and header files from src dirs
-file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
-GroupSources("src")
-
-find_package(
-  Qt5 COMPONENTS
-  Gui Multimedia Network OpenGL Qml Quick Script Svg
-  ${PLATFORM_QT_COMPONENTS}
-  WebChannel WebSockets
+set ( SOURCES
+    src/main.cpp
+    src/Test.cpp
+    src/ui/AutoTester.cpp
+    src/ui/MismatchWindow.cpp
 )
 
-# grab the ui files in resources/ui
-file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
-source_group("UI Files" FILES ${QT_UI_FILES})
+set ( MOC_HEADERS
+    src/ui/AutoTester.h
+    src/ui/MismatchWindow.h
+)
 
-# have qt5 wrap them and generate the appropriate header files
-qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
+set ( UIS
+    ui/AutoTester.ui
+    ui/MismatchWindow.ui
+)
 
-# add them to the interface source files
-set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
+set ( RESOURCES
+    src/AutoTester.qrc
+)
+
+QT5_ADD_RESOURCES( RES_SOURCES ${RESOURCES} )
+QT5_WRAP_UI( UI_HEADERS ${UIS} )
+QT5_WRAP_CPP( MOC_SRCS ${MOC_HEADERS} )
+
+add_executable( PROJECT_NAME ${SOURCES} ${MOC_SRCS} ${RES_SOURCES} ${UI_HEADERS} )
+
+target_link_libraries( PROJECT_NAME ${QT_LIBRARIES} )
