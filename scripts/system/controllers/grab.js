@@ -315,6 +315,10 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
+    if (event.isAlt || event.isMeta) {
+        return;
+    }
+
     if (Overlays.getOverlayAtPoint(Reticle.position) > 0) {
         // the mouse is pointing at an overlay; don't look for entities underneath the overlay.
         return;

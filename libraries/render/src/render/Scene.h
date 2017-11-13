@@ -17,6 +17,7 @@
 #include "Stage.h"
 #include "Selection.h"
 #include "Transition.h"
+#include "HighlightStyle.h"
 
 namespace render {
 
@@ -37,6 +38,7 @@ class Transaction {
 public:
 
     typedef std::function<void(ItemID, const Transition*)> TransitionQueryFunc;
+    typedef std::function<void(HighlightStyle const*)> SelectionHighlightQueryFunc;
 
     Transaction() {}
     ~Transaction() {}
@@ -61,6 +63,10 @@ public:
     // Selection transactions
     void resetSelection(const Selection& selection);
 
+    void resetSelectionHighlight(const std::string& selectionName, const HighlightStyle& style = HighlightStyle());
+    void removeHighlightFromSelection(const std::string& selectionName);
+    void querySelectionHighlight(const std::string& selectionName, SelectionHighlightQueryFunc func);
+
     void merge(const Transaction& transaction);
 
     // Checkers if there is work to do when processing the transaction
@@ -75,6 +81,9 @@ protected:
     using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
     using TransitionReApply = ItemID;
     using SelectionReset = Selection;
+    using HighlightReset = std::tuple<std::string, HighlightStyle>;
+    using HighlightRemove = std::string;
+    using HighlightQuery = std::tuple<std::string, SelectionHighlightQueryFunc>;
 
     using Resets = std::vector<Reset>;
     using Removes = std::vector<Remove>;
@@ -83,6 +92,9 @@ protected:
     using TransitionQueries = std::vector<TransitionQuery>;
     using TransitionReApplies = std::vector<TransitionReApply>;
     using SelectionResets = std::vector<SelectionReset>;
+    using HighlightResets = std::vector<HighlightReset>;
+    using HighlightRemoves = std::vector<HighlightRemove>;
+    using HighlightQueries = std::vector<HighlightQuery>;
 
     Resets _resetItems;
     Removes _removedItems;
@@ -91,6 +103,9 @@ protected:
     TransitionQueries _queriedTransitions;
     TransitionReApplies _reAppliedTransitions;
     SelectionResets _resetSelections;
+    HighlightResets _highlightResets;
+    HighlightRemoves _highlightRemoves;
+    HighlightQueries _highlightQueries;
 };
 typedef std::queue<Transaction> TransactionQueue;
 
@@ -102,6 +117,7 @@ typedef std::queue<Transaction> TransactionQueue;
 // Items are notified accordingly on any update message happening
 class Scene {
 public:
+
     Scene(glm::vec3 origin, float size);
     ~Scene();
 
@@ -126,6 +142,10 @@ public:
     // Access a particular selection (empty if doesn't exist)
     // Thread safe
     Selection getSelection(const Selection::Name& name) const;
+
+    // Check if a particular selection is empty (returns true if doesn't exist)
+    // Thread safe
+    bool isSelectionEmpty(const Selection::Name& name) const;
 
     // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
 
@@ -187,6 +207,9 @@ protected:
     void transitionItems(const Transaction::TransitionAdds& transactions);
     void reApplyTransitions(const Transaction::TransitionReApplies& transactions);
     void queryTransitionItems(const Transaction::TransitionQueries& transactions);
+    void resetHighlights(const Transaction::HighlightResets& transactions);
+    void removeHighlights(const Transaction::HighlightRemoves& transactions);
+    void queryHighlights(const Transaction::HighlightQueries& transactions);
 
     void collectSubItems(ItemID parentId, ItemIDs& subItems) const;
 

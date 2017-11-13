@@ -749,7 +749,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
         return QString();
     }
     qCDebug(uiLogging) << result.toString();
-    return result.toUrl().toLocalFile();
+    return result.toString();
 }
 
 ModalDialogListener* OffscreenUi::fileDialogAsync(const QVariantMap& properties) {

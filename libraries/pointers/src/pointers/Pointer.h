@@ -60,7 +60,7 @@ public:
 
     // Pointers can choose to implement these
     virtual void setLength(float length) {}
-    virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay) {}
+    virtual void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) {}
 
     void update(unsigned int pointerID, float deltaTime);
     virtual void updateVisuals(const PickResultPointer& pickResult) = 0;

@@ -23,7 +23,6 @@ Rectangle3DOverlay::Rectangle3DOverlay() :
     for (size_t i = 0; i < _rectGeometryIds.size(); ++i) {
         _rectGeometryIds[i] = geometryCache->allocateID();
     }
-    qDebug() << "Building rect3d overlay";
 }
 
 Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay) :
@@ -34,11 +33,9 @@ Rectangle3DOverlay::Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOver
     for (size_t i = 0; i < _rectGeometryIds.size(); ++i) {
         _rectGeometryIds[i] = geometryCache->allocateID();
     }
-    qDebug() << "Building rect3d overlay";
 }
 
 Rectangle3DOverlay::~Rectangle3DOverlay() {
-    qDebug() << "Destryoing rect3d overlay";
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_geometryCacheID);
@@ -49,7 +46,7 @@ Rectangle3DOverlay::~Rectangle3DOverlay() {
 }
 
 void Rectangle3DOverlay::render(RenderArgs* args) {
-    if (!_visible) {
+    if (!_renderVisible) {
         return; // do nothing if we're not visible
     }
 
@@ -58,18 +55,11 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    glm::vec3 position = getPosition();
-    glm::vec2 dimensions = getDimensions();
-    glm::vec2 halfDimensions = dimensions * 0.5f;
-    glm::quat rotation = getRotation();
-
     auto batch = args->_batch;
-
     if (batch) {
-        // FIXME Start using the _renderTransform instead of calling for Transform and Dimensions from here, do the custom things needed in evalRenderTransform()
-        Transform transform;
-        transform.setTranslation(position);
-        transform.setRotation(rotation);
+        Transform transform = getRenderTransform();
+        glm::vec2 halfDimensions = transform.getScale() * 0.5f;
+        transform.setScale(1.0f);
 
         batch->setModelTransform(transform);
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -124,8 +114,3 @@ void Rectangle3DOverlay::setProperties(const QVariantMap& properties) {
 Rectangle3DOverlay* Rectangle3DOverlay::createClone() const {
     return new Rectangle3DOverlay(this);
 }
-
-Transform Rectangle3DOverlay::evalRenderTransform() {
-    return getTransform();
-}
-
